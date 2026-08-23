@@ -1,0 +1,146 @@
+import XCTest
+
+/// P1.6 Edit entry UI tests. The seed is the golden D1 history
+/// (`-seedHomeEditHistory`): eight full fills over ~15 weeks, so the headline
+/// is the documented 6.9 and an edit to the newest fill's odometer moves it to
+/// a known value. Assertions cover the three behaviours that carry the task:
+/// the delta toast (old -> new, and its absence on a no-op save), the delete
+/// confirmation (the one place red lives), and the amber cross-check/timeline
+/// mechanics that keep save-anyway working with the flag written.
+@MainActor
+final class EditEntryUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    private func launch() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeEditHistory"]
+        app.launch()
+        return app
+    }
+
+    /// The newest fill (1 day ago, 119 486 km) is the top log row - the edit
+    /// target for every test.
+    private func openNewestFill(_ app: XCUIApplication) {
+        let row = app.buttons.matching(identifier: "logEntryButton").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+    }
+
+    /// Replaces a text field's contents without the text-selection edit menu
+    /// (unreliable on the iOS 26 simulator): tap the field's right edge so the
+    /// cursor lands at the end of a trailing-aligned value, delete the current
+    /// text one keystroke at a time, then type the replacement. When the
+    /// keyboard is up it can cover the lower cards, so it is dropped first
+    /// (the edit screen's scroll view dismisses the keyboard on scroll).
+    private func replaceText(in field: XCUIElement, with text: String, app: XCUIApplication) {
+        if app.keyboards.firstMatch.exists {
+            app.swipeDown()
+        }
+        field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        let current = (field.value as? String) ?? ""
+        if !current.isEmpty {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue,
+                                  count: current.count))
+        }
+        field.typeText(text)
+    }
+
+    // MARK: - The delta toast
+
+    func testToastShowsOldToNewAfterEditThatMovesConsumption() {
+        let app = launch()
+        openNewestFill(app)
+
+        // The newest fill's odometer 119 486 -> 120 486 re-bases the last
+        // segment: headline 6.9 -> 5.6, both from the engine.
+        let odometer = app.textFields["manualFillUpOdometerField"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        replaceText(in: odometer, with: "120486", app: app)
+
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        let toast = app.staticTexts["Consumption updated: 6.9 → 5.6 L/100km"]
+        XCTAssertTrue(toast.waitForExistence(timeout: 5),
+                      "delta toast did not appear after an edit that moved consumption")
+        XCTAssertTrue(app.buttons["deltaToast"].exists)
+    }
+
+    func testNoToastAfterNoOpEdit() {
+        let app = launch()
+        openNewestFill(app)
+
+        // Save without changing anything: the recompute result is identical, so
+        // no toast - claiming an update that did not happen is worse than none.
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["deltaToast"].waitForExistence(timeout: 2),
+                       "no-op edit must not show a delta toast")
+    }
+
+    // MARK: - Delete confirmation
+
+    func testDeleteShowsConfirmationAndCancelLeavesEntryIntact() {
+        let app = launch()
+        openNewestFill(app)
+
+        app.buttons["editEntryDeleteButton"].tap()
+
+        // The system confirmation appears - the one place red lives.
+        let alert = app.alerts["Delete this entry?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        XCTAssertTrue(alert.buttons["Delete"].exists)
+
+        // Cancel leaves the entry intact: still on the edit screen with all its
+        // fields, and back on Home the log row is still there.
+        alert.buttons["Cancel"].tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 8,
+                       "cancelling delete must leave all eight entries in the log")
+    }
+
+    // MARK: - Amber mechanics keep save-anyway working, flag kept
+
+    func testSaveAnywayKeepsConflictFlagAfterCrossCheckAndTimelineWarnings() {
+        let app = launch()
+        openNewestFill(app)
+
+        // Break the cross-check: 42.30 L x 1.679 = 71.02, so a 60.00 total is a
+        // mismatch. The amber line refuses to lock.
+        let total = app.textFields["manualFillUpTotalField"]
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        replaceText(in: total, with: "60.00", app: app)
+        XCTAssertTrue(app.staticTexts["manualFillUpCrossCheckMismatch"].waitForExistence(timeout: 5))
+
+        // Break the timeline: 100 000 km is below the previous fill's 118 843.
+        let odometer = app.textFields["manualFillUpOdometerField"]
+        replaceText(in: odometer, with: "100000", app: app)
+        XCTAssertTrue(app.staticTexts["manualFillUpOdometerWarning"].waitForExistence(timeout: 5))
+
+        // Save-anyway still works - the bar is not disabled by either warning -
+        // and the flag is KEPT: Home shows the conflict badge and the excluded
+        // count.
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        let badge = app.buttons["conflictBadgeButton"]
+        XCTAssertTrue(badge.waitForExistence(timeout: 5),
+                      "save-anyway must keep the conflict flag visible on Home")
+        XCTAssertTrue(app.staticTexts["1 entry excluded"].exists)
+    }
+}

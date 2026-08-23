@@ -348,7 +348,7 @@ struct HomeRecentEntries: View {
 
     private func entryCard(_ entry: LogStream.LogEntry) -> some View {
         HStack(spacing: 12) {
-            NavigationLink(value: Route.editEntry) {
+            NavigationLink(value: Route.editEntry(entry.id)) {
                 HStack(spacing: 12) {
                     Circle()
                         .fill(dotColor(entry.kind))
@@ -371,7 +371,7 @@ struct HomeRecentEntries: View {
             .accessibilityIdentifier("logEntryButton")
 
             if entry.isConflicted {
-                NavigationLink(value: Route.editEntry) {
+                NavigationLink(value: Route.editEntry(entry.id)) {
                     Image(systemName: "chevron.right")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(Theme.Palette.warn)
@@ -556,7 +556,7 @@ struct HomeRecentEntries: View {
     /// A member row inside an expanded group. The fuel member shows its FUEL
     /// amount, never the receipt's grand total (hard rule 4).
     private func groupMemberRow(_ member: LogStream.LogEntry) -> some View {
-        NavigationLink(value: Route.editEntry) {
+        NavigationLink(value: Route.editEntry(member.id)) {
             HStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 1) {
                     titleLine(member)

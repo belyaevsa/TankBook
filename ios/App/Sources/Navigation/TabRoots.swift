@@ -7,24 +7,51 @@ import UIKit
 /// The three tab roots (docs/SCREENMAP.md "Tab roots (no back)"): Log/Home,
 /// Trends, Garage. Each tab owns its own `NavigationStack` path so switching
 /// tabs preserves each tab's stack - a stated requirement, not an accident.
+///
+/// The delta toast (docs/ERRORS.md -> Edit entry, row 4) is owned here, above
+/// the TabView: it must survive a navigation pop (the edit save dismisses back
+/// to Home) and its "tap -> Trends" next step is a TAB switch, which only the
+/// root can perform.
 struct AppRootView: View {
+    @State private var toastCenter = AppToastCenter()
+    @State private var tabSelection: Int = 0
+
     init() {
         Self.applyNeutralTabBarAppearance()
     }
 
     var body: some View {
-        TabView {
+        TabView(selection: $tabSelection) {
             HomeTabView()
                 .tabItem { Label("Log", systemImage: "list.bullet") }
+                .tag(0)
             TrendsTabView()
                 .tabItem { Label("Trends", systemImage: "chart.line.uptrend.xyaxis") }
+                .tag(1)
             GarageTabView()
                 .tabItem { Label("Garage", systemImage: "car") }
+                .tag(2)
         }
         // The accent still propagates to CONTENT - entry markers, the capture
         // button, the cross-check lock. The tab bar itself is overridden below.
         .tint(Theme.Palette.taillight)
+        .overlay(alignment: .bottom) {
+            if let message = toastCenter.message {
+                DeltaToast(message: message) {
+                    toastCenter.dismiss()
+                    tabSelection = 1   // Trends is the toast's next step
+                }
+                .padding(.bottom, Self.toastBottomClearance)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeOut(duration: 0.2), value: toastCenter.message)
+        .environment(toastCenter)
     }
+
+    /// Clears the floating tab bar plus its float margin (the same geometry
+    /// Home's bottom clearance accounts for) so the toast never covers the bar.
+    private static let toastBottomClearance: CGFloat = 88
 
     /// The tab bar stays neutral: `ink` when selected, `inkSoft` when not.
     ///
@@ -131,5 +158,42 @@ struct GarageTabView: View {
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
         .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
+    }
+}
+
+// MARK: - Delta toast
+
+/// The informational "Consumption updated: 6.9 -> 6.8 L/100km" notice
+/// (docs/ERRORS.md -> Edit entry, row 4). Rendered above the tab bar, tappable
+/// -> Trends. Never rendered for an edit that moved nothing - the caller only
+/// posts a message when a figure actually changed.
+struct DeltaToast: View {
+    let message: String
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.taillight)
+                Text(message)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+            .background(Theme.Palette.dash)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .stroke(Theme.Palette.hairline, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.35), radius: 12, y: 4)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("deltaToast")
     }
 }

@@ -27,7 +27,7 @@ struct HomeEmptyEntriesCard: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.Palette.headlight)
                     .accessibilityIdentifier("homeEmptyEntriesButton")
-                NavigationLink(value: Route.editEntry) {
+                NavigationLink(value: Route.editEntry(nil)) {
                     Text("Edit entry")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Theme.Palette.headlight)
@@ -97,7 +97,7 @@ struct HomeNoCarLayout: View {
             }
             .accessibilityIdentifier("typeItButton")
             CardDivider()
-            NavigationLink(value: Route.editEntry) {
+            NavigationLink(value: Route.editEntry(nil)) {
                 Label("Edit entry", systemImage: "pencil")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Palette.ink)

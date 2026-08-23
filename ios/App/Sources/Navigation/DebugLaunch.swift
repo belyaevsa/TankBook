@@ -39,7 +39,7 @@ enum DebugLaunch {
         "reminders": .reminders,
         "reminderForm": .reminderForm,
         "recentlyDeleted": .recentlyDeleted,
-        "editEntry": .editEntry,
+        "editEntry": .editEntry(nil),
         "vehicleDetail": .vehicleDetail,
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,

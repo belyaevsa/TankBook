@@ -44,3 +44,15 @@ The pattern these converged on, in order:
   throw, or a "tamper" test that mutates a field the code never reads.
 - A brief that turns out to be wrong is **edited and re-dispatched**, keeping the same file. Only a brief
   replaced by a different decomposition gets a `-superseded` suffix, kept for the record.
+
+## Screenshot pitfalls (learned the hard way)
+
+- **Seeds are idempotent and silently do nothing on a populated database.** `-seedEditEntry` and the
+  `-seedHome*` family all bail once a vehicle exists, so a capture run against a previous run's database
+  renders "Entry not found" instead of the screen. Always pass `-homeResetDatabase` alongside the seed.
+- **An agent cannot see its own screenshot.** The DeepSeek runs have no image input, so they verify by
+  accessibility tree or OCR and can ship a screenshot of an error state believing it is the screen. P1.6
+  shipped two such images. **The orchestrator must open every screenshot** - that is the check the whole
+  convention exists for.
+- **Never drive the simulator while `xcodebuild test` is running** - they fight over the device and the
+  test run fails in a way that looks like a real regression.

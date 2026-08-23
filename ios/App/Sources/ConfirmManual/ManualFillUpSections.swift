@@ -6,8 +6,10 @@ import TankbookCore
 /// The currency chip row (artboard): EUR/PLN/CZK/CHF plus a "More…" menu. One
 /// tap picks the entry's original currency; a foreign pick makes the money pair
 /// rate-pending (F9) - never silently converted (docs/ERRORS.md -> Confirm).
-struct ManualFillUpCurrencySection: View {
-    @Binding var form: ManualFillUpFormState
+/// Shared by the ConfirmManual sheet and the Edit-entry money card (P1.6
+/// lifted the chip row out of the section so both use the same component).
+struct CurrencyChipRow: View {
+    @Binding var currency: CurrencyCode
     let homeCurrency: CurrencyCode
     let lowConfidence: Bool
 
@@ -16,25 +18,21 @@ struct ManualFillUpCurrencySection: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionEyebrow("Currency")
-            HStack(spacing: 6) {
-                ForEach(Self.chips, id: \.self) { code in
-                    chip(code)
-                }
-                moreMenu
+        HStack(spacing: 6) {
+            ForEach(Self.chips, id: \.self) { code in
+                chip(code)
             }
-            hint
+            moreMenu
         }
     }
 
     private func chip(_ code: CurrencyCode) -> some View {
-        let selected = form.currency == code
+        let selected = currency == code
         let border = selected
             ? (lowConfidence ? Theme.Palette.warn : Theme.Palette.taillight)
             : Theme.Palette.hairline
         return Button {
-            form.currency = code
+            currency = code
         } label: {
             Text(chipLabel(code))
                 .font(.footnote.weight(selected ? .bold : .semibold))
@@ -52,7 +50,7 @@ struct ManualFillUpCurrencySection: View {
         Menu {
             ForEach(AddVehicleSupport.currencyOptions, id: \.self) { code in
                 Button {
-                    form.currency = code
+                    currency = code
                 } label: {
                     Text(chipLabel(code))
                 }
@@ -66,7 +64,29 @@ struct ManualFillUpCurrencySection: View {
                 .background(Capsule().fill(Theme.Palette.dash))
                 .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
         }
-        .accessibilityIdentifier("manualFillUpCurrencyMore")
+        .accessibilityIdentifier("currencyChipMore")
+    }
+
+    private func chipLabel(_ code: CurrencyCode) -> String {
+        AddVehicleSupport.currencyLabel(for: code)
+    }
+}
+
+/// The currency section (artboard): the chip row plus the hint that explains
+/// the current conversion state (rate-pending for a foreign pick, the neutral
+/// caption otherwise).
+struct ManualFillUpCurrencySection: View {
+    @Binding var form: ManualFillUpFormState
+    let homeCurrency: CurrencyCode
+    let lowConfidence: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            SectionEyebrow("Currency")
+            CurrencyChipRow(currency: $form.currency, homeCurrency: homeCurrency,
+                            lowConfidence: lowConfidence)
+            hint
+        }
     }
 
     @ViewBuilder
@@ -89,10 +109,6 @@ struct ManualFillUpCurrencySection: View {
             .font(.caption)
             .foregroundStyle(color)
             .modifier(OptionalIdentifier(identifier: identifier))
-    }
-
-    private func chipLabel(_ code: CurrencyCode) -> String {
-        AddVehicleSupport.currencyLabel(for: code)
     }
 }
 
@@ -309,6 +325,9 @@ struct ManualFillUpOdometerCard: View {
     let distanceUnit: DistanceUnit
     let conflict: OdometerConflict?
     let onFixDate: () -> Void
+    /// The helper caption under the row; ConfirmManual explains the last-known
+    /// pre-fill, the Edit screen passes `nil` (its odometer is not a pre-fill).
+    var caption: LocalizedStringKey? = "last known · update after typing fuel"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -316,12 +335,14 @@ struct ManualFillUpOdometerCard: View {
             if let conflict {
                 warningRow(conflict)
             }
-            Text("last known · update after typing fuel")
-                .font(.caption2)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.horizontal, Theme.Spacing.cardPadding)
-                .padding(.bottom, 12)
+            if let caption {
+                Text(caption)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, Theme.Spacing.cardPadding)
+                    .padding(.bottom, 12)
+            }
         }
         .formCard()
     }
@@ -429,8 +450,13 @@ struct ManualFillUpStationRow: View {
 
 // MARK: - Date
 
+/// The date row (artboard): a label, a tappable formatted date, and the
+/// graphical picker. Shared by ConfirmManual and the Edit-entry screen (P1.6
+/// lifted the row's binding from the whole form to a single `Date` so both use
+/// the same component). Past dates only - a fill-up cannot be logged in the
+/// future.
 struct ManualFillUpDateRow: View {
-    @Binding var form: ManualFillUpFormState
+    @Binding var date: Date
     @Binding var showDatePicker: Bool
 
     var body: some View {
@@ -444,7 +470,7 @@ struct ManualFillUpDateRow: View {
                     withAnimation(.easeInOut(duration: 0.2)) { showDatePicker.toggle() }
                 } label: {
                     HStack(spacing: 6) {
-                        Text(form.date.formatted(.dateTime.month(.abbreviated).day().year()))
+                        Text(date.formatted(.dateTime.month(.abbreviated).day().year()))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.Palette.ink)
                         Image(systemName: "chevron.down")
@@ -453,15 +479,15 @@ struct ManualFillUpDateRow: View {
                     }
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("manualFillUpDateButton")
+                .accessibilityIdentifier("entryDateButton")
             }
             .padding(.horizontal, Theme.Spacing.cardPadding)
             .padding(.vertical, 12)
             if showDatePicker {
-                DatePicker("", selection: $form.date, in: ...Date(), displayedComponents: .date)
+                DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date)
                     .datePickerStyle(.graphical)
                     .labelsHidden()
-                    .accessibilityIdentifier("manualFillUpDatePicker")
+                    .accessibilityIdentifier("entryDatePicker")
                     .padding(.horizontal, Theme.Spacing.cardPadding)
                     .padding(.bottom, 12)
             }

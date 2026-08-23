@@ -16,11 +16,12 @@ import UIKit
 struct HomeView: View {
     let presentSheet: (SheetRoute) -> Void
 
+    @Environment(AppToastCenter.self) private var toastCenter
     @State private var vehicle: Vehicle?
     @State private var entries: [any Entry] = []
     @State private var stations: [Station] = []
     @State private var photoData: Data?
-    @State private var didLoad = false
+    @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
 
     private static let log = Logger(subsystem: "app.tankbook", category: "home")
@@ -52,6 +53,11 @@ struct HomeView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
         .task { await load() }
+        .onChange(of: toastCenter.revision) { _, _ in
+            // An edit saved (with or without a delta toast) changed the data:
+            // reload so the derived stats and the log reflect it immediately.
+            Task { await load() }
+        }
     }
 
     /// The scroll content's extra bottom clearance so the last log row clears
@@ -131,9 +137,13 @@ struct HomeView: View {
     // MARK: - Loading
 
     private func load() async {
-        guard !didLoad else { return }
-        didLoad = true
-        HomeTestSeed.seedIfRequested()
+        // Seeding runs once (idempotent anyway); the data reloads every time
+        // the view appears or an edit revision lands, so Home never shows stale
+        // derived stats after an entry change (hard rule 2).
+        if !didSeed {
+            didSeed = true
+            HomeTestSeed.seedIfRequested()
+        }
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()

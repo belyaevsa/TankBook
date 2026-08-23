@@ -54,7 +54,7 @@ struct ManualFillUpView: View {
                         conflict: odometerConflict,
                         onFixDate: { showDatePicker = true })
                     ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                    ManualFillUpDateRow(form: $form, showDatePicker: $showDatePicker)
+                    ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
                 }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)

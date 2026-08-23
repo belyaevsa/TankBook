@@ -36,6 +36,8 @@ enum HomeTestSeed {
             seedSingleFuelLog(repository)
         } else if arguments.contains("-seedHomeConflict") {
             seedConflict(repository)
+        } else if arguments.contains("-seedHomeEditHistory") {
+            seedEditHistory(repository)
         }
     }
 
@@ -169,6 +171,35 @@ enum HomeTestSeed {
             makeFill(vehicleID: vehicle.id,
                      FillSpec(daysAgo: 30, odometer: 118_000, litres: 42.8,
                               amount: "69.90", price: "1.633", stationID: nil)))
+    }
+
+    /// The golden D1 series (docs/fixtures/consumption-golden.json): eight full
+    /// fills over ~15 weeks, so the headline is the documented 6.9 and an edit
+    /// to the newest fill's odometer moves it to a known value. The Edit entry
+    /// UI tests drive the delta toast and the save-anyway flag against this.
+    private static func seedEditHistory(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        for spec in [
+            FillSpec(daysAgo: 98, odometer: 114_980, litres: 45.9,
+                     amount: "77.02", price: "1.678", stationID: nil),
+            FillSpec(daysAgo: 84, odometer: 115_622, litres: 44.6,
+                     amount: "74.51", price: "1.671", stationID: nil),
+            FillSpec(daysAgo: 70, odometer: 116_281, litres: 46.8,
+                     amount: "77.99", price: "1.667", stationID: nil),
+            FillSpec(daysAgo: 56, odometer: 116_904, litres: 43.1,
+                     amount: "71.62", price: "1.662", stationID: nil),
+            FillSpec(daysAgo: 42, odometer: 117_561, litres: 45.5,
+                     amount: "75.30", price: "1.655", stationID: nil),
+            FillSpec(daysAgo: 28, odometer: 118_207, litres: 44.2,
+                     amount: "72.96", price: "1.651", stationID: nil),
+            FillSpec(daysAgo: 14, odometer: 118_843, litres: 43.9,
+                     amount: "72.42", price: "1.650", stationID: nil),
+            FillSpec(daysAgo: 1, odometer: 119_486, litres: 42.3,
+                     amount: "71.02", price: "1.679", stationID: nil)
+        ] {
+            try? repository.upsertFillUp(makeFill(vehicleID: vehicle.id, spec))
+        }
     }
 
     // MARK: - Fixture builders

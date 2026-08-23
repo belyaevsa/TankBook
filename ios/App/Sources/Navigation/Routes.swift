@@ -14,7 +14,10 @@ enum Route: Hashable {
     case reminders
     case reminderForm
     case recentlyDeleted
-    case editEntry
+    /// The entry being edited. `nil` = "no specific entry" (a placeholder link
+    /// or a debug-launch screenshot): the screen falls back to the most recent
+    /// entry of the default vehicle.
+    case editEntry(UUID?)
     case vehicleDetail
     case addVehicle
     case accountDevices
