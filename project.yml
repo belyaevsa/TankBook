@@ -1,0 +1,70 @@
+# Tankbook XcodeGen spec (P1.1).
+# Source of truth for the Xcode project; `Tankbook.xcodeproj` is generated and
+# gitignored, never committed. Regenerate with `xcodegen generate`.
+#
+# The app target depends on the local TankbookCore SwiftPM package at ios/;
+# do not copy code out of it. Deployment target stays 18.0 (iPhone 12 is a
+# hard requirement, docs/VISION.md) even though P1 develops on the iOS 26.5
+# simulator - an 18.0 target makes post-18 API use a compile error without an
+# @available guard.
+
+name: Tankbook
+options:
+  bundleIdPrefix: app.tankbook
+  createIntermediateGroups: true
+
+packages:
+  TankbookCore:
+    path: ios
+
+targets:
+  Tankbook:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: ios/App/Sources
+    dependencies:
+      - package: TankbookCore
+        product: TankbookCore
+    info:
+      path: ios/App/Info.plist
+      properties:
+        CFBundleDisplayName: Tankbook
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        ITSAppUsesNonExemptEncryption: false
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        TARGETED_DEVICE_FAMILY: "1"
+
+  TankbookUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: ios/App/UITests
+    dependencies:
+      - target: Tankbook
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        TEST_TARGET_NAME: Tankbook
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  Tankbook:
+    build:
+      targets:
+        Tankbook: all
+        TankbookUITests:
+          - test
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - TankbookUITests

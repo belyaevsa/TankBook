@@ -279,6 +279,7 @@ enum ConfigCacheFile {
     /// the surrounding read/write stays testable.
     private static func applyFileProtection(to url: URL) {
         #if os(iOS)
+        var url = url
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)

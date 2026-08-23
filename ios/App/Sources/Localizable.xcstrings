@@ -1,0 +1,524 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "+" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "+" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "+" } }
+      }
+    },
+    "· enables partial-fill math" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "· enables partial-fill math" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "· позволяет считать доли заправки" } }
+      }
+    },
+    "· optional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "· optional" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "· необязательно" } }
+      }
+    },
+    "· stats shown in this" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "· stats shown in this" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "· в ней считаются статистики" } }
+      }
+    },
+    "95" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "95" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "95" } }
+      }
+    },
+    "98" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "98" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "98" } }
+      }
+    },
+    "About" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "About" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "О приложении" } }
+      }
+    },
+    "Account & devices" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Account & devices" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Аккаунт и устройства" } }
+      }
+    },
+    "Add %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add %@" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Добавить %@" } }
+      }
+    },
+    "Add a photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add a photo" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Добавить фото" } }
+      }
+    },
+    "Add car" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Add car" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Добавить автомобиль" } }
+      }
+    },
+    "Amount" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Amount" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сумма" } }
+      }
+    },
+    "Battery capacity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Battery capacity" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ёмкость батареи" } }
+      }
+    },
+    "CNG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "CNG" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "CNG" } }
+      }
+    },
+    "Capture" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Capture" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сканировать" } }
+      }
+    },
+    "Car switcher" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Car switcher" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сменить автомобиль" } }
+      }
+    },
+    "Close" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Close" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Закрыть" } }
+      }
+    },
+    "Compare / Restore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Compare / Restore" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сравнить / Восстановить" } }
+      }
+    },
+    "Current odometer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Current odometer" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Текущий пробег" } }
+      }
+    },
+    "Diesel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Diesel" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Дизель" } }
+      }
+    },
+    "Discard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Отменить" } }
+      }
+    },
+    "Discard changes?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Discard changes?" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Отменить изменения?" } }
+      }
+    },
+    "E85" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "E85" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "E85" } }
+      }
+    },
+    "Edit entry" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Edit entry" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Редактировать запись" } }
+      }
+    },
+    "Electric" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Electric" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Электрический" } }
+      }
+    },
+    "Electricity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Electricity" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Электричество" } }
+      }
+    },
+    "Fix" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fix" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Исправить" } }
+      }
+    },
+    "Fuel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fuel" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Топливо" } }
+      }
+    },
+    "Garage" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Garage" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Гараж" } }
+      }
+    },
+    "Give the car any name – you can change it later." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Give the car any name – you can change it later." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Дайте машине любое название – его можно поменять позже." } }
+      }
+    },
+    "Home currency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Home currency" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Домашняя валюта" } }
+      }
+    },
+    "Hybrid" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Hybrid" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Гибрид" } }
+      }
+    },
+    "Import" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Import" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Импорт" } }
+      }
+    },
+    "Improves accuracy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Improves accuracy" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Повышает точность" } }
+      }
+    },
+    "It's right" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "It's right" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Верно" } }
+      }
+    },
+    "Keep editing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Keep editing" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Продолжить редактирование" } }
+      }
+    },
+    "L" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "L" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "л" } }
+      }
+    },
+    "L/100km" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "L/100km" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "л/100 км" } }
+      }
+    },
+    "LPG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "LPG" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "LPG" } }
+      }
+    },
+    "Log" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Log" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Журнал" } }
+      }
+    },
+    "MPG" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "MPG" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "MPG" } }
+      }
+    },
+    "Make · model · year" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Make · model · year" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Марка · модель · год" } }
+      }
+    },
+    "Manual fill-up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Manual fill-up" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ручной ввод" } }
+      }
+    },
+    "Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Name" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Название" } }
+      }
+    },
+    "New reminder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "New reminder" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Новое напоминание" } }
+      }
+    },
+    "Optional" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Optional" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Необязательно" } }
+      }
+    },
+    "Petrol / Diesel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Petrol / Diesel" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Бензин / дизель" } }
+      }
+    },
+    "Plate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Plate" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Номер" } }
+      }
+    },
+    "Plug-in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Plug-in" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Подключаемый" } }
+      }
+    },
+    "Powertrain" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Powertrain" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Тип привода" } }
+      }
+    },
+    "Recently deleted" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recently deleted" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Недавно удалённые" } }
+      }
+    },
+    "Reminder complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminder complete" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Напоминание выполнено" } }
+      }
+    },
+    "Reminder form" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminder form" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Новое напоминание" } }
+      }
+    },
+    "Reminders" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Reminders" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Напоминания" } }
+      }
+    },
+    "Replace photo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Replace photo" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Заменить фото" } }
+      }
+    },
+    "Select car" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Select car" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выбрать автомобиль" } }
+      }
+    },
+    "Service & expenses" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Service & expenses" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сервис и расходы" } }
+      }
+    },
+    "Settings" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Settings" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Настройки" } }
+      }
+    },
+    "Shown on the garage card" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Shown on the garage card" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Показывается на карточке в гараже" } }
+      }
+    },
+    "Sign in" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Sign in" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Вход" } }
+      }
+    },
+    "Suggestions unavailable offline – you can fill tank size later in Garage." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Suggestions unavailable offline – you can fill tank size later in Garage." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Подсказки недоступны офлайн – объём бака можно указать позже в Гараже." } }
+      }
+    },
+    "Tank capacity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tank capacity" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Объём бака" } }
+      }
+    },
+    "Tank level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tank level" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Уровень бака" } }
+      }
+    },
+    "Tankbook Pro" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Tankbook Pro" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Tankbook Pro" } }
+      }
+    },
+    "That's the total distance the car has driven – check the dashboard." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "That's the total distance the car has driven – check the dashboard." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Это общий пробег автомобиля – проверьте на приборной панели." } }
+      }
+    },
+    "Trends" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Trends" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Тренды" } }
+      }
+    },
+    "Type it" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Type it" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ввести вручную" } }
+      }
+    },
+    "Units" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Units" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Единицы" } }
+      }
+    },
+    "Vehicle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Vehicle" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Автомобиль" } }
+      }
+    },
+    "km" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "km" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "км" } }
+      }
+    },
+    "km/L" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "km/L" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "км/л" } }
+      }
+    },
+    "kWh" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "kWh" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "кВт·ч" } }
+      }
+    },
+    "mi" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "mi" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "миль" } }
+      }
+    },
+    "gal" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "gal" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "гал" } }
+      }
+    }
+  },
+  "version" : "1.0"
+}

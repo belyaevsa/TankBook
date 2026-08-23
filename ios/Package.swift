@@ -28,6 +28,9 @@ let package = Package(
                 // bundled layer is not signed and is never signature-checked:
                 // it is compiled into the binary, which is the root of trust.
                 .copy("Config/Config.default.json"),
+                // Bundled vehicle catalog seed pack (docs/SCHEMA.md -> Vehicle
+                // catalog): Add-car autocomplete works offline on day one.
+                .copy("Catalog/VehicleCatalog.seed.json"),
             ]
         ),
         .testTarget(

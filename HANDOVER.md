@@ -55,17 +55,39 @@ Before starting any task, read the doc named in its `CLAUDE.md` map row. The doc
 
 ## Working with agents (this session used opencode + DeepSeek)
 
-Builder: `opencode run -m deepseek/deepseek-v4-flash --title "<id>" "$(cat brief.md)"`.
+Builder: `opencode run --auto --thinking -m deepseek/deepseek-v4-flash --title "<id>" "$(cat brief.md)"`.
 Verifier: same with `deepseek/deepseek-v4-pro`, given an adversarial brief (look for fudged fixtures, vacuous assertions, fake concurrency, wrong algorithms) and told to report only, never fix.
+Architecture or security work goes to **pro**, screen implementation against a fixed artboard goes to **flash**.
+
+### The two flags that matter for unattended runs
+
+- **`--auto`** – auto-approves permissions that are not explicitly denied. **Use it for every background dispatch.** In non-interactive `run` mode opencode cannot prompt, so it *auto-rejects* instead, and **a single rejection kills the whole run**. That is exactly how one P0.12 attempt died: it wrote to `/tmp_gen.swift` (note: the filesystem *root*, not `/tmp`) and the run ended instantly. There is no `permission` block in `~/.config/opencode/config.json`, so nothing is explicitly denied and `--auto` covers everything. It does mean an agent could write anywhere, so the repo-only rule stays in the brief as the real boundary.
+- **`--thinking`** – shows the model's reasoning blocks. **Use it.** The most expensive failure of this project was a run that spent its entire budget cross-verifying Ed25519 across languages; with thinking exposed that rabbit hole would have been visible in about three minutes and killable, instead of surfacing only when the run ended with zero files. It also makes the long silent stretches legible: without it, the only evidence a run is alive is accumulating CPU time. Cost is log volume – DeepSeek reasoning is verbose. Use `--format json` instead when the goal is programmatic monitoring (structured events beat grepping for "Wrote file successfully").
+
+### Is it working, or is it wedged?
+
+Log silence means nothing on its own – nothing is written during model inference, and quiet stretches of five-plus minutes are normal. **Judge by CPU time, not log freshness:**
+
+```
+ps -o pid,etime,time,stat,%cpu -p <pid>
+```
+
+A working run shows `STAT R` with `TIME` climbing. A wedged one shows `S`/`S+`, **no child processes**, and frozen `TIME` – that is what the six-hour hung P0.12 run looked like. A useful second signal is the write count (`grep -c "Wrote file successfully"`).
+
+**Set a no-writes threshold before you dispatch** and act on it: three runs died having read everything and written nothing. Roughly 15 minutes with zero writes means kill it and split the task – that is what turned P0.12 from three empty runs into two clean ones.
 
 Lessons that cost real runs – put these in every brief:
 
-- **Never write to `/tmp`** – it is auto-rejected and three agents burned their budgets on it. Tell them to use a path inside the repo and delete it.
+- **Never write outside the repo.** State it as a whitelist ("only inside `/Users/sbelyaev/repos/fuel-counter-ios`"), never a blacklist: a brief saying "don't write to `/tmp`" was followed by an agent writing to `/tmp_gen.swift` at the filesystem root, which the blacklist did not cover and which ended the run.
+- **Size the task to fit one run.** P0.12 delivered nothing three times as a single task – 11 components and 17 required tests – and then went green in two runs once split into a/b/c slices. Nothing about the prompt changed; the size did.
 - **Tell them what NOT to explore.** One agent spent an entire run trying to cross-verify Ed25519 between BouncyCastle and CryptoKit. Ed25519 is standardised; the real cross-language risk was canonicalization.
-- **Re-run the tests yourself.** Agent reports are mostly accurate but not evidence. Every `[x]` here was re-verified independently.
+- **Screenshot every UI task before committing it.** `design/screenshots/<task-id>-<screen>.png`, dark theme, captured from a booted simulator and eyeballed against the task's artboard. No test checks colour: P1.1's suite was 8/8 green while the tab bar was accent-red in violation of hard rule 5, and only the screenshot caught it. Commit the image with the task – it is the record of what actually shipped.
+- **Re-run the tests yourself, then commit.** Agent reports are mostly accurate but not evidence. Every `[x]` here was re-verified independently, and since 2026-08-23 each verified task gets its own commit naming the task id (`CLAUDE.md` → Conventions). Verify first, commit second – the commit is the record that verification happened, and it gives the next agent a clean base to diff against. Never commit mid-run.
 - **Put the baseline gate in every brief, and re-verify it yourself**: the tier builds and `swiftlint lint` (from the **repo root**) exits 0. `CLAUDE.md` hard rule 13. Agents optimise for the checks you name, so an unnamed gate is an unmet one – and check the **exit code**, since agents reliably report "lint passed" after skimming a screen of warnings.
 - **Watch out for stale wrapper shells.** `pgrep -f "opencode run"` matches the wrapper shell of the pgrep itself, so naive wait-loops never exit. Use `pgrep -fa "opencode run -m" | grep -v "zsh -c"`.
 - Run iOS and backend agents in parallel (separate tiers), but never two on the same tier – they fight over the build lock.
+- **Never drive the simulator by hand while UI tests are running.** `simctl launch` / `simctl io screenshot` and an `xcodebuild test` run both take control of the same device, and the test run fails in a way that looks like a real regression – one such red run cost a genuine debugging detour. Take screenshots before or after, never during.
+- **UI tests are slow (~100 s) and not free of flakes.** Judge a red run by re-running it once before believing it, and judge a green one by whether anything else was touching the simulator.
 
 ## Decisions already made – do not relitigate
 
@@ -79,6 +101,8 @@ Listed in `CLAUDE.md`, but the ones most likely to be re-questioned:
 - **Server validates payload structure, never domain meaning.** Schema evolution is a data change (DB-registered JSON Schemas + declarative transforms), not a deploy.
 
 ## Known open items (not blocking P0)
+
+0. **Odometer digits are not thousands-grouped.** `AddVehicle.dc.html` specifies `119&thinsp;486 km`; the app renders `119486`. Found by screenshot-vs-artboard on P1.2, not by any test. The honest fix is format-on-blur (a grouped `TextField` is unpleasant to type into), so it was left out of P1.2 rather than destabilising a verified tree. **Do it in P1.4**, where Home displays the same figure and grouping matters most – and make it a shared formatter, since odometer appears on Home, Log, Edit entry and Trends.
 
 1. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy instead. Flagged for P4.
 2. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ moved to a paid licence. Revisit as a dependency risk.

@@ -1,0 +1,186 @@
+import XCTest
+
+/// P1.2 Add car screen tests. Each of the three ERRORS.md states is asserted
+/// with its next-step affordance present (not just its text): the empty-name
+/// warn blocks save and clears live as soon as a name is typed; the odometer
+/// warn never blocks save and "confirm it's right" is one tap; the offline
+/// catalog hint renders and blocks nothing. Plus: a catalog suggestion copies
+/// its values into the form.
+@MainActor
+final class AddVehicleUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    private func launch(args: [String] = []) -> XCUIApplication {
+        let app = XCUIApplication()
+        if !args.isEmpty {
+            app.launchArguments = args
+        }
+        app.launch()
+        return app
+    }
+
+    private func openAddCar(_ app: XCUIApplication) {
+        XCTAssertTrue(app.tabBars.buttons["Garage"].waitForExistence(timeout: 10))
+        app.tabBars.buttons["Garage"].tap()
+        XCTAssertTrue(app.buttons["addVehicleButton"].waitForExistence(timeout: 5))
+        app.buttons["addVehicleButton"].tap()
+        XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))
+    }
+
+    /// ScrollView content below the fold is queryable but not hittable; swipe
+    /// until the target is tappable. A focused field's keyboard swallows plain
+    /// app swipes, so dismiss it first via the scroll view's own drag
+    /// (the screen uses `.scrollDismissesKeyboard(.immediately)`).
+    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 8) {
+        let scrollView = app.scrollViews.firstMatch
+        if app.keyboards.firstMatch.exists {
+            scrollView.swipeDown()
+        }
+        var swipes = 0
+        while !element.isHittable && swipes < maxSwipes {
+            scrollView.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(element.isHittable, "\(element) never became hittable")
+    }
+
+    // MARK: - Error-state 1: empty name on save
+
+    func testEmptyNameBlocksSaveAndReenablesLive() {
+        let app = launch()
+        openAddCar(app)
+
+        let save = app.buttons["addVehicleSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+
+        // Saving with no name is blocked and the warn names its next step.
+        save.tap()
+        let warning = app.staticTexts["addVehicleNameWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Give the car any name – you can change it later."].exists)
+        XCTAssertTrue(app.navigationBars["Add car"].exists, "nothing was saved")
+
+        // Typing a name clears the warn live and re-enables save.
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 3))
+        name.tap()
+        name.typeText("My car")
+        XCTAssertFalse(warning.exists)
+
+        save.tap()
+        // Save succeeded: back on Garage.
+        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - Error-state 2: odometer missing/implausible
+
+    func testImplausibleOdometerWarnsButNeverBlocksSave() {
+        let app = launch()
+        openAddCar(app)
+
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("My car")
+
+        // A 2015 car reporting 12 km is implausible (docs/ERRORS.md example).
+        let makeModel = app.textFields["addVehicleMakeModelField"]
+        makeModel.tap()
+        makeModel.typeText("Volvo V60 2015")
+
+        let odometer = app.textFields["addVehicleOdometerField"]
+        scrollTo(odometer, in: app)
+        odometer.tap()
+        odometer.typeText("12")
+
+        // The warn renders with its next-step affordance, not just its text.
+        let warning = app.staticTexts["addVehicleOdometerWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["That's the total distance the car has driven – check the dashboard."].exists)
+        XCTAssertTrue(app.buttons["addVehicleOdometerConfirmButton"].exists)
+        XCTAssertTrue(app.buttons["addVehicleOdometerFixButton"].exists)
+
+        // Saving with the warning up must still succeed - the warn never blocks.
+        let save = app.buttons["addVehicleSaveButton"]
+        scrollTo(save, in: app)
+        save.tap()
+        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+    }
+
+    func testConfirmItIsRightIsOneTap() {
+        let app = launch()
+        openAddCar(app)
+
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("My car")
+
+        let makeModel = app.textFields["addVehicleMakeModelField"]
+        makeModel.tap()
+        makeModel.typeText("Volvo V60 2015")
+
+        let odometer = app.textFields["addVehicleOdometerField"]
+        scrollTo(odometer, in: app)
+        odometer.tap()
+        odometer.typeText("12")
+
+        let warning = app.staticTexts["addVehicleOdometerWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 3))
+
+        // One tap on the confirm affordance dismisses the warn.
+        let confirm = app.buttons["addVehicleOdometerConfirmButton"]
+        scrollTo(confirm, in: app)
+        confirm.tap()
+        XCTAssertFalse(warning.waitForExistence(timeout: 2))
+    }
+
+    // MARK: - Error-state 3: catalog offline (hint, nothing blocks)
+
+    func testCatalogOfflineHintRendersAndBlocksNothing() {
+        let app = launch(args: ["-forceCatalogUnavailable"])
+        openAddCar(app)
+
+        let hint = app.staticTexts["addVehicleCatalogHint"]
+        XCTAssertTrue(hint.waitForExistence(timeout: 5))
+        let hintCopy = "Suggestions unavailable offline – you can fill tank size later in Garage."
+        XCTAssertTrue(app.staticTexts[hintCopy].exists)
+
+        // Nothing is blocked: the form still works (continue manually).
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertTrue(name.exists)
+        name.tap()
+        name.typeText("My car")
+        let save = app.buttons["addVehicleSaveButton"]
+        save.tap()
+        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - Suggestion pre-fill
+
+    func testCatalogSuggestionPrefillsNameAndTankCapacity() {
+        let app = launch()
+        openAddCar(app)
+
+        let makeModel = app.textFields["addVehicleMakeModelField"]
+        XCTAssertTrue(makeModel.waitForExistence(timeout: 5))
+        makeModel.tap()
+        makeModel.typeText("Volvo V60")
+
+        // A suggestion renders; tapping it copies catalog values into the form.
+        let suggestion = app.buttons["addVehicleSuggestion_0"]
+        XCTAssertTrue(suggestion.waitForExistence(timeout: 5))
+        suggestion.tap()
+
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertEqual(name.value as? String, "Volvo V60")
+
+        // Volvo V60 = 71 L (the SCHEMA.md worked example).
+        let capacity = app.textFields["addVehicleTankCapacityField"]
+        scrollTo(capacity, in: app)
+        XCTAssertEqual(capacity.value as? String, "71")
+    }
+}

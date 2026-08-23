@@ -35,8 +35,8 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | ID | Task | Checks |
 |---|---|---|
 | **[ ]** P0.3 | String Catalogs EN/RU + pseudo-localization CI step. **Moved here from P0** – `TankbookCore` has almost no user-facing strings, so gating a P0 build on localization would gate a build with nothing to localize. The strings arrive with the app target, so this lands alongside P1.1. ID kept stable for branch/PR references | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
-| P1.1 | App shell: tab roots, navigation stacks, sheet infrastructure per SCREENMAP conventions | L4: XCUITest walks every SCREENMAP edge that exists so far; back-path audit (no dead ends) |
-| P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
+| **[x]** P1.1 | App shell: tab roots, navigation stacks, sheet infrastructure per SCREENMAP conventions | L4: XCUITest walks every SCREENMAP edge that exists so far; back-path audit (no dead ends) |
+| **[x]** P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
 | P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
 | P1.4 | Home: garage card, vitals, guest/empty/first-estimate states | L4: snapshots ×(guest, 1-fill, full) ×(dark, light) ×(EN, RU); "no N/A tiles" assertion |
 | P1.5 | Log stream: entry cards, month dividers, purchase-group rendering | L4: snapshot; L1: ordering (date) and group collapse |

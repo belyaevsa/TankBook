@@ -6,21 +6,29 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and test TankbookCore
+    name: Build and test TankbookCore + app
     runs-on: macos-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       # SwiftLint is the enforcement point for CLAUDE.md hard rule 5 (no ad-hoc hex
-      # in UI code), so it must actually run – a silently skipped lint is a lint
+      # in UI code), so it must actually run - a silently skipped lint is a lint
       # that never gates anything. Runs from the repo root because .swiftlint.yml
       # and its `excluded:` paths are root-relative.
       - name: Install SwiftLint
         run: brew install swiftlint
 
+      # XcodeGen generates Tankbook.xcodeproj from project.yml (P1.1); the
+      # project is gitignored and must be reproducible from a clean checkout.
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
       - name: Lint
         run: swiftlint lint
+
+      - name: Generate Xcode project
+        run: xcodegen generate
 
       - name: Build
         working-directory: ios
@@ -29,3 +37,10 @@ jobs:
       - name: Test
         working-directory: ios
         run: swift test
+
+      # The app target builds against the simulator (no signing, no device).
+      - name: Build app
+        run: >
+          xcodebuild -project Tankbook.xcodeproj -scheme Tankbook
+          -destination 'generic/platform=iOS Simulator'
+          CODE_SIGNING_ALLOWED=NO build

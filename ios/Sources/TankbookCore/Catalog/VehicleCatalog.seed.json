@@ -1,0 +1,922 @@
+{
+  "packVersion": 1,
+  "entries": [
+    {
+      "make": "VW",
+      "model": "Golf",
+      "generation": "Mk7/Mk8",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "VW",
+      "model": "Polo",
+      "generation": "Mk5/Mk6",
+      "years": [
+        2009,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 45,
+      "packVersion": 1
+    },
+    {
+      "make": "VW",
+      "model": "Tiguan",
+      "generation": "All",
+      "years": [
+        2007,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "VW",
+      "model": "Passat",
+      "generation": "B8",
+      "years": [
+        2015,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 66,
+      "packVersion": 1
+    },
+    {
+      "make": "VW",
+      "model": "ID.4",
+      "generation": "2021-",
+      "years": [
+        2021,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 77,
+      "packVersion": 1
+    },
+    {
+      "make": "Toyota",
+      "model": "Corolla",
+      "generation": "E210",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "hybrid",
+      "fuelKinds": [
+        "petrol95",
+        "electricity"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Toyota",
+      "model": "Camry",
+      "generation": "XV70",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "hybrid",
+      "fuelKinds": [
+        "petrol95",
+        "electricity"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Toyota",
+      "model": "RAV4",
+      "generation": "XA50",
+      "years": [
+        2019,
+        null
+      ],
+      "powertrain": "hybrid",
+      "fuelKinds": [
+        "petrol95",
+        "electricity"
+      ],
+      "tankCapacityL": 55,
+      "packVersion": 1
+    },
+    {
+      "make": "Toyota",
+      "model": "C-HR",
+      "generation": "AX10",
+      "years": [
+        2016,
+        2023
+      ],
+      "powertrain": "hybrid",
+      "fuelKinds": [
+        "petrol95",
+        "electricity"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Toyota",
+      "model": "Land Cruiser 200",
+      "generation": "J200",
+      "years": [
+        2007,
+        2021
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "diesel",
+        "petrol98"
+      ],
+      "tankCapacityL": 93,
+      "packVersion": 1
+    },
+    {
+      "make": "Renault",
+      "model": "Clio",
+      "generation": "IV/V",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 45,
+      "packVersion": 1
+    },
+    {
+      "make": "Renault",
+      "model": "Logan",
+      "generation": "II/III",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "lpg"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Renault",
+      "model": "Duster",
+      "generation": "I/II",
+      "years": [
+        2010,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "lpg"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Renault",
+      "model": "Megane",
+      "generation": "III",
+      "years": [
+        2008,
+        2016
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Renault",
+      "model": "Zoe",
+      "generation": "2012-",
+      "years": [
+        2012,
+        2023
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 52,
+      "packVersion": 1
+    },
+    {
+      "make": "Skoda",
+      "model": "Octavia",
+      "generation": "III/IV",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Skoda",
+      "model": "Rapid",
+      "generation": "NH",
+      "years": [
+        2012,
+        2019
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "lpg"
+      ],
+      "tankCapacityL": 55,
+      "packVersion": 1
+    },
+    {
+      "make": "Skoda",
+      "model": "Fabia",
+      "generation": "II/III",
+      "years": [
+        2007,
+        2021
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 45,
+      "packVersion": 1
+    },
+    {
+      "make": "Skoda",
+      "model": "Kodiaq",
+      "generation": "NS",
+      "years": [
+        2016,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Skoda",
+      "model": "Enyaq",
+      "generation": "2021-",
+      "years": [
+        2021,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 82,
+      "packVersion": 1
+    },
+    {
+      "make": "Volvo",
+      "model": "V60",
+      "generation": "SPA",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 71,
+      "packVersion": 1
+    },
+    {
+      "make": "Volvo",
+      "model": "XC60",
+      "generation": "SPA",
+      "years": [
+        2017,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 71,
+      "packVersion": 1
+    },
+    {
+      "make": "Volvo",
+      "model": "XC90",
+      "generation": "SPA",
+      "years": [
+        2015,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 71,
+      "packVersion": 1
+    },
+    {
+      "make": "Volvo",
+      "model": "EX40",
+      "generation": "2020-",
+      "years": [
+        2020,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 69,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "Vesta",
+      "generation": "1.6/1.8",
+      "years": [
+        2015,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 55,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "Granta",
+      "generation": "2011-",
+      "years": [
+        2011,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "lpg"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "Largus",
+      "generation": "2012-",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "Niva Legend",
+      "generation": "classic",
+      "years": [
+        1977,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 65,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "Niva Travel",
+      "generation": "2019-",
+      "years": [
+        2019,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 65,
+      "packVersion": 1
+    },
+    {
+      "make": "Lada",
+      "model": "XRAY",
+      "generation": "2016-",
+      "years": [
+        2016,
+        2022
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Kia",
+      "model": "Rio",
+      "generation": "3/4",
+      "years": [
+        2011,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 45,
+      "packVersion": 1
+    },
+    {
+      "make": "Kia",
+      "model": "Ceed",
+      "generation": "JD/CD",
+      "years": [
+        2012,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Kia",
+      "model": "Sportage",
+      "generation": "QL/NQ",
+      "years": [
+        2016,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Kia",
+      "model": "Optima",
+      "generation": "JF",
+      "years": [
+        2016,
+        2020
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 70,
+      "packVersion": 1
+    },
+    {
+      "make": "Kia",
+      "model": "EV6",
+      "generation": "2021-",
+      "years": [
+        2021,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 77.4,
+      "packVersion": 1
+    },
+    {
+      "make": "Hyundai",
+      "model": "Solaris",
+      "generation": "HC",
+      "years": [
+        2011,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 43,
+      "packVersion": 1
+    },
+    {
+      "make": "Hyundai",
+      "model": "Creta",
+      "generation": "GS",
+      "years": [
+        2016,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 55,
+      "packVersion": 1
+    },
+    {
+      "make": "Hyundai",
+      "model": "Tucson",
+      "generation": "NX4",
+      "years": [
+        2020,
+        null
+      ],
+      "powertrain": "hybrid",
+      "fuelKinds": [
+        "petrol95",
+        "electricity"
+      ],
+      "tankCapacityL": 62,
+      "packVersion": 1
+    },
+    {
+      "make": "Hyundai",
+      "model": "Elantra",
+      "generation": "AD/CN7",
+      "years": [
+        2015,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 50,
+      "packVersion": 1
+    },
+    {
+      "make": "Hyundai",
+      "model": "Ioniq 5",
+      "generation": "2021-",
+      "years": [
+        2021,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 77.4,
+      "packVersion": 1
+    },
+    {
+      "make": "BYD",
+      "model": "Atto 3",
+      "generation": "2022-",
+      "years": [
+        2022,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 60.48,
+      "packVersion": 1
+    },
+    {
+      "make": "BYD",
+      "model": "Seal",
+      "generation": "2022-",
+      "years": [
+        2022,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 61.4,
+      "packVersion": 1
+    },
+    {
+      "make": "BYD",
+      "model": "Dolphin",
+      "generation": "2022-",
+      "years": [
+        2022,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 44.9,
+      "packVersion": 1
+    },
+    {
+      "make": "BYD",
+      "model": "Han",
+      "generation": "2020-",
+      "years": [
+        2020,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 76.9,
+      "packVersion": 1
+    },
+    {
+      "make": "Ford",
+      "model": "Focus",
+      "generation": "MK3",
+      "years": [
+        2011,
+        2018
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 55,
+      "packVersion": 1
+    },
+    {
+      "make": "Ford",
+      "model": "Kuga",
+      "generation": "MK2",
+      "years": [
+        2012,
+        2020
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Nissan",
+      "model": "X-Trail",
+      "generation": "T32",
+      "years": [
+        2013,
+        2021
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Nissan",
+      "model": "Leaf",
+      "generation": "2018-",
+      "years": [
+        2018,
+        2022
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 40,
+      "packVersion": 1
+    },
+    {
+      "make": "Mitsubishi",
+      "model": "Outlander",
+      "generation": "III",
+      "years": [
+        2012,
+        2021
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Mazda",
+      "model": "CX-5",
+      "generation": "KE",
+      "years": [
+        2012,
+        2017
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 58,
+      "packVersion": 1
+    },
+    {
+      "make": "BMW",
+      "model": "3 Series",
+      "generation": "G20",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 59,
+      "packVersion": 1
+    },
+    {
+      "make": "BMW",
+      "model": "X5",
+      "generation": "G05",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 80,
+      "packVersion": 1
+    },
+    {
+      "make": "Mercedes",
+      "model": "C-Class",
+      "generation": "W205",
+      "years": [
+        2014,
+        2021
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 66,
+      "packVersion": 1
+    },
+    {
+      "make": "Mercedes",
+      "model": "E-Class",
+      "generation": "W213",
+      "years": [
+        2016,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 66,
+      "packVersion": 1
+    },
+    {
+      "make": "Audi",
+      "model": "A4",
+      "generation": "B9",
+      "years": [
+        2015,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 58,
+      "packVersion": 1
+    },
+    {
+      "make": "Audi",
+      "model": "A6",
+      "generation": "C8",
+      "years": [
+        2018,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95",
+        "diesel"
+      ],
+      "tankCapacityL": 63,
+      "packVersion": 1
+    },
+    {
+      "make": "UAZ",
+      "model": "Patriot",
+      "generation": "3163",
+      "years": [
+        2005,
+        null
+      ],
+      "powertrain": "ice",
+      "fuelKinds": [
+        "petrol95"
+      ],
+      "tankCapacityL": 72,
+      "packVersion": 1
+    },
+    {
+      "make": "Tesla",
+      "model": "Model 3",
+      "generation": "2017-",
+      "years": [
+        2017,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 60,
+      "packVersion": 1
+    },
+    {
+      "make": "Tesla",
+      "model": "Model Y",
+      "generation": "2020-",
+      "years": [
+        2020,
+        null
+      ],
+      "powertrain": "ev",
+      "fuelKinds": [
+        "electricity"
+      ],
+      "batteryCapacityKWh": 57.5,
+      "packVersion": 1
+    }
+  ]
+}
