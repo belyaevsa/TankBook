@@ -2,19 +2,27 @@
 
 *`PHASES.md` broken into agent-sized tasks. Each task names its deliverable and the **checks that make it done** – a task without its checks green is not done, and checks land in the same PR as the code (TESTING.md levels: L1 unit · L2 contract · L3 sync-scenario · L4 UI/snapshot · L5 accuracy · M manual). Task IDs are stable – reference them in branches/PRs (`p0-4-grdb-migrations`).*
 
+## Status legend
+
+`[x]` done and independently verified (tests re-run outside the implementing agent) · `[~]` partially landed, gap named · `[ ]` not started. Status is recorded here so a fresh session knows what to pick up without re-deriving it.
+
 ## P0 · Foundations
 
 | ID | Task | Checks (done when…) |
 |---|---|---|
-| P0.1 | iOS project scaffold: app + unit-test + UI-test targets, SwiftLint, CI workflow | CI builds a clean checkout; lint green; one placeholder test runs in CI |
-| P0.2 | Design tokens: `design/tokens.json` extracted from DESIGN.md → generated `Theme.swift` (script, not hand-copy) | L1: generated values equal tokens.json; custom lint rule fails any literal hex in UI code |
-| P0.3 | String Catalogs EN/RU + pseudo-localization CI step | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
-| P0.4 | GRDB setup + migrations for the full SCHEMA.md model (all entities, envelope, tombstones) | L1: migrate-from-empty and migrate-from-seeded round-trips; CRUD per entity; soft-delete filtering |
-| P0.5 | Domain types: `Money`, enums, `ConflictState`, IDs (UUIDv7) | L1: Money semantics suite (rate direction, snapshot immutability, backfill fill-blanks, edit clears) |
-| P0.6 | Consumption engine (segments, headline, lifetime, cost/km, EV) | L1: D1–D4 golden vectors verbatim + edit-cases (volume edit, isFull split/merge, date reorder) + distance-weighting check |
-| P0.7 | Timeline validation engine (order, pace, receipt-date priority) | L1: full check-matrix incl. save-anyway flagging and segment exclusion |
-| P0.8 | Backend solution scaffold: ASP.NET Core, health endpoint, local Postgres+MinIO scripts, CI | CI: build + test green from clean checkout; L2 smoke test hits /health via Testcontainers |
-| P0.9 | Server migrations: accounts, devices, records, account_seq, blobs, llm_usage, exchange_rates, vehicle_catalog, feedback | L2: apply+rollback; constraint tests (uniques, per-account SCN monotonicity under concurrent tx) |
+| **[x]** P0.1 | iOS scaffold: SwiftPM package `TankbookCore` (all pure logic + persistence), SwiftLint, CI workflow. **Decided during P0:** the core is a package, not app-target code – tests run fast and simulator-free in CI, and widgets/extensions can reuse it. The SwiftUI app target and its UI-test target arrive with P1.1. | CI builds a clean checkout; lint green; one placeholder test runs in CI |
+| **[x]** P0.2 | Design tokens: `design/tokens.json` extracted from DESIGN.md → generated `Theme.swift` (script, not hand-copy) | L1: generated values equal tokens.json; custom lint rule fails any literal hex in UI code |
+| **[ ]** P0.3 | String Catalogs EN/RU + pseudo-localization CI step | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
+| **[x]** P0.4 | GRDB setup + migrations for the full SCHEMA.md model (all entities, envelope, tombstones) | L1: migrate-from-empty and migrate-from-seeded round-trips; CRUD per entity; soft-delete filtering |
+| **[x]** P0.5 | Domain types: `Money`, enums, `ConflictState`, IDs (UUIDv7) | L1: Money semantics suite (rate direction, snapshot immutability, backfill fill-blanks, edit clears) |
+| **[x]** P0.6 | Consumption engine (segments, headline, lifetime, cost/km, EV) | L1: D1–D4 golden vectors verbatim + edit-cases (volume edit, isFull split/merge, date reorder) + distance-weighting check |
+| **[x]** P0.7 | Timeline validation engine (order, pace, receipt-date priority) | L1: full check-matrix incl. save-anyway flagging and segment exclusion |
+| **[x]** P0.8 | Backend solution scaffold: ASP.NET Core, health endpoint, local Postgres+MinIO scripts, CI | CI: build + test green from clean checkout; L2 smoke test hits /health via Testcontainers |
+| **[x]** P0.9 | Server migrations: accounts, devices, records, account_seq, blobs, llm_usage, exchange_rates, vehicle_catalog, feedback | L2: apply+rollback; constraint tests (uniques, per-account SCN monotonicity under concurrent tx) |
+| **[x]** P0.11 | **Logging foundations** (`docs/LOGGING.md`): backend structured JSON logging with the request line + per-operation events + redactor; iOS OSLog categories with the mutation begin/outcome pair, sync-cycle events, and the breadcrumb ring; `X-Tankbook-Trace` correlation end to end | L1: redaction test both tiers – a fully populated entity through the log path leaks no Sensitive/Never value. L2: traceId from a client request appears in the server request line, operation line, and problem+json body. L1: every mutation path emits `begin` + terminal `ok`/`fail` with errorCode; log volume is O(1) per sync batch, not O(n) per record |
+| **[ ]** P0.12 | **Remote config, client** (`docs/CONFIG.md`): bundled `Config.default.json`, atomic JSON cache excluded from backups, three-layer resolver with per-key sparse override, typed injected `ConfigStore` with snapshot semantics, Ed25519 verification **on every cache read**, Keychain rollback floor, document expiry, `apiBaseUrl` health-gate + auto-revert | L1: bootstrap with no cache and no network uses bundled defaults and the app is usable. L1 **brick-proof**: unreachable `apiBaseUrl` + N failures auto-reverts to bundled and recovers. L1 tamper: edited document or signature rejected on read → bundled defaults; version below the Keychain floor rejected; expired document rejected. L1: non-allowlisted host rejected by the HTTP client **and no `Authorization` header ever constructed for it**. L1: unknown key ignored, rest of the document applies |
+| **[x]** P0.13 | **Remote config, server** (`docs/API.md` → `GET /config`): signed document served with ETag/304, versioned and monotonic, staged-rollout fields, maintenance notice as inert plain text; signing key in the platform secret store | L2: 304 on matching `If-None-Match`; document validates against its own schema; signature verifies with the published public key; a document with a lower version than the previous is refused at publish time |
+| **[x]** P0.10 | **Payload contract** (`SYNC.md` → Payload contract and versioning): generate `docs/schemas/v1/*.schema.json` from the domain model; `payload_schemas` + `payload_migrations` tables seeded by migration; server-side envelope + JSON Schema validation on push with the typed rejection codes; iOS encode/decode against the same schemas; upcaster scaffold + fixture corpus | L1: every entityType has a v1 schema (build fails otherwise); every fixture validates against its version. L2: push rejects oversize/malformed/schema-violating payloads with the right code and JSON pointer; unknown entityType accepted unvalidated; `minSupported` gate returns 426 on push while pull still succeeds. L1+L2 parity: Swift upcaster and server declarative transform produce byte-identical output for every fixture. Round-trip: unknown fields and unknown entity types survive decode→encode unchanged |
 
 ## P1 · Local core loop
 

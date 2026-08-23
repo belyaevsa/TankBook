@@ -1,0 +1,24 @@
+{
+  "id": "11111111-1111-7111-8111-111111111111",
+  "createdAt": "2026-01-10T09:30:00.000Z",
+  "updatedAt": "2026-08-22T12:10:00.000Z",
+  "name": "Volvo V60",
+  "make": "Volvo",
+  "model": "V60",
+  "year": 2021,
+  "plate": "ABC-123",
+  "powertrain": "hybrid",
+  "fuelKinds": ["petrol95", "electricity"],
+  "tankCapacityL": 71,
+  "batteryCapacityKWh": 11.6,
+  "homeCurrency": "EUR",
+  "units": {
+    "distance": "km",
+    "volume": "l",
+    "consumption": "lPer100",
+    "energy": "kWhPer100"
+  },
+  "photo": "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa",
+  "archived": false,
+  "paceLimitKmPerDay": 1500
+}

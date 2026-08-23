@@ -67,13 +67,13 @@ EntryCommon {
 
 Money {
   amount: Decimal; currency: CurrencyCode          // as paid: 289.50 PLN
-  homeAmount: Decimal?; homeCurrency: CurrencyCode // converted: 67.80 EUR (vehicle.homeCurrency at save time)
+  homeAmount: Decimal?; homeCurrency: CurrencyCode // converted: 67.79 EUR (vehicle.homeCurrency at save time)
   rate: Decimal?; rateDate: Date?                  // the snapshot; nil rate = ratePending (F3/F9)
   rateSource: .ecb | .cis | .manual = .ecb         // manual = user typed/edited the rate on the entry
 }
 
 // Conversion semantics (normative):
-//   rate is ORIGINAL per HOME: homeAmount = amount / rate     (289.50 / 4.2706 = 67.80)
+//   rate is ORIGINAL per HOME: homeAmount = amount / rate     (289.50 / 4.2706 = 67.79, rounded to the home currency’s minor units)
 //   rateDate = entry.date (the day it happened), NEVER "today" – a wrong-date rate is worse than none (F9).
 //   homeAmount is a SNAPSHOT: written once when the rate is known, immutable afterwards; later feed
 //   updates never touch it. If currency == homeCurrency, homeAmount = amount, rate = 1, rateSource = .ecb.
@@ -336,7 +336,11 @@ data.json       { vehicles: [...], entries: [...], reminders: [...], stations: [
 attachments/    content-addressed blobs (sha256 filename) referenced by Attachment.file
 ```
 
-Rules: additive schema evolution only (new optional fields); a `schemaVersion` bump requires a migrator both on iOS and (later) Android; the same format serves user-held export, backend backup snapshots, and the future Android bridge. Protection (per the signed-off stance in `SYNC.md`): server-side snapshots live under the backend's at-rest encryption; a user-held export can optionally be passphrase-protected (AES) at export time – no user-held key is ever *required*.
+### Payload schemas (the machine-checkable contract)
+
+The entity shapes above are not only prose. Each is published as a JSON Schema under `docs/schemas/v<N>/<entityType>.schema.json`, generated from the domain model and committed. That artifact is the contract three consumers share: the iOS client validates what it encodes, the backend validates what it stores (registered in `payload_schemas` – see `SYNC.md` → "Payload contract and versioning"), and the fixture corpus under `docs/fixtures/payloads/v<N>/` proves both agree. A new entity without a registered schema fails the build; a schema change without a version bump and an upcaster fails the migration tests.
+
+Rules: additive schema evolution only (new optional fields); a `schemaVersion` bump requires a migrator both on iOS and (later) Android, plus a declarative server transform when the change is mechanical; the same format serves user-held export, backend backup snapshots, and the future Android bridge. Protection (per the signed-off stance in `SYNC.md`): server-side snapshots live under the backend's at-rest encryption; a user-held export can optionally be passphrase-protected (AES) at export time – no user-held key is ever *required*.
 
 ## Backend (C# / PostgreSQL) – the sync hub
 
@@ -392,6 +396,6 @@ Import rules (F6): ambiguity (units/currency) asks once per file; unparseable ro
 
 None. All decided:
 
-1. **Persistence layer** — decided (Aug 23, 2026): **GRDB**. Full SQL and explicit migrations for the sync client's `syncState`/SCN bookkeeping and the segment-recompute queries; GRDB's observation drives SwiftUI. SwiftData rejected: CloudKit-oriented sync hooks (we run our own engine), young, weaker background-access control.
-2. ~~Blob placement~~ — decided: S3-compatible object storage with presigned URLs (`SYNC.md`, blob pipeline).
-3. ~~Attachment sync size policy~~ — decided: sync rendition ≤ 2048 px JPEG (~200–600 KB) + inline ~5 KB thumbnail in the record payload; full-res original stays on the capturing device. PDFs pass through, 10 MB cap (`SYNC.md`).
+1. **Persistence layer** – decided (Aug 23, 2026): **GRDB**. Full SQL and explicit migrations for the sync client's `syncState`/SCN bookkeeping and the segment-recompute queries; GRDB's observation drives SwiftUI. SwiftData rejected: CloudKit-oriented sync hooks (we run our own engine), young, weaker background-access control.
+2. ~~Blob placement~~ – decided: S3-compatible object storage with presigned URLs (`SYNC.md`, blob pipeline).
+3. ~~Attachment sync size policy~~ – decided: sync rendition ≤ 2048 px JPEG (~200–600 KB) + inline ~5 KB thumbnail in the record payload; full-res original stays on the capturing device. PDFs pass through, 10 MB cap (`SYNC.md`).

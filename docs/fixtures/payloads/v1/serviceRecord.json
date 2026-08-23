@@ -1,0 +1,35 @@
+{
+  "id": "44444444-4444-7444-8444-444444444444",
+  "createdAt": "2026-07-04T11:05:00.000Z",
+  "updatedAt": "2026-07-04T11:05:00.000Z",
+  "vehicleId": "11111111-1111-7111-8111-111111111111",
+  "date": "2026-07-04T11:00:00.000Z",
+  "odometer": 118200,
+  "note": "Annual service",
+  "attachments": [],
+  "provenance": { "tag": "screenshot" },
+  "conflict": { "tag": "none" },
+  "vendor": "Bosch Service",
+  "items": [
+    {
+      "title": "Oil change",
+      "category": { "tag": "oil" },
+      "cost": {
+        "amount": "89.00",
+        "currency": "EUR",
+        "homeAmount": "89.00",
+        "homeCurrency": "EUR",
+        "rate": "1",
+        "rateSource": "ecb"
+      },
+      "partNumber": "MANN W 712/75",
+      "lifetime": { "km": 15000, "months": 12 }
+    },
+    {
+      "title": "Cabin filter",
+      "category": { "tag": "filters" }
+    }
+  ],
+  "usedParts": ["55555555-5555-7555-8555-555555555555"],
+  "proposedReminderId": "66666666-6666-7666-8666-666666666666"
+}

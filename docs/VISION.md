@@ -107,7 +107,40 @@ That last comparison – *your EV vs your petrol car, in real money per 100 km* 
 
 ## 7 · Platform & tech strategy
 
-- **iOS:** SwiftUI; persistence GRDB or SwiftData (open question 1 in `SCHEMA.md` – GRDB recommended); sync client implementing the `SYNC.md` protocol against our backend (`API.md`); VisionKit + Vision for OCR, Foundation Models framework for normalization. Minimum target iOS 18, with the on-device LLM path gated to iOS 26+ devices and a rules-only parser below that.
+- **iOS:** SwiftUI; persistence GRDB (decided, `SCHEMA.md`); sync client implementing the `SYNC.md` protocol against our backend (`API.md`); VisionKit + Vision for OCR, Foundation Models framework for normalization where available.
+
+### Platform support and what it costs us
+
+**Decided (Aug 2026): minimum iOS 18 – two versions back.** Note the numbering: Apple jumped 18 → 26, so the sequence is 17 → 18 → **26** (shipping now) → 27 (in beta). Two back from current is therefore iOS 18, not "iOS 24".
+
+Device floor: **A12 – iPhone XR/XS and SE 2nd gen**, roughly a 2018 phone. That reach matters most exactly where our differentiators point: CIS markets, where handsets are held longer, and switchers from cheap Android trackers.
+
+**Hard requirement: the iPhone 12 (A14) is supported.** It is the named reference device – any future proposal to raise the deployment target must be checked against it first. It sits comfortably above the A12 floor and runs both iOS 18 and iOS 26. Note what it does *not* get: with an A14 and 4 GB of RAM it is below the Apple Intelligence line, so it receives tiers 0 and 1 only. Our reference device having no on-device LLM is the clearest possible statement of why tier 0 carries the quality bar.
+
+An earlier draft of this section set the floor at iOS 26 to get `RecognizeDocumentsRequest` (iOS 26.0) unconditionally. That was wrong and is recorded here so it is not re-proposed: we **already** tier capability at runtime because Foundation Models availability must be probed on every launch regardless of OS, so one more availability tier costs almost nothing – while raising the floor would have excluded A12 devices plus every capable-hardware user who has not upgraded. The Spike settles it empirically: its rules parser runs on `VNRecognizeTextRequest` (available since iOS 13) and already meets the accuracy bar, so nothing load-bearing lives above iOS 18.
+
+### Capability tiers (the real architecture)
+
+Every capture path degrades cleanly, and each tier is additive rather than required:
+
+| Tier | Requires | Gives |
+|---|---|---|
+| **0 – the floor** | iOS 18, any supported device | `VNRecognizeTextRequest` + the deterministic rules parser + the arithmetic cross-check. This is the product's guaranteed quality bar |
+| **1 – structured docs** | iOS 26+ | `RecognizeDocumentsRequest`: tables and document structure rather than raw text lines. Better multi-page invoices (J7) and awkward receipt layouts |
+| **2 – on-device normalization** | A17 Pro+ with 8 GB RAM, Apple Intelligence enabled, model downloaded | Foundation Models resolves ambiguity (fuel grades, station names). Ships only if it strictly beats tier 0 on the corpus (P2.8) |
+| **3 – cloud fallback** | Pro tier, network, user opt-in | Hard images: crumpled thermal paper, glare-heavy pump displays, odd charging-app screenshots |
+
+Tiers 1 and 2 are compile-time `if #available` plus a runtime availability probe; nothing above tier 0 may ever be a precondition for logging a fill-up.
+
+**The binding constraint is not the OS version – it is Apple Intelligence hardware.** The Foundation Models framework requires **A17 Pro or newer with 8 GB RAM**: iPhone 15 Pro/Pro Max, 16e/16/16 Plus/16 Pro/Pro Max, the 17 family, and iPhone Air. The plain **iPhone 15 and 15 Plus are excluded** (A16, 6 GB) despite running iOS 26 – a trap worth stating, since "iPhone 15" sounds new enough. Beyond hardware, the user must have Apple Intelligence enabled and the model downloaded, so availability must be checked at runtime, not assumed from the device.
+
+Three consequences we design around:
+
+1. **The deterministic parser is the product's floor, not a fallback.** For the majority of users – and for years – there is no on-device LLM. The Spike's rules parser plus the arithmetic cross-check must carry the accuracy bar alone; Foundation Models is an enhancement on newer hardware, never a dependency. This is exactly why P2.8 ships only if it *strictly improves* on rules-only (`TASKS.md`).
+2. **Cloud fallback matters more than first framed**, since on-device normalization is unavailable to most devices. That raises expected `/extract` volume and therefore the real API cost behind the Pro tier – price it accordingly rather than assuming most work happens on-device for free.
+3. **Runtime availability is a UI state, not an error.** Unsupported hardware, Apple Intelligence off, or model still downloading all resolve to the same calm behaviour as F4: on-device results render immediately, low-confidence fields stay dimmed, and no upsell appears mid-capture.
+
+**Form factors.** iPhone is the design target: capture happens standing at a pump. Screen widths run from **375 pt (SE 2nd/3rd gen, still supported)** to 440 pt (Pro Max), while our artboards are drawn at 390 pt – the dense screens (Trends tile grid, Service line items, the DIN numerals on Confirm) must be verified at 375 pt, and combined with Dynamic Type XL that is the real layout stressor rather than the wide end. **iPad ships as a scaled phone layout, not a bespoke iPad UI** – multi-device sync makes an iPad plausible as a review device, and a simple correct layout beats a broken ambitious one. **Apple Watch is out of scope** (no capture value). **CarPlay is a post-launch experiment, not a plan**: Apple does operate a fueling category, but the entitlement needs Apple's approval and our primary purpose is logging rather than finding or paying for fuel, so approval is genuinely uncertain – Fuelio having CarPlay is a reason to try, not a reason to promise.
 - **Currency:** rates served by our backend's public `/rates` endpoint (daily job: ECB + a CIS source for RUB/KZT/AMD/GEL/BYN – see `SCHEMA.md` Reference data), cached ~2 years on device with an app-bundle seed pack; rates snapshotted per entry so history never shifts. The vehicle's default currency is the reporting currency for all its stats.
 - **Localization:** English and Russian ship in v1. String Catalogs from the first commit, localized number/date formatting via the user's locale (comma decimals in RU), and pseudo-localization checks in CI so untranslated or clipped strings fail before release.
 - **Backend (three jobs):** a **C# / ASP.NET Core + PostgreSQL** service providing (1) **multi-device sync** – the account's data as an ordered record stream, one protocol serving iOS now and Android later (full design: `SYNC.md`; this replaces CloudKit as the sync engine – one sync system, not two), (2) **backups/restore** as snapshots of that same stream, and (3) the **LLM gateway** (API keys server-side; per-user quotas; images transient, never retained). Auth via Sign in with Apple or Google token verification; the account email is the neutral recovery identity. Hard rule learned from Мой Авто's dead servers and Fuelly's login migration: the app is **local-first** – no account means a fully working single-device app, and with the backend unreachable everything except sync and LLM fallback still works; the documented export format always remains in the user's own hands.

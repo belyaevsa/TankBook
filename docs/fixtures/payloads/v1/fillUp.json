@@ -1,0 +1,49 @@
+{
+  "id": "22222222-2222-7222-8222-222222222222",
+  "createdAt": "2026-08-22T12:10:05.000Z",
+  "updatedAt": "2026-08-22T12:10:05.000Z",
+  "vehicleId": "11111111-1111-7111-8111-111111111111",
+  "date": "2026-08-22T12:10:00.000Z",
+  "odometer": 119486,
+  "money": {
+    "amount": "71.02",
+    "currency": "EUR",
+    "homeAmount": "71.02",
+    "homeCurrency": "EUR",
+    "rate": "1",
+    "rateSource": "ecb"
+  },
+  "note": "Shell, A4 exit",
+  "attachments": ["aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa"],
+  "provenance": { "tag": "receiptScan" },
+  "conflict": { "tag": "none" },
+  "purchaseGroupId": "bbbbbbbb-bbbb-7bbb-8bbb-bbbbbbbbbbbb",
+  "volumeL": 42.3,
+  "unitPrice": "1.679",
+  "fuelKind": "petrol95",
+  "fuelGrade": "V-Power",
+  "isFull": true,
+  "tankLevelAfterPct": 100,
+  "stationId": "77777777-7777-7777-8777-777777777777",
+  "crossCheck": { "tag": "verified" },
+  "extraction": {
+    "fields": {
+      "total": {
+        "cropRect": { "x": 0.1, "y": 0.2, "width": 0.5, "height": 0.1 },
+        "confidence": 0.98,
+        "userCorrected": false
+      },
+      "volume": {
+        "cropRect": { "x": 0.1, "y": 0.35, "width": 0.5, "height": 0.1 },
+        "confidence": 0.97,
+        "userCorrected": false
+      },
+      "unitPrice": {
+        "cropRect": { "x": 0.1, "y": 0.5, "width": 0.5, "height": 0.1 },
+        "confidence": 0.95,
+        "userCorrected": true
+      }
+    },
+    "pipeline": "vision+rules v3"
+  }
+}

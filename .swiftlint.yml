@@ -1,0 +1,66 @@
+# Tankbook SwiftLint configuration (P0.1 baseline).
+# CLAUDE.md hard rule 5: all colours come from generated design tokens (P0.2),
+# never ad-hoc hex in UI code. The custom rules at the bottom are the guard.
+# Build path and SPM dependency sources are excluded so lint covers only our code.
+
+excluded:
+  - .build
+  - ios/.build
+  # P0.2: the generated token file is the single sanctioned source of hex values
+  # (the no_literal_hex_colors rule guards hand-written UI code, not the token source).
+  - ios/Sources/TankbookCore/Design/Theme.generated.swift
+
+opt_in_rules:
+  - empty_count
+  - first_where
+
+line_length:
+  warning: 120
+  error: 160
+  ignores_comments: true
+  ignores_urls: true
+
+identifier_name:
+  min_length: 2
+  max_length:
+    warning: 60
+    error: 80
+  excluded:
+    - id
+    - x
+    - y
+
+type_name:
+  min_length: 2
+  max_length:
+    warning: 50
+    error: 60
+
+function_body_length:
+  warning: 60
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 400
+
+file_length:
+  warning: 500
+  error: 700
+
+force_cast: warning
+force_try: warning
+trailing_whitespace: error
+
+custom_rules:
+  no_literal_hex_colors:
+    name: 'No Literal Hex Colors'
+    regex: '#[0-9A-Fa-f]{6}'
+    match_kinds: string
+    message: 'Ad-hoc hex colours are forbidden (CLAUDE.md hard rule 5). Use generated design tokens (P0.2).'
+    severity: error
+  no_color_component_init:
+    name: 'No Color(red:) / UIColor(red:) Component Initializers'
+    regex: '(?:Color|UIColor)(?:\.init)?\(red:'
+    message: 'Raw component colour construction is forbidden (CLAUDE.md hard rule 5). Use generated design tokens (P0.2).'
+    severity: error

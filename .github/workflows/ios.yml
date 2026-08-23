@@ -1,0 +1,31 @@
+name: iOS Core
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build-and-test:
+    name: Build and test TankbookCore
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # SwiftLint is the enforcement point for CLAUDE.md hard rule 5 (no ad-hoc hex
+      # in UI code), so it must actually run – a silently skipped lint is a lint
+      # that never gates anything. Runs from the repo root because .swiftlint.yml
+      # and its `excluded:` paths are root-relative.
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint
+        run: swiftlint lint
+
+      - name: Build
+        working-directory: ios
+        run: swift build
+
+      - name: Test
+        working-directory: ios
+        run: swift test

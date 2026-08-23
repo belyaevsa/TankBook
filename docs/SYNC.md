@@ -6,7 +6,7 @@
 
 Local-first with a server hub. Every device owns a complete local database and works fully offline; the backend keeps the account's authoritative change history. Devices **push** local changes and **pull** others' changes through a per-account monotonic sequence (SCN – server change number). Conflicts are resolved record-level last-writer-wins on the client, then re-validated by the domain rules (the odometer timeline check catches what LWW can't). No account = no sync, everything else works – sign-in is the moment multi-device turns on.
 
-**What this replaces:** CloudKit as the sync engine. One sync system, ours, serving iOS now and Android later with identical semantics. (CloudKit would give iOS free sync but nothing to Android, and running both would double every consistency bug.) iCloud Keychain still stores the account session; the OS photo library and files are untouched.
+**What this replaces:** CloudKit as the sync engine. One sync system, ours, serving iOS now and Android later with identical semantics. (CloudKit would give iOS free sync but nothing to Android, and running both would double every consistency bug.) The account session lives in the **device-local Keychain only** (`…ThisDeviceOnly`, never iCloud Keychain – a synced session would silently defeat per-device revocation; see `SECURITY.md`); the OS photo library and files are untouched.
 
 ## Server data model
 
@@ -16,14 +16,17 @@ The server stores *records*, not domain tables – it never interprets entries, 
 accounts   (id uuid pk, apple_sub text unique, google_sub text unique, email text not null,
             created_at timestamptz, deleted_at timestamptz)
 devices    (id uuid pk, account_id fk, name text, platform text, last_pull_scn bigint,
-            last_seen_at timestamptz)
+            last_seen_at timestamptz, push_token text null)  -- APNs/FCM token, NOTIFICATIONS.md
 records    (account_id fk, id uuid, entity_type text,        -- "vehicle" | "fillup" | …
+            schema_version int not null,                     -- payload contract version (see below)
             scn bigint,                                      -- per-account monotonic, assigned on write
-            payload jsonb,                                   -- the entity, exact SCHEMA.md shape
+            payload jsonb,                                   -- the entity, validated against the registered schema
             client_updated_at timestamptz,                   -- device clock, for LWW
             deleted boolean default false,                   -- tombstone
             origin_device uuid,
             primary key (account_id, id))
+payload_schemas    (entity_type, schema_version, json_schema jsonb, primary key (entity_type, schema_version))
+payload_migrations (entity_type, from_version, to_version, transform jsonb, primary key (entity_type, from_version))
 account_seq(account_id pk, next_scn bigint)                  -- SCN allocator, bumped in the write tx
 blobs      (account_id fk, sha256 text, size_bytes bigint, storage_ref text,
             created_at timestamptz, primary key (account_id, sha256))
@@ -31,7 +34,68 @@ llm_usage  (account_id fk, period date, requests int, tokens bigint)
 ```
 
 - `records.scn` has a per-account index; pull is `WHERE account_id = ? AND scn > ? ORDER BY scn LIMIT n`.
-- **Forward compatibility of entity types:** `entity_type` is an open set (adding `tireset` or any future entity needs zero server changes). Clients MUST preserve records whose `entity_type` or payload fields they don't understand – store opaquely, sync back unchanged, never drop. An older app version syncing against newer data keeps everything intact; it just doesn't render the new type until updated. (Same rule as backup's additive-evolution: unknown ≠ invalid.)
+- **Forward compatibility of entity types:** `entity_type` is an open set (adding `tireset` or any future entity needs zero server changes). Clients MUST preserve records whose `entity_type` or payload fields they don't understand – store opaquely, sync back unchanged, never drop. An older app version syncing against newer data keeps everything intact; it just doesn't render the new type until updated. (Same rule as backup's additive-evolution: unknown ≠ invalid.) This rule is not a promise, it is a **tested invariant** – see the round-trip test in "Payload contract".
+
+## Payload contract and versioning
+
+Opaque does not mean unchecked. A payload nobody validates is a payload any buggy client can poison, and a schema nobody versions is one that can never evolve. The contract below gives the payload a defined, enforced shape **without** the server learning domain meaning.
+
+### The envelope
+
+`records` carries the version as a **column**, not buried in JSON, so the server can filter and migrate without parsing domain content:
+
+```sql
+records (account_id, id, entity_type text, schema_version int not null, payload jsonb, …)
+```
+
+`payload` is always a JSON **object** holding exactly the entity's fields as `docs/SCHEMA.md` defines them for that `schema_version`.
+
+### What the server enforces (structure, never meaning)
+
+On every push, per change:
+
+| Check | Failure |
+|---|---|
+| `payload` is a JSON object, ≤ 256 KB | `422 payload_invalid` |
+| `entity_type` non-empty, ≤ 64 chars | `422 payload_invalid` |
+| `schema_version` is an int in `[minSupported, maxKnown]` | `409 schema_version_unsupported` (too new: the *server* needs updating – say so) |
+| Client's `schema_version` < server's `minSupported` | `426 upgrade_required` – **push refused, pull still allowed** so the user is never locked out of their own data, only prevented from writing stale shapes |
+| Payload validates against the **registered JSON Schema** for (`entity_type`, `schema_version`) | `422 payload_schema_violation`, naming the failing JSON pointer |
+
+Unknown `entity_type` with a well-formed envelope is **accepted unvalidated** – that is what keeps the open set open (a future `tireset` from a newer client must survive an older server). Known types are strictly validated.
+
+### The schema registry lives in the database, not in code
+
+```sql
+payload_schemas (entity_type text, schema_version int, json_schema jsonb,
+                 PRIMARY KEY (entity_type, schema_version))
+```
+
+Schemas are seeded by ordinary SQL migrations. **Adding or evolving an entity is therefore a data change, not a backend deploy** – which is the property the original "opaque payload" decision was really protecting. The canonical schema files live in `docs/schemas/v<N>/<entityType>.schema.json`, are generated from the domain model, and are the single artifact both the iOS client and the C# server validate against.
+
+### Migrating payloads (the part a DDL migration does not cover)
+
+Two layers, because neither alone is sufficient:
+
+**1 · Client-side upcasting – the primary mechanism.** Every client carries ordered upcasters (v1→v2→v3…). Any record pulled at a lower version is upcast in memory before use; every write emits the current version. This works offline, needs no server, and is what makes a local-first app survive its own evolution.
+
+**2 · Server-side backfill – for convergence.** Client upcasting alone never finishes: an entry nobody edits stays at v1 forever, so `minSupported` can never advance and clients carry upcasters indefinitely. So each schema version ships an optional **declarative transform** – an ordered list of mechanical operations (`rename`, `addDefault`, `wrap`, `removeDeprecated`) stored beside its schema:
+
+```sql
+payload_migrations (entity_type, from_version, to_version, transform jsonb, PRIMARY KEY (entity_type, from_version))
+```
+
+A batched, idempotent, resumable job applies pending transforms across `records`. It is mechanical JSON surgery – the server still never learns what a litre is. **Backfill does not allocate new SCNs** (it is not a user edit; bumping SCNs would fake a change on every device and stampede the pull stream); it rewrites payload and schema_version in place. Clients therefore must treat schema_version as advisory-on-read: always upcast to current before use, whatever the record claims.
+
+Anything not expressible as a declarative transform is client-only migration, and `minSupported` simply waits longer. That constraint is a feature: it keeps domain logic out of the server by construction.
+
+### How this is assured (tests, not promises)
+
+- **Schema coverage**: every `entityType` in SCHEMA.md has a registered schema at the current version. A new entity without its contract fails the build.
+- **Fixture corpus**: `docs/fixtures/payloads/v<N>/<entityType>.json` holds representative payloads per version. Every fixture validates against its own version's schema.
+- **Upcast completeness**: every v<N> fixture upcasts cleanly to current and validates against the current schema.
+- **Cross-implementation parity** – the important one: the Swift upcaster and the server's declarative transform must produce **byte-identical** output for every fixture. This is what stops the two implementations silently drifting apart, and it is why the transforms are data rather than code in two languages.
+- **Round-trip preservation**: a record with unknown fields and an unknown entity_type survives decode → encode unchanged (the forward-compatibility rule above, made executable).
 - Attachments are content-addressed blobs in S3-compatible storage; `payload` references them by sha256. Upload before push, download lazily after pull.
 - Backups (the F7 restore path and user-held export) become a *byproduct*: a server-side snapshot of `records` at an SCN, in the SCHEMA.md backup format. No separate backup pipeline to maintain.
 
@@ -120,9 +184,9 @@ iPhone edits the Shell fill-up's odometer at 14:02; iPad edits its note at 14:05
 - **Verdict:** acceptable for v1 (one person editing the same entry on two devices within minutes is rare); the losing device keeps the overwritten version in a local 30-day undo log ("Entry changed by sync – restore my version") reachable from the entry's edit screen. Telemetry counts these; if real, field-group merge is the v2 fix.
 
 ### S2 · Duplicate capture of one physical fill-up
-Both spouses (v2 sharing) — or one person with phone and CarPlay flow — log the same fill-up. Two records, different UUIDs: transport sees no conflict at all.
+Both spouses (v2 sharing) – or one person with phone and CarPlay flow – log the same fill-up. Two records, different UUIDs: transport sees no conflict at all.
 - **Transport:** both records sync everywhere.
-- **Domain:** duplicate heuristic — same vehicle, dates within 30 min, volume within 5% — flags the pair.
+- **Domain:** duplicate heuristic – same vehicle, dates within 30 min, volume within 5% – flags the pair.
 - **Screens:** the Log shows one combined card: "Possible duplicate – Shell, 42.3 L logged twice" with *Keep both* / *Merge* (merge keeps the richer one: the one with an attachment wins, fields union). Until resolved, only ONE of the pair counts in consumption and totals, so stats never double.
 
 ### S3 · Out-of-order odometers after merge (two drivers, both offline)
@@ -152,9 +216,9 @@ A fill-up saved offline in Poland has `Money{289.50 PLN, homeAmount: nil}` (rate
 - **Rule:** conversion backfill is **fill-blanks-only** (same principle as F5's QR enrichment): any device may write `homeAmount`/`rate` when they are nil, and no device ever recomputes an existing snapshot. Both devices backfilling concurrently write identical values (same feed, same `rateDate` = entry date), so the LWW winner is byte-equivalent – no user-visible effect.
 - **Divergence case:** one device backfills from the feed while the user manually edits the rate on the other → LWW picks the newer; a losing *manual* rate (rateSource: .manual) lands in the S1 undo log, feed values don't (they're reproducible).
 - **The rate cache itself never syncs** – each device fetches its own feed; only `Money` snapshots inside entries travel. A device with no feed access simply leaves entries pending; stats exclude them from home-currency sums with the F9 footnote until any device fills them.
-- **Screens:** the foreign-currency confirm shows the conversion line ("≈ 67.80 € · 4.2706 zł/€ · ECB, Aug 21") or a soft "converts when online" chip; when backfill lands via sync, the entry's home amount simply appears – no toast, nothing was wrong.
+- **Screens:** the foreign-currency confirm shows the conversion line ("≈ 67.79 € · 4.2706 zł/€ · ECB, Aug 21") or a soft "converts when online" chip; when backfill lands via sync, the entry's home amount simply appears – no toast, nothing was wrong.
 
-### S7 · Server unavailable — during everything above
+### S7 · Server unavailable – during everything above
 The backend is down for a day; both devices keep logging, editing, deleting.
 - **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.
 - **On recovery:** the queues drain (pull → merge → push per device); *only then* do S1–S5 outcomes materialize. This is why domain conflicts must never be modal: they can arrive in a batch, hours after the user did anything – a stack of interrupting dialogs about yesterday would be hostile. Badges absorb a batch gracefully; a single unobtrusive summary toast covers the rest: "Synced. 2 entries need a look" → tapping filters the Log to flagged entries.
@@ -176,5 +240,5 @@ The backend is down for a day; both devices keep logging, editing, deleting.
 
 ## Open questions
 
-1. ~~Push nudges vs poll~~ — decided: **silent APNs nudges ship at v1.x**, throttled server-side, with foreground polling as the permanent fallback (nudges are an optimization, never a dependency). Full notification design: `NOTIFICATIONS.md`.
-2. ~~Blob store~~ — **decided (Aug 23, 2026): S3-compatible object storage, provider-agnostic** – all code targets the S3 API (presigned upload/download, see "Attachments: the blob pipeline"); the concrete provider is a deployment-time ops choice, swappable via config. Local dev runs MinIO in a container.
+1. ~~Push nudges vs poll~~ – decided: **silent APNs nudges ship at v1.x**, throttled server-side, with foreground polling as the permanent fallback (nudges are an optimization, never a dependency). Full notification design: `NOTIFICATIONS.md`.
+2. ~~Blob store~~ – **decided (Aug 23, 2026): S3-compatible object storage, provider-agnostic** – all code targets the S3 API (presigned upload/download, see "Attachments: the blob pipeline"); the concrete provider is a deployment-time ops choice, swappable via config. Local dev runs MinIO in a container.

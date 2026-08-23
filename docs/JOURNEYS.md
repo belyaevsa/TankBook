@@ -140,7 +140,7 @@ Scan invoice (document camera, multi-page) → on-device model splits line items
 
 ### J10 · Cross-border trip (P1)
 **Trigger:** filling up in Poland with a Euro-currency car.
-**Journey:** scan as always → currency auto-detected as PLN from the receipt → card shows both: "289.50 zł · ≈ €67.80 at today's rate" → saved with the historical rate snapshot; trends stay in the car's home currency, original always preserved on the entry. No settings visited at any point.
+**Journey:** scan as always → currency auto-detected as PLN from the receipt → card shows both: "289.50 zł · ≈ €67.79 at today's rate" → saved with the historical rate snapshot; trends stay in the car's home currency, original always preserved on the entry. No settings visited at any point.
 
 **Success metric:** multi-currency entries with zero manual currency picks.
 
@@ -216,7 +216,7 @@ Scan invoice (document camera, multi-page) → on-device model splits line items
 
 - Capture, on-device OCR, parsing, cross-check, save: **all work identically offline.** The user should be unable to tell.
 - What silently defers: currency conversion for a foreign receipt (entry saves with original amount + "rate pending" chip, converts on next connectivity – trends momentarily exclude it from home-currency sums), station auto-suggest from maps (favorites still work – they're local), backup upload (queued).
-- The one visible seam: a foreign-currency entry shows "≈ — · converts when online" instead of the home amount. `inkSoft`, not `warn` – nothing is wrong.
+- The one visible seam: a foreign-currency entry shows "≈ – · converts when online" instead of the home amount. `inkSoft`, not `warn` – nothing is wrong.
 
 **Metric:** offline captures complete at the same rate as online ones (instrumented locally, reported in aggregate).
 

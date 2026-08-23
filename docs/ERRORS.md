@@ -18,7 +18,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Welcome
 | Condition | Shows | Next step |
 |---|---|---|
-| — | Welcome has no failable operations; all three paths lead onward | — |
+| – | Welcome has no failable operations; all three paths lead onward | – |
 
 ### Sign in
 | Condition | Shows | Next step |
@@ -68,8 +68,9 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Low-confidence fields (F1 partial) | Fields dimmed at 60% | Tap to confirm or edit each; save enabled once required fields exist |
 | OCR read nothing (F1) | The Manual variant IS the answer: photo kept, caption "Couldn't read this one – type it in." | Type 3 fields · Rescan · photo stays attached regardless |
 | Currency low-confidence (schema rule) | Currency chip amber: "Which currency is this?" – never silently converts | One tap on the chip row |
-| No exchange rate for that date (F9) | Hint on conversion card: "≈ — · converts when online" | Save anyway (converts later) · enter rate manually |
+| No exchange rate for that date (F9) | Hint on conversion card: "≈ – · converts when online" | Save anyway (converts later) · enter rate manually |
 | Cloud-fallback unavailable/quota spent (F4) | Hint: "check these – enhanced reading unavailable right now"; **never an upsell here** | Confirm/fix by hand · save |
+| On-device model unavailable (hardware lacks Apple Intelligence, it is switched off, or the model is still downloading) | **Nothing at all.** Rules-only extraction is the normal path for most devices, not a degraded one – announcing its absence would invent a problem the user does not have | Confirm/fix as usual; the capability is checked at runtime and simply not used |
 | Odometer breaks timeline (F9a) | Amber + conflicting entry quoted: "Aug 17 already recorded 119 486 km." Receipt date pre-trusted | Fix odometer (preselected) · fix date (needs explicit override) · save anyway (flagged) |
 | Volume > tank capacity | Warn: "That's more than the 71 L tank holds – check liters." | Fix · confirm (jerry can happens) |
 | Swipe-down with typed input | "Keep editing / Discard" (typed input only – pure scans discard silently, photo re-offerable) | Either |
@@ -85,7 +86,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Invoice OCR can't split lines (J7 fallback) | One lump-sum item with full total, editable | Keep as lump sum (legitimate) · split by hand |
 | Multi-page scan interrupted | "Page 2 didn't save – rescan it or continue with 1 page." | Rescan page · continue |
 | Odometer required but empty (km lifetime set) | Warn on odometer card: "Needed to schedule 'next in 15 000 km'." | Fill (pre-filled value one tap away) · remove the km lifetime |
-| Shelf part suggested but wrong | — (suggestion, not warning) | Dismiss chip; never auto-links |
+| Shelf part suggested but wrong | – (suggestion, not warning) | Dismiss chip; never auto-links |
 
 ### Edit entry
 | Condition | Shows | Next step |

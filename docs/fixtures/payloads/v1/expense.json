@@ -1,0 +1,26 @@
+{
+  "id": "55555555-5555-7555-8555-555555555555",
+  "createdAt": "2026-03-01T00:05:00.000Z",
+  "updatedAt": "2026-03-01T00:05:00.000Z",
+  "vehicleId": "11111111-1111-7111-8111-111111111111",
+  "date": "2026-03-01T00:00:00.000Z",
+  "odometer": 112000,
+  "money": {
+    "amount": "540.00",
+    "currency": "EUR",
+    "homeAmount": "540.00",
+    "homeCurrency": "EUR",
+    "rate": "1",
+    "rateSource": "ecb"
+  },
+  "note": "Annual comprehensive + theft",
+  "attachments": [],
+  "provenance": { "tag": "manual" },
+  "conflict": { "tag": "none" },
+  "category": { "tag": "insurance" },
+  "title": "Annual insurance",
+  "recurrence": {
+    "everyMonths": 12,
+    "anchorDate": "2026-03-01T00:00:00.000Z"
+  }
+}

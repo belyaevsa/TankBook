@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tankbook.app/schemas/config/1",
+  "title": "Tankbook remote config document",
+  "description": "A signed config document served by GET /v1/config (docs/API.md, docs/CONFIG.md). Validated against this schema AT PUBLISH TIME on the server, so a malformed document never reaches a device. Clients additionally verify the Ed25519 signature before applying anything.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "version",
+    "issuedAt",
+    "notAfter",
+    "tier2OnDeviceLLM",
+    "tier3CloudFallback",
+    "llmQuota",
+    "ocrConfidenceThreshold",
+    "minSchemaVersion",
+    "referencePacks",
+    "rolloutSalt"
+  ],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic document version; clients never apply a version below the one they hold (rollback protection, docs/CONFIG.md)."
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the document was issued (ISO-8601 UTC)."
+    },
+    "notAfter": {
+      "type": "string",
+      "format": "date-time",
+      "description": "End of the validity window (default 90 days, docs/CONFIG.md). An expired document is discarded in favour of bundled defaults."
+    },
+    "apiBaseUrl": {
+      "type": "string",
+      "format": "uri",
+      "pattern": "^https://",
+      "description": "Optional API base URL override. HTTPS only; the client additionally enforces a compiled-in host allowlist before adopting it (docs/CONFIG.md 'Guardrails on apiBaseUrl')."
+    },
+    "tier2OnDeviceLLM": {
+      "type": "boolean",
+      "description": "Kill switch for on-device LLM extraction. true = enabled."
+    },
+    "tier3CloudFallback": {
+      "type": "boolean",
+      "description": "Kill switch for cloud extraction fallback. true = enabled."
+    },
+    "llmQuota": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["onDeviceLLM", "cloudFallback"],
+      "properties": {
+        "onDeviceLLM": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monthly request cap for the on-device tier."
+        },
+        "cloudFallback": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Monthly request cap for the cloud fallback tier."
+        }
+      }
+    },
+    "ocrConfidenceThreshold": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence gate below which OCR output dims toward manual review (docs/SCHEMA.md ExtractionMeta)."
+    },
+    "minSchemaVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Minimum payload schema version clients must speak; the general default before the first /sync/pull (docs/SYNC.md, docs/CONFIG.md)."
+    },
+    "referencePacks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rates", "catalog"],
+      "properties": {
+        "rates": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Reference data pack version for exchange rates."
+        },
+        "catalog": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Reference data pack version for the vehicle catalog."
+        }
+      }
+    },
+    "maintenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["text", "severity", "until"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "maxLength": 2000,
+          "pattern": "^[^<>&]*$",
+          "description": "Plain text only - no HTML, no markup, no arbitrary URLs (docs/CONFIG.md 'Defence in depth': the maintenance notice is inert). The pattern rejects <, > and & so a notice can only ever render as plain text."
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning"]
+        },
+        "until": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "rolloutSalt": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 64,
+      "description": "Per-release salt mixed with a device hash to decide flag rollout buckets (docs/CONFIG.md)."
+    },
+    "flags": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["enabled", "rolloutPercent"],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "rolloutPercent": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        }
+      }
+    }
+  }
+}

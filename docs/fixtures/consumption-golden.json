@@ -1,0 +1,140 @@
+{
+  "_comment": "Golden vectors for the consumption engine (docs/SCHEMA.md → Derived: consumption). Produced by the four-drivers simulation. Any implementation MUST reproduce these exactly. asOf fixes 'today' so tests are deterministic. Distances in km, volumes in litres, per100 = L/100km rounded to 2dp; headline.value rounded to 1dp as displayed.",
+  "asOf": "2026-08-23",
+  "model": { "windowDays": 90, "floorSegments": 3 },
+  "drivers": [
+    {
+      "id": "D1",
+      "name": "Commuter – full tank every two weeks",
+      "fills": [
+        { "date": "2026-05-17", "odometer": 114980, "litres": 45.9, "isFull": true },
+        { "date": "2026-05-31", "odometer": 115622, "litres": 44.6, "isFull": true },
+        { "date": "2026-06-14", "odometer": 116281, "litres": 46.8, "isFull": true },
+        { "date": "2026-06-28", "odometer": 116904, "litres": 43.1, "isFull": true },
+        { "date": "2026-07-12", "odometer": 117561, "litres": 45.5, "isFull": true },
+        { "date": "2026-07-26", "odometer": 118207, "litres": 44.2, "isFull": true },
+        { "date": "2026-08-09", "odometer": 118843, "litres": 43.9, "isFull": true },
+        { "date": "2026-08-22", "odometer": 119486, "litres": 42.3, "isFull": true }
+      ],
+      "expectedSegments": [
+        { "closes": "2026-05-31", "km": 642, "litres": 44.6, "per100": 6.95 },
+        { "closes": "2026-06-14", "km": 659, "litres": 46.8, "per100": 7.10 },
+        { "closes": "2026-06-28", "km": 623, "litres": 43.1, "per100": 6.92 },
+        { "closes": "2026-07-12", "km": 657, "litres": 45.5, "per100": 6.93 },
+        { "closes": "2026-07-26", "km": 646, "litres": 44.2, "per100": 6.84 },
+        { "closes": "2026-08-09", "km": 636, "litres": 43.9, "per100": 6.90 },
+        { "closes": "2026-08-22", "km": 643, "litres": 42.3, "per100": 6.58 }
+      ],
+      "expectedHeadline": {
+        "value": 6.9, "segmentCount": 7, "spanDays": 90, "windowExtended": false,
+        "totalLitres": 310.4, "totalKm": 4506
+      },
+      "expectedLifetime": 6.9
+    },
+    {
+      "id": "D2",
+      "name": "Top-up driver – small partial fills, rare full tank",
+      "fills": [
+        { "date": "2026-04-27", "odometer": 45210, "litres": 41.0, "isFull": true },
+        { "date": "2026-05-03", "odometer": 45390, "litres": 13.5, "isFull": false },
+        { "date": "2026-05-09", "odometer": 45585, "litres": 14.0, "isFull": false },
+        { "date": "2026-05-16", "odometer": 45790, "litres": 15.0, "isFull": false },
+        { "date": "2026-05-23", "odometer": 45988, "litres": 13.0, "isFull": false },
+        { "date": "2026-05-30", "odometer": 46160, "litres": 12.5, "isFull": false },
+        { "date": "2026-06-06", "odometer": 46345, "litres": 34.5, "isFull": true },
+        { "date": "2026-06-13", "odometer": 46540, "litres": 14.5, "isFull": false },
+        { "date": "2026-06-21", "odometer": 46745, "litres": 15.0, "isFull": false },
+        { "date": "2026-06-29", "odometer": 46952, "litres": 14.0, "isFull": false },
+        { "date": "2026-07-07", "odometer": 47150, "litres": 13.5, "isFull": false },
+        { "date": "2026-07-16", "odometer": 47330, "litres": 33.0, "isFull": true },
+        { "date": "2026-07-24", "odometer": 47528, "litres": 14.0, "isFull": false },
+        { "date": "2026-08-02", "odometer": 47739, "litres": 15.5, "isFull": false },
+        { "date": "2026-08-11", "odometer": 47945, "litres": 14.5, "isFull": false },
+        { "date": "2026-08-21", "odometer": 48140, "litres": 32.5, "isFull": true }
+      ],
+      "expectedSegments": [
+        { "closes": "2026-06-06", "km": 1135, "litres": 102.5, "per100": 9.03 },
+        { "closes": "2026-07-16", "km": 985, "litres": 90.0, "per100": 9.14 },
+        { "closes": "2026-08-21", "km": 810, "litres": 76.5, "per100": 9.44 }
+      ],
+      "expectedHeadline": {
+        "value": 9.2, "segmentCount": 3, "spanDays": 90, "windowExtended": false,
+        "totalLitres": 269.0, "totalKm": 2930
+      },
+      "expectedLifetime": 9.2,
+      "_note": "Partial fills merge forward into the segment that a full fill closes. 16 fills yield only 3 segments – this is why the window is time-based, not fill-count-based."
+    },
+    {
+      "id": "D3",
+      "name": "Weekend driver – full tank every ~2.5 months (window must extend)",
+      "fills": [
+        { "date": "2025-12-26", "odometer": 61200, "litres": 47.0, "isFull": true },
+        { "date": "2026-03-16", "odometer": 61890, "litres": 48.5, "isFull": true },
+        { "date": "2026-06-04", "odometer": 62540, "litres": 45.0, "isFull": true },
+        { "date": "2026-08-13", "odometer": 63180, "litres": 44.5, "isFull": true }
+      ],
+      "expectedSegments": [
+        { "closes": "2026-03-16", "km": 690, "litres": 48.5, "per100": 7.03 },
+        { "closes": "2026-06-04", "km": 650, "litres": 45.0, "per100": 6.92 },
+        { "closes": "2026-08-13", "km": 640, "litres": 44.5, "per100": 6.95 }
+      ],
+      "expectedHeadline": {
+        "value": 7.0, "segmentCount": 3, "spanDays": 160, "windowExtended": true,
+        "totalLitres": 138.0, "totalKm": 1980
+      },
+      "expectedLifetime": 7.0,
+      "_note": "Only 2 segments close within 90 days, so the floor of 3 extends the window to 160 days and the label must say the real span (~5 months), not '3 months'."
+    },
+    {
+      "id": "D4",
+      "name": "New user – second fill-up ever (below floor, nothing to extend into)",
+      "fills": [
+        { "date": "2026-08-10", "odometer": 88410, "litres": 48.0, "isFull": true },
+        { "date": "2026-08-20", "odometer": 88997, "litres": 41.5, "isFull": true }
+      ],
+      "expectedSegments": [
+        { "closes": "2026-08-20", "km": 587, "litres": 41.5, "per100": 7.07 }
+      ],
+      "expectedHeadline": {
+        "value": 7.1, "segmentCount": 1, "spanDays": 3, "windowExtended": false,
+        "totalLitres": 41.5, "totalKm": 587
+      },
+      "expectedLifetime": 7.1,
+      "_note": "One segment: value shows with a 'first estimate' label. Before the second full fill there is NO value at all – the UI must invite, never render N/A."
+    }
+  ],
+  "editCases": [
+    {
+      "id": "E1",
+      "name": "Volume edit shifts the headline",
+      "basedOn": "D1",
+      "edit": { "date": "2026-07-12", "field": "litres", "from": 45.5, "to": 40.5 },
+      "expectedSegmentPer100": { "closes": "2026-07-12", "per100": 6.16 },
+      "expectedHeadline": { "value": 6.8, "totalLitres": 305.4, "totalKm": 4506 }
+    },
+    {
+      "id": "E2",
+      "name": "isFull toggled off merges two segments into one",
+      "basedOn": "D1",
+      "edit": { "date": "2026-06-28", "field": "isFull", "from": true, "to": false },
+      "expectedMergedSegment": { "closes": "2026-07-12", "km": 1280, "litres": 88.6, "per100": 6.92 },
+      "expectedSegmentCount": 6
+    },
+    {
+      "id": "E3",
+      "name": "isFull toggled on splits one segment into two",
+      "basedOn": "D2",
+      "edit": { "date": "2026-05-16", "field": "isFull", "from": false, "to": true },
+      "expectedNewSegments": [
+        { "closes": "2026-05-16", "km": 580, "litres": 42.5, "per100": 7.33 },
+        { "closes": "2026-06-06", "km": 555, "litres": 60.0, "per100": 10.81 }
+      ]
+    }
+  ],
+  "invariants": [
+    "Headline is distance-weighted: sum(litres)/sum(km)*100 – NOT the arithmetic mean of segment per100 values.",
+    "A segment whose opening or closing fill carries an unresolved ConflictState is excluded from headline and lifetime.",
+    "Segments are derived, never stored: any FillUp change triggers a full recompute for that vehicle.",
+    "Below the floor with nothing to extend into, the value is still shown but labelled a first estimate."
+  ]
+}

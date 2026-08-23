@@ -2,6 +2,19 @@
 
 *How every story, endpoint, and function is proven. Law: a story is DONE when its checks below pass in CI (or its named manual check is signed off) – "works on my phone" is not a verification level. Companion to `PHASES.md` (when each suite must exist), `JOURNEYS.md` (the stories), `API.md` (the contract), `SCHEMA.md` (invariants + golden vectors), `ERRORS.md` (the 3-question audit).*
 
+## Standing rule: mock the boundary, don't boot the world
+
+**Default to unit tests against mocked seams; reach for a real host or real infrastructure only when the thing under test IS the integration.** A test that boots the API to check a middleware's output is slow, order-dependent, and fails for reasons unrelated to its subject – our own logging tests proved it by failing on a database that wasn't running and on a framework cast that minimal APIs don't allow.
+
+Applied concretely:
+- **Middleware, formatters, redactors, validators** → construct them directly with a `DefaultHttpContext` / fabricated log event and a stub `RequestDelegate`. No `WebApplicationFactory`, no routes, no database.
+- **Repositories and SQL** → real Postgres via Testcontainers, because SQL semantics ARE the subject (L2).
+- **Endpoint contracts** → one thin host-level test per endpoint asserting the wire shape; the logic beneath it is already unit-tested.
+- **iOS networking** → a stubbed `URLProtocol` returning canned responses; never a live backend in unit tests.
+- **Never** let a unit test depend on Docker, a network, a clock, or a real filesystem path.
+
+The rule of thumb: if a test can fail because something *else* is broken, it is testing too much.
+
 ## Verification levels
 
 | Level | Tooling | Proves |
@@ -45,6 +58,15 @@
 - `POST /feedback`: rate limit, size cap, anonymous + authenticated.
 - `POST /extract`: quota 402/429 paths, image cap; transient-processing asserted (no persistence side effects).
 - `DELETE /account` + devices: 410 propagation, purge-after-grace job.
+
+## Cross-cutting foundations (established in P0, exercised forever after)
+
+| Concern | Checks |
+|---|---|
+| **Payload contract** (`SYNC.md`) | L1 coverage: every synced entity has a v1 schema – a new entity without one fails the build. L1 field coverage: every encoded key appears in its schema. L1 round-trip: an unknown field and unknown entityType survive decode→encode byte-identically (the forward-compatibility invariant, made executable). L2: push rejects malformed/oversize/schema-violating payloads with the right code and JSON pointer; unknown entityType accepted unvalidated; `minSupported` returns 426 on push while pull still succeeds. **Parity**: the Swift upcaster and the server's declarative transform produce byte-identical output for every fixture – the test that stops two implementations drifting |
+| **Logging** (`LOGGING.md`) | L1 redaction, both tiers: a fully populated entity through the log path leaks no Sensitive/Never value; `accountHash` replaces email. L2 correlation: a request's traceId appears in the request line, the operation line, and the problem+json body. L1: every mutation emits `begin` + terminal `ok`/`fail`. L1 volume: O(1) log lines per sync batch, not O(n) per record |
+| **Remote config** (`CONFIG.md`) | L1 bootstrap: no cache + no network → bundled defaults, app usable. L1 **brick-proof**: unreachable `apiBaseUrl` + N failures → auto-revert to bundled, recovery without user action. L1 tamper: edited document or signature rejected **on cache read**; version below the Keychain floor rejected; expired document rejected. L1 credential binding: a non-allowlisted host is refused by the HTTP client and **no `Authorization` header is ever constructed for it**. L1 partial: an unknown key is ignored while the rest of the document applies. L1 snapshot: config changing mid-operation does not alter that operation's behaviour |
+| **Security** (`SECURITY.md`) | L1 Keychain attributes are `AfterFirstUnlockThisDeviceOnly` (a wrong constant compiles fine and fails only in the field). L1 file protection asserted on `.sqlite`, `-wal` **and** `-shm`. CI: bundle scan for high-entropy strings and key prefixes; no-secrets-committed grep. L1 sign-out clears every Keychain item and leaves local data intact |
 
 ## Per-function golden suites (L1 – the algorithm core)
 

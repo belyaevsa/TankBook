@@ -1,0 +1,37 @@
+{
+  "id": "33333333-3333-7333-8333-333333333333",
+  "createdAt": "2026-08-20T18:50:00.000Z",
+  "updatedAt": "2026-08-20T18:50:00.000Z",
+  "vehicleId": "11111111-1111-7111-8111-111111111111",
+  "date": "2026-08-20T18:45:00.000Z",
+  "odometer": 119150,
+  "money": {
+    "amount": "19.44",
+    "currency": "EUR",
+    "homeAmount": "19.44",
+    "homeCurrency": "EUR",
+    "rate": "1",
+    "rateSource": "ecb"
+  },
+  "note": "Ionity, A6 services",
+  "attachments": [],
+  "provenance": { "tag": "fiscalQR" },
+  "conflict": { "tag": "none" },
+  "energyKWh": 43.2,
+  "unitPrice": "0.45",
+  "chargeType": "dcPublic",
+  "provider": "Ionity",
+  "tariffId": "88888888-8888-7888-8888-888888888888",
+  "durationMin": 42,
+  "socStartPct": 18,
+  "socEndPct": 92,
+  "extraction": {
+    "fields": {
+      "energy": {
+        "confidence": 0.9,
+        "userCorrected": false
+      }
+    },
+    "pipeline": "fiscal-qr"
+  }
+}

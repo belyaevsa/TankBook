@@ -1,0 +1,227 @@
+namespace Tankbook.Api.Logging;
+
+/// <summary>
+/// Typed, named events instead of ad-hoc message strings (docs/LOGGING.md §3).
+/// Each method logs one line whose event field is the stable name and whose
+/// fields are exactly the Safe set the spec tables list. Values never enter
+/// here: call sites pass ids, counts and outcomes. Wire the ones with live call
+/// sites today; the rest are the signatures the P4 sync/auth/blob/LLM code will
+/// call.
+/// </summary>
+public static class TankbookLog
+{
+    /// <summary>The per-request line (docs/LOGGING.md §3 "Always, per request").</summary>
+    public static void HttpRequest(
+        ILogger logger,
+        LogLevel level,
+        string method,
+        string routeTemplate,
+        int status,
+        double durationMs,
+        long requestBytes,
+        long responseBytes)
+        => Emit(logger, level, "http.request",
+            ("Method", method),
+            ("Path", routeTemplate),
+            ("Status", status),
+            ("DurationMs", durationMs),
+            ("RequestBytes", requestBytes),
+            ("ResponseBytes", responseBytes));
+
+    public static void AuthSession(
+        ILogger logger,
+        string provider,
+        string outcome,
+        string? failureReason = null,
+        string? accountHash = null)
+        => Emit(logger, LogLevel.Information, "auth.session",
+            ("Provider", provider),
+            ("Outcome", outcome),
+            ("FailureReason", failureReason),
+            ("AccountHash", accountHash));
+
+    /// <summary>Refresh rotation; replay of a rotated token is a security event.</summary>
+    public static void AuthRefresh(
+        ILogger logger,
+        string outcome,
+        string? rotationId = null,
+        bool reuseDetected = false,
+        string? deviceId = null)
+        => Emit(logger, reuseDetected ? LogLevel.Warning : LogLevel.Information, "auth.refresh",
+            ("Outcome", outcome),
+            ("RotationId", rotationId),
+            ("ReuseDetected", reuseDetected),
+            ("DeviceId", deviceId));
+
+    public static void SyncPush(
+        ILogger logger,
+        int batchSize,
+        int accepted,
+        int conflicts,
+        int rejected,
+        (long From, long To)? assignedScnRange,
+        TimeSpan duration,
+        IEnumerable<object>? items = null)
+        => Emit(logger, LogLevel.Information, "sync.push",
+            ("BatchSize", batchSize),
+            ("Accepted", accepted),
+            ("Conflicts", conflicts),
+            ("Rejected", rejected),
+            ("AssignedScnRange", assignedScnRange is null ? null : new[] { assignedScnRange.Value.From, assignedScnRange.Value.To }),
+            ("DurationMs", duration.TotalMilliseconds),
+            ("Items", items));
+
+    public static void SyncPull(
+        ILogger logger,
+        long sinceScn,
+        int returned,
+        long nextSince,
+        bool more,
+        TimeSpan duration)
+        => Emit(logger, LogLevel.Information, "sync.pull",
+            ("SinceScn", sinceScn),
+            ("Returned", returned),
+            ("NextSince", nextSince),
+            ("More", more),
+            ("DurationMs", duration.TotalMilliseconds));
+
+    public static void BlobBegin(
+        ILogger logger,
+        string sha256,
+        long sizeBytes,
+        string contentType,
+        string dedupe,
+        int? quotaUsedPct)
+        => Emit(logger, LogLevel.Information, "blob.begin",
+            ("Sha256", sha256),
+            ("SizeBytes", sizeBytes),
+            ("ContentType", contentType),
+            ("Dedupe", dedupe),
+            ("QuotaUsedPct", quotaUsedPct));
+
+    public static void BlobCommit(
+        ILogger logger,
+        string sha256,
+        long sizeBytes,
+        string contentType,
+        int? quotaUsedPct)
+        => Emit(logger, LogLevel.Information, "blob.commit",
+            ("Sha256", sha256),
+            ("SizeBytes", sizeBytes),
+            ("ContentType", contentType),
+            ("QuotaUsedPct", quotaUsedPct));
+
+    public static void BlobGet(ILogger logger, string sha256, int presignTtlSec)
+        => Emit(logger, LogLevel.Information, "blob.get",
+            ("Sha256", sha256),
+            ("PresignTtlSec", presignTtlSec));
+
+    public static void LlmExtract(
+        ILogger logger,
+        string kind,
+        long quotaBefore,
+        long quotaAfter,
+        string model,
+        TimeSpan duration,
+        string outcome)
+        => Emit(logger, LogLevel.Information, "llm.extract",
+            ("Kind", kind),
+            ("QuotaBefore", quotaBefore),
+            ("QuotaAfter", quotaAfter),
+            ("Model", model),
+            ("DurationMs", duration.TotalMilliseconds),
+            ("Outcome", outcome));
+
+    public static void MigrationDdl(ILogger logger, string version, string direction, TimeSpan duration)
+        => Emit(logger, LogLevel.Information, "migration.ddl",
+            ("Version", version),
+            ("Direction", direction),
+            ("DurationMs", duration.TotalMilliseconds));
+
+    public static void MigrationPayload(
+        ILogger logger,
+        string entityType,
+        int fromVersion,
+        int toVersion,
+        long rowsScanned,
+        long rowsRewritten,
+        int batches,
+        TimeSpan duration)
+        => Emit(logger, LogLevel.Information, "migration.payload",
+            ("EntityType", entityType),
+            ("FromVersion", fromVersion),
+            ("ToVersion", toVersion),
+            ("RowsScanned", rowsScanned),
+            ("RowsRewritten", rowsRewritten),
+            ("Batches", batches),
+            ("DurationMs", duration.TotalMilliseconds));
+
+    /// <summary>A config document was published (docs/CONFIG.md). Version and
+    /// outcome only - never the document (values are Never class, docs/LOGGING.md).</summary>
+    public static void ConfigPublish(ILogger logger, int version, string outcome, string? reason = null)
+        => Emit(logger, LogLevel.Information, "config.publish",
+            ("Version", version),
+            ("Outcome", outcome),
+            ("Reason", reason));
+
+    /// <summary>The migration-seeded baseline document was signed at startup.</summary>
+    public static void ConfigSeed(ILogger logger, int version, string outcome)
+        => Emit(logger, LogLevel.Information, "config.seed",
+            ("Version", version),
+            ("Outcome", outcome));
+
+    /// <summary>No document is valid (all expired/unpublished); the latest was served anyway.</summary>
+    public static void ConfigExpiredFallback(ILogger logger, int version)
+        => Emit(logger, LogLevel.Warning, "config.expired.fallback",
+            ("Version", version));
+
+    public static void AccountDelete(
+        ILogger logger,
+        string accountHash,
+        long recordsPurged,
+        long blobsPurged,
+        DateTimeOffset? graceEndsAt)
+        => Emit(logger, LogLevel.Information, "account.delete",
+            ("AccountHash", accountHash),
+            ("RecordsPurged", recordsPurged),
+            ("BlobsPurged", blobsPurged),
+            ("GraceEndsAt", graceEndsAt));
+
+    /// <summary>Unhandled-exception ERROR line from the exception handler.</summary>
+    public static void UnhandledException(ILogger logger, Exception exception, string? endpoint)
+        => logger.Log(
+            LogLevel.Error,
+            new EventId(0, "error.unhandled"),
+            new Dictionary<string, object?>
+            {
+                ["Event"] = "error.unhandled",
+                ["ErrorCode"] = "internal_error",
+                ["Endpoint"] = endpoint,
+            },
+            exception,
+            static (state, _) =>
+            {
+                var map = (IReadOnlyDictionary<string, object?>)state;
+                return $"error.unhandled endpoint={map.GetValueOrDefault("Endpoint")}";
+            });
+
+    private static void Emit(ILogger logger, LogLevel level, string eventName, params (string Key, object? Value)[] fields)
+    {
+        var state = new Dictionary<string, object?> { ["Event"] = eventName };
+        foreach (var (key, value) in fields)
+        {
+            state[key] = value;
+        }
+
+        logger.Log(
+            level,
+            new EventId(0, eventName),
+            state,
+            null,
+            static (s, _) =>
+            {
+                var map = (IReadOnlyDictionary<string, object?>)s;
+                return map.GetValueOrDefault("Event") as string ?? "log";
+            });
+    }
+}

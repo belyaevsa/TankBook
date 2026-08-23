@@ -18,25 +18,31 @@ All endpoints below marked **bearer** take `Authorization: Bearer <accessToken>`
 
 Full semantics: `SYNC.md`. Both endpoints are idempotent.
 
-### `GET /sync/pull` — bearer
+### `GET /sync/pull` – bearer
 Fetch changes since a cursor. **Fetching the latest data IS pulling from 0** – fresh install/restore and incremental catch-up are the same call.
 
 ```
 GET /sync/pull?since=<SCN>&limit=500        // since=0 → full dataset
-→ 200 { records: [ { id, entityType, scn, payload, clientUpdatedAt, deleted } ],
-        nextSince: <SCN>, more: bool }
+→ 200 { records: [ { id, entityType, schemaVersion, scn, payload, clientUpdatedAt, deleted } ],
+        nextSince: <SCN>, more: bool,
+        schemaPolicy: { minSupported: int, current: int } }   // clients upcast to `current` on read
 → 410 device revoked / account deleted → client re-onboards or detaches
 ```
 Strictly SCN-ordered, paginated; the client persists `nextSince` per device only after applying the page.
 
-### `POST /sync/push` — bearer
+### `POST /sync/push` – bearer
 ```
-{ changes: [ { id, entityType, baseScn,     // 0 for new records
+{ changes: [ { id, entityType, schemaVersion, baseScn,   // baseScn 0 for new records
                payload, clientUpdatedAt, deleted } ] }   // ≤ 200 changes/batch
 → 200 { results: [ { id, status: "accepted", newScn }
-                 | { id, status: "conflict", current: <record> } ] }
+                 | { id, status: "conflict", current: <record> }
+                 | { id, status: "rejected", error: <code>, pointer: <json-pointer> } ] }
+→ 426 upgrade_required   // whole batch: client schemaVersion < server minSupported.
+                         // PULL still works – never lock a user out of their own data.
 ```
 Per-item outcomes; `conflict` returns the server's current record for client-side LWW merge + re-push (SYNC.md S1/S6). Payloads with `clientUpdatedAt` >24h in the future are clamped and flagged in the result.
+
+**Payload validation** (per-item `rejected` codes, full contract in `SYNC.md` → "Payload contract and versioning"): `payload_invalid` (not an object, >256 KB, bad entityType), `schema_version_unsupported` (newer than the server knows – the *server* needs updating, and the message says so), `payload_schema_violation` (fails the registered JSON Schema; `pointer` names the offending field). A **known** entityType is strictly validated; an **unknown** one with a well-formed envelope is accepted unvalidated, which is what keeps the entity set open for older servers.
 
 ## Attachments (blob pipeline – `SYNC.md`)
 
@@ -50,13 +56,14 @@ Per-item outcomes; `conflict` returns the server's current record for client-sid
 
 | Endpoint | Auth | Contract |
 |---|---|---|
+| `GET /config` | public | Remote configuration document + Ed25519 signature, `ETag`/`If-None-Match` (`304` when unchanged). No auth – guests need it too. Full client contract, guardrails and failure behaviour: `CONFIG.md`. |
 | `GET /rates?date=&base=` | public | All quotes for one date. Past dates: `Cache-Control: immutable`. |
 | `GET /rates/pack?from=&to=&base=` | public | Bulk range for device cache / seed refresh. |
 | `GET /catalog?since_version=` | public | Vehicle catalog delta or full pack + `packVersion`. ETag'd. |
 
 ## Feedback
 
-### `POST /feedback` — public (bearer optional)
+### `POST /feedback` – public (bearer optional)
 ```
 { category: "feature" | "problem" | "other", text,
   appVersion, deviceModel?, replyTo? }        // deviceModel only with the user's toggle
@@ -66,7 +73,7 @@ Account id attached when a bearer token is present; rate-limited per device/IP; 
 
 ## LLM gateway (Pro)
 
-### `POST /extract` — bearer
+### `POST /extract` – bearer
 `{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**). Images processed transiently – never stored, per the signed-off stance.
 
 ## Account & devices
