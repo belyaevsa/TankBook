@@ -121,11 +121,46 @@ enum MakeModelParser {
 // MARK: - Support
 
 enum AddVehicleSupport {
+    /// The currency's symbol, or an empty string when it has no symbol distinct
+    /// from its code.
+    ///
+    /// `NumberFormatter.currencySymbol` with only `currencyCode` set returns the
+    /// **code** for most currencies (PLN -> "PLN", CZK -> "CZK", CHF -> "CHF"),
+    /// so pairing code and symbol rendered "PLN PLN" on the chips. Asking a
+    /// locale that actually uses the currency gets the real glyph, and returning
+    /// empty for the genuinely symbol-less cases lets call sites show the code
+    /// alone (the artboard: "EUR €", "PLN zł", "CZK Kč", "CHF").
+    /// Symbols for the currencies Tankbook targets, matching the artboards
+    /// (`ConfirmManual.dc.html`: "EUR €", "PLN zł", "CZK Kč", "CHF").
+    ///
+    /// An explicit table rather than a `Locale` search: asking `NumberFormatter`
+    /// for a symbol with only `currencyCode` set returns the CODE for most of
+    /// these, and searching `Locale.availableIdentifiers` for a locale that uses
+    /// the currency still missed PLN and RUB. Guessing left the chips reading
+    /// "PLN PLN", and would have shown "RUB" where `docs/JOURNEYS.md` promises
+    /// a RU locale defaults to ₽.
+    private static let knownSymbols: [String: String] = [
+        "EUR": "€", "USD": "$", "GBP": "£", "RUB": "₽", "PLN": "zł",
+        "CZK": "Kč", "UAH": "₴", "KZT": "₸", "TRY": "₺", "GEL": "₾",
+        "SEK": "kr", "NOK": "kr", "DKK": "kr", "HUF": "Ft", "RON": "lei",
+        // Deliberately absent: CHF, RSD, BGN and anything else whose symbol IS
+        // its code - callers render the code alone rather than doubling it.
+    ]
+
+    /// The currency's symbol, or "" when it has none distinct from its code.
     static func currencySymbol(for code: CurrencyCode) -> String {
+        if let symbol = knownSymbols[code.rawValue] { return symbol }
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.currencyCode = code.rawValue
-        return formatter.currencySymbol ?? code.rawValue
+        let symbol = formatter.currencySymbol ?? code.rawValue
+        return symbol.caseInsensitiveCompare(code.rawValue) == .orderedSame ? "" : symbol
+    }
+
+    /// "EUR €", or just "CHF" where the symbol is the code.
+    static func currencyLabel(for code: CurrencyCode) -> String {
+        let symbol = currencySymbol(for: code)
+        return symbol.isEmpty ? code.rawValue : "\(code.rawValue) \(symbol)"
     }
 
     /// Formats a pre-filled capacity ("71.0" -> "71") for the text field.

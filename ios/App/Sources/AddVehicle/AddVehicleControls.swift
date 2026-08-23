@@ -285,7 +285,7 @@ struct AddVehicleOdometerCard: View {
                         Button {
                             form.homeCurrency = code
                         } label: {
-                            Text("\(code.rawValue) \(AddVehicleSupport.currencySymbol(for: code))")
+                            Text(AddVehicleSupport.currencyLabel(for: code))
                         }
                     }
                 } label: {
@@ -307,7 +307,7 @@ struct AddVehicleOdometerCard: View {
     }
 
     private var currencyLabel: String {
-        "\(form.homeCurrency.rawValue) \(AddVehicleSupport.currencySymbol(for: form.homeCurrency))"
+        AddVehicleSupport.currencyLabel(for: form.homeCurrency)
     }
 }
 

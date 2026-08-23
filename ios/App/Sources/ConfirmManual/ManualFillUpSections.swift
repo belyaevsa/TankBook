@@ -92,7 +92,7 @@ struct ManualFillUpCurrencySection: View {
     }
 
     private func chipLabel(_ code: CurrencyCode) -> String {
-        "\(code.rawValue) \(AddVehicleSupport.currencySymbol(for: code))"
+        AddVehicleSupport.currencyLabel(for: code)
     }
 }
 
@@ -208,6 +208,10 @@ struct ManualFillUpNumbersCard: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(color)
                     .lineLimit(1)
+                    // The rules take whatever is left; without this the label
+                    // was squeezed to "checks as you t...".
+                    .fixedSize(horizontal: true, vertical: false)
+                    .layoutPriority(1)
                 Rectangle().fill(color).frame(height: 1.5)
             }
             .accessibilityIdentifier(locked ? "manualFillUpCheckLineLocked" : "manualFillUpCheckLine")

@@ -134,6 +134,15 @@ enum ManualFillUpFormat {
         formatter.usesGroupingSeparator = false
         formatter.minimumFractionDigits = fractionDigits
         formatter.maximumFractionDigits = fractionDigits
+        // A DERIVED figure sits in the same card as the two the user typed, and
+        // typed text is raw ("71.02"). Left to Locale.current this formatter
+        // used the region's separator - on a device with Estonian regional
+        // settings, 1.6789 rendered as "1,679" beside "71.02" and "42.30", so
+        // one card showed two different decimal separators and a price per litre
+        // that read as one thousand six hundred. Pin the separator to the one
+        // the input fields use; presentation-level localisation of numerals is
+        // P5's job, and must then change BOTH sides together.
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter
     }
 }
