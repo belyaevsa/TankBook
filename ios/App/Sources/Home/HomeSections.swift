@@ -580,7 +580,9 @@ struct HomeRecentEntries: View {
 
 // MARK: - Fuel kind label
 
-private extension FuelKind {
+/// Shared by the log stream and the Recently deleted rows (P1.7): a fill's
+/// kind name ("95", "Diesel", "Electricity") when no station name is available.
+extension FuelKind {
     var fuelKindLabel: String {
         switch self {
         case .diesel: return L10n.localize("Diesel")

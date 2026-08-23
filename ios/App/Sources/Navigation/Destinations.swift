@@ -18,7 +18,7 @@ struct DestinationView: View {
         case .about: LeafContent()
         case .reminders: RemindersContent()
         case .reminderForm: LeafContent()
-        case .recentlyDeleted: RecentlyDeletedContent()
+        case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)
         case .vehicleDetail: VehicleDetailContent()
         case .addVehicle: AddVehicleView()
@@ -95,15 +95,6 @@ private struct SettingsContent: View {
 
             NavigationLink("Recently deleted", value: Route.recentlyDeleted)
                 .accessibilityIdentifier("recentlyDeletedButton")
-        }
-    }
-}
-
-private struct RecentlyDeletedContent: View {
-    var body: some View {
-        List {
-            NavigationLink("Compare / Restore", value: Route.editEntry(nil))
-                .accessibilityIdentifier("compareRestoreButton")
         }
     }
 }

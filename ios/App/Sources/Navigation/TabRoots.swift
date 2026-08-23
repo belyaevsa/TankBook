@@ -13,8 +13,10 @@ import UIKit
 /// to Home) and its "tap -> Trends" next step is a TAB switch, which only the
 /// root can perform.
 struct AppRootView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var toastCenter = AppToastCenter()
     @State private var tabSelection: Int = 0
+    @State private var didRunStartupPurge = false
 
     init() {
         Self.applyNeutralTabBarAppearance()
@@ -47,6 +49,23 @@ struct AppRootView: View {
         }
         .animation(.easeOut(duration: 0.2), value: toastCenter.message)
         .environment(toastCenter)
+        .task { runPurgeIfNeeded() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { runPurgeIfNeeded() }
+        }
+    }
+
+    /// The scheduled tombstone purge (docs/SYNC.md: 30-day undo window; P1.7
+    /// wires the repository's existing grace-period purge to run). Runs at
+    /// launch and again on every foreground - the purge is idempotent, so
+    /// running twice is identical to running once, and a tombstone that
+    /// crossed the boundary while the app sat backgrounded is cleared on the
+    /// next visit to the surface that would have shown it.
+    private func runPurgeIfNeeded() {
+        guard !didRunStartupPurge || scenePhase == .active else { return }
+        didRunStartupPurge = true
+        guard let repository = try? AppStore.repository() else { return }
+        try? repository.purgeTombstones()
     }
 
     /// Clears the floating tab bar plus its float margin (the same geometry

@@ -93,7 +93,7 @@ flowchart TD
     Settings -->|About| About
     Settings -.->|back| Home
     About -.->|back| Settings
-    RecentlyDeleted -->|Restore / Compare| EditEntry
+    RecentlyDeleted -->|Restore| RecentlyDeleted   (row removed; entry back in Log)
     RecentlyDeleted -.->|back| Settings
     AccountDevices -.->|back| Settings
     Paywall -.->|close| Settings
@@ -124,7 +124,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
 | Reminders | Home banner, VehicleDetail, push notification | complete → ReminderComplete · New reminder → form | back → opener |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
-| Recently deleted | Settings (and Log overflow menu) | Restore · Compare → EditEntry | back → Settings |
+| Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
 | About & feedback | Settings | Send feedback (stays, toast) · rate/privacy links | back → Settings |
 

@@ -98,6 +98,15 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |
 | Edit shifts stats | Toast on save: "Consumption updated: 6.9 → 6.8 L/100km" | Informational; tap → Trends |
 
+### Recently deleted
+| Condition | Shows | Next step |
+|---|---|---|
+| A tombstoned entry (within the 30-day window) | Row with what the entry was ("Neste · 51.1 L · 84.77 €"), when it was deleted, the days left ("27 days left" – plural rule, EN + RU), and Restore | Restore (tombstone cleared; entry back in the Log and the stats) · let it expire |
+| Entry deleted on another device (S1/S4) | Same row, plus "· removed on iPad" (device attribution arrives with sync, P4) | Restore · let it expire |
+| Entry lost to a sync merge (S1/S4) | "Overwritten by sync" section: "Shell · your version from iPhone / Replaced Aug 21 · odometer differed · 28 days left" + Compare | Compare (presentational until the merge log lands, P4) · leave it |
+| "Delete all now" tapped | System confirmation (the one place red lives) | Delete all now (purges every tombstone immediately, regardless of age) · cancel |
+| Nothing deleted (the normal case) | Reassuring empty state; no fabricated rows | Nothing to do – this screen existing at all is the reassurance |
+
 ### Trends
 | Condition | Shows | Next step |
 |---|---|---|

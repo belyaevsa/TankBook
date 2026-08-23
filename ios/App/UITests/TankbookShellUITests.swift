@@ -105,13 +105,13 @@ final class TankbookShellUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
-        // Settings -> Recently deleted -> Edit entry -> back
+        // Settings -> Recently deleted -> back (P1.7 replaced the placeholder
+        // link with the real screen; Restore works in place on that screen and
+        // is covered by RecentlyDeletedUITests).
         app.buttons["recentlyDeletedButton"].tap()
         XCTAssertTrue(app.navigationBars["Recently deleted"].waitForExistence(timeout: 5))
-        app.buttons["compareRestoreButton"].tap()
-        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Recently deleted"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Sheet dismissal (explicit close)
