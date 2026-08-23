@@ -28,7 +28,11 @@ set -uo pipefail
 TITLE="${1:?usage: agent-health.sh <title> <logfile>}"
 LOG="${2:?usage: agent-health.sh <title> <logfile>}"
 
-PID="$(pgrep -f "title ${TITLE}" | head -1)"
+# Anchor on the opencode binary. A bare `pgrep -f "title <id>"` also matches
+# the shell wrapper running THIS script - its argv contains the title too - and
+# `head -1` then reports the wrapper's ~0 CPU as a wedged agent. Same trap
+# HANDOVER.md warns about for wait-loops.
+PID="$(pgrep -f "^opencode run.*--title ${TITLE}( |$)" | head -1)"
 
 if [ -z "${PID}" ]; then
     echo "EXITED    ${TITLE} is not running - it finished, or it was killed."
