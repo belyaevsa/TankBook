@@ -172,6 +172,70 @@ Presigned upload means the ASP.NET server never proxies file bytes – it stays 
 - **Hygiene:** contentType allow-list (JPEG/PNG/HEIC/PDF), server-verified size on commit, per-account storage quota (generous free tier, metered like LLM usage), orphan sweep (blobs unreferenced by any live record + grace period → deleted), and account deletion purges the whole prefix.
 - **Not in scope deliberately:** server-side thumbnailing or image processing (the client ships both renditions – the server never opens user images), and virus scanning (nothing is ever served to anyone but the owning account's authenticated devices).
 
+## Reference data: server-curated packs (vehicle catalog, rates)
+
+The vehicle catalog is **curated on the server**, and the server is the **master copy**. The app ships a
+bundled seed pack, downloads updated packs into a cache, and **where the two overlap the server's values
+win**. Same mechanism for exchange-rate packs (`P5`).
+
+This is a *different channel from user-data sync*, and conflating the two is the mistake to avoid. Nothing
+here has an SCN, a tombstone, a dirty queue or a conflict state, because the flow is **one-way and
+read-only**: the server publishes, the device consumes, and the local copy is disposable – deleting the
+cache costs a refetch and nothing else. None of S1–S8 apply.
+
+### Three layers, in strict precedence
+
+| Layer | Source | Survives |
+|---|---|---|
+| **1 · Bundled seed pack** | Compiled into the app bundle | Everything. Changed only by an App Store release |
+| **2 · Cached pack** | Last successfully fetched + validated pack | Restarts, offline, backend outage |
+| **3 · Server pack** | `GET /catalog?since_version=<n>` → delta or full pack + `packVersion` | Until the next fetch |
+
+Deliberately the same shape as the remote-config layering (`CONFIG.md`), for the same reason: **the app
+must be fully functional using only what is compiled into the binary.** Add-car autocomplete works on day
+one, offline, with no account – so this is never a network dependency (hard rule 1).
+
+### The master rule, and its one important limit
+
+**On overlap, the server wins.** A cached entry with the same identity as a server entry is replaced, not
+merged: curation exists precisely to correct wrong figures, and a device that clung to a stale tank
+capacity would keep miscomputing partial fills. Entries the server no longer publishes are dropped on a
+full pack.
+
+**But this never touches user data.** Catalog values are *suggestions copied into the `Vehicle` row at
+Add-car time*, and **no `Vehicle` ever references a catalog entry by id** (`SCHEMA.md` → Vehicle catalog).
+So a corrected pack changes what the *next* car pre-fills and **never rewrites a car already in someone's
+garage** – including a value the user typed over. "Server is master" governs the catalog, not the garage.
+A user's override is theirs permanently.
+
+### Applying an update
+
+- **Delta by default**: the client sends the `packVersion` it holds; the server answers with the entries
+  changed since, or a full pack when the delta would be larger or the client is too far behind. `ETag` /
+  `If-None-Match`, so an unchanged catalog costs a `304`.
+- **Validated before it is applied, whole or not at all.** A pack that fails its schema is rejected
+  entirely and the previous cache stands – the same all-or-nothing document rule as config. A partially
+  applied pack is worse than a stale one.
+- **`packVersion` is monotonic**: a pack older than the one held is ignored (rollback protection).
+- **Atomic write** to the cache: temp file then rename, so a crash mid-write cannot leave a truncated pack
+  that fails validation on next launch. The cache is regenerable, so it is **excluded from backups**.
+- **Never at launch-blocking time.** Checked in the background, throttled; a cold start uses whatever is
+  already there. Resolution is bundled-then-cache, so a device with no cache is simply a device on the
+  seed pack.
+
+### Where the cache lives
+
+`Application Support/Tankbook/catalog.cache.json`, alongside the config cache and under the same file
+protection class as the database. Kept as a plain file rather than in GRDB for the same reason config is:
+it must be readable early, and it must survive a failed database migration. It is **not** user data, so it
+is never part of a backup export.
+
+### Curation feedback loop
+
+"Model not found" search misses are logged **as counts only, never the typed text** (`SCHEMA.md`,
+`LOGGING.md` – hard rule 12). Those counts are the curation roadmap: they say which models to add next
+without recording what any individual searched for.
+
 ## Conflict resolution, scenario by scenario
 
 Two layers, deliberately decoupled: **transport** (who wins the record – automatic, invisible, never loses the newer edit) and **domain** (does the merged timeline make sense – surfaced to the user via the existing amber `ConflictState`, F9a). The UX law across all scenarios: *conflicts surface where the data lives – a badge on the entry, a footnote on the stat – never as a modal, never as a "sync error" at sync time.*

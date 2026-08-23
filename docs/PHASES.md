@@ -12,8 +12,8 @@ Scaffold `ios/` (SwiftUI + GRDB, DESIGN.md tokens as `Theme.swift`, String Catal
 **Exit gate:** both projects build in CI from clean checkout · consumption engine passes the D1–D4 golden suite + edit-cases inside the iOS target · schema migrations round-trip a seeded database · `Theme.swift` values byte-match DESIGN.md tokens (generated, not copied) · every entity has a registered v1 payload schema and the round-trip preservation test passes · the redaction test passes on both tiers · **the brick-proof config test passes** (an unreachable `apiBaseUrl` auto-reverts to bundled defaults and the app recovers unattended).
 
 ## P1 · Local core loop (a usable app, no camera, no server)
-Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty states), Add car + catalog seed pack, car switcher, Edit entry, Recently deleted, Trends tiles, timeline validation with conflict badges, tank-level sheet.
-**Exit gate:** TESTING J1, J13-local, F9a, F1-manual-path checks green · **String Catalogs EN/RU wired and the pseudo-localization CI step failing on a deliberately hardcoded string** (P0.3, moved here) · L4 snapshots for every P1 screen in dark+light, EN+RU · a real month of your My Fuel Manager data (hand-entered or imported early) reproduces its known consumption · SCREENMAP back-path audit holds in XCUITest (no dead ends walk).
+Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty states), Add car + catalog seed pack, **Vehicle detail with editable per-car settings**, car switcher, Edit entry, Recently deleted, Trends tiles, timeline validation with conflict badges, tank-level sheet.
+**Exit gate:** TESTING J1, J13-local, F9a, F1-manual-path checks green · **String Catalogs EN/RU wired and the pseudo-localization CI step failing on a deliberately hardcoded string** (P0.3, moved here) · **every value the app suggests is editable after the fact and a user's edit is never overwritten** (hard rule 13; P1.12) · L4 snapshots for every P1 screen in dark+light, EN+RU · a real month of your My Fuel Manager data (hand-entered or imported early) reproduces its known consumption · SCREENMAP back-path audit holds in XCUITest (no dead ends walk).
 
 ## P2 · Capture (the hero)
 Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, Foundation-Models normalization (gated iOS 26+), confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
@@ -27,9 +27,11 @@ ServiceEntry with invoice split, parts shelf + linking (double-count invariant),
 Backend auth (session exchange, refresh rotation), sync push/pull with SCN, the iOS sync client (dirty queue, merge, domain revalidation), blob pipeline, Restoring flow, Settings account states, silent APNs nudges, Sign in + J11a wrong-provider detection.
 **Exit gate:** all API.md L2 endpoint suites green (incl. cross-account blob 404 and refresh-reuse revocation) · **L3 scenario suite: one deterministic test per S1–S8 asserting the documented outcome** · restore-from-zero hash-equals origin dataset · kill-the-server chaos check: app fully usable, queues drain on recovery (S7).
 
-## P5 · Currency, localization, importers
-/rates service + daily job + CIS source, Money conversion end-to-end, RU localization pass with native review, importers for all six formats, backup export/import UI.
-**Exit gate:** J10/S8 money suite green · rates job survives weekend/holiday fixtures · importer round-trips green **including your real My Fuel Manager export as a fixture** · RU pseudo-localization + real-device check (no clipped DIN numerals in RU).
+## P5 · Reference data, currency, localization, importers
+/rates service + daily job + CIS source, Money conversion end-to-end, **the server-curated vehicle catalog** (curation tooling + `GET /catalog` deltas + the client updater), RU localization pass with native review, importers for all six formats, backup export/import UI.
+
+Catalog and rates are the same shape – **server-curated packs, versioned, cached on device, server is master on overlap** (`SYNC.md` → Reference data). P1.2 ships only the bundled seed pack; the update channel lands here, once the backend join point (P4) exists.
+**Exit gate:** J10/S8 money suite green · rates job survives weekend/holiday fixtures · **catalog delta applies over the seed pack, a corrected figure reaches a device, and a user's overridden value is provably untouched** · **a malformed or older pack is rejected whole and the previous pack still serves** · importer round-trips green **including your real My Fuel Manager export as a fixture** · RU pseudo-localization + real-device check (no clipped DIN numerals in RU).
 
 ## P6 · Polish & ship
 Anomaly insights, monthly summary, Pro paywall + LLM gateway fallback (F4 quota UX), the six planned screens from SCREENMAP (Garage root, Vehicle detail, Import wizard, Reminder form, Account & devices, Paywall), accessibility audit, App Store assets EN/RU, TestFlight ring.

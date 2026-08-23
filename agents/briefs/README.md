@@ -31,7 +31,7 @@ The pattern these converged on, in order:
 5. **Read before writing** – the specific docs, in order, with the authority for this task marked.
 6. **What to build**, then **explicitly out of scope**.
 7. **Tests, with current counts** – "`swift test` is 193 and must rise" is checkable; "add tests" is not.
-8. **The baseline gate** – build + `swiftlint lint` exit 0, judged by exit code (`CLAUDE.md` rule 13).
+8. **The baseline gate** – build + `swiftlint lint` exit 0, judged by exit code (`CLAUDE.md` rule 14).
 9. **Report back** – exact numbers, and *whether tests were actually run* rather than only written.
 
 ## Conventions

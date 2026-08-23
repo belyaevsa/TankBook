@@ -4,7 +4,7 @@
 
 ## Implied in every task's checks: it builds and it lints
 
-The per-task checks below are **in addition to** the baseline gate, which is never restated per row because it applies to all of them: every tier a task touches must compile and its linter must exit **0** (`CLAUDE.md` hard rule 13, `docs/TESTING.md` → the baseline gate). Run `swiftlint lint` **from the repo root**, and judge it by exit code. A task whose feature tests pass but which leaves the build broken or the linter red is **not** done and does not get an `[x]`.
+The per-task checks below are **in addition to** the baseline gate, which is never restated per row because it applies to all of them: every tier a task touches must compile and its linter must exit **0** (`CLAUDE.md` hard rule 14, `docs/TESTING.md` → the baseline gate). Run `swiftlint lint` **from the repo root**, and judge it by exit code. A task whose feature tests pass but which leaves the build broken or the linter red is **not** done and does not get an `[x]`.
 
 ## Status legend
 
@@ -46,6 +46,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | P1.9 | Tank-level sheet + segment adjustment math | L1: tank-level suite (incl. no-capacity fallback); L4: snapshot with/without capacity |
 | P1.10 | Trends tile grid + honest labels + excluded-entry footnote | L1: window/floor/label logic; L4: snapshots incl. "first estimate" and extended-window states |
 | P1.11 | Car switcher + multi-vehicle state | L1: capture-logs-to-selected-car invariant; switch persistence; L4: sheet snapshot incl. archived row |
+| P1.12 | **Vehicle detail: per-car settings, editable** (`CLAUDE.md` hard rule 13 – the app suggests, the user decides). Every value Add car pre-filled from the catalog or the locale – name, make/model/year, powertrain, fuel kinds, tank capacity, battery size, home currency, units, `initialOdometer` – changeable afterwards on the car in the Garage (`docs/DESIGN.md`: per-car settings live here, never in Settings). **Moved out of P6.4**, where the screen was scheduled with the rest of the polish: until it exists a user can correct a suggested value exactly once, at Add car, and never again – which breaks the rule outright | L1: editing a suggested value persists and full-vehicle recompute follows (hard rule 2); editing `tankCapacityL` changes partial-fill math and the volume-vs-capacity warning on Confirm. L1 **override permanence**: a user-edited value is not overwritten by a later catalog pack (`SYNC.md` → Reference data), and is preserved across a sync merge. L4: every catalog-derived field is reachable and editable; snapshot dark+light, EN+RU |
 
 ## P2 · Capture
 
@@ -94,6 +95,8 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | P5.3 | RU localization pass | Pseudo-loc green; L1: plural rules (1 литр/2 литра/5 литров); M: native review + no clipped numerals on device |
 | P5.4 | Importers ×6 (Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope, My Fuel Manager) | L1: round-trip per format + known-value assertions; **the real MFM export as fixture reproduces 8.222 L/100km**; F6 partial-import review flow |
 | P5.5 | Backup export/import UI + versioned format | L1: round-trip incl. attachments + tombstones; v1→v2 migrator fixture; optional passphrase path |
+| P5.6 | **Vehicle catalog: server curation + `GET /catalog`** (`SYNC.md` → Reference data). Curation path into `vehicle_catalog` (seeded P0.9), monotonic `packVersion` bumped on curation, delta-since-version and full-pack responses, ETag/304, published pack validated against its schema before it can serve | L2: delta returns only entries changed since the requested version; full pack served when the delta would be larger or the client is too far behind; `304` on matching `If-None-Match`; a pack failing its schema is refused **at publish time**, never served; publishing a `packVersion` not greater than the current one is refused |
+| P5.7 | **Vehicle catalog: client updater** (`SYNC.md` → Reference data, `ERRORS.md` → Vehicle catalog updates). Three-layer resolution (bundled seed < cached pack < server pack), atomic cache write at `Application Support/Tankbook/catalog.cache.json` excluded from backups, background/throttled fetch that is never launch-blocking | L1: with no cache and no network the bundled seed pack still answers Add-car suggestions. L1 **master rule**: an overlapping server entry replaces the cached one. L1 **and its limit**: a corrected pack does **not** rewrite a `Vehicle` already saved, including a value the user typed over. L1: malformed pack rejected **whole**, previous pack still serves; `packVersion` older than held is ignored; truncated cache falls back to the seed pack. L1: every failure is silent – no user-facing error (ERRORS.md). L1: a catalog miss is counted **without** the typed text (hard rule 12) |
 
 ## P6 · Polish & ship
 
@@ -102,7 +105,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | P6.1 | Anomaly engine + insight cards + dismiss-with-reason | L1: seasonality fixtures (winter never false-fires); dismissal suppression; L4: card snapshot |
 | P6.2 | Monthly summary (opt-in) | L1: schedule + content correctness; L4: notification copy snapshot |
 | P6.3 | LLM gateway client + Pro tier + paywall + quota UX | L2: 402/429 paths; L4: F4 degraded states; **UI assertion: no paywall reachable from any capture flow** |
-| P6.4 | Remaining six screens (Garage root, Vehicle detail, Import wizard, Reminder form, Account & devices, Paywall) | L4: snapshots dark+light EN+RU; SCREENMAP updated and the no-dead-ends walk extended |
+| P6.4 | Remaining five screens (Garage root, Import wizard, Reminder form, Account & devices, Paywall). **Vehicle detail moved to P1.12** – per-car settings must be editable long before polish, or a catalog suggestion can only be corrected once | L4: snapshots dark+light EN+RU; SCREENMAP updated and the no-dead-ends walk extended |
 | P6.5 | Accessibility audit | Automated: contrast, VoiceOver labels (metric+unit+trend), Dynamic Type XL snapshots; M: VoiceOver walkthrough of J3 |
 | P6.6 | Store assets EN/RU, privacy labels, TestFlight ring | M: release checklist; **ERRORS.md coverage walk** – every catalogued state reachable and correct |
 

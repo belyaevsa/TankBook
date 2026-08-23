@@ -72,8 +72,10 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Cloud-fallback unavailable/quota spent (F4) | Hint: "check these – enhanced reading unavailable right now"; **never an upsell here** | Confirm/fix by hand · save |
 | On-device model unavailable (hardware lacks Apple Intelligence, it is switched off, or the model is still downloading) | **Nothing at all.** Rules-only extraction is the normal path for most devices, not a degraded one – announcing its absence would invent a problem the user does not have | Confirm/fix as usual; the capability is checked at runtime and simply not used |
 | Odometer breaks timeline (F9a) | Amber + conflicting entry quoted: "Aug 17 already recorded 119 486 km." Receipt date pre-trusted | Fix odometer (preselected) · fix date (needs explicit override) · save anyway (flagged) |
+| Odometer breaks timeline – pace (F9a) | Amber: "Odometer breaks the timeline – check it." (the pace check flags without a conflicting entry to quote) | Fix odometer (preselected) · fix date · save anyway (flagged) |
 | Volume > tank capacity | Warn: "That's more than the 71 L tank holds – check liters." | Fix · confirm (jerry can happens) |
 | Swipe-down with typed input | "Keep editing / Discard" (typed input only – pure scans discard silently, photo re-offerable) | Either |
+| No vehicle yet (manual variant) | Hint card: "No car yet – add one from Garage to start logging fill-ups." | Add a car from Garage · close |
 
 ### Tank level (sheet)
 | Condition | Shows | Next step |
@@ -135,6 +137,25 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Feedback send fails offline | "Saved – sends automatically when you're online." (queued, like everything) | Nothing to do |
 | Rate-limited (429) | "That's a lot of feedback today – this one's queued for tomorrow." | Nothing to do |
+
+### Vehicle catalog updates (background, `SYNC.md` → Reference data)
+
+The catalog is curated server-side and the server is master, but **every failure here is invisible**: the
+app always has a usable catalog (bundled seed pack at minimum), so there is nothing the user could do and
+nothing worth interrupting them for. Same principle as remote config.
+
+| Condition | Shows | Next step |
+|---|---|---|
+| Pack fetch fails (offline, 5xx, timeout) | **Nothing.** Suggestions keep working from the pack already on device; retry with backoff | Nothing to do |
+| Pack fails validation, or is malformed | **Nothing.** Rejected whole – never partially applied – previous pack stands, logged at WARN | Nothing to do |
+| Pack `packVersion` older than the one held | **Nothing.** Ignored (rollback protection) | Nothing to do |
+| Catalog cache unreadable or truncated | **Nothing.** Falls back to the bundled seed pack and refetches | Nothing to do |
+| Model genuinely not in the catalog | On Add car: "Can't find it? Type the name yourself – you can add tank size in Garage." The miss is counted (a **count only**, never the typed text – hard rule 12) and feeds curation | Type it manually; nothing blocks, nothing is lost |
+
+**Never shown, by design:** anything announcing that a catalog update corrected a figure. A pack update
+changes what the *next* car pre-fills; it never rewrites a car already in the garage, and a value the user
+typed over is theirs permanently (`SYNC.md` → the master rule and its limit). There is no such thing as a
+catalog-vs-garage conflict to surface.
 
 ## The audit rule (for CI-of-design and future screens)
 
