@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "issuedAt": "2026-01-01T00:00:00Z",
+  "notAfter": "2099-12-31T00:00:00Z",
+  "apiBaseUrl": "https://api.tankbook.app",
+  "tier2OnDeviceLLM": true,
+  "tier3CloudFallback": true,
+  "llmQuota": { "onDeviceLLM": 200, "cloudFallback": 50 },
+  "ocrConfidenceThreshold": 0.75,
+  "minSchemaVersion": 1,
+  "referencePacks": { "rates": 1, "catalog": 1 },
+  "rolloutSalt": "tankbook-baseline-rollout-salt",
+  "flags": { "pumpPhoto": { "enabled": false, "rolloutPercent": 0 } }
+}

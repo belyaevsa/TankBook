@@ -241,69 +241,114 @@ private struct Parser {
             let byte = bytes[index]
             index += 1
             if byte == 0x22 { // "
-                return String(String.UnicodeScalarView(scalars.compactMap(Unicode.Scalar.init)))
+                // Strict: `compactMap` here would silently DROP any scalar the
+                // initializer rejects, turning a decoding bug into missing
+                // characters that no test would notice.
+                var view = String.UnicodeScalarView()
+                for value in scalars {
+                    guard let scalar = Unicode.Scalar(value) else {
+                        throw JSONParseError.invalidUnicode(at: index)
+                    }
+                    view.append(scalar)
+                }
+                return String(view)
             }
             if byte == 0x5C { // backslash
-                guard index < bytes.count else { throw JSONParseError.unexpectedEnd }
-                let escape = bytes[index]
-                index += 1
-                switch escape {
-                case 0x22: scalars.append(0x22)
-                case 0x5C: scalars.append(0x5C)
-                case 0x2F: scalars.append(0x2F)
-                case 0x62: scalars.append(0x08)
-                case 0x66: scalars.append(0x0C)
-                case 0x6E: scalars.append(0x0A)
-                case 0x72: scalars.append(0x0D)
-                case 0x74: scalars.append(0x09)
-                case 0x75:
-                    guard let scalar = try parseHexScalar() else { throw JSONParseError.invalidUnicode(at: index) }
-                    if scalar.isHighSurrogate, index + 6 <= bytes.count,
-                       bytes[index] == 0x5C, bytes[index + 1] == 0x75 {
-                        index += 2
-                        guard let low = try parseHexScalar(), low.isLowSurrogate else {
-                            throw JSONParseError.invalidUnicode(at: index)
-                        }
-                        scalars.append(scalar.decomposedHighSurrogate)
-                        scalars.append(low.decomposedLowSurrogate)
-                    } else {
-                        scalars.append(scalar)
-                    }
-                default: throw JSONParseError.invalidEscape(at: index)
-                }
+                scalars.append(try parseEscapedScalar())
             } else if byte < 0x20 {
                 throw JSONParseError.controlCharacterInString(at: index)
             } else if byte < 0x80 {
                 scalars.append(UInt32(byte))
-            } else if byte < 0xC0 {
-                throw JSONParseError.invalidUTF8(at: index)
-            } else if byte < 0xE0 {
-                guard index + 1 < bytes.count,
-                      (bytes[index] & 0xC0) == 0x80, (bytes[index + 1] & 0xC0) == 0x80 else {
-                    throw JSONParseError.invalidUTF8(at: index)
-                }
-                scalars.append(UInt32(byte & 0x1F) << 6 | UInt32(bytes[index] & 0x3F))
-                index += 2
-            } else if byte < 0xF0 {
-                guard index + 2 < bytes.count,
-                      (bytes[index] & 0xC0) == 0x80, (bytes[index + 1] & 0xC0) == 0x80,
-                      (bytes[index + 2] & 0xC0) == 0x80 else {
-                    throw JSONParseError.invalidUTF8(at: index)
-                }
-                scalars.append(UInt32(byte & 0x0F) << 12 | UInt32(bytes[index] & 0x3F) << 6 | UInt32(bytes[index + 2] & 0x3F))
-                index += 3
             } else {
-                guard index + 3 < bytes.count,
-                      (bytes[index] & 0xC0) == 0x80, (bytes[index + 1] & 0xC0) == 0x80,
-                      (bytes[index + 2] & 0xC0) == 0x80, (bytes[index + 3] & 0xC0) == 0x80 else {
-                    throw JSONParseError.invalidUTF8(at: index)
-                }
-                scalars.append(UInt32(byte & 0x07) << 18 | UInt32(bytes[index] & 0x3F) << 12
-                    | UInt32(bytes[index + 2] & 0x3F) << 6 | UInt32(bytes[index + 3] & 0x3F))
-                index += 4
+                scalars.append(try parseMultiByteScalar(lead: byte))
             }
         }
         throw JSONParseError.unexpectedEnd
+    }
+
+    /// Resolves one `\`-escape. The leading backslash has already been consumed.
+    private mutating func parseEscapedScalar() throws -> UInt32 {
+        guard index < bytes.count else { throw JSONParseError.unexpectedEnd }
+        let escape = bytes[index]
+        index += 1
+        switch escape {
+        case 0x22: return 0x22
+        case 0x5C: return 0x5C
+        case 0x2F: return 0x2F
+        case 0x62: return 0x08
+        case 0x66: return 0x0C
+        case 0x6E: return 0x0A
+        case 0x72: return 0x0D
+        case 0x74: return 0x09
+        case 0x75: return try parseUnicodeEscape()
+        default: throw JSONParseError.invalidEscape(at: index)
+        }
+    }
+
+    /// Resolves a `\uXXXX` escape, combining a surrogate pair into ONE scalar.
+    ///
+    /// The pair must be combined, not appended separately: emitting
+    /// `0x10000 + (high << 10)` and `low - 0xDC00` as two scalars produces a
+    /// wrong character followed by a stray one, which is what this used to do.
+    private mutating func parseUnicodeEscape() throws -> UInt32 {
+        guard let scalar = try parseHexScalar() else { throw JSONParseError.invalidUnicode(at: index) }
+        if scalar.isHighSurrogate {
+            guard index + 6 <= bytes.count, bytes[index] == 0x5C, bytes[index + 1] == 0x75 else {
+                throw JSONParseError.invalidUnicode(at: index)
+            }
+            index += 2
+            guard let low = try parseHexScalar(), low.isLowSurrogate else {
+                throw JSONParseError.invalidUnicode(at: index)
+            }
+            return 0x10000 + ((scalar - 0xD800) << 10) + (low - 0xDC00)
+        }
+        // An unpaired low surrogate is not a legal scalar value.
+        guard !scalar.isLowSurrogate else { throw JSONParseError.invalidUnicode(at: index) }
+        return scalar
+    }
+
+    /// Decodes one multi-byte UTF-8 sequence whose lead byte has already been
+    /// consumed.
+    ///
+    /// `index` already points PAST the lead byte, so an n-byte sequence has
+    /// exactly n-1 continuation bytes at `index ..< index + n - 1`. Demanding one
+    /// more than that - or reading a continuation byte at the wrong offset - is
+    /// what made every non-ASCII string fail to parse.
+    private mutating func parseMultiByteScalar(lead: UInt8) throws -> UInt32 {
+        let continuationCount: Int
+        let leadBits: UInt32
+        switch lead {
+        case 0xC2 ... 0xDF: continuationCount = 1; leadBits = UInt32(lead & 0x1F)
+        case 0xE0 ... 0xEF: continuationCount = 2; leadBits = UInt32(lead & 0x0F)
+        case 0xF0 ... 0xF4: continuationCount = 3; leadBits = UInt32(lead & 0x07)
+        // 0x80-0xBF is a stray continuation byte; 0xC0/0xC1 and 0xF5+ can only
+        // ever begin an overlong or out-of-range sequence.
+        default: throw JSONParseError.invalidUTF8(at: index)
+        }
+
+        guard index + continuationCount <= bytes.count else {
+            throw JSONParseError.invalidUTF8(at: index)
+        }
+        var scalar = leadBits
+        for offset in 0 ..< continuationCount {
+            let continuation = bytes[index + offset]
+            guard (continuation & 0xC0) == 0x80 else { throw JSONParseError.invalidUTF8(at: index) }
+            scalar = scalar << 6 | UInt32(continuation & 0x3F)
+        }
+        index += continuationCount
+
+        // Reject overlong encodings and surrogates encoded as UTF-8: both are
+        // ill-formed, and an overlong form can hide an ASCII character (a quote,
+        // a slash) from a scanner that inspects bytes before decoding.
+        let minimum: UInt32 = switch continuationCount {
+        case 1: 0x80
+        case 2: 0x800
+        default: 0x10000
+        }
+        guard scalar >= minimum, scalar <= 0x10FFFF, !scalar.isHighSurrogate, !scalar.isLowSurrogate else {
+            throw JSONParseError.invalidUTF8(at: index)
+        }
+        return scalar
     }
 
     private mutating func parseHexScalar() throws -> UInt32? {
@@ -361,6 +406,4 @@ private enum JSONParseError: Error, Equatable {
 extension UInt32 {
     var isHighSurrogate: Bool { self >= 0xD800 && self <= 0xDBFF }
     var isLowSurrogate: Bool { self >= 0xDC00 && self <= 0xDFFF }
-    var decomposedHighSurrogate: UInt32 { 0x10000 + (self - 0xD800) << 10 }
-    var decomposedLowSurrogate: UInt32 { self - 0xDC00 }
 }

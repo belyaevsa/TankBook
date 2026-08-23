@@ -1,0 +1,206 @@
+import CryptoKit
+import Foundation
+
+/// The fully-resolved runtime configuration, consumed by the rest of the app
+/// (docs/CONFIG.md -> "How code consumes it").
+///
+/// A plain value type so a caller can `let config = store.snapshot()` at the
+/// start of an operation and use it throughout, immune to a later refresh
+/// flipping a switch mid-flight. `Sendable` + `Equatable` so snapshots are cheap
+/// to copy and compare.
+///
+/// Typed fields, never string keys: `config.tier3CloudFallback`, never
+/// `config.bool("tier3_cloud_fallback")` - a renamed key is a compile error,
+/// and the coverage test asserts every documented remote key maps to a field
+/// (docs/CONFIG.md -> "How code consumes it", rule 2).
+public struct AppConfig: Sendable, Equatable {
+    public let apiBaseURL: URL
+    public let tier2OnDeviceLLM: Bool
+    public let tier3CloudFallback: Bool
+    public let llmQuota: ConfigDocument.LLMQuota
+    public let ocrConfidenceThreshold: Double
+    public let minSchemaVersion: Int
+    public let referencePacks: ConfigDocument.ReferencePacks
+    public let maintenance: ConfigDocument.MaintenanceNotice?
+    public let rolloutSalt: String
+    public let flags: [String: ConfigDocument.FeatureFlag]
+
+    /// The version of the applied document, for logging (`config.apply`). The
+    /// bundled layer's own version when no remote document applied.
+    public let version: Int
+
+    public init(
+        apiBaseURL: URL,
+        tier2OnDeviceLLM: Bool,
+        tier3CloudFallback: Bool,
+        llmQuota: ConfigDocument.LLMQuota,
+        ocrConfidenceThreshold: Double,
+        minSchemaVersion: Int,
+        referencePacks: ConfigDocument.ReferencePacks,
+        maintenance: ConfigDocument.MaintenanceNotice?,
+        rolloutSalt: String,
+        flags: [String: ConfigDocument.FeatureFlag],
+        version: Int
+    ) {
+        self.apiBaseURL = apiBaseURL
+        self.tier2OnDeviceLLM = tier2OnDeviceLLM
+        self.tier3CloudFallback = tier3CloudFallback
+        self.llmQuota = llmQuota
+        self.ocrConfidenceThreshold = ocrConfidenceThreshold
+        self.minSchemaVersion = minSchemaVersion
+        self.referencePacks = referencePacks
+        self.maintenance = maintenance
+        self.rolloutSalt = rolloutSalt
+        self.flags = flags
+        self.version = version
+    }
+
+    /// Builds a resolved config from a document plus a guaranteed base URL. The
+    /// bundled document always carries `apiBaseUrl`; a remote document may not,
+    /// in which case the caller supplies the value that already resolved from a
+    /// lower layer.
+    init(document: ConfigDocument, apiBaseURL: URL) {
+        self.init(
+            apiBaseURL: apiBaseURL,
+            tier2OnDeviceLLM: document.tier2OnDeviceLLM,
+            tier3CloudFallback: document.tier3CloudFallback,
+            llmQuota: document.llmQuota,
+            ocrConfidenceThreshold: document.ocrConfidenceThreshold,
+            minSchemaVersion: document.minSchemaVersion,
+            referencePacks: document.referencePacks,
+            maintenance: document.maintenance,
+            rolloutSalt: document.rolloutSalt,
+            flags: document.flags,
+            version: document.version
+        )
+    }
+
+    /// Applies a valid remote document as a **sparse, per-key override**
+    /// (docs/CONFIG.md -> "How it is resolved").
+    ///
+    /// Document-level validity (parse, signature, expiry, floor) is decided by
+    /// the caller; once a document is valid, only the keys *present in its raw
+    /// JSON* override this value. A document that omits `apiBaseUrl`,
+    /// `maintenance` or `flags` leaves those exactly as they are here - it does
+    /// not blank them. This is why the method inspects `presentKeyNames` rather
+    /// than blindly copying the decoded fields.
+    func applying(remote: ConfigDocument) -> AppConfig {
+        let keys = remote.presentKeyNames
+        func value<T>(_ key: String, _ remote: T, _ current: T) -> T {
+            keys.contains(key) ? remote : current
+        }
+        return AppConfig(
+            apiBaseURL: value("apiBaseUrl", remote.apiBaseURL ?? apiBaseURL, apiBaseURL),
+            tier2OnDeviceLLM: value("tier2OnDeviceLLM", remote.tier2OnDeviceLLM, tier2OnDeviceLLM),
+            tier3CloudFallback: value("tier3CloudFallback", remote.tier3CloudFallback, tier3CloudFallback),
+            llmQuota: value("llmQuota", remote.llmQuota, llmQuota),
+            ocrConfidenceThreshold: value("ocrConfidenceThreshold", remote.ocrConfidenceThreshold, ocrConfidenceThreshold),
+            minSchemaVersion: value("minSchemaVersion", remote.minSchemaVersion, minSchemaVersion),
+            referencePacks: value("referencePacks", remote.referencePacks, referencePacks),
+            maintenance: value("maintenance", remote.maintenance, maintenance),
+            rolloutSalt: value("rolloutSalt", remote.rolloutSalt, rolloutSalt),
+            flags: value("flags", remote.flags, flags),
+            version: remote.version
+        )
+    }
+}
+
+/// The feature flags the app can gate behind rollout
+/// (docs/CONFIG.md -> "What may be configured remotely": `rolloutSalt` +
+/// per-flag rollout percentage). The raw value is the flag's key in the
+/// document's `flags` map.
+public enum ConfigFlag: String, Sendable, CaseIterable {
+    /// Pump-photo capture mode (docs/TASKS.md P2.7). Ships off until the
+    /// accuracy gate clears; a remote document can stage it up.
+    case pumpPhoto
+}
+
+/// Where the applied document came from, for the `config.apply` event
+/// (docs/CONFIG.md -> "Logging").
+public enum ConfigSource: String, Sendable {
+    case live
+    case cache
+    case bundled
+}
+
+/// Why a document was rejected whole (docs/CONFIG.md -> "Document level: all or
+/// nothing"). The raw values are the `reason` field of `config.reject`; they are
+/// codes, not domain values (docs/LOGGING.md hard rule 12).
+public enum ConfigRejectReason: String, Error, Sendable, CaseIterable {
+    case malformedDocument
+    case verifierNotConfigured
+    case badSignature
+    case expired
+    case belowFloor
+}
+
+// MARK: - Bundled defaults
+
+/// The layer-1 bundled defaults (docs/CONFIG.md -> "The bootstrap paradox").
+public enum ConfigDefaults {
+    /// Loads `Config.default.json` and resolves it into an `AppConfig`.
+    ///
+    /// The bundled layer is **not signed and is never signature-checked**: it is
+    /// compiled into the binary, which is the root of trust (docs/CONFIG.md ->
+    /// "Threat: the cache file is tampered with"). It is also never
+    /// expiry-checked, so it can always serve as the fallback no matter how long
+    /// the app has been installed.
+    public static func bundledAppConfig() throws -> AppConfig {
+        guard let url = Bundle.module.url(forResource: "Config.default", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else {
+            throw ConfigStoreError.bundledUnavailable
+        }
+        let document = try ConfigDocument.parse(data)
+        guard let apiBaseURL = document.apiBaseURL else {
+            throw ConfigStoreError.bundledMissingAPIBaseURL
+        }
+        return AppConfig(document: document, apiBaseURL: apiBaseURL)
+    }
+}
+
+// MARK: - Rollout
+
+/// Deterministic rollout bucketing for `ConfigStore.isEnabled(_:)`
+/// (docs/CONFIG.md -> "rolloutSalt + per-flag rollout percentage"). Pure and
+/// stateless so the same salt + device + flag always land in the same bucket.
+enum ConfigRollout {
+    static func isEnabled(
+        _ feature: ConfigDocument.FeatureFlag,
+        salt: String,
+        deviceIdentifier: String,
+        flagName: String
+    ) -> Bool {
+        guard feature.enabled else { return false }
+        if feature.rolloutPercent >= 100 { return true }
+        if feature.rolloutPercent <= 0 { return false }
+        return bucket(salt: salt, deviceIdentifier: deviceIdentifier, flagName: flagName) < feature.rolloutPercent
+    }
+
+    /// A stable value in `0 ..< 100`. SHA-256 over a fixed-length-tagged input,
+    /// so two different flags never alias and no per-call randomness is involved.
+    static func bucket(salt: String, deviceIdentifier: String, flagName: String) -> Int {
+        let input = salt + "|" + deviceIdentifier + "|" + flagName
+        let digest = SHA256.hash(data: Data(input.utf8))
+        var value: UInt64 = 0
+        for byte in digest.prefix(8) {
+            value = (value << 8) | UInt64(byte)
+        }
+        return Int(value % 100)
+    }
+}
+
+extension ConfigDocument {
+    /// The top-level key names present in the raw served bytes.
+    ///
+    /// `ConfigDocument` decodes *all* known fields, so the decoded struct cannot
+    /// distinguish "absent" from "present with a default". Sparse override needs
+    /// the distinction, so it reads the key set straight from the raw JSON.
+    /// Unknown keys are included here and simply ignored during resolution
+    /// (docs/CONFIG.md -> "How it is resolved").
+    var presentKeyNames: Set<String> {
+        guard let object = try? JSONSerialization.jsonObject(with: rawBytes) as? [String: Any] else {
+            return []
+        }
+        return Set(object.keys)
+    }
+}

@@ -47,6 +47,19 @@ public enum JSONSchemaValidator {
 
         guard let object = schema.objectValue else { return }
 
+        // Split by keyword family purely for readability - the order of these
+        // four calls is the order errors are reported in, so it is part of the
+        // observable behaviour and must not be shuffled.
+        validateAssertions(instance, object: object, pointer: pointer, errors: &errors)
+        validateCombinators(instance, object: object, root: root, pointer: pointer, errors: &errors)
+        validateObjectKeywords(instance, object: object, root: root, pointer: pointer, errors: &errors)
+        validateArrayKeywords(instance, object: object, root: root, pointer: pointer, errors: &errors)
+    }
+
+    /// `type`, `enum`, `const`, `format`, `pattern` - the keywords that judge a
+    /// value on its own, with no recursion.
+    private static func validateAssertions(_ instance: JSONValue, object: [String: JSONValue],
+                                           pointer: String, errors: inout [SchemaValidationError]) {
         if let type = object["type"] {
             if case .string(let typeName) = type, !matches(instance, type: typeName) {
                 errors.append(SchemaValidationError(pointer: pointer,
@@ -74,41 +87,50 @@ public enum JSONSchemaValidator {
             errors.append(SchemaValidationError(pointer: pointer,
                                                 message: "Value does not match pattern '\(pattern)'"))
         }
+    }
 
-        if let anyOf = object["anyOf"]?.arrayValue {
-            let matches = anyOf.contains { subSchema in
-                var subErrors: [SchemaValidationError] = []
-                validate(instance, against: subSchema, root: root, pointer: pointer, errors: &subErrors)
-                return subErrors.isEmpty
-            }
-            if !matches {
-                errors.append(SchemaValidationError(pointer: pointer,
-                                                    message: "Value does not match anyOf"))
-            }
+    /// `anyOf` / `oneOf`. Sub-schema failures are collected into a throwaway
+    /// buffer: a branch that does not match is not itself an error.
+    private static func validateCombinators(_ instance: JSONValue, object: [String: JSONValue],
+                                            root: JSONValue, pointer: String,
+                                            errors: inout [SchemaValidationError]) {
+        func branchMatches(_ subSchema: JSONValue) -> Bool {
+            var subErrors: [SchemaValidationError] = []
+            validate(instance, against: subSchema, root: root, pointer: pointer, errors: &subErrors)
+            return subErrors.isEmpty
+        }
+
+        if let anyOf = object["anyOf"]?.arrayValue, !anyOf.contains(where: branchMatches) {
+            errors.append(SchemaValidationError(pointer: pointer,
+                                                message: "Value does not match anyOf"))
         }
 
         if let oneOf = object["oneOf"]?.arrayValue {
-            let count = oneOf.filter { subSchema in
-                var subErrors: [SchemaValidationError] = []
-                validate(instance, against: subSchema, root: root, pointer: pointer, errors: &subErrors)
-                return subErrors.isEmpty
-            }.count
+            let count = oneOf.filter(branchMatches).count
             if count != 1 {
-                errors.append(SchemaValidationError(pointer: pointer,
-                                                    message: "Value must match exactly one oneOf branch (matched \(count))"))
+                errors.append(SchemaValidationError(
+                    pointer: pointer,
+                    message: "Value must match exactly one oneOf branch (matched \(count))"
+                ))
             }
         }
+    }
 
-        if let required = object["required"]?.arrayValue,
-           let instanceObject = instance.objectValue {
+    /// `required`, `properties`, `additionalProperties`, `propertyNames`. All of
+    /// these are no-ops unless the instance is an object.
+    private static func validateObjectKeywords(_ instance: JSONValue, object: [String: JSONValue],
+                                               root: JSONValue, pointer: String,
+                                               errors: inout [SchemaValidationError]) {
+        guard let instanceObject = instance.objectValue else { return }
+
+        if let required = object["required"]?.arrayValue {
             for key in required.compactMap(\.stringValue) where instanceObject[key] == nil {
                 errors.append(SchemaValidationError(pointer: pointer,
                                                     message: "Missing required property '\(key)'"))
             }
         }
 
-        if let properties = object["properties"]?.objectValue,
-           let instanceObject = instance.objectValue {
+        if let properties = object["properties"]?.objectValue {
             for (key, subSchema) in properties {
                 if let value = instanceObject[key] {
                     validate(value, against: subSchema, root: root,
@@ -117,14 +139,8 @@ public enum JSONSchemaValidator {
             }
         }
 
-        if let additional = object["additionalProperties"],
-           let instanceObject = instance.objectValue {
-            let known: Set<String>
-            if let properties = object["properties"]?.objectValue {
-                known = Set(properties.keys)
-            } else {
-                known = []
-            }
+        if let additional = object["additionalProperties"] {
+            let known = Set(object["properties"]?.objectValue?.keys ?? [:].keys)
             for (key, value) in instanceObject where !known.contains(key) {
                 switch additional {
                 case .bool(false):
@@ -139,18 +155,22 @@ public enum JSONSchemaValidator {
             }
         }
 
-        if let propertyNames = object["propertyNames"], let instanceObject = instance.objectValue {
+        if let propertyNames = object["propertyNames"] {
             for key in instanceObject.keys {
                 validate(.string(key), against: propertyNames, root: root,
                          pointer: pointer, errors: &errors)
             }
         }
+    }
 
-        if let items = object["items"], let instanceArray = instance.arrayValue {
-            for (index, item) in instanceArray.enumerated() {
-                validate(item, against: items, root: root,
-                         pointer: pointer + "/\(index)", errors: &errors)
-            }
+    /// `items`.
+    private static func validateArrayKeywords(_ instance: JSONValue, object: [String: JSONValue],
+                                              root: JSONValue, pointer: String,
+                                              errors: inout [SchemaValidationError]) {
+        guard let items = object["items"], let instanceArray = instance.arrayValue else { return }
+        for (index, item) in instanceArray.enumerated() {
+            validate(item, against: items, root: root,
+                     pointer: pointer + "/\(index)", errors: &errors)
         }
     }
 

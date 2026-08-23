@@ -63,7 +63,7 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 
 | Concern | Checks |
 |---|---|
-| **Payload contract** (`SYNC.md`) | L1 coverage: every synced entity has a v1 schema – a new entity without one fails the build. L1 field coverage: every encoded key appears in its schema. L1 round-trip: an unknown field and unknown entityType survive decode→encode byte-identically (the forward-compatibility invariant, made executable). L2: push rejects malformed/oversize/schema-violating payloads with the right code and JSON pointer; unknown entityType accepted unvalidated; `minSupported` returns 426 on push while pull still succeeds. **Parity**: the Swift upcaster and the server's declarative transform produce byte-identical output for every fixture – the test that stops two implementations drifting |
+| **Payload contract** (`SYNC.md`) | L1 coverage: every synced entity has a v1 schema – a new entity without one fails the build. L1 field coverage: every encoded key appears in its schema. L1 round-trip: an unknown field and unknown entityType survive decode→encode byte-identically (the forward-compatibility invariant, made executable). L2: push rejects malformed/oversize/schema-violating payloads with the right code and JSON pointer; unknown entityType accepted unvalidated; `minSupported` returns 426 on push while pull still succeeds. **Parity**: the Swift upcaster and the server's declarative transform produce byte-identical output for every fixture – the test that stops two implementations drifting. **L1 encoding: the fixture corpus must contain non-ASCII text – 2-byte (Cyrillic), 3-byte and 4-byte (emoji) UTF-8 – and a test asserts it does.** An all-ASCII corpus once hid a JSON string decoder that rejected *every* multi-byte sequence: a Russian station name could not be decoded at all, while the whole suite stayed green. We ship EN+RU from day one, so ASCII fixtures do not represent our data |
 | **Logging** (`LOGGING.md`) | L1 redaction, both tiers: a fully populated entity through the log path leaks no Sensitive/Never value; `accountHash` replaces email. L2 correlation: a request's traceId appears in the request line, the operation line, and the problem+json body. L1: every mutation emits `begin` + terminal `ok`/`fail`. L1 volume: O(1) log lines per sync batch, not O(n) per record |
 | **Remote config** (`CONFIG.md`) | L1 bootstrap: no cache + no network → bundled defaults, app usable. L1 **brick-proof**: unreachable `apiBaseUrl` + N failures → auto-revert to bundled, recovery without user action. L1 tamper: edited document or signature rejected **on cache read**; version below the Keychain floor rejected; expired document rejected. L1 credential binding: a non-allowlisted host is refused by the HTTP client and **no `Authorization` header is ever constructed for it**. L1 partial: an unknown key is ignored while the rest of the document applies. L1 snapshot: config changing mid-operation does not alter that operation's behaviour |
 | **Security** (`SECURITY.md`) | L1 Keychain attributes are `AfterFirstUnlockThisDeviceOnly` (a wrong constant compiles fine and fails only in the field). L1 file protection asserted on `.sqlite`, `-wal` **and** `-shm`. CI: bundle scan for high-entropy strings and key prefixes; no-secrets-committed grep. L1 sign-out clears every Keychain item and leaves local data intact |
@@ -78,6 +78,46 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 6. **Importer per format**: round-trips + known-value assertions.
 7. **Backup format**: round-trip + schema-version migrator test (v1→v2 fixture from day one, so additive evolution stays honest).
 
+## The baseline gate: it builds and it lints (every task, no exceptions)
+
+**Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects.
+
+A task is not done until, for each tier it touched:
+
+| Tier | Build | Lint |
+|---|---|---|
+| iOS | `cd ios && swift build` – no errors | `swiftlint lint` **from the repo root** – exit code 0 |
+| Backend | `cd backend && dotnet build` – no errors | `dotnet format --verify-no-changes` |
+| Spike | `cd Spike/ReceiptSpike && swift build` | covered by the root `swiftlint lint` |
+
+Rules that make this stick:
+
+1. **Run the linter from the repo root.** `.swiftlint.yml` and its `excluded:` paths are root-relative; running it from a subdirectory silently changes what is checked.
+2. **Exit code is the gate, not the output.** `swiftlint lint` exits non-zero only on *errors*. Read the exit code – "it printed some warnings" is a pass, "it printed nothing" is not automatically one.
+3. **Zero errors is the standard, and it is checked every task.** The count is allowed to be zero and nothing else. This was 13 for most of P0 because nothing verified it, and the single largest cause was a config bug that made SwiftLint check *generated* SwiftPM output – so the gate was failing on code nobody wrote, and everyone learned to ignore it.
+4. **Never silence a violation by loosening the rule.** Fix the code, or exclude genuinely generated output (`**/.build`). Widening a threshold to fit new code is how a lint stops meaning anything. If a rule is genuinely wrong for this project, change it deliberately and say why in the same change.
+5. **A refactor for lint must not change behaviour.** Where output is generated or ordered – schema `required` arrays, canonical bytes, error ordering – re-run the generator and diff, and say in the report that you did.
+6. **Warnings do not block, but do not add them casually.** New code should not introduce warnings a reviewer has to learn to skip past.
+
+## Snapshot baselines are runtime-specific (temporary, until iOS 18 is installed)
+
+P1 development runs on the **iOS 26.5** simulator, because that is the only runtime installed; the
+deployment target is and stays **18.0** (`CLAUDE.md` → decisions). The compiler catches API misuse
+against an 18.0 target, so the gap is not about APIs – it is about **appearance and runtime behaviour**,
+and iOS 26 ships a different default look than iOS 18.
+
+Consequences, which apply to every L4 task until an iOS 18 runtime lands:
+
+1. **Record which runtime a baseline came from**, in the baseline's path or name. A snapshot with no
+   runtime recorded is an artefact nobody can re-derive.
+2. **A green snapshot suite on 26.5 is not evidence the screen is correct on the floor.** Do not report
+   it as such, and do not close an L4 check on that basis alone.
+3. **Expect to re-record every baseline on 18** – budget it as known work, not as a regression. The
+   alternative (deferring all snapshot work to later) would leave P1 with no visual gate at all, which is
+   worse.
+4. XCUITest *behaviour* assertions – navigation, back paths, tab-stack preservation, the dead-end audit –
+   are far less runtime-sensitive than pixels. Prefer them where a check can be expressed either way.
+
 ## CI gates (what blocks merge)
 
-All L1 green · L2 green (backend PRs) · L4 snapshots reviewed-or-green · L5 accuracy not below the recorded high-water mark (ratchet, never regress) · SwiftLint/dotnet-format · pseudo-localization build (no hardcoded strings) · the ERRORS.md 3-question audit for any new user-facing message (reviewed in PR description).
+**Build green and lint green on every touched tier** (the table above – this is the precondition for everything that follows) · All L1 green · L2 green (backend PRs) · L4 snapshots reviewed-or-green · L5 accuracy not below the recorded high-water mark (ratchet, never regress) · SwiftLint/dotnet-format · pseudo-localization build (no hardcoded strings) · the ERRORS.md 3-question audit for any new user-facing message (reviewed in PR description).

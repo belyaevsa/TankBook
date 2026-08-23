@@ -22,11 +22,20 @@ let package = Package(
             name: "TankbookCore",
             dependencies: [
                 .product(name: "GRDB", package: "GRDB.swift"),
+            ],
+            resources: [
+                // Bundled config defaults (docs/CONFIG.md -> layer 1). The
+                // bundled layer is not signed and is never signature-checked:
+                // it is compiled into the binary, which is the root of trust.
+                .copy("Config/Config.default.json"),
             ]
         ),
         .testTarget(
             name: "TankbookCoreTests",
-            dependencies: ["TankbookCore"]
+            dependencies: ["TankbookCore"],
+            // Fixtures are read from disk via #filePath, matching the existing
+            // docs/fixtures convention, so they are not bundled resources.
+            exclude: ["Fixtures"]
         ),
     ]
 )

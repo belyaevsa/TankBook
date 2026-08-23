@@ -1,0 +1,23 @@
+{
+  "rolloutSalt": "s4lt-2026-08",
+  "version": 7,
+  "ocrConfidenceThreshold": 0.75,
+  "referencePacks": { "rates": 12, "catalog": 3 },
+  "apiBaseUrl": "https://api.tankbook.app",
+  "minSchemaVersion": 1,
+  "llmQuota": { "onDeviceLLM": 250, "cloudFallback": 1e3 },
+  "issuedAt": "2026-08-01T00:00:00Z",
+  "maintenance": {
+    "until": "2026-08-24T06:00:00Z",
+    "text": "Плановые работы: синхронизация недоступна до 06:00 МСК. Записи сохраняются на устройстве.",
+    "severity": "info"
+  },
+  "tier3CloudFallback": false,
+  "notAfter": "2026-10-30T00:00:00Z",
+  "tier2OnDeviceLLM": true,
+  "flags": {
+    "zTrailingFlag": { "enabled": true, "rolloutPercent": 10 },
+    "aLeadingFlag": { "enabled": false, "rolloutPercent": 100 }
+  },
+  "unknownFutureKey": { "nested": { "empty": {}, "big": 9007199254740993, "list": [1, "2", true, null] } }
+}

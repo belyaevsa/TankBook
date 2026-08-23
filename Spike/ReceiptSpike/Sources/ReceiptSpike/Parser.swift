@@ -126,7 +126,23 @@ struct FuelReceiptParser {
     func bestTriple(
         among numbers: [Double], liters: Double? = nil, total: Double? = nil
     ) -> (liters: Double, price: Double, total: Double)? {
-        var best: (liters: Double, price: Double, total: Double, error: Double, score: Int)?
+        /// A candidate assignment plus the two values used to rank it. A named
+        /// type rather than a 5-tuple: at that width, positional access stops
+        /// being readable and a transposed pair compiles fine.
+        struct Candidate {
+            let liters: Double
+            let price: Double
+            let total: Double
+            let error: Double
+            let score: Int
+
+            /// Lower error wins; ties break toward the higher symmetry score.
+            func beats(_ other: Candidate) -> Bool {
+                (error, -score) < (other.error, -other.score)
+            }
+        }
+
+        var best: Candidate?
         let candidates = Set(numbers).sorted()
         let litersCandidates = liters.map { [$0] } ?? candidates
         let totalCandidates = total.map { [$0] } ?? candidates
@@ -138,8 +154,9 @@ struct FuelReceiptParser {
                     // Symmetry breaker for equal-error assignments: unit prices are
                     // usually printed with 3 decimals, volumes with 2.
                     let score = decimalDigits(p) - decimalDigits(l)
-                    if best == nil || (error, -score) < (best!.error, -best!.score) {
-                        best = (l, p, t, error, score)
+                    let candidate = Candidate(liters: l, price: p, total: t, error: error, score: score)
+                    if best == nil || candidate.beats(best!) {
+                        best = candidate
                     }
                 }
             }

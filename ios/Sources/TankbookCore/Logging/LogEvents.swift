@@ -309,6 +309,40 @@ public struct SyncQueue: LogEvent {
     }
 }
 
+// MARK: - Remote config (docs/LOGGING.md §4, docs/CONFIG.md -> "Logging")
+
+/// A config layer was applied. Config is our data, not the user's, so every
+/// field here is Safe class. `changedKeys` carries field *names* only - never
+/// the values (docs/LOGGING.md hard rule 12), and never the document body.
+public struct ConfigApply: LogEvent {
+    public let eventName = "config.apply"
+    public let category = LogCategory.config
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(version: Int, source: ConfigSource, changedKeys: [String]) {
+        let keys = changedKeys.isEmpty ? "" : changedKeys.sorted().joined(separator: ",")
+        fields = [
+            .safe("version", version),
+            .safe("source", source.rawValue),
+            .safe("changedKeys", keys),
+        ]
+    }
+}
+
+/// A config document was rejected whole (docs/CONFIG.md -> "Document level: all
+/// or nothing"). `reason` is a stable code, not a domain value.
+public struct ConfigReject: LogEvent {
+    public let eventName = "config.reject"
+    public let category = LogCategory.config
+    public let level = LogLevel.warn
+    public let fields: [LogField]
+
+    public init(reason: ConfigRejectReason) {
+        fields = [.safe("reason", reason.rawValue)]
+    }
+}
+
 // MARK: - Capture / OCR (docs/LOGGING.md §4)
 
 /// One OCR field: the field *name* and its confidence value, never the

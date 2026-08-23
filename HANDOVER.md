@@ -15,11 +15,11 @@ Demonstrated by actually running it on 2026-08-23, not by assertion:
 - **Backend serves real traffic against real Postgres.** `bash backend/scripts/dev-up.sh` then `dotnet run --project src/Tankbook.Api`: migrations apply, `GET /health` → `{"status":"ok"}`, `GET /v1/config` returns a signed document **with no auth**, and `If-None-Match` returns **304**.
 - **Trace correlation works end to end.** A client-supplied `X-Tankbook-Trace` id is echoed in the response header and appears in the server's structured log line. (Note: `/health` logs at DEBUG only by design, so probe `/v1/config` when checking this.)
 - **The consumption engine reproduces the golden vectors** – all four driver profiles (D1–D4) and the three edit cases, verified in CI-style runs.
-- **iOS: 108 tests green. Backend: 134 tests green.**
+- **iOS: 148 tests green. Backend: 134 tests green.** (108 → 148 with P0.12a and the JSONValue Unicode regression suite.)
 
 **What does NOT exist yet: any user interface.** There is no app target, so nothing runs in a simulator. That is deliberate – P0 built a tested `TankbookCore` SwiftPM package (domain, persistence, engines, logging, payload contract) that the SwiftUI app will depend on. Tests run natively on macOS in under a second, with no simulator boot, which is why this phase moved quickly.
 
-Also note: **no iOS simulator runtime is installed on this machine** (`xcrun simctl list runtimes` is empty). Before any UI work: `xcodebuild -downloadPlatform iOS` (several GB), and ideally an iOS 18 runtime too, since iOS 18 is our floor and testing the floor is the point of declaring one.
+On simulators: **iOS 26.5 is installed; iOS 18 is not.** Decided 2026-08-23 – build P1 against 26.5 now, validate and adapt to iOS 18 later. The deployment target stays **18.0**, which makes the compiler reject any post-18 API used without an `@available` guard, so the API half of the risk is covered on every build. The uncovered half is appearance and runtime behaviour, and iOS 26 looks different from iOS 18: **L4 snapshot baselines recorded on 26.5 will need re-recording** once the iOS 18 runtime is fetched (`xcodebuild -downloadPlatform iOS` gets only the *latest*, so iOS 18 needs an explicit fetch, ~8 GB). Budget that as known work. Prefer XCUITest behaviour assertions over pixel snapshots where a check can be written either way – they survive the runtime change.
 
 ## Where the work stands
 
@@ -41,7 +41,7 @@ Also note: **no iOS simulator runtime is installed on this machine** (`xcrun sim
 
 | Outstanding | |
 |---|---|
-| **P0.12** | Remote config client. **In flight at handover** – first attempt produced nothing (burned its run cross-verifying Ed25519 across languages); re-dispatched with that rabbit hole explicitly closed. Check `ios/Sources/TankbookCore/Config/` exists and `swift test` exceeds 108 before trusting it |
+| **P0.12** | Remote config client. **Split into P0.12a/b/c** after three single-run attempts delivered zero files – the task was too large for one agent run. **P0.12a is done** (canonicalization, Ed25519 verification, typed document; 29 tests). **P0.12b and P0.12c remain** – see `docs/TASKS.md` for their per-slice checks |
 | **P0.3** | String Catalogs EN/RU + pseudo-localization CI. **Recommend moving to P1** – `TankbookCore` has almost no user-facing strings; they arrive with the UI, so doing this now would gate a build with nothing to localize |
 
 ## What to do next
@@ -63,6 +63,7 @@ Lessons that cost real runs – put these in every brief:
 - **Never write to `/tmp`** – it is auto-rejected and three agents burned their budgets on it. Tell them to use a path inside the repo and delete it.
 - **Tell them what NOT to explore.** One agent spent an entire run trying to cross-verify Ed25519 between BouncyCastle and CryptoKit. Ed25519 is standardised; the real cross-language risk was canonicalization.
 - **Re-run the tests yourself.** Agent reports are mostly accurate but not evidence. Every `[x]` here was re-verified independently.
+- **Put the baseline gate in every brief, and re-verify it yourself**: the tier builds and `swiftlint lint` (from the **repo root**) exits 0. `CLAUDE.md` hard rule 13. Agents optimise for the checks you name, so an unnamed gate is an unmet one – and check the **exit code**, since agents reliably report "lint passed" after skimming a screen of warnings.
 - **Watch out for stale wrapper shells.** `pgrep -f "opencode run"` matches the wrapper shell of the pgrep itself, so naive wait-loops never exit. Use `pgrep -fa "opencode run -m" | grep -v "zsh -c"`.
 - Run iOS and backend agents in parallel (separate tiers), but never two on the same tier – they fight over the build lock.
 
@@ -82,8 +83,12 @@ Listed in `CLAUDE.md`, but the ones most likely to be re-questioned:
 1. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy instead. Flagged for P4.
 2. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ moved to a paid licence. Revisit as a dependency risk.
 3. **Migration 003 seeds config v1 with an empty signature placeholder**, signed at startup by `ConfigBaselineSeeder`. Confirm the client rejects that transient unsigned state correctly when P0.12 lands.
-4. **Cross-language canonicalization parity is untested end to end** – Swift and C# each test their own side. Add a real parity test in P4 when the client first talks to the server.
-5. **Nothing is committed to git.** The whole session's work is staged/untracked; `git status` shows modified docs and untracked `ios/`, `backend/`, `docs/schemas/`, `docs/fixtures/`.
+4. ~~**Cross-language canonicalization parity is untested end to end.**~~ **Closed 2026-08-23.** The C# canonicalizer + BouncyCastle Ed25519 were run over a deliberately awkward document (`1e3`, an integer above 2^53, Cyrillic text, keys out of order, empty object, mixed array); CryptoKit verifies the resulting signature and rejects both tamper cases. Fixture checked in at `ios/Tests/TankbookCoreTests/Fixtures/config/` with its provenance in that directory's `README.md`. **The remaining risk was never the curve – it is rule 5, number source-token preservation.** Do not let another agent re-investigate Ed25519.
+5. ~~**iOS CI lint is red.**~~ **Fixed 2026-08-23** – `swiftlint lint` now exits 0, so the CI Lint step passes. It had **13 errors**, and the largest cause was a config bug: `excluded:` listed `.build` and `ios/.build` individually, so `Spike/ReceiptSpike/.build` was linted and SwiftPM's *generated* test runner failed on line length. Now `"**/.build"`. The rest were real: `JSONSchemaValidator.validate` (complexity 31, 110-line body) split into four keyword-family helpers, the schema generator's `required` lists de-duplicated behind `entryCommonRequired`, and the Spike parser's 5-member tuple replaced with a named `Candidate` type. 232 warnings remain and are not gating. **Keep it at zero** – a lint that has been red for a while is a lint nobody reads.
+
+6. **Non-ASCII is a first-class test input now, not an afterthought.** `JSONValue.parse` rejected *every* multi-byte UTF-8 string until 2026-08-23 – a Cyrillic station name could not be decoded at all – and the whole suite stayed green because every payload fixture was ASCII. Fixed, with `JSONValueUnicodeTests.swift` as the regression suite and a test that fails if the fixture corpus ever goes all-ASCII again. `docs/TESTING.md` now requires 2-, 3- and 4-byte UTF-8 in the corpus. **Assume other ASCII-only blind spots exist** in code written before this date.
+
+7. **Nothing is committed to git.** The whole session's work is staged/untracked; `git status` shows modified docs and untracked `ios/`, `backend/`, `docs/schemas/`, `docs/fixtures/`.
 
 ## The document set
 

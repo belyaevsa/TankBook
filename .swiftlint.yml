@@ -4,8 +4,11 @@
 # Build path and SPM dependency sources are excluded so lint covers only our code.
 
 excluded:
-  - .build
-  - ios/.build
+  # Every SwiftPM build directory, at any depth. Listing them one by one meant
+  # Spike/ReceiptSpike/.build was linted, and SwiftPM's GENERATED test runner
+  # tripped line-length and trailing-whitespace as errors - failing CI over code
+  # nobody wrote and nobody can fix.
+  - "**/.build"
   # P0.2: the generated token file is the single sanctioned source of hex values
   # (the no_literal_hex_colors rule guards hand-written UI code, not the token source).
   - ios/Sources/TankbookCore/Design/Theme.generated.swift

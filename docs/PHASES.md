@@ -5,14 +5,15 @@
 ## P0 · Foundations (everything else builds on this) — **in progress**
 Scaffold `ios/` (SwiftUI + GRDB, DESIGN.md tokens as `Theme.swift`, String Catalogs EN/RU wired, GRDB migrations for the full SCHEMA.md model) and `backend/` (ASP.NET Core solution, Postgres + MinIO via docker compose-free scripts, Dapper migrations for the server tables). CI for both (build, lint, test, pseudo-localization). P0 also lays the three cross-cutting foundations that are far cheaper to establish before code accumulates than to retrofit: **payload contract** (P0.10), **logging** (P0.11), and **remote config** (P0.12/P0.13).
 
-**Done (verified by re-running tests outside the implementing agent):** P0.1 scaffold · P0.2 tokens · P0.4 persistence · P0.5 domain · P0.6 consumption · P0.7 validation · P0.8 backend scaffold · P0.9 server migrations. iOS 82 tests green, backend 28 green.
-**Remaining:** P0.3 localization · P0.10 payload contract (schemas + fixtures + codec landed; contract tests and the server half outstanding) · P0.11 logging (backend done; iOS half outstanding) · P0.12/P0.13 remote config.
+**Done (verified by re-running tests outside the implementing agent):** P0.1 scaffold · P0.2 tokens · P0.4 persistence · P0.5 domain · P0.6 consumption · P0.7 validation · P0.8 backend scaffold · P0.9 server migrations · P0.10 payload contract · P0.11 logging · P0.13 config server. iOS 108 tests green, backend 134 green.
+**Remaining:** P0.12 remote config client – the last item in the gate, since the brick-proof test is its deliverable.
+**Moved out of P0:** P0.3 localization now sits at the head of P1, next to the app shell. `TankbookCore` has almost no user-facing strings – they arrive with the app target – so a P0 pseudo-localization gate would guard a build with nothing to localize. The gate below drops it accordingly; P1's gate picks it up.
 
 **Exit gate:** both projects build in CI from clean checkout · consumption engine passes the D1–D4 golden suite + edit-cases inside the iOS target · schema migrations round-trip a seeded database · `Theme.swift` values byte-match DESIGN.md tokens (generated, not copied) · every entity has a registered v1 payload schema and the round-trip preservation test passes · the redaction test passes on both tiers · **the brick-proof config test passes** (an unreachable `apiBaseUrl` auto-reverts to bundled defaults and the app recovers unattended).
 
 ## P1 · Local core loop (a usable app, no camera, no server)
 Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty states), Add car + catalog seed pack, car switcher, Edit entry, Recently deleted, Trends tiles, timeline validation with conflict badges, tank-level sheet.
-**Exit gate:** TESTING J1, J13-local, F9a, F1-manual-path checks green · L4 snapshots for every P1 screen in dark+light, EN+RU · a real month of your My Fuel Manager data (hand-entered or imported early) reproduces its known consumption · SCREENMAP back-path audit holds in XCUITest (no dead ends walk).
+**Exit gate:** TESTING J1, J13-local, F9a, F1-manual-path checks green · **String Catalogs EN/RU wired and the pseudo-localization CI step failing on a deliberately hardcoded string** (P0.3, moved here) · L4 snapshots for every P1 screen in dark+light, EN+RU · a real month of your My Fuel Manager data (hand-entered or imported early) reproduces its known consumption · SCREENMAP back-path audit holds in XCUITest (no dead ends walk).
 
 ## P2 · Capture (the hero)
 Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, Foundation-Models normalization (gated iOS 26+), confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
