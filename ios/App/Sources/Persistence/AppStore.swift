@@ -16,6 +16,21 @@ enum AppStore {
         return repository
     }
 
+    /// Wipes the on-device database so a UI test run can start each Home state
+    /// from a clean slate. Test-only: called from the Home seeding hook under
+    /// `-homeResetDatabase` (see HomeTestSeed). The cached repository must be
+    /// dropped first or GRDB would keep pointing at a deleted file.
+    static func resetForTests() throws {
+        cached = nil
+        let directory = try FileManager.default
+            .url(for: .applicationSupportDirectory, in: .userDomainMask,
+                 appropriateFor: nil, create: true)
+            .appendingPathComponent("Tankbook", isDirectory: true)
+        if FileManager.default.fileExists(atPath: directory.path) {
+            try FileManager.default.removeItem(at: directory)
+        }
+    }
+
     private static func makeRepository() throws -> TankbookRepository {
         let directory = try FileManager.default
             .url(for: .applicationSupportDirectory, in: .userDomainMask,

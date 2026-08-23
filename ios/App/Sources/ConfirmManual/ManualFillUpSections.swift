@@ -337,6 +337,16 @@ struct ManualFillUpOdometerCard: View {
                     .focused($focus, equals: .odometer)
                     .fieldUnderline(isFocused: focus == .odometer, warn: conflict != nil)
                     .accessibilityIdentifier("manualFillUpOdometerField")
+                    .onChange(of: focus) { oldValue, newValue in
+                        // Format-on-blur (HANDOVER.md open item 0): grouped
+                        // digits belong in DISPLAY, not in a field being typed
+                        // into. Focus strips the grouping, blur re-applies it.
+                        if newValue == .odometer {
+                            form.odometer = OdometerFormat.ungrouped(form.odometer)
+                        } else if oldValue == .odometer, let value = form.odometerValue {
+                            form.odometer = OdometerFormat.grouped(value)
+                        }
+                    }
                 Text(L10n.distanceUnit(distanceUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)

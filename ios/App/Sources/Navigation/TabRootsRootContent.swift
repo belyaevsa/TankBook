@@ -9,41 +9,22 @@ struct HomeRootView: View {
     let presentSheet: (SheetRoute) -> Void
 
     var body: some View {
-        List {
-            Button {
-                presentSheet(.confirmManual)
-            } label: {
-                Label("Type it", systemImage: "square.and.pencil")
-            }
-            .accessibilityIdentifier("typeItButton")
-
-            NavigationLink("Edit entry", value: Route.editEntry)
-                .accessibilityIdentifier("editEntryButton")
-
-            Button {
-                presentSheet(.carSwitcher)
-            } label: {
-                Label("Select car", systemImage: "car")
-            }
-            .accessibilityIdentifier("carSwitcherButton")
-        }
-        .scrollContentBackground(.hidden)
-        .background(Theme.Palette.midnight)
-        .navigationTitle("Log")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                NavigationLink(value: Route.settings) {
-                    Image(systemName: "gearshape")
+        HomeView(presentSheet: presentSheet)
+            .navigationTitle("Log")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(value: Route.settings) {
+                        Image(systemName: "gearshape")
+                    }
+                    .accessibilityIdentifier("settingsButton")
                 }
-                .accessibilityIdentifier("settingsButton")
             }
-        }
-        .onAppear {
-            // UI-test/screenshot hook: open the manual form directly at launch.
-            if ProcessInfo.processInfo.arguments.contains("-openManualForm") {
-                presentSheet(.confirmManual)
+            .onAppear {
+                // UI-test/screenshot hook: open the manual form directly at launch.
+                if ProcessInfo.processInfo.arguments.contains("-openManualForm") {
+                    presentSheet(.confirmManual)
+                }
             }
-        }
     }
 }
 

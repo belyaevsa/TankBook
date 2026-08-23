@@ -46,7 +46,10 @@ struct ManualFillUpFormState: Equatable {
     var pricePerLDecimal: Decimal? { Self.decimal(pricePerL) }
     var odometerValue: Int? {
         let trimmed = odometer.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? nil : Int(trimmed)
+        // Format-on-blur puts a thin-space grouped string back into the field
+        // (HANDOVER.md open item 0); grouping is DISPLAY only, so the model
+        // strips it before parsing.
+        return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
     // MARK: The third value derives
@@ -102,7 +105,9 @@ struct ManualFillUpFormState: Equatable {
     /// closing it with just the convenience pre-fill discards silently.
     func hasEdits(vehicle: Vehicle) -> Bool {
         if !total.isEmpty || !liters.isEmpty || !pricePerL.isEmpty { return true }
-        if odometer != initialOdometer { return true }
+        // Format-on-blur puts a thin-space grouped string back into the field
+        // (HANDOVER.md open item 0); it is not an edit, so compare ungrouped.
+        if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) { return true }
         if !Calendar.current.isDate(date, inSameDayAs: initialDate) { return true }
         if !isFull { return true }
         if fuelKind != (vehicle.fuelKinds.first ?? .petrol95) { return true }

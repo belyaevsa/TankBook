@@ -40,7 +40,10 @@ struct AddVehicleFormState {
 
     var odometerValue: Int? {
         let trimmed = odometer.trimmingCharacters(in: .whitespaces)
-        return trimmed.isEmpty ? nil : Int(trimmed)
+        // Format-on-blur puts a thin-space grouped string back into the field
+        // (HANDOVER.md open item 0); grouping is DISPLAY only, so the model
+        // strips it before parsing.
+        return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
     var odometerIsImplausible: Bool {

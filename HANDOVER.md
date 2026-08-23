@@ -104,7 +104,7 @@ Listed in `CLAUDE.md`, but the ones most likely to be re-questioned:
 
 ## Known open items (not blocking P0)
 
-0. **Odometer digits are not thousands-grouped.** `AddVehicle.dc.html` specifies `119&thinsp;486 km`; the app renders `119486`. Found by screenshot-vs-artboard on P1.2, not by any test. The honest fix is format-on-blur (a grouped `TextField` is unpleasant to type into), so it was left out of P1.2 rather than destabilising a verified tree. **Do it in P1.4**, where Home displays the same figure and grouping matters most – and make it a shared formatter, since odometer appears on Home, Log, Edit entry and Trends.
+0. ~~**Odometer digits are not thousands-grouped.**~~ **Closed 2026-08-23 with P1.4.** `OdometerFormat` in `TankbookCore` (thin space U+2009, pinned `en_US_POSIX`) groups Home's odometer and formats the Add-car and manual-form odometer fields on blur. Grouping is DISPLAY only – the model strips it before parsing, and the discard guard compares ungrouped. `AddVehicle.dc.html` specifies `119&thinsp;486 km`; the app now renders it. Shared formatter, used by Home, Add car and the manual form.
 
 1. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy instead. Flagged for P4.
 2. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ moved to a paid licence. Revisit as a dependency risk.

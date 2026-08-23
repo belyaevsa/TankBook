@@ -327,6 +327,23 @@ public struct Station: Entity, Codable, Sendable, Equatable {
     public var defaults: Defaults
     public var lastUsedAt: Date?
 
+    /// Memberwise initializer, public so the app target can build a `Station`
+    /// (the same construction blocker that `Vehicle` had; see its note).
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                name: String, brand: String? = nil, location: GeoCoordinate? = nil,
+                favorite: Bool, defaults: Defaults, lastUsedAt: Date? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.name = name
+        self.brand = brand
+        self.location = location
+        self.favorite = favorite
+        self.defaults = defaults
+        self.lastUsedAt = lastUsedAt
+    }
+
     /// Pre-fill smart defaults for the next visit (docs/SCHEMA.md, Station.defaults).
     public struct Defaults: Codable, Sendable, Equatable {
         public var fuelKind: FuelKind?

@@ -238,6 +238,16 @@ struct AddVehicleOdometerCard: View {
                     .onChange(of: form.odometer) { _, _ in
                         form.odometerTouched = true
                     }
+                    .onChange(of: focus) { oldValue, newValue in
+                        // Format-on-blur (HANDOVER.md open item 0): grouped
+                        // digits belong in DISPLAY, not in a field being typed
+                        // into. Focus strips the grouping, blur re-applies it.
+                        if newValue == .odometer {
+                            form.odometer = OdometerFormat.ungrouped(form.odometer)
+                        } else if oldValue == .odometer, let value = form.odometerValue {
+                            form.odometer = OdometerFormat.grouped(value)
+                        }
+                    }
                 Text(L10n.distanceUnit(units.distance))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
