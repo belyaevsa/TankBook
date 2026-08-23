@@ -4,7 +4,7 @@
 
 ## Model in one paragraph
 
-Local-first with a server hub. Every device owns a complete local database and works fully offline; the backend keeps the account's authoritative change history. Devices **push** local changes and **pull** others' changes through a per-account monotonic sequence (SCN – server change number). Conflicts are resolved record-level last-writer-wins on the client, then re-validated by the domain rules (the odometer timeline check catches what LWW can't). No account = no sync, everything else works – sign-in is the moment multi-device turns on.
+Local-first with a server hub. Every device owns a complete local database and works fully offline; the backend keeps the account's authoritative change history. Devices **push** local changes and **pull** others' changes through a per-account monotonic sequence (SCN – server change number). Conflicts are resolved record-level last-writer-wins on the client – **except `Vehicle`, which merges field-level** so a stale device cannot revert a setting the user deliberately changed (S9, hard rule 13) – then re-validated by the domain rules (the odometer timeline check catches what LWW can't). No account = no sync, everything else works – sign-in is the moment multi-device turns on.
 
 **What this replaces:** CloudKit as the sync engine. One sync system, ours, serving iOS now and Android later with identical semantics. (CloudKit would give iOS free sync but nothing to Android, and running both would double every consistency bug.) The account session lives in the **device-local Keychain only** (`…ThisDeviceOnly`, never iCloud Keychain – a synced session would silently defeat per-device revocation; see `SECURITY.md`); the OS photo library and files are untouched.
 
@@ -123,6 +123,14 @@ Each local row carries `syncState: synced(scn) | dirty | pushing`, plus the SCHE
 
 **Merge rule (v1): record-level LWW by `clientUpdatedAt`**, deterministic tiebreak by device id. Rationale: entries are small and edited rarely, almost never concurrently on two devices within seconds; field-level merge is a v2 refinement if real conflicts show up in telemetry counts.
 
+**Exception – `Vehicle` merges field-level** (decided 2026-08-23). Every other entity stays record-level. `Vehicle` is the one record where record-level LWW breaks hard rule 13 ("the app suggests, the user decides – a user's edit is theirs permanently"), because it differs from an entry in all three ways the rationale above depends on:
+
+- **It is long-lived and rarely touched**, so a device can hold a stale copy for *weeks*, not seconds. The concurrency window is not small.
+- **Its fields are independent** – tank capacity, name, home currency, units, `archived` – and are edited at different times for unrelated reasons. An entry's fields describe one event; a vehicle's describe a dozen unrelated settings.
+- **Its values feed maths, silently.** Reverting `tankCapacityL` does not look like a lost edit; it looks like partial-fill numbers quietly going wrong (S9 below).
+
+So `Vehicle` carries per-field `updatedAt` (or an equivalent changed-field set on push) and merges field by field, newest write per field. Entries keep record-level LWW – S1 is unchanged, and its documented "the iPhone's odometer edit is lost" outcome still stands for entries.
+
 **Domain validation after merge, not during:** LWW can produce a timeline that violates the odometer invariant (two drivers logging the same car offline – JOURNEYS J12/F9a). The sync layer doesn't care; after every merge batch, validation re-runs locally and flags entries with the amber `ConflictState` – the *user-visible* conflict system and the *transport* conflict system stay decoupled. Nothing is ever dropped silently.
 
 **Clock skew:** `clientUpdatedAt` is device-clock; the server stamps `received_at` and rejects timestamps > 24h in the future (clamps to server time, marks the record so the client can warn). Good enough for LWW between a person's own devices.
@@ -181,7 +189,7 @@ win**. Same mechanism for exchange-rate packs (`P5`).
 This is a *different channel from user-data sync*, and conflating the two is the mistake to avoid. Nothing
 here has an SCN, a tombstone, a dirty queue or a conflict state, because the flow is **one-way and
 read-only**: the server publishes, the device consumes, and the local copy is disposable – deleting the
-cache costs a refetch and nothing else. None of S1–S8 apply.
+cache costs a refetch and nothing else. None of S1–S9 apply.
 
 ### Three layers, in strict precedence
 
@@ -281,6 +289,18 @@ A fill-up saved offline in Poland has `Money{289.50 PLN, homeAmount: nil}` (rate
 - **Divergence case:** one device backfills from the feed while the user manually edits the rate on the other → LWW picks the newer; a losing *manual* rate (rateSource: .manual) lands in the S1 undo log, feed values don't (they're reproducible).
 - **The rate cache itself never syncs** – each device fetches its own feed; only `Money` snapshots inside entries travel. A device with no feed access simply leaves entries pending; stats exclude them from home-currency sums with the F9 footnote until any device fills them.
 - **Screens:** the foreign-currency confirm shows the conversion line ("≈ 67.79 € · 4.2706 zł/€ · ECB, Aug 21") or a soft "converts when online" chip; when backfill lands via sync, the entry's home amount simply appears – no toast, nothing was wrong.
+
+### S9 · A stale device reverts a car setting (the rule-13 case)
+
+The user corrects the Volvo's tank capacity 71 → 60 L on the iPhone on Monday. The iPad has not synced for a week and still holds 71. On Friday the iPad renames the car "Volvo" → "V60" – an unrelated field – and pushes.
+
+- **Transport:** field-level merge on `Vehicle`. The iPad's write covers `name` only; `tankCapacityL` keeps the iPhone's newer value. Merged result: `name = "V60"`, `tankCapacityL = 60`. **Under record-level LWW the iPad's whole row would win and the correction would silently revert to 71.**
+- **Domain:** nothing to flag. Both writes were legitimate and both survive.
+- **Screens:** nothing – and that is the point. There is no conflict to surface, because nothing was lost.
+
+**Why this one gets its own scenario:** the failure it prevents is invisible. A reverted tank capacity produces no badge, no toast and no wrong-looking number – just partial-fill maths that is quietly wrong from then on, and a user who "already fixed that". Contrast S1, where a lost note edit is at least noticeable to the person who made it.
+
+The same reasoning covers `initialOdometer`, `homeCurrency`, `units` and `paceLimitKmPerDay`: all user decisions, all feeding calculations, all edited independently.
 
 ### S7 · Server unavailable – during everything above
 The backend is down for a day; both devices keep logging, editing, deleting.

@@ -37,7 +37,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | **[ ]** P0.3 | String Catalogs EN/RU + pseudo-localization CI step. **Moved here from P0** – `TankbookCore` has almost no user-facing strings, so gating a P0 build on localization would gate a build with nothing to localize. The strings arrive with the app target, so this lands alongside P1.1. ID kept stable for branch/PR references | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
 | **[x]** P1.1 | App shell: tab roots, navigation stacks, sheet infrastructure per SCREENMAP conventions | L4: XCUITest walks every SCREENMAP edge that exists so far; back-path audit (no dead ends) |
 | **[x]** P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
-| P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
+| **[x]** P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
 | P1.4 | Home: garage card, vitals, guest/empty/first-estimate states | L4: snapshots ×(guest, 1-fill, full) ×(dark, light) ×(EN, RU); "no N/A tiles" assertion |
 | P1.5 | Log stream: entry cards, month dividers, purchase-group rendering | L4: snapshot; L1: ordering (date) and group collapse |
 | P1.6 | Edit entry + full-vehicle recompute + delta toast | L1-through-UI: edit-case goldens via the real store; toast shows old→new |
@@ -80,7 +80,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | P4.2 | Sync push/pull + SCN allocation | L2: ordering, pagination under concurrent writes, idempotent replay, per-item conflict, 410 |
 | P4.3 | Blob endpoints + S3 storage + quotas + orphan sweep | L2: dedupe, 25/10 MB caps, 429 quota, commit-verifies, presign expiry, **cross-account 404** |
 | P4.4 | iOS: Sign in + Restoring screens, Keychain session, J11a detection | L4: wrong-provider empty-account flow; provider-notice snapshot; sign-out escape; L1: token storage |
-| P4.5 | iOS sync client: dirty queue, pull/merge/push loop, domain revalidation after merge | **L3: the S1–S8 simulator suite, one deterministic test per scenario** |
+| P4.5 | iOS sync client: dirty queue, pull/merge/push loop, domain revalidation after merge, **field-level merge for `Vehicle`** (every other entity stays record-level LWW) | **L3: the S1–S9 simulator suite, one deterministic test per scenario.** S9 specifically: a stale device writing one `Vehicle` field must not revert another field edited more recently elsewhere – the hard-rule-13 case, and the one whose failure is invisible |
 | P4.6 | Attachment sync: rendition generation, inline thumbnails, lazy/eager download | L1: ≤2048px/size caps, sha verify-on-download; L4: "photo syncing" shimmer state |
 | P4.7 | Restore end-to-end | L3: pull-from-zero hash-equals origin; interrupted-restore resume; F7 server-down state |
 | P4.8 | Silent APNs nudges + server throttle | L2: throttle window; token invalidation → poll fallback; M: background pull observed on device |

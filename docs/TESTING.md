@@ -21,7 +21,7 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 |---|---|---|
 | **L1 Unit** | swift-testing / xUnit; pure functions, no I/O | Algorithms match golden vectors |
 | **L2 Contract** | Backend integration tests against real Postgres + MinIO (Testcontainers); iOS client tests against a recorded/stub server implementing `API.md` | Both sides implement the same API.md |
-| **L3 Scenario** | Multi-client sync simulator: N in-process clients + real backend, scripted interleavings | SYNC.md S1–S8 outcomes, deterministically |
+| **L3 Scenario** | Multi-client sync simulator: N in-process clients + real backend, scripted interleavings | SYNC.md S1–S9 outcomes, deterministically |
 | **L4 UI** | Snapshot tests per screen/state (dark+light, EN+RU, Dynamic Type L) against `design/screens/` intent; XCUITest for flows | Screens match artboards; flows navigate per SCREENMAP.md |
 | **L5 Accuracy** | The Spike harness grown into CI: fixture corpus + `expected.csv`, per-locale scoring | OCR/parser gates; regression on every parser change |
 | **M Manual** | Checklist per release, named checks only | What automation can't reach (camera feel, haptics, real pumps) |
@@ -45,7 +45,7 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 | J13 export/archive | L1: backup round-trip (export→import→identical entities incl. tombstones); archived cars excluded from active stats |
 | F1–F4, F8, F9 failure states | L4: each state renders with its ERRORS.md next-step actions present (snapshot per state). L1: confidence gating logic; pace/order validation matrix (F9a: every check × receipt-date priority) |
 | F7 restore failure | L3: server-down mid-restore → partial usable + resume; empty-account honest path |
-| F10 / S1–S8 sync conflicts | L3: one scripted test per scenario asserting the documented outcome (S1 LWW+undo entry, S2 single-count until resolved, S3 flag+exclusion, S4 resurrect/tombstone, S5 archived resurrect, S6 invisible retry, S7 queue+batch toast state, S8 identical backfill). The S-matrix IS the test plan |
+| F10 / S1–S9 sync conflicts | L3: one scripted test per scenario asserting the documented outcome (S1 LWW+undo entry, S2 single-count until resolved, S3 flag+exclusion, S4 resurrect/tombstone, S5 archived resurrect, S6 invisible retry, S7 queue+batch toast state, S8 identical backfill, **S9 a stale device must not revert a `Vehicle` field edited more recently on another device**). The S-matrix IS the test plan |
 
 ## Per-endpoint verification (API.md → L2, all also asserting RFC7807 error shapes)
 

@@ -25,7 +25,7 @@ ServiceEntry with invoice split, parts shelf + linking (double-count invariant),
 
 ## P4 · Account, sync, blobs (the join point)
 Backend auth (session exchange, refresh rotation), sync push/pull with SCN, the iOS sync client (dirty queue, merge, domain revalidation), blob pipeline, Restoring flow, Settings account states, silent APNs nudges, Sign in + J11a wrong-provider detection.
-**Exit gate:** all API.md L2 endpoint suites green (incl. cross-account blob 404 and refresh-reuse revocation) · **L3 scenario suite: one deterministic test per S1–S8 asserting the documented outcome** · restore-from-zero hash-equals origin dataset · kill-the-server chaos check: app fully usable, queues drain on recovery (S7).
+**Exit gate:** all API.md L2 endpoint suites green (incl. cross-account blob 404 and refresh-reuse revocation) · **L3 scenario suite: one deterministic test per S1–S9 asserting the documented outcome** · restore-from-zero hash-equals origin dataset · kill-the-server chaos check: app fully usable, queues drain on recovery (S7).
 
 ## P5 · Reference data, currency, localization, importers
 /rates service + daily job + CIS source, Money conversion end-to-end, **the server-curated vehicle catalog** (curation tooling + `GET /catalog` deltas + the client updater), RU localization pass with native review, importers for all six formats, backup export/import UI.

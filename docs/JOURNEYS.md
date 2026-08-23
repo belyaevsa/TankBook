@@ -285,7 +285,7 @@ Scan invoice (document camera, multi-page) → on-device model splits line items
 **Metric:** entries stuck >7 days without a rate <0.5%.
 
 ### F10 · Sync conflicts surface after the fact
-**Trigger:** two devices (or two drivers) changed the same data while apart – possibly during a server outage, so conflicts arrive in a batch when sync recovers. Full scenario matrix: `SYNC.md` S1–S8.
+**Trigger:** two devices (or two drivers) changed the same data while apart – possibly during a server outage, so conflicts arrive in a batch when sync recovers. Full scenario matrix: `SYNC.md` S1–S9.
 
 - **Never modal, never at sync time.** Conflicts materialize as badges where the data lives: amber timeline flags on entries (S3), a "possible duplicate" combined card (S2), a quiet Garage notice when an archived vehicle returns with new entries (S5). A batch after an outage gets one summary toast – "Synced. 2 entries need a look" – that filters the Log to flagged items.
 - **Nothing is lost silently:** overwritten edits and deleted entries sit in a 30-day local undo log ("Recently deleted" / "restore my version" from the entry's edit screen).
