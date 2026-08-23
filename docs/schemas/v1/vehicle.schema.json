@@ -526,6 +526,9 @@
       "format" : "uuid",
       "type" : "string"
     },
+    "initialOdometer" : {
+      "type" : "integer"
+    },
     "make" : {
       "type" : "string"
     },

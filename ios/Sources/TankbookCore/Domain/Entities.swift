@@ -49,6 +49,50 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
     public var archived: Bool = false
     public var paceLimitKmPerDay: Double = 1500
 
+    /// The car's odometer as of `createdAt`, in the vehicle's distance unit -
+    /// the "Current odometer" field on Add car (docs/SCHEMA.md, Vehicle).
+    ///
+    /// The one odometer value that does not live on an entry. It is not a
+    /// derived stat: it is user-entered baseline data for the moment before any
+    /// entry exists, so Home has something honest to show on day one and
+    /// timeline validation has a lower bound for the FIRST entry rather than the
+    /// second. Once entries exist the derived value takes over; this stays as
+    /// the floor and is never rewritten.
+    public var initialOdometer: Int?
+
+    /// Memberwise initializer, public so the app target can build a `Vehicle`.
+    ///
+    /// Swift's synthesized memberwise init is internal even on a public struct,
+    /// which made `Vehicle` unconstructible outside the package - a blocker
+    /// found when P1.2 went to save one from the Add car screen.
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                name: String, make: String? = nil, model: String? = nil, year: Int? = nil,
+                plate: String? = nil, powertrain: Powertrain, fuelKinds: [FuelKind],
+                tankCapacityL: Double? = nil, batteryCapacityKWh: Double? = nil,
+                homeCurrency: CurrencyCode, units: Units, photo: AttachmentID? = nil,
+                archived: Bool = false, paceLimitKmPerDay: Double = 1500,
+                initialOdometer: Int? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.name = name
+        self.make = make
+        self.model = model
+        self.year = year
+        self.plate = plate
+        self.powertrain = powertrain
+        self.fuelKinds = fuelKinds
+        self.tankCapacityL = tankCapacityL
+        self.batteryCapacityKWh = batteryCapacityKWh
+        self.homeCurrency = homeCurrency
+        self.units = units
+        self.photo = photo
+        self.archived = archived
+        self.paceLimitKmPerDay = paceLimitKmPerDay
+        self.initialOdometer = initialOdometer
+    }
+
     /// Units of measure for a vehicle (docs/SCHEMA.md, Vehicle.units).
     public struct Units: Codable, Sendable, Equatable {
         public var distance: DistanceUnit
@@ -294,6 +338,21 @@ public struct Attachment: Entity, Codable, Sendable, Equatable {
     public var file: LocalFileRef
     public var extractedTimestamp: Date?
     public var ocrText: String?
+
+    /// Memberwise initializer, public so the app target can build an `Attachment`
+    /// (the same construction blocker that `Vehicle` had; see its note).
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                kind: AttachmentKind, file: LocalFileRef,
+                extractedTimestamp: Date? = nil, ocrText: String? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.kind = kind
+        self.file = file
+        self.extractedTimestamp = extractedTimestamp
+        self.ocrText = ocrText
+    }
 }
 
 /// A local file reference, synced/backed up as a content-addressed blob

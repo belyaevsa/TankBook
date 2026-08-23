@@ -83,7 +83,8 @@ private func fullyPopulatedVehicle() -> Vehicle {
         homeCurrency: .eur,
         units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100),
         photo: UUID(uuidString: "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa")!,
-        archived: false, paceLimitKmPerDay: 1500
+        archived: false, paceLimitKmPerDay: 1500,
+        initialOdometer: 119_486
     )
 }
 

@@ -260,6 +260,10 @@ let vehicleProperties: [String: Any] = [
     "photo": schemaUUID,
     "archived": schemaBoolean,
     "paceLimitKmPerDay": schemaNumber,
+    // Optional, so it stays out of `required` below - a car saved without an
+    // odometer reading is valid (docs/ERRORS.md -> Add car: the implausible
+    // reading is a warning that never blocks save).
+    "initialOdometer": schemaInteger,
 ]
 
 let fillUpProperties: [String: Any] = [

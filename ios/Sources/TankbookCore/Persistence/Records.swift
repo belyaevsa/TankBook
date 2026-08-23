@@ -223,7 +223,8 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
                 energy: EnergyUnit(rawValue: row["energyUnit"]) ?? .kWhPer100),
             photo: decodeOptionalUUID(row, column: "photo"),
             archived: row["archived"] as Bool,
-            paceLimitKmPerDay: row["paceLimitKmPerDay"] as Double)
+            paceLimitKmPerDay: row["paceLimitKmPerDay"] as Double,
+            initialOdometer: row["initialOdometer"] as Int?)
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -247,6 +248,7 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
         container["photo"] = vehicle.photo?.uuidString
         container["archived"] = vehicle.archived
         container["paceLimitKmPerDay"] = vehicle.paceLimitKmPerDay
+        container["initialOdometer"] = vehicle.initialOdometer
     }
 }
 

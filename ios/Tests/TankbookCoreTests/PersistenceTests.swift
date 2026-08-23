@@ -123,6 +123,32 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     #expect(try repo.vehicle(id: vehicle.id) == vehicle)
 }
 
+/// `initialOdometer` is the "Current odometer" typed on Add car, and the whole
+/// reason the field exists is that the value used to be discarded (docs/SCHEMA.md,
+/// Vehicle). Asserted explicitly rather than left to the round-trip above, whose
+/// `makeVehicle()` fixture could stop setting it without anything failing.
+@Test func vehicleInitialOdometerSurvivesPersistence() throws {
+    let repo = try makeRepository()
+    var vehicle = makeVehicle()
+    vehicle.initialOdometer = 119_486
+
+    try repo.upsertVehicle(vehicle)
+
+    #expect(try repo.vehicle(id: vehicle.id)?.initialOdometer == 119_486)
+}
+
+/// It is optional: a car saved with no odometer reading is valid, because the
+/// implausible-reading warning never blocks save (docs/ERRORS.md -> Add car).
+@Test func vehicleWithoutInitialOdometerRoundTripsAsNil() throws {
+    let repo = try makeRepository()
+    var vehicle = makeVehicle()
+    vehicle.initialOdometer = nil
+
+    try repo.upsertVehicle(vehicle)
+
+    #expect(try repo.vehicle(id: vehicle.id)?.initialOdometer == nil)
+}
+
 @Test func fillUpCRUDRoundTrip() throws {
     let repo = try makeRepository()
     let vehicleId = UUID.v7()

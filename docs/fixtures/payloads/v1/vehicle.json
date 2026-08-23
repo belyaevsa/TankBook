@@ -20,5 +20,6 @@
   },
   "photo": "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa",
   "archived": false,
-  "paceLimitKmPerDay": 1500
+  "paceLimitKmPerDay": 1500,
+  "initialOdometer": 119486
 }
