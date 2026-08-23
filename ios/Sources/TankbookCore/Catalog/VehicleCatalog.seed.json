@@ -1,5 +1,5 @@
 {
-  "packVersion": 1,
+  "packVersion": 2,
   "entries": [
     {
       "make": "VW",
@@ -14,8 +14,8 @@
         "petrol95",
         "diesel"
       ],
-      "tankCapacityL": 50,
-      "packVersion": 1
+      "tankCapacityL": 45,
+      "packVersion": 2
     },
     {
       "make": "VW",
@@ -29,8 +29,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 45,
-      "packVersion": 1
+      "tankCapacityL": 40,
+      "packVersion": 2
     },
     {
       "make": "VW",
@@ -45,8 +45,8 @@
         "petrol95",
         "diesel"
       ],
-      "tankCapacityL": 60,
-      "packVersion": 1
+      "tankCapacityL": 58,
+      "packVersion": 2
     },
     {
       "make": "VW",
@@ -62,7 +62,7 @@
         "diesel"
       ],
       "tankCapacityL": 66,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "VW",
@@ -77,7 +77,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 77,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Toyota",
@@ -92,8 +92,8 @@
         "petrol95",
         "electricity"
       ],
-      "tankCapacityL": 50,
-      "packVersion": 1
+      "tankCapacityL": 43,
+      "packVersion": 2
     },
     {
       "make": "Toyota",
@@ -109,7 +109,7 @@
         "electricity"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Toyota",
@@ -125,7 +125,7 @@
         "electricity"
       ],
       "tankCapacityL": 55,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Toyota",
@@ -140,8 +140,8 @@
         "petrol95",
         "electricity"
       ],
-      "tankCapacityL": 50,
-      "packVersion": 1
+      "tankCapacityL": 43,
+      "packVersion": 2
     },
     {
       "make": "Toyota",
@@ -157,7 +157,7 @@
         "petrol98"
       ],
       "tankCapacityL": 93,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Renault",
@@ -171,8 +171,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 45,
-      "packVersion": 1
+      "tankCapacityL": 42,
+      "packVersion": 2
     },
     {
       "make": "Renault",
@@ -188,7 +188,7 @@
         "lpg"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Renault",
@@ -204,7 +204,7 @@
         "lpg"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Renault",
@@ -220,7 +220,7 @@
         "diesel"
       ],
       "tankCapacityL": 60,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Renault",
@@ -235,7 +235,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 52,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Skoda",
@@ -250,8 +250,8 @@
         "petrol95",
         "diesel"
       ],
-      "tankCapacityL": 50,
-      "packVersion": 1
+      "tankCapacityL": 45,
+      "packVersion": 2
     },
     {
       "make": "Skoda",
@@ -267,7 +267,7 @@
         "lpg"
       ],
       "tankCapacityL": 55,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Skoda",
@@ -282,7 +282,7 @@
         "petrol95"
       ],
       "tankCapacityL": 45,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Skoda",
@@ -297,8 +297,8 @@
         "petrol95",
         "diesel"
       ],
-      "tankCapacityL": 60,
-      "packVersion": 1
+      "tankCapacityL": 58,
+      "packVersion": 2
     },
     {
       "make": "Skoda",
@@ -312,8 +312,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 82,
-      "packVersion": 1
+      "batteryCapacityKWh": 77,
+      "packVersion": 2
     },
     {
       "make": "Volvo",
@@ -329,7 +329,7 @@
         "diesel"
       ],
       "tankCapacityL": 71,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Volvo",
@@ -345,7 +345,7 @@
         "diesel"
       ],
       "tankCapacityL": 71,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Volvo",
@@ -361,7 +361,7 @@
         "diesel"
       ],
       "tankCapacityL": 71,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Volvo",
@@ -375,8 +375,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 69,
-      "packVersion": 1
+      "batteryCapacityKWh": 67,
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -391,7 +391,7 @@
         "petrol95"
       ],
       "tankCapacityL": 55,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -407,7 +407,7 @@
         "lpg"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -422,7 +422,7 @@
         "petrol95"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -436,8 +436,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 65,
-      "packVersion": 1
+      "tankCapacityL": 42,
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -451,8 +451,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 65,
-      "packVersion": 1
+      "tankCapacityL": 58,
+      "packVersion": 2
     },
     {
       "make": "Lada",
@@ -467,7 +467,7 @@
         "petrol95"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Kia",
@@ -482,7 +482,7 @@
         "petrol95"
       ],
       "tankCapacityL": 45,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Kia",
@@ -498,7 +498,7 @@
         "diesel"
       ],
       "tankCapacityL": 50,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Kia",
@@ -513,8 +513,8 @@
         "petrol95",
         "diesel"
       ],
-      "tankCapacityL": 60,
-      "packVersion": 1
+      "tankCapacityL": 54,
+      "packVersion": 2
     },
     {
       "make": "Kia",
@@ -530,7 +530,7 @@
         "diesel"
       ],
       "tankCapacityL": 70,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Kia",
@@ -544,8 +544,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 77.4,
-      "packVersion": 1
+      "batteryCapacityKWh": 74,
+      "packVersion": 2
     },
     {
       "make": "Hyundai",
@@ -559,8 +559,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 43,
-      "packVersion": 1
+      "tankCapacityL": 50,
+      "packVersion": 2
     },
     {
       "make": "Hyundai",
@@ -575,7 +575,7 @@
         "petrol95"
       ],
       "tankCapacityL": 55,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Hyundai",
@@ -590,8 +590,8 @@
         "petrol95",
         "electricity"
       ],
-      "tankCapacityL": 62,
-      "packVersion": 1
+      "tankCapacityL": 52,
+      "packVersion": 2
     },
     {
       "make": "Hyundai",
@@ -605,8 +605,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 50,
-      "packVersion": 1
+      "tankCapacityL": 47,
+      "packVersion": 2
     },
     {
       "make": "Hyundai",
@@ -620,8 +620,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 77.4,
-      "packVersion": 1
+      "batteryCapacityKWh": 74,
+      "packVersion": 2
     },
     {
       "make": "BYD",
@@ -636,7 +636,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 60.48,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "BYD",
@@ -651,7 +651,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 61.4,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "BYD",
@@ -666,7 +666,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 44.9,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "BYD",
@@ -680,8 +680,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 76.9,
-      "packVersion": 1
+      "batteryCapacityKWh": 85.4,
+      "packVersion": 2
     },
     {
       "make": "Ford",
@@ -697,7 +697,7 @@
         "diesel"
       ],
       "tankCapacityL": 55,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Ford",
@@ -713,7 +713,7 @@
         "diesel"
       ],
       "tankCapacityL": 60,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Nissan",
@@ -729,7 +729,7 @@
         "diesel"
       ],
       "tankCapacityL": 60,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Nissan",
@@ -743,8 +743,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 40,
-      "packVersion": 1
+      "batteryCapacityKWh": 39,
+      "packVersion": 2
     },
     {
       "make": "Mitsubishi",
@@ -759,7 +759,7 @@
         "petrol95"
       ],
       "tankCapacityL": 60,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Mazda",
@@ -775,7 +775,7 @@
         "diesel"
       ],
       "tankCapacityL": 58,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "BMW",
@@ -791,7 +791,7 @@
         "diesel"
       ],
       "tankCapacityL": 59,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "BMW",
@@ -807,7 +807,7 @@
         "diesel"
       ],
       "tankCapacityL": 80,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Mercedes",
@@ -823,7 +823,7 @@
         "diesel"
       ],
       "tankCapacityL": 66,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Mercedes",
@@ -839,7 +839,7 @@
         "diesel"
       ],
       "tankCapacityL": 66,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Audi",
@@ -855,7 +855,7 @@
         "diesel"
       ],
       "tankCapacityL": 58,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Audi",
@@ -871,7 +871,7 @@
         "diesel"
       ],
       "tankCapacityL": 63,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "UAZ",
@@ -885,8 +885,8 @@
       "fuelKinds": [
         "petrol95"
       ],
-      "tankCapacityL": 72,
-      "packVersion": 1
+      "tankCapacityL": 68,
+      "packVersion": 2
     },
     {
       "make": "Tesla",
@@ -901,7 +901,7 @@
         "electricity"
       ],
       "batteryCapacityKWh": 60,
-      "packVersion": 1
+      "packVersion": 2
     },
     {
       "make": "Tesla",
@@ -915,8 +915,8 @@
       "fuelKinds": [
         "electricity"
       ],
-      "batteryCapacityKWh": 57.5,
-      "packVersion": 1
+      "batteryCapacityKWh": 60,
+      "packVersion": 2
     }
   ]
 }
