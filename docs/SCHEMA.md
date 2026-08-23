@@ -1,0 +1,397 @@
+# Tankbook – Data Schema
+
+*The single source of truth for entities, fields, invariants, and derived math. Companion to `VISION.md` (product), `JOURNEYS.md` (flows and failure states), `SYNC.md` (multi-device), and the consumption walkthrough (four-drivers simulation). Types are written in Swift-ish notation; the same shapes serialize to the backup format and to sync record payloads. Naming here is canonical across Swift, C#, SQL, and analytics – no synonyms.*
+
+## Principles
+
+1. **Local-first.** The on-device database is authoritative and fully functional with no account. Signing in turns on multi-device sync through our backend (see `SYNC.md`); the server stores the account's record stream but no feature requires it to be reachable.
+2. **Store facts, derive conclusions.** Segments, averages, trends, and anomaly flags are never persisted – they recompute from entries. Editing one entry can change two segments; storing them would mean cache invalidation bugs forever.
+3. **Money is always a pair.** Every amount stores the original currency *and* the conversion into the vehicle's home currency with the rate and its date. Conversions are snapshots – history never shifts when rates move.
+4. **Provenance travels with data.** Every entry knows how it was created (scan/QR/manual/import) and every OCR-extracted field keeps its source-image crop and confidence – that's what powers tap-to-verify (F2) and trust UX.
+5. **Soft delete everywhere.** Entities carry tombstones (`deletedAt`) so sync and backup restore can merge deletions; hard purge happens on a schedule, locally.
+
+## Identifiers & sync envelope
+
+Every persisted entity shares:
+
+```swift
+id: UUID            // v7 (time-ordered) – generated on device, stable across sync/backup
+createdAt: Date     // device clock at creation
+updatedAt: Date     // bumped on every edit; = clientUpdatedAt in the sync LWW merge (SYNC.md)
+deletedAt: Date?    // tombstone; nil = live
+```
+
+Author attribution for shared garages (v2) comes from the sync record's `origin_device`/account, not domain fields.
+
+## Entities
+
+### Vehicle
+
+```swift
+Vehicle {
+  id, createdAt, updatedAt, deletedAt
+  name: String                  // "Volvo V60" – user-facing, free text
+  make: String?; model: String?; year: Int?
+  plate: String?
+  powertrain: .ice | .ev | .hybrid | .phev
+  fuelKinds: [FuelKind]         // what this car accepts: [.diesel], [.petrol95, .lpg], [.electricity]…
+  tankCapacityL: Double?        // enables tank-level math and "liters to full"
+  batteryCapacityKWh: Double?   // EV/PHEV: enables %→kWh estimates
+  homeCurrency: CurrencyCode    // reporting currency for ALL stats of this vehicle
+  units: { distance: .km|.mi, volume: .l|.galUS|.galUK, consumption: .lPer100|.mpgUS|.mpgUK|.kmPerL, energy: .kWhPer100|.miPerKWh }
+  photo: AttachmentID?
+  archived: Bool                // sold cars: history retained, out of active stats (J13)
+  paceLimitKmPerDay: Double = 1500   // plausibility bound for timeline validation (F9a)
+}
+```
+
+### Entry (common envelope)
+
+`FillUp`, `ChargeSession`, `ServiceRecord`, and `Expense` are distinct types sharing this envelope. The Log renders their union ordered by `date`.
+
+```swift
+EntryCommon {
+  id, createdAt, updatedAt, deletedAt
+  vehicleId: UUID
+  date: Date                    // when it happened (not when logged)
+  odometer: Int?                // in vehicle's distance unit; REQUIRED on FillUp, optional elsewhere
+  money: Money?                 // see below; nil for free events (home charge logged by kWh only gets computed cost)
+  note: String?
+  attachments: [AttachmentID]
+  provenance: .receiptScan | .pumpPhoto | .fiscalQR | .screenshot | .manual | .import(source: String)
+  conflict: ConflictState       // see Validation
+  purchaseGroupId: UUID?        // entries born from ONE receipt (fuel + car wash + coffee) share this;
+                                // they share attachments, sum to ≤ the receipt's grand total, and the
+                                // Log can render them as one visual group. Nil for standalone entries.
+}
+
+Money {
+  amount: Decimal; currency: CurrencyCode          // as paid: 289.50 PLN
+  homeAmount: Decimal?; homeCurrency: CurrencyCode // converted: 67.80 EUR (vehicle.homeCurrency at save time)
+  rate: Decimal?; rateDate: Date?                  // the snapshot; nil rate = ratePending (F3/F9)
+  rateSource: .ecb | .cis | .manual = .ecb         // manual = user typed/edited the rate on the entry
+}
+
+// Conversion semantics (normative):
+//   rate is ORIGINAL per HOME: homeAmount = amount / rate     (289.50 / 4.2706 = 67.80)
+//   rateDate = entry.date (the day it happened), NEVER "today" – a wrong-date rate is worse than none (F9).
+//   homeAmount is a SNAPSHOT: written once when the rate is known, immutable afterwards; later feed
+//   updates never touch it. If currency == homeCurrency, homeAmount = amount, rate = 1, rateSource = .ecb.
+//   Backfill rule (rate arrives later, incl. via sync on another device): fill ONLY if homeAmount is nil;
+//   never recompute an existing snapshot. Editing `amount` or `currency` clears the snapshot for re-conversion;
+//   changing vehicle.homeCurrency re-converts NOTHING retroactively – old entries keep their snapshot, and
+//   stats mixing home currencies render per-currency subtotals (rare, surfaced honestly).
+```
+
+### FillUp
+
+```swift
+FillUp: EntryCommon {
+  volumeL: Double               // always stored in liters; displayed in vehicle unit
+  unitPrice: Decimal?           // per liter, original currency
+  fuelKind: FuelKind            // .diesel, .petrol95, .petrol98, .lpg, .cng, .e85…
+  fuelGrade: String?            // marketing tier: "V-Power", "Ultimate", "Standard"
+  isFull: Bool                  // closes a consumption segment
+  tankLevelAfterPct: Double?    // 0–100; 100 ⇒ isFull. The mature partial-fill answer (My Fuel Manager pattern)
+  stationId: UUID?
+  crossCheck: .verified | .mismatch(field: FieldRef) | .notApplicable
+                                // volumeL × unitPrice ≈ money.amount, tolerance max(0.02, 0.5%)
+  extraction: ExtractionMeta?   // OCR provenance, see Attachment
+}
+```
+
+`unitPrice` is stored, not derived: receipts print all three numbers and the redundancy IS the confidence signal. When the user types only two, the third derives on save and `crossCheck = .notApplicable`.
+
+### ChargeSession
+
+```swift
+ChargeSession: EntryCommon {
+  energyKWh: Double
+  unitPrice: Decimal?           // per kWh
+  chargeType: .acHome | .acPublic | .dcPublic
+  provider: String?             // "Ionity"; free text with favorites-style suggestions
+  tariffId: UUID?               // home sessions: cost computed = energyKWh × tariff price if money is nil
+  durationMin: Int?
+  socStartPct: Double?; socEndPct: Double?   // enables %→kWh estimate via batteryCapacityKWh
+  extraction: ExtractionMeta?
+}
+
+Tariff {
+  id, createdAt, updatedAt, deletedAt
+  vehicleId: UUID?              // nil = household-wide
+  name: String                  // "Home night rate"
+  pricePerKWh: Decimal; currency: CurrencyCode
+  validFrom: Date               // price changes create a new Tariff row; sessions keep their snapshot via Money
+}
+```
+
+### ServiceRecord & Expense
+
+```swift
+ServiceRecord: EntryCommon {    // work DONE to the car: annual service, repairs, tire swap, filters
+  // date + odometer come from the envelope and are both stored on every service entry:
+  // date defaults to today (or the invoice's extractedTimestamp), odometer pre-fills from the
+  // vehicle's last known value and is REQUIRED whenever any item carries a km lifetime or the
+  // record mounts a tire set – km-based reminders and tire mileage anchor on it (J7c).
+  vendor: String?               // "Bosch Service"; nil = DIY
+  items: [ServiceItem]          // invoice line items, OCR-split (J7); manual fallback = typed rows
+  usedParts: [UUID]             // Expense(.parts) entries installed in this service – links, not costs
+  tireSetId: UUID?              // which TireSet went ON, when this includes a tire swap
+  proposedReminderId: UUID?     // the reminder the app suggested and user accepted
+}
+ServiceItem {
+  title: String; category: ServiceCategory; cost: Money?
+  partNumber: String?           // "MANN W 712/75" – enables reorder and lifetime tracking
+  lifetime: { km: Int?, months: Int? }?   // set → the record proposes the next reminder itself
+}
+ServiceCategory: .oil | .brakes | .tires | .battery | .filters | .inspection | .repair | .parts | .wash | .other(String)
+
+Expense: EntryCommon {          // money NOT tied to work: insurance, tax, parking, tolls, fines, accessories –
+                                // and PARTS bought standalone (online order, shelf stock)
+  category: .insurance | .tax | .parking | .toll | .fine | .accessory | .parts | .other(String)
+  title: String
+  recurrence: RecurrenceRule?   // yearly insurance auto-suggests next entry + reminder
+  installedInServiceId: UUID?   // .parts only: set when a later ServiceRecord installs it.
+                                // Cost counts ONCE (here, at purchase); the service links it via usedParts
+                                // instead of re-pricing it – no double counting in cost/km.
+}
+
+TireSet {                       // v1.x – seasonal sets with their own mileage
+  id, createdAt, updatedAt, deletedAt
+  vehicleId: UUID
+  name: String                  // "Winter Nokian", "Summer Michelin"
+  purchaseExpenseId: UUID?      // the Expense(.parts) that bought them
+  // km on this set is DERIVED: sum of odometer spans between ServiceRecords that mounted/unmounted it
+  // (tireSetId marks mounting; the next tire-swap record ends the span). Never stored – same rule as segments.
+}
+```
+
+### Reminder
+
+```swift
+Reminder {
+  id, createdAt, updatedAt, deletedAt
+  vehicleId: UUID
+  title: String
+  category: ServiceCategory | .insurance | .inspection | .custom
+  dueDate: Date?                // either or both; both = whichever-first (Reminders screen rule)
+  dueOdometer: Int?
+  recurrence: { everyKm: Int?, everyMonths: Int? }?   // on completion, next occurrence self-schedules
+  sourceEntryId: UUID?          // the service record that spawned it
+  status: .scheduled | .attention | .done(entryId: UUID?) | .dismissed(reason: String?)
+  // .attention is derived at read time from thresholds, but the *transition* is stored so
+  // notifications fire once, not on every recompute
+}
+
+// Reminder lifecycle (normative):
+//   COMPLETE   → prompt "log the cost?": creates a pre-filled ServiceRecord/Expense (category, title,
+//                current odometer) → status = .done(entryId). Declining is fine: .done(nil) – completion
+//                never forces bookkeeping. If recurrence is set, the NEXT occurrence is created as a NEW
+//                Reminder row, anchored at the COMPLETION date/odometer (not the original due – no drift),
+//                linked via sourceEntryId. Old rows stay as history ("oil changed 3× on time").
+//   RESCHEDULE → edits dueDate/dueOdometer in place; a fired .attention resets so it can notify again.
+//   DELETE     → tombstone (syncs like everything). Distinct from .dismissed, which keeps the row
+//                with a reason and feeds anomaly/insight logic ("dismissed: sold the tires").
+```
+
+### Attachment & extraction provenance
+
+```swift
+Attachment {
+  id, createdAt, updatedAt, deletedAt
+  kind: .photo | .pdf
+  file: LocalFileRef            // synced as content-addressed blob (sha256 – SYNC.md); backup same
+  extractedTimestamp: Date?     // printed date on receipt / QR timestamp – anchors date-side validation (F9a)
+  ocrText: String?              // full recognized text, retained for re-parsing after parser upgrades
+}
+
+ExtractionMeta {                // embedded in FillUp/ChargeSession
+  fields: [FieldRef: FieldExtraction]
+  pipeline: String              // "vision+rules v3", "fiscal-qr", "cloud-fallback v1" – regression tracking
+}
+FieldExtraction {
+  cropRect: CGRect?             // normalized region in the attachment image – powers tap-to-verify (F2)
+  confidence: Double            // 0–1; UI dims below threshold
+  userCorrected: Bool           // corrected fields become OCR training signals (opt-in)
+}
+FieldRef: .total | .volume | .unitPrice | .date | .station | .fuelKind | .energy | .currency | .vendor | .lineItem(Int)
+// .currency: detected from the receipt's symbol/code ("PLN", "zł") – shown as a chip on the confirm
+// screen with its own confidence; a low-confidence currency NEVER silently converts (ask, don't guess).
+```
+
+### Preferences (app-level settings)
+
+Split by a simple rule: **what describes the person syncs; what describes the device stays local.**
+
+```swift
+// SYNCED – one singleton record per account (well-known id "preferences";
+// entityType "preferences"; record-level LWW is fine for a settings blob):
+Preferences {
+  id (fixed), createdAt, updatedAt, deletedAt
+  notifications: { reminders: Bool = true, anomalies: Bool = true, monthlySummary: Bool = false }
+                                // content categories – what may notify at all (J9: never alarm-style)
+  eagerMediaOnWiFi: Bool = false  // download full attachment renditions ahead of tap (SYNC blob pipeline)
+  defaultVehicleId: UUID?       // the garage card shown on launch; capture logs here
+  proFeedbackDiagnostics: Bool = false   // the About-screen toggle: attach appVersion/deviceModel to feedback
+}
+
+// DEVICE-LOCAL – UserDefaults/AppStorage, never synced, never in backups:
+//   appearance (.system|.dark|.light)  – people legitimately run dark phone / light iPad
+//   language override                  – follows each device's locale by default
+//   capture conveniences               – torch preference, last capture mode
+//   last-viewed tab, collapsed sections, draft states
+//   sync cursor & auth tokens          – infrastructure, not preferences (tokens in Keychain)
+```
+
+The Settings screen renders both kinds in one list; the split is invisible to the user and only matters for sync semantics. Vehicle-level settings (currency, units, tank size) stay on `Vehicle` – reiterated because it's the IA rule too (DESIGN.md).
+
+### Station
+
+```swift
+Station {
+  id, createdAt, updatedAt, deletedAt
+  name: String; brand: String?
+  location: CLLocationCoordinate2D?
+  favorite: Bool
+  defaults: { fuelKind: FuelKind?, fuelGrade: String? }   // pre-fill on next visit (smart defaults)
+  lastUsedAt: Date?
+}
+```
+
+### ExchangeRate (local cache, deliberately NOT synced)
+
+```swift
+ExchangeRate { base: CurrencyCode; quote: CurrencyCode; date: Date; rate: Decimal; source: .ecb | .cis }
+```
+
+Devices fill this cache from the backend's public `/rates` endpoint (see Reference data below), keep ~2 years rolling, and ship with a seed pack so day-one offline use works; misses queue entries as rate-pending (F9 in JOURNEYS). The cache never syncs – what travels between devices is the `Money` snapshot inside entries, so conversions stay consistent account-wide once written (backfill rule above; sync scenario S8 in `SYNC.md`).
+
+## Validation (runs on every write)
+
+```
+INVARIANT  For a vehicle's entries with odometer set, sorted by date: odometer strictly increases.
+CHECK 1    Order: odometer fits between date-neighbors. Violation → discrepancy UI.
+CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
+CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
+           MIXED RECEIPTS: the fill-up's amount is the FUEL LINE, never the receipt's grand total.
+           Detection is the cross-check itself: when volume × unitPrice matches a line item but not
+           the grand total, the receipt is mixed – the remainder lines are offered as separate
+           Expenses sharing purchaseGroupId and the attachment. Non-car lines (coffee) are simply
+           not logged; the full receipt stays readable in the attachment.
+PRIORITY   If an attachment has extractedTimestamp (receipt/QR), its date is ground truth:
+           "fix odometer" is the preselected resolution; overriding the date needs explicit confirmation.
+```
+
+```swift
+ConflictState = .none | .flagged(kind: .order | .pace, detectedAt: Date)
+```
+
+A user may always save with `.flagged`: the entry shows the amber badge, and **any segment touching it is excluded from consumption math** (Trends footnotes the exclusion count). Resolution clears the flag via the edit screen.
+
+## Derived: consumption
+
+Never stored. Recomputed for a vehicle whenever any FillUp in range changes.
+
+```
+SEGMENT    Between consecutive isFull fill-ups (conflict-free, same fuelKind family):
+             km     = odo(close) − odo(open)
+             liters = Σ volume of every fill after open, up to and including close
+             per100 = liters / km × 100
+TANK-LEVEL (v1.x refinement) tankLevelAfterPct + tankCapacityL lets a segment close on a
+           non-full fill: liters_adjusted = Σ volume + (levelOpen − levelClose)/100 × capacity.
+           Gated on tankCapacityL being set; falls back to full-to-full otherwise.
+HEADLINE   headline(segments, window = 90 days, floor = 3):
+             take segments closing within `window` of today
+             if count < floor: take the `floor` most recent segments overall (window extends)
+             value = Σ liters / Σ km × 100        // distance-weighted, not mean of per100s
+             label = honest span: "last 3 months" / "last 5 months" / "first estimate · N fill cycles"
+LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
+ANOMALY    rolling vs trailing-12-month baseline; fires ≥ +10–12% sustained (thresholds tunable,
+           seasonality-aware; dismissible with reason – J9).
+EV         same structure: segments between charges with known SoC, or simple kWh/100km over
+           sessions when odometer deltas exist; €/100km = window cost / window km (the household
+           comparison needs nothing extra).
+COST/KM    all-in: Σ homeAmount of ALL entry types in window / km in window.
+```
+
+### Recalculation on edit (normative)
+
+Any change to any FillUp of a vehicle (create, edit, delete, restore, sync-merge) triggers a **full recompute of that vehicle's segment list** – no surgical invalidation. Rationale: it's a linear pass (sub-ms at realistic history sizes) and immune to the non-local effects edits have – toggling `isFull` splits or merges segments, a date edit can move a fill into a different segment, an odometer edit changes two segments (a full fill is a boundary). Correct-by-construction beats clever caching here.
+
+- Derived values live in memory only; recompute runs synchronously on save and after every sync merge batch.
+- UI reacts immediately: the Home headline digit-rolls if it changed; the edit screen confirms with the delta ("Consumption updated: 6.9 → 6.8 L/100km").
+- **No re-firing of past events:** anomaly `.attention` transitions and reminder threshold notifications never fire from historical edits – state re-evaluates silently.
+- Sync convergence is free: stats are a deterministic pure function of the entry list, so every device recomputes to identical values; no derived data ever syncs.
+
+Reference implementation and test vectors: the four-drivers simulation (`Spike/` + walkthrough artifact). D1–D4 outputs are the golden values for unit tests. Add edit-cases to the golden set: volume edit shifting the headline, `isFull` toggle splitting/merging segments, date edit re-ordering a fill into another segment.
+
+## Backup format (portable, versioned)
+
+One archive; inner structure:
+
+```
+manifest.json   { schemaVersion: 1, exportedAt, appVersion, vehicleCount, entryCount }   // always readable (restore UI)
+data.json       { vehicles: [...], entries: [...], reminders: [...], stations: [...], tariffs: [...] }
+                // exact shapes above, tombstones included; enums as strings; dates ISO-8601 UTC
+attachments/    content-addressed blobs (sha256 filename) referenced by Attachment.file
+```
+
+Rules: additive schema evolution only (new optional fields); a `schemaVersion` bump requires a migrator both on iOS and (later) Android; the same format serves user-held export, backend backup snapshots, and the future Android bridge. Protection (per the signed-off stance in `SYNC.md`): server-side snapshots live under the backend's at-rest encryption; a user-held export can optionally be passphrase-protected (AES) at export time – no user-held key is ever *required*.
+
+## Backend (C# / PostgreSQL) – the sync hub
+
+The backend stores the account's data as an ordered stream of opaque *records* (entity payloads in the exact shapes above) and synchronizes them across the account's devices. It never interprets domain content – the domain schema evolves without server deployments. Full protocol, server tables (`accounts`, `devices`, `records`, `blobs`, `llm_usage`), merge rules, and offline behavior: **`SYNC.md`**. Backups and the F7 restore path are snapshots of the record stream in the backup format below – not a separate pipeline.
+
+## Reference data (backend-served, read-only, public)
+
+Two datasets the backend curates and every client consumes. Both are **unauthenticated, aggressively cacheable** (CDN-able, ETag) – they must work for no-account users and add zero coupling to the sync stream.
+
+### Exchange rates
+
+```sql
+exchange_rates (date date, base char(3), quote char(3), rate numeric(18,8), source text,
+                fetched_at timestamptz, primary key (date, base, quote))
+```
+
+- **Updated by** a daily background job (ASP.NET hosted service, ~17:00 CET after ECB publishes): ECB reference rates for the majors, plus a CIS source (CBR/NBK or a commercial feed) for RUB/KZT/AMD/GEL/BYN – the gap ECB left. Weekends/holidays carry the last published rate forward, stored per-date so `rateDate` lookups are exact. Manual correction path for a bad feed day (soft-delete + re-fetch); rows are append-only otherwise – snapshots in entries mean a correction never rewrites user history.
+- **Served as** `GET /rates?date=2026-08-21&base=EUR` → all quotes for that date (one small JSON, cache-forever for past dates), and `GET /rates/pack?from=&to=` → a bulk range for the device's rolling cache and the app-bundle seed pack.
+- **Fallback:** the client can hit ECB's public feed directly if our backend is down (majors only); CIS currencies wait for the backend – queued as rate-pending either way, so nothing blocks.
+
+### Feedback intake
+
+`POST /feedback { category: feature|problem|other, text, appVersion, deviceModel?, replyTo? }` – the About screen's form. Unauthenticated allowed (no-account users can complain too); account id attached when signed in; `deviceModel`/`appVersion` only with the user's toggle on, never log content. Stored in a plain `feedback` table (id, account_id null, category, text, meta jsonb, created_at); rate-limited per device. This is the roadmap's input channel – counts of "model not found" catalog misses land here too.
+
+### Vehicle catalog
+
+Base dictionary of makes/models with the parameters that matter to us – exactly the fields the Add-car screen wants pre-filled:
+
+```sql
+vehicle_catalog (id uuid pk, make text, model text, generation text, years int4range,
+                 powertrain text, fuel_kinds text[], tank_capacity_l numeric,
+                 battery_capacity_kwh numeric, pack_version int)
+```
+
+- **Why it matters:** typing "Volvo V60" pre-fills tank capacity 71 L (→ partial-fill math + OCR volume sanity check), battery size, fuel kinds (→ parser vocabulary) – the "Improves accuracy" section fills itself. Catalog values are *suggestions* written into the Vehicle row; the user can always override, and no Vehicle ever references the catalog by id (decoupled – a catalog correction never mutates user garages).
+- **Scope discipline:** base list only – top ~500 models covering the EU + CIS fleet majority (VW/Toyota/Renault/Skoda/Volvo/Lada/Kia/Hyundai/BYD…), curated from open datasets, extended by demand ("model not found" search misses are the roadmap, logged as counts only). Not a VIN decoder, not a spec encyclopedia.
+- **Served as** versioned packs: `GET /catalog?since_version=12` → delta or full pack (a few hundred KB JSON), cached on device, seed pack in the app bundle so Add-car autocomplete works on day one offline. The `pack_version` bumps on curation; clients check occasionally, never at launch-blocking time.
+
+## Import mapping (launch importers)
+
+| Source | Format | Notable mappings |
+|---|---|---|
+| My Fuel Manager | CSV/backup (schema TBD from real export) | `Runned` → derived check only; `Tank status after fillup` → `tankLevelAfterPct`; `Tank filled/Free` → capacity inference; `Fuel quality` → `fuelGrade` |
+| Fuelio | CSV | fill-ups, costs, vehicles; units per file header |
+| Drivvo | CSV | expenses + income (income → skip in v1, warn) |
+| Fuelly / aCar | CSV/XML | service logs map to ServiceRecord with single item |
+| Spritmonitor | CSV | bi-fuel rows → separate FillUps by fuelKind |
+| CarScope | CSV | closest schema to ours |
+
+Import rules (F6): ambiguity (units/currency) asks once per file; unparseable rows import partially with a review list; `provenance = .import(source)` on every row; conflicts flagged, not dropped.
+
+## Open questions
+
+None. All decided:
+
+1. **Persistence layer** — decided (Aug 23, 2026): **GRDB**. Full SQL and explicit migrations for the sync client's `syncState`/SCN bookkeeping and the segment-recompute queries; GRDB's observation drives SwiftUI. SwiftData rejected: CloudKit-oriented sync hooks (we run our own engine), young, weaker background-access control.
+2. ~~Blob placement~~ — decided: S3-compatible object storage with presigned URLs (`SYNC.md`, blob pipeline).
+3. ~~Attachment sync size policy~~ — decided: sync rendition ≤ 2048 px JPEG (~200–600 KB) + inline ~5 KB thumbnail in the record payload; full-res original stays on the capturing device. PDFs pass through, 10 MB cap (`SYNC.md`).

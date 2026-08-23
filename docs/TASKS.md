@@ -1,0 +1,98 @@
+# Tankbook – Task Backlog
+
+*`PHASES.md` broken into agent-sized tasks. Each task names its deliverable and the **checks that make it done** – a task without its checks green is not done, and checks land in the same PR as the code (TESTING.md levels: L1 unit · L2 contract · L3 sync-scenario · L4 UI/snapshot · L5 accuracy · M manual). Task IDs are stable – reference them in branches/PRs (`p0-4-grdb-migrations`).*
+
+## P0 · Foundations
+
+| ID | Task | Checks (done when…) |
+|---|---|---|
+| P0.1 | iOS project scaffold: app + unit-test + UI-test targets, SwiftLint, CI workflow | CI builds a clean checkout; lint green; one placeholder test runs in CI |
+| P0.2 | Design tokens: `design/tokens.json` extracted from DESIGN.md → generated `Theme.swift` (script, not hand-copy) | L1: generated values equal tokens.json; custom lint rule fails any literal hex in UI code |
+| P0.3 | String Catalogs EN/RU + pseudo-localization CI step | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
+| P0.4 | GRDB setup + migrations for the full SCHEMA.md model (all entities, envelope, tombstones) | L1: migrate-from-empty and migrate-from-seeded round-trips; CRUD per entity; soft-delete filtering |
+| P0.5 | Domain types: `Money`, enums, `ConflictState`, IDs (UUIDv7) | L1: Money semantics suite (rate direction, snapshot immutability, backfill fill-blanks, edit clears) |
+| P0.6 | Consumption engine (segments, headline, lifetime, cost/km, EV) | L1: D1–D4 golden vectors verbatim + edit-cases (volume edit, isFull split/merge, date reorder) + distance-weighting check |
+| P0.7 | Timeline validation engine (order, pace, receipt-date priority) | L1: full check-matrix incl. save-anyway flagging and segment exclusion |
+| P0.8 | Backend solution scaffold: ASP.NET Core, health endpoint, local Postgres+MinIO scripts, CI | CI: build + test green from clean checkout; L2 smoke test hits /health via Testcontainers |
+| P0.9 | Server migrations: accounts, devices, records, account_seq, blobs, llm_usage, exchange_rates, vehicle_catalog, feedback | L2: apply+rollback; constraint tests (uniques, per-account SCN monotonicity under concurrent tx) |
+
+## P1 · Local core loop
+
+| ID | Task | Checks |
+|---|---|---|
+| P1.1 | App shell: tab roots, navigation stacks, sheet infrastructure per SCREENMAP conventions | L4: XCUITest walks every SCREENMAP edge that exists so far; back-path audit (no dead ends) |
+| P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
+| P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
+| P1.4 | Home: garage card, vitals, guest/empty/first-estimate states | L4: snapshots ×(guest, 1-fill, full) ×(dark, light) ×(EN, RU); "no N/A tiles" assertion |
+| P1.5 | Log stream: entry cards, month dividers, purchase-group rendering | L4: snapshot; L1: ordering (date) and group collapse |
+| P1.6 | Edit entry + full-vehicle recompute + delta toast | L1-through-UI: edit-case goldens via the real store; toast shows old→new |
+| P1.7 | Recently deleted + sync-overwritten section + 30-day purge | L1: tombstone restore returns entry to stats; purge job honors grace; L4: snapshot |
+| P1.8 | Duplicate detection (S2 heuristic) + conflict badges (F9a UI) | L1: heuristic boundary cases; single-count-until-resolved invariant; L4: badge + combined card snapshots |
+| P1.9 | Tank-level sheet + segment adjustment math | L1: tank-level suite (incl. no-capacity fallback); L4: snapshot with/without capacity |
+| P1.10 | Trends tile grid + honest labels + excluded-entry footnote | L1: window/floor/label logic; L4: snapshots incl. "first estimate" and extended-window states |
+| P1.11 | Car switcher + multi-vehicle state | L1: capture-logs-to-selected-car invariant; switch persistence; L4: sheet snapshot incl. archived row |
+
+## P2 · Capture
+
+| ID | Task | Checks |
+|---|---|---|
+| P2.1 | Capture camera screen: modes, auto-detect surface, permission fallback | L4: F8 denied-permission flow (manual form + deep link); mode row snapshot; "Type it" path |
+| P2.2 | Port Spike parser into the app module; fixture corpus in CI with ratchet | L5: existing suite green; high-water mark recorded; every future fix adds its fixture |
+| P2.3 | Confirm sheet: pre-fill, confidence dimming, tap-to-verify crops, cross-check lock animation | L1: gating thresholds; L4: verified/mismatch/dimmed snapshots; reduced-motion variant |
+| P2.4 | Mixed-receipt detection + "Also on this receipt" UI + grouped save | L5: fuel-line isolation ≥95% on mixed corpus; L1: FillUp+Expense share purchaseGroupId, sums ≤ grand total |
+| P2.5 | Foreign currency: detection chip, conversion card, rate cache + seed pack | L1: pending-rate save; L4: ConfirmForeign snapshot; never-silently-convert on low confidence |
+| P2.6 | Fiscal QR: payload parser + instant fill + background enrichment | L1: FNS fixtures incl. malformed/truncated; enrichment fill-blanks-only; L4: F5 degraded state |
+| P2.7 | Pump-photo mode (feature-flagged) | L5: pump corpus ≥95% flips the flag – the gate IS the check |
+| P2.8 | Foundation Models normalization layer (iOS 26+ gated) | L5: A/B eval vs rules-only on the corpus – ships only if it strictly improves; graceful absence below iOS 26 |
+
+## P3 · Service, expenses, reminders
+
+| ID | Task | Checks |
+|---|---|---|
+| P3.1 | ServiceEntry: invoice multi-page scan, line split, date+odometer card, lump-sum fallback | L4: snapshots incl. fallback; L1: odometer-required-when-km-lifetime rule |
+| P3.2 | Expenses + parts shelf + install linking | L1: **double-count property test** (cost/km identical with/without link); shelf suggestion matching |
+| P3.3 | Tire sets + derived mileage | L1: span math across mount/unmount records; "–" when unknowable |
+| P3.4 | Reminders screen + reminder form + status logic | L1: full state-machine transition table (schedule/attention/done/dismissed × complete/reschedule/delete); L4: snapshots |
+| P3.5 | ReminderComplete sheet → pre-filled entry → next cycle | L3-style integration: complete→entry→new-row-anchored-at-completion chain; decline-cost path |
+| P3.6 | Local notifications: arming at write time, humane scheduling, cancellation on status change | L1: threshold-crossing arms; resolution cancels; 09:00/10:00 rule; one-overdue-follow-up cap |
+
+## P4 · Account, sync, blobs
+
+| ID | Task | Checks |
+|---|---|---|
+| P4.1 | Auth endpoints: session exchange, refresh rotation | L2: test-signer tokens, garbage/expired, concurrent-first-sign-in creates exactly one account, **reuse-revokes-chain** |
+| P4.2 | Sync push/pull + SCN allocation | L2: ordering, pagination under concurrent writes, idempotent replay, per-item conflict, 410 |
+| P4.3 | Blob endpoints + S3 storage + quotas + orphan sweep | L2: dedupe, 25/10 MB caps, 429 quota, commit-verifies, presign expiry, **cross-account 404** |
+| P4.4 | iOS: Sign in + Restoring screens, Keychain session, J11a detection | L4: wrong-provider empty-account flow; provider-notice snapshot; sign-out escape; L1: token storage |
+| P4.5 | iOS sync client: dirty queue, pull/merge/push loop, domain revalidation after merge | **L3: the S1–S8 simulator suite, one deterministic test per scenario** |
+| P4.6 | Attachment sync: rendition generation, inline thumbnails, lazy/eager download | L1: ≤2048px/size caps, sha verify-on-download; L4: "photo syncing" shimmer state |
+| P4.7 | Restore end-to-end | L3: pull-from-zero hash-equals origin; interrupted-restore resume; F7 server-down state |
+| P4.8 | Silent APNs nudges + server throttle | L2: throttle window; token invalidation → poll fallback; M: background pull observed on device |
+| P4.9 | Settings account states, device management, account deletion | L2: purge-after-grace job; 410 propagation; L4: all Settings states (guest/synced/pending/revoked/quota) |
+
+## P5 · Currency, localization, importers
+
+| ID | Task | Checks |
+|---|---|---|
+| P5.1 | Rates service + daily fetch job (ECB + CIS) + endpoints | L2: weekend/holiday carry-forward fixtures; append-only; immutable caching headers |
+| P5.2 | Money end-to-end in app incl. manual rate + S8 backfill | L1: full J10/S8 suite; L4: rate-pending → filled transition |
+| P5.3 | RU localization pass | Pseudo-loc green; L1: plural rules (1 литр/2 литра/5 литров); M: native review + no clipped numerals on device |
+| P5.4 | Importers ×6 (Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope, My Fuel Manager) | L1: round-trip per format + known-value assertions; **the real MFM export as fixture reproduces 8.222 L/100km**; F6 partial-import review flow |
+| P5.5 | Backup export/import UI + versioned format | L1: round-trip incl. attachments + tombstones; v1→v2 migrator fixture; optional passphrase path |
+
+## P6 · Polish & ship
+
+| ID | Task | Checks |
+|---|---|---|
+| P6.1 | Anomaly engine + insight cards + dismiss-with-reason | L1: seasonality fixtures (winter never false-fires); dismissal suppression; L4: card snapshot |
+| P6.2 | Monthly summary (opt-in) | L1: schedule + content correctness; L4: notification copy snapshot |
+| P6.3 | LLM gateway client + Pro tier + paywall + quota UX | L2: 402/429 paths; L4: F4 degraded states; **UI assertion: no paywall reachable from any capture flow** |
+| P6.4 | Remaining six screens (Garage root, Vehicle detail, Import wizard, Reminder form, Account & devices, Paywall) | L4: snapshots dark+light EN+RU; SCREENMAP updated and the no-dead-ends walk extended |
+| P6.5 | Accessibility audit | Automated: contrast, VoiceOver labels (metric+unit+trend), Dynamic Type XL snapshots; M: VoiceOver walkthrough of J3 |
+| P6.6 | Store assets EN/RU, privacy labels, TestFlight ring | M: release checklist; **ERRORS.md coverage walk** – every catalogued state reachable and correct |
+
+## Working rules
+
+- One task = one PR = code + its checks; the PR description quotes the task ID and its check list, ticked.
+- A task discovering an undocumented behavior extends the owning doc in the same PR (CLAUDE.md rule).
+- Snapshot baselines are reviewed like code; accuracy high-water marks only ratchet up.

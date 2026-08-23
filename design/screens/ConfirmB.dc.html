@@ -1,0 +1,78 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+    a { color: #4FC3E8; } a:hover { color: #7ED4EF; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #0B0D11; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 64px 20px 8px;">
+    <div style="width: 34px; height: 34px; border-radius: 50%; background: #1A1F27; display: flex; align-items: center; justify-content: center;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="#EAEDF2" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div style="font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #98A2B3;">Shell · Aug 17 · 21:47</div>
+    <div style="width: 44px; height: 58px; border-radius: 6px; background: #E9E6DC; border: 2px solid #2A3140; display: flex; flex-direction: column; gap: 3px; padding: 6px 5px;">
+      <div style="height: 2px; background: #8A8574;"></div>
+      <div style="height: 2px; background: #B8B3A2;"></div>
+      <div style="height: 2px; background: #B8B3A2;"></div>
+      <div style="height: 2px; background: #8A8574; width: 70%;"></div>
+    </div>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0 26px; gap: 4px;">
+    <div style="border-bottom: 1px solid #1C222C; padding: 18px 0;">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #98A2B3;">Total</div>
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px;">
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 74%; font-weight: 800; font-size: 72px; line-height: 1; color: #F4503A; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">71.02</span>
+        <span style="font-size: 20px; font-weight: 600; color: #98A2B3;">€</span>
+      </div>
+    </div>
+    <div style="border-bottom: 1px solid #1C222C; padding: 18px 0;">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #98A2B3;">Liters</div>
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px;">
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 74%; font-weight: 800; font-size: 72px; line-height: 1; color: #F4503A; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">42.30</span>
+        <span style="font-size: 20px; font-weight: 600; color: #98A2B3;">L</span>
+      </div>
+    </div>
+    <div style="padding: 18px 0 10px;">
+      <div style="font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #98A2B3;">Price per liter</div>
+      <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px;">
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 74%; font-weight: 800; font-size: 72px; line-height: 1; color: #F4503A; font-variant-numeric: tabular-nums; letter-spacing: -0.01em;">1.679</span>
+        <span style="font-size: 20px; font-weight: 600; color: #98A2B3;">€/L</span>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 0 8px;">
+      <span style="flex: 1; height: 2px; border-radius: 1px; background: #F4503A;"></span>
+      <span style="display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; color: #F4503A;">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7.5l3 3 5-7" stroke="#F4503A" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        42.30 × 1.679 = 71.02
+      </span>
+      <span style="flex: 1; height: 2px; border-radius: 1px; background: #F4503A;"></span>
+    </div>
+  </div>
+
+  <div style="padding: 0 26px;">
+    <div style="display: flex; align-items: baseline; justify-content: space-between; border: 1px solid #2A3140; border-radius: 14px; padding: 14px 16px; background: #12161C;">
+      <span style="font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: #98A2B3;">Odometer · km</span>
+      <span style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px;">
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 76%; font-weight: 800; font-size: 28px; font-variant-numeric: tabular-nums; border-bottom: 2px solid #4FC3E8; line-height: 1.1;">119&thinsp;486</span>
+        <span style="font-size: 11px; color: #98A2B3;">+907 km since last</span>
+      </span>
+    </div>
+  </div>
+
+  <div style="padding: 16px 26px 40px;">
+    <div style="background: #F4503A; border-radius: 15px; padding: 17px; text-align: center; font-size: 16px; font-weight: 700; color: #FFF2EE; box-shadow: 0 4px 20px rgba(244,80,58,0.35);">Save fill-up</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "App screens" },
+    { "id": "page-3", "name": "Light mode" },
+    { "id": "page-2", "name": "Unchosen options" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",      "title": "Home",            "page": "page-1", "x": 0,    "y": 0,    "w": 390, "h": 844 },
+    { "file": "Capture.dc.html",   "title": "Capture (camera)", "page": "page-1", "x": 1960, "y": 0,    "w": 390, "h": 844 },
+    { "file": "ConfirmA.dc.html",  "title": "Confirm",         "page": "page-1", "x": 490,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "TrendsB.dc.html",   "title": "Trends",          "page": "page-1", "x": 980,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "Welcome.dc.html",   "title": "Welcome (guest)", "page": "page-1", "x": 0,    "y": 1020, "w": 390, "h": 844 },
+    { "file": "GuestHome.dc.html", "title": "Home · guest, empty", "page": "page-1", "x": 2450, "y": 0, "w": 390, "h": 844 },
+    { "file": "SignIn.dc.html", "title": "Sign in", "page": "page-1", "x": 2450, "y": 1020, "w": 390, "h": 844 },
+    { "file": "Restoring.dc.html", "title": "Restore (welcome back)", "page": "page-1", "x": 2450, "y": 2040, "w": 390, "h": 844 },
+    { "file": "Reminders.dc.html", "title": "Reminders",       "page": "page-1", "x": 490,  "y": 1020, "w": 390, "h": 844 },
+    { "file": "EditEntry.dc.html", "title": "Edit entry",      "page": "page-1", "x": 980,  "y": 1020, "w": 390, "h": 844 },
+    { "file": "ConfirmForeign.dc.html", "title": "Confirm · foreign currency", "page": "page-1", "x": 1470, "y": 1020, "w": 390, "h": 844 },
+    { "file": "ConfirmMixed.dc.html", "title": "Confirm · mixed receipt", "page": "page-1", "x": 1960, "y": 1020, "w": 390, "h": 844 },
+    { "file": "RecentlyDeleted.dc.html", "title": "Recently deleted", "page": "page-1", "x": 0, "y": 2040, "w": 390, "h": 844 },
+    { "file": "AddVehicle.dc.html", "title": "Add car", "page": "page-1", "x": 490, "y": 2040, "w": 390, "h": 844 },
+    { "file": "CarSwitcher.dc.html", "title": "Switch car (sheet)", "page": "page-1", "x": 980, "y": 2040, "w": 390, "h": 844 },
+    { "file": "ConfirmManual.dc.html", "title": "Manual entry (OCR failed)", "page": "page-1", "x": 1470, "y": 2040, "w": 390, "h": 844 },
+    { "file": "TankLevel.dc.html", "title": "Tank level (sheet)", "page": "page-1", "x": 0, "y": 3060, "w": 390, "h": 844 },
+    { "file": "ServiceEntry.dc.html", "title": "Service & expenses", "page": "page-1", "x": 490, "y": 3060, "w": 390, "h": 844 },
+    { "file": "ReminderComplete.dc.html", "title": "Reminder completed (sheet)", "page": "page-1", "x": 980, "y": 3060, "w": 390, "h": 844 },
+    { "file": "Settings.dc.html", "title": "Settings", "page": "page-1", "x": 1470, "y": 3060, "w": 390, "h": 844 },
+    { "file": "About.dc.html", "title": "About & feedback", "page": "page-1", "x": 1960, "y": 3060, "w": 390, "h": 844 },
+    { "file": "LightHome.dc.html",      "title": "Home · light",      "page": "page-3", "x": 0,    "y": 0,    "w": 390, "h": 844 },
+    { "file": "LightConfirm.dc.html",   "title": "Confirm · light",   "page": "page-3", "x": 490,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "LightTrends.dc.html",    "title": "Trends · light",    "page": "page-3", "x": 980,  "y": 0,    "w": 390, "h": 844 },
+    { "file": "LightService.dc.html",   "title": "Service · light",   "page": "page-3", "x": 1470, "y": 0,    "w": 390, "h": 844 },
+    { "file": "LightReminders.dc.html", "title": "Reminders · light", "page": "page-3", "x": 0,    "y": 1020, "w": 390, "h": 844 },
+    { "file": "LightSettings.dc.html",  "title": "Settings · light",  "page": "page-3", "x": 490,  "y": 1020, "w": 390, "h": 844 },
+    { "file": "LightWelcome.dc.html",   "title": "Welcome · light",   "page": "page-3", "x": 980,  "y": 1020, "w": 390, "h": 844 },
+    { "file": "HomeA.dc.html",     "title": "Home A · Dashboard-first", "page": "page-2", "x": 0,   "y": 0, "w": 390, "h": 844 },
+    { "file": "HomeB.dc.html",     "title": "Home B · Stream-first",    "page": "page-2", "x": 490, "y": 0, "w": 390, "h": 844 },
+    { "file": "ConfirmB.dc.html",  "title": "Confirm B · Pump readout", "page": "page-2", "x": 980, "y": 0, "w": 390, "h": 844 },
+    { "file": "TrendsA.dc.html",   "title": "Trends A · Hero + stacked","page": "page-2", "x": 1470,"y": 0, "w": 390, "h": 844 }
+  ],
+  "annotations": [
+    { "id": "note-light", "page": "page-3", "x": 1960, "y": 40, "w": 280, "text": "LIGHT THEME (overcast daylight)\nToken mapping per DESIGN.md: bg #F5F6F8, cards white, ink #1A2028, taillight #D63A26, headlight #0E7FA6, warn #B06E10. Accents use the darker light-theme values for WCAG contrast on white. Photo/camera areas stay dark (they are photographs). Six representative screens - the rest follow the same mapping mechanically." },
+    { "id": "note-chosen", "page": "page-1", "x": 1470, "y": 40, "w": 300, "text": "CHOSEN SET (Aug 2026)\nHome C (Garage-first) · Confirm A (Sheet over photo) · Trends B (Tile grid).\n\nNew screens follow the same language:\n- Welcome: guest first-launch, no account, two paths (add car / import).\n- Reminders: date and/or odometer based, amber only for 'needs attention', progress toward due.\n- Edit entry: same DIN block + verified line as Confirm; edits recalc consumption; delete is quiet text, red lives only in the system confirm dialog. Now carries the sync-safety row: 'Changed by sync - Restore my version' (SYNC.md S1).\n- Recently deleted: 30-day undo log for deleted entries plus versions overwritten by sync; restored entries rejoin stats." },
+    { "id": "note-unchosen", "page": "page-2", "x": 1960, "y": 40, "w": 260, "text": "Kept for reference. Ideas worth stealing later: Home A's big hero metric could become the Trends header; Confirm B's giant readout could be a landscape/one-hand mode of the confirm sheet." }
+  ],
+  "launch": { "view": "canvas", "page": "page-3" }
+}

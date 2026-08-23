@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+    a { color: #4FC3E8; } a:hover { color: #7ED4EF; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #101318; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 64px 20px 12px;">
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="#EAEDF2" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <span style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 800; font-size: 18px;">Edit fill-up</span>
+    <span style="font-size: 13px; font-weight: 600; color: #4FC3E8;">Save</span>
+  </div>
+
+  <div style="flex: 1; display: flex; flex-direction: column; gap: 10px; padding: 6px 20px 0;">
+    <div style="display: flex; align-items: center; gap: 12px; background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 12px 14px;">
+      <div style="width: 44px; height: 56px; border-radius: 6px; background: #E9E6DC; flex: none; display: flex; flex-direction: column; gap: 3px; padding: 7px 6px;">
+        <div style="height: 2px; background: #8A8574;"></div>
+        <div style="height: 2px; background: #B8B3A2;"></div>
+        <div style="height: 2px; background: #B8B3A2;"></div>
+        <div style="height: 2px; background: #8A8574; width: 70%;"></div>
+      </div>
+      <div style="flex: 1;">
+        <div style="font-size: 13px; font-weight: 600;">Receipt photo</div>
+        <div style="font-size: 12px; color: #98A2B3; margin-top: 1px;">Scanned Aug 17, 21:47</div>
+      </div>
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4 2l5 4-5 4" stroke="#98A2B3" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #232A36;">
+        <span style="font-size: 13px; color: #98A2B3;">Date</span>
+        <span style="font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;">Aug 17, 2026 · 21:47</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #232A36;">
+        <span style="font-size: 13px; color: #98A2B3;">Station</span>
+        <span style="font-size: 14px; font-weight: 600;">Shell</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px;">
+        <span style="font-size: 13px; color: #98A2B3;">Fuel</span>
+        <span style="font-size: 14px; font-weight: 600;">Diesel B7</span>
+      </div>
+    </div>
+
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 4px 16px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0;">
+        <span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Total</span>
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 78%; font-weight: 800; font-size: 26px; color: #F4503A; font-variant-numeric: tabular-nums;">71.02&thinsp;€</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0;">
+        <span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Liters</span>
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 78%; font-weight: 800; font-size: 26px; color: #F4503A; font-variant-numeric: tabular-nums;">42.30</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 10px 0;">
+        <span style="font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Price / L</span>
+        <span style="font-family: 'Archivo', sans-serif; font-stretch: 78%; font-weight: 800; font-size: 26px; color: #F4503A; font-variant-numeric: tabular-nums;">1.679</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 4px 0 12px;">
+        <span style="flex: 1; height: 2px; border-radius: 1px; background: #F4503A;"></span>
+        <span style="display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: #F4503A;">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2.5 7l3 3 5-6.5" stroke="#F4503A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Verified
+        </span>
+        <span style="flex: 1; height: 2px; border-radius: 1px; background: #F4503A;"></span>
+      </div>
+    </div>
+
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #232A36;">
+        <span style="font-size: 13px; color: #98A2B3;">Odometer</span>
+        <span style="display: flex; align-items: baseline; gap: 6px;">
+          <span style="font-family: 'Archivo', sans-serif; font-stretch: 78%; font-weight: 800; font-size: 20px; font-variant-numeric: tabular-nums;">119&thinsp;486</span>
+          <span style="font-size: 12px; color: #98A2B3;">km · +907</span>
+        </span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid #232A36;">
+        <span style="font-size: 13px; color: #98A2B3;">Tank after fill-up</span>
+        <span style="font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums;">Full · 100%</span>
+      </div>
+      <div style="display: flex; align-items: baseline; justify-content: space-between; padding: 13px 16px;">
+        <span style="font-size: 13px; color: #98A2B3;">Note</span>
+        <span style="font-size: 14px; color: #5A6474;">Add a note</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; background: #12161C; border: 1px solid #2A3140; border-radius: 14px; padding: 11px 14px;">
+      <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M2.5 8.5a6 6 0 1 1 1.8 4.3M2.5 12.8V8.5h4.3" stroke="#98A2B3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="flex: 1; font-size: 12px; color: #98A2B3;">Changed by sync · iPad, Aug 21 14:05</div>
+      <span style="font-size: 12px; font-weight: 700; color: #4FC3E8;">Restore my version</span>
+    </div>
+
+    <div style="font-size: 12px; color: #5A6474; text-align: center; padding: 2px 20px 0;">Edits recalculate consumption for this and the next fill-up.</div>
+  </div>
+
+  <div style="padding: 12px 20px 40px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="background: #F4503A; border-radius: 15px; padding: 16px; text-align: center; font-size: 16px; font-weight: 700; color: #FFF2EE;">Save changes</div>
+    <div style="padding: 10px; text-align: center; font-size: 14px; font-weight: 600; color: #98A2B3;">Delete entry</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+    a { color: #4FC3E8; } a:hover { color: #7ED4EF; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #101318; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden; position: relative;">
+  <div style="position: absolute; inset: 0; background: #101318;">
+    <div style="display: flex; align-items: center; gap: 12px; padding: 64px 20px 14px; opacity: 0.35;">
+      <span style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 800; font-size: 20px;">Reminders</span>
+    </div>
+    <div style="margin: 0 20px; height: 92px; border-radius: 15px; background: #1A1F27; border: 1px solid #232A36; opacity: 0.35;"></div>
+    <div style="margin: 10px 20px; height: 92px; border-radius: 15px; background: #1A1F27; border: 1px solid #232A36; opacity: 0.35;"></div>
+    <div style="position: absolute; inset: 0; background: rgba(8,10,13,0.62);"></div>
+  </div>
+
+  <div style="position: absolute; left: 0; right: 0; bottom: 0; background: #1A1F27; border-radius: 24px 24px 0 0; border-top: 1px solid #2A3140; padding: 10px 24px 44px;">
+    <div style="width: 36px; height: 4px; border-radius: 2px; background: #3A4354; margin: 4px auto 18px;"></div>
+
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="width: 46px; height: 46px; border-radius: 50%; background: rgba(244,80,58,0.14); border: 1.5px solid #F4503A; display: flex; align-items: center; justify-content: center; flex: none;">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M5 11.5l4 4 8-9.5" stroke="#F4503A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div>
+        <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 800; font-size: 19px;">Oil change – done</div>
+        <div style="font-size: 12px; color: #98A2B3; margin-top: 2px; font-variant-numeric: tabular-nums;">Completed today at 119 486 km</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 18px; background: #12161C; border: 1px solid #2A3140; border-radius: 15px; padding: 14px 16px;">
+      <div style="font-size: 14px; font-weight: 600;">Log the cost?</div>
+      <div style="font-size: 12px; color: #98A2B3; margin-top: 3px; line-height: 1.5;">Creates a service entry pre-filled with today's date and odometer – scan the invoice or type a total.</div>
+      <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <div style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px; background: #F4503A; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 700; color: #FFF2EE;">
+          <svg width="15" height="15" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="11" rx="2.5" stroke="#FFF2EE" stroke-width="1.5"/><circle cx="10" cy="10.5" r="3" stroke="#FFF2EE" stroke-width="1.5"/></svg>
+          Scan invoice
+        </div>
+        <div style="flex: 1; text-align: center; background: #1A1F27; border: 1px solid #2A3140; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 600;">Type amount</div>
+      </div>
+      <div style="text-align: center; font-size: 12px; font-weight: 600; color: #98A2B3; margin-top: 10px;">Skip – just mark done</div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; margin-top: 12px; background: rgba(79,195,232,0.07); border: 1px solid rgba(79,195,232,0.3); border-radius: 15px; padding: 12px 15px;">
+      <svg width="17" height="17" viewBox="0 0 17 17" fill="none"><path d="M2.5 8.5a6 6 0 1 1 1.8 4.3M2.5 12.8V8.5h4.3" stroke="#4FC3E8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="flex: 1; font-size: 12px; color: #EAEDF2; line-height: 1.5;">Next cycle scheduled: <strong>in 15 000 km or Aug 2027</strong> – counted from today, not the old due date.</div>
+      <span style="font-size: 12px; font-weight: 700; color: #4FC3E8;">Edit</span>
+    </div>
+
+    <div style="display: flex; justify-content: center; gap: 26px; margin-top: 16px;">
+      <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Reschedule instead</span>
+      <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Delete reminder</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

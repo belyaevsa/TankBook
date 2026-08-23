@@ -1,0 +1,180 @@
+# Tankbook – Synchronization Design
+
+*How one account's data stays consistent across devices (and later platforms). Companion to `SCHEMA.md` (entity shapes) and `VISION.md` (principles). The backend is C#/ASP.NET Core + PostgreSQL.*
+
+## Model in one paragraph
+
+Local-first with a server hub. Every device owns a complete local database and works fully offline; the backend keeps the account's authoritative change history. Devices **push** local changes and **pull** others' changes through a per-account monotonic sequence (SCN – server change number). Conflicts are resolved record-level last-writer-wins on the client, then re-validated by the domain rules (the odometer timeline check catches what LWW can't). No account = no sync, everything else works – sign-in is the moment multi-device turns on.
+
+**What this replaces:** CloudKit as the sync engine. One sync system, ours, serving iOS now and Android later with identical semantics. (CloudKit would give iOS free sync but nothing to Android, and running both would double every consistency bug.) iCloud Keychain still stores the account session; the OS photo library and files are untouched.
+
+## Server data model
+
+The server stores *records*, not domain tables – it never interprets entries, so the domain schema evolves without server deployments:
+
+```sql
+accounts   (id uuid pk, apple_sub text unique, google_sub text unique, email text not null,
+            created_at timestamptz, deleted_at timestamptz)
+devices    (id uuid pk, account_id fk, name text, platform text, last_pull_scn bigint,
+            last_seen_at timestamptz)
+records    (account_id fk, id uuid, entity_type text,        -- "vehicle" | "fillup" | …
+            scn bigint,                                      -- per-account monotonic, assigned on write
+            payload jsonb,                                   -- the entity, exact SCHEMA.md shape
+            client_updated_at timestamptz,                   -- device clock, for LWW
+            deleted boolean default false,                   -- tombstone
+            origin_device uuid,
+            primary key (account_id, id))
+account_seq(account_id pk, next_scn bigint)                  -- SCN allocator, bumped in the write tx
+blobs      (account_id fk, sha256 text, size_bytes bigint, storage_ref text,
+            created_at timestamptz, primary key (account_id, sha256))
+llm_usage  (account_id fk, period date, requests int, tokens bigint)
+```
+
+- `records.scn` has a per-account index; pull is `WHERE account_id = ? AND scn > ? ORDER BY scn LIMIT n`.
+- **Forward compatibility of entity types:** `entity_type` is an open set (adding `tireset` or any future entity needs zero server changes). Clients MUST preserve records whose `entity_type` or payload fields they don't understand – store opaquely, sync back unchanged, never drop. An older app version syncing against newer data keeps everything intact; it just doesn't render the new type until updated. (Same rule as backup's additive-evolution: unknown ≠ invalid.)
+- Attachments are content-addressed blobs in S3-compatible storage; `payload` references them by sha256. Upload before push, download lazily after pull.
+- Backups (the F7 restore path and user-held export) become a *byproduct*: a server-side snapshot of `records` at an SCN, in the SCHEMA.md backup format. No separate backup pipeline to maintain.
+
+## Protocol
+
+Two endpoints, both idempotent:
+
+```
+POST /sync/push   { changes: [{ id, entityType, baseScn, payload, clientUpdatedAt, deleted }] }
+  → { results: [{ id, status: accepted(newScn) | conflict(currentRecord) }] }
+
+GET  /sync/pull?since=SCN&limit=500
+  → { records: [...], nextSince: SCN, more: bool }
+```
+
+Device identity is carried by the bearer token (assigned at `POST /auth/session` – `API.md` is authoritative for the HTTP surface); no explicit deviceId parameters.
+
+- **Push:** for each change, if `baseScn` matches the server's current SCN for that id (or the record is new), the server writes it and assigns the next SCN. Otherwise → `conflict` with the current server record; the client merges and re-pushes with the new base. First-writer-wins at the transport level; the *merge* decides content.
+- **Pull:** strictly ordered by SCN, paginated, cursor stored per device (`last_pull_scn`). A device that was offline for a year just replays the stream. Fresh install + sign-in = pull from 0 (this IS restore).
+- Sync cycle: pull → merge → push, triggered on app foreground, after every local write (debounced), and by push notification nudge (silent APNs "there's news" – no content in the push).
+
+## Client state & merge
+
+Each local row carries `syncState: synced(scn) | dirty | pushing`, plus the SCHEMA.md envelope (`updatedAt` = `clientUpdatedAt`).
+
+**Merge rule (v1): record-level LWW by `clientUpdatedAt`**, deterministic tiebreak by device id. Rationale: entries are small and edited rarely, almost never concurrently on two devices within seconds; field-level merge is a v2 refinement if real conflicts show up in telemetry counts.
+
+**Domain validation after merge, not during:** LWW can produce a timeline that violates the odometer invariant (two drivers logging the same car offline – JOURNEYS J12/F9a). The sync layer doesn't care; after every merge batch, validation re-runs locally and flags entries with the amber `ConflictState` – the *user-visible* conflict system and the *transport* conflict system stay decoupled. Nothing is ever dropped silently.
+
+**Clock skew:** `clientUpdatedAt` is device-clock; the server stamps `received_at` and rejects timestamps > 24h in the future (clamps to server time, marks the record so the client can warn). Good enough for LWW between a person's own devices.
+
+## Encryption stance
+
+**Decided (signed off Aug 23, 2026): TLS in transit + at-rest encryption on server storage, no end-to-end encryption in v1.**
+
+Honest reasoning: E2E with multi-device + multi-platform + account recovery requires user-held key material (recovery codes) – the exact UX that loses non-technical users their data, which is this category's cardinal sin (F7). The server-side payload is fuel logs, not messages; the privacy promise we keep is *minimal collection, no analytics on content, delete-account-deletes-everything*, stated plainly. E2E stays on the roadmap as an opt-in for the paranoid tier once account recovery UX is solved. **This is a deliberate trade – flag for explicit sign-off.**
+
+## Attachments: the blob pipeline
+
+Photos (receipts, invoices, car photos) and PDFs don't ride the record stream – they're too big and immutable. They go through a content-addressed blob path.
+
+### Where they're stored
+
+**Private S3-compatible object storage** (decided over Postgres bytea – sync traffic and size make the DB the wrong home). Provider is an ops choice behind the S3 API: Cloudflare R2 (no egress fees – attractive since every new device re-downloads a garage's photos), Backblaze B2, or self-hosted MinIO; nothing in the design binds to one. Layout: one private bucket, keys `{account_id}/{sha256}` – content-addressed, so identical files dedupe per account and a key never changes. Postgres `blobs` table (already in the schema) holds the index: sha256, size, storage_ref, created_at.
+
+**What gets uploaded – the size policy (resolves SCHEMA open question 3):** a *sync rendition* – JPEG, long edge ≤ 2048 px, quality ~80 (≈ 200–600 KB) – which is fully readable for receipts, invoices, and expense reports. The full-resolution original stays on the capturing device (and in that device's local export); it is never needed for OCR (which already ran) or cross-device viewing. PDFs pass through unmodified, capped at 10 MB. A tiny thumbnail (~120 px, ≈ 5 KB, base64) travels *inside* the Attachment record payload itself, so lists render photo chips instantly with zero blob fetches.
+
+### Upload (device → storage, never through the API server)
+
+```
+1. Client computes sha256 of the rendition.
+2. POST /blobs/begin { sha256, size, contentType }   (authenticated)
+   → { status: exists }                              // dedupe: another device already uploaded it
+   → { status: upload, url: presigned PUT, expires: 15 min }
+   → 413 / 429                                       // size cap (25 MB) or storage quota exceeded
+3. Client PUTs the bytes directly to the presigned URL (resumable retry: just re-begin).
+4. POST /blobs/commit { sha256 } → server verifies object existence + size, inserts the blobs row.
+5. Only THEN does the entry referencing it push – records never point at blobs the server can't serve.
+```
+
+Presigned upload means the ASP.NET server never proxies file bytes – it stays a small metadata API regardless of photo volume. Uploads queue offline like everything else (S7): the entry syncs text-first with the blob pending, and other devices show the thumbnail (from the payload) with a "photo syncing" shimmer until the blob lands.
+
+### Delivery (storage → other devices)
+
+- After a pull, the client fetches missing blobs **lazily**: thumbnails are already in payloads; the full rendition downloads when the user opens the entry (or eagerly on Wi-Fi, a setting).
+- `GET /blobs/{sha256}` (authenticated) → `302` redirect to a short-lived presigned GET (TTL ~10 min, single object). The device caches the file locally forever after – content addressing means no revalidation, ever.
+- New-device restore: text records first (the garage is usable in seconds), blobs trickle in background by recency. Restore never blocks on photos.
+
+### Protection
+
+- **Bucket is fully private** – no public ACLs, no listing; the only access path is a presigned URL minted after account auth, scoped to one object, expiring in minutes. Account isolation is structural: keys are prefixed by `account_id` and the API only ever signs within the caller's prefix.
+- **At rest:** storage-side encryption (SSE) per the signed-off encryption stance; TLS in transit everywhere, presigned URLs included.
+- **Integrity:** sha256 IS the identity – a corrupted or tampered object fails the client-side hash check on download and is re-fetched.
+- **Hygiene:** contentType allow-list (JPEG/PNG/HEIC/PDF), server-verified size on commit, per-account storage quota (generous free tier, metered like LLM usage), orphan sweep (blobs unreferenced by any live record + grace period → deleted), and account deletion purges the whole prefix.
+- **Not in scope deliberately:** server-side thumbnailing or image processing (the client ships both renditions – the server never opens user images), and virus scanning (nothing is ever served to anyone but the owning account's authenticated devices).
+
+## Conflict resolution, scenario by scenario
+
+Two layers, deliberately decoupled: **transport** (who wins the record – automatic, invisible, never loses the newer edit) and **domain** (does the merged timeline make sense – surfaced to the user via the existing amber `ConflictState`, F9a). The UX law across all scenarios: *conflicts surface where the data lives – a badge on the entry, a footnote on the stat – never as a modal, never as a "sync error" at sync time.*
+
+### S1 · Same entry edited on two devices
+iPhone edits the Shell fill-up's odometer at 14:02; iPad edits its note at 14:05; both were offline, both push later.
+- **Transport:** record-level LWW → iPad's version (newer `clientUpdatedAt`) wins whole; the iPhone's odometer edit is lost.
+- **Domain:** nothing to flag.
+- **Screens:** nothing. The iPhone user may notice their edit reverted.
+- **Verdict:** acceptable for v1 (one person editing the same entry on two devices within minutes is rare); the losing device keeps the overwritten version in a local 30-day undo log ("Entry changed by sync – restore my version") reachable from the entry's edit screen. Telemetry counts these; if real, field-group merge is the v2 fix.
+
+### S2 · Duplicate capture of one physical fill-up
+Both spouses (v2 sharing) — or one person with phone and CarPlay flow — log the same fill-up. Two records, different UUIDs: transport sees no conflict at all.
+- **Transport:** both records sync everywhere.
+- **Domain:** duplicate heuristic — same vehicle, dates within 30 min, volume within 5% — flags the pair.
+- **Screens:** the Log shows one combined card: "Possible duplicate – Shell, 42.3 L logged twice" with *Keep both* / *Merge* (merge keeps the richer one: the one with an attachment wins, fields union). Until resolved, only ONE of the pair counts in consumption and totals, so stats never double.
+
+### S3 · Out-of-order odometers after merge (two drivers, both offline)
+Driver A logs odo 119 486 on Saturday; driver B, offline in the countryside, logs odo 119 210 on Sunday (drove first, synced later).
+- **Transport:** both records accepted – no conflict, different ids.
+- **Domain:** merged timeline violates *date-sorted odometer increases* → B's entry gets the amber `ConflictState`; its segment is excluded from the headline.
+- **Screens:** amber badge on the entry in the Log; Trends tile footnote "1 entry excluded"; opening the entry shows F9a's inline discrepancy with ranked fixes ("this entry belongs earlier" preselected – the dates, not the odometers, are usually what's wrong here). If a receipt is attached, its printed timestamp wins the date side, per the F9a priority rule.
+
+### S4 · Edit vs delete
+iPad deletes a mistaken entry; iPhone, offline, edits the same entry's price.
+- **Transport:** LWW between the tombstone and the edit by `clientUpdatedAt`. Edit newer → the record resurrects with the edit (data loss beats ghost data – resurrect is the safe direction). Delete newer → it stays deleted; the iPhone's edit lands in the same local undo log as S1.
+- **Screens:** on resurrection, nothing (the entry is simply there); on deletion winning, nothing – with undo reachable from the Log's "Recently deleted" (30 days).
+
+### S5 · Vehicle deleted while entries still arrive
+Device A deletes the sold Volvo entirely; device B, offline, logs one last fill-up to it.
+- **Prevention first:** in UI, "delete vehicle" is really *archive* (J13); hard delete demands typed confirmation and cascades tombstones over its entries.
+- **Transport:** B's new fill-up references a tombstoned vehicle → the vehicle resurrects as **archived**, entry attached.
+- **Screens:** quiet notice card in the Garage: "Volvo V60 came back from another device with 1 new entry – it stays archived. Delete again?" One tap re-deletes; nothing is lost silently.
+
+### S6 · Transport conflict on push (the invisible one)
+Device pushes an edit with a stale `baseScn` because another device pushed first.
+- **Transport:** server answers `conflict(currentRecord)`; the client re-merges (S1 rules) and re-pushes. Fully automatic, bounded retries.
+- **Screens:** nothing, ever. This is plumbing.
+
+### S8 · Currency conversion backfill across devices
+A fill-up saved offline in Poland has `Money{289.50 PLN, homeAmount: nil}` (rate pending – F9). It syncs to the iPad, which has the rate feed cached.
+- **Rule:** conversion backfill is **fill-blanks-only** (same principle as F5's QR enrichment): any device may write `homeAmount`/`rate` when they are nil, and no device ever recomputes an existing snapshot. Both devices backfilling concurrently write identical values (same feed, same `rateDate` = entry date), so the LWW winner is byte-equivalent – no user-visible effect.
+- **Divergence case:** one device backfills from the feed while the user manually edits the rate on the other → LWW picks the newer; a losing *manual* rate (rateSource: .manual) lands in the S1 undo log, feed values don't (they're reproducible).
+- **The rate cache itself never syncs** – each device fetches its own feed; only `Money` snapshots inside entries travel. A device with no feed access simply leaves entries pending; stats exclude them from home-currency sums with the F9 footnote until any device fills them.
+- **Screens:** the foreign-currency confirm shows the conversion line ("≈ 67.80 € · 4.2706 zł/€ · ECB, Aug 21") or a soft "converts when online" chip; when backfill lands via sync, the entry's home amount simply appears – no toast, nothing was wrong.
+
+### S7 · Server unavailable — during everything above
+The backend is down for a day; both devices keep logging, editing, deleting.
+- **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.
+- **On recovery:** the queues drain (pull → merge → push per device); *only then* do S1–S5 outcomes materialize. This is why domain conflicts must never be modal: they can arrive in a batch, hours after the user did anything – a stack of interrupting dialogs about yesterday would be hostile. Badges absorb a batch gracefully; a single unobtrusive summary toast covers the rest: "Synced. 2 entries need a look" → tapping filters the Log to flagged entries.
+- **Extended outage:** nothing degrades further – a week offline is the same as an hour, just a longer queue. The sin this design refuses to repeat is Мой Авто's "servers disabled; app freezes at login": Tankbook has no sync-gated screen at all.
+
+## Offline & failure behavior (ties to JOURNEYS)
+
+- Every feature works with sync unreachable (F3/F4 unchanged); `dirty` records queue indefinitely.
+- Push retries with exponential backoff; partial batch acceptance is fine (idempotent by id + baseScn).
+- A device deleted server-side (user revokes it) gets `410` on its cursor → re-onboards via full pull.
+- Account deletion: tombstone the account, purge `records`/`blobs` after grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing).
+- Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).
+
+## Phasing
+
+1. **v1.0 (no account):** local database only. Sync code ships dark.
+2. **v1.x (sign-in):** push/pull live; backups become snapshots; multi-device.
+3. **v2:** vehicle sharing (household) – a `vehicle_shares(account_id, vehicle_id, member_account_id, role)` table scoping another account into a vehicle's record stream; Android client speaks the same protocol.
+
+## Open questions
+
+1. ~~Push nudges vs poll~~ — decided: **silent APNs nudges ship at v1.x**, throttled server-side, with foreground polling as the permanent fallback (nudges are an optimization, never a dependency). Full notification design: `NOTIFICATIONS.md`.
+2. ~~Blob store~~ — **decided (Aug 23, 2026): S3-compatible object storage, provider-agnostic** – all code targets the S3 API (presigned upload/download, see "Attachments: the blob pipeline"); the concrete provider is a deployment-time ops choice, swappable via config. Local dev runs MinIO in a container.

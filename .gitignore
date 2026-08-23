@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+._*
+
+# Swift / SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Xcode
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcresult
+
+# .NET (backend/)
+bin/
+obj/
+*.user
+.vs/
+
+# Editors
+.vscode/
+.idea/
+
+# Temp & logs
+*.tmp
+*.log
+tmp/
+*.swp
