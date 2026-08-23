@@ -76,6 +76,8 @@ A working run shows `STAT R` with `TIME` climbing. A wedged one shows `S`/`S+`, 
 
 **Set a no-writes threshold before you dispatch** and act on it: three runs died having read everything and written nothing. Roughly 15 minutes with zero writes means kill it and split the task – that is what turned P0.12 from three empty runs into two clean ones.
 
+**Briefs live in `agents/briefs/<task-id>.md` and are written there before dispatch**, not in a temp directory – see that folder's README for the structure. Read the existing ones before writing a new one; every fence in them is there because something went wrong once.
+
 Lessons that cost real runs – put these in every brief:
 
 - **Never write outside the repo.** State it as a whitelist ("only inside `/Users/sbelyaev/repos/fuel-counter-ios`"), never a blacklist: a brief saying "don't write to `/tmp`" was followed by an agent writing to `/tmp_gen.swift` at the filesystem root, which the blacklist did not cover and which ended the run.

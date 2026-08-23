@@ -60,6 +60,12 @@ backend/                 # ASP.NET Core solution implementing API.md; Postgres +
                          #   cd backend && dotnet build && dotnet test
                          #   backend/scripts/dev-up.sh starts Postgres + MinIO (plain docker run, no compose)
 design/tokens.json       # machine-readable design system → generates ios/…/Theme.generated.swift
+design/screenshots/      # one committed screenshot per UI task – the visual record (Conventions)
+agents/briefs/           # one brief per dispatched agent task, written BEFORE dispatch
+project.yml              # XcodeGen spec → Tankbook.xcodeproj (generated, gitignored)
+                         #   xcodegen generate
+                         #   xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+                         #     -destination 'platform=iOS Simulator,name=iPhone 17' build|test
 ```
 
 Golden test vectors: the four-drivers simulation outputs (D1–D4, in `docs/SCHEMA.md` → consumption; script in scratch history) are the reference values for consumption unit tests, plus the named edit-cases.
@@ -79,6 +85,7 @@ No open architecture questions remain – the decided list above plus GRDB (pers
 - En-dashes only, never em-dashes, in all prose and UI copy.
 - No git worktrees; work in the checkout.
 - **Commit after each agent task completes and is independently verified** (standing instruction, 2026-08-23). One task = one commit, message naming the task id. **Verify first, commit second**: the baseline gate (build + `swiftlint lint` exit 0) and the task's own checks must pass in *your* hands, not the agent's report – a commit is the record that verification happened. Never commit while an agent is mid-run: the tree contains half-written files, and the point of the commit is a known-good state. Agents themselves still never commit.
+- **Every agent brief is written to `agents/briefs/<task-id>.md` before dispatch** (standing instruction, 2026-08-23), never to a temp directory. The brief is the record of what the agent was actually asked to do – without it you cannot tell a bad agent from a bad brief, and every fence in there exists because something went wrong once. See `agents/briefs/README.md` for the structure these converged on.
 - **Every UI task ships a screenshot** (standing instruction, 2026-08-23): capture the screen it produced from a booted simulator and commit it to `design/screenshots/` as `<task-id>-<screen>.png`, in the **dark** theme (the brand's home theme, `docs/DESIGN.md`) unless the task is specifically about light. This is the one check no test performs – XCUITest asserts behaviour and never colour, which is exactly how P1.1 shipped an accent-red tab bar that violated hard rule 5 while its suite stayed green. Compare the shot against the task's `design/screens/*.dc.html` artboard before committing, and **take it outside a test run** – `simctl` and `xcodebuild test` fight over the device.
 - Entity/field names exactly as `docs/SCHEMA.md` spells them, in every language.
 - When a task touches a journey, screen, error state, or schema shape that the docs don't cover yet: extend the doc in the same change – the docs are the spec, not documentation-after-the-fact.
