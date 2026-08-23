@@ -259,6 +259,15 @@ struct HomeRecentEntries: View {
     let stations: [Station]
     let vehicle: Vehicle
     let excludedEntryCount: Int
+    /// S2 pairs the user already resolved as "keep both" - the stream renders
+    /// them as two normal rows, never as a duplicate card again
+    /// (docs/SYNC.md S2).
+    let duplicateResolutions: Set<DuplicateDetector.PairKey>
+    /// The two ways an unresolved duplicate card can be decided (docs/SYNC.md
+    /// S2; docs/ERRORS.md -> Home). The view renders the affordances; the
+    /// resolution is a repository write the parent owns.
+    let onKeepBoth: (LogStream.DuplicateGroup) -> Void
+    let onMerge: (LogStream.DuplicateGroup) -> Void
 
     /// Home is a preview: the newest rows before the full-stream screen (P1.6)
     /// takes over.
@@ -267,7 +276,8 @@ struct HomeRecentEntries: View {
     @State private var collapsedGroupIDs: Set<UUID> = []
 
     private var stream: LogStream {
-        LogStream(vehicle: vehicle, entries: entries)
+        LogStream(vehicle: vehicle, entries: entries,
+                  duplicateResolutions: duplicateResolutions)
             .previewRows(Self.previewLimit)
     }
 
@@ -326,7 +336,7 @@ struct HomeRecentEntries: View {
     }
 
     private var excludedFootnote: some View {
-        Text("1 entry excluded")
+        Text(L10n.entriesExcluded(excludedEntryCount))
             .font(.caption2)
             .foregroundStyle(Theme.Palette.warn)
             .accessibilityIdentifier("homeExcludedFootnote")
@@ -341,7 +351,60 @@ struct HomeRecentEntries: View {
             entryCard(entry)
         case .group(let group):
             groupCard(group)
+        case .duplicate(let group):
+            duplicateCard(group)
         }
+    }
+
+    // MARK: S2 combined duplicate card
+
+    /// One physical fill logged twice (docs/SYNC.md S2): a single card where
+    /// the pair would otherwise appear as two rows, with BOTH next steps
+    /// present - every warning names its resolution (hard rule 7). Until the
+    /// user decides, only the counted member contributes to any figure.
+    private func duplicateCard(_ group: LogStream.DuplicateGroup) -> some View {
+        let title = duplicateTitle(group)
+        let volume = duplicateVolume(group.counted)
+        return HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "doc.on.doc")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.warn)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(String(format: L10n.localize("Possible duplicate – %@, %@ logged twice"),
+                            title, volume))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .lineLimit(2)
+                HStack(spacing: 14) {
+                    Button("Merge") { onMerge(group) }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Theme.Palette.headlight)
+                        .accessibilityIdentifier("homeMergeButton")
+                    Button("Keep both") { onKeepBoth(group) }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(Theme.Palette.headlight)
+                        .accessibilityIdentifier("homeKeepBothButton")
+                }
+                .font(.caption.weight(.semibold))
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(14)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("homeDuplicateCard")
+    }
+
+    /// The card's title: the counted entry's station or fuel kind.
+    private func duplicateTitle(_ group: LogStream.DuplicateGroup) -> String {
+        title(group.counted)
+    }
+
+    /// The card's quantity: the counted entry's volume in the vehicle's unit
+    /// (the pair's volumes are within 5%, so one figure describes both).
+    private func duplicateVolume(_ entry: LogStream.LogEntry) -> String {
+        guard case .volumeL(let litres) = entry.quantity else { return "" }
+        return "\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))"
     }
 
     // MARK: Entry card

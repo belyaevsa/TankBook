@@ -70,23 +70,6 @@
         }
       }
     },
-    "1 entry excluded": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 entry excluded"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "1 запись исключена"
-          }
-        }
-      }
-    },
     "95": {
       "extractionState": "manual",
       "localizations": {
@@ -1481,6 +1464,23 @@
         }
       }
     },
+    "Possible duplicate – %@, %@ logged twice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicate – %@, %@ logged twice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возможный дубликат – %@, %@ внесены дважды"
+          }
+        }
+      }
+    },
     "Recently deleted": {
       "extractionState": "manual",
       "localizations": {
@@ -1681,23 +1681,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Настройки"
-          }
-        }
-      }
-    },
-    "Shell, 42.3 L logged twice": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shell, 42.3 L logged twice"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Shell, 42.3 л внесены дважды"
           }
         }
       }
@@ -2819,6 +2802,59 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Осталось %lld дней"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld entries excluded": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entry excluded"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entries excluded"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld запись исключена"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записи исключены"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей исключено"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей исключено"
                 }
               }
             }

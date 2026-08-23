@@ -454,6 +454,43 @@ public struct ServiceItemRow: FetchableRecord, PersistableRecord {
     }
 }
 
+// MARK: - DuplicateResolution (device-local, not synced)
+
+/// A user's "keep both" on an S2 pair (docs/SYNC.md S2). Deliberately carries
+/// NO sync bookkeeping - it is derived-state bookkeeping, like the sync cursor,
+/// and does not travel with the record stream.
+public struct DuplicateResolutionRow: FetchableRecord, PersistableRecord {
+    public static let databaseTableName = TankbookSchema.duplicateResolution
+    public var resolution: DuplicateResolution
+
+    public init(resolution: DuplicateResolution) {
+        self.resolution = resolution
+    }
+
+    public init(row: Row) throws {
+        let envelope = try decodeEnvelope(row)
+        guard let counted = decodeOptionalUUID(row, column: "countedEntryID"),
+              let excluded = decodeOptionalUUID(row, column: "excludedEntryID") else {
+            throw DatabaseError(message: "TankbookCore: invalid UUID in duplicateResolution row")
+        }
+        resolution = DuplicateResolution(
+            id: envelope.id,
+            createdAt: envelope.createdAt,
+            updatedAt: envelope.updatedAt,
+            deletedAt: envelope.deletedAt,
+            countedEntryID: counted,
+            excludedEntryID: excluded,
+            resolution: DuplicateResolution.Resolution(rawValue: row["resolution"]) ?? .keepBoth)
+    }
+
+    public func encode(to container: inout PersistenceContainer) throws {
+        setEnvelope(resolution, into: &container)
+        container["countedEntryID"] = resolution.countedEntryID.uuidString
+        container["excludedEntryID"] = resolution.excludedEntryID.uuidString
+        container["resolution"] = resolution.resolution.rawValue
+    }
+}
+
 // MARK: - Expense
 
 public struct ExpenseRow: FetchableRecord, PersistableRecord {

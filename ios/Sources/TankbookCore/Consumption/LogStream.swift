@@ -35,25 +35,46 @@ public struct LogStream: Equatable, Sendable {
         public let rows: [Row]
     }
 
-    /// A rendered row: a standalone entry or a purchase group.
+    /// A rendered row: a standalone entry, a purchase group, or an unresolved
+    /// S2 duplicate pair shown as one combined card.
     public enum Row: Equatable, Sendable, Identifiable {
         case entry(LogEntry)
         case group(LogGroup)
+        case duplicate(DuplicateGroup)
 
         public var id: UUID {
             switch self {
             case .entry(let entry): entry.id
             case .group(let group): group.id
+            case .duplicate(let group): group.id
             }
         }
 
-        /// The row's position in time: a group sits at its newest member's date.
+        /// The row's position in time: a group sits at its newest member's date,
+        /// a duplicate card at its counted entry's date.
         public var date: Date {
             switch self {
             case .entry(let entry): entry.date
             case .group(let group): group.members.first?.date ?? .distantPast
+            case .duplicate(let group): group.date
             }
         }
+    }
+
+    /// One unresolved S2 duplicate pair (docs/SYNC.md S2): two fill-ups that
+    /// the heuristic flags as the same physical fill logged twice. Rendered as
+    /// ONE combined card - "Possible duplicate" with Keep both / Merge - where
+    /// the pair would otherwise appear as two rows. Until resolved only
+    /// `counted` counts in any derived figure; `excluded` is set aside.
+    public struct DuplicateGroup: Equatable, Sendable, Identifiable {
+        /// The entry that counts while the pair is unresolved (the Merge
+        /// survivor - docs/SYNC.md: "the one with an attachment wins").
+        public let counted: LogEntry
+        /// The entry that does NOT count until the user decides.
+        public let excluded: LogEntry
+
+        public var id: UUID { counted.id }
+        public var date: Date { counted.date }
     }
 
     /// One physical purchase: the entries a single receipt produced.
@@ -147,13 +168,29 @@ public struct LogStream: Equatable, Sendable {
     /// re-sectioning uses the same month boundaries.
     private let calendar: Calendar
 
-    public init(vehicle: Vehicle, entries: [any Entry], calendar: Calendar = .current) {
+    public init(vehicle: Vehicle, entries: [any Entry], calendar: Calendar = .current,
+                duplicateResolutions: Set<DuplicateDetector.PairKey> = []) {
         self.calendar = calendar
 
         let sorted = entries.sorted { (lhs, rhs) in
             if lhs.date != rhs.date { return lhs.date > rhs.date }
             return lhs.createdAt > rhs.createdAt
         }
+
+        // The S2 pair detection is the stream's decision layer too: an
+        // unresolved duplicate pair renders as ONE combined card, and its
+        // excluded member is dropped from the rows (it is represented by the
+        // card) - only the counted member ever reaches a month total
+        // (docs/SYNC.md S2: "Until resolved, only ONE of the pair counts in
+        // consumption and totals").
+        let pairs = DuplicateDetector.pairs(
+            in: sorted.compactMap { $0 as? FillUp },
+            resolved: duplicateResolutions)
+        let excludedIDs = Set(pairs.map(\.excludedID))
+        let pairByCountedID = Dictionary(pairs.map { ($0.countedID, $0) },
+                                         uniquingKeysWith: { $1 })
+        let logEntryByID = Dictionary(sorted.map { ($0.id, LogEntry(vehicle: vehicle, entry: $0)) },
+                                      uniquingKeysWith: { $1 })
 
         var groupMembers: [UUID: [any Entry]] = [:]
         var standalone: [any Entry] = []
@@ -165,8 +202,18 @@ public struct LogStream: Equatable, Sendable {
             }
         }
 
-        let entryRows: [Row] = standalone.map {
-            .entry(LogEntry(vehicle: vehicle, entry: $0))
+        let entryRows: [Row] = standalone.flatMap { entry in
+            if excludedIDs.contains(entry.id) {
+                // Represented by the combined card - never rendered twice.
+                return [Row]()
+            }
+            if let pair = pairByCountedID[entry.id],
+               let countedEntry = logEntryByID[entry.id],
+               let excludedEntry = logEntryByID[pair.excludedID] {
+                return [.duplicate(DuplicateGroup(counted: countedEntry,
+                                                  excluded: excludedEntry))]
+            }
+            return [.entry(LogEntry(vehicle: vehicle, entry: entry))]
         }
         let groupRows: [Row] = groupMembers.map { groupID, members in
             let logMembers = members
@@ -194,7 +241,7 @@ public struct LogStream: Equatable, Sendable {
         sections.reduce(0) { count, section in
             count + section.rows.reduce(0) { partial, row in
                 switch row {
-                case .entry:
+                case .entry, .duplicate:
                     return partial + 1
                 case .group(let group):
                     return partial + (collapsedGroupIDs.contains(group.id) ? 1 : group.members.count)
@@ -258,6 +305,10 @@ public struct LogStream: Equatable, Sendable {
             case .group(let group):
                 // The group's grand total once - never once per member row.
                 return partial + group.grandTotal
+            case .duplicate(let group):
+                // The S2 single-count invariant: an unresolved duplicate pair
+                // contributes the COUNTED entry's amount once, never twice.
+                return partial + (group.counted.money?.homeAmount ?? Decimal.zero)
             }
         }
         return Section(monthStart: monthStart, totalSpend: totalSpend, rows: rows)

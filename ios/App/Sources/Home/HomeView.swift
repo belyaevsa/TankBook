@@ -23,15 +23,18 @@ struct HomeView: View {
     @State private var photoData: Data?
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
+    @State private var resolvedDuplicateKeys: Set<DuplicateDetector.PairKey> = []
 
     private static let log = Logger(subsystem: "app.tankbook", category: "home")
 
     /// Derived, never stored (hard rule 2): recomputed from the current entries
     /// on every render - the engine's pure function, cheap at Home's history
-    /// sizes and correct-by-construction.
+    /// sizes and correct-by-construction. S2 resolutions feed the single-count
+    /// invariant (docs/SYNC.md: "Until resolved, only ONE of the pair counts").
     private var stats: HomeStats? {
         guard let vehicle else { return nil }
-        return HomeStats(vehicle: vehicle, entries: entries)
+        return HomeStats(vehicle: vehicle, entries: entries,
+                         duplicateResolutions: resolvedDuplicateKeys)
     }
 
     var body: some View {
@@ -89,9 +92,52 @@ struct HomeView: View {
         if stats.hasEntries {
             HomeRecentEntries(entries: entries, stations: stations,
                               vehicle: stats.vehicle,
-                              excludedEntryCount: stats.excludedEntryCount)
+                              excludedEntryCount: stats.excludedEntryCount,
+                              duplicateResolutions: resolvedDuplicateKeys,
+                              onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
+                              onMerge: { group in mergeDuplicate(group) })
         } else {
             HomeEmptyEntriesCard(onCapture: { presentSheet(.confirmManual) })
+        }
+    }
+
+    // MARK: - S2 resolution actions (docs/SYNC.md S2)
+
+    /// "Keep both" - genuinely two purchases: recorded so the heuristic
+    /// suppresses this pair from then on, and BOTH entries count.
+    private func resolveDuplicate(_ group: LogStream.DuplicateGroup, as resolution: DuplicateResolution.Resolution) {
+        do {
+            let repository = try AppStore.repository()
+            guard let vehicle else { return }
+            let fills = try repository.liveFillUps(forVehicle: vehicle.id)
+            guard let counted = fills.first(where: { $0.id == group.counted.id }),
+                  let excluded = fills.first(where: { $0.id == group.excluded.id }) else { return }
+            try repository.upsertDuplicateResolution(DuplicateResolution(
+                id: UUID.v7(), createdAt: Date(), updatedAt: Date(), deletedAt: nil,
+                countedEntryID: counted.id, excludedEntryID: excluded.id,
+                resolution: resolution))
+            toastCenter.noteEntryChanged()
+        } catch {
+            Self.log.error("Duplicate resolution failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// "Merge" - the richer record survives (attachment wins, fields union)
+    /// and the other is tombstoned into Recently deleted, where it stays
+    /// recoverable for 30 days (nothing is lost silently, hard rule 8).
+    private func mergeDuplicate(_ group: LogStream.DuplicateGroup) {
+        do {
+            let repository = try AppStore.repository()
+            guard let vehicle else { return }
+            let fills = try repository.liveFillUps(forVehicle: vehicle.id)
+            guard let winner = fills.first(where: { $0.id == group.counted.id }),
+                  let loser = fills.first(where: { $0.id == group.excluded.id }) else { return }
+            let merged = DuplicateMerge.merge(winner: winner, loser: loser)
+            try repository.upsertFillUp(merged)
+            try repository.softDeleteFillUp(id: loser.id)
+            toastCenter.noteEntryChanged()
+        } catch {
+            Self.log.error("Duplicate merge failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -154,6 +200,7 @@ struct HomeView: View {
             self.vehicle = selected
             entries = try repository.liveEntries(forVehicle: selected.id)
             stations = try repository.liveStations()
+            resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
             photoData = try loadPhoto(repository: repository, vehicle: selected)
         } catch {
             Self.log.error("Home load failed: \(error.localizedDescription, privacy: .public)")

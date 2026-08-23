@@ -31,7 +31,10 @@ public struct HomeStats: Equatable, Sendable {
     /// Date of the most recent entry ("updated <date>"); `nil` when there are
     /// no entries (the view falls back to "added" on `vehicle.createdAt`).
     public let updatedAt: Date?
-    /// Conflict-flagged entries - the "1 entry excluded" footnote count.
+    /// Conflict-flagged entries plus the excluded members of unresolved S2
+    /// duplicate pairs - the "N entries excluded" footnote count. Derived from
+    /// the validation/duplicate engines' flags, never hard-coded
+    /// (docs/ERRORS.md -> Home, rows F9a and S2).
     public let excludedEntryCount: Int
     /// True once a headline exists but is a first estimate (fewer segments than
     /// the floor, nothing older to extend into).
@@ -43,32 +46,48 @@ public struct HomeStats: Equatable, Sendable {
     public let hasEntries: Bool
 
     public init(vehicle: Vehicle, entries: [any Entry],
-                asOf: Date = Date(), calendar: Calendar = .current) {
+                asOf: Date = Date(), calendar: Calendar = .current,
+                duplicateResolutions: Set<DuplicateDetector.PairKey> = []) {
         self.vehicle = vehicle
 
+        // The S2 single-count invariant (docs/SYNC.md S2): until the user
+        // decides, only ONE entry of an unresolved duplicate pair counts in
+        // consumption, month totals and every derived figure - stats never
+        // double. The counted entry is chosen deterministically (see
+        // DuplicateDetector.counted); the excluded member is set aside here and
+        // never reaches the engine or the totals.
         let fills = entries.compactMap { $0 as? FillUp }
+        let pairs = DuplicateDetector.pairs(in: fills, resolved: duplicateResolutions)
+        let excludedIDs = Set(pairs.map(\.excludedID))
+        let countingEntries = entries.filter { !excludedIDs.contains($0.id) }
+        let countingFills = fills.filter { !excludedIDs.contains($0.id) }
+
         let charges = entries.compactMap { $0 as? ChargeSession }
-        let fuelSegments = ConsumptionEngine.segments(for: fills, tankCapacityL: vehicle.tankCapacityL)
+        let fuelSegments = ConsumptionEngine.segments(for: countingFills, tankCapacityL: vehicle.tankCapacityL)
         let evSegments = ConsumptionEngine.evSegments(for: charges)
         let usesEV = vehicle.powertrain == .ev || !evSegments.isEmpty
         let segments = usesEV ? evSegments : fuelSegments
 
         self.headline = ConsumptionEngine.headline(segments: segments, asOf: asOf)
         self.lifetime = ConsumptionEngine.lifetime(segments: segments)
-        self.costPerKm = ConsumptionEngine.costPerKm(entries: entries, asOf: asOf)
-        self.monthSpend = Self.monthSpend(entries: entries, asOf: asOf, calendar: calendar)
-        self.lastUnitPrice = Self.lastUnitPrice(entries: entries)
+        self.costPerKm = ConsumptionEngine.costPerKm(entries: countingEntries, asOf: asOf)
+        self.monthSpend = Self.monthSpend(entries: countingEntries, asOf: asOf, calendar: calendar)
+        self.lastUnitPrice = Self.lastUnitPrice(entries: countingEntries)
         self.bestThisYear = Self.bestThisYear(segments: segments, asOf: asOf, calendar: calendar)
 
-        self.odometer = entries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
-        self.updatedAt = entries.compactMap(\.date).max()
-        self.excludedEntryCount = entries.filter { $0.conflict != .none }.count
+        self.odometer = countingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
+        self.updatedAt = countingEntries.compactMap(\.date).max()
+        var excluded: Set<UUID> = excludedIDs
+        for entry in entries where entry.conflict != .none {
+            excluded.insert(entry.id)
+        }
+        self.excludedEntryCount = excluded.count
         if case .firstEstimate = headline?.label {
             self.isFirstEstimate = true
         } else {
             self.isFirstEstimate = false
         }
-        self.needsAnotherFullTank = fills.contains(where: { $0.isFull }) && headline == nil
+        self.needsAnotherFullTank = countingFills.contains(where: { $0.isFull }) && headline == nil
         self.hasEntries = !entries.isEmpty
     }
 

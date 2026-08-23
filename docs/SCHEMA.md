@@ -303,6 +303,17 @@ ConflictState = .none | .flagged(kind: .order | .pace, detectedAt: Date)
 
 A user may always save with `.flagged`: the entry shows the amber badge, and **any segment touching it is excluded from consumption math** (Trends footnotes the exclusion count). Resolution clears the flag via the edit screen.
 
+### S2 duplicates (derived, with one persisted fact)
+
+The S2 duplicate heuristic (SYNC.md) is **derived, never stored** – the same entry list always yields the same pairs, so every device computes identical numbers. While a pair is unresolved, **only one member counts** in consumption, month totals and every derived figure (the one a Merge would keep – deterministic: attachment wins, else earlier-created, else lower id). The one **persisted** fact is the user's decision:
+
+```sql
+duplicateResolution (id text pk, createdAt real, updatedAt real, deletedAt real,
+                     countedEntryID text, excludedEntryID text, resolution text)
+```
+
+`resolution = keepBoth` means the user said there really were two purchases: the heuristic is suppressed for that pair and both count from then on. **Device-local** (deliberately NOT a synced table, like the sync cursor) – resolution sync is P4 work. A Merge needs no resolution row: it unions the loser's fields into the survivor and tombstones the loser, so the pair simply stops existing (and the loser lives in Recently deleted for the 30-day undo window – nothing is lost silently).
+
 ## Derived: consumption
 
 Never stored. Recomputed for a vehicle whenever any FillUp in range changes.

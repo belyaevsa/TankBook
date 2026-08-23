@@ -285,9 +285,17 @@ struct EditEntryView: View {
     /// The recompute, both halves from the engine (docs/SCHEMA.md,
     /// Recalculation on edit): the headline is a pure function of the vehicle's
     /// fill history, so before and after differ only by what the edit changed.
+    /// The S2 single-count invariant applies here too - an unresolved duplicate
+    /// pair contributes once, so the delta toast never reports a number that
+    /// would double (docs/SYNC.md S2).
     private func headline(repository: TankbookRepository, vehicle: Vehicle) -> Headline? {
         guard let fills = try? repository.liveFillUps(forVehicle: vehicle.id) else { return nil }
-        let segments = ConsumptionEngine.recompute(fills: fills, tankCapacityL: vehicle.tankCapacityL)
+        let pairs = DuplicateDetector.pairs(
+            in: fills,
+            resolved: (try? repository.resolvedDuplicateKeys()) ?? [])
+        let excluded = Set(pairs.map(\.excludedID))
+        let counting = fills.filter { !excluded.contains($0.id) }
+        let segments = ConsumptionEngine.recompute(fills: counting, tankCapacityL: vehicle.tankCapacityL)
         return ConsumptionEngine.headline(segments: segments, asOf: Date())
     }
 

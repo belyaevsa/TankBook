@@ -46,8 +46,8 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Home (incl. guest/empty)
 | Condition | Shows | Next step |
 |---|---|---|
-| Entry timeline conflict (F9a/S3) | Amber badge on entry; Trends footnote "1 entry excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
-| Possible duplicate (S2) | Combined card "Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
+| Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
+| Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
@@ -110,7 +110,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Trends
 | Condition | Shows | Next step |
 |---|---|---|
-| Entries excluded (conflicts/duplicates) | Footnote "1 entry excluded" | Tap → the flagged entry |
+| Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

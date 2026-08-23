@@ -2,20 +2,22 @@ import SwiftUI
 import TankbookCore
 import UIKit
 
-// MARK: - Banners (S2 / S5 / reminder)
+// MARK: - Banners (S5 / reminder)
 
-/// The error/warning surfaces that can sit above Home content. S2/S5 and the
+/// The error/warning surfaces that can sit above Home content. S5 and the
 /// reminder banner are fixture-driven until sync (P4) and reminders (P3.4)
 /// exist; each names its next step (docs/ERRORS.md -> Home).
+///
+/// The S2 possible-duplicate card is NOT here anymore: since P1.8 it is real
+/// data - the combined card lives in the log stream (LogStream's `.duplicate`
+/// row), because a duplicate is now detected from the entries themselves rather
+/// than presented as a fixture.
 struct HomeBanners: View {
     let presentables: HomePresentables
     let vehicleName: String
 
     var body: some View {
         VStack(spacing: 8) {
-            if presentables.duplicateCard {
-                duplicateCard
-            }
             if presentables.archivedReturned {
                 archivedReturnedCard
             }
@@ -23,33 +25,6 @@ struct HomeBanners: View {
                 reminderBanner
             }
         }
-    }
-
-    private var duplicateCard: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "doc.on.doc")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.warn)
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Shell, 42.3 L logged twice")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                HStack(spacing: 14) {
-                    Button("Merge") {}
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
-                        .accessibilityIdentifier("homeMergeButton")
-                    Button("Keep both") {}
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
-                        .accessibilityIdentifier("homeKeepBothButton")
-                }
-                .font(.caption.weight(.semibold))
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .formCard()
     }
 
     private var archivedReturnedCard: some View {

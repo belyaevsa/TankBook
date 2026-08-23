@@ -26,19 +26,25 @@ enum HomeTestSeed {
         // a run - matching ManualFillUpTestSeed's contract.
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
-        if arguments.contains("-seedHomeEmptyVehicle") {
-            seedEmptyVehicle(repository)
-        } else if arguments.contains("-seedHomeSingleFill") {
-            seedSingleFill(repository)
-        } else if arguments.contains("-seedHomeFullHistory") {
-            seedFullHistory(repository)
-        } else if arguments.contains("-seedHomeSingleFuelLog") {
-            seedSingleFuelLog(repository)
-        } else if arguments.contains("-seedHomeConflict") {
-            seedConflict(repository)
-        } else if arguments.contains("-seedHomeEditHistory") {
-            seedEditHistory(repository)
+        if let action = Self.seedAction(for: arguments) {
+            action(repository)
         }
+    }
+
+    /// Maps the `-seedHome*` launch arguments to their seeding functions. The
+    /// lookup is data, not an if/else ladder, so adding a seed keeps the
+    /// dispatch simple (swiftlint cyclomatic_complexity).
+    private static func seedAction(for arguments: [String]) -> ((TankbookRepository) -> Void)? {
+        let actions: [(argument: String, seed: (TankbookRepository) -> Void)] = [
+            ("-seedHomeEmptyVehicle", seedEmptyVehicle),
+            ("-seedHomeSingleFill", seedSingleFill),
+            ("-seedHomeFullHistory", seedFullHistory),
+            ("-seedHomeSingleFuelLog", seedSingleFuelLog),
+            ("-seedHomeConflict", seedConflict),
+            ("-seedHomeEditHistory", seedEditHistory),
+            ("-seedHomeDuplicate", seedDuplicate)
+        ]
+        return actions.first { arguments.contains($0.argument) }?.seed
     }
 
     // MARK: - Seeds
@@ -171,6 +177,29 @@ enum HomeTestSeed {
             makeFill(vehicleID: vehicle.id,
                      FillSpec(daysAgo: 30, odometer: 118_000, litres: 42.8,
                               amount: "69.90", price: "1.633", stationID: nil)))
+    }
+
+    /// The S2 duplicate state (docs/SYNC.md): one physical fill logged twice at
+    /// the same station - dates within 30 minutes, volumes within 5% - so the
+    /// heuristic flags the pair and Home renders the combined card. This is the
+    /// state a sync-arrived duplicate would land in too (two records for one
+    /// fill-up); until P4 it is seeded like every other real-data state. The
+    /// card must render regardless of which pair member the detector counts.
+    private static func seedDuplicate(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        let shell = makeStation(repository, name: "Shell")
+        let firstDate = Date().addingTimeInterval(-2 * 86_400)
+        try? repository.upsertFillUp(makeFill(
+            vehicleID: vehicle.id,
+            FillSpec(daysAgo: 2, odometer: 122_800, litres: 42.3,
+                     amount: "71.02", price: "1.679", stationID: shell.id),
+            date: firstDate))
+        try? repository.upsertFillUp(makeFill(
+            vehicleID: vehicle.id,
+            FillSpec(daysAgo: 2, odometer: 122_800, litres: 42.9,
+                     amount: "72.05", price: "1.679", stationID: shell.id),
+            date: firstDate.addingTimeInterval(15 * 60)))
     }
 
     /// The golden D1 series (docs/fixtures/consumption-golden.json): eight full

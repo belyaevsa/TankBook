@@ -19,6 +19,9 @@ public enum TankbookSchema {
     public static let attachment = "attachment"
     public static let preferences = "preferences"
     public static let exchangeRate = "exchangeRate"
+    /// Device-local record of S2 duplicate resolutions ("keep both") - NOT in
+    /// `syncedTables`: it is derived-state bookkeeping, like the sync cursor.
+    public static let duplicateResolution = "duplicateResolution"
 
     /// Every synced entity table (has the envelope + syncState bookkeeping).
     /// The reference data (exchangeRate) is deliberately NOT here.
@@ -70,6 +73,7 @@ public enum TankbookMigrations {
             try createAttachment(db)
             try createPreferences(db)
             try createExchangeRate(db)
+            try createDuplicateResolution(db)
             try createIndexes(db)
         }
         return migrator
@@ -269,6 +273,17 @@ public enum TankbookMigrations {
             table.column("rate", .text).notNull()           // Decimal
             table.column("source", .text).notNull()
             table.primaryKey(["base", "quote", "date"])
+        }
+    }
+
+    private static func createDuplicateResolution(_ db: Database) throws {
+        // A user's "keep both" on an S2 pair (docs/SYNC.md S2). Device-local
+        // like the sync cursor - deliberately NO syncState/syncScn columns.
+        try db.create(table: TankbookSchema.duplicateResolution) { table in
+            envelopeColumns(on: table)
+            table.column("countedEntryID", .text).notNull()
+            table.column("excludedEntryID", .text).notNull()
+            table.column("resolution", .text).notNull()     // DuplicateResolution.Resolution
         }
     }
 

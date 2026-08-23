@@ -432,6 +432,47 @@ extension TankbookRepository {
     }
 }
 
+// MARK: - DuplicateResolution (S2, device-local)
+
+extension TankbookRepository {
+    /// Records a user's "keep both" decision for an S2 pair (docs/SYNC.md S2):
+    /// from then on BOTH entries count - the heuristic is suppressed for this
+    /// pair. Device-local until sync lands (P4).
+    public func upsertDuplicateResolution(_ resolution: DuplicateResolution) throws {
+        try database.write { db in
+            try DuplicateResolutionRow(resolution: resolution).save(db)
+        }
+    }
+
+    public func liveDuplicateResolutions() throws -> [DuplicateResolution] {
+        try database.read { db in
+            try DuplicateResolutionRow.filter(Column("deletedAt") == nil)
+                .order(Column("createdAt"))
+                .fetchAll(db)
+                .map(\.resolution)
+        }
+    }
+
+    /// The order-independent keys of every recorded resolution, as the pure
+    /// heuristic expects them (docs/SYNC.md S2 "Keep both": the derived
+    /// detector skips a pair whose key is here).
+    public func resolvedDuplicateKeys() throws -> Set<DuplicateDetector.PairKey> {
+        let resolutions = try liveDuplicateResolutions()
+        return Set(resolutions.compactMap { resolution in
+            let low: UUID
+            let high: UUID
+            if resolution.countedEntryID.uuidString < resolution.excludedEntryID.uuidString {
+                low = resolution.countedEntryID
+                high = resolution.excludedEntryID
+            } else {
+                low = resolution.excludedEntryID
+                high = resolution.countedEntryID
+            }
+            return DuplicateDetector.PairKey(low: low, high: high)
+        })
+    }
+}
+
 // MARK: - Sync queue + purge
 
 extension TankbookRepository {

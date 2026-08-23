@@ -200,15 +200,9 @@ final class HomeUITests: XCTestCase {
 
     func testSyncShapedPresentationStatesAreReachable() {
         let app = launch(args: ["-seedHomeEmptyVehicle",
-                                "-forceDuplicateCard",
                                 "-forceArchivedReturned",
                                 "-forceSyncToast",
                                 "-forceReminderDue"])
-
-        // S2: possible duplicate, one tap each way.
-        XCTAssertTrue(app.staticTexts["Shell, 42.3 L logged twice"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["homeMergeButton"].exists)
-        XCTAssertTrue(app.buttons["homeKeepBothButton"].exists)
 
         // S5: archived car returned via sync, with its next steps.
         XCTAssertTrue(app.buttons["homeDeleteAgainButton"].exists)
@@ -222,5 +216,89 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(viewButton.exists)
         viewButton.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - P1.8: S2 duplicates (real data, docs/SYNC.md)
+
+    /// One physical fill logged twice: the combined card renders where the two
+    /// rows would otherwise appear, with BOTH next steps present and reachable
+    /// (hard rule 7 - every warning names its resolution).
+    func testDuplicateCardRendersWithBothActionsReachable() {
+        let app = launch(args: ["-seedHomeDuplicate"])
+
+        let card = anyElement(app, "homeDuplicateCard")
+        XCTAssertTrue(card.waitForExistence(timeout: 10))
+
+        // The title composes the station and the volume ("Shell, 42.3 L logged
+        // twice") and both actions are reachable buttons.
+        XCTAssertTrue(textContaining(app, "logged twice").exists)
+        let merge = app.buttons["homeMergeButton"]
+        let keepBoth = app.buttons["homeKeepBothButton"]
+        XCTAssertTrue(merge.exists)
+        XCTAssertTrue(merge.isHittable)
+        XCTAssertTrue(keepBoth.exists)
+        XCTAssertTrue(keepBoth.isHittable)
+    }
+
+    /// Keep both: the pair is resolved as two real purchases - the card goes
+    /// away, both entries render as normal rows, and the excluded-count footnote
+    /// drops to nothing (the number is derived, never hard-coded).
+    func testKeepBothResolvesTheCardAndBothCount() {
+        let app = launch(args: ["-seedHomeDuplicate"])
+
+        XCTAssertTrue(anyElement(app, "homeDuplicateCard").waitForExistence(timeout: 10))
+        XCTAssertTrue(textContaining(app, "logged twice").exists)
+        let footnote = textContaining(app, "entry excluded")
+        XCTAssertTrue(footnote.exists)
+
+        app.buttons["homeKeepBothButton"].tap()
+
+        // Resolved: the card is gone, the two entries are ordinary rows, and
+        // nothing is excluded anymore.
+        let resolved = NSPredicate(format: "NOT (exists == 1)")
+        expectation(for: resolved, evaluatedWith: anyElement(app, "homeDuplicateCard"))
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 2,
+                       "Keep both must leave both fills as normal log rows")
+        XCTAssertFalse(textContaining(app, "entry excluded").exists,
+                       "a resolved pair excludes nothing")
+    }
+
+    /// Merge: the richer record survives, the other becomes a tombstone - the
+    /// card goes away and only one live row remains (the tombstone's
+    /// recoverability is asserted at L1 through the repository).
+    func testMergeCollapsesThePairToOneLiveRow() {
+        let app = launch(args: ["-seedHomeDuplicate"])
+
+        XCTAssertTrue(anyElement(app, "homeDuplicateCard").waitForExistence(timeout: 10))
+        app.buttons["homeMergeButton"].tap()
+
+        let resolved = NSPredicate(format: "NOT (exists == 1)")
+        expectation(for: resolved, evaluatedWith: anyElement(app, "homeDuplicateCard"))
+        waitForExpectations(timeout: 5)
+        XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 1,
+                       "Merge must leave exactly one live fill row")
+    }
+
+    /// The excluded-count footnote is the REAL number, derived from the
+    /// detector's flags: with one unresolved pair it reads "1 entry excluded".
+    func testExcludedFootnoteShowsTheRealCountForADuplicate() {
+        let app = launch(args: ["-seedHomeDuplicate"])
+
+        XCTAssertTrue(anyElement(app, "homeDuplicateCard").waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["1 entry excluded"].waitForExistence(timeout: 5),
+                      "the footnote must report the one excluded pair member")
+        XCTAssertTrue(textContaining(app, "entry excluded").exists)
+    }
+
+    // MARK: - Helpers
+
+    private func textContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {
+        app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", substring)).firstMatch
+    }
+
+    private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
     }
 }

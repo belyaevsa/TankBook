@@ -33,4 +33,13 @@ enum L10n {
     }
 
     static var kWh: String { localize("kWh") }
+
+    /// "1 entry excluded" / "2 entries excluded" - the Home footnote for
+    /// entries excluded from a figure. Real plural rules per language
+    /// (Russian has three forms) via the String Catalog's "%lld entries
+    /// excluded" plural variations - never concatenation (the RU pass on P1.4
+    /// proved composed strings need a full localised phrase per language).
+    static func entriesExcluded(_ count: Int) -> String {
+        String(localized: "\(count) entries excluded")
+    }
 }

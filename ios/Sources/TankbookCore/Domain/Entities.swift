@@ -589,6 +589,40 @@ public struct Preferences: Entity, Codable, Sendable, Equatable {
     }
 }
 
+/// A user's resolution of an S2 duplicate pair (docs/SYNC.md, S2: "Keep both"
+/// means both count from then on). The pair is identified by its two fill ids;
+/// the heuristic is derived, so the resolution is the durable user fact that
+/// suppresses it. Device-local for now - syncing resolutions is P4 work, same
+/// as the rest of the sync-shaped surfaces.
+public struct DuplicateResolution: Entity, Codable, Sendable, Equatable {
+    public var id: UUID
+    public var createdAt: Date
+    public var updatedAt: Date
+    public var deletedAt: Date?
+    public let countedEntryID: UUID
+    public let excludedEntryID: UUID
+    public let resolution: Resolution
+
+    /// What the user decided for the pair.
+    public enum Resolution: String, Codable, Sendable, Equatable {
+        /// "Keep both" - genuinely two purchases; both count from then on.
+        case keepBoth
+    }
+
+    /// Memberwise initializer, public so the app target can record a resolution.
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                countedEntryID: UUID, excludedEntryID: UUID,
+                resolution: Resolution) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.countedEntryID = countedEntryID
+        self.excludedEntryID = excludedEntryID
+        self.resolution = resolution
+    }
+}
+
 /// Local rate-cache row - deliberately NOT synced (docs/SCHEMA.md, ExchangeRate).
 /// No envelope: it has no id/createdAt and never leaves the device.
 public struct ExchangeRate: Codable, Sendable, Equatable {
