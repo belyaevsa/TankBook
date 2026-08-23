@@ -66,6 +66,10 @@ Architecture or security work goes to **pro**, screen implementation against a f
 
 ### Is it working, or is it wedged?
 
+**Run `scripts/agent-health.sh <task-id> <logfile>` about five minutes after every dispatch.** It prints WORKING / SUSPECT / WEDGED and exits non-zero on the last two. Roughly one dispatch in four has come up dead on this project (P1.4 and P1.5 both, on their first attempt); both recovered on an immediate re-dispatch of the *same* brief, so it is provider flakiness, not a bad brief - kill and retry rather than rewriting anything.
+
+The decisive signal is **log bytes**: a healthy run writes ~17 KB in its first 30 seconds, a wedged one is still at 0 after 25 minutes. The manual signals below are what the script reads.
+
 Log silence means nothing on its own – nothing is written during model inference, and quiet stretches of five-plus minutes are normal. **Judge by CPU time, not log freshness:**
 
 ```
