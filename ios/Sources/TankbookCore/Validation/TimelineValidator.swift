@@ -14,7 +14,11 @@ public enum TimelineValidator {
 
         public enum Detail: Equatable, Sendable {
             /// CHECK 1: the odometer does not fit between its date-neighbours.
-            case order(previousOdometer: Int?, nextOdometer: Int?)
+            /// The dates are the neighbours' `date` values, so the ConfirmManual
+            /// sheet can quote the conflicting entry ("Aug 17 already recorded
+            /// 119 486 km." - docs/ERRORS.md -> Confirm -> F9a).
+            case order(previousOdometer: Int?, previousDate: Date?,
+                       nextOdometer: Int?, nextDate: Date?)
             /// CHECK 2: implied km/day against a neighbour exceeds the limit.
             case pace(kmPerDay: Double, limitKmPerDay: Double)
         }
@@ -113,13 +117,13 @@ public enum TimelineValidator {
             // CHECK 1 - order: must fit strictly between date-neighbours.
             if let previous, odo <= previous.odometer {
                 flags.append(Flag(kind: .order,
-                                  detail: .order(previousOdometer: previous.odometer,
-                                                 nextOdometer: next?.odometer)))
+                                  detail: .order(previousOdometer: previous.odometer, previousDate: previous.date,
+                                                 nextOdometer: next?.odometer, nextDate: next?.date)))
             }
             if let next, odo >= next.odometer {
                 flags.append(Flag(kind: .order,
-                                  detail: .order(previousOdometer: previous?.odometer,
-                                                 nextOdometer: next.odometer)))
+                                  detail: .order(previousOdometer: previous?.odometer, previousDate: previous?.date,
+                                                 nextOdometer: next.odometer, nextDate: next.date)))
             }
 
             // CHECK 2 - pace: implied km/day against each neighbour.

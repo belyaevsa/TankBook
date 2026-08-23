@@ -1,0 +1,200 @@
+import Foundation
+import TankbookCore
+
+// MARK: - Form state
+
+/// Everything the ConfirmManual sheet collects, plus the derived math that
+/// drives the three-number card (docs/SCHEMA.md -> FillUp, the `unitPrice`
+/// paragraph). The sheet is also the fallback the whole capture pipeline
+/// degrades to, so it stands alone: no camera, no OCR, no network.
+///
+/// The three numbers are total money, volume (litres) and price per litre.
+/// Typed strings are the user's own digits; when exactly two of the three are
+/// typed the third derives on save and `crossCheck = .notApplicable` (with only
+/// two independent values there is no redundancy left to check). Typing all
+/// three runs the cross-check.
+struct ManualFillUpFormState: Equatable {
+    var total = ""
+    var liters = ""
+    var pricePerL = ""
+
+    /// The entry's original currency. Defaults to the vehicle's home currency
+    /// (loading); a foreign pick makes the money pair rate-pending (F9).
+    var currency: CurrencyCode = .eur
+    var fuelKind: FuelKind = .petrol95
+    var isFull = true
+    /// The odometer in the vehicle's distance unit, pre-filled from the last
+    /// known value ("last known · update after typing fuel" - artboard).
+    var odometer = ""
+    var date = Date()
+
+    /// Snapshots for the discard guard: the form is "dirty" only for real
+    /// edits, not for the odometer/date pre-fill (SCREENMAP rule 1 - typed
+    /// input asks before discarding, convenience pre-fills do not).
+    var initialOdometer = ""
+    var initialDate = Date()
+
+    // MARK: Parsing
+
+    private static func decimal(_ text: String) -> Decimal? {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        return Decimal(string: trimmed)
+    }
+
+    var totalDecimal: Decimal? { Self.decimal(total) }
+    var pricePerLDecimal: Decimal? { Self.decimal(pricePerL) }
+    var odometerValue: Int? {
+        let trimmed = odometer.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? nil : Int(trimmed)
+    }
+
+    // MARK: The third value derives
+
+    /// The three numbers as the deriver wants them: volume ALWAYS litres,
+    /// money in the entry's original currency.
+    func mathFields(volumeUnit: VolumeUnit) -> ManualFillUpMath.Fields {
+        .init(total: totalDecimal,
+              volumeL: litersDisplayDouble.map { ManualFillUpMath.volumeL(from: $0, unit: volumeUnit) },
+              unitPrice: pricePerLDecimal)
+    }
+
+    private var litersDisplayDouble: Double? {
+        Self.decimal(liters).map { NSDecimalNumber(decimal: $0).doubleValue }
+    }
+
+    /// The fully-specified triple + cross-check verdict, or `nil` when fewer
+    /// than two of the three numbers are typed (the artboard's "Enter total
+    /// and liters to save" state).
+    func derived(volumeUnit: VolumeUnit) -> ManualFillUpMath.Derived? {
+        ManualFillUpMath.derive(from: mathFields(volumeUnit: volumeUnit))
+    }
+
+    /// The value a field displays: the typed digits if the user has typed, else
+    /// the derived value when this is the field the deriver fills in, else nil.
+    func displayText(for field: ManualFillUpMath.Field, volumeUnit: VolumeUnit) -> String? {
+        switch field {
+        case .total:
+            if !total.isEmpty { return total }
+            guard let derived = derived(volumeUnit: volumeUnit) else { return nil }
+            return ManualFillUpFormat.decimal(derived.total, fractionDigits: 2)
+        case .volume:
+            if !liters.isEmpty { return liters }
+            guard let derived = derived(volumeUnit: volumeUnit) else { return nil }
+            let display = ManualFillUpMath.displayVolume(from: derived.volumeL, unit: volumeUnit)
+            return ManualFillUpFormat.decimal(display, fractionDigits: 2)
+        case .unitPrice:
+            if !pricePerL.isEmpty { return pricePerL }
+            guard let derived = derived(volumeUnit: volumeUnit) else { return nil }
+            return ManualFillUpFormat.decimal(derived.unitPrice, fractionDigits: 3)
+        }
+    }
+
+    /// True once two of the three numbers exist - the save gate.
+    func canSave(volumeUnit: VolumeUnit) -> Bool {
+        derived(volumeUnit: volumeUnit) != nil
+    }
+
+    // MARK: Discard guard
+
+    /// Real edits only: typed numbers, an odometer changed from its pre-fill, a
+    /// date moved, a fuel/currency/full-tank choice made. Opening the sheet and
+    /// closing it with just the convenience pre-fill discards silently.
+    func hasEdits(vehicle: Vehicle) -> Bool {
+        if !total.isEmpty || !liters.isEmpty || !pricePerL.isEmpty { return true }
+        if odometer != initialOdometer { return true }
+        if !Calendar.current.isDate(date, inSameDayAs: initialDate) { return true }
+        if !isFull { return true }
+        if fuelKind != (vehicle.fuelKinds.first ?? .petrol95) { return true }
+        if currency != vehicle.homeCurrency { return true }
+        return false
+    }
+}
+
+// MARK: - Display formatting
+
+/// Plain decimal formatting for the pump-card figures. No thousands grouping:
+/// the odometer grouping formatter is deliberately deferred to P1.4
+/// (HANDOVER.md open item 0), so digits render as the Add-car screen does today
+/// and the fix lands once.
+enum ManualFillUpFormat {
+    static func decimal(_ value: Decimal, fractionDigits: Int) -> String {
+        let formatter = Self.formatter(fractionDigits: fractionDigits)
+        return formatter.string(from: NSDecimalNumber(decimal: value)) ?? ""
+    }
+
+    static func decimal(_ value: Double, fractionDigits: Int) -> String {
+        let formatter = Self.formatter(fractionDigits: fractionDigits)
+        return formatter.string(from: NSNumber(value: value)) ?? ""
+    }
+
+    private static func formatter(fractionDigits: Int) -> NumberFormatter {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.usesGroupingSeparator = false
+        formatter.minimumFractionDigits = fractionDigits
+        formatter.maximumFractionDigits = fractionDigits
+        return formatter
+    }
+}
+
+// MARK: - F9a timeline support
+
+/// The odometer-conflict quote for the F9a warn (docs/ERRORS.md -> Confirm).
+/// Produced from the validation engine's flag - the check lives in
+/// TankbookCore, never in UI-side logic.
+struct OdometerConflict: Equatable {
+    let quote: String?
+    let flagKind: ConflictState.ConflictKind
+}
+
+extension ManualFillUpFormState {
+    /// Runs the candidate entry through `TimelineValidator` against the
+    /// vehicle's existing timeline. Returns the conflicting-entry quote when the
+    /// candidate breaks the order invariant (the documented F9a state); a plain
+    /// timeline-flag marker otherwise.
+    func odometerConflict(vehicle: Vehicle,
+                          existingEntries: [any Entry],
+                          distanceUnit: DistanceUnit) -> OdometerConflict? {
+        guard let odo = odometerValue else { return nil }
+        let candidate = candidate(vehicle: vehicle)
+        let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
+                                                     vehicle: vehicle)
+        guard let validation = validations.first(where: { $0.entryID == candidate.id }),
+              let flag = validation.flags.first else {
+            return nil
+        }
+        let unit = L10n.distanceUnit(distanceUnit)
+        switch flag.detail {
+        case .order(let previousOdometer, let previousDate, _, _):
+            if let previousOdometer, let previousDate, odo <= previousOdometer {
+                let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
+                let quote = String(format: L10n.localize("%@ already recorded %d km."), day, previousOdometer)
+                return OdometerConflict(quote: quote, flagKind: flag.kind)
+            }
+            return OdometerConflict(quote: nil, flagKind: flag.kind)
+        case .pace:
+            return OdometerConflict(quote: nil, flagKind: flag.kind)
+        }
+    }
+
+    /// A best-effort candidate `FillUp` used ONLY to run the timeline check; the
+    /// entry actually saved is built by the save path with the derived third
+    /// value and the engine's verdict.
+    func candidate(vehicle: Vehicle) -> FillUp {
+        let now = Date()
+        let derived = derived(volumeUnit: vehicle.units.volume)
+        let money = Money(amount: derived?.total ?? 0, currency: currency,
+                          homeCurrency: vehicle.homeCurrency)
+        return FillUp(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: date, odometer: odometerValue,
+            money: money, note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            volumeL: derived?.volumeL ?? 0,
+            unitPrice: derived?.unitPrice,
+            fuelKind: fuelKind, fuelGrade: nil, isFull: isFull,
+            tankLevelAfterPct: isFull ? 100 : nil, stationId: nil,
+            crossCheck: derived?.crossCheck ?? .notApplicable, extraction: nil)
+    }
+}

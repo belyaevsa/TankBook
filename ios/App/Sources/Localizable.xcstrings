@@ -518,6 +518,167 @@
         "en" : { "stringUnit" : { "state" : "translated", "value" : "gal" } },
         "ru" : { "stringUnit" : { "state" : "translated", "value" : "гал" } }
       }
+    },
+    "≈ – · converts when online" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "≈ – · converts when online" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "≈ – · пересчитается онлайн" } }
+      }
+    },
+    "%@ already recorded %d km." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "%@ already recorded %d km." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "«%@» уже зафиксирован пробег %d км." } }
+      }
+    },
+    "checks as you type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "checks as you type" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "проверяется по мере ввода" } }
+      }
+    },
+    "Currency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Currency" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Валюта" } }
+      }
+    },
+    "Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Date" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Дата" } }
+      }
+    },
+    "Enter total and liters to save" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Enter total and liters to save" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Введите сумму и литры, чтобы сохранить" } }
+      }
+    },
+    "fills in from total ÷ liters" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "fills in from total ÷ liters" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "считается из суммы ÷ литров" } }
+      }
+    },
+    "Fix date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Fix date" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Изменить дату" } }
+      }
+    },
+    "Full tank" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Full tank" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Полный бак" } }
+      }
+    },
+    "last known · update after typing fuel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "last known · update after typing fuel" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "последний известный · обновите после ввода топлива" } }
+      }
+    },
+    "Liters" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Liters" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Литры" } }
+      }
+    },
+    "More…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "More…" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ещё…" } }
+      }
+    },
+    "Nearby suggestion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Nearby suggestion" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ближайшая заправка" } }
+      }
+    },
+    "No car yet – add one from Garage to start logging fill-ups." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "No car yet – add one from Garage to start logging fill-ups." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Пока нет автомобиля – добавьте его в Гараже, чтобы вести журнал." } }
+      }
+    },
+    "Odometer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Odometer" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Пробег" } }
+      }
+    },
+    "Odometer breaks the timeline – check it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Odometer breaks the timeline – check it." } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Пробег нарушает хронологию – проверьте его." } }
+      }
+    },
+    "Price / L" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Price / L" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Цена / л" } }
+      }
+    },
+    "Recent first · a foreign amount converts to %@ automatically" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Recent first · a foreign amount converts to %@ automatically" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сначала недавние · иностранная сумма автоматически переводится в %@" } }
+      }
+    },
+    "Save fill-up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Save fill-up" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Сохранить заправку" } }
+      }
+    },
+    "Station" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Station" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Заправка" } }
+      }
+    },
+    "these don't multiply up – check the amber field" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "these don't multiply up – check the amber field" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "значения не сходятся – проверьте подсвеченное поле" } }
+      }
+    },
+    "Total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Total" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Итого" } }
+      }
+    },
+    "Which currency is this?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : { "stringUnit" : { "state" : "translated", "value" : "Which currency is this?" } },
+        "ru" : { "stringUnit" : { "state" : "translated", "value" : "Какая это валюта?" } }
+      }
     }
   },
   "version" : "1.0"

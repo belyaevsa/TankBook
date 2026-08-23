@@ -12,6 +12,7 @@ final class DiscardGuardUITests: XCTestCase {
 
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments = ["-seedVehicleForUITests"]
         app.launch()
         return app
     }
@@ -21,7 +22,7 @@ final class DiscardGuardUITests: XCTestCase {
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
         app.buttons["typeItButton"].tap()
 
-        let field = app.textFields["amountField"]
+        let field = app.textFields["manualFillUpTotalField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         field.tap()
         field.typeText("42")
@@ -34,13 +35,13 @@ final class DiscardGuardUITests: XCTestCase {
 
         // Keep editing preserves the sheet and the input.
         app.buttons["Keep editing"].tap()
-        XCTAssertTrue(app.textFields["amountField"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
 
         // Close again -> Discard -> sheet gone.
         app.buttons["sheetCloseButton"].tap()
         XCTAssertTrue(app.buttons["Discard"].waitForExistence(timeout: 5))
         app.buttons["Discard"].tap()
-        XCTAssertFalse(app.textFields["amountField"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.alerts["Discard changes?"].exists)
     }
 }

@@ -134,6 +134,42 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
     public var stationId: UUID?
     public var crossCheck: CrossCheckState
     public var extraction: ExtractionMeta?
+
+    /// Memberwise initializer, public so the app target can save a `FillUp`
+    /// from the ConfirmManual sheet (P1.3) - the same construction blocker that
+    /// `Vehicle` and `Attachment` had; see their notes. Parameter order matches
+    /// the struct declaration, so the package's synthesized init stays the same.
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                vehicleId: UUID, date: Date, odometer: Int? = nil, money: Money? = nil,
+                note: String? = nil, attachments: [AttachmentID] = [],
+                provenance: Provenance, conflict: ConflictState = .none,
+                purchaseGroupId: UUID? = nil, volumeL: Double, unitPrice: Decimal? = nil,
+                fuelKind: FuelKind, fuelGrade: String? = nil, isFull: Bool,
+                tankLevelAfterPct: Double? = nil, stationId: UUID? = nil,
+                crossCheck: CrossCheckState, extraction: ExtractionMeta? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.vehicleId = vehicleId
+        self.date = date
+        self.odometer = odometer
+        self.money = money
+        self.note = note
+        self.attachments = attachments
+        self.provenance = provenance
+        self.conflict = conflict
+        self.purchaseGroupId = purchaseGroupId
+        self.volumeL = volumeL
+        self.unitPrice = unitPrice
+        self.fuelKind = fuelKind
+        self.fuelGrade = fuelGrade
+        self.isFull = isFull
+        self.tankLevelAfterPct = tankLevelAfterPct
+        self.stationId = stationId
+        self.crossCheck = crossCheck
+        self.extraction = extraction
+    }
 }
 
 /// A charging session (docs/SCHEMA.md, ChargeSession).

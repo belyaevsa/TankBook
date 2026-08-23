@@ -38,6 +38,12 @@ struct HomeRootView: View {
                 .accessibilityIdentifier("settingsButton")
             }
         }
+        .onAppear {
+            // UI-test/screenshot hook: open the manual form directly at launch.
+            if ProcessInfo.processInfo.arguments.contains("-openManualForm") {
+                presentSheet(.confirmManual)
+            }
+        }
     }
 }
 

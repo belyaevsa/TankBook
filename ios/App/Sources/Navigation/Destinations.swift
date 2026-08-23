@@ -45,7 +45,7 @@ struct SheetDestinationView: View {
     @ViewBuilder
     private var sheetContent: some View {
         switch route {
-        case .confirmManual: ManualFillUpContent(hasUnsavedChanges: $hasUnsavedChanges)
+        case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
         case .carSwitcher, .tankLevel, .reminderComplete, .signIn: SheetPlaceholderContent()
         case .serviceEntry: ServiceEntryContent(hasUnsavedChanges: $hasUnsavedChanges)
         }
@@ -129,23 +129,6 @@ private struct RemindersContent: View {
 private struct SheetPlaceholderContent: View {
     var body: some View {
         Color.clear
-    }
-}
-
-/// The manual fill-up placeholder (P1.3) exercises the discard guard's
-/// "typed input" half: a non-empty amount marks the sheet dirty.
-private struct ManualFillUpContent: View {
-    @Binding var hasUnsavedChanges: Bool
-    @State private var amount = ""
-
-    var body: some View {
-        Form {
-            TextField("Amount", text: $amount)
-                .accessibilityIdentifier("amountField")
-                .onChange(of: amount) { _, newValue in
-                    hasUnsavedChanges = !newValue.isEmpty
-                }
-        }
     }
 }
 
