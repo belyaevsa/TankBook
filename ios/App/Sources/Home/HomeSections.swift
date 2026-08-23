@@ -35,6 +35,13 @@ enum HomeFormat {
         date.formatted(.dateTime.month(.abbreviated).day())
     }
 
+    /// The month's name for the stream dividers ("August"), localized by the
+    /// device locale - the divider's total is composed separately (see the
+    /// divider in `HomeRecentEntries`).
+    static func monthName(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.wide))
+    }
+
     /// The current month's name for the vitals and the entries section header.
     static func currentMonth(_ date: Date = Date()) -> String {
         date.formatted(.dateTime.month(.wide))
@@ -229,79 +236,129 @@ struct HomeVitalsRow: View {
     }
 }
 
-// MARK: - Recent entries
+// MARK: - Log stream (recent entries)
 
-/// The recent-entries preview (HomeA artboard's monthly section). This is the
-/// Home preview, not the full Log stream (P1.5): newest few entries, each a
-/// route to Edit entry. A conflicting entry carries the amber F9a/S3 badge and
-/// the section footnotes the excluded count (docs/ERRORS.md -> Home).
+/// The recent-entries preview (HomeA artboard's monthly section), now the real
+/// log stream (P1.5): the flat list became `LogStream`'s derived sections.
+///
+/// - Entries group by calendar month, newest first, one divider each; the
+///   divider carries the month's total spend in DIN (docs/DESIGN.md).
+/// - Card content follows docs/DESIGN.md "Entry card content": title is the
+///   station or vendor, the trailing figure the amount in DIN, and the subtitle
+///   is quantity · fuel kind? · odometer · 📎? · date. The odometer uses
+///   `OdometerFormat` and is OMITTED when the entry has none; the attachment is
+///   a glyph with an accessibility label, never a word.
+/// - Entries sharing a `purchaseGroupId` render as ONE receipt (hard rule 4 /
+///   docs/SCHEMA.md CHECK 3): the group shows the grand total, the fuel row
+///   inside it shows the fuel amount.
+///
+/// This is the Home preview, not the full Log stream screen (P1.6): the newest
+/// `previewLimit` rows.
 struct HomeRecentEntries: View {
     let entries: [any Entry]
     let stations: [Station]
     let vehicle: Vehicle
     let excludedEntryCount: Int
 
-    private var rows: [HomeEntryRow] {
-        entries
-            .sorted { ($0.date, $0.createdAt) > ($1.date, $1.createdAt) }
-            .prefix(6)
-            .map { HomeEntryRow(entry: $0, stationName: stationName($0)) }
+    /// Home is a preview: the newest rows before the full-stream screen (P1.6)
+    /// takes over.
+    private static let previewLimit = 20
+
+    @State private var collapsedGroupIDs: Set<UUID> = []
+
+    private var stream: LogStream {
+        LogStream(vehicle: vehicle, entries: entries)
+            .previewRows(Self.previewLimit)
+    }
+
+    private var volumeUnit: VolumeUnit { vehicle.units.volume }
+    private var distanceUnit: DistanceUnit { vehicle.units.distance }
+
+    private var currencySymbol: String {
+        AddVehicleSupport.currencySymbol(for: vehicle.homeCurrency)
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(rows.first.map { HomeFormat.currentMonth($0.date) } ?? HomeFormat.currentMonth())
-                    .font(.caption)
-                    .textCase(.uppercase)
-                    .tracking(1.2)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                if excludedEntryCount > 0 {
-                    Text("1 entry excluded")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.Palette.warn)
-                        .accessibilityIdentifier("homeExcludedFootnote")
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            if excludedEntryCount > 0 {
+                excludedFootnote
             }
-            .padding(.horizontal, 2)
-
-            VStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.element.id) { index, row in
-                    rowView(row)
-                    if index < rows.count - 1 { CardDivider() }
-                }
+            ForEach(stream.sections) { section in
+                monthSection(section)
             }
-            .formCard()
         }
         .padding(.top, 6)
     }
 
-    private func rowView(_ row: HomeEntryRow) -> some View {
+    // MARK: Month sections
+
+    private func monthSection(_ section: LogStream.Section) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            monthDivider(section)
+            ForEach(section.rows) { row in
+                rowCard(row)
+            }
+        }
+    }
+
+    /// The month's divider: name on the left, the month's total spend in DIN on
+    /// the right (docs/DESIGN.md). One accessibility element - the composed
+    /// label is a full localized phrase per language, never concatenation.
+    private func monthDivider(_ section: LogStream.Section) -> some View {
+        let monthName = HomeFormat.monthName(section.monthStart)
+        let spend = HomeFormat.spend(section.totalSpend, symbol: currencySymbol)
+        return HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text(monthName)
+                .font(.caption)
+                .textCase(.uppercase)
+                .tracking(1.2)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Spacer(minLength: 8)
+            Text(spend)
+                .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                .foregroundStyle(Theme.Palette.ink)
+        }
+        .padding(.horizontal, 2)
+        .padding(.top, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(String(format: L10n.localize("%@ · %@"), monthName, spend))
+        .accessibilityIdentifier("logMonthDivider")
+    }
+
+    private var excludedFootnote: some View {
+        Text("1 entry excluded")
+            .font(.caption2)
+            .foregroundStyle(Theme.Palette.warn)
+            .accessibilityIdentifier("homeExcludedFootnote")
+    }
+
+    // MARK: Rows
+
+    @ViewBuilder
+    private func rowCard(_ row: LogStream.Row) -> some View {
+        switch row {
+        case .entry(let entry):
+            entryCard(entry)
+        case .group(let group):
+            groupCard(group)
+        }
+    }
+
+    // MARK: Entry card
+
+    private func entryCard(_ entry: LogStream.LogEntry) -> some View {
         HStack(spacing: 12) {
             NavigationLink(value: Route.editEntry) {
                 HStack(spacing: 12) {
                     Circle()
-                        .fill(row.dotColor)
+                        .fill(dotColor(entry.kind))
                         .frame(width: 9, height: 9)
                     VStack(alignment: .leading, spacing: 1) {
-                        HStack(spacing: 5) {
-                            Text(row.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Theme.Palette.ink)
-                                .lineLimit(1)
-                            if row.isConflicted {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.caption2)
-                                    .foregroundStyle(Theme.Palette.warn)
-                            }
-                        }
-                        Text(row.subtitle)
-                            .font(.caption)
-                            .foregroundStyle(Theme.Palette.inkSoft)
-                            .lineLimit(1)
+                        titleLine(entry)
+                        subtitleLine(entry)
                     }
                     Spacer(minLength: 8)
-                    if let amount = row.amount {
+                    if let amount = amountText(entry) {
                         Text(amount)
                             .font(.custom(AppFonts.dinAlternateBold, size: 16))
                             .foregroundStyle(Theme.Palette.ink)
@@ -311,9 +368,9 @@ struct HomeRecentEntries: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("editEntryButton")
+            .accessibilityIdentifier("logEntryButton")
 
-            if row.isConflicted {
+            if entry.isConflicted {
                 NavigationLink(value: Route.editEntry) {
                     Image(systemName: "chevron.right")
                         .font(.caption2.weight(.bold))
@@ -327,69 +384,201 @@ struct HomeRecentEntries: View {
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 12)
+        .formCard()
     }
 
-    private func stationName(_ entry: any Entry) -> String? {
-        guard let stationID = (entry as? FillUp)?.stationId else { return nil }
-        return stations.first { $0.id == stationID }?.name
+    private func titleLine(_ entry: LogStream.LogEntry) -> some View {
+        HStack(spacing: 5) {
+            Text(title(entry))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Palette.ink)
+                .lineLimit(1)
+            if entry.isConflicted {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.warn)
+            }
+        }
+    }
+
+    /// The subtitle: `quantity · fuelKind? · odometer? · 📎? · date`. Every
+    /// segment the stream decided to show, in order (docs/DESIGN.md). Inside a
+    /// purchase group the attachment is omitted - the shared receipt is already
+    /// marked once on the group header, and three paperclips on one slip would
+    /// be noise.
+    private func subtitleLine(_ entry: LogStream.LogEntry,
+                              includeAttachment: Bool = true) -> some View {
+        let segments = includeAttachment
+            ? entry.subtitleSegments
+            : entry.subtitleSegments.filter { segment in
+                if case .attachment = segment { return false } else { return true }
+            }
+        return HStack(spacing: 3) {
+            ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
+                if index > 0 {
+                    Text("·")
+                        .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
+                }
+                segmentView(segment)
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(Theme.Palette.inkSoft)
+        .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private func segmentView(_ segment: LogStream.SubtitleSegment) -> some View {
+        switch segment {
+        case .quantity(.volumeL(let litres)):
+            Text("\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))")
+        case .quantity(.energyKWh(let kWh)):
+            Text("\(ManualFillUpFormat.decimal(kWh, fractionDigits: 0)) \(L10n.kWh)")
+        case .fuelKind(let kind):
+            Text(kind.fuelKindLabel)
+                .accessibilityIdentifier("logEntryFuelKind")
+        case .odometer(let value):
+            Text("\(OdometerFormat.grouped(value)) \(L10n.distanceUnit(distanceUnit))")
+        case .attachment:
+            Image(systemName: "paperclip")
+                .font(.caption2)
+                .accessibilityLabel(L10n.localize("Has attachment"))
+                .accessibilityIdentifier("logEntryAttachment")
+        case .date(let date):
+            Text(HomeFormat.day(date))
+        }
+    }
+
+    private func amountText(_ entry: LogStream.LogEntry) -> String? {
+        guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
+        let symbol = AddVehicleSupport.currencySymbol(for: money.homeCurrency)
+        return HomeFormat.entryAmount(homeAmount, symbol: symbol)
+    }
+
+    private func dotColor(_ kind: LogStream.Kind) -> Color {
+        switch kind {
+        case .fuel: return Theme.Palette.taillight
+        case .charge: return Theme.Palette.headlight
+        case .service, .expense: return Theme.Palette.inkSoft
+        }
+    }
+
+    private func title(_ entry: LogStream.LogEntry) -> String {
+        switch entry.kind {
+        case .fuel:
+            if let stationID = entry.stationId,
+               let name = stations.first(where: { $0.id == stationID })?.name {
+                return name
+            }
+            return entry.fuelKind?.fuelKindLabel ?? L10n.localize("Fuel")
+        case .charge:
+            return entry.provider ?? L10n.localize("Charge")
+        case .service:
+            return entry.vendor ?? L10n.localize("Service")
+        case .expense:
+            return entry.entryTitle ?? L10n.localize("Expense")
+        }
+    }
+
+    // MARK: Purchase group card
+
+    /// One physical purchase from a single receipt (docs/SCHEMA.md CHECK 3).
+    /// The group's trailing figure is the grand total; the fuel row inside it
+    /// shows the FUEL amount - never the other way around (hard rule 4).
+    private func groupCard(_ group: LogStream.LogGroup) -> some View {
+        let collapsed = collapsedGroupIDs.contains(group.id)
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    if collapsed {
+                        collapsedGroupIDs.remove(group.id)
+                    } else {
+                        collapsedGroupIDs.insert(group.id)
+                    }
+                }
+            } label: {
+                HStack(spacing: 12) {
+                    Circle()
+                        .fill(dotColor(group.members.first?.kind ?? .fuel))
+                        .frame(width: 9, height: 9)
+                    VStack(alignment: .leading, spacing: 1) {
+                        HStack(spacing: 5) {
+                            Text(groupTitle(group))
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Theme.Palette.ink)
+                                .lineLimit(1)
+                            if group.hasAttachment {
+                                Image(systemName: "paperclip")
+                                    .font(.caption2)
+                                    .foregroundStyle(Theme.Palette.inkSoft)
+                                    .accessibilityLabel(L10n.localize("Has attachment"))
+                                    .accessibilityIdentifier("logEntryAttachment")
+                            }
+                        }
+                        Text(collapsed ? groupCountLabel(group) : L10n.localize("Tap to hide items"))
+                            .font(.caption)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    }
+                    Spacer(minLength: 8)
+                    Text(HomeFormat.entryAmount(group.grandTotal, symbol: currencySymbol))
+                        .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .accessibilityIdentifier("logGroupGrandTotal")
+                    Image(systemName: collapsed ? "chevron.down" : "chevron.up")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .contentShape(Rectangle())
+                .padding(.horizontal, Theme.Spacing.cardPadding)
+                .padding(.vertical, 12)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("logGroupToggle")
+
+            if !collapsed {
+                ForEach(group.members) { member in
+                    CardDivider()
+                    groupMemberRow(member)
+                }
+            }
+        }
+        .formCard()
+    }
+
+    private func groupCountLabel(_ group: LogStream.LogGroup) -> String {
+        String(format: L10n.localize("%d items on this receipt"), group.members.count)
+    }
+
+    private func groupTitle(_ group: LogStream.LogGroup) -> String {
+        group.members.first.map(title) ?? L10n.localize("Purchase")
+    }
+
+    /// A member row inside an expanded group. The fuel member shows its FUEL
+    /// amount, never the receipt's grand total (hard rule 4).
+    private func groupMemberRow(_ member: LogStream.LogEntry) -> some View {
+        NavigationLink(value: Route.editEntry) {
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 1) {
+                    titleLine(member)
+                    subtitleLine(member, includeAttachment: false)
+                }
+                Spacer(minLength: 8)
+                if let amount = amountText(member) {
+                    Text(amount)
+                        .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                        .foregroundStyle(Theme.Palette.ink)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("logGroupMemberButton")
     }
 }
 
-/// A single Home entry row, rendered from any `Entry` type (fuel, charge,
-/// service, expense). Colors follow DESIGN.md accent semantics: taillight for
-/// fuel, headlight for electric, neutral inkSoft for service/expense.
-private struct HomeEntryRow: Identifiable {
-    let id: UUID
-    let date: Date
-    let dotColor: Color
-    let title: String
-    let subtitle: String
-    let amount: String?
-    let isConflicted: Bool
-
-    init(entry: any Entry, stationName: String?) {
-        self.id = entry.id
-        self.date = entry.date
-        self.isConflicted = entry.conflict != .none
-
-        let symbol = entry.money.map {
-            AddVehicleSupport.currencySymbol(for: $0.homeCurrency)
-        } ?? ""
-        self.amount = entry.money?.homeAmount.map {
-            HomeFormat.entryAmount($0, symbol: symbol)
-        }
-
-        if let fill = entry as? FillUp {
-            self.dotColor = Theme.Palette.taillight
-            self.title = stationName ?? fill.fuelKind.fuelKindLabel
-            var parts: [String] = []
-            parts.append("\(ManualFillUpFormat.decimal(fill.volumeL, fractionDigits: 1)) \(L10n.volumeUnit(.l))")
-            parts.append(fill.fuelKind.fuelKindLabel)
-            parts.append(HomeFormat.day(fill.date))
-            self.subtitle = parts.joined(separator: " · ")
-        } else if let charge = entry as? ChargeSession {
-            self.dotColor = Theme.Palette.headlight
-            self.title = charge.provider ?? "Charge"
-            var parts: [String] = []
-            parts.append("\(ManualFillUpFormat.decimal(charge.energyKWh, fractionDigits: 0)) \(L10n.kWh)")
-            parts.append(charge.chargeType.chargeTypeLabel)
-            parts.append(HomeFormat.day(charge.date))
-            self.subtitle = parts.joined(separator: " · ")
-        } else if let service = entry as? ServiceRecord {
-            self.dotColor = Theme.Palette.inkSoft
-            self.title = service.vendor ?? "Service"
-            self.subtitle = HomeFormat.day(service.date)
-        } else if let expense = entry as? Expense {
-            self.dotColor = Theme.Palette.inkSoft
-            self.title = expense.title
-            self.subtitle = HomeFormat.day(expense.date)
-        } else {
-            self.dotColor = Theme.Palette.inkSoft
-            self.title = "Entry"
-            self.subtitle = HomeFormat.day(entry.date)
-        }
-    }
-}
+// MARK: - Fuel kind label
 
 private extension FuelKind {
     var fuelKindLabel: String {
@@ -401,16 +590,6 @@ private extension FuelKind {
         case .cng: return L10n.localize("CNG")
         case .e85: return L10n.localize("E85")
         case .electricity: return L10n.localize("Electricity")
-        }
-    }
-}
-
-private extension ChargeType {
-    var chargeTypeLabel: String {
-        switch self {
-        case .acHome: return "Home"
-        case .acPublic: return "AC"
-        case .dcPublic: return "DC"
         }
     }
 }

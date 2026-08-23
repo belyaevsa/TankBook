@@ -39,7 +39,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | **[x]** P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
 | **[x]** P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
 | **[x]** P1.4 | Home: garage card, vitals, guest/empty/first-estimate states | L4: snapshots ×(guest, 1-fill, full) ×(dark, light) ×(EN, RU); "no N/A tiles" assertion |
-| P1.5 | Log stream: entry cards, month dividers, purchase-group rendering | L4: snapshot; L1: ordering (date) and group collapse |
+| **[x]** P1.5 | Log stream: entry cards, month dividers, purchase-group rendering | L4: snapshot; L1: ordering (date) and group collapse |
 | P1.6 | Edit entry + full-vehicle recompute + delta toast | L1-through-UI: edit-case goldens via the real store; toast shows old→new |
 | P1.7 | Recently deleted + sync-overwritten section + 30-day purge | L1: tombstone restore returns entry to stats; purge job honors grace; L4: snapshot |
 | P1.8 | Duplicate detection (S2 heuristic) + conflict badges (F9a UI) | L1: heuristic boundary cases; single-count-until-resolved invariant; L4: badge + combined card snapshots |

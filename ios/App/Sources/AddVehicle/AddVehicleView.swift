@@ -76,7 +76,15 @@ struct AddVehicleView: View {
             form.name = "\(prefill.make) \(prefill.model)"
         }
         form.powertrain = prefill.powertrain
-        form.selectedFuelKinds = Set(prefill.fuelKinds)
+        // The catalog's fuelKinds is an OFFER SET - what the model line is sold
+        // with - not what this car takes (docs/SCHEMA.md -> Vehicle catalog).
+        // "Volvo V60 -> [petrol95, diesel]" means petrol OR diesel; copying both
+        // onto the Vehicle creates a car that accepts two fuels, which no car
+        // does, and then prints "95" on every log row forever. Select ONE by
+        // default; the chip row already offers every other kind the powertrain
+        // allows, so the alternatives stay one tap away - the app suggests, the
+        // user decides (hard rule 13).
+        form.selectedFuelKinds = Set(prefill.fuelKinds.prefix(1))
         if let tank = prefill.tankCapacityL {
             form.capacity = AddVehicleSupport.capacityText(tank)
         } else if let battery = prefill.batteryCapacityKWh {

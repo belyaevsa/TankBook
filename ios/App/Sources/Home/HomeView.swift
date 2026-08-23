@@ -42,12 +42,22 @@ struct HomeView: View {
                 content
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 24)
+            // The floating tab bar overlaps the scroll content on iOS 26: the
+            // automatic bottom inset ends at the home indicator, leaving the
+            // last card half-hidden behind the bar. This clearance pushes the
+            // last row fully above it (P1.5 - verified by the L4 "last row
+            // clears the tab bar" assertion).
+            .padding(.bottom, Self.bottomClearance)
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
         .task { await load() }
     }
+
+    /// The scroll content's extra bottom clearance so the last log row clears
+    /// the floating tab bar (tab bar ~49pt + its float margin, minus the 24pt
+    /// the sections already get from their own spacing).
+    private static let bottomClearance: CGFloat = 64
 
     @ViewBuilder
     private var content: some View {

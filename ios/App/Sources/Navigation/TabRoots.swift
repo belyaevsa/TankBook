@@ -78,6 +78,7 @@ struct HomeTabView: View {
     @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
     @State private var modal: ModalRoute?
+    @State private var didPresentDebugLaunch = false
 
     var body: some View {
         RootedNavigationStack(path: $path) {
@@ -85,6 +86,23 @@ struct HomeTabView: View {
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
         .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
+        .onAppear(perform: presentDebugLaunch)
+    }
+
+    /// `-presentScreen <route>` / `-openManualForm`: DEBUG-only launch hook
+    /// (DebugLaunch) so `simctl`-driven screenshots can reach sheet screens
+    /// without a UI test tap. Compiled out of release builds.
+    private func presentDebugLaunch() {
+        #if DEBUG
+        guard !didPresentDebugLaunch else { return }
+        didPresentDebugLaunch = true
+        let request = DebugLaunch.resolve()
+        if let sheet = request.sheet {
+            self.sheet = sheet
+        } else if let route = request.route {
+            path = [route]
+        }
+        #endif
     }
 }
 

@@ -196,6 +196,42 @@ public struct ChargeSession: Entry, Codable, Sendable, Equatable {
     public var socStartPct: Double?
     public var socEndPct: Double?
     public var extraction: ExtractionMeta?
+
+    /// Memberwise initializer, public so the app target can seed a
+    /// `ChargeSession` for UI tests (the same construction blocker that
+    /// `Vehicle` and `FillUp` had; see their notes).
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                vehicleId: UUID, date: Date, odometer: Int? = nil, money: Money? = nil,
+                note: String? = nil, attachments: [AttachmentID] = [],
+                provenance: Provenance, conflict: ConflictState = .none,
+                purchaseGroupId: UUID? = nil, energyKWh: Double,
+                unitPrice: Decimal? = nil, chargeType: ChargeType,
+                provider: String? = nil, tariffId: UUID? = nil,
+                durationMin: Int? = nil, socStartPct: Double? = nil,
+                socEndPct: Double? = nil, extraction: ExtractionMeta? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.vehicleId = vehicleId
+        self.date = date
+        self.odometer = odometer
+        self.money = money
+        self.note = note
+        self.attachments = attachments
+        self.provenance = provenance
+        self.conflict = conflict
+        self.purchaseGroupId = purchaseGroupId
+        self.energyKWh = energyKWh
+        self.unitPrice = unitPrice
+        self.chargeType = chargeType
+        self.provider = provider
+        self.tariffId = tariffId
+        self.durationMin = durationMin
+        self.socStartPct = socStartPct
+        self.socEndPct = socEndPct
+        self.extraction = extraction
+    }
 }
 
 /// Work DONE to the car (docs/SCHEMA.md, ServiceRecord).
@@ -218,6 +254,36 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
     public var usedParts: [UUID]
     public var tireSetId: UUID?
     public var proposedReminderId: UUID?
+
+    /// Memberwise initializer, public so the app target can seed a
+    /// `ServiceRecord` for UI tests (the same construction blocker that
+    /// `Vehicle` and `FillUp` had; see their notes).
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                vehicleId: UUID, date: Date, odometer: Int? = nil, money: Money? = nil,
+                note: String? = nil, attachments: [AttachmentID] = [],
+                provenance: Provenance, conflict: ConflictState = .none,
+                purchaseGroupId: UUID? = nil, vendor: String? = nil,
+                items: [ServiceItem] = [], usedParts: [UUID] = [],
+                tireSetId: UUID? = nil, proposedReminderId: UUID? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.vehicleId = vehicleId
+        self.date = date
+        self.odometer = odometer
+        self.money = money
+        self.note = note
+        self.attachments = attachments
+        self.provenance = provenance
+        self.conflict = conflict
+        self.purchaseGroupId = purchaseGroupId
+        self.vendor = vendor
+        self.items = items
+        self.usedParts = usedParts
+        self.tireSetId = tireSetId
+        self.proposedReminderId = proposedReminderId
+    }
 }
 
 /// An invoice line item (docs/SCHEMA.md, ServiceItem).
@@ -259,6 +325,35 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
     public var title: String
     public var recurrence: RecurrenceRule?
     public var installedInServiceId: UUID?
+
+    /// Memberwise initializer, public so the app target can seed an `Expense`
+    /// for UI tests (the same construction blocker that `Vehicle` and `FillUp`
+    /// had; see their notes).
+    public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
+                vehicleId: UUID, date: Date, odometer: Int? = nil, money: Money? = nil,
+                note: String? = nil, attachments: [AttachmentID] = [],
+                provenance: Provenance, conflict: ConflictState = .none,
+                purchaseGroupId: UUID? = nil, category: ExpenseCategory,
+                title: String, recurrence: RecurrenceRule? = nil,
+                installedInServiceId: UUID? = nil) {
+        self.id = id
+        self.createdAt = createdAt
+        self.updatedAt = updatedAt
+        self.deletedAt = deletedAt
+        self.vehicleId = vehicleId
+        self.date = date
+        self.odometer = odometer
+        self.money = money
+        self.note = note
+        self.attachments = attachments
+        self.provenance = provenance
+        self.conflict = conflict
+        self.purchaseGroupId = purchaseGroupId
+        self.category = category
+        self.title = title
+        self.recurrence = recurrence
+        self.installedInServiceId = installedInServiceId
+    }
 }
 
 /// Recurrence for recurring expenses (e.g. yearly insurance). Judgement call:

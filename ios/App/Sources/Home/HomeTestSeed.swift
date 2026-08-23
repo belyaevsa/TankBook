@@ -2,10 +2,10 @@ import Foundation
 import TankbookCore
 
 /// UI-test DB seeding for Home (the same hook pattern as `ManualFillUpTestSeed`,
-/// and the reason Home's five states are deterministic). Each `-seedHome*`
-/// argument writes the smallest history that renders that state; combining with
-/// `-homeResetDatabase` wipes the app database first so the five states are
-/// isolated from each other within a test run.
+/// and the reason Home's states are deterministic). Each `-seedHome*` argument
+/// writes the smallest history that renders that state; combining with
+/// `-homeResetDatabase` wipes the app database first so the states are isolated
+/// from each other within a test run.
 ///
 /// Real-data states (vehicle presence, entry presence, D4) are seeded here.
 /// Everything sync-dependent (S2/S5/S7, reminder banner, guest chrome) is a
@@ -32,6 +32,8 @@ enum HomeTestSeed {
             seedSingleFill(repository)
         } else if arguments.contains("-seedHomeFullHistory") {
             seedFullHistory(repository)
+        } else if arguments.contains("-seedHomeSingleFuelLog") {
+            seedSingleFuelLog(repository)
         } else if arguments.contains("-seedHomeConflict") {
             seedConflict(repository)
         }
@@ -53,15 +55,24 @@ enum HomeTestSeed {
         try? repository.upsertFillUp(fill)
     }
 
-    /// A five-month fill history: closed segments, a headline, current-month
-    /// spend, last price per litre and a recent-entries section - the "Full"
-    /// state (design/screens/HomeA.dc.html).
+    /// A five-month history: closed segments, a headline, current-month spend,
+    /// last price per litre and a real log stream - month dividers, all four
+    /// entry types interleaved, a purchase group (fuel + car wash from one
+    /// receipt) and attached receipts on two entries. The "Full" state
+    /// (design/screens/HomeA.dc.html).
     private static func seedFullHistory(_ repository: TankbookRepository) {
         let vehicle = makeVehicle()
         try? repository.upsertVehicle(vehicle)
         let shell = makeStation(repository, name: "Shell")
         let neste = makeStation(repository, name: "Neste")
 
+        // Two receipts: one shared by the purchase group (fuel + car wash from
+        // the same slip), one for the Ionity charge.
+        let groupReceipt = makeAttachment(repository)
+        let ionityReceipt = makeAttachment(repository)
+        let groupID = UUID.v7()
+
+        let groupFillDate = Date().addingTimeInterval(-2 * 86_400)
         let fills: [FillUp] = [
             makeFill(vehicleID: vehicle.id,
                      FillSpec(daysAgo: 150, odometer: 118_000, litres: 42.1,
@@ -83,7 +94,9 @@ enum HomeTestSeed {
                               amount: "66.90", price: "1.624", stationID: neste.id)),
             makeFill(vehicleID: vehicle.id,
                      FillSpec(daysAgo: 2, odometer: 122_800, litres: 43.5,
-                              amount: "71.02", price: "1.633", stationID: shell.id)),
+                              amount: "71.02", price: "1.633", stationID: shell.id),
+                     purchaseGroupID: groupID, attachments: [groupReceipt.id],
+                     date: groupFillDate),
             // A fill today guarantees current-month spend exists on any run
             // date, so the "Full" state always renders the month-spend vital.
             makeFill(vehicleID: vehicle.id,
@@ -92,6 +105,48 @@ enum HomeTestSeed {
         ]
         for fill in fills {
             try? repository.upsertFillUp(fill)
+        }
+
+        // The rest of the stream: a charge, a service, and two expenses. One
+        // expense (the car wash) belongs to the fill's purchase group.
+        try? repository.upsertChargeSession(makeCharge(
+            vehicleID: vehicle.id,
+            ChargeSpec(daysAgo: 5, odometer: 122_400, energyKWh: 38,
+                       amount: "21.50", provider: "Ionity"),
+            attachments: [ionityReceipt.id]))
+
+        let serviceDate = Date().addingTimeInterval(-9 * 86_400)
+        try? repository.upsertServiceRecord(makeService(
+            vehicleID: vehicle.id, date: serviceDate, odometer: 121_800,
+            amount: "148.00", vendor: "Bosch Service"))
+
+        let parkingDate = Date().addingTimeInterval(-12 * 86_400)
+        try? repository.upsertExpense(makeExpense(
+            vehicleID: vehicle.id, date: parkingDate, odometer: 121_500,
+            amount: "6.00", title: "Parking"))
+
+        let washDate = groupFillDate.addingTimeInterval(-3600)
+        try? repository.upsertExpense(makeExpense(
+            vehicleID: vehicle.id, date: washDate, odometer: nil,
+            amount: "8.00", title: "Car wash",
+            purchaseGroupID: groupID, attachments: [groupReceipt.id]))
+    }
+
+    /// A single-fuel car's log: the fuel kind is the car's usual one, so no
+    /// row prints it (docs/DESIGN.md - the fuel-kind rule, conditional).
+    private static func seedSingleFuelLog(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle(fuelKinds: [.petrol95])
+        try? repository.upsertVehicle(vehicle)
+        let neste = makeStation(repository, name: "Neste")
+        for spec in [
+            FillSpec(daysAgo: 75, odometer: 118_000, litres: 42.0,
+                     amount: "68.40", price: "1.629", stationID: neste.id),
+            FillSpec(daysAgo: 40, odometer: 118_800, litres: 41.5,
+                     amount: "67.90", price: "1.636", stationID: neste.id),
+            FillSpec(daysAgo: 5, odometer: 119_600, litres: 42.3,
+                     amount: "69.30", price: "1.638", stationID: neste.id)
+        ] {
+            try? repository.upsertFillUp(makeFill(vehicleID: vehicle.id, spec))
         }
     }
 
@@ -118,12 +173,12 @@ enum HomeTestSeed {
 
     // MARK: - Fixture builders
 
-    private static func makeVehicle() -> Vehicle {
+    private static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95, .diesel]) -> Vehicle {
         let now = Date()
         return Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
-            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            plate: nil, powertrain: .ice, fuelKinds: fuelKinds,
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
@@ -142,6 +197,17 @@ enum HomeTestSeed {
         return station
     }
 
+    private static func makeAttachment(_ repository: TankbookRepository) -> Attachment {
+        let now = Date()
+        let attachment = Attachment(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            kind: .photo, file: LocalFileRef(sha256: UUID().uuidString,
+                                             relativePath: "seed/\(UUID().uuidString).jpg"),
+            extractedTimestamp: nil, ocrText: nil)
+        try? repository.upsertAttachment(attachment)
+        return attachment
+    }
+
     /// A fixture fill's data, kept apart from the construction call so the
     /// builder stays small (swiftlint function_parameter_count).
     private struct FillSpec {
@@ -154,16 +220,73 @@ enum HomeTestSeed {
     }
 
     private static func makeFill(vehicleID: UUID, _ spec: FillSpec,
-                                 conflict: ConflictState = .none) -> FillUp {
-        let date = Date().addingTimeInterval(-Double(spec.daysAgo) * 86_400)
+                                 conflict: ConflictState = .none,
+                                 purchaseGroupID: UUID? = nil,
+                                 attachments: [AttachmentID] = [],
+                                 date: Date? = nil) -> FillUp {
+        let fillDate = date ?? Date().addingTimeInterval(-Double(spec.daysAgo) * 86_400)
         return FillUp(
+            id: UUID.v7(), createdAt: fillDate, updatedAt: fillDate, deletedAt: nil,
+            vehicleId: vehicleID, date: fillDate, odometer: spec.odometer,
+            money: Money(amount: Decimal(string: spec.amount)!,
+                         currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: attachments, provenance: .manual,
+            conflict: conflict, purchaseGroupId: purchaseGroupID,
+            volumeL: spec.litres, unitPrice: Decimal(string: spec.price)!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: spec.stationID, crossCheck: .verified, extraction: nil)
+    }
+
+    /// A fixture charge's data, kept apart from the construction call (the
+    /// same swiftlint function_parameter_count discipline as FillSpec).
+    private struct ChargeSpec {
+        let daysAgo: Int
+        let odometer: Int
+        let energyKWh: Double
+        let amount: String
+        let provider: String
+    }
+
+    private static func makeCharge(vehicleID: UUID, _ spec: ChargeSpec,
+                                   attachments: [AttachmentID] = []) -> ChargeSession {
+        let date = Date().addingTimeInterval(-Double(spec.daysAgo) * 86_400)
+        return ChargeSession(
             id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
             vehicleId: vehicleID, date: date, odometer: spec.odometer,
             money: Money(amount: Decimal(string: spec.amount)!,
                          currency: .eur, homeCurrency: .eur),
-            note: nil, attachments: [], provenance: .manual, conflict: conflict,
-            purchaseGroupId: nil, volumeL: spec.litres, unitPrice: Decimal(string: spec.price)!,
-            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
-            stationId: spec.stationID, crossCheck: .verified, extraction: nil)
+            note: nil, attachments: attachments, provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            energyKWh: spec.energyKWh, unitPrice: nil, chargeType: .dcPublic,
+            provider: spec.provider, tariffId: nil, durationMin: nil,
+            socStartPct: nil, socEndPct: nil, extraction: nil)
+    }
+
+    private static func makeService(vehicleID: UUID, date: Date, odometer: Int,
+                                    amount: String, vendor: String) -> ServiceRecord {
+        ServiceRecord(
+            id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
+            vehicleId: vehicleID, date: date, odometer: odometer,
+            money: Money(amount: Decimal(string: amount)!,
+                         currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            vendor: vendor, items: [], usedParts: [], tireSetId: nil,
+            proposedReminderId: nil)
+    }
+
+    private static func makeExpense(vehicleID: UUID, date: Date, odometer: Int?,
+                                    amount: String, title: String,
+                                    purchaseGroupID: UUID? = nil,
+                                    attachments: [AttachmentID] = []) -> Expense {
+        Expense(
+            id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
+            vehicleId: vehicleID, date: date, odometer: odometer,
+            money: Money(amount: Decimal(string: amount)!,
+                         currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: attachments, provenance: .manual,
+            conflict: .none, purchaseGroupId: purchaseGroupID,
+            category: .other(title), title: title, recurrence: nil,
+            installedInServiceId: nil)
     }
 }

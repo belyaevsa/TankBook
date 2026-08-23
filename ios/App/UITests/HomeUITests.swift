@@ -90,7 +90,7 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["homeLastPriceTile"].exists)
 
         // Recent entries are reachable and route to Edit entry.
-        XCTAssertTrue(app.buttons["editEntryButton"].firstMatch.exists)
+        XCTAssertTrue(app.buttons["logEntryButton"].firstMatch.exists)
         XCTAssertTrue(app.staticTexts["homeEntryAmount"].firstMatch.exists)
 
         // The odometer is the shared grouped formatter's output end to end
@@ -113,6 +113,87 @@ final class HomeUITests: XCTestCase {
 
         badge.tap()
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - P1.5: the log stream
+
+    /// The floating tab bar must not swallow the last row: after scrolling to
+    /// the bottom of a long stream, the oldest entry is fully visible, above
+    /// the bar, and tappable (P1.4's bottom-inset bug).
+    func testLastRowClearsTheFloatingTabBar() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        let tabBar = app.tabBars.firstMatch
+        let scrollView = app.scrollViews.firstMatch
+        let lastEntry = app.buttons.matching(identifier: "logEntryButton")
+            .allElementsBoundByIndex.last!
+        XCTAssertTrue(lastEntry.waitForExistence(timeout: 10))
+
+        var attempts = 0
+        while !lastEntry.isHittable, attempts < 10 {
+            scrollView.swipeUp()
+            attempts += 1
+        }
+        XCTAssertTrue(lastEntry.isHittable,
+                      "last log entry never became reachable after \(attempts) swipes")
+        XCTAssertTrue(lastEntry.frame.maxY <= tabBar.frame.minY + 1,
+                      "last row (\(lastEntry.frame)) overlaps the tab bar (\(tabBar.frame))")
+
+        lastEntry.tap()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5))
+    }
+
+    /// Fuel kind is CONDITIONAL (docs/DESIGN.md): the seed car accepts petrol +
+    /// diesel, so its petrol fills print "95"; a single-fuel petrol-only car
+    /// printing "95" on every row would be noise and must not.
+    func testFuelKindShownForMultiFuelAndHiddenForSingleFuel() {
+        let multi = launch(args: ["-seedHomeFullHistory"])
+        let kind = multi.staticTexts["logEntryFuelKind"].firstMatch
+        XCTAssertTrue(kind.waitForExistence(timeout: 10))
+        XCTAssertEqual(kind.label, "95")
+
+        let single = launch(args: ["-seedHomeSingleFuelLog"])
+        XCTAssertFalse(single.staticTexts["logEntryFuelKind"].exists,
+                       "a single-fuel car must not print its usual fuel kind on every row")
+    }
+
+    /// The attachment is a glyph, not a word, and it only appears where a
+    /// receipt or photo exists - carrying its accessibility label (colour and
+    /// iconography are never the only channel).
+    func testAttachmentGlyphAppearsOnlyOnEntriesThatHaveOne() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        // Two receipts in the seed: one shared by the purchase group (a single
+        // glyph on the group header), one on the Ionity charge.
+        let glyphs = app.images.matching(identifier: "logEntryAttachment")
+        XCTAssertTrue(glyphs.firstMatch.waitForExistence(timeout: 10))
+        XCTAssertEqual(glyphs.count, 2, "exactly the seeded receipts carry a glyph")
+        for index in 0..<glyphs.count {
+            XCTAssertEqual(glyphs.allElementsBoundByIndex[index].label, "Has attachment")
+        }
+    }
+
+    /// A purchase group renders as ONE receipt: the header shows the grand
+    /// total, the fuel member inside shows its own amount (hard rule 4), and
+    /// collapsing folds the members back into one row.
+    func testPurchaseGroupRendersAsOneReceiptAndCollapses() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        let toggle = app.buttons["logGroupToggle"].firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+
+        // The header carries the receipt grand total (fuel 71.02 + wash 8.00).
+        let grandTotal = app.staticTexts["logGroupGrandTotal"]
+        XCTAssertTrue(grandTotal.exists)
+        XCTAssertTrue(grandTotal.label.contains("79.02"),
+                      "group header must show the grand total, got \(grandTotal.label)")
+
+        // Expanded by default: the two members are visible rows.
+        XCTAssertEqual(app.buttons.matching(identifier: "logGroupMemberButton").count, 2)
+
+        // Collapse: one row, members gone.
+        toggle.tap()
+        XCTAssertEqual(app.buttons.matching(identifier: "logGroupMemberButton").count, 0)
     }
 
     // MARK: - Sync-shaped presentation states (fixtures until P4)

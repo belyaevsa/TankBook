@@ -73,6 +73,11 @@ EntryCommon {
   purchaseGroupId: UUID?        // entries born from ONE receipt (fuel + car wash + coffee) share this;
                                 // they share attachments, sum to ≤ the receipt's grand total, and the
                                 // Log can render them as one visual group. Nil for standalone entries.
+                                // (P1.5) The group's displayed total is derived as the sum of its
+                                // members' home amounts - never the fill-up's amount alone (CHECK 3),
+                                // and counted ONCE in a month divider. Until P2.4 stores the receipt's
+                                // own total, lines left un-logged (coffee) are simply not part of the
+                                // figure the group shows.
 }
 
 Money {
@@ -385,6 +390,9 @@ vehicle_catalog (id uuid pk, make text, model text, generation text, years int4r
                  battery_capacity_kwh numeric, pack_version int)
 ```
 
+- **`fuel_kinds` here is an OFFER SET, not the car's fuel** (clarified 2026-08-23, after P1.5 showed why it matters). The catalog's `fuel_kinds` lists what the **model line** is sold with – `V60 → [petrol95, diesel]` means "offered as petrol *or* diesel". `Vehicle.fuelKinds` means something different: what **this one car** accepts, which is normally a single kind. Genuinely multi-fuel cars exist (petrol + LPG bi-fuel, a PHEV taking petrol + electricity), and that is the case the plural is for.
+  - So Add car must present the catalog list as **options to choose from, defaulting to one**, and must never copy the whole set onto the `Vehicle`. Copying it wholesale creates a car that claims to accept both petrol and diesel, which no car does.
+  - It is not a cosmetic error. `Vehicle.fuelKinds` drives the parser vocabulary (below), the fuel chips on the confirm screens, and – per `DESIGN.md` → entry card content – whether the fuel kind is printed on every row in the log. A car wrongly holding two kinds shows "95" on every entry forever, which is exactly the noise that rule exists to remove.
 - **Why it matters:** typing "Volvo V60" pre-fills tank capacity 71 L (→ partial-fill math + OCR volume sanity check), battery size, fuel kinds (→ parser vocabulary) – the "Improves accuracy" section fills itself. Catalog values are *suggestions* written into the Vehicle row; the user can always override, and no Vehicle ever references the catalog by id (decoupled – a catalog correction never mutates user garages).
 - **Scope discipline:** base list only – top ~500 models covering the EU + CIS fleet majority (VW/Toyota/Renault/Skoda/Volvo/Lada/Kia/Hyundai/BYD…), curated from open datasets, extended by demand ("model not found" search misses are the roadmap, logged as counts only). Not a VIN decoder, not a spec encyclopedia.
 - **Served as** versioned packs: `GET /catalog?since_version=12` → delta or full pack (a few hundred KB JSON), cached on device at `Application Support/Tankbook/catalog.cache.json`, seed pack in the app bundle so Add-car autocomplete works on day one offline. The `pack_version` bumps on curation; clients check occasionally, never at launch-blocking time.
