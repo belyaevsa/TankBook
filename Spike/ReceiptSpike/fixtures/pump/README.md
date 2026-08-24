@@ -31,6 +31,36 @@ so far (all three fields). Truth: `85.25 L x 245.0 KZT/L = 20886.25`, displayed 
 `20886.3` - so the pump itself rounds the total to 1 dp, which is a third,
 independent reason a pump total and a receipt total can legitimately differ.
 
+## Comma decimals on a pump, and the same station twice
+
+`pump-007` (Gilbarco Veeder-Root, **АЗС № 78154** - the same ЛУКОЙЛ station as
+`pump-002` and `receipt-007`) uses **commas** throughout:
+
+```
+61,68  67,62  68,48  76,24        the four grade prices
+       4593,46  РУБЛИ
+         60,25  ЛИТРЫ
+         76,24  ЦЕНА/ЛИТР         the selected one, shown separately
+```
+
+Two things follow.
+
+**Separator style is a property of the device, not the country.** `pump-002` at
+this very station prints periods (`4334.83 / 43.61 / 99.40`); this pump prints
+commas. `receipt-030` prints commas while every other Russian receipt prints
+periods. Same country, same brand, same forecourt - different convention. A parser
+that decides "RU means comma" or "RU means period" is wrong roughly half the time
+here.
+
+**This pump resolves the four-price ambiguity itself.** Unlike `pump-005`, which
+showed four prices and left you to work out which applied, this one repeats the
+selected price under ЦЕНА/ЛИТР. So the four-price problem is not universal: read
+the labelled ЦЕНА/ЛИТР when it exists, and fall back to the cross-check when it
+does not. `60,25 x 76,24 = 4593,46` confirms it.
+
+The two visits to АЗС 78154 also show grade prices are not stable: `pump-002`
+recorded АИ-100 at 99.40, and none of this display's four prices is 99.40.
+
 ## Three formats on one display, and a clipped price
 
 `pump-006` (Adast, KZ, nozzle labelled **92**) reads:
@@ -98,7 +128,7 @@ liters 0.700   unitPrice –   total –   cross-check ✗
 Truth is `67.00 L x 1.869 EUR/L = 125.22 EUR`. Two distinct failures, and
 neither is a tuning problem.
 
-**Pump class baseline, 2026-08-25: 0/18 fields (0.0%), cross-check 0/6.** All six
+**Pump class baseline, 2026-08-25: 0/21 fields (0.0%), cross-check 0/7.** All seven
 pumps fail completely - receipts score 36.6% by comparison. Pump extraction is a
 harder problem than receipt extraction, not the same problem with worse input.
 
