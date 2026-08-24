@@ -43,6 +43,7 @@ struct EditEntryView: View {
     @State private var note = ""
     @State private var showDatePicker = false
     @State private var showDeleteConfirm = false
+    @State private var showTankLevel = false
     @State private var showChangedBySync = false
     @State private var didLoad = false
     @State private var loadFailed = false
@@ -69,6 +70,15 @@ struct EditEntryView: View {
         }
         .background(Theme.Palette.midnight)
         .task { await load() }
+        .sheet(isPresented: $showTankLevel) {
+            DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
+                TankLevelSheet(tankLevelAfterPct: $fillForm.tankLevelAfterPct,
+                               isFull: $fillForm.isFull,
+                               capacityL: vehicle?.tankCapacityL)
+                    .navigationTitle("Tank level")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        }
         .alert("Delete this entry?",
                isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -102,9 +112,10 @@ struct EditEntryView: View {
                                          conflict: odometerConflict,
                                          onFixDate: { showDatePicker = true },
                                          caption: nil)
-                if fillForm.isFull {
-                    EditEntryRows.tankAfterRow
-                }
+                TankLevelRow(isFull: fillForm.isFull,
+                             tankLevelAfterPct: fillForm.tankLevelAfterPct,
+                             action: { showTankLevel = true })
+                    .formCard()
                 EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
                 if showChangedBySync {
                     EditEntryRows.changedBySyncRow

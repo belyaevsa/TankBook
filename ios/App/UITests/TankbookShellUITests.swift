@@ -11,8 +11,15 @@ final class TankbookShellUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    /// Deterministic start state for every shell walk: a reset database plus a
+    /// car with no entries. Home then shows the empty-entries card (the
+    /// `editEntryButton` link), the header affordances (gear, car switcher,
+    /// type it) and the Garage tab's links all exist. Without the reset the
+    /// shell tests would depend on whatever the PREVIOUS test left in the
+    /// database - a latent isolation bug P1.9's suite exposed.
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle"]
         app.launch()
         return app
     }

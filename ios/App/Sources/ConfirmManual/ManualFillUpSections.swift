@@ -307,10 +307,24 @@ struct ManualFillUpFuelFullCard: View {
                 .font(.subheadline)
                 .foregroundStyle(Theme.Palette.inkSoft)
             Spacer(minLength: 8)
-            Toggle("", isOn: $form.isFull)
-                .labelsHidden()
-                .tint(Theme.Palette.taillight)
-                .accessibilityIdentifier("manualFillUpIsFullToggle")
+            Toggle("", isOn: Binding(
+                get: { form.isFull },
+                set: { full in
+                    form.isFull = full
+                    // The 100 ⇔ full invariant (docs/SCHEMA.md): turning the
+                    // toggle on is a 100% tank, turning it off from a full
+                    // state is a bare partial (the tank row then offers the
+                    // sheet to set a real level).
+                    if full {
+                        form.tankLevelAfterPct = 100
+                    } else if form.tankLevelAfterPct == 100 {
+                        form.tankLevelAfterPct = nil
+                    }
+                }
+            ))
+            .labelsHidden()
+            .tint(Theme.Palette.taillight)
+            .accessibilityIdentifier("manualFillUpIsFullToggle")
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 12)

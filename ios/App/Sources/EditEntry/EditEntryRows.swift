@@ -44,17 +44,6 @@ enum EditEntryRows {
         return String(format: L10n.localize("Scanned %@"), stamp)
     }
 
-    /// The artboard's "Tank after fill-up | Full · 100%" row - derived straight
-    /// from the full-tank toggle, never a stored guess.
-    static var tankAfterRow: some View {
-        FieldRow("Tank after fill-up") {
-            Text("Full · 100%")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-        }
-        .formCard()
-    }
-
     static func noteRow(text: Binding<String>, identifier: String) -> some View {
         FieldRow("Note") {
             TextField("Add a note", text: text, axis: .vertical)

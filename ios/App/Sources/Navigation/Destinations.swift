@@ -46,9 +46,38 @@ struct SheetDestinationView: View {
     private var sheetContent: some View {
         switch route {
         case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
-        case .carSwitcher, .tankLevel, .reminderComplete, .signIn: SheetPlaceholderContent()
+        case .tankLevel: TankLevelStandaloneHost()
+        case .carSwitcher, .reminderComplete, .signIn: SheetPlaceholderContent()
         case .serviceEntry: ServiceEntryContent(hasUnsavedChanges: $hasUnsavedChanges)
         }
+    }
+}
+
+/// The `-presentScreen tankLevel` path (screenshots, DEBUG): the sheet opened
+/// without a fill-up form behind it, so it owns its level state and loads the
+/// default vehicle's capacity itself. Seeding happens here too
+/// (`-seedTankLevel` / `-seedTankLevelNoCapacity`) so a booted app can be
+/// screenshotted without a UI test driving a tap.
+struct TankLevelStandaloneHost: View {
+    @State private var tankLevelAfterPct: Double?
+    @State private var isFull = false
+    @State private var capacityL: Double?
+    @State private var didLoad = false
+
+    var body: some View {
+        TankLevelSheet(tankLevelAfterPct: $tankLevelAfterPct,
+                       isFull: $isFull,
+                       capacityL: capacityL)
+            .task { await load() }
+    }
+
+    private func load() async {
+        guard !didLoad else { return }
+        didLoad = true
+        TankLevelTestSeed.seedIfRequested()
+        guard let repository = try? AppStore.repository(),
+              let vehicle = (try? repository.liveVehicles())?.first else { return }
+        capacityL = vehicle.tankCapacityL
     }
 }
 

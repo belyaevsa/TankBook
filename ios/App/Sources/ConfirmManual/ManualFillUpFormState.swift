@@ -23,6 +23,10 @@ struct ManualFillUpFormState: Equatable {
     var currency: CurrencyCode = .eur
     var fuelKind: FuelKind = .petrol95
     var isFull = true
+    /// The tank level after this fill-up (docs/SCHEMA.md: 0-100, 100 = full).
+    /// Set through the tank-level sheet (P1.9); `nil` on a bare partial fill.
+    /// The 100 ⇔ full invariant is enforced on save: full always writes 100.
+    var tankLevelAfterPct: Double?
     /// The odometer in the vehicle's distance unit, pre-filled from the last
     /// known value ("last known · update after typing fuel" - artboard).
     var odometer = ""
@@ -105,6 +109,9 @@ struct ManualFillUpFormState: Equatable {
     /// closing it with just the convenience pre-fill discards silently.
     func hasEdits(vehicle: Vehicle) -> Bool {
         if !total.isEmpty || !liters.isEmpty || !pricePerL.isEmpty { return true }
+        // A tank level set on a partial fill is a real edit (100 on a full
+        // fill is the toggle's own state, not an edit).
+        if !isFull && tankLevelAfterPct != nil { return true }
         // Format-on-blur puts a thin-space grouped string back into the field
         // (HANDOVER.md open item 0); it is not an edit, so compare ungrouped.
         if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) { return true }
@@ -208,7 +215,7 @@ extension ManualFillUpFormState {
             volumeL: derived?.volumeL ?? 0,
             unitPrice: derived?.unitPrice,
             fuelKind: fuelKind, fuelGrade: nil, isFull: isFull,
-            tankLevelAfterPct: isFull ? 100 : nil, stationId: nil,
+            tankLevelAfterPct: isFull ? 100 : tankLevelAfterPct, stationId: nil,
             crossCheck: derived?.crossCheck ?? .notApplicable, extraction: nil)
     }
 }

@@ -26,6 +26,7 @@ struct ManualFillUpView: View {
     @State private var selectedStation: Station?
     @State private var currencyLowConfidence = false
     @State private var showDatePicker = false
+    @State private var showTankLevel = false
     @State private var didLoad = false
 
     private static let log = Logger(subsystem: "app.tankbook", category: "confirmManual")
@@ -48,6 +49,12 @@ struct ManualFillUpView: View {
                         volumeUnit: volumeUnit,
                         currencySymbol: currencySymbol)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
+                    if !form.isFull {
+                        TankLevelRow(isFull: form.isFull,
+                                     tankLevelAfterPct: form.tankLevelAfterPct,
+                                     action: { showTankLevel = true })
+                            .formCard()
+                    }
                     ManualFillUpOdometerCard(
                         form: $form, focus: $focus,
                         distanceUnit: distanceUnit,
@@ -64,6 +71,15 @@ struct ManualFillUpView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        .sheet(isPresented: $showTankLevel) {
+            DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
+                TankLevelSheet(tankLevelAfterPct: $form.tankLevelAfterPct,
+                               isFull: $form.isFull,
+                               capacityL: vehicle?.tankCapacityL)
+                    .navigationTitle("Tank level")
+                    .navigationBarTitleDisplayMode(.inline)
+            }
+        }
         .onChange(of: form, initial: true) { _, newValue in
             if let vehicle {
                 hasUnsavedChanges = newValue.hasEdits(vehicle: vehicle)
@@ -157,7 +173,8 @@ struct ManualFillUpView: View {
             conflict: .none, purchaseGroupId: nil,
             volumeL: derived.volumeL, unitPrice: derived.unitPrice,
             fuelKind: form.fuelKind, fuelGrade: nil, isFull: form.isFull,
-            tankLevelAfterPct: form.isFull ? 100 : nil, stationId: selectedStation?.id,
+            tankLevelAfterPct: form.isFull ? 100 : form.tankLevelAfterPct,
+            stationId: selectedStation?.id,
             crossCheck: derived.crossCheck, extraction: nil)
         let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
                                                      vehicle: vehicle)

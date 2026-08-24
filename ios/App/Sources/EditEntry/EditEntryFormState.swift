@@ -18,6 +18,7 @@ extension ManualFillUpFormState {
         currency = fill.money?.currency ?? vehicle.homeCurrency
         fuelKind = fill.fuelKind
         isFull = fill.isFull
+        tankLevelAfterPct = fill.tankLevelAfterPct
         odometer = fill.odometer.map(OdometerFormat.grouped) ?? ""
         date = fill.date
     }
@@ -43,7 +44,7 @@ extension ManualFillUpFormState {
         updated.unitPrice = derived.unitPrice
         updated.fuelKind = fuelKind
         updated.isFull = isFull
-        updated.tankLevelAfterPct = isFull ? 100 : nil
+        updated.tankLevelAfterPct = isFull ? 100 : tankLevelAfterPct
         updated.stationId = stationID
         updated.crossCheck = derived.crossCheck
 
