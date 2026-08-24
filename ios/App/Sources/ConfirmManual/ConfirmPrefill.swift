@@ -22,11 +22,14 @@ struct CropEvidence {
 
 /// The whole optional input of the scanned path into the shared Confirm sheet.
 /// `extraction` pre-fills whatever it resolved; `crops` feed tap-to-verify;
-/// `qrAnchor` resolves the total authoritatively (docs/SCHEMA.md -> FISCAL QR).
+/// `qrAnchor` resolves the total authoritatively (docs/SCHEMA.md -> FISCAL QR);
+/// `ocrLines` are the recognised lines the mixed-receipt detector (P2.4) reads
+/// to offer non-fuel items as separate Expenses.
 struct ConfirmPrefill {
     var extraction: FuelExtraction?
     var crops: [ManualFillUpMath.Field: CropEvidence] = [:]
     var qrAnchor: FiscalQRAnchor?
+    var ocrLines: [OCRLine] = []
 }
 
 // MARK: - Debug seeding (screenshots + UI tests)
@@ -85,12 +88,29 @@ enum ConfirmPrefillSeed {
         }
         if arguments.contains("-seedConfirmPrefillMixed") {
             return ConfirmPrefill(extraction: FuelExtraction(liters: 20.0, unitPrice: 2.0,
-                                                             total: 40.00,
-                                                             currency: .eur, fuelKind: .petrol95,
-                                                             date: "17.08.2026"),
+                                                              total: 40.00,
+                                                              currency: .eur, fuelKind: .petrol95,
+                                                              date: "17.08.2026"),
                                   crops: crops(for: [.total, .volume, .unitPrice]),
                                   qrAnchor: FiscalQRAnchor(total: 50.00,
-                                                           date: Date(timeIntervalSince1970: 1_700_000_000)))
+                                                            date: Date(timeIntervalSince1970: 1_700_000_000)))
+        }
+        if arguments.contains("-seedConfirmPrefillMixedReceipt") {
+            // P2.4: a mixed receipt with TWO non-fuel items, matching the
+            // ConfirmMixed artboard (diesel 71.02 + car wash 8.00 + coffee 4.80
+            // = receipt total 83.82). The car wash is car-related (defaults to
+            // accepted), the coffee is not (defaults to skipped). No QR - the
+            // section is driven by line-item structure, so the no-QR path is
+            // exercised by the screenshot and the UI test.
+            let lines = ["DIESEL 42.30 л X 1.679", "CAR WASH BASIC", "1 X 8.00",
+                         "COFFEE L", "1 X 4.80", "83.82", "TOTAL", "83.82"]
+            return ConfirmPrefill(
+                extraction: FuelExtraction(liters: 42.30, unitPrice: 1.679, total: 71.02,
+                                           currency: .eur, fuelKind: .diesel,
+                                           date: "17.08.2026"),
+                crops: crops(for: [.total, .volume, .unitPrice]),
+                qrAnchor: nil,
+                ocrLines: lines.map { OCRLine(text: $0) })
         }
         if arguments.contains("-seedConfirmPrefill") {
             return ConfirmPrefill(extraction: FuelExtraction(liters: 42.30, unitPrice: 1.679,

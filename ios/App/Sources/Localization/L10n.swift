@@ -124,4 +124,25 @@ enum L10n {
             return String(localized: "first estimate · \(cycles) fill cycles")
         }
     }
+
+    /// The display label for an Expense category (docs/SCHEMA.md,
+    /// Expense.category). The `.other` payloads the mixed-receipt detector
+    /// (P2.4) emits are machine tokens, not user copy: "wash" maps to a
+    /// localised car-wash label, anything else to the generic "Other".
+    static func expenseCategoryLabel(_ category: ExpenseCategory) -> String {
+        switch category {
+        case .insurance: localize("Insurance")
+        case .tax: localize("Tax")
+        case .parking: localize("Parking")
+        case .toll: localize("Toll")
+        case .fine: localize("Fine")
+        case .accessory: localize("Accessory")
+        case .parts: localize("Parts")
+        case .other(let value):
+            switch value {
+            case "wash": localize("Wash")
+            default: localize("Other")
+            }
+        }
+    }
 }

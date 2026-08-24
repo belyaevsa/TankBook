@@ -210,6 +210,14 @@ public struct FuelExtractor: Sendable {
         return total
     }
 
+    /// The receipt's own grand total (ИТОГ/ВСЕГО/...), independent of the fuel
+    /// line. Used by the mixed-receipt detector (P2.4) to verify that detected
+    /// non-fuel items explain the gap between the fuel line and the receipt
+    /// total when no QR is present. Nil when no total label is present.
+    public func receiptGrandTotal(_ lines: [OCRLine]) -> Double? {
+        grandTotal(lines)
+    }
+
     private func grandTotal(_ lines: [OCRLine]) -> Double? {
         var candidates: [Double] = []
         var primaryCandidates: [Double] = []
