@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 25/68 fields (36.8%), cross-check 9/25
+## Baseline, 2026-08-25: 26/71 fields (36.6%), cross-check 9/26
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,36 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. The second mixed receipt, and it is mixed a different way
+### 5. Two genuine purchases that look identical - the duplicate-detection trap
+
+`receipt-015` and `receipt-026` are **different fiscal documents with identical
+amounts**, and together they are the corpus's sharpest test of duplicate
+detection:
+
+| | receipt-026 | receipt-015 |
+|---|---|---|
+| station | ООО "КЕДР" АЗС-42, Феодосия | ООО "КЕДР" АЗС-98, Симферополь |
+| time | 11.07.26 **10:29** | 11.07.26 **11:03** |
+| line | `269.00*20` | `269.00*20` |
+| total | 5380.00 | 5380.00 |
+| ФД / ФП | 79802 / 1119386949 | 30045 / 4064907347 |
+
+Same chain, same day, same fuel, **same volume and same total to the kopeck** -
+and they are two real, separate fills at stations ~100 km apart.
+
+`DuplicateDetector.isDuplicate` keys on *same vehicle, within 30 minutes, volume
+within 5%*. These are **34 minutes apart with identical volume**, so they escape a
+false "duplicate" flag **by four minutes**. Move either fill slightly and the app
+would offer to merge two genuine purchases.
+
+**The fix already exists and is not wired.** P2.6 built `FiscalDocumentIdentity`
+(`fn`+`i`+`fp`) and deliberately left it out of duplicate detection. Two receipts
+with *different* fiscal identities are definitively not the same purchase, no
+matter how identical their amounts - that is a proof, not a heuristic. The
+caveat: it only helps when the QR decodes, which it does on 12 of 26 receipts
+here, so it strengthens the rule rather than replacing it.
+
+### 6. The second mixed receipt, and it is mixed a different way
 
 `receipt-025` (Татнефть, МКАД 38км, 20.03.19) is the corpus's **second** mixed
 fixture, and it breaks two assumptions `receipt-009` alone would have baked in:
@@ -150,7 +179,7 @@ March 2019 was about 43.4 ₽/L, so 43.38 is the price and 38.28 the volume. Get
 backwards and you store a 43 L fill as 38 L at the wrong price, and the
 cross-check still passes because `a x b == b x a`.
 
-### 6. A third way for ИТОГ to differ from the line extension: СКИДКА
+### 7. A third way for ИТОГ to differ from the line extension: СКИДКА
 
 `receipt-017` (Татнефть, 24.06.20) prints `48.09 X 20 = 961.80`, then a
 **`СКИДКА =-0.80 РУБ`** line, then `961.00` - and the QR agrees at `s=961.00`.
@@ -186,7 +215,7 @@ own receipt** - it was published on the oil-club.ru forum. Kept because it adds 
 2020 price point and the СКИДКА mechanism, but flagged here so the corpus's
 provenance is not assumed uniform.
 
-### 7. Non-fiscal receipts exist, and they have no QR at all
+### 8. Non-fiscal receipts exist, and they have no QR at all
 
 `receipt-016` is a **НЕФИСКАЛЬНЫЙ ОТЧЁТ** - a corporate fuel-card order receipt
 (РН-Карт) from АО "РН-Москва". It prints a fiscal `ФН`, but it is explicitly a
@@ -229,7 +258,7 @@ It brings three parsing hazards, all new:
   when present - and it surfaced a schema gap: CNG is sold by the cubic metre and
   `VolumeUnit` has no `m3` (`docs/SCHEMA.md` → Open questions).
 
-### 8. Fuel kind is not normalised
+### 9. Fuel kind is not normalised
 
 The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/SCHEMA.md`
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel
