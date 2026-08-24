@@ -62,3 +62,18 @@ total, the timestamp and the fiscal identifiers, nothing more - which is exactly
 why `docs/JOURNEYS.md` J5 says the QR pre-fills total and date instantly and
 leaves litres and price "for the user or a later fetch". This fixture is the
 evidence for that design, not just an assertion of it.
+
+## `screenshot-002` - a ЛУКОЙЛ e-receipt, six minutes from a paper one
+
+Минеральные Воды, 28.06.26 13:48. `20 X 73.83 = 1476.60`, ИТОГ **1476.00** - the
+ЛУКОЙЛ whole-rouble rounding again, this time by 0.60, with VAT 266.27 computed on
+the pre-rounding 1476.60 exactly as on every other ЛУКОЙЛ receipt in the corpus.
+
+It is rendered HTML, not a photo of paper, so it scores in this class rather than
+`receipts/` - no glare, no perspective, no thermal fade. Note it carries **no
+QR**: the fiscal ids are printed as text (ФД 131546, ФПД 49643412), so the anchor
+that works on paper is unavailable here.
+
+Its sibling is worth knowing about: `receipts/receipt-031` was bought in the same
+town **six minutes later** at a Газпром station. Two brands, two receipt
+technologies, two rounding behaviours, one afternoon.

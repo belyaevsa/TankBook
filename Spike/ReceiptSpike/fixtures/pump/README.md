@@ -31,6 +31,40 @@ so far (all three fields). Truth: `85.25 L x 245.0 KZT/L = 20886.25`, displayed 
 `20886.3` - so the pump itself rounds the total to 1 dp, which is a third,
 independent reason a pump total and a receipt total can legitimately differ.
 
+## The preset-amount fill: where litres x price genuinely cannot equal the total
+
+`pump-010` (Scheidt & Bachmann) reads `Итого 1000.00 / Количество 13.17 /
+Цена за Л 75.95`, and **13.17 x 75.95 = 1000.26**, not 1000.00.
+
+Nothing is misread. The customer asked for exactly 1000 roubles, the pump
+dispensed `1000.00 / 75.95 = 13.1666...` litres, and the display **rounds the
+volume to two decimals**. The rounded volume no longer reproduces the total.
+
+This is the case that was wrongly hypothesised for `fiscal-002` and disproved
+there (that one was ЛУКОЙЛ rounding the total down). Here it is real, and it is
+the mirror image: on `fiscal-002` the TOTAL moved, on `pump-010` the VOLUME is
+displayed rounded while the total is exact. A parser cannot tell them apart by the
+gap alone - both are under a rouble.
+
+Consequence: **do not "correct" a volume to make the cross-check close.** The
+honest record is the displayed 13.17 with the exact 1000.00, and CHECK 3's
+tolerance (`max(0.02, amount x 0.005)` = 5.00 here) absorbs it.
+
+## Two more display conventions
+
+`pump-009` (Gilbarco) **zero-pads everything**: `02038,00 РУБЛИ`, `00040,00
+ЛИТРЫ`, `050,95 ЦЕНА/ЛИТР`, and its four grade prices read `060,80 / 050,95 /
+055,90 / 072,88`. Leading zeros plus comma decimals. A parser stripping zeros
+naively on a price like `050,95` is fine; one that treats the string as an integer
+count of digits is not.
+
+`pump-008` (Топаз) is the extreme of the "pump surrounds are advertising" finding:
+the display **is** a video screen, and the numbers are overlaid on a cartoon that
+happens to be playing. The values also appear twice - once in a stylised overlay
+on the video, once in the LCD strip beneath. `20.00 x 54.90 = 1098.00` checks out
+in both places, so the redundancy helps, but the background is arbitrary moving
+imagery rather than a fixed surround.
+
 ## Comma decimals on a pump, and the same station twice
 
 `pump-007` (Gilbarco Veeder-Root, **АЗС № 78154** - the same ЛУКОЙЛ station as
@@ -128,7 +162,7 @@ liters 0.700   unitPrice –   total –   cross-check ✗
 Truth is `67.00 L x 1.869 EUR/L = 125.22 EUR`. Two distinct failures, and
 neither is a tuning problem.
 
-**Pump class baseline, 2026-08-25: 0/21 fields (0.0%), cross-check 0/7.** All seven
+**Pump class baseline, 2026-08-25: 0/30 fields (0.0%), cross-check 0/10.** All ten
 pumps fail completely - receipts score 36.6% by comparison. Pump extraction is a
 harder problem than receipt extraction, not the same problem with worse input.
 

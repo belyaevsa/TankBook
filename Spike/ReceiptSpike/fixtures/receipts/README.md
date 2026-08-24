@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 33/83 fields (39.8%), cross-check 11/30
+## Baseline, 2026-08-25: 36/86 fields (41.9%), cross-check 12/31
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,36 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. `11,000` litres, and a receipt whose merchant is not the station
+### 5. One receipt, two operand orders, and two prices for one fill
+
+`receipt-031` (Газпром сеть АЗС, Минеральные Воды, 28.06.26) prints a loyalty
+discount, and in doing so prints the same fill twice - **in opposite operand
+orders**:
+
+```
+СКИДКА С ЦЕНЫ  1,50 %
+БЕЗ СКИДКИ  30.000 X 71.05 Р. = 2 131.50 Р.     <- QUANTITY x price
+АИ-95-К5 (1 ТРК)
+            69.98 X 30 л      = 2099.40 РУБ     <- price x QUANTITY, л on the second operand
+ВАША СКИДКА 32,10 РУБ
+```
+
+**Operand order is not even stable within a single document.** Every rule the
+corpus had built - marker position, decimal count, brand convention - assumed one
+order per receipt. Here the undiscounted line is quantity-first and the charged
+line is price-first, eight lines apart. Only the `л` marker distinguishes them,
+and it appears on just one of the two.
+
+**And there are two prices for one fill.** 71.05 is the list price, 69.98 is what
+was charged (1.50% off, and `71.05 x 0.985 = 69.98` confirms it). The fill-up's
+`unitPrice` is the **charged** 69.98 - the price that reconciles with the money
+that left the account - while 71.05 is a marketing figure that must not be stored.
+A parser that takes the first price on the receipt takes the wrong one, and the
+arithmetic still closes on its own line, so nothing catches it.
+
+The QR agrees with the charged total (`s=2099.40`), which is the tiebreak.
+
+### 5b. `11,000` litres, and a receipt whose merchant is not the station
 
 `receipt-030` (Яндекс.Заправки, 11.11.23) is the corpus's first **aggregator**
 receipt and brings two hazards nothing else does.
