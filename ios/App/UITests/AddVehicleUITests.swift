@@ -52,11 +52,34 @@ final class AddVehicleUITests: XCTestCase {
             scrollView.swipeUp()
             swipes += 1
         }
-        XCTAssertTrue(element.isHittable, "\(element) never became hittable")
+        // Report existence FIRST, and never interpolate `.frame` unguarded: on a
+        // missing element XCUITest throws "Failed to get matching snapshot"
+        // while building the message, which replaces the real diagnosis with a
+        // misleading one. That is what hid this failure's true cause.
+        XCTAssertTrue(element.exists,
+                      "\(element) does not exist after \(swipes) swipes - it was never scrolled into the hierarchy")
+        XCTAssertTrue(element.isHittable, "\(element) exists but never became hittable")
         XCTAssertTrue(isFullyClear(element, in: app),
-                      "\(element) frame \(element.frame) is still obstructed after \(swipes) swipes")
+                      "\(element) is still obstructed after \(swipes) swipes")
     }
 
+    /// KNOWN, NOT FIXED (2026-08-24). `testConfirmItIsRightIsOneTap` and
+    /// `testImplausibleOdometerWarnsButNeverBlocksSave` pass on iPhone 17 and
+    /// fail on iPhone 17 Pro Max **in isolation**, so this is not the load
+    /// sensitivity it was first diagnosed as.
+    ///
+    /// The frame-clearing fix below is a genuine improvement and was wrongly
+    /// credited with fixing these two. The real failure is later and different:
+    /// `scrollTo` succeeds, `odometer.tap()` succeeds, and then
+    /// `odometer.typeText(...)` fails with "No matches found for Descendants
+    /// matching type TextField" - the field leaves the accessibility tree
+    /// between the tap and the typing, on that device only. Suspect the form
+    /// re-laying out under keyboard avoidance and the element handle going
+    /// stale, but that is a hypothesis, not a diagnosis.
+    ///
+    /// Do not "fix" it by adding sleeps. Reproduce with:
+    ///   xcodebuild ... -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max' \
+    ///     -only-testing:TankbookUITests/AddVehicleUITests test
     /// True when the element is hittable AND its whole frame sits above the
     /// keyboard, so a tap cannot land on the obstruction.
     private func isFullyClear(_ element: XCUIElement, in app: XCUIApplication) -> Bool {

@@ -306,4 +306,37 @@ extension ConfirmManualUITests {
 
         XCTAssertTrue(app.staticTexts["manualFillUpCheckLineLocked"].waitForExistence(timeout: 5))
     }
+
+    // MARK: 8. P2.4 the "Also on this receipt" section
+
+    func testMixedReceiptShowsTheAlsoOnThisReceiptSection() {
+        let app = launchWithPrefill("-seedConfirmPrefillMixedReceipt")
+        openForm(app)
+
+        // The section appears with its two lines and the footer.
+        XCTAssertTrue(app.otherElements["mixedReceiptSection"].waitForExistence(timeout: 5))
+        let wash = app.switches["mixedReceiptToggle_0"]
+        let coffee = app.switches["mixedReceiptToggle_1"]
+        XCTAssertTrue(wash.exists)
+        XCTAssertTrue(coffee.exists)
+        XCTAssertTrue(app.staticTexts["mixedReceiptFooter"].exists)
+
+        // The car wash (car-related) defaults to accepted: the save bar counts
+        // it, and the coffee (non-car) does not.
+        XCTAssertTrue(app.buttons["manualFillUpSaveButton"].label.contains("1 expense"))
+
+        // Flipping the coffee on updates the count live.
+        coffee.tap()
+        XCTAssertTrue(app.buttons["manualFillUpSaveButton"].label.contains("2 expenses"))
+    }
+
+    func testPlainReceiptRendersTheOrdinarySheetWithoutTheSection() {
+        let app = launchWithPrefill("-seedConfirmPrefill")
+        openForm(app)
+
+        // No "Also on this receipt" section on an ordinary fill - the sheet is
+        // the normal Confirm form (hard rule 15's sibling principle).
+        XCTAssertFalse(app.otherElements["mixedReceiptSection"].exists)
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].exists)
+    }
 }

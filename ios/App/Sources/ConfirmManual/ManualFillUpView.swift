@@ -42,6 +42,8 @@ struct ManualFillUpView: View {
     @State private var showTankLevel = false
     @State private var didLoad = false
     @State private var verifyCrop: VerifyCrop?
+    @State private var detection: MixedReceiptDetection = .notMixed
+    @State private var acceptedLineIDs: Set<UUID> = []
 
     init(prefill: ConfirmPrefill? = nil, hasUnsavedChanges: Binding<Bool>) {
         self.injectedPrefill = prefill
@@ -78,6 +80,14 @@ struct ManualFillUpView: View {
                         crops: prefill?.crops ?? [:],
                         reduceMotion: reduceMotion,
                         onVerify: { field, crop in verifyCrop = VerifyCrop(field: field, evidence: crop) })
+                    if case .mixed(let lines, let fuelLine, let grandTotal) = detection {
+                        MixedReceiptSection(
+                            lines: lines,
+                            acceptedLineIDs: $acceptedLineIDs,
+                            currencySymbol: currencySymbol,
+                            receiptTotal: grandTotal,
+                            fillUpAmount: fuelLine)
+                    }
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
@@ -166,6 +176,7 @@ struct ManualFillUpView: View {
             form.odometer = lastKnown.map(String.init) ?? ""
             if let prefill {
                 apply(prefill, vehicle: vehicle)
+                detectMixedReceipt(prefill)
             }
             // The pre-fill snapshots are taken AFTER the convenience pre-fills
             // (odometer, date, extraction): none of them count as an edit.
@@ -231,6 +242,21 @@ struct ManualFillUpView: View {
         form.total = total.map { ConfirmFormat.string(decimal: $0, fractionDigits: 2) } ?? ""
     }
 
+    /// P2.4: run the mixed-receipt detector over the scanned lines and seed the
+    /// "Also on this receipt" toggles. Car-related lines default to accepted,
+    /// non-car lines to dismissed - a suggestion the user can always flip. The
+    /// detector is conservative, so an ordinary receipt simply leaves the sheet
+    /// as the normal Confirm form.
+    private func detectMixedReceipt(_ prefill: ConfirmPrefill) {
+        guard let extraction = prefill.extraction else { return }
+        detection = MixedReceiptDetector.detect(lines: prefill.ocrLines,
+                                                extraction: extraction,
+                                                qrAnchor: prefill.qrAnchor)
+        if case .mixed(let lines, _, _) = detection {
+            acceptedLineIDs = Set(lines.filter(\.isCarRelated).map(\.id))
+        }
+    }
+
     // MARK: - Save
 
     private var saveEnabled: Bool {
@@ -238,11 +264,46 @@ struct ManualFillUpView: View {
         return form.canSave(volumeUnit: volumeUnit)
     }
 
+    /// The save-bar label. On a mixed receipt it counts the accepted Expenses
+    /// ("Save fill-up + 1 expense"), so the user knows exactly what Save writes.
+    private func saveTitle() -> String {
+        guard case .mixed(let lines, _, _) = detection else {
+            return L10n.localize("Save fill-up")
+        }
+        let accepted = lines.filter { acceptedLineIDs.contains($0.id) }.count
+        if accepted > 0 {
+            return String(localized: "Save fill-up + \(accepted) expenses")
+        }
+        return L10n.localize("Save fill-up")
+    }
+
     private func save() {
         guard let vehicle, let derived = form.derived(volumeUnit: volumeUnit) else { return }
         do {
             let repository = try AppStore.repository()
-            let toSave = buildFillUp(vehicle: vehicle, derived: derived)
+            let plan = ReceiptGroupPlanner.plan(detection: detection,
+                                                fillUpAmount: derived.total,
+                                                acceptedLineIDs: acceptedLineIDs)
+            var toSave = buildFillUp(vehicle: vehicle, derived: derived)
+            if let plan {
+                // Grouped save (P2.4): the FillUp and every accepted Expense
+                // share one purchaseGroupId. The fill-up amount is already the
+                // fuel line (hard rule 4); the plan guarantees the group never
+                // exceeds the receipt total.
+                toSave.purchaseGroupId = plan.purchaseGroupId
+                let now = Date()
+                for expense in plan.expenses {
+                    let row = Expense(
+                        id: expense.id, createdAt: now, updatedAt: now, deletedAt: nil,
+                        vehicleId: vehicle.id, date: form.date, odometer: nil,
+                        money: Money(amount: expense.amount, currency: form.currency,
+                                     homeCurrency: vehicle.homeCurrency),
+                        note: nil, attachments: [], provenance: .receiptScan,
+                        conflict: .none, purchaseGroupId: plan.purchaseGroupId,
+                        category: expense.category, title: expense.title)
+                    try repository.upsertExpense(row)
+                }
+            }
             try repository.upsertFillUp(toSave)
             hasUnsavedChanges = false
             dismiss()
@@ -279,7 +340,7 @@ struct ManualFillUpView: View {
     private var saveBar: some View {
         VStack(spacing: 8) {
             Button(action: save) {
-                Text("Save fill-up")
+                Text(saveTitle())
                     .font(.body.weight(.bold))
                     .foregroundStyle(saveEnabled ? Color.white : Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity)

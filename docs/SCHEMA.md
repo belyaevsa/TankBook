@@ -293,11 +293,17 @@ CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance m
            SWAPPED volume/unitPrice pair. It validates the product, never the assignment – deciding
            which operand is which is the job of the resolution ladder in Reference data → Fuel price
            bands. Never treat a green cross-check as evidence the fields are correctly assigned.
-           MIXED RECEIPTS: the fill-up's amount is the FUEL LINE, never the receipt's grand total.
-           Detection is the cross-check itself: when volume × unitPrice matches a line item but not
-           the grand total, the receipt is mixed – the remainder lines are offered as separate
-           Expenses sharing purchaseGroupId and the attachment. Non-car lines (coffee) are simply
-           not logged; the full receipt stays readable in the attachment.
+            MIXED RECEIPTS: the fill-up's amount is the FUEL LINE, never the receipt's grand total.
+            Detection is the cross-check itself: when volume × unitPrice matches a line item but not
+            the grand total, the receipt is mixed – the remainder lines are offered as separate
+            Expenses sharing purchaseGroupId and the attachment. Non-car lines (coffee) are simply
+            not logged; the full receipt stays readable in the attachment. Group invariant (P2.4):
+            the logged group (fill-up + accepted expenses) never exceeds the receipt's LINE-EXTENSION
+            total (fuel line + all detected lines) – it can only be less, when a line was dismissed.
+            The fiscal/QR total is a separate figure used to DETECT mixedness, not the sum ceiling:
+            a receipt's own rounding (ОКРУГЛЕНИЕ) can make its fiscal total slightly lower than the
+            line-extension total (receipt-009: fuel 6135.24 + water 129.00 = 6264.24, charged
+            6264.00), and that discount belongs to no line.
 PRIORITY   If an attachment has extractedTimestamp (receipt/QR), its date is ground truth:
            "fix odometer" is the preselected resolution; overriding the date needs explicit confirmation.
 FISCAL QR  The ФНС QR is an authoritative ANCHOR, not a capture path (docs/JOURNEYS.md J5/F5): it
