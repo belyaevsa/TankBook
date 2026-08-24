@@ -143,5 +143,13 @@ The map names five screens that exist as nodes but have no artboard yet – list
   the Capture screen itself - and reaching it never requires first attempting a scan. It is the
   same `ConfirmManual` sheet either way, so a user who starts manually and one whose scan came
   back thin end up in the identical screen, editing the same fields.
+- **Confirm takes a `ConfirmPrefill` (P2.3)**: the extraction pre-fills present fields, nil
+  fields stay blank and focusable, and an all-nil extraction IS the ordinary manual form -
+  never an error, never a "scan failed" banner (the two doors stay equal). Resolved-but-
+  unconfirmed fields render at 60% opacity (docs/DESIGN.md) and remain fully editable
+  (hard rule 13); the magnifier on such a field opens the source-image crop it came from
+  (tap-to-verify), degrading to a no-op when no crop is attached. A fiscal QR anchor
+  outranks the OCR total (docs/SCHEMA.md -> FISCAL QR): `.disagrees` fills the QR total,
+  a mixed receipt keeps the fuel line (hard rule 4), and the difference is P2.4's job.
 - **Notifications deep-link** into Reminders/Home – both roots with full navigation, never into a bare sheet with no context. ✓
 - Welcome is unreachable after onboarding except via Restoring's cancel and full sign-out – intentional; it is not part of the daily graph. ✓

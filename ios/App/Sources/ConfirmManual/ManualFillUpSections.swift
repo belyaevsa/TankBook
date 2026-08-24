@@ -118,11 +118,22 @@ struct ManualFillUpCurrencySection: View {
 /// live third-value derivation and the cross-check line. Two typed numbers
 /// derive the third and read `.notApplicable`; three typed run the cross-check
 /// (verified locks, mismatch goes amber and refuses to lock).
+///
+/// P2.3: the scanned path lands in this same card. Fields the extraction
+/// resolved render at 60% opacity until confirmed by tap or edit (DESIGN.md) -
+/// the dim is visual only, the field stays fully editable and focusable
+/// (hard rule 13); a field with a crop shows the magnifier that opens the
+/// source crop (tap-to-verify); the lock draw-in honours Reduce Motion.
 struct ManualFillUpNumbersCard: View {
     @Binding var form: ManualFillUpFormState
     @FocusState.Binding var focus: ManualFillUpFocus?
     let volumeUnit: VolumeUnit
     let currencySymbol: String
+    /// P2.3: the per-field source-image crops from the capture pipeline.
+    /// Empty on the Edit-entry reuse (no scan, nothing to verify).
+    var crops: [ManualFillUpMath.Field: CropEvidence] = [:]
+    var reduceMotion: Bool = false
+    var onVerify: (ManualFillUpMath.Field, CropEvidence) -> Void = { _, _ in }
 
     private var derived: ManualFillUpMath.Derived? { form.derived(volumeUnit: volumeUnit) }
 
@@ -148,6 +159,9 @@ struct ManualFillUpNumbersCard: View {
                 case .volume: form.liters = newValue
                 case .unitPrice: form.pricePerL = newValue
                 }
+                // Typing IS the confirmation (DESIGN.md: dimmed "until
+                // confirmed by tap or edit").
+                form.userConfirmedFields.insert(field)
             }
         )
     }
@@ -179,7 +193,12 @@ struct ManualFillUpNumbersCard: View {
 
     private func figureRow(label: LocalizedStringKey, field: ManualFillUpMath.Field,
                            unit: String, isSuspect: Bool, identifier: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
+        let dimmed = ConfirmConfidenceGate.confidence(
+            resolved: form.resolvedByExtraction.contains(field),
+            crossCheck: derived?.crossCheck ?? .notApplicable,
+            userConfirmed: form.userConfirmedFields.contains(field)
+        ) == .unconfirmed
+        return HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
                 .font(.subheadline)
                 .foregroundStyle(Theme.Palette.inkSoft)
@@ -193,13 +212,49 @@ struct ManualFillUpNumbersCard: View {
                 .focused($focus, equals: focusTarget(field))
                 .fieldUnderline(isFocused: focus == focusTarget(field), warn: isSuspect)
                 .accessibilityIdentifier(identifier)
+                // The P2.3 dim: 60% opacity until the field is confirmed. The
+                // field keeps every editing affordance - it is a default input
+                // that stays fully editable and focusable, and VoiceOver still
+                // announces it normally (hard rule 13; asserted by UI test).
+                .opacity(dimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
+            if let crop = crops[field], fieldHasValue(field) {
+                verifyButton(field: field, crop: crop)
+            }
             Text(unit)
                 .font(.caption)
                 .fontWeight(.semibold)
                 .foregroundStyle(Theme.Palette.inkSoft)
+                .opacity(dimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 10)
+    }
+
+    /// The tap-to-verify affordance (P2.3): shows the crop of the source image
+    /// this pre-filled value came from. Present only when the capture pipeline
+    /// attached a crop - with none, the affordance is simply absent (degrade
+    /// to a no-op, never a dead button). Tapping it confirms the field, which
+    /// lifts the dim exactly as DESIGN.md's "until confirmed by tap or edit".
+    private func verifyButton(field: ManualFillUpMath.Field, crop: CropEvidence) -> some View {
+        Button {
+            form.userConfirmedFields.insert(field)
+            onVerify(field, crop)
+        } label: {
+            Image(systemName: "magnifyingglass")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.headlight)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(verifyLabel(field))
+        .accessibilityIdentifier("manualFillUpVerifyButton_\(field.rawValue)")
+    }
+
+    private func verifyLabel(_ field: ManualFillUpMath.Field) -> LocalizedStringKey {
+        switch field {
+        case .total: return "Check the total on the receipt"
+        case .volume: return "Check the liters on the receipt"
+        case .unitPrice: return "Check the price on the receipt"
+        }
     }
 
     @ViewBuilder
@@ -222,7 +277,15 @@ struct ManualFillUpNumbersCard: View {
             // key in Russian even though the catalogue has the translation.
             let text: LocalizedStringKey = locked ? "✓" : "checks as you type"
             HStack(spacing: 10) {
+                // The lock's draw-in (docs/DESIGN.md -> Motion): the rule
+                // grows from the ends toward the tick. The tick itself fades
+                // and scales in. A green lock proves the three numbers are
+                // CONSISTENT, never that liters and price are the right way
+                // round - a x b == b x a - so the lock NEVER suppresses editing
+                // and NEVER gates saving (the save bar depends only on two of
+                // three being typed).
                 Rectangle().fill(color).frame(height: 1.5)
+                    .scaleEffect(x: locked ? 1 : 0.12, anchor: .trailing)
                 Text(text)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(color)
@@ -231,10 +294,21 @@ struct ManualFillUpNumbersCard: View {
                     // was squeezed to "checks as you t...".
                     .fixedSize(horizontal: true, vertical: false)
                     .layoutPriority(1)
+                    .scaleEffect(locked ? 1 : 0.9)
+                    .opacity(locked ? 1 : 0.85)
                 Rectangle().fill(color).frame(height: 1.5)
+                    .scaleEffect(x: locked ? 1 : 0.12, anchor: .leading)
             }
+            .animation(reduceMotion ? nil : .spring(duration: 0.45), value: locked)
             .accessibilityIdentifier(locked ? "manualFillUpCheckLineLocked" : "manualFillUpCheckLine")
             .padding(.horizontal, Theme.Spacing.cardPadding)
+            .onChange(of: locked) { _, isLocked in
+                // The lock's .success beat (DESIGN.md). A no-op on the
+                // simulator; a subtle confirmation on a device.
+                if isLocked {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
+            }
         }
     }
 
@@ -243,6 +317,23 @@ struct ManualFillUpNumbersCard: View {
         case .total: return !form.total.isEmpty
         case .volume: return !form.liters.isEmpty
         case .unitPrice: return !form.pricePerL.isEmpty
+        }
+    }
+
+    /// Whether the field currently shows a value (a pre-filled or typed one).
+    /// The verify affordance only makes sense over an actual number.
+    private func fieldHasValue(_ field: ManualFillUpMath.Field) -> Bool {
+        fieldIsTyped(field) || derivedDisplay(field) != nil
+    }
+
+    private func derivedDisplay(_ field: ManualFillUpMath.Field) -> String? {
+        switch field {
+        case .total: return derived.map { ManualFillUpFormat.decimal($0.total, fractionDigits: 2) }
+        case .volume: return derived.map { volume in
+            ManualFillUpFormat.decimal(ManualFillUpMath.displayVolume(from: volume.volumeL, unit: volumeUnit),
+                                       fractionDigits: 2)
+        }
+        case .unitPrice: return derived.map { ManualFillUpFormat.decimal($0.unitPrice, fractionDigits: 3) }
         }
     }
 

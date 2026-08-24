@@ -76,12 +76,14 @@ public enum TimelineValidator {
 
     /// CHECK 3: `volumeL x unitPrice ≈ amount` within tolerance
     /// `max(0.02, amount x 0.005)` (docs/SCHEMA.md, Validation -> CHECK 3).
+    /// The tolerance constant is owned by `ConfirmConfidenceGate` - the one
+    /// named home for the confirm screen's thresholds (P2.3) - so the
+    /// validator and the confirm sheet can never disagree about the boundary.
     public static func crossCheck(volumeL: Double, unitPrice: Decimal?,
                                   amount: Decimal?) -> CrossCheckState {
         guard let unitPrice, let amount else { return .notApplicable }
         let computed = Decimal(volumeL) * unitPrice
-        let tolerance = max(Decimal(string: "0.02")!,
-                            amount * Decimal(string: "0.005")!)
+        let tolerance = ConfirmConfidenceGate.crossCheckTolerance(amount: amount)
         let difference = abs(computed - amount)
         return difference <= tolerance ? .verified : .mismatch(field: .total)
     }

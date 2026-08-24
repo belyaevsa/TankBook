@@ -25,6 +25,7 @@ struct EditEntryView: View {
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     // FillUp form (reuses the ConfirmManual components).
     @State private var fillForm = ManualFillUpFormState()
@@ -107,7 +108,8 @@ struct EditEntryView: View {
                 ManualFillUpCurrencySection(form: $fillForm, homeCurrency: vehicle?.homeCurrency ?? .eur,
                                             lowConfidence: false)
                 ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
-                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol)
+                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
+                                        reduceMotion: accessibilityReduceMotion)
                 ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                          distanceUnit: distanceUnit,
                                          conflict: odometerConflict,
