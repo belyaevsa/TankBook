@@ -5,22 +5,22 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 15/44 fields (34.1%), cross-check 5/15
+## Baseline, 2026-08-24: 18/47 fields (38.3%), cross-check 6/16
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
-number dropped because the corpus finally has breadth - 14 receipts across 15
-files, 11 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
+number dropped because the corpus finally has breadth - 15 receipts across 16
+files, 12 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
 including LPG.
 
 Split by field, which is more useful than the headline:
 
 | | correct |
 |---|---|
-| **total** | 10 / 15 |
-| **litres + unit price** | 2 / 15 receipts fully right (001, 003) |
-| extracted litres/price at all | 5 / 15, and **2 of those 5 are swapped** |
-| fuel kind normalised to the SCHEMA vocabulary | 0 / 15 |
+| **total** | 11 / 16 |
+| **litres + unit price** | 3 / 16 receipts fully right (001, 003, 016) |
+| extracted litres/price at all | 6 / 16, and **2 of those 6 are swapped** |
+| fuel kind normalised to the SCHEMA vocabulary | 0 / 16 |
 
 **OCR is not the bottleneck.** Vision reads these at confidence 1.00 - including
 `Цена за / Кол. / 71.25 / 3562.50` on the labelled-column receipt-013 and
@@ -97,7 +97,32 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. Fuel kind is not normalised
+### 5. Non-fiscal receipts exist, and they have no QR at all
+
+`receipt-016` is a **НЕФИСКАЛЬНЫЙ ОТЧЁТ** - a corporate fuel-card order receipt
+(РН-Карт) from АО "РН-Москва". It prints a fiscal `ФН`, but it is explicitly a
+non-fiscal report and **carries no QR code**. `docs/JOURNEYS.md` J5 assumes a
+fiscal QR; fuel-card purchases simply do not have one, so they fall to the OCR
+path with no exact-fill shortcut available. Worth knowing before J5's "scan the
+QR, done" is treated as covering every Russian fill.
+
+It brings three parsing hazards, all new:
+
+- **A space is used as the thousands separator**: `1 932.00`. A number reader that
+  splits on whitespace sees `1` and `932.00`; one that strips whitespace sees
+  `193200`. Note the same document also prints `1932.00` unspaced further down, so
+  the modal-value rule from item 4 resolves it for free.
+- **`руб` labels the price operand**: the line is `руб  64.40 X 30.000`, with the
+  currency word marking which operand is money. That is a genuine step-2 signal for
+  the resolution ladder, and a second marker family beyond `л`/`L`/`gal`. Vision
+  emits `руб` as its **own line**, so using it requires bounding boxes rather than
+  string order - the same requirement as the label/value pairing in item 2.
+- **The receipt declares its own unit convention**: `1 ед.=1 литр для
+  нефтепродуктов/СУГ`, `1 ед.=1 м3 для КПГ`. That is free, authoritative metadata
+  when present - and it surfaced a schema gap: CNG is sold by the cubic metre and
+  `VolumeUnit` has no `m3` (`docs/SCHEMA.md` → Open questions).
+
+### 6. Fuel kind is not normalised
 
 The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/SCHEMA.md`
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel

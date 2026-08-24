@@ -506,7 +506,17 @@ Import rules (F6): ambiguity (units/currency) asks once per file; unparseable ro
 
 ## Open questions
 
-None. All decided:
+1. **CNG has no volume unit.** `FuelKind` includes `.cng`, but `VolumeUnit` is
+   `l / galUS / galUK` only - and CNG is sold by the **cubic metre**, not the litre. A real
+   receipt states the convention itself: `1 ед.=1 литр для нефтепродуктов/СУГ`, `1 ед.=1 м3
+   для КПГ` (`Spike/ReceiptSpike/fixtures/receipts/receipt-016-...`). So a CNG fill cannot
+   currently be recorded in its own unit, and consumption for a CNG vehicle would be computed
+   against the wrong dimension. Adding `.m3` touches a persisted enum, the consumption engine's
+   unit handling and the display formatters, so it is a deliberate change, not a quick patch -
+   flagged for P3/P5 rather than done in passing. Until then, treat CNG as unsupported rather
+   than silently storing m3 as litres.
+
+Everything else is decided:
 
 1. **Persistence layer** – decided (Aug 23, 2026): **GRDB**. Full SQL and explicit migrations for the sync client's `syncState`/SCN bookkeeping and the segment-recompute queries; GRDB's observation drives SwiftUI. SwiftData rejected: CloudKit-oriented sync hooks (we run our own engine), young, weaker background-access control.
 2. ~~Blob placement~~ – decided: S3-compatible object storage with presigned URLs (`SYNC.md`, blob pipeline).
