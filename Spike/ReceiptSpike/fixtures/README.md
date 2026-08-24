@@ -10,7 +10,13 @@ fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
   fiscal/     OFD documents + expected.csv       -> text layer, NOT OCR (P2.6)
+  screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
 ```
+
+`screenshots/` is Vision OCR like `receipts/`, but of *rendered* text rather
+than a photographed surface - no glare, no perspective, no crumpling, and app
+chrome in the frame instead. Scored separately so neither number flatters the
+other.
 
 `fiscal/` is deliberately separate: those documents carry a text layer, so they
 are read exactly without OCR. Folding them into `receipts/` would inflate the
