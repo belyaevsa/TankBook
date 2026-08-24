@@ -81,7 +81,17 @@ private func localDate(components: DateComponents, in timeZone: TimeZone) -> Dat
     // What matters is that every committed payload parses, not that there are
     // exactly N of them.
     #expect(bases.count >= 11, "expected at least 11 committed QR fixtures, found \(bases.count)")
-    var mixedCount = 0
+    // The fixtures known to be mixed, NAMED rather than counted. Asserting a
+    // count means every new mixed receipt breaks this test with a number that
+    // says nothing about which one changed; naming them means adding a mixed
+    // fixture is a deliberate one-line edit and a wrong classification points at
+    // the culprit. `receipt-025` broke the old `mixedCount == 1` when it was
+    // added, which is what prompted this.
+    let knownMixed: Set<String> = [
+        "receipt-009-mkad-mixed-fuel-water-ru",       // fuel + a 129.00 bottle of water
+        "receipt-025-tatneft-mkad-mixed-service-2019-ru" // fuel + a 69.28 registration fee
+    ]
+    var sawMixed: Set<String> = []
     for base in bases {
         let raw = try qrPayload(base)
         let payload = try FiscalQRParser.parse(raw, timeZone: utc)
@@ -98,12 +108,16 @@ private func localDate(components: DateComponents, in timeZone: TimeZone) -> Dat
             // receipt-009: the QR grand total exceeds the fuel line by the non-fuel items.
             #expect(payload.total > expectedTotal,
                     "\(base): QR grand total \(payload.total) should exceed the fuel line \(expectedTotal)")
-            mixedCount += 1
+            sawMixed.insert(base)
         case .disagrees:
             Issue.record("\(base): QR total \(payload.total) disagrees with expected total \(expectedTotal)")
         }
     }
-    #expect(mixedCount == 1, "exactly one mixed fixture expected, found \(mixedCount)")
+    // Only fixtures that HAVE a QR can be classified, so compare against the
+    // known-mixed set intersected with what was actually scanned.
+    let scannable = knownMixed.intersection(Set(bases))
+    #expect(sawMixed == scannable,
+            "mixed classification drifted - expected \(scannable.sorted()), saw \(sawMixed.sorted())")
 }
 
 // MARK: - 2. Both timestamp forms parse to the correct instant
