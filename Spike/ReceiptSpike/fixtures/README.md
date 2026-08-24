@@ -8,8 +8,10 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
+              12 receipts, 9 brands, 5 years, RU. Baseline 40.0% - see its README
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-  fiscal/     OFD documents + expected.csv       -> text layer, NOT OCR (P2.6)
+              pump-002 is the SAME fill as receipt-007: independent ground truth
+  fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
 ```
 
@@ -18,9 +20,13 @@ than a photographed surface - no glare, no perspective, no crumpling, and app
 chrome in the frame instead. Scored separately so neither number flatters the
 other.
 
-`fiscal/` is deliberately separate: those documents carry a text layer, so they
-are read exactly without OCR. Folding them into `receipts/` would inflate the
-image-accuracy number with documents OCR never had to read.
+`fiscal/` is deliberately separate: it is what the app gets after scanning a
+fiscal QR, not a photo of paper. Folding a text-layer document into `receipts/`
+would inflate the image-accuracy number with a document OCR never had to read.
+
+Note the folder is **no longer uniformly text-bearing**: `fiscal-001` (ofd.ru)
+has a text layer, `fiscal-002` (ofd-ya.ru) is image-only and must be rendered and
+OCR'd. See `fiscal/README.md`.
 
 ## Adding a photo
 
@@ -51,6 +57,18 @@ receipt-001.heic,67.00,1.869,125.22
 a missing one: the gate ratchets against it, so a guess becomes a permanent lie
 the accuracy number is measured from. An empty field is simply skipped for that
 file.
+
+## A matched pair is worth more than two photos
+
+`pump/pump-002-lukoil-spb-ru.png` and `receipts/receipt-007-lukoil-spb-100-ru.png`
+are the same purchase. That is what proved the parser returns litres and unit
+price **swapped** on receipt-007 - the pump states them separately and labelled,
+so it settles what no amount of re-reading the receipt could. `receipt-001` and
+`pump-001` are the other such pair. Prefer shooting both when you can.
+
+Note the two disagree on the total *by design*: the pump reads 4334.83, the
+receipt 4334.00, because Лукойл rounds the fiscal total down to the whole rouble
+(`fiscal/README.md`). Same fill, both correct, ~1 ₽ apart.
 
 ## The corpus is the unblocking task for P2
 
