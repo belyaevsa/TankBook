@@ -90,6 +90,17 @@ All three degrade to crossfades under Reduce Motion.
   - Implementation note: this means a **custom header row**, not `.navigationTitle` + `.toolbar` – SwiftUI's large-title layout puts toolbar items on the bar *above* the title by construction, which is exactly the stacking being rejected here. An inline title would also work but loses the type scale.
   - **`HomeA.dc.html` draws no gear** even though this doc has always said Settings opens from one in the Home header. The artboard's header row is the `Tankbook` wordmark plus the car chip. Treated as an artboard omission, not a contradiction: the gear goes in that row. The wordmark is optional chrome – the tab bar already names the tab, so the title/wordmark choice is free as long as the row stays single.
 - **Entry card content (decided 2026-08-23, from reviewing the built screen).** Title is the station or vendor; the trailing figure is the amount in DIN. The subtitle line carries **quantity · odometer · date**, plus a **paperclip glyph when a receipt or photo is attached**.
+  - **The same rule governs input, not just display.** A fill-up form must offer exactly the
+    fuel kinds the selected car accepts, and when it accepts one, the row is a static value
+    rather than a chooser - a control whose only options are "the answer" and "wrong" is not a
+    choice. It must still be correctable (hard rule 13): reaching the car's fuel kinds has to be
+    possible from the entry, or a mis-set car becomes an entry the user cannot fix. What is
+    legitimately multi-valued: **petrol grades** (92/95/98/100, one tank, the driver picks at the
+    pump), and **bi-fuel or flex-fuel** pairings (petrol + LPG, petrol + CNG, petrol + E85).
+    What is not: **diesel together with petrol** - no car burns both, and offering it is how the
+    Confirm sheet came to show a `95 / Diesel` toggle. Note `fuelGrade` is a separate field and
+    stays free even for a single-kind car: a diesel driver really does choose between
+    `ДТ-Е-К5 Танеко` and `АТ-Л-К5 Ультра`.
   - **Fuel kind is shown only when it tells the user something**: when the vehicle accepts more than one fuel kind, or when this entry's kind differs from the car's usual. A diesel-only car printing "Diesel" on every row is noise dressed as information – it costs a column and never varies. The rule is *conditional*, not "never": a petrol + LPG car, or a PHEV alternating fuel and electricity, genuinely needs it.
   - **The odometer takes that place**, because it is the one field that changes every entry, that the user is most likely to want to check against the dashboard, and that makes a mis-typed reading obvious in the stream instead of only in Trends. An entry with no odometer (optional on non-FillUp entries) simply omits the segment – no dash, no zero.
   - **Attachment presence is a glyph, never a word.** It answers "did I keep the receipt?" at a glance, which is a real question users ask at tax time, and it carries an accessibility label (colour and iconography are never the only channel).
