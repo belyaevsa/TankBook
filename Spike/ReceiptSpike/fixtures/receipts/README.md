@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 26/74 fields (35.1%), cross-check 9/27
+## Baseline, 2026-08-25: 27/77 fields (35.1%), cross-check 9/28
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,38 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. Two genuine purchases that look identical - the duplicate-detection trap
+### 5. Region moves the price as much as years do
+
+`receipt-028` (ООО "СИБОЙЛ", **Якутск**, 17.07.23) is the corpus's first far-east
+fixture, and it complicates the price-band design in a way the other 27 did not.
+
+АИ-95 across the corpus:
+
+| date | price | where |
+|---|---|---|
+| 2022-12 | 48.80 | Кемерово |
+| **2023-07** | **62.20** | **Якутск** |
+| 2025-10 | 64.40 | Москва |
+| 2026-02 | 70.05 | Воронеж |
+| 2026-08 | 73.06 | М-11 |
+
+Yakutsk in mid-2023 is **27% above Кемерово seven months earlier**, and within a
+rouble of Moscow *two years later*. Fuel is trucked and barged thousands of
+kilometres into Sakha, and the price says so.
+
+**Consequence for `docs/SCHEMA.md` → Fuel price bands:** a band keyed on
+country+currency+period is too coarse. Widen it to cover Yakutsk and it stops
+discriminating in Moscow - which is the whole job, since the ladder's step 4 has
+to decide which operand is the price. Either the band carries a region, or it is
+honest that a national band only rules out the *impossible* (30 ₽/L, 450 ₽/L) and
+leaves the near cases to the user. The corpus cannot tell us which; it can tell us
+the naive version does not work.
+
+Its arithmetic is otherwise clean: `10 X 62.20 = 622.00`, VAT 20% of 103.67
+checks, quantity-first with a round quantity. **No decodable QR** - the photo's
+code did not read, so it joins the 15 of 28 receipts with no fiscal anchor.
+
+### 5b. Two genuine purchases that look identical - the duplicate-detection trap
 
 `receipt-015` and `receipt-026` are **different fiscal documents with identical
 amounts**, and together they are the corpus's sharpest test of duplicate
