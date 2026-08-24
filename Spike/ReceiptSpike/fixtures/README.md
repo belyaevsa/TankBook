@@ -7,9 +7,14 @@ stays off.
 
 ```
 fixtures/
-  receipts/   receipt photos + expected.csv
-  pump/       pump-display photos + expected.csv
+  receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
+  pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
+  fiscal/     OFD documents + expected.csv       -> text layer, NOT OCR (P2.6)
 ```
+
+`fiscal/` is deliberately separate: those documents carry a text layer, so they
+are read exactly without OCR. Folding them into `receipts/` would inflate the
+image-accuracy number with documents OCR never had to read.
 
 ## Adding a photo
 
