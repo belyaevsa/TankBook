@@ -338,6 +338,10 @@ EV         same structure: segments between charges with known SoC, or simple kW
            sessions when odometer deltas exist; €/100km = window cost / window km (the household
            comparison needs nothing extra).
 COST/KM    all-in: Σ homeAmount of ALL entry types in window / km in window.
+           Its honest label follows the same rule as the headline: the span the
+           km data actually covers (never the full window when the data is
+           younger) - "last 3 months" over a full window, "last month" over two
+           weeks of readings.
 ```
 
 ### Recalculation on edit (normative)

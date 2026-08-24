@@ -15,11 +15,19 @@ import UIKit
 struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var toastCenter = AppToastCenter()
-    @State private var tabSelection: Int = 0
+    @State private var tabSelection: Int
     @State private var didRunStartupPurge = false
 
     init() {
         Self.applyNeutralTabBarAppearance()
+        // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
+        // screenshots and UI tests can reach it without a tab tap (simctl cannot
+        // tap). DEBUG/test-only.
+        if ProcessInfo.processInfo.arguments.contains("-selectTrendsTab") {
+            _tabSelection = State(initialValue: 1)
+        } else {
+            _tabSelection = State(initialValue: 0)
+        }
     }
 
     var body: some View {
@@ -159,7 +167,7 @@ struct TrendsTabView: View {
 
     var body: some View {
         RootedNavigationStack(path: $path) {
-            TrendsRootView()
+            TrendsRootView(presentSheet: { sheet = $0 })
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
         .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }

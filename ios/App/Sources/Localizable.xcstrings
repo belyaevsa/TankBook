@@ -461,6 +461,40 @@
         }
       }
     },
+    "Consumption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumption"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расход"
+          }
+        }
+      }
+    },
+    "Cost / km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cost / km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Стоимость / км"
+          }
+        }
+      }
+    },
     "Currency": {
       "extractionState": "manual",
       "localizations": {
@@ -1005,6 +1039,23 @@
         }
       }
     },
+    "L/100": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "L/100"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "л/100"
+          }
+        }
+      }
+    },
     "L/100km": {
       "extractionState": "manual",
       "localizations": {
@@ -1324,6 +1375,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ещё один полный бак – и появится расход"
+          }
+        }
+      }
+    },
+    "Opens the excluded entry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the excluded entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает исключённую запись"
           }
         }
       }
@@ -1719,6 +1787,23 @@
         }
       }
     },
+    "Spend · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spend · %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Траты · %@"
+          }
+        }
+      }
+    },
     "Station": {
       "extractionState": "manual",
       "localizations": {
@@ -2042,19 +2127,55 @@
         }
       }
     },
-    "first estimate · %d fill cycle": {
+    "first estimate · %lld fill cycles": {
       "extractionState": "manual",
       "localizations": {
         "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "first estimate · %d fill cycle"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "first estimate · %lld fill cycle"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "first estimate · %lld fill cycles"
+                }
+              }
+            }
           }
         },
         "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "предварительная оценка · %d цикл заправки"
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "предварительная оценка · %lld цикл заправки"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "предварительная оценка · %lld цикла заправки"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "предварительная оценка · %lld циклов заправки"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "предварительная оценка · %lld циклов заправки"
+                }
+              }
+            }
           }
         }
       }
@@ -2123,6 +2244,59 @@
           "stringUnit": {
             "state": "translated",
             "value": "км/л"
+          }
+        }
+      }
+    },
+    "last %lld months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "last %lld month"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "last %lld months"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "за %lld месяц"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "за %lld месяца"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "за %lld месяцев"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "за %lld месяцев"
+                }
+              }
+            }
           }
         }
       }

@@ -36,6 +36,9 @@ public struct HomeStats: Equatable, Sendable {
     /// the validation/duplicate engines' flags, never hard-coded
     /// (docs/ERRORS.md -> Home, rows F9a and S2).
     public let excludedEntryCount: Int
+    /// The excluded entries' IDs, most recent first - the footnote's "tap -> the
+    /// flagged entry" next step needs a concrete target (hard rule 7).
+    public let excludedEntryIDs: [UUID]
     /// True once a headline exists but is a first estimate (fewer segments than
     /// the floor, nothing older to extend into).
     public let isFirstEstimate: Bool
@@ -82,6 +85,10 @@ public struct HomeStats: Equatable, Sendable {
             excluded.insert(entry.id)
         }
         self.excludedEntryCount = excluded.count
+        self.excludedEntryIDs = entries
+            .filter { excluded.contains($0.id) }
+            .sorted { $0.date > $1.date }
+            .map(\.id)
         if case .firstEstimate = headline?.label {
             self.isFirstEstimate = true
         } else {

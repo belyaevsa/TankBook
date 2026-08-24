@@ -233,7 +233,8 @@ enum HomeTestSeed {
 
     // MARK: - Fixture builders
 
-    private static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95, .diesel]) -> Vehicle {
+    /// Shared with `TrendsTestSeed` (same fixture shapes, one source).
+    static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95, .diesel]) -> Vehicle {
         let now = Date()
         return Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
@@ -269,8 +270,9 @@ enum HomeTestSeed {
     }
 
     /// A fixture fill's data, kept apart from the construction call so the
-    /// builder stays small (swiftlint function_parameter_count).
-    private struct FillSpec {
+    /// builder stays small (swiftlint function_parameter_count). Shared with
+    /// `TrendsTestSeed`.
+    struct FillSpec {
         let daysAgo: Int
         let odometer: Int
         let litres: Double
@@ -279,11 +281,11 @@ enum HomeTestSeed {
         let stationID: UUID?
     }
 
-    private static func makeFill(vehicleID: UUID, _ spec: FillSpec,
-                                 conflict: ConflictState = .none,
-                                 purchaseGroupID: UUID? = nil,
-                                 attachments: [AttachmentID] = [],
-                                 date: Date? = nil) -> FillUp {
+    static func makeFill(vehicleID: UUID, _ spec: FillSpec,
+                         conflict: ConflictState = .none,
+                         purchaseGroupID: UUID? = nil,
+                         attachments: [AttachmentID] = [],
+                         date: Date? = nil) -> FillUp {
         let fillDate = date ?? Date().addingTimeInterval(-Double(spec.daysAgo) * 86_400)
         return FillUp(
             id: UUID.v7(), createdAt: fillDate, updatedAt: fillDate, deletedAt: nil,

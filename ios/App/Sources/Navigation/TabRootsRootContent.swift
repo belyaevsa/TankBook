@@ -23,9 +23,10 @@ struct HomeRootView: View {
 }
 
 struct TrendsRootView: View {
+    let presentSheet: (SheetRoute) -> Void
+
     var body: some View {
-        Color.clear
-            .background(Theme.Palette.midnight)
+        TrendsView(presentSheet: presentSheet)
             .navigationTitle("Trends")
     }
 }

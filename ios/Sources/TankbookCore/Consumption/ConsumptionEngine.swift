@@ -54,6 +54,29 @@ public struct Headline: Equatable, Sendable {
     }
 }
 
+// MARK: - Honest label text
+
+extension Headline.Label {
+    /// The honest label in the default language (English), per docs/SCHEMA.md
+    /// -> HEADLINE. The span a number is actually made of: "last 3 months"
+    /// when the window is satisfied; the REAL span when the window had to
+    /// extend ("last 5 months", never "last 3 months"); "first estimate · N
+    /// fill cycles" below the floor with nothing to extend into. The wording
+    /// is the feature - a number computed over five months labelled as three
+    /// is a lie the user cannot detect, so the label reports the real span.
+    /// Home and Trends render this same rule through the app's String Catalog
+    /// (EN + RU); this is the canonical text the catalog keys and the L1 tests
+    /// pin.
+    public func honestText() -> String {
+        switch self {
+        case .window(let months):
+            return months == 1 ? "last month" : "last \(months) months"
+        case .firstEstimate(let cycles):
+            return cycles == 1 ? "first estimate · 1 fill cycle" : "first estimate · \(cycles) fill cycles"
+        }
+    }
+}
+
 /// Pure consumption math (docs/SCHEMA.md, Derived: consumption). All functions
 /// are stateless: derived values are computed on demand and NEVER cached or
 /// stored. Any change to any FillUp of a vehicle triggers a full recompute via

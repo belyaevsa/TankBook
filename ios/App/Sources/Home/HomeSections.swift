@@ -154,8 +154,11 @@ struct HomeHeadlineBlock: View {
 
     @ViewBuilder
     private func labelLine(_ headline: Headline) -> some View {
-        if stats.isFirstEstimate, case .firstEstimate(let cycles) = headline.label {
-            Text(String(format: L10n.localize("first estimate · %d fill cycle"), cycles))
+        if stats.isFirstEstimate, case .firstEstimate = headline.label {
+            // The same localized honest label Trends renders, from the same
+            // function - Home and Trends can never disagree about the wording
+            // (docs/SCHEMA.md -> HEADLINE; P1.10).
+            Text(L10n.honestSpanLabel(headline.label))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .accessibilityIdentifier("homeFirstEstimateLabel")
@@ -194,9 +197,11 @@ struct HomeHeadlineBlock: View {
 
 // MARK: - Vitals row
 
-/// The two vital tiles (HomeA artboard: "August spend", "Last price/L"). A tile
-/// with nothing honest to show is OMITTED, never rendered as "N/A", "–" or
-/// "0.0" (docs/ERRORS.md -> Home; the L4 no-N/A-tiles assertion).
+/// The two vital tiles (HomeA artboard: "August spend", "Last price/L"). Renders
+/// through the shared `StatTile` component that Trends' grid also uses, so the
+/// two screens can never disagree about a number or its label. A tile with
+/// nothing honest to show is OMITTED, never rendered as "N/A", "–" or "0.0"
+/// (docs/ERRORS.md -> Home; the L4 no-N/A-tiles assertion).
 struct HomeVitalsRow: View {
     let stats: HomeStats
     let vehicle: Vehicle
@@ -206,33 +211,16 @@ struct HomeVitalsRow: View {
     var body: some View {
         HStack(spacing: 10) {
             if let monthSpend = stats.monthSpend {
-                tile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
-                     value: HomeFormat.spend(monthSpend, symbol: symbol),
-                     identifier: "homeMonthSpendTile")
+                StatTile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
+                         value: HomeFormat.spend(monthSpend, symbol: symbol),
+                         identifier: "homeMonthSpendTile")
             }
             if let lastPrice = stats.lastUnitPrice {
-                tile(title: L10n.localize("Last price/L"),
-                     value: HomeFormat.unitPrice(lastPrice, symbol: symbol),
-                     identifier: "homeLastPriceTile")
+                StatTile(title: L10n.localize("Last price/L"),
+                         value: HomeFormat.unitPrice(lastPrice, symbol: symbol),
+                         identifier: "homeLastPriceTile")
             }
         }
-    }
-
-    private func tile(title: String, value: String, identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title)
-                .font(.caption2)
-                .textCase(.uppercase)
-                .tracking(0.8)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Text(value)
-                .font(.custom(AppFonts.dinAlternateBold, size: 22))
-                .foregroundStyle(Theme.Palette.ink)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .formCard()
-        .accessibilityIdentifier(identifier)
     }
 }
 
@@ -335,11 +323,11 @@ struct HomeRecentEntries: View {
         .accessibilityIdentifier("logMonthDivider")
     }
 
+    /// The excluded-count footnote, via the shared component Trends also uses -
+    /// one implementation, one wording (docs/ERRORS.md -> Home, F9a/S2).
+    @ViewBuilder
     private var excludedFootnote: some View {
-        Text(L10n.entriesExcluded(excludedEntryCount))
-            .font(.caption2)
-            .foregroundStyle(Theme.Palette.warn)
-            .accessibilityIdentifier("homeExcludedFootnote")
+        ExcludedEntriesFootnote(count: excludedEntryCount, identifier: "homeExcludedFootnote")
     }
 
     // MARK: Rows
