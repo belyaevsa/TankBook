@@ -120,7 +120,37 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. Region moves the price as much as years do
+### 5. The odometer is in the frame - and a chain's rounding is not permanent
+
+`receipt-029` (ЛУКОЙЛ, ЭКТО 100, **08.07.2021**) is photographed lying on the car's
+instrument cluster, so **the receipt and the odometer are in the same image**
+(12148 km, 536 km range visible beside it).
+
+That is not a photography accident, it is how people actually do it - the
+dashboard is the flat surface to hand when you get back in the car. And it
+matters, because **the odometer is the one field a fuel receipt never carries**
+and the one J3 has to ask for. A capture that reads both would complete a fill-up
+from a single photo. Worth treating as a deliberate capture pattern rather than a
+curiosity: nothing else in the corpus offers the odometer at all.
+
+It also shows **a chain's rounding behaviour is not stable over time**:
+
+| date | ЛУКОЙЛ receipt | ИТОГ |
+|---|---|---|
+| 2021-07-08 | 43.24 x 58.51 = 2529.97 | **2529.97** - exact, no rounding line |
+| 2026-02-04 | 30 x 70.05 = 2101.50 | 2101.00 - `СКИДКА` + `ОКРУГЛЕНИЕ` |
+| 2026-08-18 | 23 x 73.06 = 1680.38 | 1680.00 - `ОКРУГЛЕНИЕ` |
+| 2026-08-22 | 43.61 x 99.40 = 4334.83 | 4334.00 - `ОКРУГЛЕНИЕ` |
+
+So "ЛУКОЙЛ rounds down to the whole rouble" is true of 2026 and false of 2021. A
+parser keyed on brand behaviour would be wrong on five-year-old receipts, which
+is exactly the backlog an importer processes. **Detect the rounding line; never
+infer it from the brand.**
+
+At 58.51 for АИ-100 in 2021 it is also the corpus's earliest and cheapest fixture,
+extending the price series back another eighteen months.
+
+### 5b. Region moves the price as much as years do
 
 `receipt-028` (ООО "СИБОЙЛ", **Якутск**, 17.07.23) is the corpus's first far-east
 fixture, and it complicates the price-band design in a way the other 27 did not.
