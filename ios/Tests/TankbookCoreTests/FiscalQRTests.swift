@@ -76,7 +76,11 @@ private func localDate(components: DateComponents, in timeZone: TimeZone) -> Dat
 @Test func allCommittedFixturesParseAndMatchExpectedTotals() throws {
     let expected = try expectedTotals()
     let bases = try qrFixtureBases()
-    #expect(bases.count == 11, "expected 11 committed QR fixtures, found \(bases.count)")
+    // A FLOOR, not a frozen count. Pinning the exact number means every corpus
+    // contribution breaks this test, which is how a fixture suite stops growing.
+    // What matters is that every committed payload parses, not that there are
+    // exactly N of them.
+    #expect(bases.count >= 11, "expected at least 11 committed QR fixtures, found \(bases.count)")
     var mixedCount = 0
     for base in bases {
         let raw = try qrPayload(base)

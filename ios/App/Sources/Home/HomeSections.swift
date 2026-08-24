@@ -640,8 +640,10 @@ extension FuelKind {
     var fuelKindLabel: String {
         switch self {
         case .diesel: return L10n.localize("Diesel")
+        case .petrol92: return L10n.localize("92")
         case .petrol95: return L10n.localize("95")
         case .petrol98: return L10n.localize("98")
+        case .petrol100: return L10n.localize("100")
         case .lpg: return L10n.localize("LPG")
         case .cng: return L10n.localize("CNG")
         case .e85: return L10n.localize("E85")

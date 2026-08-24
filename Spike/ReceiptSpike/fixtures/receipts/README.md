@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 18/47 fields (38.3%), cross-check 6/16
+## Baseline, 2026-08-24: 19/59 fields (32.2%), cross-check 7/22
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -28,6 +28,22 @@ Split by field, which is more useful than the headline:
 | **litres + unit price** | 3 / 16 receipts fully right (001, 003, 016) |
 | extracted litres/price at all | 6 / 16, and **2 of those 6 are swapped** |
 | fuel kind normalised to the SCHEMA vocabulary | 0 / 16 |
+
+**Provenance is no longer uniform.** `receipt-017` and `receipt-019` through
+`receipt-022` were **not photographed by the maintainer** - they come from public
+web sources (oil-club.ru, otzovik.com, drive-data.ru). They are kept because they
+add years the corpus lacked (2018, 2020, 2024), the `СКИДКА` discount mechanism,
+and a second `АИ-100` data point. `receipt-019/020/021` carry **totals only**,
+taken from their fiscal QR, which is authoritative; their litres and unit price
+are deliberately blank because nobody has read the line items yet. Anyone adding
+those values should read the photo, not infer them.
+
+**A note on the falling headline.** The percentage keeps dropping as the corpus
+grows - 38.3% over 16 files, 32.2% over 22 - because new fixtures arrive faster
+than the parser learns them, and several carry blank ground truth that can never
+be scored as a hit. **This is the corpus working, not the parser regressing.** The
+ratchet deliberately guards absolute hits rather than the percentage for exactly
+this reason (`../HIGH-WATER.md`).
 
 **OCR is not the bottleneck.** Vision reads these at confidence 1.00 - including
 `Цена за / Кол. / 71.25 / 3562.50` on the labelled-column receipt-013 and
@@ -104,7 +120,43 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. Non-fiscal receipts exist, and they have no QR at all
+### 5. A third way for ИТОГ to differ from the line extension: СКИДКА
+
+`receipt-017` (Татнефть, 24.06.20) prints `48.09 X 20 = 961.80`, then a
+**`СКИДКА =-0.80 РУБ`** line, then `961.00` - and the QR agrees at `s=961.00`.
+
+That is now **three unrelated mechanisms** by which a fuel-only receipt's grand
+total legitimately differs from its own line extension:
+
+| chain | mechanism | example |
+|---|---|---|
+| ЛУКОЙЛ | `ОКРУГЛЕНИЕ` - rounds down to the whole rouble | 1680.38 → 1680.00 |
+| Татнефть | `СКИДКА` - an explicit discount line | 961.80 → 961.00 |
+| Газпромнефть | bonus-points redemption | 4353.93 → 3058.00 |
+
+Two of the three are under 1 ₽ and one is 1295.93, so **the size of the gap tells
+you nothing about its cause**. A parser must find the *labelled* total rather than
+infer it, and must not treat a mismatch as a parse failure.
+
+It is also the fixture that most cleanly **confirms the price-first reading of the
+unmarked format**. `48.09 X 20` has the same shape as Крым Оил's `205.00*20` - no
+`л`, no `руб`, no labelled column. Price-first gives 20 L of diesel at 48.09 ₽/L
+in June 2020, which is the correct Russian diesel price for that month;
+quantity-first gives 48.09 L at 20.00 ₽/L, which is below cost. Independent
+confirmation from a different chain, six years earlier, on a historically
+checkable price.
+
+Two smaller things it carries: **20% VAT** (the pre-2026 rate - the corpus now has
+both 20% and 22%), and a **fuel grade in the product name**, `ДТ-Е-К5 Танеко` -
+diesel with the marketing tier `Танеко`, which belongs in `fuelGrade`, not
+`fuelKind` (`docs/SCHEMA.md`).
+
+**Provenance:** unlike every other fixture, this photo is **not the maintainer's
+own receipt** - it was published on the oil-club.ru forum. Kept because it adds a
+2020 price point and the СКИДКА mechanism, but flagged here so the corpus's
+provenance is not assumed uniform.
+
+### 6. Non-fiscal receipts exist, and they have no QR at all
 
 `receipt-016` is a **НЕФИСКАЛЬНЫЙ ОТЧЁТ** - a corporate fuel-card order receipt
 (РН-Карт) from АО "РН-Москва". It prints a fiscal `ФН`, but it is explicitly a
@@ -129,7 +181,7 @@ It brings three parsing hazards, all new:
   when present - and it surfaced a schema gap: CNG is sold by the cubic metre and
   `VolumeUnit` has no `m3` (`docs/SCHEMA.md` → Open questions).
 
-### 6. Fuel kind is not normalised
+### 7. Fuel kind is not normalised
 
 The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/SCHEMA.md`
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel

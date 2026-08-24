@@ -6,14 +6,29 @@ import Testing
 // high-water mark, returns a violation message or nil. Kept free of Vision so
 // the "ratchet fails on regression" behaviour is testable without OCR.
 enum AccuracyRatchet {
+    /// The ratchet guards against **code** regressions and against a class being
+    /// flattered by dropping fixtures. It must not punish the corpus for growing.
+    ///
+    /// So the two halves are deliberately asymmetric:
+    ///
+    /// - **Total may only grow.** Shrinking means fixtures were removed, which
+    ///   raises a class average by deleting the evidence - the trap the ratchet
+    ///   exists to catch.
+    /// - **Hits may never fall.** Absolute hits, not a percentage. Adding a hard
+    ///   new fixture legitimately lowers the *percentage* while leaving hits
+    ///   untouched, so percentage would fire on corpus growth - and a gate that
+    ///   fires every time someone adds a photo is a gate that gets deleted.
+    ///   Only the code getting worse can reduce hits.
     static func violation(
         name: String, currentHits: Int, currentTotal: Int, recordedHits: Int, recordedTotal: Int
     ) -> String? {
-        if currentTotal != recordedTotal {
-            return "\(name): corpus changed size (\(currentTotal) vs \(recordedTotal)); a class may never lose fixtures"
+        if currentTotal < recordedTotal {
+            return "\(name): corpus shrank (\(currentTotal) vs \(recordedTotal)); a class may never lose fixtures"
         }
         if currentHits < recordedHits {
-            return "\(name): \(currentHits)/\(currentTotal) below the high-water mark \(recordedHits)/\(recordedTotal)"
+            return "\(name): \(currentHits)/\(currentTotal) resolved, below the high-water mark of "
+                + "\(recordedHits) (recorded over \(recordedTotal)). The corpus may grow, but the "
+                + "number of fields the parser resolves may not fall."
         }
         return nil
     }
@@ -21,6 +36,32 @@ enum AccuracyRatchet {
 
 @Suite("OCR corpus accuracy ratchet")
 struct AccuracyRatchetTests {
+
+    /// Adding a fixture the parser cannot yet handle lowers the percentage while
+    /// leaving hits untouched. That must NOT fire - otherwise every corpus
+    /// contribution breaks CI and the gate gets switched off.
+    @Test("growing the corpus with a fixture the parser fails does not fire")
+    func corpusGrowthIsAllowed() {
+        #expect(AccuracyRatchet.violation(
+            name: "receipts", currentHits: 29, currentTotal: 50, recordedHits: 29, recordedTotal: 47
+        ) == nil)
+    }
+
+    /// The trap the size check exists for: deleting the fixtures a class fails.
+    @Test("shrinking the corpus fires even when the percentage improves")
+    func corpusShrinkFires() {
+        #expect(AccuracyRatchet.violation(
+            name: "receipts", currentHits: 29, currentTotal: 30, recordedHits: 29, recordedTotal: 47
+        ) != nil)
+    }
+
+    /// A real regression stays caught while the corpus grows.
+    @Test("a code regression still fires on a grown corpus")
+    func regressionFiresEvenWhenTheCorpusGrew() {
+        #expect(AccuracyRatchet.violation(
+            name: "receipts", currentHits: 28, currentTotal: 50, recordedHits: 29, recordedTotal: 47
+        ) != nil)
+    }
 
     @Test("the ratchet fails when accuracy drops below the high-water mark")
     func ratchetFailsOnRegression() {

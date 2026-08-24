@@ -218,8 +218,10 @@ extension FuelKind {
     var labelKey: LocalizedStringKey {
         switch self {
         case .diesel: "Diesel"
+        case .petrol92: "92"
         case .petrol95: "95"
         case .petrol98: "98"
+        case .petrol100: "100"
         case .lpg: "LPG"
         case .cng: "CNG"
         case .e85: "E85"
