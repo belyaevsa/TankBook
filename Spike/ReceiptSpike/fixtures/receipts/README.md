@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 22/62 fields (35.5%), cross-check 8/23
+## Baseline, 2026-08-25: 25/68 fields (36.8%), cross-check 9/25
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,37 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. A third way for ИТОГ to differ from the line extension: СКИДКА
+### 5. The second mixed receipt, and it is mixed a different way
+
+`receipt-025` (Татнефть, МКАД 38км, 20.03.19) is the corpus's **second** mixed
+fixture, and it breaks two assumptions `receipt-009` alone would have baked in:
+
+```
+Услуга по регистрации покупки
+  69.28 X 1                         =69.28 РУБ
+ТРК-2 АИ-95-К5
+  43.38 X 38.28                   =1660.59 РУБ
+ИТОГ:                             =1729.87 РУБ
+```
+
+- **The non-fuel line is a SERVICE, not a product.** `receipt-009`'s extra line
+  was a bottle of water; this one is a purchase-registration fee. A detector
+  keyed on "is this aa product name" misses it.
+- **It comes BEFORE the fuel line.** On `receipt-009` the water follows the fuel.
+  Position is not a signal.
+
+The fill-up amount is the **fuel line, 1660.59**, never the 1729.87 grand total
+(hard rule 4) - and the QR agrees with the grand total (`s=1729.87`), so the QR
+cross-check classifies it `suggestsMixedReceipt` exactly as designed.
+
+It is also the corpus's **hardest swap case**. The operands are `43.38 X 38.28` -
+both two decimals, both the same order of magnitude, no unit marker. Neither
+decimal count nor position resolves it. Only a price prior does: Moscow АИ-95 in
+March 2019 was about 43.4 ₽/L, so 43.38 is the price and 38.28 the volume. Get it
+backwards and you store a 43 L fill as 38 L at the wrong price, and the
+cross-check still passes because `a x b == b x a`.
+
+### 6. A third way for ИТОГ to differ from the line extension: СКИДКА
 
 `receipt-017` (Татнефть, 24.06.20) prints `48.09 X 20 = 961.80`, then a
 **`СКИДКА =-0.80 РУБ`** line, then `961.00` - and the QR agrees at `s=961.00`.
@@ -156,7 +186,7 @@ own receipt** - it was published on the oil-club.ru forum. Kept because it adds 
 2020 price point and the СКИДКА mechanism, but flagged here so the corpus's
 provenance is not assumed uniform.
 
-### 6. Non-fiscal receipts exist, and they have no QR at all
+### 7. Non-fiscal receipts exist, and they have no QR at all
 
 `receipt-016` is a **НЕФИСКАЛЬНЫЙ ОТЧЁТ** - a corporate fuel-card order receipt
 (РН-Карт) from АО "РН-Москва". It prints a fiscal `ФН`, but it is explicitly a
@@ -199,7 +229,7 @@ It brings three parsing hazards, all new:
   when present - and it surfaced a schema gap: CNG is sold by the cubic metre and
   `VolumeUnit` has no `m3` (`docs/SCHEMA.md` → Open questions).
 
-### 7. Fuel kind is not normalised
+### 8. Fuel kind is not normalised
 
 The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/SCHEMA.md`
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel
