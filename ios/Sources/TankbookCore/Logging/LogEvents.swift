@@ -427,3 +427,35 @@ public struct CapturePipeline: LogEvent {
         String(format: "%.3f", locale: Locale(identifier: "en_US_POSIX"), arguments: [value])
     }
 }
+
+// MARK: - Fiscal QR (docs/LOGGING.md §4, docs/TASKS.md P2.6)
+
+/// The outcome of parsing a fiscal QR payload.
+public enum FiscalQRParseOutcome: String, Sendable {
+    case parsed
+    case rejected
+}
+
+/// One fiscal-QR parse, emitted by the parser half (docs/TASKS.md P2.6).
+///
+/// Hard rule 12 is absolute here: only the outcome and - on failure - a stable
+/// `reason` code that may carry field *names* are logged. The total, the
+/// timestamp and any of `fn`/`i`/`fp` are the user's purchase and are never
+/// attached at any level.
+public struct FiscalQRParse: LogEvent {
+    public let eventName = "fiscal.qr.parse"
+    public let category = LogCategory.capture
+    public let level: LogLevel
+    public let fields: [LogField]
+
+    /// `reason` is a stable code from `FiscalQRParseError.reasonCode`, e.g.
+    /// `missingField:total` - a field name, never a value.
+    public init(outcome: FiscalQRParseOutcome, reason: String? = nil) {
+        level = (outcome == .parsed) ? .info : .warn
+        var fields: [LogField] = [.safe("outcome", outcome.rawValue)]
+        if let reason {
+            fields.append(.safe("reason", reason))
+        }
+        self.fields = fields
+    }
+}

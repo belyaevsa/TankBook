@@ -300,6 +300,16 @@ CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance m
            not logged; the full receipt stays readable in the attachment.
 PRIORITY   If an attachment has extractedTimestamp (receipt/QR), its date is ground truth:
            "fix odometer" is the preselected resolution; overriding the date needs explicit confirmation.
+FISCAL QR  The ФНС QR is an authoritative ANCHOR, not a capture path (docs/JOURNEYS.md J5/F5): it
+           carries only the total `s`, timestamp `t`, fiscal ids `fn`/`i`/`fp` and type `n` - no
+           litres, unit price or fuel kind, and the OFD document URL is keyed on an opaque id not
+           derivable from the QR. Its total and date outrank anything OCR produced. The cross-check
+           of a QR grand total against an OCR candidate total classifies three ways, all tolerant
+           of ЛУКОЙЛ-style whole-rouble rounding (`FiscalQRCrossCheck`, P2.6): within 1 ₽ = agrees;
+           less than the total but ≥ half of it = the OCR value is the fuel line of a mixed receipt
+           (the fuel line stands - hard rule 4); anything else = disagrees, the QR total wins (the
+           OCR value was a VAT or rounding line). `fn`+`i`+`fp` identify the fiscal document, so a
+           re-scan is the same purchase, not a second fill-up.
 ```
 
 ```swift
