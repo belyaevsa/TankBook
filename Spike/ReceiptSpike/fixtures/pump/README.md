@@ -19,6 +19,12 @@ the parser returns litres and unit price *swapped* on that receipt: the pump sta
 design - the pump reads `4334.83`, the receipt `4334.00`, because ЛУКОЙЛ rounds the
 fiscal total down to the whole rouble (`../fiscal/README.md`).
 
+`pump-004-kz-95-kzt-tokheim.jpg` - Kazakhstan, АИ-95, KZT, **Tokheim** LCD (not a
+seven-segment display). Truth: `12.38 L x 243 KZT/L = 3008.34`, shown as
+`Стоимость 3008` - the pump **truncates its total to whole tenge**. Its failure
+mode is different from every other fixture and is the most important one in the
+corpus - see "Confidence is not correctness" below.
+
 `pump-003-kz-95-kzt.jpg` - Kazakhstan, АИ-95, **KZT**, Gilbarco Veeder-Root. The
 only non-RUB, non-EUR fixture in the corpus, and the worst decimal-point loss seen
 so far (all three fields). Truth: `85.25 L x 245.0 KZT/L = 20886.25`, displayed as
@@ -34,7 +40,7 @@ liters 0.700   unitPrice –   total –   cross-check ✗
 Truth is `67.00 L x 1.869 EUR/L = 125.22 EUR`. Two distinct failures, and
 neither is a tuning problem.
 
-**Pump class baseline, 2026-08-24: 0/9 fields (0.0%), cross-check 0/3.** All three
+**Pump class baseline, 2026-08-24: 0/12 fields (0.0%), cross-check 0/4.** All four
 pumps fail completely - receipts score 36.6% by comparison. Pump extraction is a
 harder problem than receipt extraction, not the same problem with worse input.
 
@@ -76,20 +82,53 @@ harder problem than receipt extraction, not the same problem with worse input.
    car's actual tank capacity, which the app already holds per vehicle - or the
    user, which is the correct fallback.
 
+   And the small-fill branch cannot simply be ruled out as implausible:
+   `pump-004` is a real **12.38 L** fill. Small top-ups happen, so "nobody buys
+   8.5 litres" is not available as a tie-breaker.
+
    This is direct evidence for the standing decision that **pump mode ships only
    if it clears >=95%, or stays off** (`docs/PHASES.md` → P2). It also means a pump
    capture must never write a volume the user has not seen and confirmed.
+
+   The corpus now carries **two independent KZ АИ-95 datapoints from different pump
+   makes - 245.0 and 243.0 KZT/L** - which is what a curated band is built from, and
+   a useful demonstration that two fixtures constrain a band far better than one.
 
    `pump-003` is additionally the only non-RUB, non-EUR fixture (KZT), and it shows
    why the bands are keyed by currency: the correct KZT band resolves the price,
    while applying the RUB band to it leaves both 85.25 and 245.0 inside the range
    and decides nothing.
-2. **Pump surrounds are covered in advertising.** The parser returned 0.700
+2. **Confidence is not correctness - Vision misread a digit at 1.00.**
+   On `pump-004` the display reads `Стоимость 3008`. Vision returns **`1408`**, at
+   **confidence 1.00**. Not a lost separator - a wrong digit, asserted with full
+   confidence. It also returned `Количество` as `"12,"`, dropping `38` entirely,
+   again at 1.00.
+
+   This matters beyond one photo, because `ocrConfidenceThreshold` is a remotely
+   configurable key (`docs/CONFIG.md`). **Thresholding on Vision's confidence would
+   not have caught this**, and no threshold setting can: the value is already at
+   the maximum. Any design that gates "do we trust this extraction?" on the OCR
+   confidence score is resting on a number that is 1.00 while being wrong.
+
+   What *does* catch it is the cross-check: `12.38 x 243 = 3008.34`, which is
+   nowhere near `1408`. That sharpens what the cross-check is actually for, given
+   the retraction above:
+
+   | error class | cross-check |
+   |---|---|
+   | a misread digit (inconsistent triple) | **catches it** |
+   | swapped volume/price | blind - `a x b == b x a` |
+   | lost decimal separators (scale) | blind - the equation is scale-invariant |
+
+   So the cross-check is a **consistency** check, not a correctness one. It is
+   worth keeping and worth not overtrusting.
+
+3. **Pump surrounds are covered in advertising.** The parser returned 0.700
    litres from `Wrapper ja jook 0,5-0,7l` - a sandwich-and-drink promo printed
    beside the display. Receipts have no equivalent noise, which is why a
    receipt-tuned parser scores far worse here than its receipt numbers suggest.
 
-Both argue that pump mode needs its own extraction path rather than the receipt
+These argue that pump mode needs its own extraction path rather than the receipt
 parser pointed at a different photo - and they are exactly why the >=95% gate
 exists before the mode ships.
 
