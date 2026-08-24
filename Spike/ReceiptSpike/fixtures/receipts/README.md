@@ -5,22 +5,22 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 15/41 fields (36.6%), cross-check 5/14
+## Baseline, 2026-08-24: 15/44 fields (34.1%), cross-check 5/15
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
-number dropped because the corpus finally has breadth - 13 receipts across 14
-files, 10 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
+number dropped because the corpus finally has breadth - 14 receipts across 15
+files, 11 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
 including LPG.
 
 Split by field, which is more useful than the headline:
 
 | | correct |
 |---|---|
-| **total** | 10 / 14 |
-| **litres + unit price** | 2 / 14 receipts fully right (001, 003) |
-| extracted litres/price at all | 5 / 14, and **2 of those 5 are swapped** |
-| fuel kind normalised to the SCHEMA vocabulary | 0 / 14 |
+| **total** | 10 / 15 |
+| **litres + unit price** | 2 / 15 receipts fully right (001, 003) |
+| extracted litres/price at all | 5 / 15, and **2 of those 5 are swapped** |
+| fuel kind normalised to the SCHEMA vocabulary | 0 / 15 |
 
 **OCR is not the bottleneck.** Vision reads these at confidence 1.00 - including
 `Цена за / Кол. / 71.25 / 3562.50` on the labelled-column receipt-013 and
@@ -71,7 +71,33 @@ The mechanism behind the VAT and rounding misses is reading order: in a
 right-aligned two-column receipt, Vision emits **value before label**, so a
 finder that looks for a number *after* its label lands on the next row's value.
 
-### 3. Fuel kind is not normalised
+### 3. A station number is mistaken for the fuel grade
+
+`receipt-015` returns fuel kind **98**. The receipt is АИ-95, and the `98` comes
+from its first line - `ООО"КЕДР" АЗС-98`, the station number - which the parser
+reaches before the actual product line `1 Бензин АИ-95-К5 Ультра`. The same digits
+appear again lower as `АЗС № 98`.
+
+Any grade detector that scans for a bare `92|95|98|100` anywhere in the document
+will hit station numbers, pump numbers (`ТРК №3`), reservoir numbers, till numbers
+and street addresses. The grade must be read **from the product line**, anchored to
+a fuel word (`Бензин`, `Диз.топл.`, `ДТ`, `СУГ`) or to the `АИ-NN-K5` pattern
+specifically - never from a loose digit match.
+
+### 4. Repeated values are free redundancy, and the parser ignores it
+
+On `receipt-015` Vision read one of the three printed totals as **`=5380.0D`** - a
+`D` for a `0`, at confidence 1.00, the same misread class as `pump-004`. It did not
+matter, because the receipt prints that total **three times** (ИТОГ, БЕЗНАЛИЧНЫМИ,
+ПЛАТ.КАРТОЙ) and the other two read cleanly.
+
+That is worth exploiting deliberately: on a receipt, **take the modal value across
+repeated occurrences** rather than the first match. It costs nothing and it defeats
+exactly the single-digit misread that no confidence threshold can catch. Note the
+asymmetry with pump displays, which print each number once and therefore have no
+redundancy to fall back on - one more reason pump extraction is the harder problem.
+
+### 5. Fuel kind is not normalised
 
 The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/SCHEMA.md`
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel
@@ -83,6 +109,24 @@ Four ООО "Крым Оил" receipts print `цена*количество` wit
 either operand** - `205.00*20`, `259.00*20`, `450.00*43.820` - the `л` floating
 near the sum instead. Both readings give the identical total, so arithmetic cannot
 settle which number is which, and they shipped with blank `liters`/`unitPrice`.
+
+**The volume on `receipt-015` is user-confirmed at 20 litres**, by the person who
+bought it - independent of any inference from the printer format. The unit price is
+recorded as 269.00 rather than the 268 they recalled, because the receipt's own
+arithmetic pins it: `268 x 20 = 5360`, twenty roubles short of the printed
+`ИТОГ 5380.00`, and the printed `СУММА НДС 22% = 970.16` is exactly 22/122 of 5380.
+Two independent figures on the receipt agree on the total, and `5380 / 20 = 269.00`.
+
+It is a **regional convention, not one chain's quirk**: `receipt-015` is ООО "Кедр"
+(АЗС-98, Симферополь), a different company from Крым Оил, printing the identical
+unmarked `269.00*20` for АИ-95 - and the same **20 L** second operand. Two
+unrelated operators capping at exactly 20 litres is rationing, which is itself
+evidence that 20 is the quantity and not the price.
+
+The two also date the escalation: Крым Оил sold АИ-95 at 205.00 on 01.07.26,
+Кедр at 269.00 on 11.07.26, while РН-Москва was at 71.25 the same month. A
+curated band built from national averages would have called both impossible,
+which is exactly why the bands must rank rather than veto.
 
 `receipt-014` (АЗС "Апельсин", Пенза) settles it. Same printer format, same
 missing marker, and it reads **`100.00*30`** for АИ-95. Price-first gives 30 L at
