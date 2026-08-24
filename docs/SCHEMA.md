@@ -289,6 +289,10 @@ INVARIANT  For a vehicle's entries with odometer set, sorted by date: odometer s
 CHECK 1    Order: odometer fits between date-neighbors. Violation → discrepancy UI.
 CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
+           SYMMETRY LIMIT: multiplication is commutative, so this check passes just as happily on a
+           SWAPPED volume/unitPrice pair. It validates the product, never the assignment – deciding
+           which operand is which is the job of the resolution ladder in Reference data → Fuel price
+           bands. Never treat a green cross-check as evidence the fields are correctly assigned.
            MIXED RECEIPTS: the fill-up's amount is the FUEL LINE, never the receipt's grand total.
            Detection is the cross-check itself: when volume × unitPrice matches a line item but not
            the grand total, the receipt is mixed – the remainder lines are offered as separate
@@ -391,6 +395,78 @@ exchange_rates (date date, base char(3), quote char(3), rate numeric(18,8), sour
 - **Updated by** a daily background job (ASP.NET hosted service, ~17:00 CET after ECB publishes): ECB reference rates for the majors, plus a CIS source (CBR/NBK or a commercial feed) for RUB/KZT/AMD/GEL/BYN – the gap ECB left. Weekends/holidays carry the last published rate forward, stored per-date so `rateDate` lookups are exact. Manual correction path for a bad feed day (soft-delete + re-fetch); rows are append-only otherwise – snapshots in entries mean a correction never rewrites user history.
 - **Served as** `GET /rates?date=2026-08-21&base=EUR` → all quotes for that date (one small JSON, cache-forever for past dates), and `GET /rates/pack?from=&to=` → a bulk range for the device's rolling cache and the app-bundle seed pack.
 - **Fallback:** the client can hit ECB's public feed directly if our backend is down (majors only); CIS currencies wait for the backend – queued as rate-pending either way, so nothing blocks.
+
+### Fuel price bands (the extraction disambiguator)
+
+```sql
+fuel_price_bands (country char(2), currency char(3), fuel_kind text, period_start date,
+                  low numeric(10,3), high numeric(10,3), source text, updated_at timestamptz,
+                  primary key (country, currency, fuel_kind, period_start))
+```
+
+A coarse plausible range for **price per litre**, per country, currency, fuel kind and
+period. It exists for one job: **deciding which of two numbers on a receipt is the price
+and which is the volume.** It is not a price feed, is never shown as a market rate, and is
+never used to reject a fill-up.
+
+**Why it is needed.** Receipts print the fuel line as an unlabelled product, and the two
+operand orders are both in the wild:
+
+```
+40 л X 195.00        quantity first, unit marked      (ИП Гридяева)
+62.89*66.810л        price first, unit marked         (Самаранефтепродукт)
+205.00*20            price first, NOTHING marked      (Крым Оил)
+43.61 X 99.40        quantity first, nothing marked   (ЛУКОЙЛ)
+```
+
+`volume x unitPrice = amount` is symmetric, so **CHECK 3 cannot detect a swapped pair** –
+it validates the product, never the assignment. A parser that guesses wrong stores 99.4 L
+at 43.61 instead of 43.61 L at 99.40 and computes consumption wrong by 2.3x with every
+arithmetic check green. That is the failure this table prevents, and nothing else in the
+schema can.
+
+**Resolution ladder**, highest confidence first. The first rule that decides, wins:
+
+1. **A labelled column.** Some printers state it (`Цена за ед. | Кол. | Сумма`). Believe it.
+2. **The unit marker's position** – `л`/`L`/`gal` attached to an operand names the volume.
+3. **The user's own history**: median `unitPrice` of the last ~10 fill-ups for that vehicle
+   in that currency; accept the candidate within roughly +/-60% of it. Preferred over rule 4
+   because it needs no network (hard rule 1), tracks inflation, the user's usual grade and
+   their usual stations automatically, and is personal rather than national.
+4. **This table**, as the cold-start fallback – the first fill ever, or a new country. Pick
+   the candidate that falls inside the band; if both do or neither does, do not guess.
+5. **Undecided.** Leave the fields empty and let the user type them. An empty field the user
+   fills is a far better outcome than a confident wrong one.
+
+**Keyed by all four of country, currency, fuel kind and period, because each one is load-bearing:**
+
+- **Fuel kind** – LPG runs roughly a third of petrol (a real fixture reads 23.99 RUB/L). A
+  petrol band rejects the correct answer for an LPG fill.
+- **Period** – the corpus spans 48.80 RUB/L (2022) to 450 (2026). Bands are matched against
+  the **receipt's own date**, never today's, or every imported backlog misreads.
+- **Currency/country** – 1.869 EUR/L and 205 RUB/L are both ordinary.
+
+**Bands are wide and soft on purpose.** They rank candidates; they never veto. A genuine
+outlier must still save: the corpus contains AI-100 at 450 RUB/L during a regional shortage,
+which any "sensible" band would have called impossible. If a value sits outside every band,
+that is not an error state – at most it is a quiet hint, never a block (`ERRORS.md`).
+
+- **Served as** `GET /reference/fuel-price-bands` (public, ETag, CDN-cacheable), and shipped
+  as a bundled seed pack so day-one offline capture has a fallback. Rides the existing
+  reference-pack mechanism (`ConfigDocument.ReferencePacks`, `CONFIG.md`), so it updates
+  without an App Store release.
+- **Curated server-side**, coarsely and infrequently – quarterly is enough for a band that
+  only has to separate 30 from 100. Precision here is worthless; being wrong by a factor of
+  three is what matters.
+- **`SYNC.md` → Reference data applies unchanged**: a downloaded pack never overwrites a value
+  the user has edited.
+
+**Hard rule 13 governs every field this ladder produces.** Whatever the ladder decides is a
+**default input, never a fact**: shown on the Confirm screen already editable, editable again
+afterwards on Edit entry, and once the user changes it, it is theirs permanently – no
+re-scan, later curation, improved parser or pack update may overwrite it. The extraction
+logic is expected to keep improving; that improvement may never reach back and rewrite a
+number a human corrected.
 
 ### Feedback intake
 

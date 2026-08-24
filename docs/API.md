@@ -61,6 +61,27 @@ Per-item outcomes; `conflict` returns the server's current record for client-sid
 | `GET /rates/pack?from=&to=&base=` | public | Bulk range for device cache / seed refresh. |
 | `GET /catalog?since_version=` | public | Vehicle catalog delta or full pack + `packVersion`. ETag'd. |
 
+### `GET /reference/fuel-price-bands`
+
+Coarse plausible price-per-litre ranges, used client-side to decide which operand on a
+receipt is the price and which is the volume (`SCHEMA.md` → Fuel price bands). Public,
+unauthenticated, ETag + `Cache-Control` like the other reference data; `If-None-Match` → 304.
+
+```json
+{ "version": 3, "bands": [
+  { "country": "RU", "currency": "RUB", "fuelKind": "petrol95",
+    "periodStart": "2026-01-01", "low": 60.0, "high": 460.0 },
+  { "country": "RU", "currency": "RUB", "fuelKind": "lpg",
+    "periodStart": "2026-01-01", "low": 15.0, "high": 40.0 },
+  { "country": "EE", "currency": "EUR", "fuelKind": "petrol95",
+    "periodStart": "2026-01-01", "low": 1.2, "high": 2.5 }
+] }
+```
+
+Server-side this is static curated data - **no domain logic, no query parameters that make
+the server interpret meaning** (hard rule 9). The client downloads the pack and does the
+matching itself; the endpoint only serves rows.
+
 ## Feedback
 
 ### `POST /feedback` – public (bearer optional)

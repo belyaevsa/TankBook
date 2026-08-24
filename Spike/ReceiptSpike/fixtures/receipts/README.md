@@ -45,6 +45,12 @@ this; a fill-up would be stored as 99.4 litres at 43.61, and consumption - the
 number the whole app exists to compute - would be wrong by a factor of 2.3 with
 every arithmetic check green.
 
+**Resolved as a design decision (2026-08-24):** `docs/SCHEMA.md` → Reference data →
+Fuel price bands specifies the resolution ladder, and `docs/API.md` registers the
+endpoint that serves the bands. Simulated against this corpus, the ladder resolves
+**12 of 13** ambiguous fixtures correctly with **zero wrong** and one honestly
+undecided (`receipt-008`, 48.89 vs 48.80, where guessing wrong costs 0.2%).
+
 Disambiguation has to come from outside the multiplication:
 - the **unit marker's position** - `47.56 л X 129.00` and `62.89*66.810л` both
   attach `л` to the quantity, on opposite sides of the operator;
