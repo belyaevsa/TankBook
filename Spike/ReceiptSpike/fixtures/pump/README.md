@@ -31,6 +31,64 @@ so far (all three fields). Truth: `85.25 L x 245.0 KZT/L = 20886.25`, displayed 
 `20886.3` - so the pump itself rounds the total to 1 dp, which is a third,
 independent reason a pump total and a receipt total can legitimately differ.
 
+## Three formats on one display, and a clipped price
+
+`pump-006` (Adast, KZ, nozzle labelled **92**) reads:
+
+```
+10980   СУММА          integer - KZT has no subunit in practice, so this is NOT a lost separator
+45.00   ЛИТРЫ          two decimals
+  244   ЦЕНА/ЛИТР      integer, and its digits are CLIPPED by the display's own bezel
+```
+
+Three different numeric formats on one display, so a parser cannot infer a
+document-wide convention here any more than it can on receipts. And the price line
+is **physically cut off** - not blurred, not glare, but clipped by the frame, which
+is a capture failure no amount of image processing recovers. `45.00 x 244 = 10980`
+confirms the reading; without the cross-check there would be no way to know the
+clipped digits were complete.
+
+The nozzle label is worth noting against the corpus's own numbers: it says **92**,
+yet 244 KZT sits between the two АИ-95 prices already recorded (243.0 on a Tokheim,
+245.0 on a Gilbarco). Either Kazakh grade pricing is nearly flat, or the label is
+again not the fill - which is exactly why `pump-001`'s finding says a pump parser
+must not attempt fuel kind at all.
+
+## The four-price display: where the cross-check finally earns its keep
+
+`pump-005` (Dresser Wayne, RU) shows **four prices at once** - one per grade -
+above a single СУММА and ЛИТРЫ:
+
+```
+СУММА   4621.08
+ЛИТРЫ     87.92
+ЦЕНА ЗА ЛИТР   52.06   55.18   49.32   52.56
+```
+
+Only one was dispensed, and the display does not say which. This is the sharpest
+form of a finding the corpus already had (`pump-001`: grade labels belong to every
+nozzle, not to the fill) - here there is not even a label to be misled by, just
+four candidate numbers.
+
+**Position does not help**: the correct price is the *last* of the four. A parser
+taking the first gets 52.06, and if it then derives litres from the total it gets
+`4621.08 / 52.06 = 88.76 L` - plausible, self-consistent, and wrong by 0.84 L.
+
+**But the cross-check resolves it exactly**, and this is the one job it is good
+at. Of the four candidates only `52.56 x 87.92 = 4621.08` reproduces the total;
+the others miss by 44 to 285 roubles. So the honest summary of the cross-check
+across this corpus is:
+
+| task | cross-check |
+|---|---|
+| choosing among **discrete candidates** (this fixture) | **solves it outright** |
+| catching a **misread digit** (`pump-004`) | catches it |
+| detecting a **swapped** volume/price pair | blind - `a x b == b x a` |
+| reconstructing **lost decimal separators** (`pump-003`) | blind - scale-invariant |
+
+Note the decimal points are all intact here, unlike `pump-003` where every one was
+lost. Separator loss is a property of the display, not of pumps.
+
 ## Current parser result: fails, instructively
 
 ```
@@ -40,7 +98,7 @@ liters 0.700   unitPrice –   total –   cross-check ✗
 Truth is `67.00 L x 1.869 EUR/L = 125.22 EUR`. Two distinct failures, and
 neither is a tuning problem.
 
-**Pump class baseline, 2026-08-24: 0/12 fields (0.0%), cross-check 0/4.** All four
+**Pump class baseline, 2026-08-25: 0/18 fields (0.0%), cross-check 0/6.** All six
 pumps fail completely - receipts score 36.6% by comparison. Pump extraction is a
 harder problem than receipt extraction, not the same problem with worse input.
 

@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 27/77 fields (35.1%), cross-check 9/28
+## Baseline, 2026-08-25: 33/83 fields (39.8%), cross-check 11/30
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,41 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. The odometer is in the frame - and a chain's rounding is not permanent
+### 5. `11,000` litres, and a receipt whose merchant is not the station
+
+`receipt-030` (Яндекс.Заправки, 11.11.23) is the corpus's first **aggregator**
+receipt and brings two hazards nothing else does.
+
+**A comma decimal separator, on a quantity, with three places.**
+
+```
+Цена за ед. пр.      43,55 ₽
+Колич. пр.          11,000
+Стоимость пр.       479,05 ₽
+```
+
+`11,000` is eleven litres. Read the comma as a thousands separator - which is what
+an en_US parser does by default - and it is **eleven thousand litres**: a
+1000x error that parses cleanly, passes no cross-check, and would be obvious only
+because the total is 479 ₽. Every other Russian receipt in this corpus uses a
+period; `fiscal-001` mixes both **within one line** (`25,52 X 70.92`). So the
+separator cannot be inferred per-document, per-locale, or per-country. It has to
+be resolved per-number, against the cross-check.
+
+**The merchant on the receipt is not the station.** The header is
+`ООО "ЯНДЕКС.ЗАПРАВКИ"`, Мытищи. The fuel came from
+`Роснефть №41 (РН-Тула)` - named only inside the *product description* - and the
+`АГЕНТ` line plus `ИНН Поставщика` marks the agency relationship. A station-name
+extractor that reads the receipt header records every Yandex-paid fill as bought
+from Yandex, in Мытищи, which is neither the brand nor the place. Payment
+aggregators are common enough that this is a class, not a curiosity.
+
+It also pays as `АВАНС` (prepayment), so "amount paid" and "amount of fuel taken"
+are separate ideas on this receipt even though they happen to be equal here.
+
+Its arithmetic is clean: `43,55 x 11,000 = 479,05`, VAT 20% of 79,84 checks.
+
+### 5b. The odometer is in the frame - and a chain's rounding is not permanent
 
 `receipt-029` (ЛУКОЙЛ, ЭКТО 100, **08.07.2021**) is photographed lying on the car's
 instrument cluster, so **the receipt and the odometer are in the same image**
