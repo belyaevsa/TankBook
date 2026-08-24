@@ -45,6 +45,24 @@ The pattern these converged on, in order:
 - A brief that turns out to be wrong is **edited and re-dispatched**, keeping the same file. Only a brief
   replaced by a different decomposition gets a `-superseded` suffix, kept for the record.
 
+## Never `pgrep -f` for a build or test process
+
+**An agent's brief is part of its command line.** `opencode run ... "$(cat brief.md)"` puts the
+whole brief into the process arguments, so `pgrep -f "xcodebuild.*test"` matches **any agent
+whose brief mentions running xcodebuild** - and `pkill -f` on that pattern kills it.
+
+That is not hypothetical. On 2026-08-24 the P2.3 agent ran
+`pgrep -f "xcodebuild.*test"` to check the device was free, matched the concurrently-running
+P2.1b agent, and killed it 48 minutes into its task. P2.1b's log simply stops mid-edit; nothing
+in it looks like a failure, and `agent-health.sh` reported it as EXITED, which reads exactly
+like "finished". Only the P2.3 agent's own honest report revealed what happened.
+
+Match the **process name** instead: `pgrep -x xcodebuild`. Any brief that tells an agent to
+check for a running build must say so explicitly, and no brief should ever hand an agent a
+`pkill -f` pattern.
+
+This bites harder with worktrees, where several agents run at once by design.
+
 ## Screenshot pitfalls (learned the hard way)
 
 - **Seeds are idempotent and silently do nothing on a populated database.** `-seedEditEntry` and the

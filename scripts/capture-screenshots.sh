@@ -23,10 +23,19 @@
 
 set -uo pipefail
 
-DEVICE="${1:-iPhone 17}"
+DEVICE="${1:-iPhone 17}"   # override: scripts/capture-screenshots.sh "iPhone 17 Pro"
 BUNDLE="app.tankbook.Tankbook"
 OUT="design/screenshots"
-APP="$(ls -dt "$HOME"/Library/Developer/Xcode/DerivedData/Tankbook-*/Build/Products/Debug-iphonesimulator/Tankbook.app 2>/dev/null | head -1)"
+# Resolve the app THIS checkout built, by asking xcodebuild for its own build
+# settings. The old `ls -dt DerivedData/Tankbook-*` picked the most RECENTLY
+# BUILT app anywhere on the machine - which, with git worktrees, is routinely a
+# different checkout's binary. You would then screenshot another branch's app
+# and never know: the files are written, the script reports ok, and the images
+# look plausible. Set APP=... to override.
+if [ -z "${APP:-}" ]; then
+    BUILT_DIR="$(xcodebuild -project Tankbook.xcodeproj -scheme Tankbook         -destination "platform=iOS Simulator,name=${DEVICE}"         -showBuildSettings 2>/dev/null         | awk -F' = ' '/ BUILT_PRODUCTS_DIR = /{print $2; exit}')"
+    APP="${BUILT_DIR}/Tankbook.app"
+fi
 
 if [ -z "${APP}" ] || [ ! -d "${APP}" ]; then
     echo "error: no built Tankbook.app found. Run:" >&2
@@ -35,7 +44,12 @@ if [ -z "${APP}" ] || [ ! -d "${APP}" ]; then
     exit 1
 fi
 
-if pgrep -f "xcodebuild.*test" >/dev/null 2>&1; then
+# Match the PROCESS NAME, never the command line. `pgrep -f "xcodebuild.*test"`
+# matches any process whose ARGUMENTS contain those words - including an agent
+# whose brief text mentions running xcodebuild, and including this script's own
+# parent shell. On 2026-08-24 an agent copied that pattern, matched a sibling
+# agent's opencode process, and killed it mid-task.
+if pgrep -x xcodebuild >/dev/null 2>&1; then
     echo "error: a test run is in progress - it and simctl fight over the device." >&2
     exit 1
 fi
