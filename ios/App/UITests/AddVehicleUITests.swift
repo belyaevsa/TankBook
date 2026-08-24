@@ -39,12 +39,33 @@ final class AddVehicleUITests: XCTestCase {
         if app.keyboards.firstMatch.exists {
             scrollView.swipeDown()
         }
+        // `isHittable` tests an element's CENTRE, so it turns true while the
+        // element's bottom edge is still under the keyboard or the floating tab
+        // bar - the tap then lands on the obstruction. Under load the layout
+        // settles later and the race flips, which is why these two tests passed
+        // alone and failed in a full suite (HANDOVER: load-sensitive UI tests).
+        // Scroll until the element's FRAME clears the keyboard, not until its
+        // centre is nominally hittable - the same fix HomeUITests already uses
+        // for the floating tab bar.
         var swipes = 0
-        while !element.isHittable && swipes < maxSwipes {
+        while swipes < maxSwipes, !isFullyClear(element, in: app) {
             scrollView.swipeUp()
             swipes += 1
         }
         XCTAssertTrue(element.isHittable, "\(element) never became hittable")
+        XCTAssertTrue(isFullyClear(element, in: app),
+                      "\(element) frame \(element.frame) is still obstructed after \(swipes) swipes")
+    }
+
+    /// True when the element is hittable AND its whole frame sits above the
+    /// keyboard, so a tap cannot land on the obstruction.
+    private func isFullyClear(_ element: XCUIElement, in app: XCUIApplication) -> Bool {
+        guard element.exists, element.isHittable else { return false }
+        let keyboard = app.keyboards.firstMatch
+        if keyboard.exists, keyboard.frame.height > 0 {
+            return element.frame.maxY <= keyboard.frame.minY + 1
+        }
+        return true
     }
 
     // MARK: - Error-state 1: empty name on save
