@@ -36,6 +36,18 @@ Both argue that pump mode needs its own extraction path rather than the receipt
 parser pointed at a different photo - and they are exactly why the >=95% gate
 exists before the mode ships.
 
+## A third trap: grade labels are not the dispensed fuel
+
+This display OCRs to `miles+`, `miles`, `miles+`, `miles`, `95` - the labels of
+every nozzle on a multi-product pump. This fill was **diesel**. Reading the
+visible `95` as the fuel kind is a mistake already made once against this very
+fixture, and it is worth stating plainly: a grade shown on the pump means the
+station sells it, never that this fill used it.
+
+So pump-photo extraction should not attempt fuel kind at all. The receipt line
+is authoritative, and where there is no receipt the user picks it - which is what
+`docs/CLAUDE.md` hard rule 13 says anyway: the app suggests, the user decides.
+
 ## Adding more
 
 Keep the original resolution, name in sequence (`pump-002.heic`...), and put the
