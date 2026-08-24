@@ -1,6 +1,6 @@
 # Tankbook (fuel-counter-ios)
 
-Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with PostgreSQL. Local-first; scanning (receipts, pump displays, fiscal QR) replaces typing. This file is the index – **read the referenced doc before working in its area; each doc is the single authority for its domain.**
+Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with PostgreSQL. Local-first; scanning (receipts, pump displays, fiscal QR) **reduces** typing - it never replaces it, and **typing is a peer entry path, never a fallback** (hard rule 15). This file is the index – **read the referenced doc before working in its area; each doc is the single authority for its domain.**
 
 **Starting a fresh session? Read `HANDOVER.md` first** – it carries current status, what to do next, and the traps that cost previous runs.
 
@@ -44,6 +44,17 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 11. **No secrets in the app bundle, ever** – an IPA is a zip. Tokens and `deviceId` live in the Keychain as `AfterFirstUnlockThisDeviceOnly`; the database and attachments use `completeUntilFirstUserAuthentication` file protection (including `-wal`/`-shm`). API keys stay server-side, which is why the LLM gateway exists. (`docs/SECURITY.md`)
 12. **Never log domain values.** Ids, counts, codes, durations and field *names* are loggable; amounts, stations, notes, coordinates, payloads, tokens and images are not – at any level, in any build. (`docs/LOGGING.md`)
 13. **The app suggests, the user decides.** Every value the app derives for the user – catalog pre-fills (tank capacity, battery size, fuel kinds, powertrain), locale-guessed currency and units, OCR-extracted fields, the "last known" odometer – is a **default input, never a fact**. Each one must be editable **at the moment it is offered and again afterwards** (per-car settings live on the car in the Garage, `docs/DESIGN.md`). Once a user changes one, that value is **theirs permanently**: no catalog update, sync merge, re-scan or later curation may overwrite it (`docs/SYNC.md` → Reference data). A screen that pre-fills a value it will not let the user change is a bug, and so is one that only lets them change it once.
+15. **Two doors, always: type it or scan it.** Adding an entry manually and capturing one are
+    **peer paths of equal standing**, offered side by side at every entry point - never
+    "scan, and type only if scanning failed". A camera-first design punishes the user every
+    time the camera cannot deliver, and the corpus says that is often: receipts extract at
+    **38.3%**, pump displays at **0%**, Vision misreads a digit at **confidence 1.00**, and a
+    fiscal QR is present on only **9 of 16** real receipts and carries just 2 of the 5 fields.
+    A capture is therefore a **head start, not an answer**: whatever it produces is a default
+    input the user edits (rule 13), so a poor scan degrades to "correct two fields", never to
+    "start over". Any screen that makes manual entry harder to reach than capture, or that
+    frames it as the failure branch, is a bug.
+
 14. **It builds and it lints – every task, before anything else counts.** No task is done until each tier it touched compiles and its linter exits **0**: iOS `swift build` + `swiftlint lint` **run from the repo root** (root-relative `excluded:` paths), backend `dotnet build` + `dotnet format --verify-no-changes`. Zero lint *errors* is the standard and is re-checked every task; warnings do not block but are not to be added casually. Never silence a violation by loosening the rule – fix the code, or exclude genuinely generated output. Verify by **exit code**, not by skimming output. (`docs/TESTING.md` → the baseline gate)
 
 ## Repo layout & commands
@@ -86,6 +97,13 @@ No open architecture questions remain – the decided list above plus GRDB (pers
 - En-dashes only, never em-dashes, in all prose and UI copy.
 - No git worktrees; work in the checkout.
 - **Commit after each agent task completes and is independently verified** (standing instruction, 2026-08-23). One task = one commit, message naming the task id. **Verify first, commit second**: the baseline gate (build + `swiftlint lint` exit 0) and the task's own checks must pass in *your* hands, not the agent's report – a commit is the record that verification happened. Never commit while an agent is mid-run: the tree contains half-written files, and the point of the commit is a known-good state. Agents themselves still never commit.
+- **Validation runs on a `deepseek-v4-pro` agent, not in the orchestrator's own session**
+  (standing instruction, 2026-08-24). Dispatch `agents/briefs/VALIDATE.md` with the task id and
+  path filled in. Two things do not change: **read the validator's captured exit codes, not its
+  prose** - a validator's summary is still an agent report, and the raw `echo $?` output is the
+  evidence; and **the orchestrator still opens every screenshot personally**, because agents
+  have no image input and cannot see what they produced. Colour, truncation and layout are
+  caught by nothing else.
 - **Health-check every dispatch ~5 minutes in** (standing instruction, 2026-08-23): `scripts/agent-health.sh <task-id> <logfile>`. Roughly **one dispatch in four comes up dead** – the process exists but holds no network connection, burns almost no CPU and never writes a byte of log, and it stays that way indefinitely (one such run sat for six hours). Both observed cases recovered on an immediate re-dispatch of the **same** brief, so treat it as provider flakiness: kill and retry, do not rewrite the brief. The decisive signal is **log bytes** – a healthy run writes ~17 KB in its first 30 seconds, a wedged one is still at 0 after 25 minutes. Log *freshness* proves nothing on its own: nothing is written during model inference, so multi-minute silences are normal.
 - **Every agent brief is written to `agents/briefs/<task-id>.md` before dispatch** (standing instruction, 2026-08-23), never to a temp directory. The brief is the record of what the agent was actually asked to do – without it you cannot tell a bad agent from a bad brief, and every fence in there exists because something went wrong once. See `agents/briefs/README.md` for the structure these converged on.
 - **Every UI task ships a screenshot in EN *and* RU** (standing instruction, 2026-08-23): capture from a booted simulator and commit to `design/screenshots/` as `<task-id>-<screen>.png` and `<task-id>-<screen>-ru.png`, in the **dark** theme (the brand's home theme, `docs/DESIGN.md`) unless the task is specifically about light. RU needs no device change: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`. RU is not a formality – Russian runs 20-30% longer than English and **short strings expand worst** (`Fix` → `Исправить` is 3×, `Log` → `Журнал` is 2×), which is exactly what overflows tab labels, chips and the action affordance on an error row. A truncated next step also breaks hard rule 7. The RU pass on P1.4 caught a grammar bug no test could: `"%@ spend"` composed as `"%@ расходы"` rendered "АВГУСТ РАСХОДЫ", word-order nonsense - **composed strings need a full localised phrase per language, never concatenation**. This is the one check no test performs – XCUITest asserts behaviour and never colour, which is exactly how P1.1 shipped an accent-red tab bar that violated hard rule 5 while its suite stayed green. Compare the shot against the task's `design/screens/*.dc.html` artboard before committing, and **take it outside a test run** – `simctl` and `xcodebuild test` fight over the device.

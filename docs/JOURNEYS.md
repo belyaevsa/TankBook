@@ -66,6 +66,34 @@ Same shape as J3, with the deltas: camera pointed at the pump display before han
 
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
 
+### J3b · Type it (the peer path, every locale)
+
+**Trigger:** the user would rather type than aim a camera - or the camera cannot deliver: a
+faded thermal receipt, a dark forecourt, gloves on, a pump display that lost its decimal
+points, a corporate fuel-card slip with no QR, or simply a preference.
+
+| Stage | Doing | Thinking / feeling | Notes |
+|---|---|---|---|
+| Reach it | Taps "Type it" - present next to capture on Home, both empty states, the guest layout and inside Capture | "I don't have to fight the camera" | → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15) |
+| Fill | Types total and litres; price derives; odometer pre-filled from last known | Fast, predictable | → Same `ConfirmManual` sheet the capture paths land in - one screen, not a lesser one |
+| Save | Saves | "That was quicker than scanning" | → The cross-check locks exactly as it does for a scan |
+
+**Why this is a journey and not a fallback.** A capture-first design punishes the user on every
+capture the camera cannot serve, and the measured corpus says that is common: receipts extract
+at **38.3%**, pump displays at **0%**, Vision misreads digits at **confidence 1.00**, and a
+fiscal QR exists on **9 of 16** real receipts while carrying only 2 of 5 fields. Making typing
+the punishment for a failed scan would make the app feel broken precisely when it is being
+honest about uncertainty.
+
+So the two paths are peers, and a capture is a **head start rather than an answer**: everything
+it produces is a default input the user edits (hard rule 13), which means a thin scan degrades
+to "correct two fields", never to "start over". J3 and J3b converge on the same sheet by
+design - a user who typed and a user who scanned are editing the identical screen.
+
+**Success metric:** manual entry is reachable in one tap from Home in every state; median
+manual save time under 20 s; and no growth in abandoned captures - a user who backs out of a
+scan should land on a filled-in manual form, not an empty one.
+
 ### J5 · Fiscal QR fill-up (P3, RU/KZ)
 **Trigger:** every receipt has an FNS/ОФД QR square.
 

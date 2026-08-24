@@ -50,7 +50,7 @@ flowchart TD
         Capture -->|auto: receipt| Confirm
         Capture -->|auto: foreign currency| ConfirmForeign
         Capture -->|auto: mixed receipt| ConfirmMixed
-        Capture -->|OCR failed / Type it| ConfirmManual
+        Capture -->|Type it, or OCR declined to guess| ConfirmManual
         Capture -->|Service mode| ServiceEntry
         Capture -.->|X| Back[return to opener]
         Confirm -->|tank row| TankLevel
@@ -138,5 +138,10 @@ The map names five screens that exist as nodes but have no artboard yet – list
 - **Restoring** was the one screen that could trap (mid-restore, wrong account): it gets an explicit *Cancel = sign out → Welcome*. ✓
 - **Save never strands**: all save actions land on Home/Log with the result visible – capture opened from Trends still exits to Log, showing what was created. ✓
 - **Failure states are forks, not ends** (JOURNEYS F-series): OCR failure → ConfirmManual is the same sheet, same back paths; denied camera → Capture's "Type it" path still works. ✓
+- **Manual entry is a peer path, not a failure branch** (hard rule 15). "Type it" is offered
+  next to capture at every entry point - Home's header, both empty states, the guest layout and
+  the Capture screen itself - and reaching it never requires first attempting a scan. It is the
+  same `ConfirmManual` sheet either way, so a user who starts manually and one whose scan came
+  back thin end up in the identical screen, editing the same fields.
 - **Notifications deep-link** into Reminders/Home – both roots with full navigation, never into a bare sheet with no context. ✓
 - Welcome is unreachable after onboarding except via Restoring's cancel and full sign-out – intentional; it is not part of the daily graph. ✓
