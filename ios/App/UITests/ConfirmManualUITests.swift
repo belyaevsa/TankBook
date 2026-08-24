@@ -115,3 +115,195 @@ final class ConfirmManualUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["≈ – · converts when online"].exists)
     }
 }
+
+// MARK: - P2.3 the scanned path lands in the SAME sheet
+
+/// P2.3: the scanned path shares one sheet with the typed path (hard rule 15).
+/// These tests pin the two rules this screen must not break: an all-nil
+/// extraction is the ordinary empty form - never an error, never a "scan
+/// failed" banner - and a dimmed field is still a fully editable default input
+/// (hard rule 13). Plus the QR-anchor total, the swapped-pair lock that must
+/// not gate saving, and the reduced-motion lock.
+extension ConfirmManualUITests {
+
+    private func launchWithPrefill(_ seed: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seedVehicleForUITests", seed]
+        app.launch()
+        return app
+    }
+
+    private func openForm(_ app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
+        app.buttons["typeItButton"].tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+    }
+
+    private func fieldValue(_ app: XCUIApplication, _ identifier: String) -> String {
+        (app.textFields[identifier].value as? String) ?? ""
+    }
+
+    // MARK: 1. Rule 15: an all-nil extraction is the ordinary empty form
+
+    func testAllNilExtractionRendersTheOrdinaryEmptyForm() {
+        let app = launchWithPrefill("-seedConfirmPrefillEmpty")
+        openForm(app)
+
+        // No scan-failure surfaces: no cross-check mismatch, no "no car" hint -
+        // an all-nil extraction renders as the ordinary manual form, never as
+        // an error. (The seed's F9a odometer conflict may show its own amber
+        // row, exactly as it would on a typed form with the same data - that
+        // is a timeline warning, not a scan-failure one.)
+        XCTAssertFalse(app.staticTexts["manualFillUpCrossCheckMismatch"].exists)
+        XCTAssertFalse(app.staticTexts["manualFillUpNoVehicleHint"].exists)
+        // The neutral, unlocked check line is up, exactly as on a manual form.
+        XCTAssertTrue(app.staticTexts["manualFillUpCheckLine"].exists)
+
+        // Save is off with nothing typed...
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertFalse(save.isEnabled)
+        XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists)
+
+        // ...and the sheet is savable once the user types.
+        let total = app.textFields["manualFillUpTotalField"]
+        total.tap()
+        total.typeText("71.02")
+        let liters = app.textFields["manualFillUpLitersField"]
+        liters.tap()
+        liters.typeText("42.30")
+        XCTAssertTrue(save.isEnabled)
+    }
+
+    // MARK: 2. A nil field renders blank, never 0
+
+    func testNilFieldsRenderBlankNotZero() {
+        let app = launchWithPrefill("-seedConfirmPrefillSparse")
+        openForm(app)
+
+        // The extraction resolved only liters; total and price are nil and must
+        // render as honest blanks - a zero is a wrong fact, a blank is an
+        // honest absence.
+        XCTAssertTrue((app.textFields["manualFillUpTotalField"].value as? String)?.isEmpty ?? true)
+        XCTAssertTrue((app.textFields["manualFillUpPricePerLField"].value as? String)?.isEmpty ?? true)
+        XCTAssertNotEqual(fieldValue(app, "manualFillUpTotalField"), "0")
+        XCTAssertNotEqual(fieldValue(app, "manualFillUpPricePerLField"), "0.00")
+        // The resolved field shows its real value, not a zeroed stand-in.
+        XCTAssertEqual(fieldValue(app, "manualFillUpLitersField"), "42.30")
+    }
+
+    // MARK: 3. Dimmed is not disabled (hard rule 13)
+
+    func testDimmedFieldIsStillEditableAndFullyEnabled() {
+        let app = launchWithPrefill("-seedConfirmPrefill")
+        openForm(app)
+
+        // liters + price resolved, total deriving: the resolved fields are
+        // unconfirmed and dimmed, but a dimmed field is a default input, never
+        // read-only.
+        let liters = app.textFields["manualFillUpLitersField"]
+        XCTAssertTrue(liters.waitForExistence(timeout: 5))
+        XCTAssertEqual(fieldValue(app, "manualFillUpLitersField"), "42.30")
+        XCTAssertTrue(liters.isEnabled, "a dimmed field must never be disabled")
+
+        // Focus it, type, and the value changes - dimming never blocks editing.
+        liters.tap()
+        liters.typeText("5")
+        XCTAssertNotEqual(fieldValue(app, "manualFillUpLitersField"), "42.30")
+        XCTAssertTrue(liters.isEnabled)
+
+        // The dimmed price field is equally editable, and no trait marks any
+        // figure field read-only.
+        let price = app.textFields["manualFillUpPricePerLField"]
+        XCTAssertTrue(price.isEnabled)
+        price.tap()
+        price.typeText("0")
+        XCTAssertNotEqual(fieldValue(app, "manualFillUpPricePerLField"), "1.679")
+    }
+
+    // MARK: 4. The cross-check lock never gates saving (swapped-pair trap)
+
+    func testSwappedPairStillLocksAndSaveIsNeverGated() {
+        let app = launchWithPrefill("-seedConfirmPrefillSwapped")
+        openForm(app)
+
+        // 1.679 x 42.30 == 42.30 x 1.679: the parser swapped them and the
+        // cross-check still reports verified. The lock proves consistency,
+        // never assignment - so it must not gate saving.
+        XCTAssertTrue(app.staticTexts["manualFillUpCheckLineLocked"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["manualFillUpCrossCheckMismatch"].exists)
+
+        // The lock is decoration over the save gate: two of three typed is
+        // enough to save, verified or not.
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: 5. The QR anchor wins on the total
+
+    func testQRDisagreesFillsTheQrTotal() {
+        let app = launchWithPrefill("-seedConfirmPrefillQR")
+        openForm(app)
+
+        // OCR grabbed the VAT line (867.00); the QR grand total is exact and
+        // outranks it, filling the field.
+        XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "4334.83")
+    }
+
+    func testMixedReceiptKeepsTheFuelLine() {
+        let app = launchWithPrefill("-seedConfirmPrefillMixed")
+        openForm(app)
+
+        // Grand total 50.00, fuel line 20.00 L x 2.00 = 40.00: the fill-up
+        // amount is the fuel line (hard rule 4), never the grand total.
+        XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "40.00")
+        XCTAssertEqual(fieldValue(app, "manualFillUpLitersField"), "20.00")
+        XCTAssertEqual(fieldValue(app, "manualFillUpPricePerLField"), "2.000")
+    }
+
+    // MARK: 6. Tap-to-verify crops
+
+    func testTapToVerifyShowsTheCropOfTheSource() {
+        let app = launchWithPrefill("-seedConfirmPrefill")
+        openForm(app)
+
+        // The liters row resolved from the scan carries the verify affordance.
+        let verify = app.buttons["manualFillUpVerifyButton_volume"]
+        XCTAssertTrue(verify.waitForExistence(timeout: 5))
+        XCTAssertTrue(verify.isHittable)
+        verify.tap()
+
+        // The crop sheet opens with the source image reference.
+        XCTAssertTrue(app.staticTexts["verifyCropCaption"].waitForExistence(timeout: 5))
+        let done = app.buttons["verifyCropDoneButton"]
+        XCTAssertTrue(done.isHittable)
+        done.tap()
+        XCTAssertFalse(app.staticTexts["verifyCropCaption"].exists)
+    }
+
+    // MARK: 7. Reduced motion
+
+    func testReducedMotionLockStillLandsWithoutAnimation() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seedVehicleForUITests", "-forceReduceMotion"]
+        app.launch()
+        openForm(app)
+
+        // Drive a real unlocked -> locked transition with Reduce Motion forced
+        // on: the reduced variant is the state change WITHOUT the spring, never
+        // a missing state (the animation decision itself is unit-tested in
+        // core, `ConfirmLockAnimation.shouldAnimate`).
+        let total = app.textFields["manualFillUpTotalField"]
+        total.tap()
+        total.typeText("20.00")
+        let liters = app.textFields["manualFillUpLitersField"]
+        liters.tap()
+        liters.typeText("10")
+        let price = app.textFields["manualFillUpPricePerLField"]
+        price.tap()
+        price.typeText("2.00")
+
+        XCTAssertTrue(app.staticTexts["manualFillUpCheckLineLocked"].waitForExistence(timeout: 5))
+    }
+}

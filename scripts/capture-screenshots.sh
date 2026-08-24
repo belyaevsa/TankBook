@@ -117,6 +117,16 @@ capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus autho
 # row's degradation is on the record, not assumed.
 capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -powertrain phev
 
+# P2.3: the scanned path lands in the SAME ConfirmManual sheet. The main pair
+# shows the partly-resolved reality (liters + price pre-filled and dimmed, the
+# total deriving), and -empty-ru the hard-rule-15 state: an all-nil extraction
+# renders as the ordinary empty form - the state whose Russian labels overflow
+# worst ("Enter total and liters to save" -> "Введите сумму и литры, чтобы
+# сохранить").
+capture P2.3-confirm            en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefill
+capture P2.3-confirm-ru         ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefill
+capture P2.3-confirm-empty-ru   ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillEmpty
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

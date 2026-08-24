@@ -32,11 +32,28 @@ struct ManualFillUpFormState: Equatable {
     var odometer = ""
     var date = Date()
 
+    /// P2.3: which pump-card fields the extraction RESOLVED (never nil fields,
+    /// never a QR-authoritative total - that is exact, not OCR-derived). Feeds
+    /// the dimming gate: a resolved-but-unconfirmed field renders dimmed, and
+    /// stays fully editable (hard rule 13).
+    var resolvedByExtraction: Set<ManualFillUpMath.Field> = []
+
+    /// P2.3: the pump-card fields the user has engaged with since the pre-fill
+    /// (tapped or edited). "Low-confidence OCR fields render at 60% opacity
+    /// until confirmed by tap or edit" (docs/DESIGN.md) - engagement lifts the
+    /// dim, permanently.
+    var userConfirmedFields: Set<ManualFillUpMath.Field> = []
+
     /// Snapshots for the discard guard: the form is "dirty" only for real
     /// edits, not for the odometer/date pre-fill (SCREENMAP rule 1 - typed
-    /// input asks before discarding, convenience pre-fills do not).
+    /// input asks before discarding, convenience pre-fills do not). The
+    /// extraction pre-fill is a convenience pre-fill exactly like the odometer:
+    /// opening a scanned sheet and closing it untouched discards silently.
     var initialOdometer = ""
     var initialDate = Date()
+    var initialTotal = ""
+    var initialLiters = ""
+    var initialPricePerL = ""
 
     // MARK: Parsing
 
@@ -104,11 +121,12 @@ struct ManualFillUpFormState: Equatable {
 
     // MARK: Discard guard
 
-    /// Real edits only: typed numbers, an odometer changed from its pre-fill, a
-    /// date moved, a fuel/currency/full-tank choice made. Opening the sheet and
-    /// closing it with just the convenience pre-fill discards silently.
+    /// Real edits only: typed numbers (against the pre-fill snapshots), an
+    /// odometer changed from its pre-fill, a date moved, a fuel/currency/full-
+    /// tank choice made. Opening the sheet and closing it with just the
+    /// convenience pre-fills discards silently.
     func hasEdits(vehicle: Vehicle) -> Bool {
-        if !total.isEmpty || !liters.isEmpty || !pricePerL.isEmpty { return true }
+        if total != initialTotal || liters != initialLiters || pricePerL != initialPricePerL { return true }
         // A tank level set on a partial fill is a real edit (100 on a full
         // fill is the toggle's own state, not an edit).
         if !isFull && tankLevelAfterPct != nil { return true }

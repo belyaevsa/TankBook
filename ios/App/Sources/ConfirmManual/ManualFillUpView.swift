@@ -14,10 +14,22 @@ import TankbookCore
 /// the cross-check applies. Money is always a pair (hard rule 3) - with no
 /// rates service a foreign currency saves rate-pending ("≈ – · converts when
 /// online") and backfills later, never silently converted.
+///
+/// P2.3: the scanned path lands in THIS SAME sheet (hard rule 15 - manual and
+/// scan are peer paths). An optional `prefill` carries the extraction, its
+/// per-field crops and the fiscal QR anchor; present fields pre-fill, nil
+/// fields stay blank and focusable, resolved-but-unconfirmed fields dim to 60%
+/// opacity and stay fully editable (hard rule 13), and the QR anchor outranks
+/// the OCR total.
 struct ManualFillUpView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+
+    /// The scanned-path input (P2.3). `nil` is the manual form with nothing
+    /// pre-filled - never an error, never a "scan failed" state (hard rule 15).
+    private let injectedPrefill: ConfirmPrefill?
 
     @State private var form = ManualFillUpFormState()
     @FocusState private var focus: ManualFillUpFocus?
@@ -29,11 +41,25 @@ struct ManualFillUpView: View {
     @State private var showDatePicker = false
     @State private var showTankLevel = false
     @State private var didLoad = false
+    @State private var verifyCrop: VerifyCrop?
+
+    init(prefill: ConfirmPrefill? = nil, hasUnsavedChanges: Binding<Bool>) {
+        self.injectedPrefill = prefill
+        self._hasUnsavedChanges = hasUnsavedChanges
+    }
 
     private static let log = Logger(subsystem: "app.tankbook", category: "confirmManual")
 
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
+
+    /// Reduce Motion (docs/DESIGN.md -> Motion): the cross-check lock's spring
+    /// draw-in degrades to a plain state change - the tick still appears, just
+    /// without the animation. The launch-argument override exists so a UI test
+    /// can pin the setting it cannot reach through XCUITest.
+    private var reduceMotion: Bool {
+        accessibilityReduceMotion || ProcessInfo.processInfo.arguments.contains("-forceReduceMotion")
+    }
 
     var body: some View {
         ScrollView {
@@ -48,7 +74,10 @@ struct ManualFillUpView: View {
                     ManualFillUpNumbersCard(
                         form: $form, focus: $focus,
                         volumeUnit: volumeUnit,
-                        currencySymbol: currencySymbol)
+                        currencySymbol: currencySymbol,
+                        crops: prefill?.crops ?? [:],
+                        reduceMotion: reduceMotion,
+                        onVerify: { field, crop in verifyCrop = VerifyCrop(field: field, evidence: crop) })
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
@@ -81,11 +110,26 @@ struct ManualFillUpView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .sheet(item: $verifyCrop) { crop in
+            VerifyCropSheet(evidence: crop.evidence)
+        }
+        .onChange(of: focus) { _, newValue in
+            // Tapping a pre-filled field confirms it (docs/DESIGN.md: dimmed
+            // "until confirmed by tap or edit"). The odometer is not a pump
+            // card figure, so it is not part of the confidence set.
+            if let field = newValue?.mathField {
+                form.userConfirmedFields.insert(field)
+            }
+        }
         .onChange(of: form, initial: true) { _, newValue in
             if let vehicle {
                 hasUnsavedChanges = newValue.hasEdits(vehicle: vehicle)
             }
         }
+    }
+
+    private var prefill: ConfirmPrefill? {
+        injectedPrefill ?? ConfirmPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments)
     }
 
     private var currencySymbol: String {
@@ -120,8 +164,16 @@ struct ManualFillUpView: View {
             form.fuelKind = vehicle.fuelKinds.first ?? .petrol95
             let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
             form.odometer = lastKnown.map(String.init) ?? ""
+            if let prefill {
+                apply(prefill, vehicle: vehicle)
+            }
+            // The pre-fill snapshots are taken AFTER the convenience pre-fills
+            // (odometer, date, extraction): none of them count as an edit.
             form.initialOdometer = form.odometer
             form.initialDate = form.date
+            form.initialTotal = form.total
+            form.initialLiters = form.liters
+            form.initialPricePerL = form.pricePerL
             currencyLowConfidence = ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
             if ProcessInfo.processInfo.arguments.contains("-screenshotPrefill") {
                 // Screenshot hook: land the three-number card in its derived
@@ -132,6 +184,51 @@ struct ManualFillUpView: View {
         } catch {
             Self.log.error("Manual fill-up load failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// P2.3: the extraction becomes default input, field by field. A nil value
+    /// stays blank and focusable - never `0` (a zero is a wrong fact, a blank
+    /// is an honest absence). Every pre-filled value stays editable at the
+    /// moment it is offered and afterwards (hard rule 13).
+    private func apply(_ prefill: ConfirmPrefill, vehicle: Vehicle) {
+        guard let extraction = prefill.extraction else { return }
+        form.resolvedByExtraction.removeAll()
+        switch ConfirmQRTotal.resolve(extraction: extraction, qrAnchor: prefill.qrAnchor) {
+        case .noAnchor(let ocrTotal):
+            applyTotal(ocrTotal)
+            // The OCR total is exactly as trustworthy as the other OCR fields.
+            if extraction.total != nil { form.resolvedByExtraction.insert(.total) }
+        case .ocrConfirmed(let total):
+            // The QR grand total AGREES with the OCR total: the value is exact
+            // and double-confirmed, never dimmed.
+            applyTotal(total)
+        case .qrAuthoritative(let total):
+            // The QR total outranks the OCR one and fills the field: exact,
+            // never dimmed.
+            applyTotal(total)
+        case .fuelLineStands(let total):
+            // The fill-up amount is the fuel line (hard rule 4). OCR-derived,
+            // so it dims like any other OCR value until confirmed.
+            applyTotal(total)
+            form.resolvedByExtraction.insert(.total)
+        }
+        form.liters = ConfirmFormat.string(fromExtraction: extraction.liters, fractionDigits: 2)
+        form.pricePerL = ConfirmFormat.string(fromExtraction: extraction.unitPrice, fractionDigits: 3)
+        form.currency = extraction.currency ?? vehicle.homeCurrency
+        if let kind = extraction.fuelKind, vehicle.fuelKinds.contains(kind) {
+            form.fuelKind = kind
+        }
+        if let rawDate = extraction.date, let date = ConfirmDate.parse(rawDate) {
+            form.date = date
+        }
+        // Which fields the OCR actually resolved, for the dimming gate (the
+        // total is handled above, per its resolution source).
+        if extraction.liters != nil { form.resolvedByExtraction.insert(.volume) }
+        if extraction.unitPrice != nil { form.resolvedByExtraction.insert(.unitPrice) }
+    }
+
+    private func applyTotal(_ total: Decimal?) {
+        form.total = total.map { ConfirmFormat.string(decimal: $0, fractionDigits: 2) } ?? ""
     }
 
     // MARK: - Save
@@ -237,4 +334,68 @@ struct ManualFillUpView: View {
 /// Which ConfirmManual field holds focus (drives the cyan underline).
 enum ManualFillUpFocus: Hashable {
     case total, liters, pricePerL, odometer
+
+    /// The pump-card figure this focus targets, if any (the odometer is not
+    /// part of the three-number card, so it is not in the confidence set).
+    var mathField: ManualFillUpMath.Field? {
+        switch self {
+        case .total: return .total
+        case .liters: return .volume
+        case .pricePerL: return .unitPrice
+        case .odometer: return nil
+        }
+    }
+}
+
+// MARK: - Tap-to-verify crop sheet (P2.3)
+
+/// One field's crop, presented by the sheet's `.sheet(item:)`.
+struct VerifyCrop: Identifiable {
+    let field: ManualFillUpMath.Field
+    let evidence: CropEvidence
+
+    var id: String { field.rawValue }
+}
+
+/// The tap-to-verify sheet: the crop of the source image a pre-filled value
+/// came from, so the user can check it without leaving the Confirm sheet. The
+/// evidence is dumb geometry + image; when no crop is attached the verify
+/// affordance is simply absent (degrade to no-op, never a dead affordance).
+struct VerifyCropSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let evidence: CropEvidence
+
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Theme.Palette.midnight.ignoresSafeArea()
+                VStack(spacing: 16) {
+                    if let image = evidence.image {
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxHeight: 420)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Theme.Palette.taillight, lineWidth: 2)
+                            )
+                    }
+                    Text("From the receipt photo")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .accessibilityIdentifier("verifyCropCaption")
+                }
+                .padding(Theme.Spacing.screenMargin)
+            }
+            .navigationTitle("Check the value")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                        .accessibilityIdentifier("verifyCropDoneButton")
+                }
+            }
+        }
+    }
 }
