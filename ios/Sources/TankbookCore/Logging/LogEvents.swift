@@ -343,6 +343,39 @@ public struct ConfigReject: LogEvent {
     }
 }
 
+/// A candidate `apiBaseUrl` passed its health gate and was promoted to active
+/// (docs/CONFIG.md -> "Health gate before adoption"). The host is our data, not
+/// the user's, so it is Safe class; only the host is logged, never a token and
+/// never the full document (docs/LOGGING.md hard rule 12).
+public struct ConfigBaseURLPromote: LogEvent {
+    public let eventName = "config.baseurl.promote"
+    public let category = LogCategory.config
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(host: String) {
+        fields = [.safe("host", host)]
+    }
+}
+
+/// The active `apiBaseUrl` produced N consecutive transport failures and the
+/// client reverted to the bundled default (docs/CONFIG.md -> "Auto-revert on
+/// sustained failure"). Logged at WARN with the failure count and the host that
+/// was abandoned - host and counts are Safe class, a token never is.
+public struct ConfigBaseURLRevert: LogEvent {
+    public let eventName = "config.baseurl.revert"
+    public let category = LogCategory.config
+    public let level = LogLevel.warn
+    public let fields: [LogField]
+
+    public init(host: String, failureCount: Int) {
+        fields = [
+            .safe("host", host),
+            .safe("failureCount", failureCount),
+        ]
+    }
+}
+
 // MARK: - Capture / OCR (docs/LOGGING.md §4)
 
 /// One OCR field: the field *name* and its confidence value, never the

@@ -42,6 +42,8 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 
 **Presigned URLs** are treated as secrets in flight: never logged (`LOGGING.md` Never class), never persisted, never written into a record payload.
 
+**The allowlist domain is still a placeholder.** No public domain is registered for the app yet, so `HostAllowlist.allowedDomain` holds a stand-in. Until a real domain is bought and set there (and in `Config.default.json`), the allowlist protects a name we do not own - which an attacker could simply register. **Release blocker**, tracked in `CONFIG.md` → Guardrails.
+
 **The auth token is bound to the host, not to the session.** `Authorization` is attached only when the request host is on the compiled-in allowlist, enforced in the HTTP client itself. This is what makes a redirected `apiBaseUrl` (`CONFIG.md`) unable to harvest a token even if every other guardrail failed: the request simply goes out unauthenticated. Never attach credentials to "whatever base URL is currently configured".
 
 ## Backend – secret management

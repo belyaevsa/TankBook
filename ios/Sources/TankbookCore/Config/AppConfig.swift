@@ -75,6 +75,27 @@ public struct AppConfig: Sendable, Equatable {
         )
     }
 
+    /// A copy with a different `apiBaseURL` and every other field unchanged.
+    ///
+    /// Used by `ConfigStore` when the base URL resolves from the health-gated
+    /// `activeBaseURL` (or the bundled default) rather than directly from a
+    /// document's `apiBaseUrl`, which is only ever a *candidate*.
+    func withAPIBaseURL(_ apiBaseURL: URL) -> AppConfig {
+        AppConfig(
+            apiBaseURL: apiBaseURL,
+            tier2OnDeviceLLM: tier2OnDeviceLLM,
+            tier3CloudFallback: tier3CloudFallback,
+            llmQuota: llmQuota,
+            ocrConfidenceThreshold: ocrConfidenceThreshold,
+            minSchemaVersion: minSchemaVersion,
+            referencePacks: referencePacks,
+            maintenance: maintenance,
+            rolloutSalt: rolloutSalt,
+            flags: flags,
+            version: version
+        )
+    }
+
     /// Applies a valid remote document as a **sparse, per-key override**
     /// (docs/CONFIG.md -> "How it is resolved").
     ///
@@ -123,15 +144,22 @@ public enum ConfigSource: String, Sendable {
     case bundled
 }
 
-/// Why a document was rejected whole (docs/CONFIG.md -> "Document level: all or
-/// nothing"). The raw values are the `reason` field of `config.reject`; they are
-/// codes, not domain values (docs/LOGGING.md hard rule 12).
+/// Why a document (or one of its keys) was rejected (docs/CONFIG.md ->
+/// "Document level: all or nothing" and "Guardrails on apiBaseUrl"). The raw
+/// values are the `reason` field of `config.reject`; they are codes, not domain
+/// values (docs/LOGGING.md hard rule 12).
+///
+/// The first five are document-level rejections (the whole document is refused).
+/// The last two are **key-level** rejections of `apiBaseUrl` only: the rest of
+/// an otherwise-valid document still applies and the previous base URL stands.
 public enum ConfigRejectReason: String, Error, Sendable, CaseIterable {
     case malformedDocument
     case verifierNotConfigured
     case badSignature
     case expired
     case belowFloor
+    case apiBaseURLNotAllowlisted
+    case apiBaseURLHealthProbeFailed
 }
 
 // MARK: - Bundled defaults

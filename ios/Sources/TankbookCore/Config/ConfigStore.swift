@@ -29,6 +29,26 @@ public protocol ConfigFetcher: Sendable {
     func fetch() async throws -> ConfigFetchResult
 }
 
+/// Probes `GET /health` against a candidate base URL (docs/CONFIG.md ->
+/// "Health gate before adoption"). Injected so the gate is testable with no
+/// network; the real prober lands with the sync work.
+public protocol HealthProber: Sendable {
+    func probe(baseURL: URL) async -> Bool
+}
+
+/// The outcome of a request against the active base URL, reported by the
+/// networking layer (docs/CONFIG.md -> "Auto-revert on sustained failure").
+///
+/// The two cases are what draws the line between a broken base URL and a broken
+/// server: `.transportFailure` means the host could not be reached at all, which
+/// is evidence the base URL is wrong and counts toward auto-revert. `.response`
+/// means the host answered, whatever the status, so the base URL is reachable;
+/// it resets the failure counter, never increments it.
+public enum ConfigTransportOutcome: Sendable, Equatable {
+    case transportFailure
+    case response(status: Int)
+}
+
 /// Resolves the three-layer config precedence (docs/CONFIG.md):
 ///
 ///     Debug override (DEBUG only) > Remote (live, else cached) > Bundled
@@ -53,6 +73,7 @@ public final class ConfigStore: @unchecked Sendable {
         var remote: ConfigDocument?
         var remoteSignature: String
         var remoteEtag: String?
+        var remoteFetchedAt: Date?
         var floor: Int?
         var consecutiveFailures: Int
         var activeBaseURL: String?
@@ -66,6 +87,8 @@ public final class ConfigStore: @unchecked Sendable {
     private let clock: Clock
     private let deviceIdentifier: String
     private let fetcher: (any ConfigFetcher)?
+    private let healthProber: (any HealthProber)?
+    private let maxConsecutiveFailures: Int
     private let log: TankbookLog?
 
     #if DEBUG
@@ -82,6 +105,8 @@ public final class ConfigStore: @unchecked Sendable {
         clock: @escaping Clock,
         deviceIdentifier: String,
         fetcher: (any ConfigFetcher)? = nil,
+        healthProber: (any HealthProber)? = nil,
+        maxConsecutiveFailures: Int = 5,
         log: TankbookLog? = nil
     ) {
         self.bundled = bundled
@@ -91,6 +116,8 @@ public final class ConfigStore: @unchecked Sendable {
         self.clock = clock
         self.deviceIdentifier = deviceIdentifier
         self.fetcher = fetcher
+        self.healthProber = healthProber
+        self.maxConsecutiveFailures = maxConsecutiveFailures
         self.log = log
 
         let floor = keychain.highestSeenVersion()
@@ -99,6 +126,7 @@ public final class ConfigStore: @unchecked Sendable {
             remote: nil,
             remoteSignature: "",
             remoteEtag: nil,
+            remoteFetchedAt: nil,
             floor: floor,
             consecutiveFailures: 0,
             activeBaseURL: nil
@@ -106,7 +134,13 @@ public final class ConfigStore: @unchecked Sendable {
 
         if let record = ConfigCacheFile.read(directory: cacheDirectory) {
             state.consecutiveFailures = record.consecutiveFailures
-            state.activeBaseURL = record.activeBaseURL
+            // A tampered cache could name an arbitrary activeBaseURL; drop it if
+            // it is not allowlisted, so resolution falls back to the bundled
+            // default (docs/CONFIG.md -> "Defence in depth"). The HTTP client
+            // re-checks anyway, but the two checkpoints are independent.
+            if let active = record.activeBaseURL, Self.isAllowlistedBaseURL(active) {
+                state.activeBaseURL = active
+            }
 
             let validation = Self.validate(
                 document: record.document,
@@ -118,7 +152,7 @@ public final class ConfigStore: @unchecked Sendable {
             switch validation {
             case .success(let document):
                 Self.adopt(&state, document: document, signature: record.signature, etag: record.etag,
-                           bundled: bundled, keychain: keychain, debugOverride: nil)
+                           fetchedAt: record.fetchedAt, bundled: bundled, keychain: keychain, debugOverride: nil)
                 log?.emit(ConfigApply(
                     version: document.version,
                     source: .cache,
@@ -161,18 +195,16 @@ public final class ConfigStore: @unchecked Sendable {
         )
     }
 
-    /// Foreground / nudge / failure-triggered fetch. With no injected fetcher
-    /// (this slice ships only a test double) it is a no-op; P0.12c wires the
-    /// real HTTP client and the transport-failure accounting.
+    /// Foreground / nudge / failure-triggered fetch (docs/CONFIG.md ->
+    /// "Delivery"). A transport failure fetching config is silent and keeps the
+    /// current config; it is not the same thing as a transport failure against
+    /// the active base URL, which is reported via `recordRequestOutcome`.
     public func refresh() async {
         guard let fetcher else { return }
         let result: ConfigFetchResult
         do {
             result = try await fetcher.fetch()
         } catch {
-            // Transport failure is silent and keeps the current config
-            // (docs/CONFIG.md -> "Failure behaviour"). P0.12c accounts
-            // consecutive failures and auto-reverts.
             return
         }
 
@@ -189,26 +221,55 @@ public final class ConfigStore: @unchecked Sendable {
         case .failure(let reason):
             log?.emit(ConfigReject(reason: reason))
         case .success(let document):
-            let resolved = lock.withLock { state -> AppConfig in
-                Self.adopt(&state, document: document, signature: result.signature, etag: result.etag,
-                           bundled: bundled, keychain: keychain, debugOverride: resolvedOverride())
-                let record = ConfigCacheRecord(
-                    document: document.rawBytes,
-                    signature: result.signature,
-                    etag: result.etag,
-                    fetchedAt: now,
-                    activeBaseURL: state.activeBaseURL,
-                    consecutiveFailures: state.consecutiveFailures
-                )
-                try? ConfigCacheFile.write(record, directory: cacheDirectory)
-                return state.resolved
-            }
-            log?.emit(ConfigApply(
-                version: document.version,
-                source: .live,
-                changedKeys: Self.changedKeyNames(bundled: bundled, resolved: resolved)
-            ))
+            await apply(document: document, signature: result.signature, etag: result.etag, now: now)
         }
+    }
+
+    /// Reports the outcome of a request made against the active base URL
+    /// (docs/CONFIG.md -> "Auto-revert on sustained failure"). Called by the
+    /// networking layer after each request; the transport/response distinction
+    /// lives in `ConfigTransportOutcome`.
+    ///
+    /// - A `.transportFailure` (host unreachable) increments the persisted
+    ///   failure counter; on reaching `maxConsecutiveFailures` the store reverts
+    ///   to the bundled default, resets the counter, logs at WARN and re-probes.
+    /// - A `.response` (host answered, any status) proves the base URL is
+    ///   reachable and resets the counter to 0. A 500 from our own server is
+    ///   therefore never evidence that the base URL is wrong.
+    public func recordRequestOutcome(_ outcome: ConfigTransportOutcome) async {
+        switch outcome {
+        case .response:
+            let changed = lock.withLock { state -> Bool in
+                let changed = state.consecutiveFailures != 0
+                state.consecutiveFailures = 0
+                return changed
+            }
+            if changed { persist(now: clock()) }
+        case .transportFailure:
+            let shouldRevert = lock.withLock { state -> Bool in
+                state.consecutiveFailures += 1
+                let active = state.activeBaseURL
+                let isBundled = active == nil || active == bundled.apiBaseURL.absoluteString
+                return state.consecutiveFailures >= maxConsecutiveFailures && !isBundled
+            }
+            if shouldRevert {
+                await revertToBundled()
+            } else {
+                persist(now: clock())
+            }
+        }
+    }
+
+    /// The currently-active base URL string, or nil when the store is on the
+    /// bundled default. Internal for tests (a plain `swift test` needs to
+    /// observe the persisted state without a real Keychain).
+    var activeBaseURLValue: String? {
+        lock.withLock { $0.activeBaseURL }
+    }
+
+    /// The current consecutive transport-failure count. Internal for tests.
+    var consecutiveFailureCount: Int {
+        lock.withLock { $0.consecutiveFailures }
     }
 
     #if DEBUG
@@ -218,7 +279,12 @@ public final class ConfigStore: @unchecked Sendable {
     public func setDebugOverride(_ override: DebugConfigOverride?) {
         lock.withLock { state in
             debugOverride = override
-            state.resolved = Self.resolve(bundled: bundled, remote: state.remote, debugOverride: override)
+            state.resolved = Self.resolve(
+                bundled: bundled,
+                remote: state.remote,
+                activeBaseURL: state.activeBaseURL,
+                debugOverride: override
+            )
         }
     }
     #endif
@@ -231,16 +297,149 @@ public final class ConfigStore: @unchecked Sendable {
         #endif
     }
 
+    // MARK: - Candidate base URL
+
+    /// The health gate and promotion (docs/CONFIG.md -> "Guardrails on
+    /// apiBaseUrl"): a document's `apiBaseUrl` is only ever a *candidate*.
+    ///
+    /// - A candidate that fails the allowlist is rejected at the **key** level:
+    ///   the rest of the document applies, the previous base URL stands.
+    /// - A candidate that differs from the current URL is probed (`GET /health`)
+    ///   before promotion; a failed probe discards it. One probe per refresh.
+    /// - With no prober injected (this slice ships no real one) the health gate
+    ///   is absent and an allowlisted candidate is promoted directly; auto-revert
+    ///   remains the safety net.
+    private func apply(document: ConfigDocument, signature: String, etag: String?, now: Date) async {
+        let candidate: URL? = document.presentKeyNames.contains("apiBaseUrl") ? document.apiBaseURL : nil
+
+        if let candidate, !HostAllowlist.allows(url: candidate) {
+            log?.emit(ConfigReject(reason: .apiBaseURLNotAllowlisted))
+            commit(document: document, signature: signature, etag: etag, now: now, activeURL: nil)
+            return
+        }
+
+        let currentURL = lock.withLock { $0.resolved.apiBaseURL }
+        guard let candidate, candidate != currentURL else {
+            commit(document: document, signature: signature, etag: etag, now: now, activeURL: nil)
+            return
+        }
+
+        if let healthProber {
+            guard await healthProber.probe(baseURL: candidate) else {
+                log?.emit(ConfigReject(reason: .apiBaseURLHealthProbeFailed))
+                commit(document: document, signature: signature, etag: etag, now: now, activeURL: nil)
+                return
+            }
+        }
+        log?.emit(ConfigBaseURLPromote(host: candidate.host ?? ""))
+        commit(document: document, signature: signature, etag: etag, now: now,
+               activeURL: candidate.absoluteString)
+    }
+
+    /// Stores an already-validated document, optionally promoting a new active
+    /// base URL, bumps the rollback floor, re-resolves, persists and logs.
+    private func commit(
+        document: ConfigDocument,
+        signature: String,
+        etag: String?,
+        now: Date,
+        activeURL: String?
+    ) {
+        let resolved = lock.withLock { state -> AppConfig in
+            state.remote = document
+            state.remoteSignature = signature
+            state.remoteEtag = etag
+            state.remoteFetchedAt = now
+            if let activeURL {
+                state.activeBaseURL = activeURL
+                // A new active URL starts a fresh failure streak.
+                state.consecutiveFailures = 0
+            }
+            let previousFloor = state.floor
+            let newFloor = max(previousFloor ?? Int.min, document.version)
+            if newFloor > (previousFloor ?? Int.min) {
+                state.floor = newFloor
+                keychain.record(version: newFloor)
+            }
+            state.resolved = Self.resolve(
+                bundled: bundled,
+                remote: document,
+                activeBaseURL: state.activeBaseURL,
+                debugOverride: resolvedOverride()
+            )
+            return state.resolved
+        }
+        persist(now: now)
+        log?.emit(ConfigApply(
+            version: document.version,
+            source: .live,
+            changedKeys: Self.changedKeyNames(bundled: bundled, resolved: resolved)
+        ))
+    }
+
+    /// Reverts to the bundled default after N consecutive transport failures
+    /// (docs/CONFIG.md -> "Auto-revert on sustained failure"): resets the
+    /// counter, logs at WARN, and re-probes the bundled default. The re-probe
+    /// result is advisory - the bundled URL is the floor and there is nothing
+    /// below it to fall back to.
+    private func revertToBundled() async {
+        let (abandonedHost, failureCount): (String, Int) = lock.withLock { state in
+            let host = state.activeBaseURL.flatMap { URL(string: $0)?.host }
+                ?? bundled.apiBaseURL.host ?? ""
+            let count = state.consecutiveFailures
+            state.activeBaseURL = nil
+            state.consecutiveFailures = 0
+            state.resolved = Self.resolve(
+                bundled: bundled,
+                remote: state.remote,
+                activeBaseURL: state.activeBaseURL,
+                debugOverride: resolvedOverride()
+            )
+            return (host, count)
+        }
+        persist(now: clock())
+        log?.emit(ConfigBaseURLRevert(host: abandonedHost, failureCount: failureCount))
+        if let healthProber {
+            _ = await healthProber.probe(baseURL: bundled.apiBaseURL)
+        }
+    }
+
+    /// Writes the current state to the cache file, but only when a remote
+    /// document is held (the cache envelope stores the document verbatim, so
+    /// there is nothing to persist on pure-bundled resolution).
+    private func persist(now: Date) {
+        let record: ConfigCacheRecord? = lock.withLock { state in
+            guard let document = state.remote else { return nil }
+            return ConfigCacheRecord(
+                document: document.rawBytes,
+                signature: state.remoteSignature,
+                etag: state.remoteEtag,
+                fetchedAt: state.remoteFetchedAt ?? now,
+                activeBaseURL: state.activeBaseURL,
+                consecutiveFailures: state.consecutiveFailures
+            )
+        }
+        guard let record else { return }
+        try? ConfigCacheFile.write(record, directory: cacheDirectory)
+    }
+
+    private static func isAllowlistedBaseURL(_ value: String) -> Bool {
+        guard let url = URL(string: value) else { return false }
+        return HostAllowlist.allows(url: url)
+    }
+
     // MARK: - Adoption
 
-    /// Applies an already-validated document: stores it, bumps the rollback
-    /// floor (persisting to the Keychain), and re-resolves. Called on both the
-    /// cold-start cache read and a successful fetch.
+    /// Applies an already-validated document on the cold-start cache read:
+    /// stores it, bumps the rollback floor (persisting to the Keychain), and
+    /// re-resolves. `activeBaseURL` is left as the caller set it (already read
+    /// from the cache and allowlist-checked).
     private static func adopt(
         _ state: inout State,
         document: ConfigDocument,
         signature: String,
         etag: String?,
+        fetchedAt: Date,
         bundled: AppConfig,
         keychain: any ConfigRollbackFloorStoring,
         debugOverride: DebugConfigOverride?
@@ -248,6 +447,7 @@ public final class ConfigStore: @unchecked Sendable {
         state.remote = document
         state.remoteSignature = signature
         state.remoteEtag = etag
+        state.remoteFetchedAt = fetchedAt
 
         let previousFloor = state.floor
         let newFloor = max(previousFloor ?? Int.min, document.version)
@@ -255,17 +455,24 @@ public final class ConfigStore: @unchecked Sendable {
             state.floor = newFloor
             keychain.record(version: newFloor)
         }
-        state.resolved = resolve(bundled: bundled, remote: document, debugOverride: debugOverride)
+        state.resolved = resolve(bundled: bundled, remote: document,
+                                 activeBaseURL: state.activeBaseURL, debugOverride: debugOverride)
     }
 
     /// The merge of the three layers: bundled overridden (per key) by a valid
     /// remote document, overridden in turn by a debug override in DEBUG builds.
+    /// `apiBaseURL` resolves from the health-gated `activeBaseURL` (or the
+    /// bundled default) - never directly from a document's `apiBaseUrl`, which
+    /// is only a candidate.
     private static func resolve(
         bundled: AppConfig,
         remote: ConfigDocument?,
+        activeBaseURL: String?,
         debugOverride: DebugConfigOverride?
     ) -> AppConfig {
-        let base = remote.map { bundled.applying(remote: $0) } ?? bundled
+        var base = remote.map { bundled.applying(remote: $0) } ?? bundled
+        let activeURL = activeBaseURL.flatMap { URL(string: $0) } ?? bundled.apiBaseURL
+        base = base.withAPIBaseURL(activeURL)
         return debugOverride.map { $0.applying(to: base) } ?? base
     }
 
