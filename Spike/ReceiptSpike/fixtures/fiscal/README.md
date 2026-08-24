@@ -33,10 +33,47 @@ matching the printed figure.
 - **VAT is stated inclusive** (`в т.ч. СУММА НДС 22%`), which is a place a naive
   total-finder can grab the wrong number.
 
-## Not yet extracted
+## The QR payload
 
-The PDF embeds an image on page 1 (452x1567) which is the fiscal QR strip. P2.6
-parses the QR *payload* (`t=...&s=...&fn=...&i=...&fp=...&n=1`), and that payload
-is not recoverable from this PDF - it needs the original scan. Add the raw QR
-string alongside as `fiscal-001-gpn-ru.qr.txt` when one is captured; until then
-this fixture exercises the document parser, not the QR parser.
+`fiscal-001-gpn-ru.qr.txt`, recovered by decoding the QR visible in
+`../screenshots/screenshot-001-gpn-email.png`:
+
+```
+t=20260822T1702&s=1809.88&fn=7380440903722095&i=95516&fp=4235874914&n=1
+```
+
+`fn`, `i`, `fp` and `s` all appear verbatim in the PDF of the same receipt.
+
+**The QR carries the total, the timestamp and the fiscal identifiers - nothing
+else.** No litres, no unit price, no fuel kind. That is why `docs/JOURNEYS.md`
+J5 pre-fills total and date from the QR instantly and leaves litres and price
+"for the user or a later fetch": the enrichment step is not polish, it is the
+only route those fields can arrive by.
+
+## Open: how enrichment actually fetches the line items
+
+The OFD serves this receipt's PDF at
+
+```
+https://ofd.ru/Document/RenderDoc?RawId=0854958e-d3df-6d7d-c983-7b9cde818da4&format=pdf
+```
+
+**`RawId` is an opaque GUID and is not derivable from the QR.** Nothing in
+`t/s/fn/i/fp/n` produces it, so "scan the QR, build the document URL, fetch the
+line items" does not work - the link only exists because the OFD mailed it to
+this buyer. Verified against this receipt, not assumed.
+
+So J5's "all fields land exact" depends on a lookup this project has not chosen
+yet. The realistic options, each with a cost worth deciding deliberately:
+
+| Route | Cost |
+|---|---|
+| Official ФНС API (`irkkt-mobile.nalog.ru`), keyed on `fn`/`i`/`fp` | Needs a registered ФНС account per user - phone-verified. Free, authoritative, and a real onboarding step |
+| Third-party aggregator | Usually paid, unofficial, and means sending a user's fiscal identifiers to a third party - a privacy decision, not a technical one |
+| No lookup: QR fills total + date, user types litres | Zero dependencies and always works. Weakens J5's "100% correct, free" claim to "total and date exact, two fields typed" |
+
+`docs/API.md` currently describes no fiscal endpoint at all, so nothing is
+committed to yet. **This is a product decision, not an implementation detail**,
+and P2.6 cannot honestly claim "instant fill, all fields exact" until it is
+made. Whatever is chosen, F5 already covers the failure path: parse what the QR
+carries, never block save, enrich in the background, fill blanks only.

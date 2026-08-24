@@ -34,7 +34,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 
 | ID | Task | Checks |
 |---|---|---|
-| **[ ]** P0.3 | String Catalogs EN/RU + pseudo-localization CI step. **Moved here from P0** – `TankbookCore` has almost no user-facing strings, so gating a P0 build on localization would gate a build with nothing to localize. The strings arrive with the app target, so this lands alongside P1.1. ID kept stable for branch/PR references | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
+| **[x]** P0.3 | String Catalogs EN/RU + pseudo-localization CI step. **Moved here from P0** – `TankbookCore` has almost no user-facing strings, so gating a P0 build on localization would gate a build with nothing to localize. The strings arrive with the app target, so this lands alongside P1.1. ID kept stable for branch/PR references | Build fails on a deliberately hardcoded string; sample keys resolve in both languages |
 | **[x]** P1.1 | App shell: tab roots, navigation stacks, sheet infrastructure per SCREENMAP conventions | L4: XCUITest walks every SCREENMAP edge that exists so far; back-path audit (no dead ends) |
 | **[x]** P1.2 | Add car screen + bundled catalog seed pack + suggestions | L1: catalog lookup/pre-fill; L4: snapshot + ERRORS states (empty name, implausible odometer, offline hint) |
 | **[x]** P1.3 | Manual fill-up form (ConfirmManual) + save path | L4: snapshot all states incl. currency chips; L1: third-value derivation, crossCheck=.notApplicable |
@@ -57,7 +57,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | P2.3 | Confirm sheet: pre-fill, confidence dimming, tap-to-verify crops, cross-check lock animation | L1: gating thresholds; L4: verified/mismatch/dimmed snapshots; reduced-motion variant |
 | P2.4 | Mixed-receipt detection + "Also on this receipt" UI + grouped save | L5: fuel-line isolation ≥95% on mixed corpus; L1: FillUp+Expense share purchaseGroupId, sums ≤ grand total |
 | P2.5 | Foreign currency: detection chip, conversion card, rate cache + seed pack | L1: pending-rate save; L4: ConfirmForeign snapshot; never-silently-convert on low confidence |
-| P2.6 | Fiscal QR: payload parser + instant fill + background enrichment | L1: FNS fixtures incl. malformed/truncated; enrichment fill-blanks-only; L4: F5 degraded state |
+| P2.6 | Fiscal QR: payload parser + instant fill + background enrichment. **Blocked on a product decision before the enrichment half can start** (see `Spike/ReceiptSpike/fixtures/fiscal/README.md`): the QR carries only total, timestamp and fiscal ids, and the OFD's document URL is keyed on an opaque `RawId` that is **not** derivable from the QR - verified against a real receipt. So line items need either the official ФНС API (a per-user registered account), a paid third-party aggregator (sending fiscal ids to a third party), or no lookup at all (total + date exact, litres typed). The QR *parser* half is unblocked and has a real fixture | L1: FNS fixtures incl. malformed/truncated; enrichment fill-blanks-only; L4: F5 degraded state |
 | P2.7 | Pump-photo mode (feature-flagged) | L5: pump corpus ≥95% flips the flag – the gate IS the check |
 | P2.8 | Foundation Models normalization layer (iOS 26+ gated) | L5: A/B eval vs rules-only on the corpus – ships only if it strictly improves; graceful absence below iOS 26 |
 
