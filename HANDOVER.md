@@ -1,125 +1,115 @@
 # Tankbook – Session Handover
 
-*Written 2026-08-23. Read this first in a fresh session, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Rewritten 2026-08-24 at the end of the P1 session. Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## What this project is
 
-A capture-first car cost log: iOS native (SwiftUI, min iOS 18, reference device iPhone 12) plus a C#/ASP.NET Core + PostgreSQL backend. Scanning receipts, pump displays and fiscal QR codes replaces typing. Local-first: the app is fully usable with no account and with the server unreachable.
+A capture-first car cost log: iOS native (SwiftUI, min iOS 18, reference device iPhone 12) plus a C#/ASP.NET Core + PostgreSQL backend. Scanning receipts, pump displays and fiscal QR codes replaces typing. Local-first: fully usable with no account and with the server unreachable.
 
-The product thesis and the competitive gap are in `docs/VISION.md`; the market research behind it is in `docs/COMPETITORS.md`.
+Product thesis: `docs/VISION.md`. Market research: `docs/COMPETITORS.md`.
 
-## Does it work? Yes – within its current scope
+## Does it work? Yes – there is a real app now
 
-Demonstrated by actually running it on 2026-08-23, not by assertion:
+Verified by running it, not by assertion:
 
-- **Backend serves real traffic against real Postgres.** `bash backend/scripts/dev-up.sh` then `dotnet run --project src/Tankbook.Api`: migrations apply, `GET /health` → `{"status":"ok"}`, `GET /v1/config` returns a signed document **with no auth**, and `If-None-Match` returns **304**.
-- **Trace correlation works end to end.** A client-supplied `X-Tankbook-Trace` id is echoed in the response header and appears in the server's structured log line. (Note: `/health` logs at DEBUG only by design, so probe `/v1/config` when checking this.)
-- **The consumption engine reproduces the golden vectors** – all four driver profiles (D1–D4) and the three edit cases, verified in CI-style runs.
-- **iOS: 148 tests green. Backend: 134 tests green.** (108 → 148 with P0.12a and the JSONValue Unicode regression suite.)
+- **The app runs in the simulator and every P1 screen is built**: Home (garage card, vitals, log stream), Add car, manual fill-up, Edit entry, Recently deleted, duplicate detection, tank level, Trends, car switcher, Vehicle detail.
+- **iOS: 305+ unit tests, 59 UI tests** executed against a booted iPhone 17 / iOS 26.5 simulator. **Backend: 134 tests.** `swiftlint lint` exits **0** from the repo root.
+- **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then `dotnet run --project src/Tankbook.Api`: migrations apply, `GET /health` → `{"status":"ok"}`, `GET /v1/config` returns a signed document with no auth, `If-None-Match` → 304.
+- **The consumption engine reproduces the D1–D4 golden vectors**, re-checked after every change that touched it.
 
-**What does NOT exist yet: any user interface.** There is no app target, so nothing runs in a simulator. That is deliberate – P0 built a tested `TankbookCore` SwiftPM package (domain, persistence, engines, logging, payload contract) that the SwiftUI app will depend on. Tests run natively on macOS in under a second, with no simulator boot, which is why this phase moved quickly.
-
-On simulators: **iOS 26.5 is installed; iOS 18 is not.** Decided 2026-08-23 – build P1 against 26.5 now, validate and adapt to iOS 18 later. The deployment target stays **18.0**, which makes the compiler reject any post-18 API used without an `@available` guard, so the API half of the risk is covered on every build. The uncovered half is appearance and runtime behaviour, and iOS 26 looks different from iOS 18: **L4 snapshot baselines recorded on 26.5 will need re-recording** once the iOS 18 runtime is fetched (`xcodebuild -downloadPlatform iOS` gets only the *latest*, so iOS 18 needs an explicit fetch, ~8 GB). Budget that as known work. Prefer XCUITest behaviour assertions over pixel snapshots where a check can be written either way – they survive the runtime change.
+Screenshots of every screen, EN and RU, are committed in `design/screenshots/`.
 
 ## Where the work stands
 
-**Phase 0: 11 of 13 tasks complete.** Status marks live in `docs/TASKS.md` (`[x]` = done *and independently re-verified by re-running the tests outside the implementing agent*).
+**P1 is 12 of 13 tasks done.** Status marks live in `docs/TASKS.md` (`[x]` = done *and independently re-verified outside the implementing agent*).
 
-| Done | |
+| Phase | State |
 |---|---|
-| P0.1 | iOS scaffold – SwiftPM package, GRDB 7.11.1, SwiftLint with custom hex rules, CI |
-| P0.2 | Design tokens – `design/tokens.json` → generated `Theme.generated.swift`, parity test |
-| P0.4 | GRDB persistence – 13 tables, Decimal-exact (stored as TEXT), tombstones, repository |
-| P0.5 | Domain types – real RFC 9562 UUIDv7, `Money` snapshot semantics, all entities |
-| P0.6 | Consumption engine – segments, 90-day/floor-3 headline, distance-weighted |
-| P0.7 | Timeline validation – order, pace, cross-check, receipt-date priority |
-| P0.8 | Backend scaffold – minimal API, health, options binding, dev scripts (plain `docker run`) |
-| P0.9 | Server migrations – 9 tables, migration runner, atomic SCN allocator |
-| P0.10 | Payload contract – 11 JSON Schemas + fixtures, iOS codec, server registry + validator + declarative transforms |
-| P0.11 | Logging – backend structured JSON + redactor; iOS OSLog, mutation pairs, breadcrumbs |
-| P0.13 | Config server – signed documents, ETag/304, publish monotonicity |
+| **P0** | Done except **P0.12c** (`apiBaseUrl` guardrails: host allowlist, health gate, auto-revert, host-bound `Authorization`). P0.12a/b are done; P0.12c is the last of the three slices and its brick-proof test is part of the P0 exit gate |
+| **P1** | P1.1–P1.12 all done and committed. **P0.3 (localization gate) is IN FLIGHT AND BROKEN – see below** |
+| **P2** | Not started. Partly blocked on the OCR corpus (see "The corpus") and on a product decision for fiscal enrichment |
 
-| Outstanding | |
-|---|---|
-| **P0.12** | Remote config client. **Split into P0.12a/b/c** after three single-run attempts delivered zero files – the task was too large for one agent run. **P0.12a is done** (canonicalization, Ed25519 verification, typed document; 29 tests). **P0.12b and P0.12c remain** – see `docs/TASKS.md` for their per-slice checks |
-| **P0.3** | String Catalogs EN/RU + pseudo-localization CI. **Recommend moving to P1** – `TankbookCore` has almost no user-facing strings; they arrive with the UI, so doing this now would gate a build with nothing to localize |
+### P0.3 is uncommitted and does not work
+
+An agent built a localization gate as a SwiftPM target (`ios/Sources/LocalizationGate/`, `LocalizationGateTool/`, `Tests/LocalizationGateTests/`, plus a CI step in `.github/workflows/ios.yml` and a `localization-gate` product in `ios/Package.swift`). It also edited `ManualFillUpSections.swift` and `Localizable.xcstrings`, which suggests it found and fixed a real violation.
+
+**The gate binary hangs.** `./ios/.build/debug/localization-gate` never returns, with default paths or explicit `--sources`/`--catalogue`. The agent reported it ran clean; it does not. Nothing is committed.
+
+Next session: either debug the hang (start with `SourceScanner.swift` – a directory walk that follows `.build` or a symlink loop is the obvious suspect) or discard the branch and re-dispatch `agents/briefs/P0.3.md`. **Do not commit it as-is, and do not tick P0.3.**
+
+The catalogue itself is fine and not the deliverable: **220 keys, all 220 with Russian.** What is missing is the gate that stops the next screen hardcoding `Text("Save")`.
 
 ## What to do next
 
-1. **Finish or re-dispatch P0.12** (brief: see "Working with agents" below). Its brick-proof test is part of the P0 exit gate in `docs/PHASES.md`.
-2. **Install an iOS simulator runtime** if any UI work follows.
-3. **Start P1.1 – the app shell** (`docs/TASKS.md` P1 table): tab roots and navigation per `docs/SCREENMAP.md`, depending on `TankbookCore`. This is what makes the simulator meaningful and shortens every later design loop. Move P0.3 here.
-4. Then P1.2–P1.11 in order: Add car → manual fill-up form → Home → Log stream → Edit entry → Recently deleted → duplicate detection → tank level → Trends → car switcher.
+1. **Resolve P0.3** (above). That closes P1.
+2. **Refresh the screenshots**: `scripts/capture-screenshots.sh`. The Home one-row header (P1.12) staled every Home-based shot – P1.1, P1.4, P1.5, P1.8. The script re-shoots all 27 EN+RU in one run. **Then open them** – it can only prove a file was written.
+3. **P0.12c** to close the P0 exit gate.
+4. **P2** – see the two blockers below.
 
-Before starting any task, read the doc named in its `CLAUDE.md` map row. The docs are the spec, not documentation-after-the-fact: if a task reveals an uncovered case, extend the owning doc in the same change.
+## The corpus (P2's real blocker)
 
-## Working with agents (this session used opencode + DeepSeek)
+`Spike/ReceiptSpike/fixtures/` now holds real material, in four classes that are scored **separately** so none flatters another:
 
-Builder: `opencode run --auto --thinking -m deepseek/deepseek-v4-flash --title "<id>" "$(cat brief.md)"`.
-Verifier: same with `deepseek/deepseek-v4-pro`, given an adversarial brief (look for fudged fixtures, vacuous assertions, fake concurrency, wrong algorithms) and told to report only, never fix.
-Architecture or security work goes to **pro**, screen implementation against a fixed artboard goes to **flash**.
+| Folder | Contents | Parser result |
+|---|---|---|
+| `receipts/` | 1 photo (Circle K, Tallinn, Estonian) | numbers **3/3**, cross-check locks |
+| `pump/` | 1 photo, **same fill-up as the receipt** | **0/3** – see below |
+| `fiscal/` | 1 OFD PDF + its extracted text + the decoded QR payload | ground truth verified arithmetically |
+| `screenshots/` | 1 e-receipt screenshot (same purchase as the PDF) | **3/3**, cross-check locks |
 
-### The two flags that matter for unattended runs
+Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (add `--dump-text` to debug a miss). `expected.csv` lives **beside the images**, machine-read, no comments.
 
-- **`--auto`** – auto-approves permissions that are not explicitly denied. **Use it for every background dispatch.** In non-interactive `run` mode opencode cannot prompt, so it *auto-rejects* instead, and **a single rejection kills the whole run**. That is exactly how one P0.12 attempt died: it wrote to `/tmp_gen.swift` (note: the filesystem *root*, not `/tmp`) and the run ended instantly. There is no `permission` block in `~/.config/opencode/config.json`, so nothing is explicitly denied and `--auto` covers everything. It does mean an agent could write anywhere, so the repo-only rule stays in the brief as the real boundary.
-- **`--thinking`** – shows the model's reasoning blocks. **Use it.** The most expensive failure of this project was a run that spent its entire budget cross-verifying Ed25519 across languages; with thinking exposed that rabbit hole would have been visible in about three minutes and killable, instead of surfacing only when the run ended with zero files. It also makes the long silent stretches legible: without it, the only evidence a run is alive is accumulating CPU time. Cost is log volume – DeepSeek reasoning is verbose. Use `--format json` instead when the goal is programmatic monitoring (structured events beat grepping for "Wrote file successfully").
+**One image per class is a smoke test, not a gate.** `>=95%` measured over one photo is arithmetic. What unblocks P2 is breadth: brands, countries, languages, glare, angles, crumpled and thermally-faded paper, and mixed receipts (fuel + car wash) that hard rule 4 exists for. Only the user can produce it.
+
+Three findings already paid for by these four files:
+
+- **Pump displays lose the decimal point.** OCR reads `SUMMA 12522` and `1869 HIND/1L`; the separator that makes them `125.22` and `1.869` is not in the recognised text, while `LIITRIT 67.00` came through intact. A pump parser must reconstruct scale – the cross-check does it, since `liters x price = total` admits one placement.
+- **Pump surrounds are advertising.** The parser returned `0.700` litres from a sandwich promo (`Wrapper ja jook 0,5-0,7l`) printed beside the display. Receipt-tuned accuracy does not transfer.
+- **Grade labels are not the dispensed fuel.** That display shows `miles+ / miles / 95` – every nozzle's label. The fill was **diesel**. Pump extraction should not attempt fuel kind at all.
+
+## Open decisions (product, not implementation)
+
+1. **Fiscal QR enrichment has no route yet.** The QR carries `t/s/fn/i/fp/n` – total, timestamp, fiscal ids – and **nothing else**: no litres, no unit price, no fuel kind. The OFD's document URL is keyed on an opaque `RawId` that is **not derivable from the QR** (verified against a real receipt). So `JOURNEYS.md` J5's "all fields land exact" depends on a lookup that has never been specified; `docs/API.md` has no fiscal endpoint. Options and their real costs are in `Spike/ReceiptSpike/fixtures/fiscal/README.md`. The user's steer: **route it through our backend**, which fits `SECURITY.md` (API keys stay server-side – the same reason the LLM gateway exists). P2.6's QR *parser* half is unblocked and has a real fixture; the enrichment half should not start until this is settled.
+2. **iOS 18 validation.** Everything is built and snapshotted on **iOS 26.5**; the deployment target is 18.0 and unchanged. The compiler catches post-18 API use, but appearance and runtime behaviour are unverified on the floor. The iOS 18 runtime needs an explicit fetch (`xcodebuild -downloadPlatform iOS` gets only the latest, ~8 GB) and **L4 baselines recorded on 26.5 will need re-recording**.
+
+## Working with agents (opencode + DeepSeek)
+
+Builder: `opencode run --auto --thinking -m deepseek/deepseek-v4-flash --title "<id>" "$(cat agents/briefs/<id>.md)"`.
+Architecture or security work goes to **pro**; screen implementation against a fixed artboard goes to **flash**.
+
+**Both flags matter.** `--auto` because in non-interactive mode opencode cannot prompt, so it *auto-rejects* – and a single rejection kills the whole run. `--thinking` because it makes the long silent stretches legible; without it, accumulating CPU is the only evidence a run is alive.
 
 ### Is it working, or is it wedged?
 
-**Run `scripts/agent-health.sh <task-id> <logfile>` about five minutes after every dispatch.** It prints WORKING / SUSPECT / WEDGED and exits non-zero on the last two. Roughly one dispatch in four has come up dead on this project (P1.4 and P1.5 both, on their first attempt); both recovered on an immediate re-dispatch of the *same* brief, so it is provider flakiness, not a bad brief - kill and retry rather than rewriting anything.
+**Run `scripts/agent-health.sh <task-id> <logfile>` about five minutes after every dispatch.** Roughly **one dispatch in four came up dead** this session (P1.4, P1.5, P1.12 and one P0.12 attempt) – the process exists, holds no connection, burns no CPU, and never writes a byte. All four recovered on an immediate re-dispatch of the **same** brief, so it is provider flakiness: kill and retry, do not rewrite the brief.
 
-The decisive signal is **log bytes**: a healthy run writes ~17 KB in its first 30 seconds, a wedged one is still at 0 after 25 minutes. The manual signals below are what the script reads.
+The decisive signal is **log bytes**: a healthy run writes ~17 KB in its first 30 seconds; a wedged one is still at 0 after 25 minutes. Log *freshness* proves nothing – nothing is written during inference. Connection count is corroborating only: a healthy run legitimately holds zero connections for ~4 minutes while waiting on `xcodebuild`.
 
-Log silence means nothing on its own – nothing is written during model inference, and quiet stretches of five-plus minutes are normal. **Judge by CPU time, not log freshness:**
+### Verification is not optional, and agent reports are not evidence
 
-```
-ps -o pid,etime,time,stat,%cpu -p <pid>
-```
+Every `[x]` in `docs/TASKS.md` was re-verified by re-running the checks outside the agent. This caught, among others: two screenshots of an "Entry not found" page reported as the screen; a claimed-green UI suite that had 2 real failures; and a gate reported as passing that hangs (P0.3, above).
 
-A working run shows `STAT R` with `TIME` climbing. A wedged one shows `S`/`S+`, **no child processes**, and frozen `TIME` – that is what the six-hour hung P0.12 run looked like. A useful second signal is the write count (`grep -c "Wrote file successfully"`).
+**The orchestrator must open every screenshot.** The DeepSeek runs have no image input – they verify by accessibility tree or OCR and cannot see what they produced. Screenshots are the only check that catches colour, truncation and layout; XCUITest asserts behaviour and never appearance.
 
-**Set a no-writes threshold before you dispatch** and act on it: three runs died having read everything and written nothing. Roughly 15 minutes with zero writes means kill it and split the task – that is what turned P0.12 from three empty runs into two clean ones.
+### What the RU screenshots caught that no test could
 
-**Briefs live in `agents/briefs/<task-id>.md` and are written there before dispatch**, not in a temp directory – see that folder's README for the structure. Read the existing ones before writing a new one; every fence in them is there because something went wrong once.
+Three layout/grammar bugs, in three different tasks:
 
-Lessons that cost real runs – put these in every brief:
+- `"%@ spend"` translated word-for-word as `"%@ расходы"` rendered **"АВГУСТ РАСХОДЫ"** – word-order nonsense. Composed strings need a full localised phrase per language, never concatenation.
+- A `lineLimit(1)` truncating the 30-day countdown.
+- `"€143 в этом месяце"` overflowing the car-switcher row where English `"this month"` fits. Shortened to `"за месяц"`.
 
-- **Never write outside the repo.** State it as a whitelist ("only inside `/Users/sbelyaev/repos/fuel-counter-ios`"), never a blacklist: a brief saying "don't write to `/tmp`" was followed by an agent writing to `/tmp_gen.swift` at the filesystem root, which the blacklist did not cover and which ended the run.
-- **Size the task to fit one run.** P0.12 delivered nothing three times as a single task – 11 components and 17 required tests – and then went green in two runs once split into a/b/c slices. Nothing about the prompt changed; the size did.
-- **Tell them what NOT to explore.** One agent spent an entire run trying to cross-verify Ed25519 between BouncyCastle and CryptoKit. Ed25519 is standardised; the real cross-language risk was canonicalization.
-- **Screenshot every UI task before committing it.** `design/screenshots/<task-id>-<screen>.png`, dark theme, captured from a booted simulator and eyeballed against the task's artboard. No test checks colour: P1.1's suite was 8/8 green while the tab bar was accent-red in violation of hard rule 5, and only the screenshot caught it. Commit the image with the task – it is the record of what actually shipped.
-- **Re-run the tests yourself, then commit.** Agent reports are mostly accurate but not evidence. Every `[x]` here was re-verified independently, and since 2026-08-23 each verified task gets its own commit naming the task id (`CLAUDE.md` → Conventions). Verify first, commit second – the commit is the record that verification happened, and it gives the next agent a clean base to diff against. Never commit mid-run.
-- **Put the baseline gate in every brief, and re-verify it yourself**: the tier builds and `swiftlint lint` (from the **repo root**) exits 0. `CLAUDE.md` hard rule 13. Agents optimise for the checks you name, so an unnamed gate is an unmet one – and check the **exit code**, since agents reliably report "lint passed" after skimming a screen of warnings.
-- **Watch out for stale wrapper shells.** `pgrep -f "opencode run"` matches the wrapper shell of the pgrep itself, so naive wait-loops never exit. Use `pgrep -fa "opencode run -m" | grep -v "zsh -c"`.
-- Run iOS and backend agents in parallel (separate tiers), but never two on the same tier – they fight over the build lock.
-- **Never drive the simulator by hand while UI tests are running.** `simctl launch` / `simctl io screenshot` and an `xcodebuild test` run both take control of the same device, and the test run fails in a way that looks like a real regression – one such red run cost a genuine debugging detour. Take screenshots before or after, never during.
-- **UI tests are slow (~100 s) and not free of flakes.** Judge a red run by re-running it once before believing it, and judge a green one by whether anything else was touching the simulator.
+Russian runs 20–30% longer and **short strings expand worst** (`Fix` → `Исправить` is 3x), which is exactly what overflows tab labels, chips and error-row affordances – and a truncated next step breaks hard rule 7.
 
-## Decisions already made – do not relitigate
+## Known open items
 
-Listed in `CLAUDE.md`, but the ones most likely to be re-questioned:
-
-- **Min iOS 18, not 26.** An earlier draft raised it to 26 for `RecognizeDocumentsRequest`; that was reversed because capability tiering already exists for Apple Intelligence, so one more tier is nearly free – while the higher floor would have cost A12 devices and every non-upgrader. **iPhone 12 is a hard requirement.**
-- **The deterministic parser is the quality floor, not a fallback.** Foundation Models needs A17 Pro + 8 GB, which excludes even the iPhone 15/15 Plus. Tier 2 ships only if it strictly beats rules-only.
-- **Backend is the sync hub; CloudKit is not used.** One protocol serving iOS now and Android later.
-- **TLS + at-rest encryption, no E2E in v1** (signed off) – E2E plus multi-device plus recovery needs user-held keys, the exact UX that loses people their data.
-- **GRDB, not SwiftData.** Full SQL control for the custom sync engine.
-- **Server validates payload structure, never domain meaning.** Schema evolution is a data change (DB-registered JSON Schemas + declarative transforms), not a deploy.
-
-## Known open items (not blocking P0)
-
-0. ~~**Odometer digits are not thousands-grouped.**~~ **Closed 2026-08-23 with P1.4.** `OdometerFormat` in `TankbookCore` (thin space U+2009, pinned `en_US_POSIX`) groups Home's odometer and formats the Add-car and manual-form odometer fields on blur. Grouping is DISPLAY only – the model strips it before parsing, and the discard guard compares ungrouped. `AddVehicle.dc.html` specifies `119&thinsp;486 km`; the app now renders it. Shared formatter, used by Home, Add car and the manual form.
-
-1. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy instead. Flagged for P4.
-2. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ moved to a paid licence. Revisit as a dependency risk.
-3. **Migration 003 seeds config v1 with an empty signature placeholder**, signed at startup by `ConfigBaselineSeeder`. Confirm the client rejects that transient unsigned state correctly when P0.12 lands.
-4. ~~**Cross-language canonicalization parity is untested end to end.**~~ **Closed 2026-08-23.** The C# canonicalizer + BouncyCastle Ed25519 were run over a deliberately awkward document (`1e3`, an integer above 2^53, Cyrillic text, keys out of order, empty object, mixed array); CryptoKit verifies the resulting signature and rejects both tamper cases. Fixture checked in at `ios/Tests/TankbookCoreTests/Fixtures/config/` with its provenance in that directory's `README.md`. **The remaining risk was never the curve – it is rule 5, number source-token preservation.** Do not let another agent re-investigate Ed25519.
-5. ~~**iOS CI lint is red.**~~ **Fixed 2026-08-23** – `swiftlint lint` now exits 0, so the CI Lint step passes. It had **13 errors**, and the largest cause was a config bug: `excluded:` listed `.build` and `ios/.build` individually, so `Spike/ReceiptSpike/.build` was linted and SwiftPM's *generated* test runner failed on line length. Now `"**/.build"`. The rest were real: `JSONSchemaValidator.validate` (complexity 31, 110-line body) split into four keyword-family helpers, the schema generator's `required` lists de-duplicated behind `entryCommonRequired`, and the Spike parser's 5-member tuple replaced with a named `Candidate` type. 232 warnings remain and are not gating. **Keep it at zero** – a lint that has been red for a while is a lint nobody reads.
-
-6. **Non-ASCII is a first-class test input now, not an afterthought.** `JSONValue.parse` rejected *every* multi-byte UTF-8 string until 2026-08-23 – a Cyrillic station name could not be decoded at all – and the whole suite stayed green because every payload fixture was ASCII. Fixed, with `JSONValueUnicodeTests.swift` as the regression suite and a test that fails if the fixture corpus ever goes all-ASCII again. `docs/TESTING.md` now requires 2-, 3- and 4-byte UTF-8 in the corpus. **Assume other ASCII-only blind spots exist** in code written before this date.
-
-7. **Nothing is committed to git.** The whole session's work is staged/untracked; `git status` shows modified docs and untracked `ios/`, `backend/`, `docs/schemas/`, `docs/fixtures/`.
+1. **P0.3 gate hangs** (above) – blocking P1 completion.
+2. **Screenshots are stale** for Home-based screens after the P1.12 header change.
+3. **Two UI tests are load-sensitive**: `AddVehicleUITests.testConfirmItIsRightIsOneTap` and `testImplausibleOdometerWarnsButNeverBlocksSave` pass in isolation and can fail in the full suite. Root cause is the shared `scrollTo` helper stopping on `isHittable`, which tests an element's **centre** – so it can stop while the bottom edge is still under the keyboard. `HomeUITests.testLastRowClearsTheFloatingTabBar` had the same defect and was fixed by scrolling until the frame clears; the two AddVehicle ones have not been given the same treatment yet.
+4. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy. Flagged for P4.
+5. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ is a paid licence. A dependency risk to revisit.
+6. **Assume ASCII-only blind spots exist** in code written before 2026-08-23. `JSONValue.parse` rejected *every* multi-byte UTF-8 string – a Cyrillic station name could not be decoded at all – and the whole suite stayed green because every payload fixture was ASCII. Fixed, with a test that fails if the corpus ever goes all-ASCII again, but `JSONSchemaValidator.swift` sits in the same directory with no Unicode tests.
 
 ## The document set
 
-`CLAUDE.md` is the operating manual and index. Under `docs/`: VISION, COMPETITORS, DESIGN, JOURNEYS, SCREENMAP, ERRORS, LOGGING, SECURITY, CONFIG, NOTIFICATIONS, SCHEMA, SYNC, API, TESTING, PHASES, TASKS. Screens are `.dc.html` artboards in `design/screens/` (canvas artifact `208136b7-4861-4b40-9d05-dcf5067ea123`). The OCR validation harness is `Spike/ReceiptSpike/`.
+`CLAUDE.md` is the operating manual and index; its **14 hard rules** are the ones that make things bugs rather than style. Under `docs/`: VISION, COMPETITORS, DESIGN, JOURNEYS, SCREENMAP, ERRORS, LOGGING, SECURITY, CONFIG, NOTIFICATIONS, SCHEMA, SYNC, API, TESTING, PHASES, TASKS. Screens are `.dc.html` artboards in `design/screens/`. Agent briefs are in `agents/briefs/` – read `README.md` there before writing a new one; every fence in those briefs exists because something went wrong once.
