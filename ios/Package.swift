@@ -13,6 +13,9 @@ let package = Package(
     ],
     products: [
         .library(name: "TankbookCore", targets: ["TankbookCore"]),
+        // P0.3: the pseudo-localization gate. Runs in CI as a build-failing
+        // step and is exercised by LocalizationGateTests.
+        .executable(name: "localization-gate", targets: ["LocalizationGateTool"]),
     ],
     dependencies: [
         .package(url: "https://github.com/groue/GRDB.swift", from: "7.0.0"),
@@ -33,12 +36,23 @@ let package = Package(
                 .copy("Catalog/VehicleCatalog.seed.json"),
             ]
         ),
+        .target(
+            name: "LocalizationGate"
+        ),
+        .executableTarget(
+            name: "LocalizationGateTool",
+            dependencies: ["LocalizationGate"]
+        ),
         .testTarget(
             name: "TankbookCoreTests",
             dependencies: ["TankbookCore"],
             // Fixtures are read from disk via #filePath, matching the existing
             // docs/fixtures convention, so they are not bundled resources.
             exclude: ["Fixtures"]
+        ),
+        .testTarget(
+            name: "LocalizationGateTests",
+            dependencies: ["LocalizationGate"]
         ),
     ]
 )

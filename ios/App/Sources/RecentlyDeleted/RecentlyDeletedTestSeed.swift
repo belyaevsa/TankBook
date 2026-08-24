@@ -164,7 +164,9 @@ struct RecentlyDeletedFixtures {
         var deletedOnDevice: [UUID: String] = [:]
         if arguments.contains("-forceRemovedElsewhere") {
             for id in RecentlyDeletedTestSeed.removedElsewhereIDs {
-                deletedOnDevice[id] = L10n.localize("iPad")
+                // A device name is data, not copy: it arrives from the sync
+                // payload and Apple does not translate its product names.
+                deletedOnDevice[id] = "iPad"
             }
         }
         return RecentlyDeletedFixtures(syncOverwritten: syncRows,

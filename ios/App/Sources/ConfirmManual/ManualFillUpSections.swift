@@ -92,10 +92,10 @@ struct ManualFillUpCurrencySection: View {
     @ViewBuilder
     private var hint: some View {
         if lowConfidence {
-            hintText("Which currency is this?", color: Theme.Palette.warn,
+            hintText(L10n.localize("Which currency is this?"), color: Theme.Palette.warn,
                      identifier: "manualFillUpCurrencyHint")
         } else if form.currency != homeCurrency {
-            hintText("≈ – · converts when online", color: Theme.Palette.inkSoft,
+            hintText(L10n.localize("≈ – · converts when online"), color: Theme.Palette.inkSoft,
                      identifier: "manualFillUpConversionHint")
         } else {
             hintText(String(format: L10n.localize("Recent first · a foreign amount converts to %@ automatically"),

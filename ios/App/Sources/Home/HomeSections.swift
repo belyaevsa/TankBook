@@ -597,7 +597,10 @@ struct HomeRecentEntries: View {
     }
 
     private func groupCountLabel(_ group: LogStream.LogGroup) -> String {
-        String(format: L10n.localize("%d items on this receipt"), group.members.count)
+        // Plural variations, not `String(format:)` - Russian has three forms
+        // for a count, and `%d` substitution into a flat string cannot express
+        // them (the same rule as `L10n.entriesExcluded`).
+        String(localized: "\(group.members.count) items on this receipt")
     }
 
     private func groupTitle(_ group: LogStream.LogGroup) -> String {

@@ -38,6 +38,19 @@ jobs:
         working-directory: ios
         run: swift test
 
+      # P0.3 pseudo-localization gate (docs/TASKS.md P0.3, docs/TESTING.md ->
+      # CI gates). Fails the build - not warns - on any user-facing string the
+      # String Catalog cannot resolve in Russian (CLAUDE.md hard rule 10).
+      # Backed by LocalizationGateTests, which prove it fails on a deliberately
+      # hardcoded string and that it ignores accessibility identifiers, launch
+      # arguments, log messages and test code. Runs from the repo root; the
+      # tool builds on the macOS runner via the ios/ SwiftPM package.
+      - name: Localization gate
+        run: >
+          swift run --package-path ios localization-gate
+          --sources ios/App/Sources
+          --catalogue ios/App/Sources/Localizable.xcstrings
+
       # The app target builds against the simulator (no signing, no device).
       - name: Build app
         run: >
