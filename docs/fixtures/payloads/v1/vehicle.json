@@ -19,7 +19,8 @@
     "energy": "kWhPer100"
   },
   "photo": "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa",
-  "archived": false,
+  "archived": true,
+  "archivedAt": "2026-08-01T10:00:00.000Z",
   "paceLimitKmPerDay": 1500,
   "initialOdometer": 119486
 }

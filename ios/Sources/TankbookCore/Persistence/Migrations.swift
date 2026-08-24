@@ -100,6 +100,9 @@ public enum TankbookMigrations {
             table.column("energyUnit", .text).notNull()
             table.column("photo", .text)
             table.column("archived", .integer).notNull().defaults(to: false)
+            // Added to v1 rather than as a v2 migration: no build has ever
+            // shipped, so no database exists in the field to migrate.
+            table.column("archivedAt", .double)
             table.column("paceLimitKmPerDay", .double).notNull().defaults(to: 1500)
             // Added to v1 rather than as a v2 migration: no build has ever
             // shipped, so no database exists in the field to migrate.

@@ -1,87 +1,9 @@
 import SwiftUI
 import TankbookCore
 
-// MARK: - Identity card (Name / Make · model · year / Plate)
-
-/// The three-row identity card plus the empty-name warn
-/// (docs/ERRORS.md -> Add car, row 1: "Name empty on save").
-struct AddVehicleIdentityCard: View {
-    @Binding var form: AddVehicleFormState
-    @FocusState.Binding var focus: AddVehicleFocus?
-
-    var body: some View {
-        VStack(spacing: 0) {
-            nameRow
-            CardDivider()
-            makeModelRow
-            CardDivider()
-            plateRow
-        }
-        .formCard()
-    }
-
-    private var nameRow: some View {
-        VStack(spacing: 0) {
-            FieldRow("Name") {
-                TextField("", text: $form.name)
-                    .multilineTextAlignment(.trailing)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($focus, equals: .name)
-                    .fieldUnderline(isFocused: focus == .name, warn: form.showNameWarning)
-                    .accessibilityIdentifier("addVehicleNameField")
-            }
-            if form.showNameWarning {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.Palette.warn)
-                    Text("Give the car any name – you can change it later.")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.warn)
-                        .accessibilityIdentifier("addVehicleNameWarning")
-                    Spacer(minLength: 0)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, Theme.Spacing.cardPadding)
-                .padding(.bottom, 10)
-            }
-        }
-    }
-
-    private var makeModelRow: some View {
-        FieldRow("Make · model · year") {
-            TextField("", text: $form.makeModel)
-                .multilineTextAlignment(.trailing)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-                .focused($focus, equals: .makeModel)
-                .accessibilityIdentifier("addVehicleMakeModelField")
-                .onChange(of: form.makeModel) { _, newValue in
-                    let parsed = MakeModelParser.parse(newValue)
-                    form.make = parsed.make
-                    form.model = parsed.model
-                    form.year = parsed.year
-                }
-        }
-    }
-
-    private var plateRow: some View {
-        FieldRow("Plate") {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                TextField("", text: $form.plate)
-                    .multilineTextAlignment(.trailing)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($focus, equals: .plate)
-                    .accessibilityIdentifier("addVehiclePlateField")
-                Text("Optional")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-            }
-        }
-    }
-}
+// The Add-car-only sections. The identity card both screens share lives in
+// Shared/VehicleFormControls.swift (lifted in P1.12); this file keeps the
+// catalog suggestions area, which only Add car has.
 
 // MARK: - Catalog area (error-state 3: offline hint, else suggestions)
 

@@ -259,6 +259,7 @@ let vehicleProperties: [String: Any] = [
     "units": schemaRef("units"),
     "photo": schemaUUID,
     "archived": schemaBoolean,
+    "archivedAt": schemaDate,
     "paceLimitKmPerDay": schemaNumber,
     // Optional, so it stays out of `required` below - a car saved without an
     // odometer reading is valid (docs/ERRORS.md -> Add car: the implausible

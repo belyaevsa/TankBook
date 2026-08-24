@@ -115,10 +115,13 @@ struct CarSwitcherView: View {
 
     /// An archived car (J13): history kept, out of active stats, not
     /// selectable. The row dims (the artboard's `opacity: 0.55`) and leads to
-    /// the vehicle detail that will hold the archive view (P1.12).
+    /// the vehicle detail. The subtitle renders "sold <month>" honestly from
+    /// `archivedAt` (P1.12) - the artboard's "Archived · sold Mar 2026 ·
+    /// history kept", or the bare "Archived · history kept" when no date is
+    /// held, rather than fabricating one.
     private func archivedRow(_ row: CarSwitcherRow) -> some View {
         Button {
-            onNavigate(.vehicleDetail)
+            onNavigate(.vehicleDetail(row.vehicle.id))
         } label: {
             HStack(spacing: 12) {
                 carIcon
@@ -127,7 +130,7 @@ struct CarSwitcherView: View {
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .lineLimit(1)
-                    Text(L10n.localize("Archived · history kept"))
+                    Text(L10n.archivedSubtitle(archivedAt: row.vehicle.archivedAt))
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }
@@ -203,7 +206,9 @@ struct CarSwitcherView: View {
         CarLimitSheet(
             onArchive: {
                 showsLimitSheet = false
-                onNavigate(.vehicleDetail)
+                // "Archive a car" lands on the selected car's detail (P1.12):
+                // the screen where archiving actually happens.
+                onNavigate(.vehicleDetail(nil))
             },
             onPro: {
                 showsLimitSheet = false

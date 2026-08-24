@@ -95,7 +95,7 @@ final class ConfirmManualUITests: XCTestCase {
         let save = app.buttons["manualFillUpSaveButton"]
         XCTAssertTrue(save.isEnabled)
         save.tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Currency chips

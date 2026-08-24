@@ -76,13 +76,13 @@ final class TankbookShellUITests: XCTestCase {
         app.buttons["settingsButton"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
 
         // entry -> Edit entry -> back
         app.buttons["editEntryButton"].tap()
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     func testGarageTabEdgesHaveBackPaths() {

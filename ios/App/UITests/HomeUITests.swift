@@ -129,8 +129,15 @@ final class HomeUITests: XCTestCase {
             .allElementsBoundByIndex.last!
         XCTAssertTrue(lastEntry.waitForExistence(timeout: 10))
 
+        // Scroll until the row is BOTH hittable and fully clear of the bar.
+        // `isHittable` tests the element's centre, so it turns true while the
+        // bottom edge is still tucked under the floating tab bar - stopping
+        // there made this test pass alone and fail under suite load, purely on
+        // scroll timing. The requirement is that the last row CAN be brought
+        // fully into view, so scroll until it is, or run out of attempts.
         var attempts = 0
-        while !lastEntry.isHittable, attempts < 10 {
+        while attempts < 10,
+              !lastEntry.isHittable || lastEntry.frame.maxY > tabBar.frame.minY + 1 {
             scrollView.swipeUp()
             attempts += 1
         }

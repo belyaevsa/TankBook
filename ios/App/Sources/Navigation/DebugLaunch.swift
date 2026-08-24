@@ -40,7 +40,7 @@ enum DebugLaunch {
         "reminderForm": .reminderForm,
         "recentlyDeleted": .recentlyDeleted,
         "editEntry": .editEntry(nil),
-        "vehicleDetail": .vehicleDetail,
+        "vehicleDetail": .vehicleDetail(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
         "paywall": .paywall,

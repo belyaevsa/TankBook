@@ -104,7 +104,7 @@ final class TankLevelUITests: XCTestCase {
         let save = app.buttons["manualFillUpSaveButton"]
         XCTAssertTrue(save.isEnabled)
         save.tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
 
         // Relaunch so the reopen is deterministic: Home's post-save refresh is
         // tied to the sheet-dismissal reappear, which iOS 26 does not always

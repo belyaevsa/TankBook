@@ -65,7 +65,7 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled)
         save.tap()
 
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
         let toast = app.staticTexts["Consumption updated: 6.9 → 5.6 L/100km"]
         XCTAssertTrue(toast.waitForExistence(timeout: 5),
                       "delta toast did not appear after an edit that moved consumption")
@@ -83,7 +83,7 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled)
         save.tap()
 
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.buttons["deltaToast"].waitForExistence(timeout: 2),
                        "no-op edit must not show a delta toast")
     }
@@ -107,7 +107,7 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
 
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 8,
                        "cancelling delete must leave all eight entries in the log")
     }
@@ -137,7 +137,7 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertTrue(save.isEnabled)
         save.tap()
 
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
         let badge = app.buttons["conflictBadgeButton"]
         XCTAssertTrue(badge.waitForExistence(timeout: 5),
                       "save-anyway must keep the conflict flag visible on Home")

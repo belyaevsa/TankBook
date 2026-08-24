@@ -18,7 +18,11 @@ enum Route: Hashable {
     /// or a debug-launch screenshot): the screen falls back to the most recent
     /// entry of the default vehicle.
     case editEntry(UUID?)
-    case vehicleDetail
+    /// The vehicle being edited. `nil` = "the selected car" (a placeholder link
+    /// or a debug-launch screenshot): the screen falls back to the selected
+    /// vehicle. Reached from Garage, the Car switcher's archived row and the
+    /// limit sheet's "Archive a car".
+    case vehicleDetail(UUID?)
     case addVehicle
     case accountDevices
     case paywall

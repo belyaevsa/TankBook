@@ -9,16 +9,12 @@ struct HomeRootView: View {
     let presentSheet: (SheetRoute) -> Void
 
     var body: some View {
+        // Home draws its own one-row header (title + gear on the same line,
+        // docs/DESIGN.md), so the navigation bar is hidden rather than stacked
+        // above it. The other tab roots keep the standard large title.
         HomeView(presentSheet: presentSheet)
             .navigationTitle("Log")
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(value: Route.settings) {
-                        Image(systemName: "gearshape")
-                    }
-                    .accessibilityIdentifier("settingsButton")
-                }
-            }
+            .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -34,7 +30,7 @@ struct TrendsRootView: View {
 struct GarageRootView: View {
     var body: some View {
         List {
-            NavigationLink("Vehicle", value: Route.vehicleDetail)
+            NavigationLink("Vehicle", value: Route.vehicleDetail(nil))
                 .accessibilityIdentifier("vehicleDetailButton")
 
             NavigationLink("Add car", value: Route.addVehicle)

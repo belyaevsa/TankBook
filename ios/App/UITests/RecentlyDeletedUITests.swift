@@ -56,7 +56,7 @@ final class RecentlyDeletedUITests: XCTestCase {
         // ...and is back in the Log. The screen sits on the Log tab's stack,
         // so one back chevron lands on it.
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
         let logRows = app.buttons.matching(identifier: "logEntryButton")
         XCTAssertEqual(logRows.count, 1,
                        "the restored entry must reappear in the Log")

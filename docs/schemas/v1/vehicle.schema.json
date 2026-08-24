@@ -492,6 +492,10 @@
     "archived" : {
       "type" : "boolean"
     },
+    "archivedAt" : {
+      "format" : "date-time",
+      "type" : "string"
+    },
     "batteryCapacityKWh" : {
       "type" : "number"
     },

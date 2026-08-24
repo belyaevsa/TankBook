@@ -20,7 +20,7 @@ struct DestinationView: View {
         case .reminderForm: LeafContent()
         case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)
-        case .vehicleDetail: VehicleDetailContent()
+        case .vehicleDetail(let vehicleID): VehicleDetailView(vehicleID: vehicleID)
         case .addVehicle: AddVehicleView()
         case .accountDevices: LeafContent()
         case .paywall: LeafContent()
@@ -130,15 +130,6 @@ private struct SettingsContent: View {
 
             NavigationLink("Recently deleted", value: Route.recentlyDeleted)
                 .accessibilityIdentifier("recentlyDeletedButton")
-        }
-    }
-}
-
-private struct VehicleDetailContent: View {
-    var body: some View {
-        List {
-            NavigationLink("Reminders", value: Route.reminders)
-                .accessibilityIdentifier("remindersButton")
         }
     }
 }

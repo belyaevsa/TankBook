@@ -24,6 +24,32 @@ enum L10n {
         }
     }
 
+    /// The units editor's volume labels - "gal (US)" / "gal (UK)" distinguish
+    /// the two gallons, which the compact `volumeUnit` cannot (both are "gal").
+    static func volumeLabel(_ unit: VolumeUnit) -> String {
+        switch unit {
+        case .l: localize("L")
+        case .galUS: localize("gal (US)")
+        case .galUK: localize("gal (UK)")
+        }
+    }
+
+    static func consumptionLabel(_ unit: ConsumptionUnit) -> String {
+        switch unit {
+        case .lPer100: localize("L/100km")
+        case .mpgUS: localize("MPG (US)")
+        case .mpgUK: localize("MPG (UK)")
+        case .kmPerL: localize("km/L")
+        }
+    }
+
+    static func energyLabel(_ unit: EnergyUnit) -> String {
+        switch unit {
+        case .kWhPer100: localize("kWh/100")
+        case .miPerKWh: localize("mi/kWh")
+        }
+    }
+
     static func consumptionUnit(_ unit: ConsumptionUnit) -> String {
         switch unit {
         case .lPer100: localize("L/100km")
@@ -33,6 +59,23 @@ enum L10n {
     }
 
     static var kWh: String { localize("kWh") }
+
+    /// The archived-car row subtitle (J13): "Archived · sold Mar 2026 · history
+    /// kept" from `archivedAt`, or the bare "Archived · history kept" when the
+    /// car was archived without a date. The month-year string is produced by a
+    /// locale-aware DateFormatter (nominative in every language), and the
+    /// surrounding phrase is one full localised string per language - never
+    /// concatenation (the RU pass on P1.4 proved composed strings need a full
+    /// localised phrase).
+    static func archivedSubtitle(archivedAt: Date?) -> String {
+        guard let archivedAt else { return localize("Archived · history kept") }
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "MMMM yyyy",
+                                                        options: 0, locale: Locale.current)
+        let month = formatter.string(from: archivedAt)
+        return String(format: localize("Archived · %1$@ · history kept"), month)
+    }
 
     /// The headline unit a vehicle's consumption figure is reported in
     /// (docs/SCHEMA.md -> Vehicle.units; P1.11): an EV always reports

@@ -47,6 +47,11 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
     public var units: Units
     public var photo: AttachmentID?
     public var archived: Bool = false
+    /// When the car was archived (J13). `archived` is the flag, `archivedAt` is
+    /// the *when* - the Car switcher renders "Archived · sold <month>" from it
+    /// (docs/SCHEMA.md, Vehicle). Set on archive, cleared on unarchive;
+    /// `archived == false` implies `archivedAt == nil`.
+    public var archivedAt: Date?
     public var paceLimitKmPerDay: Double = 1500
 
     /// The car's odometer as of `createdAt`, in the vehicle's distance unit -
@@ -70,7 +75,8 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
                 plate: String? = nil, powertrain: Powertrain, fuelKinds: [FuelKind],
                 tankCapacityL: Double? = nil, batteryCapacityKWh: Double? = nil,
                 homeCurrency: CurrencyCode, units: Units, photo: AttachmentID? = nil,
-                archived: Bool = false, paceLimitKmPerDay: Double = 1500,
+                archived: Bool = false, archivedAt: Date? = nil,
+                paceLimitKmPerDay: Double = 1500,
                 initialOdometer: Int? = nil) {
         self.id = id
         self.createdAt = createdAt
@@ -89,6 +95,7 @@ public struct Vehicle: Entity, Codable, Sendable, Equatable {
         self.units = units
         self.photo = photo
         self.archived = archived
+        self.archivedAt = archivedAt
         self.paceLimitKmPerDay = paceLimitKmPerDay
         self.initialOdometer = initialOdometer
     }

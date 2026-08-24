@@ -96,9 +96,16 @@ enum CarSwitcherTestSeed {
     }
 
     /// The BMW 320d, archived (J13): history kept in the repository, out of the
-    /// active stats, dimmed in the switcher.
+    /// active stats, dimmed in the switcher. `archivedAt` is the artboard's
+    /// "sold Mar 2026" - the honest subtitle the switcher renders from it
+    /// (P1.12).
     private static func seedArchivedCar(_ repository: TankbookRepository) {
         let now = Date()
+        var sold = DateComponents()
+        sold.year = 2026
+        sold.month = 3
+        sold.day = 14
+        let soldDate = Calendar.current.date(from: sold) ?? now
         let bmw = Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "BMW 320d", make: "BMW", model: "320d", year: 2019,
@@ -106,8 +113,8 @@ enum CarSwitcherTestSeed {
             tankCapacityL: 56, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
-            photo: nil, archived: true, paceLimitKmPerDay: 1500,
-            initialOdometer: 96_000)
+            photo: nil, archived: true, archivedAt: soldDate,
+            paceLimitKmPerDay: 1500, initialOdometer: 96_000)
         try? repository.upsertVehicle(bmw)
         try? repository.upsertFillUp(HomeTestSeed.makeFill(vehicleID: bmw.id,
             HomeTestSeed.FillSpec(daysAgo: 200, odometer: 95_000, litres: 47.0,
@@ -148,7 +155,7 @@ enum CarSwitcherTestSeed {
             batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l,
                                   consumption: .lPer100, energy: .kWhPer100),
-            photo: nil, archived: true, paceLimitKmPerDay: 1500,
-            initialOdometer: 96_000))
+            photo: nil, archived: true, archivedAt: now,
+            paceLimitKmPerDay: 1500, initialOdometer: 96_000))
     }
 }

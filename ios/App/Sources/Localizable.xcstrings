@@ -1,6 +1,5 @@
 {
   "sourceLanguage": "en",
-  "version": "1.0",
   "strings": {
     "%@ already recorded %d km.": {
       "extractionState": "manual",
@@ -128,12 +127,6 @@
         "ru": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Остался %lld день"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -144,6 +137,12 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Осталось %lld дней"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Остался %lld день"
                 }
               },
               "other": {
@@ -181,12 +180,6 @@
         "ru": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld запись исключена"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -197,6 +190,12 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "%lld записей исключено"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld запись исключена"
                 }
               },
               "other": {
@@ -482,6 +481,23 @@
         }
       }
     },
+    "Archive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В архив"
+          }
+        }
+      }
+    },
     "Archive a car": {
       "extractionState": "manual",
       "localizations": {
@@ -495,6 +511,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Архивировать автомобиль"
+          }
+        }
+      }
+    },
+    "Archived · %1$@ · history kept": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archived · %1$@ · history kept"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В архиве · %1$@ · история сохранена"
           }
         }
       }
@@ -631,6 +664,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Записи всегда привязываются к выбранному автомобилю. Смахните карточку в гараже, чтобы переключиться, не открывая этот список."
+          }
+        }
+      }
+    },
+    "Car not found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car not found"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автомобиль не найден"
           }
         }
       }
@@ -958,6 +1008,23 @@
         }
       }
     },
+    "Delete this car?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this car?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить этот автомобиль?"
+          }
+        }
+      }
+    },
     "Delete this entry?": {
       "extractionState": "manual",
       "localizations": {
@@ -1056,6 +1123,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отменить изменения?"
+          }
+        }
+      }
+    },
+    "Distance": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Distance"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расстояние"
           }
         }
       }
@@ -1587,6 +1671,23 @@
         }
       }
     },
+    "It moves to Recently deleted for 30 days, and so does every entry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It moves to Recently deleted for 30 days, and so does every entry."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Он и все его записи попадут в «Недавно удалённые» на 30 дней."
+          }
+        }
+      }
+    },
     "It moves to Recently deleted for 30 days.": {
       "extractionState": "manual",
       "localizations": {
@@ -1804,6 +1905,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "MPG"
+          }
+        }
+      }
+    },
+    "MPG (UK)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MPG (UK)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль/гал (Великобр.)"
+          }
+        }
+      }
+    },
+    "MPG (US)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MPG (US)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль/гал (США)"
           }
         }
       }
@@ -2947,6 +3082,23 @@
         }
       }
     },
+    "This car is archived – it stays out of your active stats, and its history is kept.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This car is archived – it stays out of your active stats, and its history is kept."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автомобиль в архиве – он не входит в активную статистику, а его история сохранена."
+          }
+        }
+      }
+    },
     "Title": {
       "extractionState": "manual",
       "localizations": {
@@ -3011,6 +3163,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ввести вручную"
+          }
+        }
+      }
+    },
+    "Unarchive": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unarchive"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вернуть из архива"
           }
         }
       }
@@ -3096,6 +3265,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть"
+          }
+        }
+      }
+    },
+    "Volume": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volume"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Объём"
           }
         }
       }
@@ -3243,12 +3429,6 @@
         "ru": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "предварительная оценка · %lld цикл заправки"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -3259,6 +3439,12 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "предварительная оценка · %lld циклов заправки"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "предварительная оценка · %lld цикл заправки"
                 }
               },
               "other": {
@@ -3285,6 +3471,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "гал"
+          }
+        }
+      }
+    },
+    "gal (UK)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gal (UK)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "гал (Великобр.)"
+          }
+        }
+      }
+    },
+    "gal (US)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "gal (US)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "гал (США)"
           }
         }
       }
@@ -3381,12 +3601,6 @@
         "ru": {
           "variations": {
             "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "за %lld месяц"
-                }
-              },
               "few": {
                 "stringUnit": {
                   "state": "translated",
@@ -3397,6 +3611,12 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "за %lld месяцев"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "за %lld месяц"
                 }
               },
               "other": {
@@ -3440,6 +3660,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "миль"
+          }
+        }
+      }
+    },
+    "mi/kWh": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "mi/kWh"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль/кВт·ч"
           }
         }
       }
@@ -3648,5 +3885,6 @@
         }
       }
     }
-  }
+  },
+  "version": "1.0"
 }

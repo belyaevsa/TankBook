@@ -41,19 +41,20 @@ Vehicle {
   units: { distance: .km|.mi, volume: .l|.galUS|.galUK, consumption: .lPer100|.mpgUS|.mpgUK|.kmPerL, energy: .kWhPer100|.miPerKWh }
   photo: AttachmentID?
   archived: Bool                // sold cars: history retained, out of active stats (J13)
+  archivedAt: Date?             // when it was archived; nil = never archived (J13)
   paceLimitKmPerDay: Double = 1500   // plausibility bound for timeline validation (F9a)
   initialOdometer: Int?         // "Current odometer" from Add car, in the vehicle's distance unit
 }
 ```
 
-**On `initialOdometer`** (added 2026-08-23, when P1.2 found the Add-car artboard collecting a value the model could not store): the Add-car screen asks for the car's current odometer, and without this field that input was silently discarded. It is the reading **as of `createdAt`**, and it is the one odometer value that is *not* on an entry.
-
-It does not violate "stats are derived, never stored". A derived odometer would be `max(entry.odometer)` over the timeline; this is **user-entered baseline data** for the moment before any entry exists. It earns its place twice:
+**On `initialOdometer`** (added 2026-08-23, when P1.2 found the Add-car artboard collecting a value the model could not store): the Add-car screen asks for the car's current odometer, and without this field that input was silently discarded. It is the reading **as of `createdAt`**, and it is the one odometer value that is *not* on an entry.It does not violate "stats are derived, never stored". A derived odometer would be `max(entry.odometer)` over the timeline; this is **user-entered baseline data** for the moment before any entry exists. It earns its place twice:
 
 - **Home has something honest to show on day one.** The Home artboard renders `119 486 km · updated Aug 17`; with zero entries there is nothing to derive from, so the alternative is a blank or a lie.
 - **Timeline validation gets a lower bound from the first entry, not the second.** The `INVARIANT` below (odometer strictly increases with date) and the pace check need a prior reading; `initialOdometer` supplies it for entry number one, which otherwise has nothing to be compared against.
 
 It is optional, never blocks saving a car (`ERRORS.md` → Add car: the implausible-odometer warning is a warning), and once entries exist the derived value takes over – `initialOdometer` stays as the floor, it is not rewritten.
+
+**On `archivedAt`** (added 2026-08-23, when P1.11 found the Car switcher wanting to say *"Archived · sold Mar 2026 · history kept"* with no field to hold the "when"): `archived` is the flag, `archivedAt` is the *when*. The switcher and the vehicle detail render "sold <month>" from it instead of fabricating a date. Set it on archive, clear it on unarchive; `archived == false` implies `archivedAt == nil`, so the two never disagree. It is cosmetic for stats – archived cars are out of active stats by `archived`, not by this date – but it is the honest label J13 promises.
 
 ### Entry (common envelope)
 

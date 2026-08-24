@@ -24,15 +24,25 @@ struct AddVehicleView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 9) {
-                AddVehiclePhotoTile(photo: $form.photo, photoItem: $photoItem)
-                AddVehicleIdentityCard(form: $form, focus: $focus)
+                VehiclePhotoTile(photo: $form.photo, photoItem: $photoItem)
+                VehicleIdentityCard(name: $form.name, makeModel: $form.makeModel,
+                                    plate: $form.plate, make: $form.make,
+                                    model: $form.model, year: $form.year,
+                                    focus: $focus, showNameWarning: form.showNameWarning,
+                                    idPrefix: "addVehicle")
                 AddVehicleCatalogArea(form: $form, focus: $focus,
                                       entries: catalogEntries,
                                       unavailable: catalogUnavailable,
                                       units: units,
                                       onApply: apply)
-                section("Powertrain") { AddVehiclePowertrainPicker(form: $form) }
-                section("Fuel") { AddVehicleFuelPills(form: $form) }
+                section("Powertrain") {
+                    VehiclePowertrainPicker(powertrain: $form.powertrain,
+                                            selectedFuelKinds: $form.selectedFuelKinds)
+                }
+                section("Fuel") {
+                    VehicleFuelPills(powertrain: $form.powertrain,
+                                     selectedFuelKinds: $form.selectedFuelKinds)
+                }
                 AddVehicleOdometerCard(form: $form, focus: $focus, units: units)
                 improvesAccuracySection
             }

@@ -39,9 +39,37 @@ struct HomeView: View {
                          duplicateResolutions: resolvedDuplicateKeys)
     }
 
+    /// Title and settings gear on ONE row (docs/DESIGN.md: "The Home header is
+    /// ONE row"). Not `.navigationTitle` + `.toolbar`: SwiftUI's large-title
+    /// layout puts toolbar items on the bar ABOVE the title by construction, so
+    /// two rows went to chrome before any of the user's data appeared - on a
+    /// screen whose job is "your car, at a glance", the car should come first.
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Log")
+                .font(.largeTitle.bold())
+                .foregroundStyle(Theme.Palette.ink)
+                .accessibilityIdentifier("homeHeaderTitle")
+                .accessibilityAddTraits(.isHeader)
+            Spacer(minLength: 12)
+            NavigationLink(value: Route.settings) {
+                Image(systemName: "gearshape")
+                    .font(.title3)
+                    .foregroundStyle(Theme.Palette.taillight)
+                    .frame(width: 44, height: 44)          // tap target >= 44pt
+                    .background(Circle().fill(Theme.Palette.dash))
+                    .overlay(Circle().stroke(Theme.Palette.hairline, lineWidth: 1))
+            }
+            .accessibilityIdentifier("settingsButton")
+            .accessibilityLabel("Settings")
+        }
+        .padding(.top, 4)
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 9) {
+                header
                 if presentables.syncToast {
                     HomeSyncToast()
                 }
@@ -72,9 +100,18 @@ struct HomeView: View {
     }
 
     /// The scroll content's extra bottom clearance so the last log row clears
-    /// the floating tab bar (tab bar ~49pt + its float margin, minus the 24pt
-    /// the sections already get from their own spacing).
-    private static let bottomClearance: CGFloat = 64
+    /// the floating tab bar.
+    ///
+    /// Measured, not guessed: on iPhone 17 / iOS 26 the floating bar occupies
+    /// y 791-874 (83pt tall). At 64pt the last row ended at y 800.7 and overlapped
+    /// it by ~10pt - the L4 assertion below caught exactly that. 64 had been
+    /// tuned while Home still had a navigation bar; hiding it for the one-row
+    /// header (docs/DESIGN.md) removed an automatic inset this was leaning on.
+    ///
+    /// Sized to the bar itself plus a margin rather than trimmed to just-fits,
+    /// so a future spacing change does not silently re-overlap. The assertion in
+    /// `testLastRowClearsTheFloatingTabBar` is what keeps this honest.
+    private static let bottomClearance: CGFloat = 96
 
     @ViewBuilder
     private var content: some View {
