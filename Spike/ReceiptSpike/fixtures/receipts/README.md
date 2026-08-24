@@ -5,12 +5,27 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 12/30 fields (40.0%), cross-check 5/13
+## Baseline, 2026-08-24: 15/41 fields (36.6%), cross-check 5/14
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
-number dropped because the corpus finally has breadth - 12 receipts, 9 brands, 5
-years, Cyrillic throughout, two VAT rates, four fuel kinds including LPG.
+number dropped because the corpus finally has breadth - 13 receipts across 14
+files, 10 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
+including LPG.
+
+Split by field, which is more useful than the headline:
+
+| | correct |
+|---|---|
+| **total** | 10 / 14 |
+| **litres + unit price** | 2 / 14 receipts fully right (001, 003) |
+| extracted litres/price at all | 5 / 14, and **2 of those 5 are swapped** |
+| fuel kind normalised to the SCHEMA vocabulary | 0 / 14 |
+
+**OCR is not the bottleneck.** Vision reads these at confidence 1.00 - including
+`Цена за / Кол. / 71.25 / 3562.50` on the labelled-column receipt-013 and
+`100.00*30 / Л =3000.00` on receipt-014 - and the parser still returns no litres
+and no price for either. Every failure below is a parser failure.
 
 **Do not "fix" this by tightening the parser against these files.** The failures
 below are structural, and each names a decision P2 has to make.
@@ -56,24 +71,26 @@ The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/S
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel
 or `АИ-92-К5` → petrol92. LPG (`СУГ`, `receipt-012`) is not recognised at all.
 
-## The two receipts whose ground truth is deliberately blank
+## The operand-order question, and how it was settled
 
-`receipt-002/003/004/005` (ООО "Крым Оил") print `цена*количество` with **no unit
-marker on either operand** - `205.00*20`, `259.00*20`, `450.00*43.820` - and the
-`л` floats near the sum instead. Both readings give the identical total, so the
-arithmetic cannot settle which number is which.
+Four ООО "Крым Оил" receipts print `цена*количество` with **no unit marker on
+either operand** - `205.00*20`, `259.00*20`, `450.00*43.820` - the `л` floating
+near the sum instead. Both readings give the identical total, so arithmetic cannot
+settle which number is which, and they shipped with blank `liters`/`unitPrice`.
 
-Context makes one reading likelier: `receipt-013` (РН-Москва, 13.07.26) prints
-**labelled columns** - `Цена за ед. 71.25 | Кол. 50 | Сумма 3562.50` - fixing
-АИ-95 at ~71 ₽/L in July 2026, and `fiscal-002` has Лукойл at 73.06 in August. On
-that scale the Крым Оил numbers read as price-first at crisis prices (АИ-95 at
-205, diesel at 259) with the `*20` pairs being a 20 L rationing cap - all on one
-southern road trip, `receipt-006` (а/м "Дон", АИ-92 at 195) included.
+`receipt-014` (АЗС "Апельсин", Пенза) settles it. Same printer format, same
+missing marker, and it reads **`100.00*30`** for АИ-95. Price-first gives 30 L at
+100.00 ₽/L; quantity-first gives 100 L at **30.00 ₽/L**, which is below excise plus
+cost and therefore impossible. **The first operand is the price.** The four Крым
+Оил rows are filled in on that basis, and `receipt-002`'s 43.820 L corroborates it
+independently - a normal car fill, where the alternative reading demands 450 L.
 
-**That is an inference, so `liters` and `unitPrice` are left empty.** The corpus
-rule is that a wrong ground truth is worse than a missing one, because the gate
-ratchets against it and the guess becomes permanent. `total` is recorded for all
-four - it is unambiguous, and QR-verified for 002 and 003.
+The price *level* on those four is still extreme (АИ-95 at 205, diesel at 259,
+АИ-100 at 450, against 71.25 at РН-Москва and 73.06 at Лукойл the same summer).
+That reads as shortage pricing along one southern route, `receipt-006` (а/м "Дон",
+АИ-92 at 195) included. It does not affect the reading - OCR is confidence 1.00 on
+every one of those digits - but it is worth knowing before anyone treats the
+corpus as a price reference.
 
 `receipt-010` (Газпромнефть) leaves `unitPrice` empty for a different reason: the
 fill has **two** unit prices, 62 L at 48.54 and 1 L at 48.52, against an undiscounted

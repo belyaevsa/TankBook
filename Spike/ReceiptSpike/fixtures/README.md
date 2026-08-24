@@ -8,7 +8,7 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
-              12 receipts, 9 brands, 5 years, RU. Baseline 40.0% - see its README
+              13 receipts / 14 files, 10 brands, 5 years, RU. Baseline 36.6% - see its README
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
