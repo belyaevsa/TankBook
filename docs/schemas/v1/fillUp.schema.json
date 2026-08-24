@@ -429,8 +429,10 @@
         "fuelKind" : {
           "enum" : [
             "diesel",
+            "petrol92",
             "petrol95",
             "petrol98",
+            "petrol100",
             "lpg",
             "cng",
             "e85",
@@ -523,8 +525,10 @@
     "fuelKind" : {
       "enum" : [
         "diesel",
+        "petrol92",
         "petrol95",
         "petrol98",
+        "petrol100",
         "lpg",
         "cng",
         "e85",

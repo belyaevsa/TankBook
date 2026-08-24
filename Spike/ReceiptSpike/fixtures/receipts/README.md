@@ -13,6 +13,13 @@ number dropped because the corpus finally has breadth - 15 receipts across 16
 files, 12 brands, 5 years, Cyrillic throughout, two VAT rates, four fuel kinds
 including LPG.
 
+**P2.2 ported the parser into `TankbookCore` and fixed the failures below: the
+receipts class now scores 29/47 (61.7%).** The 18 remaining misses are all the
+same honest answer - the unmarked `цена*количество` receipts where the ladder
+(`docs/SCHEMA.md` -> Fuel price bands, steps 1/2/5) leaves litres and price nil
+rather than guess. The total-finder, the swap ladder and the fuel-kind mapping
+are fixed; see the notes at the end of each failure below.
+
 Split by field, which is more useful than the headline:
 
 | | correct |
@@ -128,6 +135,14 @@ The parser emits `100`, `95`, `АИ-92`, `ДТ` and `98` as raw strings. `docs/S
 defines the FuelKind vocabulary; nothing maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel
 or `АИ-92-К5` → petrol92. LPG (`СУГ`, `receipt-012`) is not recognised at all.
 
+**Fixed in P2.2.** `FuelKind` gained `petrol92` and `petrol100` - the vocabulary
+was missing the two most common Russian petrol grades, which this corpus exposes
+(`receipt-006` is АИ-92, `receipt-002`/`receipt-007` are АИ-100). The normaliser
+maps `ДТ`/`Диз.топл.`/`ДТ-Л-К5` → diesel, `СУГ` → LPG, `АИ-NN-К5` → the matching
+petrol grade, and is anchored to the product line so `АЗС-98`/`ТРК №3` never name
+a grade. On a pump display no fuel kind is attempted at all (grades there are
+every nozzle's, not this fill's).
+
 ## The operand-order question, and how it was settled
 
 Four ООО "Крым Оил" receipts print `цена*количество` with **no unit marker on
@@ -171,3 +186,11 @@ corpus as a price reference.
 fill has **two** unit prices, 62 L at 48.54 and 1 L at 48.52, against an undiscounted
 `63.000 л X 69.11` line and a 1295.93 bonus discount. The 63 L and the 3058.00 paid
 are certain; a single "the" unit price is not a thing this receipt has.
+
+This adds a case the ladder has to name: a **`без скидки` line prints the list
+price, not the price paid.** `63.000 л X 69.11` is marked "без скидки", so 69.11
+is the pre-discount price and 63 × 69.11 = 4353.93 is the pre-discount extension,
+not the fuel amount - the 3058.00 paid is the fiscal total minus the 1295.93 bonus
+discount. The ported parser therefore reads the volume (63.000) from that line but
+returns `unitPrice = nil` and the grand total when it sees "скидка", treating the
+list price as a suggestion the user may correct, never a fact (hard rule 13).

@@ -116,11 +116,15 @@ Two consequences, both spec-level:
   grand total *on mixed receipts*. This receipt is not mixed and they still
   differ. The rule should say the two are independently sourced, full stop.
 
-### What the parser does with it today: 0/3
+### What the parser does with it today: 1/3 (total, fixed by P2.2)
 
-OCR is not the problem. Vision reads every relevant line at confidence 1.00 -
-`23 x 73.06 = 1680.38`, `1680.00`, `ИТОГО`, `303.02`. The parser still returns
-**no litres, no unit price, and 303.02 as the total**:
+The total-finder now returns **1680.00** (the modal of ИТОГО and Безналичными,
+paired by baseline, not the 303.02 VAT the naive finder grabbed). Litres and price
+are **nil** for the unmarked `23 x 73.06` - no unit marker on either operand, so
+the ladder (`docs/SCHEMA.md` -> Fuel price bands) refuses to guess, and a band pack
+is P5. OCR is not the problem. Vision reads every relevant line at confidence 1.00 -
+`23 x 73.06 = 1680.38`, `1680.00`, `ИТОГО`, `303.02`. The original 0/3 was two parser
+defects:
 
 - **The total-finder grabbed the VAT amount.** In Vision's reading order a
   right-aligned two-column layout emits *value before label* (`1680.00` then
