@@ -17,7 +17,9 @@ struct HomeView: View {
     let presentSheet: (SheetRoute) -> Void
 
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppCarSelection.self) private var carSelection
     @State private var vehicle: Vehicle?
+    @State private var vehicles: [Vehicle] = []
     @State private var entries: [any Entry] = []
     @State private var stations: [Station] = []
     @State private var photoData: Data?
@@ -56,6 +58,12 @@ struct HomeView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
         .task { await load() }
+        .onChange(of: carSelection.selectedID) { _, _ in
+            // A car switch from the switcher sheet or the garage-card swipe:
+            // reload so Home, the log stream and Trends all show the SAME car
+            // (the selected-car invariant, P1.11).
+            Task { await load() }
+        }
         .onChange(of: toastCenter.revision) { _, _ in
             // An edit saved (with or without a delta toast) changed the data:
             // reload so the derived stats and the log reflect it immediately.
@@ -86,6 +94,7 @@ struct HomeView: View {
         headerRow(stats.vehicle)
         HomeGarageCard(vehicle: stats.vehicle, odometer: stats.odometer,
                        updatedAt: stats.updatedAt, photoData: photoData)
+            .simultaneousGesture(swipeToSwitchGesture)
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
                           onCapture: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)
@@ -180,6 +189,39 @@ struct HomeView: View {
         }
     }
 
+    // MARK: - Swipe-to-switch (the switcher footer's promise)
+
+    /// "Swipe the garage card to switch without opening this list"
+    /// (design/screens/CarSwitcher.dc.html). A horizontal drag on the garage
+    /// card cycles through the live cars. `simultaneousGesture` means the
+    /// vertical scroll keeps working - the two gestures don't fight, so the
+    /// log stream is untouched (P1.11 scope note).
+    private var swipeToSwitchGesture: some Gesture {
+        DragGesture(minimumDistance: 30)
+            .onEnded { value in
+                switchCar(by: value.translation.width)
+            }
+    }
+
+    private func switchCar(by translationWidth: CGFloat) {
+        guard let current = vehicle else { return }
+        let live = vehicles.filter { !$0.archived }
+        guard live.count > 1, let index = live.firstIndex(where: { $0.id == current.id }) else { return }
+        let nextIndex: Int
+        if translationWidth < -40 {
+            nextIndex = (index + 1) % live.count
+        } else if translationWidth > 40 {
+            nextIndex = (index - 1 + live.count) % live.count
+        } else {
+            return
+        }
+        do {
+            try carSelection.select(live[nextIndex])
+        } catch {
+            Self.log.error("Swipe switch failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     // MARK: - Loading
 
     private func load() async {
@@ -193,8 +235,11 @@ struct HomeView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            let preferences = try? repository.livePreferences()
-            guard let selected = Self.pickVehicle(vehicles, defaultID: preferences?.defaultVehicleId) else {
+            self.vehicles = vehicles
+            // The selected-car invariant: resolve through the shared selection,
+            // never "the first vehicle" - Home, the switcher, the manual form
+            // and Trends all read the same source (P1.11).
+            guard let selected = carSelection.selectedVehicle(vehicles) else {
                 return
             }
             self.vehicle = selected
@@ -205,13 +250,6 @@ struct HomeView: View {
         } catch {
             Self.log.error("Home load failed: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    private static func pickVehicle(_ vehicles: [Vehicle], defaultID: UUID?) -> Vehicle? {
-        if let defaultID, let match = vehicles.first(where: { $0.id == defaultID }) {
-            return match
-        }
-        return vehicles.first
     }
 
     private func loadPhoto(repository: TankbookRepository, vehicle: Vehicle) throws -> Data? {

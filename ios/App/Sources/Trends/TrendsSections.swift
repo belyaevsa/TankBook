@@ -13,12 +13,15 @@ enum TrendsFormat {
         date.formatted(.dateTime.month(.abbreviated))
     }
 
-    /// The tile's consumption unit, shortened to fit the grid ("L/100").
-    static func consumptionUnit(_ unit: ConsumptionUnit) -> String {
+    /// The tile's consumption unit, shortened to fit the grid ("L/100"). The
+    /// per-vehicle choice (kWh/100 for an EV) comes from `Vehicle.headlineUnit`
+    /// - the same code path Home and the Car switcher use (P1.11).
+    static func consumptionUnit(_ unit: HeadlineUnit) -> String {
         switch unit {
-        case .lPer100: L10n.localize("L/100")
-        case .mpgUS, .mpgUK: L10n.localize("MPG")
-        case .kmPerL: L10n.localize("km/L")
+        case .energyPer100: L10n.localize("kWh/100")
+        case .consumption(.lPer100): L10n.localize("L/100")
+        case .consumption(.mpgUS), .consumption(.mpgUK): L10n.localize("MPG")
+        case .consumption(.kmPerL): L10n.localize("km/L")
         }
     }
 

@@ -42,7 +42,9 @@ enum HomeTestSeed {
             ("-seedHomeSingleFuelLog", seedSingleFuelLog),
             ("-seedHomeConflict", seedConflict),
             ("-seedHomeEditHistory", seedEditHistory),
-            ("-seedHomeDuplicate", seedDuplicate)
+            ("-seedHomeDuplicate", seedDuplicate),
+            ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
+            ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
@@ -300,8 +302,9 @@ enum HomeTestSeed {
     }
 
     /// A fixture charge's data, kept apart from the construction call (the
-    /// same swiftlint function_parameter_count discipline as FillSpec).
-    private struct ChargeSpec {
+    /// same swiftlint function_parameter_count discipline as FillSpec). Shared
+    /// with `CarSwitcherTestSeed`.
+    struct ChargeSpec {
         let daysAgo: Int
         let odometer: Int
         let energyKWh: Double
@@ -309,8 +312,8 @@ enum HomeTestSeed {
         let provider: String
     }
 
-    private static func makeCharge(vehicleID: UUID, _ spec: ChargeSpec,
-                                   attachments: [AttachmentID] = []) -> ChargeSession {
+    static func makeCharge(vehicleID: UUID, _ spec: ChargeSpec,
+                           attachments: [AttachmentID] = []) -> ChargeSession {
         let date = Date().addingTimeInterval(-Double(spec.daysAgo) * 86_400)
         return ChargeSession(
             id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,

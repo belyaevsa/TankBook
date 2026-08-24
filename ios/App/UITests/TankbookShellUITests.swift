@@ -126,12 +126,12 @@ final class TankbookShellUITests: XCTestCase {
     func testCarSwitcherSheetDismissesSilently() {
         let app = launch()
         app.buttons["carSwitcherButton"].tap()
-        XCTAssertTrue(app.navigationBars["Car switcher"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
 
         app.buttons["sheetCloseButton"].tap()
 
         // Dismissed with no prompt (scanned/picked data discards silently).
-        XCTAssertFalse(app.navigationBars["Car switcher"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.navigationBars["My garage"].waitForExistence(timeout: 3))
         XCTAssertFalse(app.staticTexts["Discard changes?"].exists)
     }
 }

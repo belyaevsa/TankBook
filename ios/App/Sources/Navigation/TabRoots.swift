@@ -15,6 +15,7 @@ import UIKit
 struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var toastCenter = AppToastCenter()
+    @State private var carSelection = AppCarSelection()
     @State private var tabSelection: Int
     @State private var didRunStartupPurge = false
 
@@ -57,6 +58,7 @@ struct AppRootView: View {
         }
         .animation(.easeOut(duration: 0.2), value: toastCenter.message)
         .environment(toastCenter)
+        .environment(carSelection)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }
@@ -138,7 +140,14 @@ struct HomeTabView: View {
         RootedNavigationStack(path: $path) {
             HomeRootView(presentSheet: { sheet = $0 })
         }
-        .sheet(item: $sheet) { SheetDestinationView(route: $0) }
+        .sheet(item: $sheet) { route in
+            SheetDestinationView(route: route) { target in
+                // The switcher's forward exits land on THIS tab's stack: close
+                // the sheet, push the route (docs/SCREENMAP.md CarSwitcher).
+                sheet = nil
+                path = [target]
+            }
+        }
         .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
         .onAppear(perform: presentDebugLaunch)
     }

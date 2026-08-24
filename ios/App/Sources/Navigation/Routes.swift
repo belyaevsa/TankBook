@@ -55,7 +55,7 @@ enum SheetRoute: String, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .carSwitcher: "Car switcher"
+        case .carSwitcher: "My garage"
         case .tankLevel: "Tank level"
         case .reminderComplete: "Reminder complete"
         case .signIn: "Sign in"

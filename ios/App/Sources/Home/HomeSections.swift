@@ -140,7 +140,7 @@ struct HomeHeadlineBlock: View {
                         .font(.custom(AppFonts.dinCondensedBold, size: 68))
                         .foregroundStyle(Theme.Palette.ink)
                         .accessibilityIdentifier("homeHeadlineValue")
-                    Text(L10n.consumptionUnit(vehicle.units.consumption))
+                    Text(L10n.headlineUnit(vehicle.headlineUnit))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .tracking(0.4)

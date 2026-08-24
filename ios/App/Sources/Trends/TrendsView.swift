@@ -18,6 +18,7 @@ struct TrendsView: View {
     let presentSheet: (SheetRoute) -> Void
 
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppCarSelection.self) private var carSelection
     @State private var vehicle: Vehicle?
     @State private var entries: [any Entry] = []
     @State private var didSeed = false
@@ -47,6 +48,10 @@ struct TrendsView: View {
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
         .task { await load() }
+        .onChange(of: carSelection.selectedID) { _, _ in
+            // Same selected car as Home: a switch reloads Trends too (P1.11).
+            Task { await load() }
+        }
         .onChange(of: toastCenter.revision) { _, _ in
             // An edit saved (with or without a delta toast) changed the data:
             // reload so the derived tiles reflect it immediately.
@@ -95,7 +100,7 @@ struct TrendsView: View {
                 StatTile(title: L10n.localize("Consumption"),
                          value: ManualFillUpFormat.decimal(headline.value, fractionDigits: 1),
                          identifier: "trendsConsumptionTile",
-                         unit: TrendsFormat.consumptionUnit(stats.vehicle.units.consumption),
+                         unit: TrendsFormat.consumptionUnit(stats.vehicle.headlineUnit),
                          caption: L10n.honestSpanLabel(headline.label),
                          series: stats.consumptionSeries.map(\.value),
                          seriesColor: Self.consumptionColor(stats.vehicle))
@@ -146,8 +151,7 @@ struct TrendsView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            let preferences = try? repository.livePreferences()
-            guard let selected = Self.pickVehicle(vehicles, defaultID: preferences?.defaultVehicleId) else {
+            guard let selected = carSelection.selectedVehicle(vehicles) else {
                 return
             }
             self.vehicle = selected
@@ -156,12 +160,5 @@ struct TrendsView: View {
         } catch {
             Self.log.error("Trends load failed: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    private static func pickVehicle(_ vehicles: [Vehicle], defaultID: UUID?) -> Vehicle? {
-        if let defaultID, let match = vehicles.first(where: { $0.id == defaultID }) {
-            return match
-        }
-        return vehicles.first
     }
 }

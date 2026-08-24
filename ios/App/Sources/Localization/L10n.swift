@@ -34,6 +34,30 @@ enum L10n {
 
     static var kWh: String { localize("kWh") }
 
+    /// The headline unit a vehicle's consumption figure is reported in
+    /// (docs/SCHEMA.md -> Vehicle.units; P1.11): an EV always reports
+    /// kWh/100, a fuel car its configured consumption unit - per-vehicle,
+    /// never a global setting. Home's headline renders through this so the
+    /// switcher and Home can never disagree about a number's unit.
+    static func headlineUnit(_ unit: HeadlineUnit) -> String {
+        switch unit {
+        case .energyPer100: localize("kWh/100")
+        case .consumption(let consumption): consumptionUnit(consumption)
+        }
+    }
+
+    /// The compact headline unit for tight vitals (the Car switcher rows and
+    /// the Trends tiles): "L/100", "kWh/100", "MPG", "km/L" - the forms the
+    /// CarSwitcher artboard shows, not the long "L/100km".
+    static func consumptionUnitShort(_ unit: HeadlineUnit) -> String {
+        switch unit {
+        case .energyPer100: localize("kWh/100")
+        case .consumption(.lPer100): localize("L/100")
+        case .consumption(.mpgUS), .consumption(.mpgUK): localize("MPG")
+        case .consumption(.kmPerL): localize("km/L")
+        }
+    }
+
     /// "1 entry excluded" / "2 entries excluded" - the Home footnote for
     /// entries excluded from a figure. Real plural rules per language
     /// (Russian has three forms) via the String Catalog's "%lld entries

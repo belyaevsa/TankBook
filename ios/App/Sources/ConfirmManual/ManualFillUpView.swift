@@ -17,6 +17,7 @@ import TankbookCore
 struct ManualFillUpView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppCarSelection.self) private var carSelection
 
     @State private var form = ManualFillUpFormState()
     @FocusState private var focus: ManualFillUpFocus?
@@ -107,8 +108,9 @@ struct ManualFillUpView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            let preferences = try? repository.livePreferences()
-            guard let vehicle = Self.pickVehicle(vehicles, defaultID: preferences?.defaultVehicleId) else {
+            // The selected-car invariant: the entry-creating path writes to the
+            // SAME car Home and Trends show, never "the first one" (P1.11).
+            guard let vehicle = carSelection.selectedVehicle(vehicles) else {
                 return
             }
             self.vehicle = vehicle
@@ -130,13 +132,6 @@ struct ManualFillUpView: View {
         } catch {
             Self.log.error("Manual fill-up load failed: \(error.localizedDescription, privacy: .public)")
         }
-    }
-
-    private static func pickVehicle(_ vehicles: [Vehicle], defaultID: UUID?) -> Vehicle? {
-        if let defaultID, let match = vehicles.first(where: { $0.id == defaultID }) {
-            return match
-        }
-        return vehicles.first
     }
 
     // MARK: - Save

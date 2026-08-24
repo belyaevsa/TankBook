@@ -23,6 +23,7 @@ struct EditEntryView: View {
     let entryID: UUID?
 
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppCarSelection.self) private var carSelection
     @Environment(\.dismiss) private var dismiss
 
     // FillUp form (reuses the ConfirmManual components).
@@ -157,8 +158,8 @@ struct EditEntryView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            let preferences = try? repository.livePreferences()
-            guard let vehicle = Self.pickVehicle(vehicles, defaultID: preferences?.defaultVehicleId) else {
+            // Same selection as Home: an edit belongs to the car on screen.
+            guard let vehicle = carSelection.selectedVehicle(vehicles) else {
                 loadFailed = true
                 return
             }
@@ -210,13 +211,6 @@ struct EditEntryView: View {
         default:
             break
         }
-    }
-
-    private static func pickVehicle(_ vehicles: [Vehicle], defaultID: UUID?) -> Vehicle? {
-        if let defaultID, let match = vehicles.first(where: { $0.id == defaultID }) {
-            return match
-        }
-        return vehicles.first
     }
 
     private static func mostRecentID(_ entries: [any Entry]) -> UUID? {

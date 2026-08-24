@@ -32,6 +32,11 @@ struct DestinationView: View {
 /// Maps a `SheetRoute` to its sheet, wrapped in the discard-aware chrome.
 struct SheetDestinationView: View {
     let route: SheetRoute
+    /// Host callback for the Car switcher's forward exits (Add car, archived
+    /// detail, Pro): dismiss the sheet and push the route on the presenting
+    /// tab's stack. The sheet's own NavigationStack cannot push tab-stack
+    /// routes, so the host owns the transition.
+    var onNavigate: (Route) -> Void = { _ in }
     @State private var hasUnsavedChanges = false
 
     var body: some View {
@@ -47,7 +52,8 @@ struct SheetDestinationView: View {
         switch route {
         case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
         case .tankLevel: TankLevelStandaloneHost()
-        case .carSwitcher, .reminderComplete, .signIn: SheetPlaceholderContent()
+        case .carSwitcher: CarSwitcherView(onNavigate: onNavigate)
+        case .reminderComplete, .signIn: SheetPlaceholderContent()
         case .serviceEntry: ServiceEntryContent(hasUnsavedChanges: $hasUnsavedChanges)
         }
     }
