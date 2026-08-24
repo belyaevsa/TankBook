@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-24: 19/59 fields (32.2%), cross-check 7/22
+## Baseline, 2026-08-24: 22/62 fields (35.5%), cross-check 8/23
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -164,6 +164,24 @@ non-fiscal report and **carries no QR code**. `docs/JOURNEYS.md` J5 assumes a
 fiscal QR; fuel-card purchases simply do not have one, so they fall to the OCR
 path with no exact-fill shortcut available. Worth knowing before J5's "scan the
 QR, done" is treated as covering every Russian fill.
+
+`receipt-023` (АО "РН-Тверь", 23.08.26) is the second of the class and adds a
+layout the corpus did not have: **labelled columns where the unit price is not on
+the item line at all.**
+
+```
+Товар        единиц      СУММА
+АИ-95         20.00     1366.00
+Итого                   1366.00
+---------Справочная информация---------
+Цена за ед.                 68.30
+```
+
+The line carries quantity and sum; the price lives in a separate "reference
+information" block below the total. A parser that expects `price x quantity` on
+one line finds only two of the three numbers, and the third is further from the
+item than the grand total is. It also has **no QR**, being a fuel-card slip, so
+the anchor cannot supply the total either.
 
 It brings three parsing hazards, all new:
 
