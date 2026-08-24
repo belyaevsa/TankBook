@@ -148,6 +148,26 @@ struct LocalizationGateTests {
         #expect(try LocalizationGate.violations(sources: dir, catalogue: catalogue).isEmpty)
     }
 
+    /// The grouped-receipt count on Home. No screenshot seed renders the
+    /// collapsed branch this string lives on, so the RU pass cannot see it -
+    /// which is precisely why it is asserted here. Russian needs three forms
+    /// and `%d` into a flat string can only ever produce one.
+    @Test("the grouped-receipt count has all three Russian plural forms")
+    func receiptItemCountHasRussianPlurals() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let key = "%lld items on this receipt"
+
+        let ru = catalogue.pluralForms(for: key, language: "ru")
+        #expect(ru["one"] == "%lld позиция в этом чеке")
+        #expect(ru["few"] == "%lld позиции в этом чеке")
+        #expect(ru["many"] == "%lld позиций в этом чеке")
+        #expect(ru["other"] == "%lld позиций в этом чеке")
+
+        let en = catalogue.pluralForms(for: key, language: "en")
+        #expect(en["one"] == "%lld item on this receipt")
+        #expect(en["other"] == "%lld items on this receipt")
+    }
+
     // MARK: - False-positive guard (the reason gates get deleted)
 
     @Test("accessibility identifiers, launch args, logs and system images are not flagged")

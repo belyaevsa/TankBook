@@ -217,7 +217,10 @@ struct ManualFillUpNumbersCard: View {
         } else {
             let locked = derived?.crossCheck == .verified
             let color: Color = locked ? Theme.Palette.taillight : Theme.Palette.inkSoft
-            let text = locked ? "✓" : "checks as you type"
+            // Must be LocalizedStringKey, not String: `Text(_: String)` does
+            // not localise, so an inferred `String` here renders the English
+            // key in Russian even though the catalogue has the translation.
+            let text: LocalizedStringKey = locked ? "✓" : "checks as you type"
             HStack(spacing: 10) {
                 Rectangle().fill(color).frame(height: 1.5)
                 Text(text)
