@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 26/71 fields (36.6%), cross-check 9/26
+## Baseline, 2026-08-25: 26/74 fields (35.1%), cross-check 9/27
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -190,11 +190,12 @@ total legitimately differs from its own line extension:
 | chain | mechanism | example |
 |---|---|---|
 | ЛУКОЙЛ | `ОКРУГЛЕНИЕ` - rounds down to the whole rouble | 1680.38 → 1680.00 |
+| ЛУКОЙЛ | the same 0.50 printed **twice**, as `СКИДКА` *and* `ОКРУГЛЕНИЕ` | 2101.50 → 2101.00 |
 | Татнефть | `СКИДКА` - an explicit discount line | 961.80 → 961.00 |
 | Газпромнефть | bonus-points redemption | 4353.93 → 3058.00 |
 
 Two of the three are under 1 ₽ and one is 1295.93, so **the size of the gap tells
-you nothing about its cause**. A parser must find the *labelled* total rather than
+you nothing about its cause**. `receipt-027` shows the labels are unreliable too: ЛУКОЙЛ prints the identical 0.50 on a `СКИДКА` line **and** an `ОКРУГЛЕНИЕ` line of the same receipt, so a parser that sums every discount-shaped line double-counts it and lands 0.50 short. A parser must find the *labelled* total rather than
 infer it, and must not treat a mismatch as a parse failure.
 
 It is also the fixture that most cleanly **confirms the price-first reading of the
