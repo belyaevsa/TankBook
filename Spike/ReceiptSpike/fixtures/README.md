@@ -61,11 +61,15 @@ hard rule 4 exists for.
   is anecdote, not measurement.
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,
   unit price and total exactly, and the cross-check locks
-  (67.00 × 1.869 = 125.22). It reports fuel kind **98**, which looks wrong - the
-  OCR line is `D BÓ miles`, and `D` on a Circle K Estonia receipt is Diesel
-  ("miles" is the brand, not the grade). Left out of `expected.csv` rather than
-  guessed; confirm from the paper receipt and add a `fuelKind` column when the
-  harness scores it.
+  (67.00 × 1.869 = 125.22). It reports fuel kind **98**, which is wrong: the fuel
+  is **petrol95**. The receipt's OCR line garbles to `D BÓ miles`, which looked
+  like Diesel - but `pump/pump-001.heic` is **the same transaction**, and the
+  display reads `95` with `miles` as the brand. Settled by the pair, not by
+  guessing at one photo. Add a `fuelKind` column when the harness scores it.
+- **`receipts/receipt-001.heic` and `pump/pump-001.heic` are one fill-up.**
+  Collect such pairs deliberately: each is independent ground truth for the
+  other, and together they resolve ambiguities neither can alone - exactly as
+  the fuel-kind above.
 - The receipt carries an `EXTRA SOODUS -1,01 EUR` discount line. Worth keeping:
   discounts are exactly where fuel amount and receipt grand total diverge
   (CLAUDE.md hard rule 4).
