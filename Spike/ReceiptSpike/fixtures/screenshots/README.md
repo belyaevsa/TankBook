@@ -77,3 +77,30 @@ that works on paper is unavailable here.
 Its sibling is worth knowing about: `receipts/receipt-031` was bought in the same
 town **six minutes later** at a Газпром station. Two brands, two receipt
 technologies, two rounding behaviours, one afternoon.
+
+## `screenshot-003` - a loyalty app's own transaction record
+
+A third source class, after paper receipts and pump displays: the **payment app's
+transaction screen**. Тольятти, АЗС №341, 16.08.26 12:47.
+
+```
+3429,65 ₽                    <- rendered with the kopecks in a LIGHTER GREY
+Приобретено
+  АИ-98 x 35.0 л.   3429,65 ₽
+  Цена               97,99 ₽
+  Цена с учетом скидки  97,99 ₽
+```
+
+`35.0 x 97.99 = 3429.65` closes exactly. Three things make it worth having:
+
+- **The amount is styled in two weights.** "3429" is dark and ",65" is grey, so
+  OCR may return them as separate tokens and a parser can lose the kopecks or read
+  3429 and 65 as unrelated numbers. Paper never does this; app UIs do it often.
+- **List and discounted price are BOTH shown, and here they are equal.** On
+  `receipts/receipt-031` they differ (71.05 vs 69.98). So the presence of two price
+  fields says nothing about whether a discount applied - only their values do.
+- **Everything is labelled and unambiguous**: the quantity carries its unit
+  (`35.0 л.`), the grade is explicit (`АИ-98`, the corpus's first), and the station
+  is a structured address rather than a header line. This is the easiest input in
+  the whole corpus, which is worth knowing: if an app screenshot is available it
+  beats photographing the paper.

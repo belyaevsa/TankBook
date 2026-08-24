@@ -5,7 +5,7 @@ Photos of paper receipts - the class the accuracy gate scores (`docs/TESTING.md`
 fiscal QR payload where the photo's QR decoded, so a P2.6 QR-parser test has real
 input without re-decoding an image.
 
-## Baseline, 2026-08-25: 36/86 fields (41.9%), cross-check 12/31
+## Baseline, 2026-08-25: 37/89 fields (41.6%), cross-check 12/32
 
 Measured with `swift run ReceiptSpike fixtures/receipts`. Before this batch the
 corpus was **one** photo scoring 3/3, which is arithmetic rather than a gate. The
@@ -120,7 +120,30 @@ exactly the single-digit misread that no confidence threshold can catch. Note th
 asymmetry with pump displays, which print each number once and therefore have no
 redundancy to fall back on - one more reason pump extraction is the harder problem.
 
-### 5. One receipt, two operand orders, and two prices for one fill
+### 5. One brand, two receipt layouts
+
+`receipt-032` (АО "РН-Москва", Ступино, 16.08.26) prints the compact unmarked
+form `73.15*20  л =1463.00`. `receipt-013` is the **same brand** and prints
+labelled columns instead:
+
+```
+receipt-013   Цена за ед. 71.25 | Кол. 50 | Сумма 3562.50
+receipt-032   73.15*20   л =1463.00
+```
+
+So layout is not a per-brand constant either. That is now true of the operand
+order (varies within one receipt - `receipt-031`), the decimal separator (varies
+by device at one station - `pump-002` vs `pump-007`), and the rounding behaviour
+(varies by year within one chain - `receipt-029` vs the 2026 ЛУКОЙЛ receipts).
+**Nothing about a receipt can be predicted from its brand.**
+
+Price-first is confirmed independently here: `73.15` for АИ-95 Pulsar on 16.08.26
+sits **0.09 ₽** from ЛУКОЙЛ's `73.06` for АИ-95 ЭКТО Plus two days later. Two
+brands, two days, the same price level - so 73.15 is the price, not a 73-litre
+fill. `Pulsar-95` is a marketing tier belonging in `fuelGrade`, like `ЭКТО Plus`,
+`V-Power`, `G-Drive` and `Танеко`.
+
+### 5b. One receipt, two operand orders, and two prices for one fill
 
 `receipt-031` (Газпром сеть АЗС, Минеральные Воды, 28.06.26) prints a loyalty
 discount, and in doing so prints the same fill twice - **in opposite operand
