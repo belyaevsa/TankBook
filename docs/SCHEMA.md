@@ -105,7 +105,7 @@ Money {
 FillUp: EntryCommon {
   volumeL: Double               // always stored in liters; displayed in vehicle unit
   unitPrice: Decimal?           // per liter, original currency
-  fuelKind: FuelKind            // .diesel, .petrol95, .petrol98, .lpg, .cng, .e85…
+  fuelKind: FuelKind            // .diesel, .petrol92, .petrol95, .petrol98, .petrol100, .lpg, .cng, .e85…
   fuelGrade: String?            // marketing tier: "V-Power", "Ultimate", "Standard"
   isFull: Bool                  // closes a consumption segment
   tankLevelAfterPct: Double?    // 0–100; 100 ⇒ isFull. The mature partial-fill answer (My Fuel Manager pattern)

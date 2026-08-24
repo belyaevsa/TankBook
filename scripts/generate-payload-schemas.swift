@@ -73,7 +73,7 @@ func taggedEnum(_ tags: [String], _ payload: [String: Any]) -> [String: Any] {
 
 // MARK: - Shared enum vocabularies (exact SCHEMA.md spellings)
 
-let fuelKinds = ["diesel", "petrol95", "petrol98", "lpg", "cng", "e85", "electricity"]
+let fuelKinds = ["diesel", "petrol92", "petrol95", "petrol98", "petrol100", "lpg", "cng", "e85", "electricity"]
 let powertrains = ["ice", "ev", "hybrid", "phev"]
 let chargeTypes = ["acHome", "acPublic", "dcPublic"]
 let distanceUnits = ["km", "mi"]

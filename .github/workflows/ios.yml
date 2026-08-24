@@ -51,6 +51,16 @@ jobs:
           --sources ios/App/Sources
           --catalogue ios/App/Sources/Localizable.xcstrings
 
+      # P2.2 L5 accuracy ratchet (docs/TESTING.md -> L5): OCRs the fixture
+      # corpus with Vision and fails the build when any class (receipts, pump,
+      # fiscal, screenshots) scores below its recorded high-water mark in
+      # Spike/ReceiptSpike/fixtures/high-water.json. Runs as a focused re-run of
+      # the ratchet tests so a regression is attributed to this gate, and the
+      # failure names the per-class before/after.
+      - name: OCR accuracy ratchet (L5)
+        working-directory: ios
+        run: swift test --filter corpusScoresDoNotRegress
+
       # The app target builds against the simulator (no signing, no device).
       - name: Build app
         run: >

@@ -31,11 +31,17 @@ modes are entirely different.
 - **The fiscal QR is in the frame**, which is what makes this fixture especially
   valuable - see below.
 
-## Current parser result: 3/3, cross-check locks
+## Current parser result: 1/3 (total), litres and price undecided
 
-`25.520 L x 70.920 = 1809.880`, matching truth. One honest gap: **currency reads
-`–`**. There is no `₽` or `RUB` anywhere in the visible crop - the amounts are
-bare numbers - so the parser is right not to invent one. The app resolves this
+The total-finder reads **1809.88** (the modal of `=1809.88`, `ИТОГ` and
+`Безналичными`). Litres and price are **nil**: `25,52 Х 70.92` has no unit marker
+on either operand, so the ladder (`docs/SCHEMA.md` -> Fuel price bands) refuses to
+guess - the old "25.520 x 70.920" was `bestTriple` guessing a commutative product,
+which the swap failure (`receipts/README.md` item 1) shows cannot be trusted. The
+correct reading (25.52 L at 70.92) is what a price band resolves; the band pack is
+P5, so until then the user fills the two fields. One honest gap remains: **currency
+reads `–`**. There is no `₽` or `RUB` anywhere in the visible crop - the amounts
+are bare numbers - so the parser is right not to invent one. The app resolves this
 from the vehicle's home currency, and `docs/ERRORS.md` -> Confirm covers the
 low-confidence case with a chip row rather than a silent guess.
 

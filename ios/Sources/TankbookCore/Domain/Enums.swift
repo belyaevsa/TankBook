@@ -3,8 +3,10 @@ import Foundation
 /// What a car accepts / what a fill-up holds (docs/SCHEMA.md, Vehicle.fuelKinds).
 public enum FuelKind: String, Codable, Sendable, CaseIterable {
     case diesel
+    case petrol92
     case petrol95
     case petrol98
+    case petrol100
     case lpg
     case cng
     case e85
