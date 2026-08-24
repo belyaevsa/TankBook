@@ -1,4 +1,5 @@
 import SwiftUI
+import TankbookCore
 
 /// Maps a pushed `Route` to its screen. Today every case renders a placeholder;
 /// P1.2-P1.11 replace the placeholder bodies, not this wiring.
@@ -87,26 +88,42 @@ struct TankLevelStandaloneHost: View {
     }
 }
 
-/// Maps a `ModalRoute` to its full-screen cover. Capture arrives with P2.1.
+/// Maps a `ModalRoute` to its full-screen cover. Capture (P2.1) fills the body;
+/// the X and its `captureCloseButton` accessibility identifier are owned here
+/// so a UI test that closes the cover keeps working unchanged.
 struct ModalDestinationView: View {
     let route: ModalRoute
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            Color.clear
+            content
                 .navigationTitle(route.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(Theme.Palette.ink)
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Theme.Palette.midnight.opacity(0.7)))
                         }
                         .accessibilityLabel("Close")
                         .accessibilityIdentifier("captureCloseButton")
                     }
                 }
+        }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        switch route {
+        case .capture:
+            CaptureView()
         }
     }
 }

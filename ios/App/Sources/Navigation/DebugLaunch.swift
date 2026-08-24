@@ -13,21 +13,25 @@ enum DebugLaunch {
     struct Request {
         var sheet: SheetRoute?
         var route: Route?
+        var modal: ModalRoute?
     }
 
     static func resolve(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Request {
         if arguments.contains("-openManualForm") {
-            return Request(sheet: .confirmManual, route: nil)
+            return Request(sheet: .confirmManual, route: nil, modal: nil)
         }
         guard let index = arguments.firstIndex(of: "-presentScreen"),
               arguments.indices.contains(index + 1) else {
-            return Request(sheet: nil, route: nil)
+            return Request(sheet: nil, route: nil, modal: nil)
         }
         let name = arguments[index + 1]
         if let sheet = SheetRoute(rawValue: name) {
-            return Request(sheet: sheet, route: nil)
+            return Request(sheet: sheet, route: nil, modal: nil)
         }
-        return Request(sheet: nil, route: routes[name])
+        if let modal = ModalRoute(rawValue: name) {
+            return Request(sheet: nil, route: nil, modal: modal)
+        }
+        return Request(sheet: nil, route: routes[name], modal: nil)
     }
 
     /// `-presentScreen` names for pushed routes (SheetRoutes match their own

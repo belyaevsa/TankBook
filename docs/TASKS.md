@@ -52,7 +52,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 
 | ID | Task | Checks |
 |---|---|---|
-| P2.1 | Capture camera screen: modes, auto-detect surface, permission fallback | L4: F8 denied-permission flow (manual form + deep link); mode row snapshot; "Type it" path |
+| **[x]** P2.1 | Capture camera screen: modes, auto-detect surface, permission fallback | L4: F8 denied-permission flow (manual form + deep link); mode row snapshot; "Type it" path |
 | P2.2 | Port Spike parser into the app module; fixture corpus in CI with ratchet | L5: existing suite green; high-water mark recorded; every future fix adds its fixture |
 | P2.3 | Confirm sheet: pre-fill, confidence dimming, tap-to-verify crops, cross-check lock animation | L1: gating thresholds; L4: verified/mismatch/dimmed snapshots; reduced-motion variant |
 | P2.4 | Mixed-receipt detection + "Also on this receipt" UI + grouped save | L5: fuel-line isolation ≥95% on mixed corpus; L1: FillUp+Expense share purchaseGroupId, sums ≤ grand total |

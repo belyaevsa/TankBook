@@ -72,10 +72,20 @@ Same shape as J3, with the deltas: camera pointed at the pump display before han
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
 | Scan | Points capture at the QR corner | "Апps never do this" | → Same capture surface auto-detects QR vs text – zero mode switching |
-| Instant fill | All fields land exact – no OCR uncertainty, no dimmed fields | Surprise: 100% correct, free | → Say it: "Read from the fiscal QR – exact." Contrast with Мой Авто's paywalled beta |
-| Confirm | Odometer only, save | This is now the only way they'll log | ⚠ Some QRs need an FNS lookup that can be slow/offline → parse locally what the QR itself carries; fetch enrichment in background, never block save |
+| Anchor, not fill | **Total and date land exact from the QR; litres, price and fuel kind still come from OCR** and stay editable | Quiet confidence: the money is right | → The QR confirms or corrects the OCR total, and a QR total *above* the extracted fuel line is the mixed-receipt signal (hard rule 4) |
+| Confirm | Check the OCR'd litres and price, odometer, save | Fewer corrections than before | → Never claim "exact" for a field the QR cannot carry |
 
-**Success metric:** in RU/KZ locales, QR share of captures ≥60%; word-of-mouth (referral installs) in CIS.
+**Corrected 2026-08-24.** This journey used to promise "all fields land exact – no OCR
+uncertainty" and a "100% correct, free" beat. **The QR cannot deliver that**: it carries only
+timestamp, total and three fiscal ids, and the OFD lookup that would supply litres and price is
+keyed on an id not derivable from the QR (verified against two OFDs). Only 9 of 16 corpus
+receipts carry a decodable QR at all. Enrichment is permanently deferred, so J5 is now the
+*anchoring* journey, not an exact-fill one - and **F5 below is the normal path, not the failure
+path.** Evidence: `Spike/ReceiptSpike/fixtures/fiscal/README.md`.
+
+**Success metric:** in RU/KZ locales, where a QR is present the saved total matches the QR in
+≥99% of fill-ups, and the user corrects the total by hand in <5%. (The old ">=60% QR share of
+captures" metric assumed QR was a capture path; it is not.)
 
 ### J6 · EV charge (P2)
 **Trigger:** public DC session ends in a charging app; or the weekly home-charging ritual.

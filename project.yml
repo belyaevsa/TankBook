@@ -24,6 +24,7 @@ targets:
     deploymentTarget: "18.0"
     sources:
       - path: ios/App/Sources
+      - path: ios/App/Resources
     dependencies:
       - package: TankbookCore
         product: TankbookCore
@@ -35,6 +36,8 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        NSCameraUsageDescription: "Tankbook uses the camera to scan receipts, pump displays and fiscal QR codes so you do not have to type them."
+        NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
     settings:
       base:
         SWIFT_VERSION: "6.0"

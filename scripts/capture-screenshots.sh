@@ -96,6 +96,12 @@ capture P1.11-car-switcher         en -seedHomeCarSwitcher -presentScreen carSwi
 capture P1.11-car-switcher-ru      ru -seedHomeCarSwitcher -presentScreen carSwitcher
 capture P1.12-vehicle-detail       en -seedHomeCarSwitcher -presentScreen vehicleDetail
 capture P1.12-vehicle-detail-ru    ru -seedHomeCarSwitcher -presentScreen vehicleDetail
+capture P2.1-capture               en -presentScreen capture -cameraStatus authorized -seedCaptureDetection
+capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection
+# The four-chip worst case: only a plug-in hybrid is offered both Fill-up and
+# Charge, and Russian is where four chips stop fitting. Committed so the mode
+# row's degradation is on the record, not assumed.
+capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -powertrain phev
 
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1

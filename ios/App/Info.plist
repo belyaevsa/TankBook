@@ -22,6 +22,10 @@
 	<string>1</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>Tankbook uses the camera to scan receipts, pump displays and fiscal QR codes so you do not have to type them.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available.</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

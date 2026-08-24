@@ -1396,7 +1396,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Электрический"
+            "value": "EV"
           }
         }
       }
@@ -1567,6 +1567,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "F"
+          }
+        }
+      }
+    },
+    "Fill-up · auto": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill-up · auto"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправка · авто"
           }
         }
       }
@@ -2484,7 +2501,24 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Бензин / дизель"
+            "value": "Топливо"
+          }
+        }
+      }
+    },
+    "Photos": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Photos"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фото"
           }
         }
       }
@@ -2518,7 +2552,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Подключаемый"
+            "value": "PHEV"
           }
         }
       }
@@ -2655,6 +2689,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Фото чека"
+          }
+        }
+      }
+    },
+    "Receipts, pump displays and fiscal QR are detected automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipts, pump displays and fiscal QR are detected automatically"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чеки, дисплеи заправок и фискальные QR-коды определяются автоматически"
           }
         }
       }
@@ -2893,6 +2944,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отсканировано %@"
+          }
+        }
+      }
+    },
+    "Scanning needs the camera – enable in Settings.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scanning needs the camera – enable in Settings."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Для сканирования нужна камера – включите её в настройках."
           }
         }
       }

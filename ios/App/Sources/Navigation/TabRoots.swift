@@ -164,6 +164,8 @@ struct HomeTabView: View {
             self.sheet = sheet
         } else if let route = request.route {
             path = [route]
+        } else if let modal = request.modal {
+            self.modal = modal
         }
         #endif
     }
