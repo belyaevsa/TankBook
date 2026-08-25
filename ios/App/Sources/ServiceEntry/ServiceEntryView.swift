@@ -20,6 +20,7 @@ struct ServiceEntryView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ServiceInvoiceSession.self) private var invoiceSession
     @Environment(ExpenseEntrySession.self) private var expenseSession
+    @Environment(ReminderCompletionSession.self) private var completionSession
 
     @State private var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -42,6 +43,10 @@ struct ServiceEntryView: View {
     @State private var nestedSheet: SheetRoute?
     /// The vehicle's tire sets, for the Tires mode picker (P3.3).
     @State private var tireSets: [TireSet] = []
+    /// A reminder completion handed off by the ReminderComplete sheet (P3.5):
+    /// pre-fills this form and, on save, completes the reminder with the
+    /// entry's real id. Consumed at load; held locally for the save.
+    @State private var pendingCompletion: ReminderCompletionSession.Pending?
 
     private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
@@ -228,7 +233,20 @@ struct ServiceEntryView: View {
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
             shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
             tireSets = try repository.liveTireSets(forVehicle: vehicle.id)
-            if let prefill = invoiceSession.pendingPrefill {
+            if let pending = completionSession.pending,
+               case .service(let category) = ReminderCompletion.entryKind(for: pending.reminder.category) {
+                // The ReminderComplete sheet's "Type amount" hand-off (P3.5):
+                // pre-fill category, title and the current odometer - default
+                // input the user edits (hard rule 13). Consumed here; the save
+                // below completes the reminder with the entry's real id.
+                pendingCompletion = pending
+                completionSession.pending = nil
+                apply(ServiceEntryPrefill(
+                    items: [ServiceEntryItemDraft(title: pending.reminder.title,
+                                                  category: category)],
+                    odometer: pending.completionOdometer.map(OdometerFormat.grouped) ?? "",
+                    date: pending.completionDate))
+            } else if let prefill = invoiceSession.pendingPrefill {
                 apply(prefill)
                 invoiceSession.pendingPrefill = nil
             } else if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
@@ -337,6 +355,15 @@ struct ServiceEntryView: View {
                 return linked
             }
             try repository.upsertServiceRecord(service, linkedParts: linkedExpenses)
+            // The other half of the P3.5 chain: a reminder completion handed
+            // off by the ReminderComplete sheet completes with THIS entry's id.
+            if let pending = pendingCompletion {
+                ReminderCompletionSession.persistCompletion(
+                    reminder: pending.reminder, entryId: service.id,
+                    completionDate: pending.completionDate,
+                    completionOdometer: pending.completionOdometer)
+                pendingCompletion = nil
+            }
             hasUnsavedChanges = false
             dismiss()
         } catch {

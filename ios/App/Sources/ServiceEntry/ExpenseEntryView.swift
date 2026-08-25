@@ -62,11 +62,16 @@ struct ExpenseEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ExpenseEntrySession.self) private var expenseSession
+    @Environment(ReminderCompletionSession.self) private var completionSession
 
     @State private var form = ExpenseEntryFormState()
     @State private var vehicle: Vehicle?
     @State private var showDatePicker = false
     @State private var didLoad = false
+    /// A reminder completion handed off by the ReminderComplete sheet (P3.5):
+    /// pre-fills this form and, on save, completes the reminder with the
+    /// entry's real id. Consumed at load; held locally for the save.
+    @State private var pendingCompletion: ReminderCompletionSession.Pending?
 
     var body: some View {
         ScrollView {
@@ -177,6 +182,15 @@ struct ExpenseEntryView: View {
                 purchaseGroupId: nil, category: form.category, title: form.title,
                 recurrence: nil, installedInServiceId: nil)
             try repository.upsertExpense(expense)
+            // The other half of the P3.5 chain: a reminder completion handed
+            // off by the ReminderComplete sheet completes with THIS entry's id.
+            if let pending = pendingCompletion {
+                ReminderCompletionSession.persistCompletion(
+                    reminder: pending.reminder, entryId: expense.id,
+                    completionDate: pending.completionDate,
+                    completionOdometer: pending.completionOdometer)
+                pendingCompletion = nil
+            }
             hasUnsavedChanges = false
             dismiss()
         } catch {
@@ -225,6 +239,17 @@ struct ExpenseEntryView: View {
             if let preset = expenseSession.pendingPreset {
                 form.category = preset
                 expenseSession.pendingPreset = nil
+            }
+            // The ReminderComplete sheet's "Type amount" hand-off (P3.5): an
+            // insurance reminder pre-fills the category and title - default
+            // input the user edits. Consumed here; save completes the reminder.
+            if let pending = completionSession.pending,
+               case .expense(let category) = ReminderCompletion.entryKind(for: pending.reminder.category) {
+                pendingCompletion = pending
+                completionSession.pending = nil
+                form.category = category
+                form.title = pending.reminder.title
+                form.date = pending.completionDate
             }
             // Snapshots taken AFTER the pre-selection - it does not count as an edit.
             form.initialCategory = form.category

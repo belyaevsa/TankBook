@@ -44,6 +44,9 @@ enum ServiceEntryPrefillSeed {
                 ],
                 odometer: OdometerFormat.grouped(118_930))
         }
+        if arguments.contains("-seedReminderCompletionPrefill") {
+            return Self.reminderCompletionPrefill()
+        }
         if arguments.contains("-seedServiceEntry") {
             return ServiceEntryPrefill(
                 vendor: "Bosch Service",
@@ -114,8 +117,20 @@ enum ServiceEntryPrefillSeed {
             return InvoicePage(attachment: attachment, image: InvoicePagePreview.image())
         }
     }
-}
 
+    /// The P3.5 reminder-completion pre-fill: the entry the "Type amount" door
+    /// opens - one line item carrying the reminder's title and category, the
+    /// odometer pre-filled, the cost left for the user to type (default input,
+    /// never a fact - hard rule 13).
+    private static func reminderCompletionPrefill() -> ServiceEntryPrefill {
+        ServiceEntryPrefill(
+            vendor: "",
+            items: [
+                ServiceEntryItemDraft(title: "Oil change", category: .oil)
+            ],
+            odometer: OdometerFormat.grouped(119_486))
+    }
+}
 /// Seeds one vehicle with `initialOdometer` 118 930 so the ServiceEntry
 /// screenshots show the "last known" odometer pre-fill the artboard draws,
 /// without a prior entry. Idempotent: once a vehicle exists it does nothing
@@ -134,7 +149,8 @@ enum ServiceEntryTestSeed {
             || arguments.contains("-seedServiceEntryLumpSum")
             || arguments.contains("-seedServiceEntryScan")
             || arguments.contains("-seedServiceEntryScanLumpSum")
-            || arguments.contains("-seedServiceEntryLink") else { return }
+            || arguments.contains("-seedServiceEntryLink")
+            || arguments.contains("-seedReminderCompletionPrefill") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 

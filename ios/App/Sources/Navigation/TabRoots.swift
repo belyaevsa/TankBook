@@ -23,6 +23,9 @@ struct AppRootView: View {
     @State private var invoiceSession = ServiceInvoiceSession()
     /// Carries the expense-category pre-selection into the ExpenseEntry sheet.
     @State private var expenseEntrySession = ExpenseEntrySession()
+    /// Carries the P3.5 "type amount" hand-off from the ReminderComplete sheet
+    /// into the entry screen and back.
+    @State private var reminderCompletionSession = ReminderCompletionSession()
     @State private var tabSelection: AppTab
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
@@ -128,6 +131,7 @@ struct AppRootView: View {
         .environment(carSelection)
         .environment(invoiceSession)
         .environment(expenseEntrySession)
+        .environment(reminderCompletionSession)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }

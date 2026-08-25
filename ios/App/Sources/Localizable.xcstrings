@@ -18,6 +18,23 @@
         }
       }
     },
+    "%1$@ – done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ – done"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ – выполнено"
+          }
+        }
+      }
+    },
     "%@ %@": {
       "extractionState": "manual",
       "localizations": {
@@ -1471,6 +1488,40 @@
         }
       }
     },
+    "Completed today": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed today"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершено сегодня"
+          }
+        }
+      }
+    },
+    "Completed today at %1$@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Completed today at %1$@ km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершено сегодня на %1$@ км"
+          }
+        }
+      }
+    },
     "Consumption": {
       "extractionState": "manual",
       "localizations": {
@@ -1518,6 +1569,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Стоимость / км"
+          }
+        }
+      }
+    },
+    "Creates an entry pre-filled with the category, title and today's odometer – type a total and save.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Creates an entry pre-filled with the category, title and today's odometer – type a total and save."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создаёт запись с предзаполненными категорией, названием и пробегом на сегодня – введите сумму и сохраните."
           }
         }
       }
@@ -1705,6 +1773,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить позицию"
+          }
+        }
+      }
+    },
+    "Delete reminder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete reminder"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить напоминание"
           }
         }
       }
@@ -3103,6 +3188,23 @@
         }
       }
     },
+    "Log the cost?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log the cost?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записать расходы?"
+          }
+        }
+      }
+    },
     "MPG": {
       "extractionState": "manual",
       "localizations": {
@@ -3371,6 +3473,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Новый комплект шин"
+          }
+        }
+      }
+    },
+    "Next cycle scheduled: %1$@ – counted from today, not the old due date.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next cycle scheduled: %1$@ – counted from today, not the old due date."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Следующий цикл запланирован: %1$@ – отсчёт от сегодняшнего дня, а не от старой даты."
           }
         }
       }
@@ -4429,6 +4548,23 @@
         }
       }
     },
+    "Reschedule instead": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reschedule instead"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перенести вместо этого"
+          }
+        }
+      }
+    },
     "Restore": {
       "extractionState": "manual",
       "localizations": {
@@ -4975,6 +5111,23 @@
         }
       }
     },
+    "Skip – just mark done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Skip – just mark done"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пропустить – просто отметить выполненным"
+          }
+        }
+      }
+    },
     "Spend · %@": {
       "extractionState": "manual",
       "localizations": {
@@ -5345,6 +5498,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Тренды"
+          }
+        }
+      }
+    },
+    "Type amount": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type amount"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ввести сумму"
           }
         }
       }

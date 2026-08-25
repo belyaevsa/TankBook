@@ -23,6 +23,14 @@ struct RemindersView: View {
     @State private var dismissTarget: Reminder?
     @State private var dismissReason = ""
     @State private var deleteTarget: Reminder?
+    /// The reminder being completed (P3.5): presents the ReminderComplete sheet.
+    @State private var completeTarget: ReminderSheetTarget?
+    /// An edit request handed off across the sheet's dismissal (Edit /
+    /// Reschedule instead): dismiss the sheet, then push the form once it is
+    /// gone so the sheet-dismiss and the push never race.
+    @State private var pendingEditID: UUID?
+    @State private var editReminderID: UUID?
+    @State private var isPresentingEdit = false
 
     private static let log = Logger(subsystem: "app.tankbook", category: "reminders")
 
@@ -83,6 +91,39 @@ struct RemindersView: View {
         } message: {
             Text("Deleted reminders are gone – this can't be undone.")
         }
+        // The P3.5 completion sheet: what was completed, "Log the cost?",
+        // Type amount / Skip, and the next-cycle line. Its Edit/Reschedule
+        // exit dismisses the sheet and pushes the form once the sheet is gone
+        // (onDismiss), so the two presentations never race.
+        .sheet(item: $completeTarget, onDismiss: {
+            if let id = pendingEditID {
+                editReminderID = id
+                isPresentingEdit = true
+                pendingEditID = nil
+            }
+            // The completion (Skip or an entry save) changed the reminder's
+            // status on disk; re-read so the list shows it as history.
+            reload()
+        }, content: { target in
+            ReminderCompleteSheet(
+                reminder: target.reminder,
+                currentOdometer: currentOdometer,
+                onEdit: {
+                    pendingEditID = target.reminder.id
+                    completeTarget = nil
+                },
+                onDelete: {
+                    completeTarget = nil
+                    deleteTarget = target.reminder
+                })
+        })
+        // The programmatic push for the sheet's Edit / Reschedule exit. A
+        // value-based NavigationLink needs a path binding this pushed view does
+        // not own; the boolean-presented form pushes the same `DestinationView`
+        // (title + hidden tab bar) without one.
+        .navigationDestination(isPresented: $isPresentingEdit) {
+            DestinationView(route: .reminderForm(editReminderID))
+        }
     }
 
     // MARK: - Rows
@@ -92,29 +133,12 @@ struct RemindersView: View {
             ReminderRow(reminder: reminder,
                         currentOdometer: currentOdometer,
                         group: group,
-                        onComplete: { complete(reminder) },
+                        onComplete: { completeTarget = ReminderSheetTarget(reminder: reminder) },
                         onDismiss: { presentDismiss(reminder) },
                         onDelete: { deleteTarget = reminder })
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(group == .attention ? "reminderRowAttention" : "reminderRowScheduled")
-    }
-
-    private func complete(_ reminder: Reminder) {
-        do {
-            let repository = try AppStore.repository()
-            let now = Date()
-            let result = ReminderLifecycle.complete(
-                reminder, entryId: nil,
-                completionDate: now, completionOdometer: currentOdometer)
-            try repository.upsertReminder(result.completed)
-            if let next = result.nextOccurrence {
-                try repository.upsertReminder(next)
-            }
-            reload()
-        } catch {
-            Self.log.error("Complete failed: \(error.localizedDescription, privacy: .public)")
-        }
     }
 
     private func presentDismiss(_ reminder: Reminder) {
@@ -213,6 +237,15 @@ struct RemindersView: View {
         didLoad = true
         ReminderTestSeed.seedIfRequested()
         reload()
+        #if DEBUG
+        // `-presentReminderComplete`: open the completion sheet for the first
+        // active reminder, so simctl-driven screenshots can capture the sheet
+        // without a UI test driving a tap (simctl cannot tap).
+        if ProcessInfo.processInfo.arguments.contains("-presentReminderComplete"),
+           let target = reminders.first {
+            completeTarget = ReminderSheetTarget(reminder: target)
+        }
+        #endif
     }
 
     private func reload() {
@@ -269,4 +302,11 @@ struct RemindersView: View {
 enum ReminderGroup {
     case attention
     case scheduled
+}
+
+/// `Reminder` is an `Entity`, not `Identifiable` - so a `.sheet(item:)` needs
+/// this wrapper to carry the reminder being completed (P3.5).
+struct ReminderSheetTarget: Identifiable {
+    let reminder: Reminder
+    var id: UUID { reminder.id }
 }

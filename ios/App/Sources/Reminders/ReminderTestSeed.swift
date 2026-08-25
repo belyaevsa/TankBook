@@ -14,16 +14,49 @@ enum ReminderTestSeed {
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-seedReminders")
+            || arguments.contains("-seedReminderComplete")
             || arguments.contains("-homeResetDatabase") else { return }
 
         if arguments.contains("-homeResetDatabase") {
             AppStore.resetForTestsOncePerLaunch()
         }
-        guard arguments.contains("-seedReminders") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
+        if arguments.contains("-seedReminderComplete") {
+            seedCompletionReminder(repository)
+            return
+        }
+        guard arguments.contains("-seedReminders") else { return }
+
         seed(repository)
+    }
+
+    /// The P3.5 completion-sheet state: a single recurring oil change so the
+    /// sheet's "Completed today at 119 486 km" and "Next cycle scheduled: in
+    /// 15 000 km or <next year>" render deterministically (design/screens/
+    /// ReminderComplete.dc.html). The current odometer is the vehicle's initial
+    /// odometer - no entries - so the km half anchors at exactly 119 486.
+    private static func seedCompletionReminder(_ repository: TankbookRepository) {
+        let now = Date()
+        let calendar = Calendar.current
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 119_486)
+        try? repository.upsertVehicle(vehicle)
+
+        let oilChange = ReminderLifecycle.makeReminder(
+            vehicleId: vehicle.id, title: "Oil change", category: .oil,
+            dueDate: calendar.date(byAdding: .month, value: 18, to: now),
+            dueOdometer: 119_486 + 15_000,
+            recurrence: Reminder.Recurrence(everyKm: 15_000, everyMonths: 12))
+        try? repository.upsertReminder(oilChange)
     }
 
     // MARK: - Seed
