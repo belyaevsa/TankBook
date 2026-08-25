@@ -168,4 +168,17 @@ enum L10n {
             }
         }
     }
+
+    /// "Install oil filter from Mar 3?" - the ServiceEntry Link row's offer. One
+    /// full localised phrase per language, never concatenation: the part title
+    /// and the purchase day are runtime data sharing the sentence.
+    static func installPart(title: String, day: String) -> String {
+        String(format: localize("Install %1$@ from %2$@?"), title, day)
+    }
+
+    /// "bought Mar 3, 12.40 €" - a shelf part's purchase provenance. One full
+    /// localised phrase per language.
+    static func partBought(date: String, amount: String) -> String {
+        String(format: localize("bought %1$@, %2$@"), date, amount)
+    }
 }

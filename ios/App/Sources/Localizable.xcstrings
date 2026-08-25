@@ -6225,6 +6225,244 @@
           }
         }
       }
+    },
+    "Install %1$@ from %2$@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install %1$@ from %2$@?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Установить %1$@ от %2$@?"
+          }
+        }
+      }
+    },
+    "Link": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связать"
+          }
+        }
+      }
+    },
+    "Linked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linked"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связано"
+          }
+        }
+      }
+    },
+    "Log a part as an expense and it appears here, ready for the next service.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log a part as an expense and it appears here, ready for the next service."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запишите запчасть как расход, и она появится здесь к следующему сервису."
+          }
+        }
+      }
+    },
+    "No car yet – add one from Garage to start logging expenses.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No car yet – add one from Garage to start logging expenses."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока нет автомобиля – добавьте его в гараже, чтобы вести учёт расходов."
+          }
+        }
+      }
+    },
+    "On shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На полке"
+          }
+        }
+      }
+    },
+    "Parts on your shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts on your shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запчасти на полке"
+          }
+        }
+      }
+    },
+    "Parts shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Полка запчастей"
+          }
+        }
+      }
+    },
+    "Parts you buy sit here until installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts you buy sit here until installed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Купленные запчасти хранятся здесь до установки"
+          }
+        }
+      }
+    },
+    "Save expense": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save expense"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить расход"
+          }
+        }
+      }
+    },
+    "Unlink": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlink"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отвязать"
+          }
+        }
+      }
+    },
+    "View shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть полку"
+          }
+        }
+      }
+    },
+    "bought %1$@, %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bought %1$@, %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "куплено %1$@, %2$@"
+          }
+        }
+      }
+    },
+    "e.g. Oil filter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Oil filter"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "напр. Масляный фильтр"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

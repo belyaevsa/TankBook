@@ -52,6 +52,10 @@ struct ServiceEntryFormState: Equatable {
     /// How the record was created. `.manual` (typed) or `.receiptScan` (scanned
     /// invoice). Defaults to `.manual` so the typed path is unchanged.
     var provenance: Provenance = .manual
+    /// The shelf parts linked into this service (P3.2). Their ids ride the
+    /// record's `usedParts`; the other half of the link (the expense's
+    /// `installedInServiceId`) is written at save, so both sides commit together.
+    var linkedPartIds: [UUID] = []
 
     // Snapshots for the discard guard (SCREENMAP rule 1): the form is dirty only
     // for real edits, not for the odometer/date pre-fill. The odometer pre-fill
@@ -112,7 +116,8 @@ struct ServiceEntryFormState: Equatable {
             note: note,
             tireSetId: nil,
             attachments: attachments,
-            provenance: provenance)
+            provenance: provenance,
+            usedParts: linkedPartIds)
     }
 
     // MARK: Discard guard
@@ -124,6 +129,8 @@ struct ServiceEntryFormState: Equatable {
         if vendor != initialVendor { return true }
         if note != initialNote { return true }
         if items != initialItems { return true }
+        // Linking a part is a real edit (the link is committed on save).
+        if !linkedPartIds.isEmpty { return true }
         if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) {
             return true
         }

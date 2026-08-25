@@ -31,7 +31,19 @@ enum ServiceEntryPrefillSeed {
     /// - `-seedServiceEntryScanLumpSum` - the honest failed-split outcome: one
     ///   uncategorized item carrying the whole total, the page strip still
     ///   present, no error anywhere.
+    /// - `-seedServiceEntryLink` - the P3.2 install-link state: the same oil
+    ///   service, with an on-shelf part (seeded by `PartsShelfTestSeed`) offered
+    ///   by the Link row.
     static func from(arguments: [String]) -> ServiceEntryPrefill? {
+        if arguments.contains("-seedServiceEntryLink") {
+            return ServiceEntryPrefill(
+                vendor: "Bosch Service",
+                items: [
+                    ServiceEntryItemDraft(title: "Oil service incl. filter",
+                                          category: .oil, cost: "89.00")
+                ],
+                odometer: OdometerFormat.grouped(118_930))
+        }
         if arguments.contains("-seedServiceEntry") {
             return ServiceEntryPrefill(
                 vendor: "Bosch Service",
@@ -121,7 +133,8 @@ enum ServiceEntryTestSeed {
         guard arguments.contains("-seedServiceEntry")
             || arguments.contains("-seedServiceEntryLumpSum")
             || arguments.contains("-seedServiceEntryScan")
-            || arguments.contains("-seedServiceEntryScanLumpSum") else { return }
+            || arguments.contains("-seedServiceEntryScanLumpSum")
+            || arguments.contains("-seedServiceEntryLink") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 

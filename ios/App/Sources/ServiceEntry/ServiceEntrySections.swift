@@ -54,29 +54,37 @@ struct ServiceCategoryLabel: View {
 
 // MARK: - Mode row
 
-/// The Service / Parts / Tires / Other row (artboard). Only Service is a real
-/// record in P3.1a; Parts (P3.2), Tires (P3.3) and Other (Expense) are forward
-/// exits rendered as their artboard chips, unwired - exactly like the Link row.
+/// The Service / Parts / Tires / Other row (artboard). Service is the selected
+/// mode (the screen below it); Parts and Other are the peer forward exits into
+/// the Expense entry (P3.2, hard rule 15); Tires stays an unwired chip until
+/// P3.3.
 struct ServiceEntryModeRow: View {
+    let onParts: () -> Void
+    let onOther: () -> Void
+
     var body: some View {
         HStack(spacing: 6) {
-            chip("Service", selected: true, identifier: "serviceEntryModeService")
-            chip("Parts", selected: false, identifier: "serviceEntryModeParts")
-            chip("Tires", selected: false, identifier: "serviceEntryModeTires")
-            chip("Other", selected: false, identifier: "serviceEntryModeOther")
+            chip("Service", selected: true, identifier: "serviceEntryModeService", action: nil)
+            chip("Parts", selected: false, identifier: "serviceEntryModeParts", action: onParts)
+            chip("Tires", selected: false, identifier: "serviceEntryModeTires", action: nil)
+            chip("Other", selected: false, identifier: "serviceEntryModeOther", action: onOther)
         }
     }
 
-    private func chip(_ label: LocalizedStringKey, selected: Bool, identifier: String) -> some View {
-        Text(label)
-            .font(.caption.weight(selected ? .bold : .semibold))
-            .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 6)
-            .background(Capsule().fill(selected ? Theme.Palette.taillight.opacity(0.14) : Theme.Palette.dash))
-            .overlay(Capsule().stroke(selected ? Theme.Palette.taillight : Theme.Palette.hairline,
-                                      lineWidth: selected ? 1.5 : 1))
-            .accessibilityIdentifier(identifier)
+    private func chip(_ label: LocalizedStringKey, selected: Bool, identifier: String,
+                      action: (() -> Void)?) -> some View {
+        Button(action: { action?() }) {
+            Text(label)
+                .font(.caption.weight(selected ? .bold : .semibold))
+                .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
+                .padding(.horizontal, 13)
+                .padding(.vertical, 6)
+                .background(Capsule().fill(selected ? Theme.Palette.taillight.opacity(0.14) : Theme.Palette.dash))
+                .overlay(Capsule().stroke(selected ? Theme.Palette.taillight : Theme.Palette.hairline,
+                                          lineWidth: selected ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
     }
 }
 

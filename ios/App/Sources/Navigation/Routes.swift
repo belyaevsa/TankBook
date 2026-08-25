@@ -56,6 +56,8 @@ enum SheetRoute: String, Identifiable {
     case signIn
     case confirmManual
     case serviceEntry
+    case expenseEntry
+    case partsShelf
 
     var id: String { rawValue }
 
@@ -67,6 +69,8 @@ enum SheetRoute: String, Identifiable {
         case .signIn: "Sign in"
         case .confirmManual: "Manual fill-up"
         case .serviceEntry: "Service & expenses"
+        case .expenseEntry: "Expense"
+        case .partsShelf: "Parts shelf"
         }
     }
 
@@ -74,8 +78,8 @@ enum SheetRoute: String, Identifiable {
     /// before discarding; a sheet with only scanned data discards silently.
     var discardPolicy: DiscardPolicy {
         switch self {
-        case .confirmManual, .serviceEntry: .askBeforeDiscarding
-        case .carSwitcher, .tankLevel, .reminderComplete, .signIn: .discardSilently
+        case .confirmManual, .serviceEntry, .expenseEntry: .askBeforeDiscarding
+        case .carSwitcher, .tankLevel, .reminderComplete, .signIn, .partsShelf: .discardSilently
         }
     }
 }

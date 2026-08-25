@@ -21,6 +21,8 @@ struct AppRootView: View {
     @State private var carSelection = AppCarSelection()
     /// Carries the scanned invoice pre-fill from Capture into ServiceEntry.
     @State private var invoiceSession = ServiceInvoiceSession()
+    /// Carries the expense-category pre-selection into the ExpenseEntry sheet.
+    @State private var expenseEntrySession = ExpenseEntrySession()
     @State private var tabSelection: AppTab
     // Capture is presented by the ACTIVE tab, not by this root. Hoisting the
     // three modal routes keeps the capture full-screen cover and each tab's own
@@ -111,6 +113,7 @@ struct AppRootView: View {
         .environment(toastCenter)
         .environment(carSelection)
         .environment(invoiceSession)
+        .environment(expenseEntrySession)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }

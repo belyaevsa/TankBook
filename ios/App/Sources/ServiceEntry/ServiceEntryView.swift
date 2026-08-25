@@ -19,6 +19,7 @@ struct ServiceEntryView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ServiceInvoiceSession.self) private var invoiceSession
+    @Environment(ExpenseEntrySession.self) private var expenseSession
 
     @State private var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -33,6 +34,12 @@ struct ServiceEntryView: View {
     @State private var dateFromInvoice = false
     @State private var selectedPageIndex = 0
     @State private var showDocumentCamera = false
+    /// The parts on the shelf and the parts linked into this service (P3.2).
+    @State private var shelfParts: [Expense] = []
+    @State private var linkedParts: [Expense] = []
+    /// A nested sheet over this one: the Expense entry (Parts/Other modes) or
+    /// the Parts shelf.
+    @State private var nestedSheet: SheetRoute?
 
     private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
@@ -50,7 +57,8 @@ struct ServiceEntryView: View {
                                               onAddPage: addPage,
                                               onRemovePage: removePage)
                     }
-                    ServiceEntryModeRow()
+                    ServiceEntryModeRow(onParts: { openExpense(preset: .parts) },
+                                        onOther: { openExpense(preset: nil) })
                     ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
                     ServiceEntryDateOdometerCard(
                         form: $form,
@@ -74,6 +82,13 @@ struct ServiceEntryView: View {
                         }
                     }
                     ServiceEntryAddItemButton(action: addItem)
+                    ServiceEntryPartsSection(
+                        shelfParts: suggestedShelfParts,
+                        linkedParts: linkedParts,
+                        symbol: symbol,
+                        onLink: linkPart,
+                        onUnlink: unlinkPart,
+                        onViewShelf: { nestedSheet = .partsShelf })
                     ServiceEntryNoteRow(note: $form.note)
                 }
             }
@@ -92,6 +107,9 @@ struct ServiceEntryView: View {
                     handleAddedPages(images)
                 })
         }
+        .sheet(item: $nestedSheet) { route in
+            SheetDestinationView(route: route)
+        }
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
@@ -104,8 +122,19 @@ struct ServiceEntryView: View {
         return HomeFormat.entryAmount(form.totalDecimal, symbol: symbol)
     }
 
+    private var symbol: String {
+        AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur)
+    }
+
     private var odometerMissing: Bool {
         form.requiresOdometer && form.odometerValue == nil
+    }
+
+    /// On-shelf parts, ordered with the ones matching this service's line-item
+    /// categories first (docs/JOURNEYS.md J7b: an oil service offers oil parts
+    /// first). The user picks; the app never links automatically (hard rule 13).
+    private var suggestedShelfParts: [Expense] {
+        PartsShelf.suggested(shelfParts, categories: form.items.map(\.category))
     }
 
     /// The date row's provenance caption (P3.1b): "· invoice" when the date came
@@ -131,12 +160,33 @@ struct ServiceEntryView: View {
         form.odometer = lastKnownOdometer.map(OdometerFormat.grouped) ?? ""
     }
 
+    // MARK: - Parts (P3.2)
+
+    private func openExpense(preset: ExpenseCategory?) {
+        expenseSession.pendingPreset = preset
+        nestedSheet = .expenseEntry
+    }
+
+    private func linkPart(_ part: Expense) {
+        shelfParts.removeAll { $0.id == part.id }
+        linkedParts.append(part)
+        form.linkedPartIds.append(part.id)
+    }
+
+    private func unlinkPart(_ part: Expense) {
+        linkedParts.removeAll { $0.id == part.id }
+        form.linkedPartIds.removeAll { $0 == part.id }
+        shelfParts.append(part)
+        shelfParts.sort { $0.date > $1.date }
+    }
+
     // MARK: - Loading
 
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
         ServiceEntryTestSeed.seedIfRequested()
+        PartsShelfTestSeed.seedIfRequested()
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -146,6 +196,7 @@ struct ServiceEntryView: View {
             let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
             lastKnownOdometer = lastKnown
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
+            shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
             if let prefill = invoiceSession.pendingPrefill {
                 apply(prefill)
                 invoiceSession.pendingPrefill = nil
@@ -235,8 +286,18 @@ struct ServiceEntryView: View {
         do {
             let repository = try AppStore.repository()
             let draft = form.draft(vehicle: vehicle)
-            try repository.upsertServiceRecord(
-                draft.build(vehicleId: vehicle.id, homeCurrency: vehicle.homeCurrency))
+            let service = draft.build(vehicleId: vehicle.id, homeCurrency: vehicle.homeCurrency)
+            // The other half of each link: the linked expenses carry the record's
+            // id, and both halves commit in one transaction (P3.2 - a half-written
+            // link is a part that is neither on the shelf nor in the service).
+            let now = Date()
+            let linkedExpenses = linkedParts.map { part -> Expense in
+                var linked = part
+                linked.installedInServiceId = service.id
+                linked.updatedAt = now
+                return linked
+            }
+            try repository.upsertServiceRecord(service, linkedParts: linkedExpenses)
             hasUnsavedChanges = false
             dismiss()
         } catch {
