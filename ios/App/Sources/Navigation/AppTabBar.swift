@@ -76,53 +76,31 @@ struct AppTabBar: View {
             .safeAreaInsets.bottom ?? 0
     }
 
-    // The artboard's geometry (design/screens/HomeA.dc.html). These are our
-    // design tokens, device-independent - not measurements read off a runtime.
-    private static let topPadding: CGFloat = 10
-    private static let horizontalPadding: CGFloat = 12
-    private static let captureSize: CGFloat = 56
-    // EXPERIMENT 2026-08-25: 0 aligns the capture button with the other three
-    // slots. The artboard raises it 22 pt, which reads as unaligned next to
-    // Log/Trends/Garage and collides with a screen's own save CTA.
+    // The geometry lives in `TankbookCore.TabBarMetrics`, not here: a view in
+    // the app target cannot be reached by the package tests, and a constant
+    // "verified by looking at one device" is how the double-counted inset
+    // survived P1 and P2 in the first place (P3.7). This view stays thin over
+    // the arithmetic.
+    private static let topPadding = TabBarMetrics.topPadding
+    private static let horizontalPadding = TabBarMetrics.horizontalPadding
+    private static let captureSize = TabBarMetrics.captureSize
+
+    // EXPERIMENT 2026-08-25, kept: 0 aligns the capture button with the other
+    // three slots. The artboard raises it 22 pt, which reads as unaligned next
+    // to Log/Trends/Garage and collides with a screen's own save CTA.
     private static let captureRise: CGFloat = 0
 
-    /// The artboard's bottom padding (`padding: 10px 12px 28px` in
-    /// `HomeA.dc.html`). **It is not a safe-area inset and must not be added on
-    /// top of one** - the artboard is a browser page with no home indicator, so
-    /// those 28 px ARE the designer's allowance for it. The bar is drawn through
-    /// `safeAreaInset(edge: .bottom)`, which supplies the real inset (~34 pt on
-    /// an indicator device), and adding both left ~62 pt of dead space below the
-    /// labels against the artboard's 28 (P3.7).
-    private static let artboardBottomPadding: CGFloat = 28
-
-    /// The floor kept when the safe area already exceeds the artboard's
-    /// allowance: the labels sit this far above the home indicator rather than
-    /// touching it, which is the opposite mistake.
-    ///
-    /// 2 pt, chosen 2026-08-25 after looking at 28 (62 pt below the labels, the
-    /// double-count), 8 (42) and this. It cannot go below 0: the remaining
-    /// ~34 pt is the home-indicator inset, which belongs to the system - the
-    /// swipe-to-home band and the indicator pill both live there, so a control
-    /// placed in it is intercepted and drawn over.
-    private static let minBottomPadding: CGFloat = 2
-
-    /// Spend the artboard's allowance THROUGH the safe area, never on top of it.
-    /// On an indicator device this is the floor (~42 pt below the labels in
-    /// total); on a device without one - an SE - it is the artboard's exact 28.
     static func bottomPadding(safeAreaBottom: CGFloat) -> CGFloat {
-        max(minBottomPadding, artboardBottomPadding - safeAreaBottom)
+        TabBarMetrics.bottomPadding(safeAreaBottom: safeAreaBottom)
     }
 
-    /// The bar's height above the home-indicator safe area: top padding + the
-    /// capture circle (the tallest slot) + bottom padding. Anything that must
-    /// clear the bar (the delta toast) measures from this.
+    /// The bar's layout height for a given device.
     static func contentHeight(safeAreaBottom: CGFloat) -> CGFloat {
-        topPadding + captureSize + bottomPadding(safeAreaBottom: safeAreaBottom)
+        TabBarMetrics.contentHeight(safeAreaBottom: safeAreaBottom)
     }
 
-    /// The layout height on an indicator device, for the fixed clearances that
-    /// cannot read a live inset. Kept as the conservative (larger) of the two.
-    static let contentHeight: CGFloat = topPadding + captureSize + artboardBottomPadding
+    /// The conservative height, for clearances that cannot read a live inset.
+    static let contentHeight: CGFloat = TabBarMetrics.maximumContentHeight
 
     /// The bottom clearance scroll content needs so its last row clears the
     /// raised capture circle. `safeAreaInset` insets the content by the bar's
