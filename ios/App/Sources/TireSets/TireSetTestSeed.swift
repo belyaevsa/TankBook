@@ -10,8 +10,6 @@ import TankbookCore
 /// wipes the app database first so states are isolated within a run. The empty
 /// state needs no seed: `-homeResetDatabase` alone leaves nothing to list.
 enum TireSetTestSeed {
-    @MainActor private static var didResetForLaunch = false
-
     /// The odometer the seeded mount record anchors on, and the odometer the
     /// later fill raises the car to. Their difference - 18 400 km - is the
     /// mileage the artboard spells for "Winter Nokian".
@@ -26,9 +24,8 @@ enum TireSetTestSeed {
             || arguments.contains("-seedServiceEntryTires")
             || arguments.contains("-homeResetDatabase") else { return }
 
-        if arguments.contains("-homeResetDatabase"), !Self.didResetForLaunch {
-            try? AppStore.resetForTests()
-            Self.didResetForLaunch = true
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
         }
         guard arguments.contains("-seedTireSets")
             || arguments.contains("-seedTireSetsNoOdometer")

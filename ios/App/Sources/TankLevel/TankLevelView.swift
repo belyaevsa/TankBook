@@ -396,7 +396,7 @@ enum TankLevelTestSeed {
             || arguments.contains("-seedTankLevelNoCapacity")
             || arguments.contains("-homeResetDatabase") else { return }
         if arguments.contains("-homeResetDatabase") {
-            try? AppStore.resetForTests()
+            AppStore.resetForTestsOncePerLaunch()
         }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }

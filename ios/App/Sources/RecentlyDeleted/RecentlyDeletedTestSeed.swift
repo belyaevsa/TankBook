@@ -32,7 +32,7 @@ enum RecentlyDeletedTestSeed {
         guard shouldSeed || shouldReset else { return }
 
         if shouldReset {
-            try? AppStore.resetForTests()
+            AppStore.resetForTestsOncePerLaunch()
         }
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent (same contract as HomeTestSeed): a run that already

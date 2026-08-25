@@ -16,11 +16,27 @@ enum AppStore {
         return repository
     }
 
-    /// Wipes the on-device database so a UI test run can start each Home state
-    /// from a clean slate. Test-only: called from the Home seeding hook under
-    /// `-homeResetDatabase` (see HomeTestSeed). The cached repository must be
-    /// dropped first or GRDB would keep pointing at a deleted file.
-    static func resetForTests() throws {
+    /// True once the `-homeResetDatabase` wipe has run this process. Five seeds
+    /// (Home, Recently deleted, Tank level, Tire sets, Reminders) all reset on
+    /// that argument; each used to carry its own private flag, so a launch with
+    /// several `-seed*` arguments reset the database more than once and the
+    /// second reset wiped the first seed's data (P3.8). One gate on AppStore
+    /// makes the wipe run at most once per launch, no matter how many seeds see
+    /// the argument.
+    private static var didResetForLaunch = false
+
+    /// Wipes the on-device database so a UI test run can start each state from
+    /// a clean slate, at most once per process. Test-only: called from the
+    /// seeding hooks under `-homeResetDatabase` (see HomeTestSeed). The cached
+    /// repository must be dropped first or GRDB would keep pointing at a
+    /// deleted file.
+    static func resetForTestsOncePerLaunch() {
+        guard !Self.didResetForLaunch else { return }
+        Self.didResetForLaunch = true
+        try? resetForTests()
+    }
+
+    private static func resetForTests() throws {
         cached = nil
         let directory = try FileManager.default
             .url(for: .applicationSupportDirectory, in: .userDomainMask,

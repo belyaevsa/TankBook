@@ -11,23 +11,14 @@ import TankbookCore
 /// Everything sync-dependent (S2/S5/S7, reminder banner, guest chrome) is a
 /// presentation fixture in `HomePresentables` - no real data exists until P4.
 enum HomeTestSeed {
-    /// True once the `-homeResetDatabase` wipe has run for this launch. The
-    /// reset must NOT run again on a later `seedIfRequested` call: the Car
-    /// switcher and Vehicle detail both delegate here, and a change made in one
-    /// screen (an archive, a deletion) would be silently wiped when the next
-    /// screen's seed call re-reset the database. Once per launch keeps the
-    /// screenshot flow clean AND lets a change -> re-open flow survive.
-    @MainActor private static var didResetForLaunch = false
-
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains(where: { $0.hasPrefix("-seedHome") })
             || arguments.contains("-homeResetDatabase") else { return }
 
-        if arguments.contains("-homeResetDatabase"), !Self.didResetForLaunch {
-            try? AppStore.resetForTests()
-            Self.didResetForLaunch = true
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
         }
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent: a seed that has already run (or another test's seed) does

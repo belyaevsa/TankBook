@@ -10,17 +10,14 @@ import TankbookCore
 /// test run. The empty state needs no seed: `-homeResetDatabase` alone leaves
 /// nothing to list.
 enum ReminderTestSeed {
-    @MainActor private static var didResetForLaunch = false
-
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-seedReminders")
             || arguments.contains("-homeResetDatabase") else { return }
 
-        if arguments.contains("-homeResetDatabase"), !Self.didResetForLaunch {
-            try? AppStore.resetForTests()
-            Self.didResetForLaunch = true
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
         }
         guard arguments.contains("-seedReminders") else { return }
         guard let repository = try? AppStore.repository() else { return }
