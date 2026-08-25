@@ -25,6 +25,7 @@ struct ManualFillUpView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     /// The scanned-path input (P2.3). `nil` is the manual form with nothing
@@ -342,6 +343,9 @@ struct ManualFillUpView: View {
             }
             try repository.upsertFillUp(toSave)
             hasUnsavedChanges = false
+            // Odometer arming (P3.6): a save can cross a reminder's dueOdometer
+            // window; reconcile arms the notification at write time.
+            Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
             dismiss()
         } catch {
             Self.log.error("Manual fill-up save failed: \(error.localizedDescription, privacy: .public)")
@@ -370,10 +374,12 @@ struct ManualFillUpView: View {
         candidate.conflict = validations.first { $0.entryID == candidate.id }?.conflict ?? .none
         return candidate
     }
+}
 
-    // MARK: - Save bar
+// MARK: - Save bar
 
-    private var saveBar: some View {
+private extension ManualFillUpView {
+    var saveBar: some View {
         VStack(spacing: 8) {
             Button(action: save) {
                 Text(saveTitle())

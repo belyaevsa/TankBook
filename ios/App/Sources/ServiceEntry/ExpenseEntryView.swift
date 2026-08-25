@@ -63,6 +63,7 @@ struct ExpenseEntryView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
     @State private var form = ExpenseEntryFormState()
     @State private var vehicle: Vehicle?
@@ -188,7 +189,8 @@ struct ExpenseEntryView: View {
                 ReminderCompletionSession.persistCompletion(
                     reminder: pending.reminder, entryId: expense.id,
                     completionDate: pending.completionDate,
-                    completionOdometer: pending.completionOdometer)
+                    completionOdometer: pending.completionOdometer,
+                    coordinator: notificationCoordinator)
                 pendingCompletion = nil
             }
             hasUnsavedChanges = false

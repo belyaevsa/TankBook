@@ -17,6 +17,7 @@ struct ReminderFormView: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
     @State private var form = ReminderFormState()
     @State private var vehicle: Vehicle?
@@ -97,6 +98,19 @@ struct ReminderFormView: View {
                 try repository.upsertReminder(form.draft.applied(to: existing))
             } else {
                 try repository.upsertReminder(form.draft.build(vehicleId: vehicle.id))
+            }
+            // Arming: a create schedules its date notification and asks for
+            // permission at this first moment it is needed (never at launch);
+            // an edit/reschedule cancels the superseded notification and
+            // schedules the new one (docs/NOTIFICATIONS.md).
+            let vehicleId = vehicle.id
+            Task {
+                if isEditing {
+                    await notificationCoordinator.reconcile(vehicleId: vehicleId)
+                } else {
+                    await notificationCoordinator.requestPermissionIfFirstReminder(vehicleId: vehicleId)
+                    await notificationCoordinator.reconcile(vehicleId: vehicleId)
+                }
             }
             dismiss()
         } catch {

@@ -216,6 +216,12 @@ capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen
 capture P3.5-reminder-complete-prefill    en -seedReminderCompletionPrefill -presentScreen serviceEntry
 capture P3.5-reminder-complete-prefill-ru ru -seedReminderCompletionPrefill -presentScreen serviceEntry
 
+# P3.6: the one-time notification-permission card (denied) in place on the
+# Reminders list, EN and RU. `-notificationStatus denied` forces the
+# authorization state so the card renders without a real permission dialog.
+capture P3.6-notifications-denied    en -seedReminders -notificationStatus denied -presentScreen reminders
+capture P3.6-notifications-denied-ru ru -seedReminders -notificationStatus denied -presentScreen reminders
+
 # P3.3: the tire-set list (one set with derived mileage, one with "–") and the
 # ServiceEntry Tires mode mounting a set (odometer required, pre-filled).
 capture P3.3-tire-sets            en -seedTireSets -presentScreen tireSets

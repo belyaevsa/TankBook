@@ -23,6 +23,7 @@ struct ReminderCompleteSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @Environment(ReminderCompletionSession.self) private var completionSession
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
     /// The entry sheet opened by "Type amount" (nested over this one).
     @State private var entrySheet: SheetRoute?
@@ -260,7 +261,8 @@ struct ReminderCompleteSheet: View {
         ReminderCompletionSession.persistCompletion(
             reminder: reminder, entryId: nil,
             completionDate: completionDate,
-            completionOdometer: currentOdometer)
+            completionOdometer: currentOdometer,
+            coordinator: notificationCoordinator)
         dismiss()
     }
 
