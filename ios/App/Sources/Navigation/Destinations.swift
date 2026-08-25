@@ -66,6 +66,8 @@ struct SheetDestinationView: View {
         case .carSwitcher: CarSwitcherView(onNavigate: onNavigate)
         case .reminderComplete, .signIn: SheetPlaceholderContent()
         case .serviceEntry: ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges)
+        case .expenseEntry: ExpenseEntryView(hasUnsavedChanges: $hasUnsavedChanges)
+        case .partsShelf: PartsShelfView()
         }
     }
 }

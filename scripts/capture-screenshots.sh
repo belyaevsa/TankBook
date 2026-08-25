@@ -190,6 +190,13 @@ capture P3.1b-service-scan-ru         ru -seedServiceEntryScan -presentScreen se
 capture P3.1b-service-scan-lump-sum   en -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 capture P3.1b-service-scan-lump-sum-ru ru -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 
+# P3.2: the parts shelf (its visible "on shelf" state) and the ServiceEntry Link
+# row offering a matching shelf part.
+capture P3.2-parts-shelf       en -seedPartsShelf -presentScreen partsShelf
+capture P3.2-parts-shelf-ru    ru -seedPartsShelf -presentScreen partsShelf
+capture P3.2-service-link      en -seedServiceEntryLink -presentScreen serviceEntry
+capture P3.2-service-link-ru   ru -seedServiceEntryLink -presentScreen serviceEntry
+
 # P3.4: the Reminders list (attention + scheduled groups), the empty state,
 # and the reminder form. RU is where the trailing chip ("12 дней") and the
 # section labels ("ТРЕБУЕТ ВНИМАНИЯ") are tightest.

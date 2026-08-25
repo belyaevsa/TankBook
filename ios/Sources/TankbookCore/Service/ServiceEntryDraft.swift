@@ -42,10 +42,15 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     /// How the record was created. `.manual` for the typed path; `.receiptScan`
     /// for the scanned invoice path. A default, so the typed save is unchanged.
     public var provenance: Provenance
+    /// The shelf parts installed by this record (P3.2). Their ids are the
+    /// record's `usedParts`; their cost already counts on their own `.parts`
+    /// expenses, so this is provenance, never a price (docs/SCHEMA.md).
+    public var usedParts: [UUID]
 
     public init(vendor: String? = nil, items: [ServiceItem], date: Date,
                 odometer: Int? = nil, note: String? = nil, tireSetId: UUID? = nil,
-                attachments: [AttachmentID] = [], provenance: Provenance = .manual) {
+                attachments: [AttachmentID] = [], provenance: Provenance = .manual,
+                usedParts: [UUID] = []) {
         self.vendor = vendor
         self.items = items
         self.date = date
@@ -54,6 +59,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         self.tireSetId = tireSetId
         self.attachments = attachments
         self.provenance = provenance
+        self.usedParts = usedParts
     }
 
     /// Whether the form can save, as a decision the view and its tests share.
@@ -112,7 +118,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
             money: money, note: note?.isEmpty == false ? note : nil,
             attachments: attachments, provenance: provenance, conflict: .none,
             purchaseGroupId: nil, vendor: vendor?.isEmpty == false ? vendor : nil,
-            items: items, usedParts: [], tireSetId: tireSetId,
+            items: items, usedParts: usedParts, tireSetId: tireSetId,
             proposedReminderId: nil)
     }
 }

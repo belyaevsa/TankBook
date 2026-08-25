@@ -21,6 +21,8 @@ struct AppRootView: View {
     @State private var carSelection = AppCarSelection()
     /// Carries the scanned invoice pre-fill from Capture into ServiceEntry.
     @State private var invoiceSession = ServiceInvoiceSession()
+    /// Carries the expense-category pre-selection into the ExpenseEntry sheet.
+    @State private var expenseEntrySession = ExpenseEntrySession()
     @State private var tabSelection: AppTab
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
@@ -125,6 +127,7 @@ struct AppRootView: View {
         .environment(toastCenter)
         .environment(carSelection)
         .environment(invoiceSession)
+        .environment(expenseEntrySession)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }

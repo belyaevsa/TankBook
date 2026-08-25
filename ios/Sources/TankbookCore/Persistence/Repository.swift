@@ -168,15 +168,7 @@ extension TankbookRepository {
 
 extension TankbookRepository {
     public func upsertServiceRecord(_ service: ServiceRecord, syncState: SyncState = .dirty) throws {
-        try database.write { db in
-            try ServiceRecordRow(service: service, syncState: syncState).save(db)
-            // Items are an ordered value list: replace wholesale.
-            try db.execute(sql: "DELETE FROM \(TankbookSchema.serviceItem) WHERE serviceRecordId = ?",
-                           arguments: [service.id.uuidString])
-            for (position, item) in service.items.enumerated() {
-                try ServiceItemRow(serviceRecordId: service.id, position: position, item: item).insert(db)
-            }
-        }
+        try upsertServiceRecord(service, linkedParts: [], syncState: syncState)
     }
 
     public func softDeleteServiceRecord(id: UUID, at date: Date = Date()) throws {
