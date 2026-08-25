@@ -21,6 +21,7 @@ struct ServiceEntryView: View {
     @Environment(ServiceInvoiceSession.self) private var invoiceSession
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
     @State private var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -361,7 +362,8 @@ struct ServiceEntryView: View {
                 ReminderCompletionSession.persistCompletion(
                     reminder: pending.reminder, entryId: service.id,
                     completionDate: pending.completionDate,
-                    completionOdometer: pending.completionOdometer)
+                    completionOdometer: pending.completionOdometer,
+                    coordinator: notificationCoordinator)
                 pendingCompletion = nil
             }
             hasUnsavedChanges = false

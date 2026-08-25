@@ -33,7 +33,8 @@ extension ReminderCompletionSession {
     static func persistCompletion(reminder: Reminder,
                                   entryId: UUID?,
                                   completionDate: Date,
-                                  completionOdometer: Int?) {
+                                  completionOdometer: Int?,
+                                  coordinator: ReminderNotificationCoordinator) {
         do {
             let repository = try AppStore.repository()
             let result = ReminderLifecycle.complete(
@@ -41,6 +42,12 @@ extension ReminderCompletionSession {
                 completionDate: completionDate,
                 completionOdometer: completionOdometer)
             try ReminderCompletion.persist(result, repository: repository)
+            // Completing resolves the reminder's reason: cancel its pending
+            // notification, and arm the next occurrence (if recurrence created
+            // one) - the coordinator's reconcile does both (docs/NOTIFICATIONS.md
+            // -> Cancellation).
+            let vehicleId = reminder.vehicleId
+            Task { await coordinator.reconcile(vehicleId: vehicleId) }
         } catch {
             let log = Logger(subsystem: "app.tankbook", category: "reminderCompletion")
             log.error("Completion persist failed: \(error.localizedDescription, privacy: .public)")

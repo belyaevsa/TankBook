@@ -1,5 +1,6 @@
 import os
 import SwiftUI
+import UIKit
 import TankbookCore
 
 /// The Reminders screen (P3.4) - design/screens/Reminders.dc.html. A pushed
@@ -15,6 +16,7 @@ import TankbookCore
 /// stays close to the artboard.
 struct RemindersView: View {
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
     @State private var reminders: [Reminder] = []
     @State private var vehicle: Vehicle?
@@ -45,6 +47,9 @@ struct RemindersView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 10) {
+                if notificationCoordinator.showsDeniedCard {
+                    deniedCard
+                }
                 if reminders.isEmpty {
                     emptyState
                 } else {
@@ -166,10 +171,69 @@ struct RemindersView: View {
             let repository = try AppStore.repository()
             try repository.softDeleteReminder(id: target.id)
             deleteTarget = nil
+            // Deletion tombstones the row out of `liveReminders`, so the plan
+            // cannot see it - cancel its pending notifications directly.
+            Task { await notificationCoordinator.cancelNotifications(for: target) }
             reload()
         } catch {
             Self.log.error("Delete failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    // MARK: - Denied card
+
+    /// The one-time notification-permission card (docs/ERRORS.md -> Reminders:
+    /// "Reminders can't notify you - they'll only show here."). Shown once while
+    /// permission is denied and reminders exist; "Fine as is" dismisses it for
+    /// good, "Enable" deep-links to Settings. Never a nag loop.
+    private var deniedCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: "bell.slash")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.taillight)
+                Text("Reminders can't notify you – they'll only show here.")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.ink)
+            }
+            HStack(spacing: 8) {
+                deniedAction("Enable", identifier: "remindersPermissionEnableButton",
+                             action: openSettings)
+                deniedAction("Fine as is", identifier: "remindersPermissionFineButton") {
+                    notificationCoordinator.dismissDeniedCard()
+                }
+            }
+        }
+        .padding(Theme.Spacing.cardPadding)
+        .background(Theme.Palette.dash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .stroke(Theme.Palette.hairline, lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("remindersDeniedCard")
+    }
+
+    private func deniedAction(_ label: LocalizedStringKey,
+                              identifier: String,
+                              action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.ink)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(Theme.Palette.midnight))
+                .overlay(Capsule().stroke(Theme.Palette.ink.opacity(0.15), lineWidth: 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     // MARK: - Empty state
@@ -236,7 +300,7 @@ struct RemindersView: View {
         guard !didLoad else { return }
         didLoad = true
         ReminderTestSeed.seedIfRequested()
-        reload()
+        await refresh()
         #if DEBUG
         // `-presentReminderComplete`: open the completion sheet for the first
         // active reminder, so simctl-driven screenshots can capture the sheet
@@ -249,6 +313,14 @@ struct RemindersView: View {
     }
 
     private func reload() {
+        Task { await refresh() }
+    }
+
+    /// Loads the vehicle, its current odometer and the reconciled active
+    /// reminders. The stored `.attention` transition and the notification arming
+    /// both live in the coordinator: it persists the transition (so an odometer
+    /// crossing arms once) and applies the plan (schedule + cancel).
+    private func refresh() async {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -262,24 +334,8 @@ struct RemindersView: View {
             let entries = try repository.liveEntries(forVehicle: vehicle.id)
             currentOdometer = entries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
 
-            // The stored .attention transition: persist the read-time
-            // derivation so P3.6's notifications fire once, not on every
-            // recompute (docs/SCHEMA.md -> Reminder). Terminal rows never
-            // re-derive (no re-firing of past events) - and they never render
-            // here: `.done`/`.dismissed` are history ("oil changed 3× on
-            // time"), not Scheduled rows.
-            let now = Date()
-            reminders = try repository.liveReminders(forVehicle: vehicle.id)
+            reminders = await notificationCoordinator.reconcile(vehicleId: vehicle.id)
                 .filter { ReminderLifecycle.isActive($0) }
-                .map { reminder in
-                    let derived = ReminderLifecycle.derivedStatus(
-                        reminder, currentOdometer: currentOdometer, now: now)
-                    guard derived != reminder.status else { return reminder }
-                    var updated = reminder
-                    updated.status = derived
-                    try? repository.upsertReminder(updated)
-                    return updated
-                }
         } catch {
             Self.log.error("Reminders load failed: \(error.localizedDescription, privacy: .public)")
         }

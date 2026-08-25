@@ -151,4 +151,41 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(itemTitle.isEnabled, "the pre-filled title must stay editable")
         XCTAssertTrue(odometer.isEnabled, "the pre-filled odometer must stay editable")
     }
+
+    // MARK: - P3.6 notification permission
+
+    /// The one-time denied card (docs/ERRORS.md -> Reminders) renders when
+    /// notification permission is denied and reminders exist.
+    func testNotificationDeniedCardRenders() {
+        let app = launch(["-notificationStatus", "denied", "-seedReminders"])
+
+        XCTAssertTrue(app.otherElements["remindersDeniedCard"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Reminders can't notify you – they'll only show here."].exists)
+        XCTAssertTrue(app.buttons["remindersPermissionEnableButton"].exists)
+        XCTAssertTrue(app.buttons["remindersPermissionFineButton"].exists)
+    }
+
+    /// Nothing is notification-gated (hard rule 1): a reminder created while
+    /// notifications are denied still saves and still shows in the list.
+    func testReminderSavesDespiteNotificationsDenied() {
+        let app = launch(["-notificationStatus", "denied", "-seedReminders"])
+
+        let newButton = app.buttons["remindersNewReminderButton"]
+        XCTAssertTrue(newButton.waitForExistence(timeout: 10))
+        newButton.tap()
+
+        let title = app.textFields["reminderFormTitleField"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.tap()
+        title.typeText("Brake check")
+
+        app.buttons["reminderFormAddDateButton"].tap()
+
+        let save = app.buttons["reminderFormSaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.staticTexts["Brake check"].waitForExistence(timeout: 10),
+                      "a reminder saved under a denied notification state still shows in the list")
+    }
 }
