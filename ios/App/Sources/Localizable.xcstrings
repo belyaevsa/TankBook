@@ -500,6 +500,23 @@
         }
       }
     },
+    "Accessory": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accessory"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аксессуар"
+          }
+        }
+      }
+    },
     "Account & devices": {
       "extractionState": "manual",
       "localizations": {
@@ -636,6 +653,23 @@
         }
       }
     },
+    "Add page": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add page"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить страницу"
+          }
+        }
+      }
+    },
     "Add your first car": {
       "extractionState": "manual",
       "localizations": {
@@ -683,6 +717,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добавлен %@"
+          }
+        }
+      }
+    },
+    "Adds as expense · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adds as expense · %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записать как расход · %@"
+          }
+        }
+      }
+    },
+    "Also on this receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Also on this receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Также в этом чеке"
           }
         }
       }
@@ -1843,6 +1911,23 @@
         }
       }
     },
+    "Fine": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fine"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Штраф"
+          }
+        }
+      }
+    },
     "Fine-tune": {
       "extractionState": "manual",
       "localizations": {
@@ -2132,6 +2217,23 @@
         }
       }
     },
+    "In %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В %@"
+          }
+        }
+      }
+    },
     "Inspection": {
       "extractionState": "manual",
       "localizations": {
@@ -2145,6 +2247,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Осмотр"
+          }
+        }
+      }
+    },
+    "Insurance": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страховка"
           }
         }
       }
@@ -2353,23 +2472,6 @@
         }
       }
     },
-    "last known": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "last known"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "последний известный"
-          }
-        }
-      }
-    },
     "LPG": {
       "extractionState": "manual",
       "localizations": {
@@ -2502,6 +2604,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Марка · модель · год"
+          }
+        }
+      }
+    },
+    "Manual": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вручную"
           }
         }
       }
@@ -2710,6 +2829,40 @@
         }
       }
     },
+    "Not car-related · skipped": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not car-related · skipped"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не относится к авто · пропущено"
+          }
+        }
+      }
+    },
+    "Not logged": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not logged"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не записывается"
+          }
+        }
+      }
+    },
     "Note": {
       "extractionState": "manual",
       "localizations": {
@@ -2846,6 +2999,23 @@
         }
       }
     },
+    "Other": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Other"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прочее"
+          }
+        }
+      }
+    },
     "Overwritten by sync": {
       "extractionState": "manual",
       "localizations": {
@@ -2859,6 +3029,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Перезаписано синхронизацией"
+          }
+        }
+      }
+    },
+    "Page %1$@ of %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Page %1$@ of %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страница %1$@ из %2$@"
+          }
+        }
+      }
+    },
+    "Parking": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parking"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Парковка"
+          }
+        }
+      }
+    },
+    "Parts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запчасти"
           }
         }
       }
@@ -3067,6 +3288,23 @@
         }
       }
     },
+    "Receipt total %1$@ · logging %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipt total %1$@ · logging %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сумма по чеку %1$@ · записано %2$@"
+          }
+        }
+      }
+    },
     "Receipts, pump displays and fiscal QR are detected automatically": {
       "extractionState": "manual",
       "localizations": {
@@ -3165,6 +3403,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Напоминания"
+          }
+        }
+      }
+    },
+    "Remove page": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove page"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить страницу"
           }
         }
       }
@@ -3288,6 +3543,59 @@
         }
       }
     },
+    "Save fill-up + %lld expenses": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Save fill-up + %lld expense"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Save fill-up + %lld expenses"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + %lld расход"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + %lld расхода"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + %lld расходов"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Сохранить заправку + %lld расходов"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Save service": {
       "extractionState": "manual",
       "localizations": {
@@ -3301,6 +3609,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сохранить сервис"
+          }
+        }
+      }
+    },
+    "Scan invoice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan invoice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканировать счёт"
           }
         }
       }
@@ -3747,6 +4072,23 @@
         }
       }
     },
+    "Tax": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tax"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налог"
+          }
+        }
+      }
+    },
     "That's the total distance the car has driven – check the dashboard.": {
       "extractionState": "manual",
       "localizations": {
@@ -3781,6 +4123,23 @@
         }
       }
     },
+    "Tires": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tires"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шины"
+          }
+        }
+      }
+    },
     "Title": {
       "extractionState": "manual",
       "localizations": {
@@ -3794,6 +4153,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Название"
+          }
+        }
+      }
+    },
+    "Toll": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toll"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Платная дорога"
           }
         }
       }
@@ -3968,6 +4344,23 @@
         }
       }
     },
+    "Wash": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wash"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мойка"
+          }
+        }
+      }
+    },
     "Welcome to Tankbook": {
       "extractionState": "manual",
       "localizations": {
@@ -4049,6 +4442,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "проверяется по мере ввода"
+          }
+        }
+      }
+    },
+    "converts when online": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "converts when online"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "пересчитается онлайн"
           }
         }
       }
@@ -4191,6 +4601,23 @@
         }
       }
     },
+    "invoice": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "invoice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "счёт"
+          }
+        }
+      }
+    },
     "kWh": {
       "extractionState": "manual",
       "localizations": {
@@ -4308,6 +4735,23 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "last known": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "last known"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "последний известный"
           }
         }
       }
@@ -4597,365 +5041,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "≈ – · пересчитается онлайн"
-          }
-        }
-      }
-    },
-    "Accessory": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accessory"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Аксессуар"
-          }
-        }
-      }
-    },
-    "Adds as expense · %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adds as expense · %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записать как расход · %@"
-          }
-        }
-      }
-    },
-    "Also on this receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Also on this receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Также в этом чеке"
-          }
-        }
-      }
-    },
-    "Fine": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fine"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Штраф"
-          }
-        }
-      }
-    },
-    "Insurance": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Insurance"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Страховка"
-          }
-        }
-      }
-    },
-    "Not car-related · skipped": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not car-related · skipped"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не относится к авто · пропущено"
-          }
-        }
-      }
-    },
-    "Not logged": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not logged"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не записывается"
-          }
-        }
-      }
-    },
-    "Other": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прочее"
-          }
-        }
-      }
-    },
-    "Parking": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parking"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Парковка"
-          }
-        }
-      }
-    },
-    "Parts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parts"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запчасти"
-          }
-        }
-      }
-    },
-    "Receipt total %1$@ · logging %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receipt total %1$@ · logging %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сумма по чеку %1$@ · записано %2$@"
-          }
-        }
-      }
-    },
-    "Save fill-up + %lld expenses": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Save fill-up + %lld expense"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Save fill-up + %lld expenses"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расход"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расхода"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расходов"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расходов"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Tax": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tax"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Налог"
-          }
-        }
-      }
-    },
-    "Tires": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tires"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Шины"
-          }
-        }
-      }
-    },
-    "Toll": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toll"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Платная дорога"
-          }
-        }
-      }
-    },
-    "Wash": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wash"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Мойка"
-          }
-        }
-      }
-    },
-    "In %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "В %@"
-          }
-        }
-      }
-    },
-    "converts when online": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "converts when online"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "пересчитается онлайн"
-          }
-        }
-      }
-    },
-    "Manual": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вручную"
           }
         }
       }

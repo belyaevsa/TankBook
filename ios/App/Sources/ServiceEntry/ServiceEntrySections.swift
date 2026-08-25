@@ -135,20 +135,29 @@ struct ServiceEntryDateOdometerCard: View {
             Button {
                 withAnimation(.easeInOut(duration: 0.2)) { showDatePicker.toggle() }
             } label: {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(form.date.formatted(.dateTime.month(.abbreviated).day().year()))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Theme.Palette.ink)
-                    if let provenanceCaption {
-                        Text("·")
-                            .foregroundStyle(Theme.Palette.inkSoft)
-                        Text(provenanceCaption)
-                            .font(.caption)
+                // The caption sits on its OWN line, exactly as the odometer's
+                // "last known" does. Inline, it pushed the year onto a second
+                // line in BOTH languages ("Aug 9, · invoice" / "2026" and
+                // "9 авг. · счёт" / "2026 г.") - the date card is the narrowest
+                // half of a two-up row, and a date plus a caption plus a chevron
+                // does not fit it in any language.
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(form.date.formatted(.dateTime.month(.abbreviated).day().year()))
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Theme.Palette.ink)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
                             .foregroundStyle(Theme.Palette.inkSoft)
                     }
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.Palette.inkSoft)
+                    if let provenanceCaption {
+                        Text(provenanceCaption)
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                            .lineLimit(1)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -241,12 +250,19 @@ struct ServiceEntryItemCard: View {
     @Binding var item: ServiceEntryItemDraft
     let onDelete: () -> Void
 
+    /// A scanned row renders dimmed until the user edits it (hard rule 13: the
+    /// scanned value is a default input, never read-only). Editing any field
+    /// lifts the dim; the shared DESIGN.md 60% opacity keeps it consistent with
+    /// the confirm sheet's treatment.
+    private var isDimmed: Bool { item.scanned }
+
     var body: some View {
         VStack(spacing: 8) {
             HStack(alignment: .firstTextBaseline, spacing: 11) {
                 TextField("Item name", text: $item.title)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Palette.ink)
+                    .opacity(isDimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
                     .accessibilityIdentifier("serviceEntryItemTitle")
                 TextField("", text: $item.cost)
                     .keyboardType(.decimalPad)
@@ -254,10 +270,12 @@ struct ServiceEntryItemCard: View {
                     .font(.custom(AppFonts.dinAlternateBold, size: 15))
                     .foregroundStyle(Theme.Palette.ink)
                     .frame(maxWidth: 96)
+                    .opacity(isDimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
                     .accessibilityIdentifier("serviceEntryItemCost")
             }
             HStack {
                 categoryMenu
+                    .opacity(isDimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
                 Spacer(minLength: 8)
                 deleteButton
             }
@@ -270,6 +288,15 @@ struct ServiceEntryItemCard: View {
         }
         .padding(13)
         .formCard()
+        .onChange(of: item.title) { _, _ in confirm() }
+        .onChange(of: item.cost) { _, _ in confirm() }
+        .onChange(of: item.category) { _, _ in confirm() }
+    }
+
+    /// Editing a scanned row is its confirmation: the dim lifts and the value
+    /// is the user's own from now on.
+    private func confirm() {
+        if item.scanned { item.scanned = false }
     }
 
     private var categoryMenu: some View {

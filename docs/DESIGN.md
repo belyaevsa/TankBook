@@ -127,6 +127,7 @@ All three degrade to crossfades under Reduce Motion.
 - The app talks in the user's metrics, immediately: after saving, the confirmation is not "Entry saved" but "6.8 L/100km – your best this year."
 - Errors say what happened and what to do: "Couldn't read the price. Tap to type it." Never apologetic, never vague.
 - Numbers respect the user's locale (comma decimals where applicable) and the entry's original currency, with home currency in `inkSoft` beneath.
+- **Money renders amount-then-symbol, always, separated by a no-break space**: `390 €`, `68.46 €`, `1.679 €` - never `€390`. One screen must not carry two conventions, and until 2026-08-25 Home did exactly that (the spend tile and month divider printed `€390` directly above rows printing `68.46 €`). The artboards draw amount-then-symbol five times against a single `€212`, and the examples in this document have always done the same, so the symbol-first form was the outlier. The separator is **U+00A0**, not the `&thinsp;` the artboards write: DIN Alternate has no glyph for U+2009 and drops it silently (see `OdometerFormat`), and a plain space would let a figure break across lines.
 
 ## Accessibility floor
 

@@ -35,15 +35,25 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     /// already honours it so the odometer requirement cannot silently change
     /// when tire sets land.
     public var tireSetId: UUID?
+    /// The scanned invoice's pages (P3.1b): captured attachments linked to this
+    /// record on save. Empty for the typed path (P3.1a) - a default, so the
+    /// typed save path is byte-identical to before.
+    public var attachments: [AttachmentID]
+    /// How the record was created. `.manual` for the typed path; `.receiptScan`
+    /// for the scanned invoice path. A default, so the typed save is unchanged.
+    public var provenance: Provenance
 
     public init(vendor: String? = nil, items: [ServiceItem], date: Date,
-                odometer: Int? = nil, note: String? = nil, tireSetId: UUID? = nil) {
+                odometer: Int? = nil, note: String? = nil, tireSetId: UUID? = nil,
+                attachments: [AttachmentID] = [], provenance: Provenance = .manual) {
         self.vendor = vendor
         self.items = items
         self.date = date
         self.odometer = odometer
         self.note = note
         self.tireSetId = tireSetId
+        self.attachments = attachments
+        self.provenance = provenance
     }
 
     /// Whether the form can save, as a decision the view and its tests share.
@@ -89,6 +99,8 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     /// same conversion a typed or scanned form produces - never a hand-rolled
     /// record. `money` is the item-sum total; a record whose items carry no cost
     /// (a free inspection) saves with no money rather than a fabricated zero.
+    /// Attachments and provenance ride through for the scanned path (P3.1b) and
+    /// default to empty/`.manual` for the typed path (P3.1a).
     public func build(vehicleId: UUID, homeCurrency: CurrencyCode,
                       now: Date = Date()) -> ServiceRecord {
         let money = total > Decimal.zero
@@ -98,7 +110,7 @@ public struct ServiceEntryDraft: Equatable, Sendable {
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicleId, date: date, odometer: odometer,
             money: money, note: note?.isEmpty == false ? note : nil,
-            attachments: [], provenance: .manual, conflict: .none,
+            attachments: attachments, provenance: provenance, conflict: .none,
             purchaseGroupId: nil, vendor: vendor?.isEmpty == false ? vendor : nil,
             items: items, usedParts: [], tireSetId: tireSetId,
             proposedReminderId: nil)

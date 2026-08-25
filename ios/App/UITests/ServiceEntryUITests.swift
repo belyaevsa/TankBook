@@ -12,9 +12,12 @@ final class ServiceEntryUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch() -> XCUIApplication {
+    private func launch(_ seed: String = "-seedVehicleForUITests") -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-seedVehicleForUITests", "-presentScreen", "serviceEntry"]
+        // The reset travels with every seed: seeds are idempotent and silently
+        // do nothing on a populated database, which renders a different screen
+        // while the capture or assertion still looks plausible.
+        app.launchArguments = ["-homeResetDatabase", seed, "-presentScreen", "serviceEntry"]
         app.launch()
         return app
     }
@@ -59,5 +62,61 @@ final class ServiceEntryUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Keep editing"].exists)
         app.buttons["Keep editing"].tap()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 5))
+    }
+
+    // MARK: - P3.1b, the scanned half
+
+    /// The page strip renders only for a scanned record, and the ordinary typed
+    /// sheet stays exactly the sheet P3.1a shipped (hard rule 15: one screen,
+    /// two doors - the scan adds to it, it does not replace it).
+    func testThePageStripRendersOnlyForAScannedRecord() {
+        // The identifier sits on a horizontal ScrollView, so it surfaces as
+        // `.scrollView` - `otherElements` does not match it. The negative case
+        // below queries EVERY type on purpose: a strip leaking onto the typed
+        // sheet would be a bug whatever view it happened to be built from.
+        let scanned = launch("-seedServiceEntryScan")
+        XCTAssertTrue(scanned.scrollViews["serviceEntryPageStrip"].waitForExistence(timeout: 10))
+        XCTAssertTrue(scanned.staticTexts["serviceEntryPageCounter"].exists)
+        XCTAssertTrue(scanned.buttons["serviceEntryAddPageButton"].exists)
+        scanned.terminate()
+
+        let typed = launch("-seedServiceEntry")
+        XCTAssertTrue(typed.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10))
+        XCTAssertFalse(typed.descendants(matching: .any)["serviceEntryPageStrip"].exists,
+                       "a typed record must not grow a page strip")
+    }
+
+    /// Hard rule 13: a scanned value is a default input, not a fact. Every
+    /// scanned row must still be editable - the dimming is presentation, never
+    /// a lock. This is the assertion that catches a read-only pre-fill, which
+    /// looks correct in a screenshot and is a bug.
+    func testScannedLineItemsStayEditable() {
+        let app = launch("-seedServiceEntryScan")
+        let title = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 10))
+        XCTAssertTrue(title.isEnabled, "a scanned title must remain editable")
+
+        let cost = app.textFields["serviceEntryItemCost"].firstMatch
+        XCTAssertTrue(cost.exists)
+        XCTAssertTrue(cost.isEnabled, "a scanned cost must remain editable")
+
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        XCTAssertTrue(odometer.exists)
+        XCTAssertTrue(odometer.isEnabled, "the odometer stays editable after a scan")
+    }
+
+    /// J7: a failed split is the lump sum, and the lump sum is a normal record -
+    /// "never force itemization". So the honest failure state carries no error
+    /// text, no warning badge, and a save button that works.
+    func testAFailedSplitShowsNoErrorAndStillSaves() {
+        let app = launch("-seedServiceEntryScanLumpSum")
+        XCTAssertTrue(app.textFields["serviceEntryItemTitle"].firstMatch.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.scrollViews["serviceEntryPageStrip"].exists,
+                      "the bill stays attached to the lump sum")
+        XCTAssertFalse(app.staticTexts["serviceEntryOdometerWarning"].exists)
+
+        let save = app.buttons["serviceEntrySaveButton"]
+        XCTAssertTrue(save.exists)
+        XCTAssertTrue(save.isEnabled, "a lump sum with the bill attached is a perfectly good record")
     }
 }

@@ -76,6 +76,13 @@ enum L10n {
 
     static var kWh: String { localize("kWh") }
 
+    /// "Page 1 of 3" - the invoice page strip's counter. A full localised phrase
+    /// per language, never concatenation (RU word order differs: "Страница 1 из
+    /// 3"). The numbers are runtime data, the phrase is one catalogue key.
+    static func pageOf(current: Int, total: Int) -> String {
+        String(format: localize("Page %1$@ of %2$@"), "\(current)", "\(total)")
+    }
+
     /// The archived-car row subtitle (J13): "Archived · sold Mar 2026 · history
     /// kept" from `archivedAt`, or the bare "Archived · history kept" when the
     /// car was archived without a date. The month-year string is produced by a

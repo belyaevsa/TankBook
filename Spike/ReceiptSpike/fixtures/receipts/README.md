@@ -471,3 +471,50 @@ not the fuel amount - the 3058.00 paid is the fiscal total minus the 1295.93 bon
 discount. The ported parser therefore reads the volume (63.000) from that line but
 returns `unitPrice = nil` and the grand total when it sees "скидка", treating the
 list price as a suggestion the user may correct, never a fact (hard rule 13).
+
+### 6. `receipt-033` - Kazakhstan, and a pair the ladder refuses to guess
+
+`receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg` (ЛУКОЙЛ Лубрикантс Центральная Азия, Astana,
+24.08.2026) is the corpus's first **KZ tenge** receipt and brings four things nothing else has:
+**VAT 16%** (a third rate), a **Kazakh/Russian bilingual layout**, a **kofd.kz** fiscal QR rather
+than a ФНС one, and a **money-first purchase** - the driver bought exactly 6000 ₸, so the volume
+is the odd number rather than the total.
+
+Vision reads every line at confidence **1.00**. The two parsers then disagree:
+
+| | liters | price | total |
+|---|---|---|---|
+| Spike CLI | 24.690 | 243.00 | 6000.00 |
+| **shipped `TankbookCore`** | **nil** | **nil** | 6000.00 |
+
+**That is the ladder working, not failing.** The line is `24.690 Х 243.00=6000.00` - an
+**unmarked** operand pair: no `л`, no `₸`, no labelled column, so nothing in the document says
+which operand is the volume. Probing the shapes settles it:
+
+```
+"24.690 X 243.00=6000.00"    -> liters nil,   price nil
+"24.690 л X 243.00=6000.00"  -> liters 24.69, price 243.00
+```
+
+Returning nil for an unmarked pair is the hard-rule-13 behaviour P2.2 introduced deliberately, and
+it is why `screenshots` was re-baselined 3/3 -> 1/3 (see `HIGH-WATER.md`). The Spike guesses and
+happens to be right here; on `receipt-007` the same guessing swapped the operands and the
+arithmetic cross-check reported PASS, because `a x b == b x a`.
+
+**But this fixture points at a principled resolver the ladder does not yet use.** The volume is
+printed to **three** decimals and the price to **two** - litres to the millilitre is a real CIS
+receipt convention, unlike the earlier `25,52 X 70.92` case where both operands carried two
+decimals and the old code won by iteration order. A "exactly one operand has three decimals ->
+that one is the volume" rule would resolve this pair for a reason rather than by luck. Filed as
+**P2.9**.
+
+Two more findings from this one photo:
+
+- **The printed product is inconsistent**: `24.690 x 243.00 = 5999.67`, but the receipt prints
+  `6000.00`. The volume is rounded for display while the money is exact - a money-first fill. The
+  CHECK 3 tolerance (`max(0.02, 6000 x 0.005) = 30`) absorbs it comfortably, which is the tolerance
+  earning its keep.
+- **Currency is not detected.** The tenge marker `тг` OCRs as `гг`, and neither parser resolves
+  KZT. Filed as **P2.10**; `docs/SCHEMA.md` types money as a pair, so an undetected currency is a
+  fill-up that cannot be converted.
+

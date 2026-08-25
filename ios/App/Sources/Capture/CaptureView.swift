@@ -21,6 +21,7 @@ import UIKit
 struct CaptureView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ServiceInvoiceSession.self) private var invoiceSession
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     @State private var mode: CaptureMode = .fillUpAuto
@@ -29,6 +30,7 @@ struct CaptureView: View {
     @State private var hasUnsavedChanges = false
     @State private var resolved = false
     @State private var pickedImage: UIImage?
+    @State private var showDocumentCamera = false
 
     /// The selected car's powertrain, which decides the mode row
     /// (`CaptureMode.modes(for:)`). Defaults to `.ice` so the screen renders
@@ -40,13 +42,19 @@ struct CaptureView: View {
     private let authorizer: CameraAuthorizing
     private let injectedDetection: CaptureDetection?
     private let injectedPowertrain: Powertrain?
+    /// The Capture -> ServiceEntry exit (SCREENMAP.md): called once the Service
+    /// invoice has been scanned and processed, so the presenting tab can close
+    /// this cover and open the ServiceEntry sheet.
+    private let onServiceEntry: () -> Void
 
     init(authorizer: CameraAuthorizing = SystemCameraAuthorizer(),
          injectedDetection: CaptureDetection? = nil,
-         injectedPowertrain: Powertrain? = nil) {
+         injectedPowertrain: Powertrain? = nil,
+         onServiceEntry: @escaping () -> Void = {}) {
         self.authorizer = authorizer
         self.injectedDetection = injectedDetection
         self.injectedPowertrain = injectedPowertrain
+        self.onServiceEntry = onServiceEntry
     }
 
     var body: some View {
@@ -80,6 +88,13 @@ struct CaptureView: View {
                 )) { image in
                     pickedImage = image
                 }
+            case .documentCamera:
+                DocumentCamera(
+                    onCancel: { activeSheet = nil },
+                    onResult: { images in
+                        activeSheet = nil
+                        scanServiceInvoice(images)
+                    })
             }
         }
     }
@@ -344,21 +359,12 @@ struct CaptureView: View {
         .accessibilityIdentifier("captureTypeItButton")
     }
 
-    /// The shutter circle from the artboard - decorative until the capture
-    /// pipeline lands (P2.2+), so it is hidden from accessibility as a
-    /// non-action.
+    /// The shutter circle. In Service mode it is the door into the document
+    /// camera (J7: "document camera, multi-page"); in the other modes it is
+    /// still decorative (those capture paths land in later tasks). Hidden from
+    /// accessibility in the modes where it does nothing.
     private var shutter: some View {
-        ZStack {
-            Circle()
-                .fill(Theme.Palette.taillight)
-                .frame(width: 76, height: 76)
-                .overlay(Circle().stroke(Theme.Palette.ink, lineWidth: 4))
-                .shadow(color: Theme.Palette.taillight.opacity(0.45), radius: 18, y: 4)
-            Circle()
-                .stroke(Theme.Palette.ink, lineWidth: 2.2)
-                .frame(width: 30, height: 30)
-        }
-        .accessibilityHidden(true)
+        shutterButton
     }
 }
 
@@ -370,88 +376,49 @@ struct CaptureView: View {
 private enum CaptureSheet: String, Identifiable {
     case manualForm
     case photoPicker
+    case documentCamera
 
     var id: String { rawValue }
 }
 
-// MARK: - Detection frame
+// MARK: - Service invoice capture (P3.1b)
 
-/// The taillight corner brackets + receipt card over the detected surface
-/// (design/screens/Capture.dc.html). Presentation only in P2.1: the lines come
-/// from an injected `CaptureDetection` and are rendered verbatim (they are
-/// simulated OCR data, not copy, so they never go through the String Catalog).
-struct DetectionFrame: View {
-    let lines: [String]
-
-    var body: some View {
-        ZStack {
-            DetectionCorners()
-                .stroke(Theme.Palette.taillight,
-                        style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
-            receiptCard
-                .padding(.horizontal, 30)
-                .padding(.vertical, 26)
-                .rotationEffect(.degrees(-2))
+private extension CaptureView {
+    /// The document camera returned pages: OCR them, split deterministically,
+    /// persist the pages, hand the pre-fill to ServiceEntry and leave Capture.
+    /// The pre-fill is default input the user edits (hard rule 13) - a failed
+    /// split is the lump sum, never an error.
+    func scanServiceInvoice(_ images: [UIImage]) {
+        Task {
+            let prefill = await ServiceInvoiceScanner.process(images: images)
+            invoiceSession.pendingPrefill = prefill
+            onServiceEntry()
         }
-        .frame(width: 250, height: 330)
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("captureDetectionFrame")
     }
 
-    private var receiptCard: some View {
-        VStack(spacing: 8) {
-            Text(lines.first ?? "")
-                .font(.system(size: 10, design: .monospaced))
-                .multilineTextAlignment(.center)
-            Rectangle()
-                .stroke(Theme.Palette.inkSoft.opacity(0.5),
-                        style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                .frame(height: 1)
-            ForEach(lines.dropFirst(), id: \.self) { line in
-                Text(line)
-                    .font(.system(size: 8, design: .monospaced))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+    /// The shutter circle. In Service mode it is the door into the document
+    /// camera (J7: "document camera, multi-page"); in the other modes it is
+    /// still decorative (those capture paths land in later tasks). Hidden from
+    /// accessibility in the modes where it does nothing.
+    var shutterButton: some View {
+        let isService = mode == .service
+        return Button {
+            if isService { activeSheet = .documentCamera }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Theme.Palette.taillight)
+                    .frame(width: 76, height: 76)
+                    .overlay(Circle().stroke(Theme.Palette.ink, lineWidth: 4))
+                    .shadow(color: Theme.Palette.taillight.opacity(0.45), radius: 18, y: 4)
+                Circle()
+                    .stroke(Theme.Palette.ink, lineWidth: 2.2)
+                    .frame(width: 30, height: 30)
             }
         }
-        .foregroundStyle(Theme.Palette.ink)
-        .padding(12)
-        .background(Theme.Palette.dash)
-        .clipShape(RoundedRectangle(cornerRadius: 3))
-        .shadow(color: Theme.Palette.midnight.opacity(0.55), radius: 12, y: 4)
+        .buttonStyle(.plain)
+        .accessibilityLabel("Scan invoice")
+        .accessibilityIdentifier("captureShutterButton")
+        .accessibilityHidden(!isService)
     }
 }
-
-/// The four corner brackets (artboard: 34pt arms, 8pt corner radius).
-private struct DetectionCorners: Shape {
-    private let arm: CGFloat = 30
-    private let radius: CGFloat = 8
-
-    func path(in rect: CGRect) -> Path {
-        let width = rect.width
-        let height = rect.height
-        var path = Path()
-        path.move(to: CGPoint(x: arm, y: 0))
-        path.addLine(to: CGPoint(x: radius, y: 0))
-        path.addQuadCurve(to: CGPoint(x: 0, y: radius), control: CGPoint(x: 0, y: 0))
-        path.addLine(to: CGPoint(x: 0, y: arm))
-
-        path.move(to: CGPoint(x: width - arm, y: 0))
-        path.addLine(to: CGPoint(x: width - radius, y: 0))
-        path.addQuadCurve(to: CGPoint(x: width, y: radius), control: CGPoint(x: width, y: 0))
-        path.addLine(to: CGPoint(x: width, y: arm))
-
-        path.move(to: CGPoint(x: 0, y: height - arm))
-        path.addLine(to: CGPoint(x: 0, y: height - radius))
-        path.addQuadCurve(to: CGPoint(x: radius, y: height), control: CGPoint(x: 0, y: height))
-        path.addLine(to: CGPoint(x: arm, y: height))
-
-        path.move(to: CGPoint(x: width - arm, y: height))
-        path.addLine(to: CGPoint(x: width - radius, y: height))
-        path.addQuadCurve(to: CGPoint(x: width, y: height - radius),
-                          control: CGPoint(x: width, y: height))
-        path.addLine(to: CGPoint(x: width, y: height - arm))
-        return path
-    }
-}
-
-// MARK: - Mode chip flow layout

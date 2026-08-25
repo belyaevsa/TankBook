@@ -30,5 +30,29 @@ public enum VisionTextRecognizer {
         // page, so descending midY reads top-to-bottom.
         return lines.sorted { $0.boundingBox.midY > $1.boundingBox.midY }
     }
+
+    /// OCR from an in-memory image (the document camera returns `UIImage`s, not
+    /// files - P3.1b multi-page invoices). Same request configuration as the
+    /// URL entry point, so a scanned page and a saved page OCR identically.
+    public static func recognizeText(image: CGImage, languages: [String]) throws -> [OCRLine] {
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = false
+        request.recognitionLanguages = languages
+
+        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        try handler.perform([request])
+
+        let observations = request.results ?? []
+        let lines: [OCRLine] = observations.compactMap { observation in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
+            return OCRLine(
+                text: candidate.string,
+                confidence: candidate.confidence,
+                boundingBox: observation.boundingBox
+            )
+        }
+        return lines.sorted { $0.boundingBox.midY > $1.boundingBox.midY }
+    }
 }
 #endif

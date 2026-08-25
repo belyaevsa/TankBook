@@ -1,5 +1,6 @@
 import os
 import SwiftUI
+import UIKit
 import TankbookCore
 
 /// The ServiceEntry sheet (P3.1a): the typed path for a service visit
@@ -17,6 +18,7 @@ struct ServiceEntryView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ServiceInvoiceSession.self) private var invoiceSession
 
     @State private var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -24,6 +26,13 @@ struct ServiceEntryView: View {
     @State private var showDatePicker = false
     @State private var didLoad = false
     @State private var lastKnownOdometer: Int?
+    /// The scanned invoice's pages (P3.1b). Empty on the typed path.
+    @State private var pages: [InvoicePage] = []
+    /// True when the date row's provenance is the invoice's printed date, which
+    /// renders the "· invoice" caption (design/screens/ServiceEntry.dc.html).
+    @State private var dateFromInvoice = false
+    @State private var selectedPageIndex = 0
+    @State private var showDocumentCamera = false
 
     private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
@@ -35,6 +44,12 @@ struct ServiceEntryView: View {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
+                    if !pages.isEmpty {
+                        ServiceEntryPageStrip(pages: pages,
+                                              selectedIndex: $selectedPageIndex,
+                                              onAddPage: addPage,
+                                              onRemovePage: removePage)
+                    }
                     ServiceEntryModeRow()
                     ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
                     ServiceEntryDateOdometerCard(
@@ -43,7 +58,8 @@ struct ServiceEntryView: View {
                         distanceUnit: distanceUnit,
                         showDatePicker: $showDatePicker,
                         odometerRequired: form.requiresOdometer,
-                        onFillOdometer: fillOdometer)
+                        onFillOdometer: fillOdometer,
+                        provenanceCaption: dateProvenanceCaption)
                     if showDatePicker {
                         DatePicker("", selection: $form.date, in: ...Date(),
                                    displayedComponents: .date)
@@ -68,6 +84,14 @@ struct ServiceEntryView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        .sheet(isPresented: $showDocumentCamera) {
+            DocumentCamera(
+                onCancel: { showDocumentCamera = false },
+                onResult: { images in
+                    showDocumentCamera = false
+                    handleAddedPages(images)
+                })
+        }
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
@@ -82,6 +106,13 @@ struct ServiceEntryView: View {
 
     private var odometerMissing: Bool {
         form.requiresOdometer && form.odometerValue == nil
+    }
+
+    /// The date row's provenance caption (P3.1b): "· invoice" when the date came
+    /// from the invoice's printed date. A `LocalizedStringKey` so the literal
+    /// resolves through the String Catalog (the gate scans this computed body).
+    private var dateProvenanceCaption: LocalizedStringKey? {
+        dateFromInvoice ? "invoice" : nil
     }
 
     private var saveEnabled: Bool {
@@ -115,7 +146,10 @@ struct ServiceEntryView: View {
             let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
             lastKnownOdometer = lastKnown
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
-            if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
+            if let prefill = invoiceSession.pendingPrefill {
+                apply(prefill)
+                invoiceSession.pendingPrefill = nil
+            } else if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
                 apply(prefill)
             }
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
@@ -125,9 +159,23 @@ struct ServiceEntryView: View {
             form.initialOdometer = form.odometer
             form.initialDate = form.date
             form.initialNote = form.note
+            scheduleAutoAddPageIfRequested()
         } catch {
             Self.log.error("Service entry load failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+
+    /// DEBUG/test-only: `-autoAddServiceEntryPage` appends a page through the
+    /// real `handleAddedPages` path a beat after load, so a UI test can prove a
+    /// page add never resets a row the user already edited (hard rule 13).
+    private func scheduleAutoAddPageIfRequested() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-autoAddServiceEntryPage") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            handleAddedPages([InvoicePagePreview.image()])
+        }
+        #endif
     }
 
     /// The scanned-path seam (P3.1b): the extraction becomes default input the
@@ -140,6 +188,44 @@ struct ServiceEntryView: View {
             form.odometer = prefill.odometer
         }
         form.date = prefill.date
+        pages = prefill.pages
+        form.attachments = prefill.pages.map(\.attachment.id)
+        form.provenance = prefill.provenance
+        dateFromInvoice = prefill.dateFromInvoice
+        selectedPageIndex = 0
+    }
+
+    // MARK: - Pages (P3.1b)
+
+    private func addPage() {
+        showDocumentCamera = true
+    }
+
+    private func handleAddedPages(_ images: [UIImage]) {
+        Task {
+            let newPages = await ServiceInvoiceScanner.appendPages(images: images)
+            pages.append(contentsOf: newPages)
+            form.attachments = pages.map(\.attachment.id)
+            selectedPageIndex = max(0, pages.count - 1)
+        }
+    }
+
+    /// Removing a page deletes its file - no orphan (docs/ERRORS.md -> Service &
+    /// expenses: "Multi-page scan interrupted" names the next step; here the
+    /// user removed a page on purpose, so there is nothing to warn about).
+    private func removePage(_ page: InvoicePage) {
+        pages.removeAll { $0.id == page.id }
+        form.attachments = pages.map(\.attachment.id)
+        if selectedPageIndex >= pages.count {
+            selectedPageIndex = max(0, pages.count - 1)
+        }
+        do {
+            let repository = try AppStore.repository()
+            let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
+            try store.removePage(page.attachment)
+        } catch {
+            Self.log.error("Page removal failed: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
     // MARK: - Save

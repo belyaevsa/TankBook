@@ -103,6 +103,11 @@ struct TankLevelStandaloneHost: View {
 /// so a UI test that closes the cover keeps working unchanged.
 struct ModalDestinationView: View {
     let route: ModalRoute
+    /// Host callback for the Capture -> ServiceEntry exit (SCREENMAP.md:
+    /// "Capture -->|Service mode| ServiceEntry"): the capture cover closes and
+    /// the ServiceEntry sheet opens on the presenting tab, carrying the scanned
+    /// invoice pre-fill through the shared `ServiceInvoiceSession`.
+    var onServiceEntry: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -133,7 +138,7 @@ struct ModalDestinationView: View {
     private var content: some View {
         switch route {
         case .capture:
-            CaptureView()
+            CaptureView(onServiceEntry: onServiceEntry)
         }
     }
 }

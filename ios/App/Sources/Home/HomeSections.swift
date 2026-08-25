@@ -8,26 +8,38 @@ import UIKit
 /// (hard rule 6); the decimal separator is pinned to the input's raw dot via
 /// `ManualFillUpFormat` (en_US_POSIX), exactly as P1.3 established.
 enum HomeFormat {
-    /// "€212" - the month spend tile (0 fraction digits, symbol first).
+    /// "390 €" - the month spend tile and the log's month dividers (0 fraction
+    /// digits).
+    ///
+    /// Symbol **after** the amount, like every other money figure in the app.
+    /// It printed "€390" until 2026-08-25, which put two conventions on one
+    /// screen: "€390" in the spend tile and the month divider, "68.46 €" on the
+    /// rows directly beneath them. `docs/DESIGN.md` shows `71.02 €` and
+    /// `1.679 €`, and `HomeA.dc.html` draws amount-then-symbol five times
+    /// against one "€212" - so the outlier was the one to fix.
+    ///
+    /// The separator is a **no-break space (U+00A0)**: DIN Alternate has no
+    /// glyph for the thin space the artboard writes as `&thinsp;` (see
+    /// `OdometerFormat`), and a plain space would let the figure break.
     static func spend(_ amount: Decimal, symbol: String) -> String {
-        "\(symbol)\(ManualFillUpFormat.decimal(amount, fractionDigits: 0))"
+        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 0))\u{00A0}\(symbol)"
     }
 
     /// "1.679 €" - the last price per litre tile (3 fraction digits).
     static func unitPrice(_ amount: Decimal, symbol: String) -> String {
-        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 3)) \(symbol)"
+        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 3))\u{00A0}\(symbol)"
     }
 
     /// "71.02 €" - a recent-entry amount (2 fraction digits).
     static func entryAmount(_ amount: Decimal, symbol: String) -> String {
-        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2)) \(symbol)"
+        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2))\u{00A0}\(symbol)"
     }
 
     /// "0.15 €" - the per-km cost (2 fraction digits; per-km costs live below
     /// one unit and must not round to "€0").
     static func costPerKm(_ value: Double, symbol: String) -> String {
         let amount = NSDecimalNumber(value: value).decimalValue
-        return "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2)) \(symbol)"
+        return "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2))\u{00A0}\(symbol)"
     }
 
     /// "Aug 17" for the "updated <date>" caption.

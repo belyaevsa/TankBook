@@ -14,6 +14,11 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     var category: ServiceCategory = .other("")
     var cost = ""
     var lifetime: ServiceItem.Lifetime?
+    /// True when this row was pre-filled by the invoice scanner rather than
+    /// typed. A scanned row renders dimmed until the user edits it (hard rule 13:
+    /// a scanned value is a default input the user edits, never read-only). The
+    /// typed path (P3.1a) never sets this.
+    var scanned = false
 
     /// The typed cost parsed as an exact `Decimal`, or nil when blank. A blank
     /// cost is an honest absence, never a `0` (hard rule 13).
@@ -41,6 +46,12 @@ struct ServiceEntryFormState: Equatable {
     var odometer = ""
     var date = Date()
     var note = ""
+    /// The scanned invoice's pages (P3.1b). Empty for the typed path. The files
+    /// are written at capture time; removing a page deletes its file.
+    var attachments: [AttachmentID] = []
+    /// How the record was created. `.manual` (typed) or `.receiptScan` (scanned
+    /// invoice). Defaults to `.manual` so the typed path is unchanged.
+    var provenance: Provenance = .manual
 
     // Snapshots for the discard guard (SCREENMAP rule 1): the form is dirty only
     // for real edits, not for the odometer/date pre-fill. The odometer pre-fill
@@ -98,7 +109,10 @@ struct ServiceEntryFormState: Equatable {
             },
             date: date,
             odometer: odometerValue,
-            note: note)
+            note: note,
+            tireSetId: nil,
+            attachments: attachments,
+            provenance: provenance)
     }
 
     // MARK: Discard guard

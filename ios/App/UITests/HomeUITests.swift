@@ -94,11 +94,19 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["homeEntryAmount"].firstMatch.exists)
 
         // The odometer is the shared grouped formatter's output end to end
-        // (HANDOVER.md open item 0): thin-space grouped, not "123600".
+        // (HANDOVER.md open item 0): grouped with U+00A0, not "123600".
+        //
+        // It asserted U+2009 until 2026-08-25 and passed the whole of P1 while
+        // the screen rendered NO separator at all - DIN Alternate Bold has no
+        // glyph for the thin space, so it drew as nothing. Asserting the exact
+        // separator here is right; the character had to change, and the glyph
+        // check lives in `OdometerFormatTests.separatorHasAGlyphInTheDisplayFont`.
         let odometer = app.staticTexts["homeOdometer"].firstMatch
         XCTAssertTrue(odometer.exists)
         XCTAssertTrue(odometer.label.contains("123"), "odometer shows \(odometer.label)")
-        XCTAssertTrue(odometer.label.contains("\u{2009}"), "odometer not thin-space grouped: \(odometer.label)")
+        XCTAssertTrue(odometer.label.contains("\u{00A0}"), "odometer not grouped: \(odometer.label)")
+        XCTAssertFalse(odometer.label.contains("\u{2009}"),
+                       "the thin space has no glyph in DIN and must never come back: \(odometer.label)")
     }
 
     func testConflictBadgeRoutesToEditEntry() {

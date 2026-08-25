@@ -19,6 +19,8 @@ struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var toastCenter = AppToastCenter()
     @State private var carSelection = AppCarSelection()
+    /// Carries the scanned invoice pre-fill from Capture into ServiceEntry.
+    @State private var invoiceSession = ServiceInvoiceSession()
     @State private var tabSelection: AppTab
     // Capture is presented by the ACTIVE tab, not by this root. Hoisting the
     // three modal routes keeps the capture full-screen cover and each tab's own
@@ -41,7 +43,6 @@ struct AppRootView: View {
             _tabSelection = State(initialValue: .log)
         }
     }
-
 
     /// One tab's root, always present in the hierarchy so its NavigationStack
     /// survives a switch. The inactive ones are fully transparent, take no
@@ -109,6 +110,7 @@ struct AppRootView: View {
         .animation(.easeOut(duration: 0.2), value: toastCenter.message)
         .environment(toastCenter)
         .environment(carSelection)
+        .environment(invoiceSession)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }
@@ -175,7 +177,12 @@ struct HomeTabView: View {
                 path = [target]
             }
         }
-        .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
+        .fullScreenCover(item: $modal) {
+            ModalDestinationView(route: $0) {
+                modal = nil
+                sheet = .serviceEntry
+            }
+        }
         .onAppear(perform: presentDebugLaunch)
     }
 
@@ -208,7 +215,12 @@ struct TrendsTabView: View {
             TrendsRootView(presentSheet: { sheet = $0 })
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
-        .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
+        .fullScreenCover(item: $modal) {
+            ModalDestinationView(route: $0) {
+                modal = nil
+                sheet = .serviceEntry
+            }
+        }
     }
 }
 
@@ -222,7 +234,12 @@ struct GarageTabView: View {
             GarageRootView()
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
-        .fullScreenCover(item: $modal) { ModalDestinationView(route: $0) }
+        .fullScreenCover(item: $modal) {
+            ModalDestinationView(route: $0) {
+                modal = nil
+                sheet = .serviceEntry
+            }
+        }
     }
 }
 

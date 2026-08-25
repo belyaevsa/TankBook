@@ -66,9 +66,28 @@ fi
 # whose brief text mentions running xcodebuild, and including this script's own
 # parent shell. On 2026-08-24 an agent copied that pattern, matched a sibling
 # agent's opencode process, and killed it mid-task.
-if pgrep -x xcodebuild >/dev/null 2>&1; then
-    echo "error: a test run is in progress - it and simctl fight over the device." >&2
-    exit 1
+# The fight is over a DEVICE, not over the machine: with several worktrees
+# running at once, another agent's xcodebuild on `iPhone 17 Pro` is no reason to
+# refuse a capture on `iPhone 17`. So look at what the running xcodebuilds are
+# actually driving, by reading the arguments of REAL pids from `pgrep -x` -
+# never `pgrep -f`, which matches any process whose arguments merely mention
+# xcodebuild (an agent's brief does, and `pkill -f` on that pattern killed a
+# sibling agent mid-task on 2026-08-24).
+busy_pids="$(pgrep -x xcodebuild 2>/dev/null || true)"
+if [ -n "${busy_pids}" ]; then
+    # Compare the device name EXACTLY. A substring test matches
+    # "name=iPhone 17 Pro" against DEVICE="iPhone 17" and refuses a capture that
+    # was never in conflict - the prefix collision that makes three of the four
+    # simulator names overlap. Argv boundaries are lost in `ps -o args=`, so the
+    # destination value is cut at the next xcodebuild verb.
+    busy_devices="$(ps -o args= -p ${busy_pids} 2>/dev/null \
+        | grep -o 'name=[^,]*' \
+        | sed -E 's/^name=//; s/ (test|build|clean|archive|-.*)$//')"
+    if printf '%s\n' "${busy_devices}" | grep -qx "${DEVICE}"; then
+        echo "error: an xcodebuild is driving ${DEVICE} right now - it and simctl fight over it." >&2
+        exit 1
+    fi
+    echo "note: xcodebuild is running on another device; continuing on ${DEVICE}."
 fi
 
 echo "device: ${DEVICE}"
@@ -163,6 +182,13 @@ capture P3.1a-service-entry            en -seedServiceEntry -presentScreen servi
 capture P3.1a-service-entry-ru         ru -seedServiceEntry -presentScreen serviceEntry
 capture P3.1a-service-entry-lump-sum   en -seedServiceEntryLumpSum -presentScreen serviceEntry
 capture P3.1a-service-entry-lump-sum-ru ru -seedServiceEntryLumpSum -presentScreen serviceEntry
+
+# P3.1b: the scanned invoice path - the split invoice with its page strip, and
+# the honest failed-split lump-sum outcome (a normal state, never an error).
+capture P3.1b-service-scan            en -seedServiceEntryScan -presentScreen serviceEntry
+capture P3.1b-service-scan-ru         ru -seedServiceEntryScan -presentScreen serviceEntry
+capture P3.1b-service-scan-lump-sum   en -seedServiceEntryScanLumpSum -presentScreen serviceEntry
+capture P3.1b-service-scan-lump-sum-ru ru -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
