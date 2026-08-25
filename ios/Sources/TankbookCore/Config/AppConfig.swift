@@ -132,7 +132,9 @@ public struct AppConfig: Sendable, Equatable {
 /// document's `flags` map.
 public enum ConfigFlag: String, Sendable, CaseIterable {
     /// Pump-photo capture mode (docs/TASKS.md P2.7). Ships off until the
-    /// accuracy gate clears; a remote document can stage it up.
+    /// accuracy gate clears, and a remote document can only turn it DOWN while
+    /// the gate fails - the gate is `PumpPhotoGate`, a property of the build's
+    /// measured accuracy, not a runtime opinion.
     case pumpPhoto
 }
 

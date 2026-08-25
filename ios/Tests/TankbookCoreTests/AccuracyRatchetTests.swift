@@ -161,6 +161,23 @@ struct CorpusAccuracyGateTests {
         }
     }
 
+    /// P2.7 "the gate IS the check", made executable: the real, live-scored pump
+    /// corpus must match the compile-time gate constant (so the constant cannot
+    /// drift from reality), and the shipped flag must be off while that measured
+    /// accuracy is below the 95% threshold. A flag flipped on below the gate is
+    /// exactly what `PumpPhotoGate.violation` catches.
+    @Test func pumpModeShipsOffWhileTheCorpusIsBelowTheGate() throws {
+        let scored = try scoreClass("pump")
+        #expect(scored.hits == PumpPhotoGate.measuredHits,
+                "measured pump hits \(PumpPhotoGate.measuredHits) must match the live \(scored.hits)")
+        #expect(scored.total == PumpPhotoGate.measuredTotal,
+                "measured pump total \(PumpPhotoGate.measuredTotal) must match the live \(scored.total)")
+        let accuracy = Double(scored.hits) / Double(scored.total)
+        let shipped = try ConfigDefaults.bundledAppConfig().flags["pumpPhoto"]?.enabled ?? false
+        #expect(PumpPhotoGate.violation(flagEnabled: shipped, accuracy: accuracy) == nil,
+                "the pump flag must stay off while the measured accuracy is below \(PumpPhotoGate.threshold)")
+    }
+
     // MARK: - Scoring
 
     private func scoreClass(_ name: String) throws -> ScoredClass {
