@@ -30,6 +30,32 @@ final class CaptureUITests: XCTestCase {
 
     // MARK: - F8: denied permission
 
+
+    /// Scroll a number field clear of the keyboard and the pinned save bar, then
+    /// tap it. `app.scrollViews.firstMatch` is the screen BEHIND a presented
+    /// sheet, so the drag must target the hittable one, anchored above the bar -
+    /// a swipe starting lower is eaten by the keyboard.
+    @discardableResult
+    private func focusNumberField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        let field = app.textFields[identifier]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
+        let bar = app.buttons["manualFillUpSaveButton"]
+        var scrolls = 0
+        while scrolls < 8 {
+            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            if field.isHittable && field.frame.maxY < barTop - 8 { break }
+            guard let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            else { break }
+            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            from.press(forDuration: 0.05, thenDragTo: to)
+            scrolls += 1
+        }
+        XCTAssertTrue(field.isHittable, "\(identifier) is on screen but not reachable")
+        field.tap()
+        return field
+    }
+
     func testDeniedShowsManualFormWithCardAndAllThreeNextSteps() {
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
                                 "-presentScreen", "capture", "-cameraStatus", "denied"])
@@ -127,11 +153,15 @@ final class CaptureUITests: XCTestCase {
                       "the ordinary empty-form hint must be the only guidance")
 
         // Savable, so it is never a dead end.
-        total.tap()
-        total.typeText("71.02")
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
-        liters.typeText("42.30")
+        //
+        // Each field is scrolled clear before it is tapped: since the
+        // 2026-08-25 field reorder (docs/DESIGN.md - entry form order) the
+        // three-number card sits below Date, Odometer, Station and Fuel, so the
+        // keyboard raised by TOTAL can cover LITERS. A tap on a covered field
+        // silently misses and `typeText` fails with "Neither element nor any
+        // descendant has keyboard focus", which reads like a broken field.
+        focusNumberField(app, "manualFillUpTotalField").typeText("71.02")
+        focusNumberField(app, "manualFillUpLitersField").typeText("42.30")
         let save = app.buttons["manualFillUpSaveButton"]
         XCTAssertTrue(save.isEnabled)
         save.tap()

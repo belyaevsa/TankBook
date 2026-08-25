@@ -72,51 +72,6 @@ struct CurrencyChipRow: View {
     }
 }
 
-/// The currency section (artboard): the chip row plus, depending on the
-/// foreign-currency state, the amber low-confidence prompt or the neutral
-/// caption. The conversion card itself (rate-pending / converted) renders as a
-/// separate card below the three-number card, matching ConfirmForeign.dc.html -
-/// this section only owns the chips and the two inline hints.
-struct ManualFillUpCurrencySection: View {
-    @Binding var form: ManualFillUpFormState
-    let homeCurrency: CurrencyCode
-    let lowConfidence: Bool
-    let state: ForeignCurrencyState
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            SectionEyebrow("Currency")
-            CurrencyChipRow(currency: $form.currency, homeCurrency: homeCurrency,
-                            lowConfidence: lowConfidence)
-            hint
-        }
-    }
-
-    @ViewBuilder
-    private var hint: some View {
-        switch state {
-        case .lowConfidence:
-            // Never silently convert: an uncertain currency asks, in amber.
-            hintText(L10n.localize("Which currency is this?"), color: Theme.Palette.warn,
-                     identifier: "manualFillUpCurrencyHint")
-        case .notForeign:
-            hintText(String(format: L10n.localize("Recent first · a foreign amount converts to %@ automatically"),
-                            homeCurrency.rawValue),
-                     color: Theme.Palette.inkSoft, identifier: nil)
-        case .ratePending, .converted:
-            // The conversion card owns the rate-pending / converted copy.
-            EmptyView()
-        }
-    }
-
-    private func hintText(_ text: String, color: Color, identifier: String?) -> some View {
-        Text(text)
-            .font(.caption)
-            .foregroundStyle(color)
-            .modifier(OptionalIdentifier(identifier: identifier))
-    }
-}
-
 // MARK: - The three-number card
 
 /// The pump-card stack (artboard): TOTAL / LITERS / PRICE PER L in DIN, with

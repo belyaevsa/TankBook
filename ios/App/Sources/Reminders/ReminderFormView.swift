@@ -31,6 +31,17 @@ struct ReminderFormView: View {
     private var isEditing: Bool { reminderID != nil }
 
     var body: some View {
+        // The shared shell for any form with a confirmation button
+        // (`ConfirmableFormScreen`): it pins the primary action and hides the
+        // tab bar while the form is on screen, so the capture circle can no
+        // longer sit on top of Save.
+        ConfirmableFormScreen(
+            confirmTitle: "Save reminder",
+            isEnabled: saveEnabled,
+            hint: saveEnabled ? nil : saveHint,
+            identifier: "reminderFormSaveButton",
+            action: save
+        ) {
         ScrollView {
             VStack(spacing: 9) {
                 if vehicle == nil {
@@ -57,8 +68,7 @@ struct ReminderFormView: View {
             .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.immediately)
-        .background(Theme.Palette.midnight)
-        .safeAreaInset(edge: .bottom) { saveBar }
+        }
         .navigationTitle(isEditing ? "Edit reminder" : "New reminder")
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
@@ -70,35 +80,6 @@ struct ReminderFormView: View {
         form.readiness == .ready
     }
 
-    private var saveBar: some View {
-        VStack(spacing: 8) {
-            Button(action: save) {
-                Text("Save reminder")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(saveEnabled ? Color.white : Theme.Palette.inkSoft)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(saveEnabled ? Theme.Palette.taillight : Theme.Palette.dash)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .shadow(color: saveEnabled ? Theme.Palette.taillight.opacity(0.3) : .clear,
-                            radius: 18, y: 4)
-            }
-            .buttonStyle(.plain)
-            .disabled(!saveEnabled)
-            .accessibilityIdentifier("reminderFormSaveButton")
-
-            if !saveEnabled {
-                Text(saveHint)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .accessibilityIdentifier("reminderFormSaveHint")
-            }
-        }
-        .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.top, 12)
-        .padding(.bottom, 12)
-        .background(Theme.Palette.midnight)
-    }
 
     private var saveHint: String {
         switch form.readiness {

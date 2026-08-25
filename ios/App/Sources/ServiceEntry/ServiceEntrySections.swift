@@ -123,9 +123,17 @@ struct ServiceEntryDateOdometerCard: View {
     var provenanceCaption: LocalizedStringKey?
 
     var body: some View {
-        HStack(alignment: .top, spacing: 7) {
-            dateCard
-            odometerCard
+        // A `Grid` row, not an `HStack`: grid cells in one row share a height,
+        // so the date card and the odometer card can never render as two
+        // different boxes again. Equal widths come from each card filling its
+        // cell. The two carry different amounts of text (a date and a caption
+        // against a figure, a unit and a caption), which is exactly the case an
+        // HStack renders ragged.
+        Grid(horizontalSpacing: 7, verticalSpacing: 0) {
+            GridRow {
+                dateCard
+                odometerCard
+            }
         }
     }
 
@@ -163,7 +171,7 @@ struct ServiceEntryDateOdometerCard: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("serviceEntryDateButton")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 13)
         .padding(.vertical, 9)
         .formCard()
@@ -202,7 +210,7 @@ struct ServiceEntryDateOdometerCard: View {
                 warning
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(.horizontal, 13)
         .padding(.vertical, 9)
         .formCard()

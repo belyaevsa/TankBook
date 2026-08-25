@@ -111,18 +111,18 @@ struct EditEntryView: View {
                     EditEntryRows.receiptCard(attachments: attachments, entry: fill)
                 }
                 ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
-                ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
-                ManualFillUpCurrencySection(form: $fillForm, homeCurrency: vehicle?.homeCurrency ?? .eur,
-                                            lowConfidence: false, state: editConversionState)
-                ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
-                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
-                                        reduceMotion: accessibilityReduceMotion)
                 ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                          distanceUnit: distanceUnit,
                                          conflict: odometerConflict,
                                          onFixDate: { showDatePicker = true },
                                          caption: nil)
+                ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
+                if editCurrencyNeedsAttention { editCurrencySection }
+                ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
+                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
+                                        reduceMotion: accessibilityReduceMotion)
+                if !editCurrencyNeedsAttention { editCurrencySection }
                 TankLevelRow(isFull: fillForm.isFull,
                              tankLevelAfterPct: fillForm.tankLevelAfterPct,
                              action: { showTankLevel = true })
@@ -138,6 +138,22 @@ struct EditEntryView: View {
         }
         .scrollDismissesKeyboard(.immediately)
         .safeAreaInset(edge: .bottom) { saveBar }
+    }
+
+    /// Same placement rule as the Confirm sheet (docs/DESIGN.md - entry form
+    /// order): a currency needing attention renders above the numbers, the
+    /// folded home-currency case below them.
+    private var editCurrencyNeedsAttention: Bool {
+        ManualFillUpCurrencySection.needsAttention(
+            currency: fillForm.currency, homeCurrency: vehicle?.homeCurrency ?? .eur,
+            lowConfidence: false, state: editConversionState)
+    }
+
+    @ViewBuilder
+    private var editCurrencySection: some View {
+        ManualFillUpCurrencySection(form: $fillForm,
+                                    homeCurrency: vehicle?.homeCurrency ?? .eur,
+                                    lowConfidence: false, state: editConversionState)
     }
 
     private var odometerConflict: OdometerConflict? {

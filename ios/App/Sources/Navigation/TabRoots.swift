@@ -22,6 +22,9 @@ struct AppRootView: View {
     /// Carries the scanned invoice pre-fill from Capture into ServiceEntry.
     @State private var invoiceSession = ServiceInvoiceSession()
     @State private var tabSelection: AppTab
+    /// Set by `ConfirmableFormScreen` through a preference: a form with a
+    /// primary confirmation action hides the bar while it is on screen.
+    @State private var isConfirmableFormOnTop = false
     // Capture is presented by the ACTIVE tab, not by this root. Hoisting the
     // three modal routes keeps the capture full-screen cover and each tab's own
     // sheet (the "Type it" manual form) on the SAME view, so one presentation
@@ -90,10 +93,21 @@ struct AppRootView: View {
             // `safeAreaInset` on the TabView does not propagate through a
             // NavigationStack push on iOS 26, which left pushed screens' bottom
             // bars behind ours.
-            AppTabBar(selection: $tabSelection) {
-                openCapture()
+            // Hidden while a form with a confirmation button is on top: two
+            // taillight-red primary actions must never stack, and a tap meant
+            // for Save that lands on Capture abandons a half-filled form. See
+            // `ConfirmableFormScreen`.
+            if !isConfirmableFormOnTop {
+                AppTabBar(selection: $tabSelection) {
+                    openCapture()
+                }
+                .transition(.move(edge: .bottom))
             }
         }
+        .onPreferenceChange(ConfirmableFormPreference.self) { isForm in
+            isConfirmableFormOnTop = isForm
+        }
+        .animation(.easeInOut(duration: 0.2), value: isConfirmableFormOnTop)
         // The bar stays put when the keyboard rises (the keyboard covers it, as
         // it covers the system tab bar) instead of riding up with the safe area.
         .ignoresSafeArea(.keyboard)

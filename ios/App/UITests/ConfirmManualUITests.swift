@@ -20,6 +20,73 @@ final class ConfirmManualUITests: XCTestCase {
         return app
     }
 
+
+    /// Bring a field on screen, then tap it.
+    ///
+    /// Defensive rather than required: after the 2026-08-25 field reorder
+    /// (docs/DESIGN.md - entry form order) the three-number card sits below
+    /// Date, Odometer, Station and Fuel. It still fits one screen on this
+    /// device, but it no longer fits with room to spare, so a keyboard left up
+    /// by the previous field rides the pinned Save bar up over the card and
+    /// hides the next field. `tap()` on a non-hittable element silently misses
+    /// and the following `typeText` fails with "no keyboard focus", which reads
+    /// like a broken field rather than a covered one.
+    @discardableResult
+    private func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        let field = app.textFields[identifier]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
+        // Dismiss any keyboard and scroll the field clear, on the SHEET'S OWN
+        // scroll view. Two traps here:
+        // - `app.scrollViews.firstMatch` is the Home screen's scroll view
+        //   BEHIND the presented sheet (not hittable), so it must be the
+        //   hittable one - the sheet's.
+        // - `scroll.swipeUp()` on a full-height scroll view starts its touch
+        //   under the keyboard, so the keyboard eats it and nothing scrolls.
+        //   A short drag anchored in the visible region above the pinned save
+        //   bar both dismisses the keyboard (`scrollDismissesKeyboard
+        //   (.immediately)`) and reveals the field.
+        var scrolls = 0
+        while !field.isHittable && scrolls < 8 {
+            if let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+                let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
+                from.press(forDuration: 0.05, thenDragTo: to)
+            }
+            scrolls += 1
+        }
+        XCTAssertTrue(field.isHittable, "\(identifier) is on screen but not reachable")
+        field.tap()
+        return field
+    }
+
+
+    /// Scroll an element clear of the **pinned save bar**, not merely to where
+    /// XCUITest calls it hittable.
+    ///
+    /// `isHittable` is true for an element sitting UNDER the save bar - the bar
+    /// is a `safeAreaInset` overlay, and the accessibility tree does not model
+    /// the occlusion. Trusting it cost a real debugging round: the mixed
+    /// section's toggles start at y=825 in an 874 pt window, the bar occupies
+    /// 753-806, the "tap" landed on the bar, and the entry SAVED - so the next
+    /// query found no save button at all and the failure read as a missing
+    /// element rather than an accidental save.
+    ///
+    /// So the condition is geometric: the element must sit above the bar's top.
+    private func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
+        let bar = app.buttons["manualFillUpSaveButton"]
+        var scrolls = 0
+        while scrolls < 8 {
+            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            if element.isHittable && element.frame.maxY < barTop - 8 { return }
+            guard let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            else { return }
+            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            from.press(forDuration: 0.05, thenDragTo: to)
+            scrolls += 1
+        }
+    }
+
     private func openManualForm(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
         app.buttons["typeItButton"].tap()
@@ -39,8 +106,7 @@ final class ConfirmManualUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists)
 
         // One value still does not unlock save.
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        let total = focusField(app, "manualFillUpTotalField")
         total.typeText("71.02")
         XCTAssertFalse(save.isEnabled)
         XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists)
@@ -53,13 +119,11 @@ final class ConfirmManualUITests: XCTestCase {
         let save = app.buttons["manualFillUpSaveButton"]
         XCTAssertTrue(save.waitForExistence(timeout: 5))
 
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        let total = focusField(app, "manualFillUpTotalField")
         total.typeText("71.02")
         XCTAssertFalse(save.isEnabled)
 
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
+        let liters = focusField(app, "manualFillUpLitersField")
         liters.typeText("42.30")
 
         // The second value flips save on live and drops the caption.
@@ -74,14 +138,11 @@ final class ConfirmManualUITests: XCTestCase {
         openManualForm(app)
 
         // 10 L x 2.10 = 21.00 vs total 20.00: diff 1.00 > max(0.02, 0.10).
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        let total = focusField(app, "manualFillUpTotalField")
         total.typeText("20.00")
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
+        let liters = focusField(app, "manualFillUpLitersField")
         liters.typeText("10")
-        let price = app.textFields["manualFillUpPricePerLField"]
-        price.tap()
+        let price = focusField(app, "manualFillUpPricePerLField")
         price.typeText("2.10")
 
         // The amber message renders with the documented copy...
@@ -100,18 +161,59 @@ final class ConfirmManualUITests: XCTestCase {
 
     // MARK: - Currency chips
 
-    func testCurrencyChipRowIsReachableInOneTap() {
+    /// The chip row folds away while the entry is in the home currency - paying
+    /// abroad is rare, and the row cost ~100 pt of the first screen, which
+    /// pushed the odometer below the fold and behind the pinned Save bar.
+    ///
+    /// This test asserted "reachable in one tap" until 2026-08-25. It is now
+    /// **one tap to reveal, one to choose**, and the test says so rather than
+    /// being quietly deleted: the promise changed, and the change is deliberate.
+    /// What did NOT change is the guarantee that matters - see
+    /// `testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency`.
+    func testCurrencyChipRowIsOneTapAway() {
         let app = launch()
         openManualForm(app)
 
+        // Folded by default: the collapsed row names the currency in force.
+        let collapsed = app.buttons["manualFillUpCurrencyCollapsed"]
+        XCTAssertTrue(collapsed.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["manualFillUpCurrency_PLN"].exists,
+                       "the chip row must be folded while the entry is in the home currency")
+
+        collapsed.tap()
+
+        // Folded, the section sits BELOW the numbers card, so the chips can be
+        // off-screen on a short device even once expanded - `exists` is not
+        // `isHittable`. Scroll to them the way a user would.
         let chip = app.buttons["manualFillUpCurrency_PLN"]
         XCTAssertTrue(chip.waitForExistence(timeout: 5))
-        XCTAssertTrue(chip.isHittable)
+        var scrolls = 0
+        while !chip.isHittable && scrolls < 5 {
+            app.swipeUp()
+            scrolls += 1
+        }
+        XCTAssertTrue(chip.isHittable, "the chip row must be reachable after expanding")
 
-        // One tap selects the foreign currency; with no rates service the money
-        // pair is rate-pending and the conversion card appears (the F9 state).
+        // Selecting the foreign currency: with no rates service the money pair
+        // is rate-pending and the conversion card appears (the F9 state).
         chip.tap()
         XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+    }
+
+    /// The fold is never allowed to hide a decision the user must make: a
+    /// low-confidence currency has to ASK rather than convert (P2.5), and a
+    /// genuinely foreign entry has a conversion the user must see. Both open the
+    /// section by themselves, with no tap at all.
+    func testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency() {
+        let app = launch(args: ["-seedConfirmForeign", "-presentScreen", "confirmManual"])
+        let chip = app.buttons["manualFillUpCurrency_PLN"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 10),
+                      "a foreign entry must show the chip row without a tap")
+        XCTAssertFalse(app.buttons["manualFillUpCurrencyCollapsed"].exists)
+        // And it must be VISIBLE, not merely present: a section that opens
+        // itself below the fold has not opened in any sense that matters, which
+        // is why a currency needing attention renders above the numbers card.
+        XCTAssertTrue(chip.isHittable, "a foreign currency must be on screen without scrolling")
     }
 }
 
@@ -164,11 +266,9 @@ extension ConfirmManualUITests {
         XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists)
 
         // ...and the sheet is savable once the user types.
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        let total = focusField(app, "manualFillUpTotalField")
         total.typeText("71.02")
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
+        let liters = focusField(app, "manualFillUpLitersField")
         liters.typeText("42.30")
         XCTAssertTrue(save.isEnabled)
     }
@@ -293,14 +393,11 @@ extension ConfirmManualUITests {
         // on: the reduced variant is the state change WITHOUT the spring, never
         // a missing state (the animation decision itself is unit-tested in
         // core, `ConfirmLockAnimation.shouldAnimate`).
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        let total = focusField(app, "manualFillUpTotalField")
         total.typeText("20.00")
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
+        let liters = focusField(app, "manualFillUpLitersField")
         liters.typeText("10")
-        let price = app.textFields["manualFillUpPricePerLField"]
-        price.tap()
+        let price = focusField(app, "manualFillUpPricePerLField")
         price.typeText("2.00")
 
         XCTAssertTrue(app.staticTexts["manualFillUpCheckLineLocked"].waitForExistence(timeout: 5))
@@ -325,8 +422,21 @@ extension ConfirmManualUITests {
         XCTAssertTrue(app.buttons["manualFillUpSaveButton"].label.contains("1 expense"))
 
         // Flipping the coffee on updates the count live.
+        //
+        // Waited for, not asserted immediately: toggling rebuilds the save bar,
+        // and a query landing mid-rebuild finds NO element at all - the failure
+        // reads "No matches found for manualFillUpSaveButton", which looks like
+        // a missing button rather than a momentary one. This is an expectation
+        // on the real condition, not a sleep.
+        // The mixed section now sits below the numbers card and the currency
+        // row, so its toggles start under the pinned save bar. Scroll it into
+        // the free region first - a tap on 825 pt of a 874 pt window lands on
+        // the bar, not the switch.
+        scrollClearOfSaveBar(app, coffee)
         coffee.tap()
-        XCTAssertTrue(app.buttons["manualFillUpSaveButton"].label.contains("2 expenses"))
+        let twoExpenses = NSPredicate(format: "label CONTAINS %@", "2 expenses")
+        expectation(for: twoExpenses, evaluatedWith: app.buttons["manualFillUpSaveButton"])
+        waitForExpectations(timeout: 5)
     }
 
     func testPlainReceiptRendersTheOrdinarySheetWithoutTheSection() {

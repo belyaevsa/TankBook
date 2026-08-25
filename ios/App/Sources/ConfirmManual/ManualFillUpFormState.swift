@@ -21,6 +21,15 @@ struct ManualFillUpFormState: Equatable {
     /// The entry's original currency. Defaults to the vehicle's home currency
     /// (loading); a foreign pick makes the money pair rate-pending (F9).
     var currency: CurrencyCode = .eur
+    /// Whether the user has opened the folded currency section.
+    ///
+    /// Lives in the FORM STATE, not in the section's own `@State`: the section
+    /// is rebuilt whenever the parent form re-renders, which resets a local
+    /// `@State` to false immediately after the tap that set it. The measured
+    /// symptom was a currency row that could be tapped and never opened -
+    /// `collapsed.exists=true, chip.exists=false` right after the tap - so the
+    /// control was inert for the user, not merely awkward for the test.
+    var isCurrencyExpanded = false
     var fuelKind: FuelKind = .petrol95
     var isFull = true
     /// The tank level after this fill-up (docs/SCHEMA.md: 0-100, 100 = full).

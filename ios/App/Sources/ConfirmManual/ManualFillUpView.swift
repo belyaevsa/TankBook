@@ -59,6 +59,27 @@ struct ManualFillUpView: View {
     /// draw-in degrades to a plain state change - the tick still appears, just
     /// without the animation. The launch-argument override exists so a UI test
     /// can pin the setting it cannot reach through XCUITest.
+    /// A currency needing attention renders ABOVE the numbers card; the folded
+    /// home-currency case sits below it. Opening itself below the fold would not
+    /// be opening at all.
+    private var currencyNeedsAttention: Bool {
+        guard let vehicle else { return false }
+        return ManualFillUpCurrencySection.needsAttention(
+            currency: form.currency, homeCurrency: vehicle.homeCurrency,
+            lowConfidence: currencyLowConfidence, state: conversionState)
+    }
+
+    @ViewBuilder
+    private var currencySection: some View {
+        if let vehicle {
+            ManualFillUpCurrencySection(
+                form: $form,
+                homeCurrency: vehicle.homeCurrency,
+                lowConfidence: currencyLowConfidence,
+                state: conversionState)
+        }
+    }
+
     private var reduceMotion: Bool {
         accessibilityReduceMotion || ProcessInfo.processInfo.arguments.contains("-forceReduceMotion")
     }
@@ -69,11 +90,29 @@ struct ManualFillUpView: View {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
-                    ManualFillUpCurrencySection(
-                        form: $form,
-                        homeCurrency: vehicle!.homeCurrency,
-                        lowConfidence: currencyLowConfidence,
-                        state: conversionState)
+                    // Field order matches Edit entry (docs/DESIGN.md - entry
+                    // form order): Date, Odometer, Station, Fuel, the numbers,
+                    // then currency. The artboards drew the numbers first
+                    // because the scan's payload is what arrives first; in the
+                    // hand it put the ODOMETER - the field consumption depends
+                    // on, and the one a scan can never read - below the fold and
+                    // behind the pinned Save bar. One order across both screens
+                    // also means muscle memory transfers between them.
+                    ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
+                    ManualFillUpOdometerCard(
+                        form: $form, focus: $focus,
+                        distanceUnit: distanceUnit,
+                        conflict: odometerConflict,
+                        onFixDate: { showDatePicker = true })
+                    ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                    ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
+                    if !form.isFull {
+                        TankLevelRow(isFull: form.isFull,
+                                     tankLevelAfterPct: form.tankLevelAfterPct,
+                                     action: { showTankLevel = true })
+                            .formCard()
+                    }
+                    if currencyNeedsAttention { currencySection }
                     ManualFillUpNumbersCard(
                         form: $form, focus: $focus,
                         volumeUnit: volumeUnit,
@@ -81,6 +120,7 @@ struct ManualFillUpView: View {
                         crops: prefill?.crops ?? [:],
                         reduceMotion: reduceMotion,
                         onVerify: { field, crop in verifyCrop = VerifyCrop(field: field, evidence: crop) })
+                    if !currencyNeedsAttention { currencySection }
                     if conversionState.showsConversionCard {
                         ForeignCurrencyCard(
                             currency: form.currency,
@@ -96,20 +136,6 @@ struct ManualFillUpView: View {
                             receiptTotal: grandTotal,
                             fillUpAmount: fuelLine)
                     }
-                    ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
-                    if !form.isFull {
-                        TankLevelRow(isFull: form.isFull,
-                                     tankLevelAfterPct: form.tankLevelAfterPct,
-                                     action: { showTankLevel = true })
-                            .formCard()
-                    }
-                    ManualFillUpOdometerCard(
-                        form: $form, focus: $focus,
-                        distanceUnit: distanceUnit,
-                        conflict: odometerConflict,
-                        onFixDate: { showDatePicker = true })
-                    ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                    ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
                 }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)

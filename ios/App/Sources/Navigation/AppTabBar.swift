@@ -81,7 +81,10 @@ struct AppTabBar: View {
     private static let topPadding: CGFloat = 10
     private static let horizontalPadding: CGFloat = 12
     private static let captureSize: CGFloat = 56
-    private static let captureRise: CGFloat = 22
+    // EXPERIMENT 2026-08-25: 0 aligns the capture button with the other three
+    // slots. The artboard raises it 22 pt, which reads as unaligned next to
+    // Log/Trends/Garage and collides with a screen's own save CTA.
+    private static let captureRise: CGFloat = 0
 
     /// The artboard's bottom padding (`padding: 10px 12px 28px` in
     /// `HomeA.dc.html`). **It is not a safe-area inset and must not be added on

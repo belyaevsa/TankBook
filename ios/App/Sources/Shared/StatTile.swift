@@ -59,7 +59,12 @@ struct StatTile: View {
                     .lineLimit(1)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
+        // Fill the grid cell in BOTH axes: a `LazyVGrid` row is as tall as its
+        // tallest cell, but a cell that does not stretch leaves the shorter
+        // tile floating in a short card, so a row of four tiles rendered as
+        // four different card heights. Height parity is what makes it read as
+        // a grid rather than a collage (docs/DESIGN.md - Trends tile grid).
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(12)
         .formCard()
         .accessibilityIdentifier(identifier)

@@ -32,6 +32,33 @@ final class TankLevelUITests: XCTestCase {
 
     // MARK: - The sheet: litres equivalence vs the no-capacity hint
 
+
+    /// Bring a number field on screen (dismissing a keyboard left up by the
+    /// previous one, via the form's `scrollDismissesKeyboard(.immediately)`),
+    /// then tap it.
+    @discardableResult
+    private func focusNumberField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        let field = app.textFields[identifier]
+        XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
+        // `app.scrollViews.firstMatch` is HOME's scroll view, behind the
+        // presented sheet, so it must be the hittable one. And a swipe on a
+        // full-height scroll view starts its touch under the keyboard, which
+        // eats it - a short drag anchored above the pinned save bar both
+        // dismisses the keyboard and scrolls. Same helper as ConfirmManual.
+        var scrolls = 0
+        while !field.isHittable && scrolls < 8 {
+            if let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable }) {
+                let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
+                from.press(forDuration: 0.05, thenDragTo: to)
+            }
+            scrolls += 1
+        }
+        XCTAssertTrue(field.isHittable, "\(identifier) is on screen but not reachable")
+        field.tap()
+        return field
+    }
+
     func testLitresEquivalenceShownWhenCapacityKnown() {
         let app = launch(args: ["-homeResetDatabase", "-seedTankLevel",
                                 "-presentScreen", "tankLevel"])
@@ -94,11 +121,15 @@ final class TankLevelUITests: XCTestCase {
 
         // Now the two typed values that enable save; the save bar rides above
         // the keyboard, so it stays tappable.
-        let total = app.textFields["manualFillUpTotalField"]
-        total.tap()
+        // Scroll each field into view before tapping. Since the 2026-08-25 field
+        // reorder (docs/DESIGN.md - entry form order) the three-number card sits
+        // below Date, Odometer, Station and Fuel, so the keyboard raised by the
+        // TOTAL field can cover LITERS. `tap()` on a covered field silently
+        // misses and `typeText` then fails with "Neither element nor any
+        // descendant has keyboard focus" - which reads like a broken field.
+        let total = focusNumberField(app, "manualFillUpTotalField")
         total.typeText("71.02")
-        let liters = app.textFields["manualFillUpLitersField"]
-        liters.tap()
+        let liters = focusNumberField(app, "manualFillUpLitersField")
         liters.typeText("42.30")
 
         let save = app.buttons["manualFillUpSaveButton"]
