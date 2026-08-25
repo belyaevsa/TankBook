@@ -4,6 +4,32 @@ Photos of the pump readout, for the **pump-photo mode** that `docs/VISION.md`
 gates hard: it ships only at **>=95%** accuracy, or the mode stays off
 (`docs/TASKS.md` P2.7 - "the gate IS the check").
 
+## The flag's contract (P2.7, recorded 2026-08-25)
+
+Pump mode is a **feature flag** with this contract, enforced by code and by a
+build-failing test rather than by prose:
+
+- **Defaults off.** The bundled config ships `pumpPhoto` disabled; the app is
+  fully usable with it never turning on.
+- **The gate is a property of the build, not a runtime opinion.** The measured
+  pump accuracy is compiled into `PumpPhotoGate` (`measuredHits` / `measuredTotal`,
+  0/30 today, and asserted against the live corpus score by the Vision-gated
+  ratchet test). A remote config document may only ever turn the flag **down**
+  while the gate fails, never up - `ConfigStore.isEnabled(.pumpPhoto)` is false
+  regardless of rollout below the threshold. This is the same reasoning as
+  `docs/CONFIG.md` -> "Config can never disable a security control".
+- **Off is not a dead end (hard rule 15).** A pump capture with the flag off
+  routes to the ordinary manual form, pre-filled with nothing and with no
+  message - the feature is simply not offered, and there is no error to show.
+- **On (developer builds) still obeys hard rule 13.** Extraction may pre-fill,
+  but every field is a default input the user edits; a pump **volume in
+  particular** must never be written without the user seeing it, because the
+  factor-of-ten ambiguity (`pump-003` above) is invisible on a Confirm screen.
+
+Raising `measuredHits` above 28/30 (95%) is the only way the flag can turn on -
+and it must land in the same change as the parser fix that earned it, together
+with the recorded high-water mark and this README.
+
 ## What is here
 
 `pump-001.heic` - Circle K, Tallinn, Wayne/Dresser pump. **The same transaction

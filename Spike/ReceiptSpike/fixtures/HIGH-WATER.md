@@ -7,7 +7,7 @@ regression fails the build.
 | class | recorded | what it means |
 |---|---|---|
 | `receipts` | 29/47 | the working number; raise it as the parser improves |
-| `pump` | 0/12 | pump mode stays behind its flag until it clears >=95% |
+| `pump` | 0/30 | pump mode stays behind its flag until it clears >=95% (ten fixtures x three fields) |
 | `fiscal` | 1/3 | only one of the three rows is an OCR-scorable image |
 | `screenshots` | 1/3 | **re-baselined downward - read below before "fixing" it** |
 

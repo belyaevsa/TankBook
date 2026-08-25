@@ -185,6 +185,12 @@ public final class ConfigStore: @unchecked Sendable {
     /// rollout percentage via `rolloutSalt` + a stable device hash
     /// (docs/CONFIG.md -> "rolloutSalt + per-flag rollout percentage").
     public func isEnabled(_ flag: ConfigFlag) -> Bool {
+        // The pump-photo flag is additionally gated by the build's measured
+        // accuracy (P2.7 -> "the gate IS the check"): a remote document may only
+        // ever turn it DOWN while the gate fails, never up. The accuracy gate is
+        // a property of the build, not a runtime opinion (docs/CONFIG.md ->
+        // "Config can never disable a security control").
+        if flag == .pumpPhoto, !PumpPhotoGate.allowsPumpPhoto { return false }
         let config = snapshot()
         guard let feature = config.flags[flag.rawValue] else { return false }
         return ConfigRollout.isEnabled(

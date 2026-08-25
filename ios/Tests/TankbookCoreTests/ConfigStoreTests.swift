@@ -469,36 +469,62 @@ private func cacheFileURL(directory: URL) -> URL {
 // MARK: - 14. Rollout
 
 @Test func rolloutIsStableAndZeroAndHundredAreExact() throws {
-    // 0%: disabled even though enabled=true.
-    let offData = makeDocument(apiBaseURL: "https://api.tankbook.app",
-                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":0}}")
-    let offDoc = try ConfigDocument.parse(offData)
-    let offBundled = AppConfig(document: offDoc, apiBaseURL: offDoc.apiBaseURL!)
-    let offDir = tempDirectory()
-    defer { try? FileManager.default.removeItem(at: offDir) }
-    let offStore = makeStore(bundled: offBundled, directory: offDir)
-    #expect(offStore.isEnabled(.pumpPhoto) == false)
+    // The pure rollout mechanism (docs/CONFIG.md -> "rolloutSalt + per-flag
+    // rollout percentage"). Tested against ConfigRollout directly, because
+    // `isEnabled(.pumpPhoto)` is additionally gated by PumpPhotoGate (P2.7) and
+    // its shipped state is off.
+    let offDoc = try ConfigDocument.parse(makeDocument(
+        flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":0}}"))
+    let offFeature = offDoc.flags["pumpPhoto"]!
+    #expect(ConfigRollout.isEnabled(offFeature, salt: "s", deviceIdentifier: "d", flagName: "pumpPhoto") == false,
+            "0% disables even when enabled=true")
 
-    // 100%: enabled.
+    let onDoc = try ConfigDocument.parse(makeDocument(
+        flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}"))
+    let onFeature = onDoc.flags["pumpPhoto"]!
+    #expect(ConfigRollout.isEnabled(onFeature, salt: "s", deviceIdentifier: "d", flagName: "pumpPhoto") == true,
+            "100% enables")
+
+    // Stability: the same salt + device + flag lands in the same bucket.
+    let midDoc = try ConfigDocument.parse(makeDocument(
+        flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":50}}"))
+    let midFeature = midDoc.flags["pumpPhoto"]!
+    let results = (0..<20).map { _ in
+        ConfigRollout.isEnabled(midFeature, salt: "s", deviceIdentifier: "d", flagName: "pumpPhoto")
+    }
+    #expect(Set(results).count == 1, "rollout must be stable across calls")
+}
+
+// MARK: - P2.7: the pump-photo accuracy gate is not remotely flippable
+
+@Test func pumpPhotoShipsOffInTheBundledDefault() throws {
+    let directory = tempDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let bundled = try ConfigDefaults.bundledAppConfig()
+    #expect(bundled.flags["pumpPhoto"]?.enabled == false,
+            "the bundled default must ship pumpPhoto off")
+
+    let store = makeStore(bundled: bundled, directory: directory)
+    #expect(store.isEnabled(.pumpPhoto) == false)
+}
+
+@Test func remoteConfigCannotEnablePumpPhotoWhileTheGateFails() throws {
+    let directory = tempDirectory()
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    // A config that tries to enable pumpPhoto at 100% rollout. The accuracy gate
+    // (PumpPhotoGate, measured 0/30 below the 95% threshold) must keep the flag
+    // off regardless - a remote document cannot flip an accuracy gate into
+    // truth (docs/CONFIG.md -> "Config can never disable a security control").
     let onData = makeDocument(apiBaseURL: "https://api.tankbook.app",
                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}")
     let onDoc = try ConfigDocument.parse(onData)
     let onBundled = AppConfig(document: onDoc, apiBaseURL: onDoc.apiBaseURL!)
-    let onDir = tempDirectory()
-    defer { try? FileManager.default.removeItem(at: onDir) }
-    let onStore = makeStore(bundled: onBundled, directory: onDir)
-    #expect(onStore.isEnabled(.pumpPhoto) == true)
+    let store = makeStore(bundled: onBundled, directory: directory)
 
-    // Stability: the same salt + device lands in the same bucket every time.
-    let midData = makeDocument(apiBaseURL: "https://api.tankbook.app",
-                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":50}}")
-    let midDoc = try ConfigDocument.parse(midData)
-    let midBundled = AppConfig(document: midDoc, apiBaseURL: midDoc.apiBaseURL!)
-    let midDir = tempDirectory()
-    defer { try? FileManager.default.removeItem(at: midDir) }
-    let midStore = makeStore(bundled: midBundled, directory: midDir, deviceIdentifier: "device-X")
-    let results = (0..<20).map { _ in midStore.isEnabled(.pumpPhoto) }
-    #expect(Set(results).count == 1, "rollout must be stable across calls")
+    #expect(store.isEnabled(.pumpPhoto) == false,
+            "the accuracy gate must keep pumpPhoto off despite a 100% rollout")
 }
 
 // MARK: - 15. Key coverage

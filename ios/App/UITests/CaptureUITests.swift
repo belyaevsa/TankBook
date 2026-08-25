@@ -96,6 +96,49 @@ final class CaptureUITests: XCTestCase {
                       "Type it must present the manual form")
     }
 
+    // MARK: - P2.7 pump photo, flag off
+
+    /// The pump path with the flag off is the ordinary manual door, pre-filled
+    /// with nothing and with no message implying failure (hard rule 15): the
+    /// feature is simply not offered, so there is no error to show. Asserting
+    /// the ordinary empty form - blank fields, the standard save hint - is the
+    /// proof that no error state was injected in its place.
+    func testPumpCaptureWithFlagOffOpensEmptyManualFormAndSavesWithNoError() {
+        let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                "-presentScreen", "capture", "-cameraStatus", "authorized",
+                                "-seedPumpCapture"])
+        openCapture(app)
+
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 10))
+        typeIt.tap()
+
+        let total = app.textFields["manualFillUpTotalField"]
+        XCTAssertTrue(total.waitForExistence(timeout: 5))
+        // Pre-filled with nothing: a flag-off pump capture injects no value and
+        // no error - the form is the ordinary empty one.
+        XCTAssertTrue((total.value as? String)?.isEmpty ?? true,
+                      "flag-off pump capture must pre-fill nothing")
+        XCTAssertNotEqual(total.value as? String ?? "", "0")
+
+        // The standard empty-form hint is the only guidance shown, so the pump
+        // path carries no "not supported" / failure message.
+        XCTAssertTrue(app.staticTexts["Enter total and liters to save"].exists,
+                      "the ordinary empty-form hint must be the only guidance")
+
+        // Savable, so it is never a dead end.
+        total.tap()
+        total.typeText("71.02")
+        let liters = app.textFields["manualFillUpLitersField"]
+        liters.tap()
+        liters.typeText("42.30")
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "saving from the pump path must leave capture")
+    }
+
     // MARK: - Mode row
 
     /// The mode row is a function of the selected car's powertrain
