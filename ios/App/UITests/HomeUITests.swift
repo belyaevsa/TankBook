@@ -94,11 +94,13 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["homeEntryAmount"].firstMatch.exists)
 
         // The odometer is the shared grouped formatter's output end to end
-        // (HANDOVER.md open item 0): thin-space grouped, not "123600".
+        // (HANDOVER.md open item 0): no-break-space grouped, not "123600".
+        // The separator is U+00A0 since 2026-08-25 (DIN Alternate Bold has no
+        // glyph for the old thin space; see OdometerFormat.swift).
         let odometer = app.staticTexts["homeOdometer"].firstMatch
         XCTAssertTrue(odometer.exists)
         XCTAssertTrue(odometer.label.contains("123"), "odometer shows \(odometer.label)")
-        XCTAssertTrue(odometer.label.contains("\u{2009}"), "odometer not thin-space grouped: \(odometer.label)")
+        XCTAssertTrue(odometer.label.contains("\u{00A0}"), "odometer not grouped: \(odometer.label)")
     }
 
     func testConflictBadgeRoutesToEditEntry() {

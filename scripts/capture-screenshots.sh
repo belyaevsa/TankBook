@@ -164,6 +164,16 @@ capture P3.1a-service-entry-ru         ru -seedServiceEntry -presentScreen servi
 capture P3.1a-service-entry-lump-sum   en -seedServiceEntryLumpSum -presentScreen serviceEntry
 capture P3.1a-service-entry-lump-sum-ru ru -seedServiceEntryLumpSum -presentScreen serviceEntry
 
+# P3.4: the Reminders list (attention + scheduled groups), the empty state,
+# and the reminder form. RU is where the trailing chip ("12 дней") and the
+# section labels ("ТРЕБУЕТ ВНИМАНИЯ") are tightest.
+capture P3.4-reminders            en -seedReminders -presentScreen reminders
+capture P3.4-reminders-ru         ru -seedReminders -presentScreen reminders
+capture P3.4-reminders-empty      en -presentScreen reminders
+capture P3.4-reminders-empty-ru   ru -presentScreen reminders
+capture P3.4-reminder-form        en -seedReminders -seedReminderForm -presentScreen reminderForm
+capture P3.4-reminder-form-ru     ru -seedReminders -seedReminderForm -presentScreen reminderForm
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

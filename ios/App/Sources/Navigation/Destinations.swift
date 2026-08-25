@@ -27,8 +27,8 @@ struct DestinationView: View {
         switch route {
         case .settings: SettingsContent()
         case .about: LeafContent()
-        case .reminders: RemindersContent()
-        case .reminderForm: LeafContent()
+        case .reminders: RemindersView()
+        case .reminderForm(let reminderID): ReminderFormView(reminderID: reminderID)
         case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)
         case .vehicleDetail(let vehicleID): VehicleDetailView(vehicleID: vehicleID)
@@ -157,15 +157,6 @@ private struct SettingsContent: View {
 
             NavigationLink("Recently deleted", value: Route.recentlyDeleted)
                 .accessibilityIdentifier("recentlyDeletedButton")
-        }
-    }
-}
-
-private struct RemindersContent: View {
-    var body: some View {
-        List {
-            NavigationLink("New reminder", value: Route.reminderForm)
-                .accessibilityIdentifier("newReminderButton")
         }
     }
 }
