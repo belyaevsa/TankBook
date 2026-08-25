@@ -41,9 +41,10 @@ struct TrendsView: View {
                 content
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
-            // Same floating-tab-bar clearance Home needs (P1.5): the last card
-            // must clear the bar, not hide behind it.
-            .padding(.bottom, Self.bottomClearance)
+            // Same as Home: the raised capture circle sits above the
+            // `safeAreaInset` inset, so this clearance keeps the last tile
+            // clear of it.
+            .padding(.bottom, AppTabBar.contentBottomClearance)
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
@@ -58,8 +59,6 @@ struct TrendsView: View {
             Task { await load() }
         }
     }
-
-    private static let bottomClearance: CGFloat = 64
 
     @ViewBuilder
     private var content: some View {
@@ -82,7 +81,7 @@ struct TrendsView: View {
                     .padding(.top, 4)
             }
         } else {
-            TrendsEmptyEntriesCard(onCapture: { presentSheet(.confirmManual) })
+            TrendsEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }
     }
 

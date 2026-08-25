@@ -113,7 +113,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture | tab root – no back |
-| Capture | center button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
+| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
 | Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
 | Service & expenses | Capture (Service mode), ReminderComplete | Save → Home | X → opener (typed input asks first) |

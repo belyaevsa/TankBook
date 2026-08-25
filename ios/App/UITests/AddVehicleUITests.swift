@@ -23,8 +23,8 @@ final class AddVehicleUITests: XCTestCase {
     }
 
     private func openAddCar(_ app: XCUIApplication) {
-        XCTAssertTrue(app.tabBars.buttons["Garage"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Garage"].tap()
+        XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
+        app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.buttons["addVehicleButton"].waitForExistence(timeout: 5))
         app.buttons["addVehicleButton"].tap()
         XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))

@@ -117,13 +117,13 @@ final class HomeUITests: XCTestCase {
 
     // MARK: - P1.5: the log stream
 
-    /// The floating tab bar must not swallow the last row: after scrolling to
+    /// The owned tab bar must not swallow the last row: after scrolling to
     /// the bottom of a long stream, the oldest entry is fully visible, above
     /// the bar, and tappable (P1.4's bottom-inset bug).
-    func testLastRowClearsTheFloatingTabBar() {
+    func testLastRowClearsTheTabBar() {
         let app = launch(args: ["-seedHomeFullHistory"])
 
-        let tabBar = app.tabBars.firstMatch
+        let tabBar = app.descendants(matching: .any).matching(identifier: "tabbar").firstMatch
         let scrollView = app.scrollViews.firstMatch
         let lastEntry = app.buttons.matching(identifier: "logEntryButton")
             .allElementsBoundByIndex.last!
@@ -131,10 +131,10 @@ final class HomeUITests: XCTestCase {
 
         // Scroll until the row is BOTH hittable and fully clear of the bar.
         // `isHittable` tests the element's centre, so it turns true while the
-        // bottom edge is still tucked under the floating tab bar - stopping
-        // there made this test pass alone and fail under suite load, purely on
-        // scroll timing. The requirement is that the last row CAN be brought
-        // fully into view, so scroll until it is, or run out of attempts.
+        // bottom edge is still tucked under the tab bar - stopping there made
+        // this test pass alone and fail under suite load, purely on scroll
+        // timing. The requirement is that the last row CAN be brought fully
+        // into view, so scroll until it is, or run out of attempts.
         var attempts = 0
         while attempts < 10,
               !lastEntry.isHittable || lastEntry.frame.maxY > tabBar.frame.minY + 1 {

@@ -1,12 +1,15 @@
 import SwiftUI
-import TankbookCore
-#if canImport(UIKit)
 import UIKit
-#endif
+import TankbookCore
 
 /// The three tab roots (docs/SCREENMAP.md "Tab roots (no back)"): Log/Home,
 /// Trends, Garage. Each tab owns its own `NavigationStack` path so switching
 /// tabs preserves each tab's stack - a stated requirement, not an accident.
+///
+/// `TabView` stays as the state engine while its system bar is hidden
+/// (`.toolbar(.hidden, for: .tabBar)`) and replaced with the owned `AppTabBar`
+/// via `safeAreaInset(edge: .bottom)` (P2.1b). See `AppTabBar` for why the bar
+/// is owned rather than measured off the system one.
 ///
 /// The delta toast (docs/ERRORS.md -> Edit entry, row 4) is owned here, above
 /// the TabView: it must survive a navigation pop (the edit save dismisses back
@@ -16,41 +19,88 @@ struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var toastCenter = AppToastCenter()
     @State private var carSelection = AppCarSelection()
-    @State private var tabSelection: Int
+    @State private var tabSelection: AppTab
+    // Capture is presented by the ACTIVE tab, not by this root. Hoisting the
+    // three modal routes keeps the capture full-screen cover and each tab's own
+    // sheet (the "Type it" manual form) on the SAME view, so one presentation
+    // coordinator serializes them. A root-level `.fullScreenCover` dismissed
+    // while a tab's `.sheet` presented was the race behind the P2.1b crash
+    // (presenting a sheet while an ancestor's cover was mid-dismissal).
+    @State private var logModal: ModalRoute?
+    @State private var trendsModal: ModalRoute?
+    @State private var garageModal: ModalRoute?
     @State private var didRunStartupPurge = false
 
     init() {
-        Self.applyNeutralTabBarAppearance()
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
         if ProcessInfo.processInfo.arguments.contains("-selectTrendsTab") {
-            _tabSelection = State(initialValue: 1)
+            _tabSelection = State(initialValue: .trends)
         } else {
-            _tabSelection = State(initialValue: 0)
+            _tabSelection = State(initialValue: .log)
         }
     }
 
+
+    /// One tab's root, always present in the hierarchy so its NavigationStack
+    /// survives a switch. The inactive ones are fully transparent, take no
+    /// touches, and are hidden from VoiceOver so it does not read three screens.
+    @ViewBuilder
+    private func tabRoot(_ tab: AppTab, @ViewBuilder content: () -> some View) -> some View {
+        let isActive = tabSelection == tab
+        content()
+            .opacity(isActive ? 1 : 0)
+            .allowsHitTesting(isActive)
+            .accessibilityHidden(!isActive)
+    }
+
     var body: some View {
-        TabView(selection: $tabSelection) {
-            HomeTabView()
-                .tabItem { Label("Log", systemImage: "list.bullet") }
-                .tag(0)
-            TrendsTabView()
-                .tabItem { Label("Trends", systemImage: "chart.line.uptrend.xyaxis") }
-                .tag(1)
-            GarageTabView()
-                .tabItem { Label("Garage", systemImage: "car") }
-                .tag(2)
+        VStack(spacing: 0) {
+            // NO `TabView`. Three attempts to suppress its bar failed: on iOS 26
+            // the tab bar is not a `UITabBar` - which is why a UIKit probe could
+            // never find one to measure, and why emptying `UITabBarAppearance`
+            // changed nothing - and `.toolbar(.hidden, for: .tabBar)` removes
+            // only its ITEMS. Its glass container kept painting a grey pill over
+            // the log content: invisible to every UI test, since the
+            // accessibility tree really was empty, and visible in every
+            // screenshot.
+            //
+            // So there is no system bar to fight. All three roots stay in the
+            // hierarchy permanently and only visibility changes, which is what
+            // `TabView` was being kept for: each tab's `NavigationStack` keeps
+            // its stack and scroll position across switches because the view is
+            // never torn down. `.opacity` + `allowsHitTesting` rather than an
+            // `if`, because an `if` would destroy and rebuild the losing tabs.
+            ZStack {
+                tabRoot(.log) { HomeTabView(modal: $logModal) }
+                tabRoot(.trends) { TrendsTabView(modal: $trendsModal) }
+                tabRoot(.garage) { GarageTabView(modal: $garageModal) }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // The accent still propagates to CONTENT - entry markers, the
+            // capture button, the cross-check lock. The owned tab bar draws its
+            // own colours, so `.tint` no longer paints any chrome.
+            .tint(Theme.Palette.taillight)
+
+            // The bar is a sibling below the TabView, not a `safeAreaInset` on
+            // it: that makes the TabView's frame end at the bar's top, so BOTH
+            // root scroll views and pushed screens are inset above it. A
+            // `safeAreaInset` on the TabView does not propagate through a
+            // NavigationStack push on iOS 26, which left pushed screens' bottom
+            // bars behind ours.
+            AppTabBar(selection: $tabSelection) {
+                openCapture()
+            }
         }
-        // The accent still propagates to CONTENT - entry markers, the capture
-        // button, the cross-check lock. The tab bar itself is overridden below.
-        .tint(Theme.Palette.taillight)
+        // The bar stays put when the keyboard rises (the keyboard covers it, as
+        // it covers the system tab bar) instead of riding up with the safe area.
+        .ignoresSafeArea(.keyboard)
         .overlay(alignment: .bottom) {
             if let message = toastCenter.message {
                 DeltaToast(message: message) {
                     toastCenter.dismiss()
-                    tabSelection = 1   // Trends is the toast's next step
+                    tabSelection = .trends   // the toast's next step
                 }
                 .padding(.bottom, Self.toastBottomClearance)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -62,6 +112,16 @@ struct AppRootView: View {
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }
+        }
+    }
+
+    /// Routes the capture button to whichever tab is on screen, so the cover is
+    /// presented by that tab (its `modal`), never by the root.
+    private func openCapture() {
+        switch tabSelection {
+        case .log: logModal = .capture
+        case .trends: trendsModal = .capture
+        case .garage: garageModal = .capture
         }
     }
 
@@ -78,42 +138,9 @@ struct AppRootView: View {
         try? repository.purgeTombstones()
     }
 
-    /// Clears the floating tab bar plus its float margin (the same geometry
-    /// Home's bottom clearance accounts for) so the toast never covers the bar.
-    private static let toastBottomClearance: CGFloat = 88
-
-    /// The tab bar stays neutral: `ink` when selected, `inkSoft` when not.
-    ///
-    /// CLAUDE.md hard rule 5 and `docs/DESIGN.md`: "taillight is meaning, not
-    /// chrome - navigation bars, backgrounds, and tab bars stay neutral; the
-    /// accent appears on numbers, entry markers, the capture button, and the
-    /// cross-check lock, nowhere else." A plain `.tint` on the `TabView` paints
-    /// the selected tab item accent-red, which is precisely the chrome use the
-    /// rule forbids - so the item colours are set explicitly here while `.tint`
-    /// keeps doing its job for the content inside each tab.
-    ///
-    /// Values match the `HomeA` artboard: selected `#EAEDF2`, unselected
-    /// `#98A2B3` (the dark-theme values of `ink` and `inkSoft`).
-    private static func applyNeutralTabBarAppearance() {
-        #if os(iOS)
-        let appearance = UITabBarAppearance()
-        appearance.configureWithDefaultBackground()
-
-        let unselected = UIColor(Theme.Palette.inkSoft)
-        let selected = UIColor(Theme.Palette.ink)
-        for layout in [appearance.stackedLayoutAppearance,
-                       appearance.inlineLayoutAppearance,
-                       appearance.compactInlineLayoutAppearance] {
-            layout.normal.iconColor = unselected
-            layout.normal.titleTextAttributes = [.foregroundColor: unselected]
-            layout.selected.iconColor = selected
-            layout.selected.titleTextAttributes = [.foregroundColor: selected]
-        }
-
-        UITabBar.appearance().standardAppearance = appearance
-        UITabBar.appearance().scrollEdgeAppearance = appearance
-        #endif
-    }
+    /// The delta toast sits just above the owned bar (and its raised circle):
+    /// the bar's content height plus the circle's overhang and a margin.
+    private static let toastBottomClearance: CGFloat = AppTabBar.contentHeight + 20
 }
 
 /// A `NavigationStack` that owns a typed `[Route]` path and registers the
@@ -131,9 +158,9 @@ struct RootedNavigationStack<Root: View>: View {
 }
 
 struct HomeTabView: View {
+    @Binding var modal: ModalRoute?
     @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
-    @State private var modal: ModalRoute?
     @State private var didPresentDebugLaunch = false
 
     var body: some View {
@@ -172,9 +199,9 @@ struct HomeTabView: View {
 }
 
 struct TrendsTabView: View {
+    @Binding var modal: ModalRoute?
     @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
-    @State private var modal: ModalRoute?
 
     var body: some View {
         RootedNavigationStack(path: $path) {
@@ -186,9 +213,9 @@ struct TrendsTabView: View {
 }
 
 struct GarageTabView: View {
+    @Binding var modal: ModalRoute?
     @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
-    @State private var modal: ModalRoute?
 
     var body: some View {
         RootedNavigationStack(path: $path) {

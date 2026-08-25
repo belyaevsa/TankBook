@@ -74,7 +74,7 @@ struct TrendsNoCarLayout: View {
 /// The zero-entries state under a car: no fabricated numbers anywhere, just the
 /// next step - the capture path (docs/ERRORS.md -> Home, "Car, zero entries").
 struct TrendsEmptyEntriesCard: View {
-    let onCapture: () -> Void
+    let onTypeIt: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -88,7 +88,7 @@ struct TrendsEmptyEntriesCard: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
-            Button("Type it", action: onCapture)
+            Button("Type it", action: onTypeIt)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.headlight)

@@ -13,6 +13,8 @@ public enum Theme {
         public static let ink = Color(themeHexLight: "#1A2028", themeHexDark: "#EAEDF2")
         public static let inkSoft = Color(themeHexLight: "#55606E", themeHexDark: "#98A2B3")
         public static let midnight = Color(themeHexLight: "#F5F6F8", themeHexDark: "#101318")
+        public static let tabBar = Color(themeHexLight: "#EFF1F4", themeHexDark: "#0D1015")
+        public static let tabBarBorder = Color(themeHexLight: "#E1E4EA", themeHexDark: "#1C222C")
         public static let taillight = Color(themeHexLight: "#D63A26", themeHexDark: "#F4503A")
         public static let warn = Color(themeHexLight: "#B06E10", themeHexDark: "#F0A030")
         /// Hairline border: `ink` at 0.08 opacity.
@@ -26,6 +28,8 @@ public enum Theme {
             "ink": ink,
             "inkSoft": inkSoft,
             "midnight": midnight,
+            "tabBar": tabBar,
+            "tabBarBorder": tabBarBorder,
             "taillight": taillight,
             "warn": warn,
         ]

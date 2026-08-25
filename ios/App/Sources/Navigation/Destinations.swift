@@ -10,6 +10,16 @@ struct DestinationView: View {
         content
             .navigationTitle(route.title)
             .navigationBarTitleDisplayMode(.inline)
+            // The system tab bar is hidden at the root (`.toolbar(.hidden, for:
+            // .tabBar)` on the TabView), but iOS 26 still reserves its bottom
+            // safe area on PUSHED screens - a phantom ~83pt gap below each
+            // pushed screen's own save bar (Edit entry, Vehicle detail, Add
+            // car). Re-hiding it here removes that reservation so a pushed
+            // screen's `safeAreaInset(edge: .bottom)` save bar sits directly on
+            // the owned tab bar instead of floating 83pt above it. The owned
+            // bar itself is a sibling below the TabView, so this does not hide
+            // it.
+            .toolbar(.hidden, for: .tabBar)
     }
 
     @ViewBuilder

@@ -6,13 +6,14 @@ import UIKit
 
 /// The no-account Home (design/screens/GuestHome.dc.html): garage card, the
 /// capture CTA, the import card and the privacy line. Fully usable offline -
-/// sync is not required for anything (hard rule 1). Capture is P2.1, so the CTA
-/// leads to the manual form today.
+/// sync is not required for anything (hard rule 1). The card's action is the
+/// "Type it" peer door (hard rule 15); the tab bar's centre capture button is
+/// the other, always one thumb-tap away.
 struct HomeGuestLayout: View {
     let vehicle: Vehicle?
     let stats: HomeStats?
     let photoData: Data?
-    let onCapture: () -> Void
+    let onTypeIt: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -154,7 +155,7 @@ struct HomeGuestLayout: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
-            Button("Type it", action: onCapture)
+            Button("Type it", action: onTypeIt)
                 .font(.footnote.weight(.bold))
                 .foregroundStyle(Color.white)
                 .padding(.horizontal, 26)

@@ -24,8 +24,8 @@ final class VehicleDetailUITests: XCTestCase {
     }
 
     private func openDetail(_ app: XCUIApplication) {
-        XCTAssertTrue(app.tabBars.buttons["Garage"].waitForExistence(timeout: 10))
-        app.tabBars.buttons["Garage"].tap()
+        XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
+        app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.buttons["vehicleDetailButton"].waitForExistence(timeout: 5))
         app.buttons["vehicleDetailButton"].tap()
         XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
@@ -177,7 +177,7 @@ final class VehicleDetailUITests: XCTestCase {
         // archived row (the seeded BMW was already one), dimmed and honest.
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Log"].tap()
+        app.buttons["tabbar.log"].tap()
 
         let switcher = app.buttons["carSwitcherButton"]
         XCTAssertTrue(switcher.waitForExistence(timeout: 5))
@@ -236,7 +236,7 @@ final class VehicleDetailUITests: XCTestCase {
         // Back to the switcher: all three cars remain (the cancel touched nothing).
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
-        app.tabBars.buttons["Log"].tap()
+        app.buttons["tabbar.log"].tap()
         app.buttons["carSwitcherButton"].tap()
         XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons.matching(identifier: "carSwitcherRow").count, 2,

@@ -7,7 +7,7 @@ import UIKit
 /// The zero-entries state under a car: no fabricated numbers anywhere, just the
 /// next step - the capture path (docs/ERRORS.md -> Home, "Car, zero entries").
 struct HomeEmptyEntriesCard: View {
-    let onCapture: () -> Void
+    let onTypeIt: () -> Void
 
     var body: some View {
         VStack(spacing: 10) {
@@ -22,7 +22,7 @@ struct HomeEmptyEntriesCard: View {
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
             HStack(spacing: 16) {
-                Button("Type it", action: onCapture)
+                Button("Type it", action: onTypeIt)
                     .buttonStyle(.plain)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.Palette.headlight)

@@ -40,6 +40,14 @@ final class EditEntryUITests: XCTestCase {
         if app.keyboards.firstMatch.exists {
             app.swipeDown()
         }
+        // Bring the field into the upper half: a trailing-aligned field too
+        // close to the bottom cannot summon the number pad, and the tap then
+        // leaves it without keyboard focus.
+        var attempts = 0
+        while field.frame.minY > 300 && attempts < 8 {
+            app.scrollViews.firstMatch.swipeUp()
+            attempts += 1
+        }
         field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
         let current = (field.value as? String) ?? ""
         if !current.isEmpty {
