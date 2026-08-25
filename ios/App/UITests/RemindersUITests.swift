@@ -75,7 +75,7 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Brake check"].waitForExistence(timeout: 5))
     }
 
-    func testCompleteTakesTheRowToDone() {
+    func testCompleteOpensTheSheetAndSkipRecurs() {
         let app = launch(["-seedReminders"])
 
         // Every row carries a complete affordance; the attention row sorts
@@ -84,10 +84,16 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(complete.waitForExistence(timeout: 10))
         complete.tap()
 
-        // Completing (as `.done(nil)`, the no-sheet path) moves the row out of
-        // the attention group: the chip is gone. The seeded reminder recurs
-        // every 12 months, so the NEXT occurrence appears in Scheduled,
-        // anchored at the completion date - the "auto-rescheduled" loop
+        // The completion sheet opens (not a direct `.done` - P3.5).
+        let skip = app.buttons["reminderCompleteSkip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["reminderCompleteTypeAmount"].exists)
+
+        skip.tap()
+
+        // Skipping (`.done(nil)`) moves the row out of the attention group:
+        // the chip is gone. The seeded reminder recurs every 12 months, so the
+        // NEXT occurrence appears in Scheduled, anchored at the completion date
         // (docs/SCHEMA.md lifecycle: old rows become history, the next row is
         // new).
         XCTAssertTrue(app.staticTexts["remindersScheduledHeader"].waitForExistence(timeout: 10))
@@ -95,5 +101,54 @@ final class RemindersUITests: XCTestCase {
                        "the completed attention row must leave the group")
         XCTAssertTrue(app.staticTexts["Insurance renewal"].exists,
                       "the recurring reminder's next occurrence is already scheduled")
+    }
+
+    func testSkipMovesANonRecurringRowIntoHistory() {
+        let app = launch(["-seedReminders"])
+
+        // Scheduled order is Winter tires (45 d), Inspection (~7 mo), Oil
+        // change (~18 mo) - so the second complete button is the non-recurring
+        // Winter tires row.
+        let complete = app.buttons.matching(identifier: "reminderCompleteButton").element(boundBy: 1)
+        XCTAssertTrue(complete.waitForExistence(timeout: 10))
+        complete.tap()
+
+        let skip = app.buttons["reminderCompleteSkip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 5))
+        skip.tap()
+
+        // A non-recurring reminder has no next occurrence: the row is gone,
+        // now history ("oil changed 3× on time" - docs/SCHEMA.md).
+        XCTAssertFalse(app.staticTexts["Winter tires"].waitForExistence(timeout: 3),
+                       "a non-recurring reminder leaves the list when completed")
+    }
+
+    func testTypeAmountLandsInTheEntryWithThePrefill() {
+        let app = launch(["-seedReminderComplete"])
+
+        let complete = app.buttons["reminderCompleteButton"].firstMatch
+        XCTAssertTrue(complete.waitForExistence(timeout: 10))
+        complete.tap()
+
+        let typeAmount = app.buttons["reminderCompleteTypeAmount"]
+        XCTAssertTrue(typeAmount.waitForExistence(timeout: 5))
+        typeAmount.tap()
+
+        // The ServiceEntry sheet opens carrying the reminder's pre-fill:
+        // title, category and the current odometer.
+        let itemTitle = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(itemTitle.waitForExistence(timeout: 5))
+        XCTAssertEqual(itemTitle.value as? String, "Oil change",
+                       "the reminder title arrives as the item title")
+
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        XCTAssertTrue(odometer.exists)
+        XCTAssertTrue((odometer.value as? String)?.contains("119") == true,
+                      "the current odometer arrives pre-filled; was \(String(describing: odometer.value))")
+
+        // The pre-fill is editable (hard rule 13): every field is a default
+        // input, never read-only.
+        XCTAssertTrue(itemTitle.isEnabled, "the pre-filled title must stay editable")
+        XCTAssertTrue(odometer.isEnabled, "the pre-filled odometer must stay editable")
     }
 }

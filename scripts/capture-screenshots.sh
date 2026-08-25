@@ -208,6 +208,14 @@ capture P3.4-reminders-empty-ru   ru -presentScreen reminders
 capture P3.4-reminder-form        en -seedReminders -seedReminderForm -presentScreen reminderForm
 capture P3.4-reminder-form-ru     ru -seedReminders -seedReminderForm -presentScreen reminderForm
 
+# P3.5: the completion sheet (recurring, so the next-cycle line shows) and the
+# entry screen carrying the reminder pre-fill. `-presentReminderComplete`
+# auto-opens the sheet over the seeded oil change - simctl cannot tap.
+capture P3.5-reminder-complete           en -seedReminderComplete -presentScreen reminders -presentReminderComplete
+capture P3.5-reminder-complete-ru        ru -seedReminderComplete -presentScreen reminders -presentReminderComplete
+capture P3.5-reminder-complete-prefill    en -seedReminderCompletionPrefill -presentScreen serviceEntry
+capture P3.5-reminder-complete-prefill-ru ru -seedReminderCompletionPrefill -presentScreen serviceEntry
+
 # P3.3: the tire-set list (one set with derived mileage, one with "–") and the
 # ServiceEntry Tires mode mounting a set (odometer required, pre-filled).
 capture P3.3-tire-sets            en -seedTireSets -presentScreen tireSets
