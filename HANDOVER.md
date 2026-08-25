@@ -119,6 +119,15 @@ Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dum
 ## Working with agents (opencode)
 
 Builder: `opencode run --auto --thinking -m <model> --title "<id>" "$(cat agents/briefs/<id>.md)"`.
+
+**Fully qualify the provider in `-m`, always: `deepseek/deepseek-v4-pro`, `deepseek/deepseek-v4-flash`.**
+A bare `-m deepseek-v4-pro` resolves to the **`alibaba-token-plan`** provider, which spent a
+stretch of 2026-08-25 returning an instant `UnknownError: Unexpected server error` on every model
+it carries - pro, flash, pinned variants and glm alike, even on a bare "reply PONG" probe. Eight
+dispatches died that way and read exactly like the known wedged-run failure, which is the trap:
+`agent-health.sh` says EXITED, and EXITED reads like "finished". The tell is the **log size** -
+166 bytes, all of it the error JSON. `opencode models` lists the provider prefixes; `deepseek/`
+answered normally throughout.
 Architecture, security and algorithm work goes to **pro**; screen implementation against a fixed
 artboard goes to **flash**. Both flags matter: `--auto` because a single auto-reject kills an
 unattended run, `--thinking` because it makes long silent stretches legible.
