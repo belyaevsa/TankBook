@@ -124,7 +124,7 @@ struct HomeGarageCard: View {
 struct HomeHeadlineBlock: View {
     let stats: HomeStats
     let vehicle: Vehicle
-    let onCapture: () -> Void
+    let onTypeIt: () -> Void
 
     var body: some View {
         if let headline = stats.headline {
@@ -183,7 +183,7 @@ struct HomeHeadlineBlock: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .accessibilityIdentifier("homeD4Hint")
-            Button("Type it", action: onCapture)
+            Button("Type it", action: onTypeIt)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.headlight)

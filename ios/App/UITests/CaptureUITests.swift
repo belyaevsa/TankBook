@@ -186,6 +186,110 @@ final class CaptureUITests: XCTestCase {
                       "the cover must close back to the opener")
     }
 
+    // MARK: - P2.1b: wired into the app (no launch argument)
+
+    /// The whole point of P2.1b: a real user - a plain launch, no
+    /// `-presentScreen` - can reach Capture by tapping the tab bar's centre
+    /// button. This is the only test in the suite that proves the screen is not
+    /// dead code in Release, because the previous bug was that `ModalRoute
+    /// .capture` was set only by the `#if DEBUG` hook.
+    func testCenterButtonReachesCaptureWithoutLaunchArgument() {
+        let app = launch(args: ["-homeResetDatabase", "-seedHomeFullHistory",
+                                "-cameraStatus", "authorized"])
+
+        let button = app.buttons["captureButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10),
+                      "the centre capture button must exist on the tab bar")
+        button.tap()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
+                      "tapping the centre button must present the Capture cover")
+        XCTAssertTrue(app.buttons["captureMode_fillUpAuto"].waitForExistence(timeout: 5),
+                      "the real Capture screen must be on screen, not an empty shell")
+    }
+
+    /// The centre button is NOT a tab: tapping it leaves the selection where it
+    /// was, and closing the cover returns to the originating tab with that
+    /// tab's navigation stack intact (docs/SCREENMAP.md: "X closes back to
+    /// wherever it was opened from").
+    func testCenterButtonIsNotATabAndDismissReturnsToOriginatingTab() {
+        let app = launch(args: ["-homeResetDatabase", "-seedHomeFullHistory",
+                                "-cameraStatus", "authorized"])
+
+        app.buttons["tabbar.trends"].tap()
+        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+
+        let button = app.buttons["captureButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10))
+
+        // Not a tab: opening capture must not move the selection.
+        XCTAssertTrue(app.buttons["tabbar.trends"].isSelected,
+                      "capture is not a tab - selection must stay on Trends")
+
+        // Closing the cover returns to wherever it was opened from.
+        app.buttons["captureCloseButton"].tap()
+        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5),
+                      "closing capture must return to the originating tab")
+        XCTAssertTrue(app.buttons["tabbar.trends"].isSelected,
+                      "the originating tab must still be selected")
+    }
+
+    /// Capture is not a destination and must not disturb the tab's own
+    /// navigation stack: open it from Trends with a screen already pushed, and
+    /// dismissing must leave that pushed screen on Trends' stack (this is what
+    /// keeping `TabView` as the state engine buys).
+    func testCaptureFromTrendsPreservesThePushedScreen() {
+        let app = launch(args: ["-homeResetDatabase", "-seedHomeDuplicate",
+                                "-cameraStatus", "authorized"])
+
+        app.buttons["tabbar.trends"].tap()
+        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+
+        // Push a screen on Trends' own stack via the excluded-entries footnote
+        // (the duplicate seed produces one excluded entry, which Trends links).
+        let footnote = app.buttons["trendsExcludedFootnoteButton"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 5),
+                      "the excluded-entries footnote must link to Edit entry on Trends")
+        footnote.tap()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5),
+                      "Trends must have a pushed screen before capture opens")
+
+        // Open capture from Trends.
+        let capture = app.buttons["captureButton"]
+        XCTAssertTrue(capture.waitForExistence(timeout: 10))
+        capture.tap()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["tabbar.trends"].isSelected,
+                      "capture is not a destination - Trends stays selected")
+
+        // Dismiss: the pushed screen is still on Trends' stack.
+        app.buttons["captureCloseButton"].tap()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5),
+                      "capture must not disturb the tab's navigation stack")
+    }
+
+    /// Hard rule 15 asserted: manual entry and capture are peer paths of equal
+    /// standing, both one tap from Home - neither reachable only via the other.
+    func testBothDoorsSideBySideFromHome() {
+        let app = launch(args: ["-homeResetDatabase", "-seedHomeFullHistory",
+                                "-cameraStatus", "authorized"])
+
+        // Door one: the centre button opens Capture.
+        let capture = app.buttons["captureButton"]
+        XCTAssertTrue(capture.waitForExistence(timeout: 10))
+        capture.tap()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10))
+        app.buttons["captureCloseButton"].tap()
+
+        // Door two: "Type it" opens the manual form, without any scan first.
+        let typeIt = app.buttons["typeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 5))
+        typeIt.tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5),
+                      "Type it must present the manual form - the second door")
+    }
+
     // MARK: - Simulated detection overlay
 
     func testDetectionFrameRendersExtractedLinesWhenSeeded() {

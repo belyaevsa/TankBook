@@ -76,12 +76,11 @@ struct HomeView: View {
                 content
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
-            // The floating tab bar overlaps the scroll content on iOS 26: the
-            // automatic bottom inset ends at the home indicator, leaving the
-            // last card half-hidden behind the bar. This clearance pushes the
-            // last row fully above it (P1.5 - verified by the L4 "last row
-            // clears the tab bar" assertion).
-            .padding(.bottom, Self.bottomClearance)
+            // The owned tab bar insets the scroll content via
+            // `safeAreaInset(edge: .bottom)`, but its raised capture circle
+            // sits above that inset; this clearance keeps the last row clear of
+            // it (verified by the L4 "last row clears the tab bar" assertion).
+            .padding(.bottom, AppTabBar.contentBottomClearance)
         }
         .scrollDismissesKeyboard(.immediately)
         .background(Theme.Palette.midnight)
@@ -99,25 +98,11 @@ struct HomeView: View {
         }
     }
 
-    /// The scroll content's extra bottom clearance so the last log row clears
-    /// the floating tab bar.
-    ///
-    /// Measured, not guessed: on iPhone 17 / iOS 26 the floating bar occupies
-    /// y 791-874 (83pt tall). At 64pt the last row ended at y 800.7 and overlapped
-    /// it by ~10pt - the L4 assertion below caught exactly that. 64 had been
-    /// tuned while Home still had a navigation bar; hiding it for the one-row
-    /// header (docs/DESIGN.md) removed an automatic inset this was leaning on.
-    ///
-    /// Sized to the bar itself plus a margin rather than trimmed to just-fits,
-    /// so a future spacing change does not silently re-overlap. The assertion in
-    /// `testLastRowClearsTheFloatingTabBar` is what keeps this honest.
-    private static let bottomClearance: CGFloat = 96
-
     @ViewBuilder
     private var content: some View {
         if presentables.guest {
             HomeGuestLayout(vehicle: vehicle, stats: stats, photoData: photoData,
-                            onCapture: { presentSheet(.confirmManual) })
+                            onTypeIt: { presentSheet(.confirmManual) })
         } else if vehicle == nil {
             HomeNoCarLayout(presentSheet: presentSheet)
         } else if let stats {
@@ -133,7 +118,7 @@ struct HomeView: View {
                        updatedAt: stats.updatedAt, photoData: photoData)
             .simultaneousGesture(swipeToSwitchGesture)
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
-                          onCapture: { presentSheet(.confirmManual) })
+                          onTypeIt: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)
         if stats.hasEntries {
             HomeRecentEntries(entries: entries, stations: stations,
@@ -143,7 +128,7 @@ struct HomeView: View {
                               onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
                               onMerge: { group in mergeDuplicate(group) })
         } else {
-            HomeEmptyEntriesCard(onCapture: { presentSheet(.confirmManual) })
+            HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }
     }
 

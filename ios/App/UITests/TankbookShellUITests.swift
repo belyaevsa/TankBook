@@ -28,22 +28,35 @@ final class TankbookShellUITests: XCTestCase {
 
     func testThreeTabRootsExist() {
         let app = launch()
-        XCTAssertTrue(app.tabBars.buttons["Log"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.tabBars.buttons["Trends"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Garage"].exists)
+        XCTAssertTrue(app.buttons["tabbar.log"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["tabbar.trends"].exists)
+        XCTAssertTrue(app.buttons["tabbar.garage"].exists)
+    }
+
+    /// The owned bar (P2.1b) replaces the system bar, which is hidden with
+    /// `.toolbar(.hidden, for: .tabBar)`. This is the risk-detection assertion:
+    /// our `tabbar.log` button is present and no system tab-bar item with the
+    /// same label exists. If a future OS stops honouring the hide, the system
+    /// bar reappears and this fails (the fallback is documented in AppTabBar).
+    func testSystemTabBarIsHidden() {
+        let app = launch()
+        XCTAssertTrue(app.buttons["tabbar.log"].waitForExistence(timeout: 10),
+                      "the owned bar's Log button must be present")
+        XCTAssertFalse(app.tabBars.buttons["Log"].exists,
+                       "the system tab bar must be hidden, not doubled under the owned bar")
     }
 
     func testTabRootsHaveNoBackButton() {
         let app = launch()
-        XCTAssertTrue(app.tabBars.buttons["Log"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["tabbar.log"].waitForExistence(timeout: 10))
         // A tab root is a root: there is nothing to pop, so no back chevron.
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
 
-        app.tabBars.buttons["Trends"].tap()
+        app.buttons["tabbar.trends"].tap()
         XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
 
-        app.tabBars.buttons["Garage"].tap()
+        app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
     }
@@ -59,11 +72,11 @@ final class TankbookShellUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
         // Switch away to Trends.
-        app.tabBars.buttons["Trends"].tap()
+        app.buttons["tabbar.trends"].tap()
         XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
 
         // Switch back: the pushed Settings screen must still be on the stack.
-        app.tabBars.buttons["Log"].tap()
+        app.buttons["tabbar.log"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
     }
 
@@ -87,7 +100,7 @@ final class TankbookShellUITests: XCTestCase {
 
     func testGarageTabEdgesHaveBackPaths() {
         let app = launch()
-        app.tabBars.buttons["Garage"].tap()
+        app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
 
         app.buttons["vehicleDetailButton"].tap()
