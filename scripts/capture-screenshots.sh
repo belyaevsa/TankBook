@@ -37,6 +37,23 @@ if [ -z "${APP:-}" ]; then
     APP="${BUILT_DIR}/Tankbook.app"
 fi
 
+# Build before capturing, unless told not to (SKIP_BUILD=1). Resolving the
+# built product is not the same as it being CURRENT: on 2026-08-25 a full
+# 43-screenshot run was taken from a binary built before the change under
+# review, reported "ok" for every file, and produced 43 confident images of the
+# previous build. A stale capture is worse than no capture - it is evidence for
+# the wrong code. Building here costs seconds when nothing changed.
+if [ -z "${SKIP_BUILD:-}" ]; then
+    echo "building ${DEVICE} (SKIP_BUILD=1 to skip)..."
+    if ! xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+        -destination "platform=iOS Simulator,name=${DEVICE}" build >/dev/null 2>&1; then
+        echo "error: build failed - capture would screenshot a stale binary. Run the build" >&2
+        echo "  yourself to see why: xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \\" >&2
+        echo "    -destination 'platform=iOS Simulator,name=${DEVICE}' build" >&2
+        exit 1
+    fi
+fi
+
 if [ -z "${APP}" ] || [ ! -d "${APP}" ]; then
     echo "error: no built Tankbook.app found. Run:" >&2
     echo "  xcodegen generate && xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \\" >&2

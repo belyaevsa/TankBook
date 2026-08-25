@@ -154,7 +154,31 @@ All the same mistake – inferring liveness from a string match instead of real 
 **With worktrees, give every concurrent agent its own simulator** (`iPhone 17`, `17 Pro`,
 `17 Pro Max`, `17e`) or they fight over the device.
 
-### `scripts/capture-screenshots.sh` had two worktree bugs, both silent
+### The odometer had no thousands separator for the whole of P1
+
+`OdometerFormat` grouped with a **thin space (U+2009)**, and **DIN Alternate Bold has no glyph
+for it** - so every odometer in the app rendered `118930` while `OdometerFormatTests` stayed green
+asserting the exact `"119\u{2009}486"` string. A string test cannot see a missing glyph. CoreText
+settles it: for `DINAlternate-Bold`, `CTFontGetGlyphsForCharacters` is false for U+2009, U+202F,
+U+2007 and U+2008, and true for **U+00A0** at an advance of 3.596 at 15 pt (0.24 em - thin-space
+proportions, so the artboard is matched rather than compromised with). The separator is now
+U+00A0, `ungrouped` strips both, and `separatorHasAGlyphInTheDisplayFont` asserts the display font
+can actually draw whatever separator `grouped` produces. Mutation-checked: reverting to U+2009
+fails it.
+
+The general lesson, and it is the same one as the ghost tab-bar pill: **a formatter test asserts a
+string, and the user reads pixels.** Anything that renders in a non-system font needs a glyph
+check, not only a value check.
+
+### `scripts/capture-screenshots.sh` had THREE bugs, all silent
+
+The third, found 2026-08-25: **it never rebuilt.** It resolved this checkout's
+`BUILT_PRODUCTS_DIR` and screenshotted whatever binary sat there, so a full 43-shot run taken
+right after the separator fix produced 43 confident images of the **previous** build, reporting
+`ok` for every file. It now builds first unless `SKIP_BUILD=1`. A stale capture is worse than no
+capture: it is evidence for the wrong code.
+
+### The two earlier `capture-screenshots.sh` worktree bugs
 
 It picked the newest `DerivedData/Tankbook-*` anywhere on the machine – routinely **another
 checkout's binary** – so you would screenshot a different branch's app and never know. It now
