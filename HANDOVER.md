@@ -1,6 +1,6 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-25 at the end of the P2 session. Read this first, then `CLAUDE.md` for the
+*Rewritten 2026-08-25 at the end of the P3 session. Read this first, then `CLAUDE.md` for the
 rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## What this project is
@@ -18,8 +18,8 @@ Verified by running it, not by assertion:
 
 - Every P1 screen is built, plus the P2 capture surface, the Confirm sheet's scan path, mixed
   receipts and foreign currency.
-- **iOS: 462 unit tests, 88 UI tests**, `swiftlint lint` exit **0** from the repo root,
-  localization gate exit **0** at 262 keys / 100% RU. **Backend: 134 tests.**
+- **iOS: 529 unit tests, 108 UI tests**, `swiftlint lint` exit **0** from the repo root,
+  localization gate exit **0** at 359 keys / 100% RU. **Backend: 134 tests.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
@@ -33,6 +33,7 @@ Verified by running it, not by assertion:
 | **P0** | **Complete.** P0.12c closed the exit gate |
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
+| **P3** | **Most of the way.** P3.1a, P3.1b, P3.2, P3.3, P3.4, P3.7 done and merged; **P3.5 (reminder completion chain) and P3.6 (local notifications) not started**; P3.8 (seed/capture fix) dispatched |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -49,33 +50,36 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-1. ~~**P2.8**~~ – **cut on 2026-08-25, and the reason is not "we ran out of time".** The iOS 26.5
-   SDK carries `SystemLanguageModel.UnavailableReason.unsupportedLanguageOrLocale` alongside
-   `supportedLanguages`, and **Russian is not in the supported set** (nor Kazakh). The corpus is
-   32 RU/KZ receipts, so the layer would have been unavailable precisely where the rules parser
-   is weakest. Its check – *ships only if it strictly improves on an A/B against the corpus* – is
-   unsatisfiable in principle, not merely unmeasured, which is a stronger reason to stop than
-   P2.7's 0/30 was. **The EU is not the blocker** (Apple Intelligence landed there in iOS 18.4,
-   April 2025); the constraint is language. Full reasoning and the single re-open condition:
-   `docs/VISION.md` -> "Why tier 2 was cut". Normalization for Russian receipts is now tier 3's
-   job, which raises the cloud gateway's expected volume.
-2. **P2.2b** – `FuelExtraction` types money as `Double`; `SCHEMA.md` requires `Decimal`.
-   P2.3/P2.5 both convert at their boundary rather than propagate it, so this is contained but
-   still wrong at the root.
-3. **P2.3b** – the Fuel row offers fuels the car cannot burn (the seed car is
-   `[.petrol95, .diesel]`, which no car is).
-4. **P2.4b** – wire `FiscalDocumentIdentity` into duplicate detection. Two corpus receipts are
-   genuine separate fills, identical to the kopeck, escaping a false merge **by four minutes**.
+1. **P3.8 is dispatched** (flash): one reset gate for the whole process instead of five
+   independent ones, and an EN capture that actually sets EN. **Until it lands, no screenshot can
+   be trusted** - and screenshots are the only check that catches colour, truncation and layout.
+2. **P3.5** - the ReminderComplete sheet -> pre-filled entry -> next cycle chain. The lifecycle
+   engine and its transition table already exist (P3.4); this is the integration.
+3. **P3.6** - local notifications: arming at write time, humane scheduling, cancellation on status
+   change. P3.4 stores the `.attention` transition precisely so this can fire once.
+4. **The `headlight` cyan question, unresolved and now with four instances** ("Add line item", the
+   verify magnifier, Home's empty states, "Open shelf"). `docs/DESIGN.md` says cyan encodes
+   *electric*; the app uses it as the generic interactive colour. One decision, not four.
+5. The P2 follow-ups still open: **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (the
+   Fuel row offers fuels the car cannot burn), **P1.13** (the Confirm sheet's odometer renders
+   ungrouped), **P2.9/P2.10/P2.11** (three-decimal volumes, KZT detection, mixed-script OCR).
+6. **P4.10/P4.11** are filed and unstarted: the LLM gateway server (with the 3-second device
+   budget and corpus-gated compression), and `Date` not round-tripping exactly through
+   persistence.
 
 ## The corpus – the most valuable artefact in the repo
 
-`Spike/ReceiptSpike/fixtures/`: **32 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
-fiscal PDFs**, 23 decoded QR payloads. 2018–2026, RU and KZ, RUB/KZT/EUR, two VAT rates, petrol
+`Spike/ReceiptSpike/fixtures/`: **34 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
+fiscal PDFs**, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
+bilingual, a kofd.kz QR, a money-first fill) and `receipt-034` (a B2B contract fill printing
+`30.61 X 0.00` - a zero means "not printed", never "free", and it found two real parser bugs).
+**The accuracy ratchet was toothless** and is re-baselined: it recorded 29/47 against 45/92
+measured, so the parser could have lost 16 fields with CI green. 2018–2026, RU and KZ, RUB/KZT/EUR, two VAT rates, petrol
 92/95/98/100, diesel, LPG. Four classes scored separately so none flatters another.
 
 | class | score | note |
 |---|---|---|
-| receipts | **37/89 (41.6%)** | every miss is a parsing bug, not an OCR one |
+| receipts | **45/93 (48.4%)** | every miss is a parsing bug, not an OCR one |
 | pump | **0/30** | ten devices, six manufacturers. This zero is why P2.7 ships off |
 | fiscal | 0/3 | only one of the three rows is an OCR-scorable image |
 | screenshots | 6/9 (66.7%) | app screenshots are the easiest input that exists |
