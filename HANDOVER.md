@@ -1,151 +1,179 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-24; updated the same day when P0.3 landed and the corpus grew.*
-* Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Rewritten 2026-08-25 at the end of the P2 session. Read this first, then `CLAUDE.md` for the
+rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## What this project is
 
-A capture-first car cost log: iOS native (SwiftUI, min iOS 18, reference device iPhone 12) plus a C#/ASP.NET Core + PostgreSQL backend. Scanning receipts, pump displays and fiscal QR codes replaces typing. Local-first: fully usable with no account and with the server unreachable.
+A capture-first car cost log: iOS native (SwiftUI, min iOS 18, reference device iPhone 12) plus
+a C#/ASP.NET Core + PostgreSQL backend. Scanning **reduces** typing – it never replaces it, and
+typing is a peer entry path (hard rule 15). Local-first: fully usable with no account and with
+the server unreachable.
 
 Product thesis: `docs/VISION.md`. Market research: `docs/COMPETITORS.md`.
 
-## Does it work? Yes – there is a real app now
+## Does it work? Yes
 
 Verified by running it, not by assertion:
 
-- **The app runs in the simulator and every P1 screen is built**: Home (garage card, vitals, log stream), Add car, manual fill-up, Edit entry, Recently deleted, duplicate detection, tank level, Trends, car switcher, Vehicle detail.
-- **iOS: 318 unit tests, 59 UI tests** executed against a booted iPhone 17 / iOS 26.5 simulator. **Backend: 134 tests.** `swiftlint lint` exits **0** from the repo root.
-- **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then `dotnet run --project src/Tankbook.Api`: migrations apply, `GET /health` → `{"status":"ok"}`, `GET /v1/config` returns a signed document with no auth, `If-None-Match` → 304.
-- **The consumption engine reproduces the D1–D4 golden vectors**, re-checked after every change that touched it.
+- Every P1 screen is built, plus the P2 capture surface, the Confirm sheet's scan path, mixed
+  receipts and foreign currency.
+- **iOS: 462 unit tests, 88 UI tests**, `swiftlint lint` exit **0** from the repo root,
+  localization gate exit **0** at 262 keys / 100% RU. **Backend: 134 tests.**
+- **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
+  `dotnet run --project src/Tankbook.Api`.
+- The consumption engine reproduces the D1–D4 golden vectors.
 
-Screenshots of every screen, EN and RU, are committed in `design/screenshots/`.
+40 screenshots, EN and RU, in `design/screenshots/`.
 
 ## Where the work stands
 
-**P1 is complete; P0 has one task left (P0.12c).** Status marks live in `docs/TASKS.md` (`[x]` = done *and independently re-verified outside the implementing agent*).
-
 | Phase | State |
 |---|---|
-| **P0** | Done except **P0.12c** (`apiBaseUrl` guardrails: host allowlist, health gate, auto-revert, host-bound `Authorization`). P0.12a/b are done; P0.12c is the last of the three slices and its brick-proof test is part of the P0 exit gate |
-| **P1** | **Complete.** P1.1–P1.12 and P0.3 all done, committed and re-verified |
-| **P2** | Not started. The OCR corpus blocker is largely lifted (see "The corpus"); the fiscal-enrichment product decision still stands |
+| **P0** | **Complete.** P0.12c closed the exit gate |
+| **P1** | **Complete** |
+| **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is the only untouched task** |
 
-### P0.3 is done (2026-08-24)
+### The three `[~]`s are blocked on facts, not effort
 
-The gate binary hung because `SourceTokenizer.tokenize` never advanced `index`
-past a string literal - the first `"` in any file spun forever. One missing line.
-Its own test suite could not have run either: every test feeds string literals
-through that path, so they hang rather than fail. That is why "the agent reported
-it ran clean" and "the gate hangs" were both true.
-
-Fixed, and the scan widened to `L10n.localize(` (58 previously unchecked call
-sites - the dangerous half, since `L10n.localize` feeds `Text(_: String)`, which
-does not localise at all). It immediately failed on two live defects: a Home
-grouped-receipt count with no catalogue key and no Russian plural forms, and a
-device name being routed through the catalogue as if it were copy.
-
-Catalogue: **232 keys, 100% RU**. Gate exits 0 on the tree, 1 on a hardcoded
-string. Committed as `c5a1d6d`.
-
-**Its known blind spot bit immediately afterwards** and is worth remembering: a
-literal assigned to an inferred-`String` local and passed to `Text(_:)` renders
-the English key even when the catalogue has the translation, and a key-membership
-check cannot see it. The RU screenshot caught one ("checks as you type" on
-Confirm) that the gate, the unit tests and 59 UI tests all missed. Fixed in
-`1b20ee4`; the whole app target was swept for others and there were none.
+- **P2.4 (mixed receipts)** – detection, the "Also on this receipt" UI and grouped save all
+  landed and are tested. Its `>=95% on mixed corpus` gate is **not met and not ticked**, because
+  the corpus holds **two** mixed fixtures. A percentage over two fixtures is arithmetic.
+  `receipt-025`'s detection by *line structure* (the path that works without a QR) is still
+  unasserted – that is the concrete next step.
+- **P2.6 (fiscal QR)** – the parser half shipped as an **anchor for OCR**, not a capture path.
+  Enrichment is **permanently deferred**: the QR carries only total, timestamp and fiscal ids,
+  and the OFD document is keyed on an id not derivable from the QR (verified against two OFDs).
+- **P2.7 (pump mode)** – ships **off**, and that is the correct outcome. The gate is enforced by
+  a test that was mutation-checked: neutering `PumpPhotoGate.violation` fails it.
 
 ## What to do next
 
-1. **P0.12c** – the last open P0 slice, and the P0 exit gate. No brief written yet.
-2. **P2** – the corpus blocker is now substantially lifted (below); the fiscal
-   enrichment decision is not.
+1. **P2.8** – Foundation Models normalization, iOS 26+ gated. The only untouched P2 task. Note
+   its own check: *ships only if it strictly improves on an A/B against the corpus*. With the
+   parser at 41.6% and every failure documented as a parsing bug rather than an OCR one, the
+   honest outcome may well be "does not ship" – and the deliverable is then the measurement.
+2. **P2.2b** – `FuelExtraction` types money as `Double`; `SCHEMA.md` requires `Decimal`.
+   P2.3/P2.5 both convert at their boundary rather than propagate it, so this is contained but
+   still wrong at the root.
+3. **P2.3b** – the Fuel row offers fuels the car cannot burn (the seed car is
+   `[.petrol95, .diesel]`, which no car is).
+4. **P2.4b** – wire `FiscalDocumentIdentity` into duplicate detection. Two corpus receipts are
+   genuine separate fills, identical to the kopeck, escaping a false merge **by four minutes**.
 
-Done this session: P0.3 (above), all 27 screenshots re-captured from the current
-build and opened (`1b20ee4`), and the OCR corpus taken from 1 receipt to 12
-(`5976bde`).
+## The corpus – the most valuable artefact in the repo
 
-## The corpus (largely unblocked, 2026-08-24)
+`Spike/ReceiptSpike/fixtures/`: **32 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
+fiscal PDFs**, 23 decoded QR payloads. 2018–2026, RU and KZ, RUB/KZT/EUR, two VAT rates, petrol
+92/95/98/100, diesel, LPG. Four classes scored separately so none flatters another.
 
-`Spike/ReceiptSpike/fixtures/` now holds **12 receipt photos** (9 brands, 2022-2026,
-Russian throughout, two VAT rates, petrol 92/95/100, diesel and LPG), 2 pump
-photos, 2 fiscal OFD documents and an e-receipt screenshot - still scored in four
-separate classes so none flatters another. Fiscal QR payloads are decoded and
-committed beside the images.
+| class | score | note |
+|---|---|---|
+| receipts | **37/89 (41.6%)** | every miss is a parsing bug, not an OCR one |
+| pump | **0/30** | ten devices, six manufacturers. This zero is why P2.7 ships off |
+| fiscal | 0/3 | only one of the three rows is an OCR-scorable image |
+| screenshots | 6/9 (66.7%) | app screenshots are the easiest input that exists |
 
-**Baseline: 12/30 fields (40.0%), cross-check 5/13.** It was "3/3" over one photo,
-which is arithmetic. The drop is the corpus working. Full failure taxonomy in
-`fixtures/receipts/README.md`; the three that change design:
+Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dump-text` to debug).
+**OCR is not the bottleneck** – Vision reads these at confidence 1.00 and the parser still misses.
 
-- **Litres and unit price come back swapped and the cross-check reports PASSED**,
-  because `a*b == b*a`. It validates the product, never the assignment. Caught
-  only because `pump-002` photographs the same fill as `receipt-007` and labels
-  both values. Consumption would be wrong by 2.3x with every check green.
-  Disambiguation must come from the `л` marker's position or a price prior.
-- **The total-finder grabs VAT, the ОКРУГЛЕНИЕ line, or a mixed receipt's grand
-  total instead of the fuel line.** Reading order is the mechanism: right-aligned
-  receipts emit *value before label*. `receipt-009` is the hard-rule-4 fixture the
-  project lacked - and its bottled water costs 129.00, the same number as the
-  fuel's price per litre.
-- **ЛУКОЙЛ rounds the fiscal total down to the whole rouble** (`ОКРУГЛЕНИЕ`, also
-  printed as "your discount"), VAT computed pre-rounding. So the pump reads
-  4334.83 and the receipt 4334.00 for the same fill - both correct, ~1 ₽ apart.
-  Duplicate detection must not read that as two fills. Not universal: the 2022
-  Кемерово receipt has no rounding line.
+### What the corpus proved, that no amount of design discussion would have
 
-Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts`
-(`--dump-text` to debug a miss). OCR is rarely the problem - Vision reads these at
-confidence 1.00 and the parser still misses. **These are parser bugs, not OCR bugs.**
-
-**Open, needs the user:** the four Крым Оил receipts print `цена*количество` with
-no unit marker on either operand (`205.00*20`), so both readings give the same
-total. `liters`/`unitPrice` are deliberately blank; totals are recorded. Context
-says price-first at crisis prices on one southern road trip, but that is an
-inference and the gate ratchets against whatever is written down.
+- **Nothing about a receipt is predictable from its brand.** Operand order varies *within one
+  receipt* (`receipt-031`); the decimal separator varies *by device at one station* (`pump-002`
+  vs `pump-007`); rounding behaviour varies *by year within one chain* (`receipt-029` is 2021
+  ЛУКОЙЛ with no rounding, the 2026 ones all round); layout varies *within one brand*
+  (`receipt-013` vs `-032`). Read what the document says; infer nothing from who printed it.
+- **The cross-check is a consistency check, not a correctness one.** It catches a misread digit
+  and picks among discrete candidates (`pump-005`'s four prices). It is blind to a **swapped**
+  volume/price pair (`a x b == b x a`) and to **lost decimal separators** (scale-invariant:
+  `pump-003` has 12 valid solutions, not one). A swap stores a fill 2.3x wrong with every check
+  green.
+- **Confidence is not correctness.** `pump-004`: Vision returned a wrong digit at **1.00**. No
+  setting of `ocrConfidenceThreshold` can catch that.
+- **Region moves price as much as years do.** Yakutsk 2023 is 27% above Кемерово seven months
+  earlier. A band keyed on country+period is too coarse – see `docs/SCHEMA.md` → Fuel price
+  bands, whose resolution ladder is specified but whose pack is P5.
+- **Redundancy rescues receipts and not pumps.** A receipt prints its total three times
+  (`receipt-015` survived a `5380.0D` misread); a pump prints each number once.
 
 ## Open decisions (product, not implementation)
 
-1. **Fiscal QR enrichment has no route yet.** The QR carries `t/s/fn/i/fp/n` – total, timestamp, fiscal ids – and **nothing else**: no litres, no unit price, no fuel kind. The OFD's document URL is keyed on an opaque `RawId` that is **not derivable from the QR** (verified against two different OFDs). So `JOURNEYS.md` J5's "all fields land exact" depends on a lookup that has never been specified; `docs/API.md` has no fiscal endpoint. Options and their real costs are in `Spike/ReceiptSpike/fixtures/fiscal/README.md`. The user's steer: **route it through our backend**, which fits `SECURITY.md` (API keys stay server-side – the same reason the LLM gateway exists). P2.6's QR *parser* half is unblocked and has a real fixture; the enrichment half should not start until this is settled.
-2. **iOS 18 validation.** Everything is built and snapshotted on **iOS 26.5**; the deployment target is 18.0 and unchanged. The compiler catches post-18 API use, but appearance and runtime behaviour are unverified on the floor. The iOS 18 runtime needs an explicit fetch (`xcodebuild -downloadPlatform iOS` gets only the latest, ~8 GB) and **L4 baselines recorded on 26.5 will need re-recording**.
+1. **iOS 18 validation.** Everything is built and screenshotted on **iOS 26.5**; the deployment
+   target is 18.0. This session found the concrete cost: the tab bar we had been reviewing in
+   every screenshot was **iOS 26's system rendering**, which iOS 18 would never produce. P2.1b
+   replaced it with an owned bar, so that specific gap is closed – but L4 baselines recorded on
+   26.5 still need re-recording, and the iOS 18 runtime needs an explicit ~8 GB fetch.
+2. **The `AddVehicle` pair, correctly diagnosed at last.** `testConfirmItIsRightIsOneTap` and
+   `testImplausibleOdometerWarnsButNeverBlocksSave` fail on **iPhone 17 Pro Max in isolation** –
+   so they were never "load-sensitive", as previously recorded here. The real failure is
+   `typeText` after a successful tap, with the field leaving the accessibility tree. Repro
+   command and the evidence are in `AddVehicleUITests.swift`. **Do not fix it with sleeps.**
 
-## Working with agents (opencode + DeepSeek)
+## Working with agents (opencode)
 
-Builder: `opencode run --auto --thinking -m deepseek/deepseek-v4-flash --title "<id>" "$(cat agents/briefs/<id>.md)"`.
-Architecture or security work goes to **pro**; screen implementation against a fixed artboard goes to **flash**.
+Builder: `opencode run --auto --thinking -m <model> --title "<id>" "$(cat agents/briefs/<id>.md)"`.
+Architecture, security and algorithm work goes to **pro**; screen implementation against a fixed
+artboard goes to **flash**. Both flags matter: `--auto` because a single auto-reject kills an
+unattended run, `--thinking` because it makes long silent stretches legible.
 
-**Both flags matter.** `--auto` because in non-interactive mode opencode cannot prompt, so it *auto-rejects* – and a single rejection kills the whole run. `--thinking` because it makes the long silent stretches legible; without it, accumulating CPU is the only evidence a run is alive.
+**Validation runs on a `deepseek-v4-pro` agent, not in the orchestrator's session** – dispatch
+`agents/briefs/VALIDATE.md`. Two things never change: read the **captured exit codes**, not the
+validator's prose; and **the orchestrator opens every screenshot personally**, because agents
+have no image input.
 
-### Is it working, or is it wedged?
+### The three ways process-detection lied this session
 
-**Run `scripts/agent-health.sh <task-id> <logfile>` about five minutes after every dispatch.** Roughly **one dispatch in four came up dead** this session (P1.4, P1.5, P1.12 and one P0.12 attempt) – the process exists, holds no connection, burns no CPU, and never writes a byte. All four recovered on an immediate re-dispatch of the **same** brief, so it is provider flakiness: kill and retry, do not rewrite the brief.
+All the same mistake – inferring liveness from a string match instead of real pids:
 
-The decisive signal is **log bytes**: a healthy run writes ~17 KB in its first 30 seconds; a wedged one is still at 0 after 25 minutes. Log *freshness* proves nothing – nothing is written during inference. Connection count is corroborating only: a healthy run legitimately holds zero connections for ~4 minutes while waiting on `xcodebuild`.
+1. **An agent killed a sibling.** P2.3's agent ran `pgrep -f "xcodebuild.*test"` to check the
+   device was free. **A brief is part of the process command line**, so it matched P2.1b's
+   `opencode` process and killed it 48 minutes in. Its log simply stops mid-edit and
+   `agent-health.sh` reports EXITED, which reads exactly like "finished". Use `pgrep -x
+   xcodebuild`. Never hand an agent a `pkill -f` pattern.
+2. **`pgrep -f "CAPBTN-glm53"` matched the orchestrator's own shell**, reporting finished agents
+   as running.
+3. **A waiter fired early** when the pid list changed mid-check, producing a false "completed"
+   notification. Match by title on real pids: `pgrep -f "opencode run" | xargs ps -o args= -p`.
+
+**With worktrees, give every concurrent agent its own simulator** (`iPhone 17`, `17 Pro`,
+`17 Pro Max`, `17e`) or they fight over the device.
+
+### `scripts/capture-screenshots.sh` had two worktree bugs, both silent
+
+It picked the newest `DerivedData/Tankbook-*` anywhere on the machine – routinely **another
+checkout's binary** – so you would screenshot a different branch's app and never know. It now
+asks xcodebuild for this checkout's own `BUILT_PRODUCTS_DIR`. Its `pgrep -f` guard had bug 1.
 
 ### Verification is not optional, and agent reports are not evidence
 
-Every `[x]` in `docs/TASKS.md` was re-verified by re-running the checks outside the agent. This caught, among others: two screenshots of an "Entry not found" page reported as the screen; a claimed-green UI suite that had 2 real failures; and a gate reported as passing that hangs (P0.3, above).
+Caught this session by re-running checks outside the agent: a gate reported passing that hung
+forever; a vacuous `#expect(plan.purchaseGroupId == plan.purchaseGroupId)`; a `FuelKind` enum
+extension that broke the **app** target while `swift build` stayed green (only `xcodebuild`
+compiles `ios/App`); and an agent thrashing for an hour adding `print` statements.
 
-**The orchestrator must open every screenshot.** The DeepSeek runs have no image input – they verify by accessibility tree or OCR and cannot see what they produced. Screenshots are the only check that catches colour, truncation and layout; XCUITest asserts behaviour and never appearance.
+**Mutation-check the load-bearing invariant.** Break it deliberately, confirm a test fails,
+restore byte-for-byte. That is what proved the allowlist, the rounding tolerance, the `rateDate`
+rule and the pump gate are real rather than vacuously green.
 
-### What the RU screenshots caught that no test could
+### Screenshots caught five defects no test could
 
-Three layout/grammar bugs, in three different tasks:
+The untranslated `"checks as you type"`; a Russian mode row wrapping onto two lines; the capture
+shutter pushed off-centre by a long RU label; a **ghost tab-bar pill** painted over the log
+content; and the bar's hairline drawn **across** the capture circle. XCUITest asserts behaviour,
+never appearance – and chrome is invisible to it even when the accessibility tree is empty.
 
-- `"%@ spend"` translated word-for-word as `"%@ расходы"` rendered **"АВГУСТ РАСХОДЫ"** – word-order nonsense. Composed strings need a full localised phrase per language, never concatenation.
-- A `lineLimit(1)` truncating the 30-day countdown.
-- `"€143 в этом месяце"` overflowing the car-switcher row where English `"this month"` fits. Shortened to `"за месяц"`.
-
-Russian runs 20–30% longer and **short strings expand worst** (`Fix` → `Исправить` is 3x), which is exactly what overflows tab labels, chips and error-row affordances – and a truncated next step breaks hard rule 7.
-
-## Known open items
-
-1. **The localization gate cannot see `String`-typed wrappers** – a correct
-   catalogue key still renders English through `Text(_: String)`. Only the RU
-   screenshot catches this class. Documented in `LocalizationGate.swift`.
-2. **Two UI tests are load-sensitive**: `AddVehicleUITests.testConfirmItIsRightIsOneTap` and `testImplausibleOdometerWarnsButNeverBlocksSave` pass in isolation and can fail in the full suite. Root cause is the shared `scrollTo` helper stopping on `isHittable`, which tests an element's **centre** – so it can stop while the bottom edge is still under the keyboard. `HomeUITests.testLastRowClearsTheFloatingTabBar` had the same defect and was fixed by scrolling until the frame clears; the two AddVehicle ones have not been given the same treatment yet.
-3. **The API shuts down when Postgres is unreachable** (retries ~4 times then exits). For a product whose story is "the server being down is a non-event", it should start degraded and report unhealthy. Flagged for P4.
-4. **`JsonSchema.Net` is pinned to 4.1.8** – the last MIT-licensed release; 5.0+ is a paid licence. A dependency risk to revisit.
-5. **Assume ASCII-only blind spots exist** in code written before 2026-08-23. `JSONValue.parse` rejected *every* multi-byte UTF-8 string – a Cyrillic station name could not be decoded at all – and the whole suite stayed green because every payload fixture was ASCII. Fixed, with a test that fails if the corpus ever goes all-ASCII again, but `JSONSchemaValidator.swift` sits in the same directory with no Unicode tests.
+**The localization gate's blind spot, now with four instances.** `Text(_: String)` does not
+localise, so any expression producing a `String` renders its English key even when the catalogue
+has the translation – and the gate cannot see it, because the key *is* present. The shape is
+always **runtime data and copy sharing one expression**. The rule and all four instances are
+recorded at the top of `L10n.swift`.
 
 ## The document set
 
-`CLAUDE.md` is the operating manual and index; its **14 hard rules** are the ones that make things bugs rather than style. Under `docs/`: VISION, COMPETITORS, DESIGN, JOURNEYS, SCREENMAP, ERRORS, LOGGING, SECURITY, CONFIG, NOTIFICATIONS, SCHEMA, SYNC, API, TESTING, PHASES, TASKS. Screens are `.dc.html` artboards in `design/screens/`. Agent briefs are in `agents/briefs/` – read `README.md` there before writing a new one; every fence in those briefs exists because something went wrong once.
+`CLAUDE.md` is the operating manual and index; its **15 hard rules** are the ones that make
+things bugs rather than style. Under `docs/`: VISION, COMPETITORS, DESIGN, JOURNEYS, SCREENMAP,
+ERRORS, LOGGING, SECURITY, CONFIG, NOTIFICATIONS, SCHEMA, SYNC, API, TESTING, PHASES, TASKS.
+Screens are `.dc.html` artboards in `design/screens/`. Agent briefs are in `agents/briefs/` –
+read `README.md` there first; every fence in those briefs exists because something went wrong
+once.
