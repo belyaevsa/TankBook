@@ -12,7 +12,9 @@ enum Route: Hashable {
     case settings
     case about
     case reminders
-    case reminderForm
+    /// The reminder form. `nil` = create a new reminder (the list's "New
+    /// reminder"); otherwise the reminder being edited/rescheduled.
+    case reminderForm(UUID?)
     case recentlyDeleted
     /// The entry being edited. `nil` = "no specific entry" (a placeholder link
     /// or a debug-launch screenshot): the screen falls back to the most recent

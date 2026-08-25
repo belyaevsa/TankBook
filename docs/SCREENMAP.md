@@ -123,6 +123,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) | back → Garage (or opener) |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
 | Reminders | Home banner, VehicleDetail, push notification | complete → ReminderComplete · New reminder → form | back → opener |
+| Reminder form (P3.4) | Reminders (New reminder / row edit, incl. reschedule) | Save → Reminders | back → Reminders |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
@@ -130,7 +131,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 
 ## Screens referenced but not yet drawn
 
-The map names five screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Garage tab root** (vehicle grid; today Car switcher covers quick switching, but the tab needs a real screen), **Import wizard** (J2/F6 – source picker, file, preview-verify, partial-import review), **Reminder form** (new/edit reminder), **Account & devices** (Settings' signed-in account target; device list + revoke + delete account), **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header.)
+The map names four screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Garage tab root** (vehicle grid; today Car switcher covers quick switching, but the tab needs a real screen), **Import wizard** (J2/F6 – source picker, file, preview-verify, partial-import review), **Account & devices** (Settings' signed-in account target; device list + revoke + delete account), **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines.)
 
 ## Dead-end audit
 
