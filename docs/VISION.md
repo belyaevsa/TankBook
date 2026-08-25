@@ -50,10 +50,10 @@ Pipeline:
 1. **Capture** – VisionKit document camera, or photo of the pump display
 2. **OCR** – Vision framework document recognition (on-device, free, offline)
 3. **Parse** – deterministic rules: currency, decimals, `liters × price ≈ total` cross-check
-4. **Normalize** – Apple Foundation Models (on-device LLM) resolves ambiguity: "DIESEL B7", station name, fuel grade
+4. ~~**Normalize** – Apple Foundation Models (on-device LLM) resolves ambiguity: "DIESEL B7", station name, fuel grade~~ – **cut 2026-08-25**: the on-device model does not support Russian, which is the corpus's language (§ "Why tier 2 was cut")
 5. **Fallback** – cloud multimodal LLM (Haiku-class) only if confidence is low – opt-in, Pro feature
 
-**Decision:** Apple-first hybrid. On-device Vision + Foundation Models handle ~90% of receipts at zero marginal cost and full privacy. The cloud LLM fallback handles crumpled thermal paper and glare-heavy pump displays – opt-in, clearly labeled, part of the paid tier so API costs are covered by revenue. The arithmetic cross-check gives a built-in confidence signal that competitors' "inaccurate calculations" complaints show they lack.
+**Decision (amended 2026-08-25):** Apple-first hybrid, now **without** the Foundation Models step. On-device Vision plus the deterministic rules parser carry the primary path at zero marginal cost and full privacy; step 4 was cut because the on-device LLM has no Russian. The cloud LLM fallback handles crumpled thermal paper and glare-heavy pump displays – opt-in, clearly labeled, part of the paid tier so API costs are covered by revenue. The arithmetic cross-check gives a built-in confidence signal that competitors' "inaccurate calculations" complaints show they lack.
 
 ## 4 · Feature set
 
@@ -113,7 +113,7 @@ That last comparison – *your EV vs your petrol car, in real money per 100 km* 
 
 ## 7 · Platform & tech strategy
 
-- **iOS:** SwiftUI; persistence GRDB (decided, `SCHEMA.md`); sync client implementing the `SYNC.md` protocol against our backend (`API.md`); VisionKit + Vision for OCR, Foundation Models framework for normalization where available.
+- **iOS:** SwiftUI; persistence GRDB (decided, `SCHEMA.md`); sync client implementing the `SYNC.md` protocol against our backend (`API.md`); VisionKit + Vision for OCR. (Foundation Models normalization was **cut on 2026-08-25** – no Russian support; see the capability tiers.)
 
 ### Platform support and what it costs us
 
@@ -133,18 +133,48 @@ Every capture path degrades cleanly, and each tier is additive rather than requi
 |---|---|---|
 | **0 – the floor** | iOS 18, any supported device | `VNRecognizeTextRequest` + the deterministic rules parser + the arithmetic cross-check. This is the product's guaranteed quality bar |
 | **1 – structured docs** | iOS 26+ | `RecognizeDocumentsRequest`: tables and document structure rather than raw text lines. Better multi-page invoices (J7) and awkward receipt layouts |
-| **2 – on-device normalization** | A17 Pro+ with 8 GB RAM, Apple Intelligence enabled, model downloaded | Foundation Models resolves ambiguity (fuel grades, station names). Ships only if it strictly beats tier 0 on the corpus (P2.8) |
+| **~~2 – on-device normalization~~** | ~~A17 Pro+ with 8 GB RAM, Apple Intelligence enabled, model downloaded~~ | **Cut 2026-08-25.** Foundation Models does not support Russian, and the app's primary corpus is Russian. See "Why tier 2 was cut" below |
 | **3 – cloud fallback** | Pro tier, network, user opt-in | Hard images: crumpled thermal paper, glare-heavy pump displays, odd charging-app screenshots |
 
-Tiers 1 and 2 are compile-time `if #available` plus a runtime availability probe; nothing above tier 0 may ever be a precondition for logging a fill-up.
+Tier 1 is a compile-time `if #available` plus a runtime availability probe; nothing above tier 0 may ever be a precondition for logging a fill-up.
+
+#### Why tier 2 was cut (decided 2026-08-25, do not re-propose)
+
+**The Foundation Models on-device LLM does not support Russian, and Russian is the language of
+the corpus this feature existed to improve.**
+
+The evidence, in the order it decides the question:
+
+1. **The framework refuses to run on an unsupported device language.** `UnavailableReason` in the
+   shipped iOS 26.5 SDK carries the case `unsupportedLanguageOrLocale`, alongside a
+   `SystemLanguageModel.supportedLanguages: Set<Locale.Language>`. This is not a quality
+   degradation on unsupported input – it is the model reporting itself unavailable.
+2. **Russian is not in that set.** As of 26.1 the supported languages are English, Danish, Dutch,
+   French, German, Italian, Norwegian, Portuguese, Spanish, Swedish, Turkish, Chinese
+   (Simplified and Traditional), Japanese, Korean and Vietnamese. Russian is absent, with nothing
+   announced. Kazakh likewise – and the corpus holds KZ receipts too.
+3. **That lands precisely on our worst input.** The corpus is 32 RU/KZ receipts; receipts score
+   **41.6%**, and every documented miss is a parsing bug on Cyrillic product lines. So tier 2
+   would have been unavailable exactly where tier 0 is weakest, and available only where the
+   parser already does best.
+
+Note what is *not* the reason. **The EU is not a blocker** – Apple Intelligence reached the EU in
+April 2025 with iOS 18.4; only some Siri features stayed withheld there. The constraint is
+language, not jurisdiction, which is why "wait for the EU" would have been the wrong conclusion.
+
+The consequence for the roadmap is that **tier 3 (the cloud LLM gateway) is now the only
+normalization path for Russian receipts**, which raises its expected volume further than
+consequence 2 below already anticipated. The path back to a re-open is narrow and specific:
+Apple adding Russian to `supportedLanguages`. Nothing else changes this – not new hardware, not a
+new OS version.
 
 **The binding constraint is not the OS version – it is Apple Intelligence hardware.** The Foundation Models framework requires **A17 Pro or newer with 8 GB RAM**: iPhone 15 Pro/Pro Max, 16e/16/16 Plus/16 Pro/Pro Max, the 17 family, and iPhone Air. The plain **iPhone 15 and 15 Plus are excluded** (A16, 6 GB) despite running iOS 26 – a trap worth stating, since "iPhone 15" sounds new enough. Beyond hardware, the user must have Apple Intelligence enabled and the model downloaded, so availability must be checked at runtime, not assumed from the device.
 
 Three consequences we design around:
 
-1. **The deterministic parser is the product's floor, not a fallback.** For the majority of users – and for years – there is no on-device LLM. The Spike's rules parser plus the arithmetic cross-check must carry the accuracy bar alone; Foundation Models is an enhancement on newer hardware, never a dependency. This is exactly why P2.8 ships only if it *strictly improves* on rules-only (`TASKS.md`).
-2. **Cloud fallback matters more than first framed**, since on-device normalization is unavailable to most devices. That raises expected `/extract` volume and therefore the real API cost behind the Pro tier – price it accordingly rather than assuming most work happens on-device for free.
-3. **Runtime availability is a UI state, not an error.** Unsupported hardware, Apple Intelligence off, or model still downloading all resolve to the same calm behaviour as F4: on-device results render immediately, low-confidence fields stay dimmed, and no upsell appears mid-capture.
+1. **The deterministic parser is the product's floor, not a fallback.** For the majority of users – and for years – there is no on-device LLM. The Spike's rules parser plus the arithmetic cross-check must carry the accuracy bar alone; Foundation Models was framed as an enhancement on newer hardware, never a dependency. That framing is what let tier 2 be **cut** (above) without touching the product's floor: P2.8 would have shipped only if it *strictly improved* on rules-only, and it cannot even run on the Russian corpus.
+2. **Cloud fallback matters more than first framed**, since on-device normalization is unavailable to most devices - and, after the tier 2 cut, to **every** Russian-language user. That raises expected `/extract` volume and therefore the real API cost behind the Pro tier – price it accordingly rather than assuming most work happens on-device for free.
+3. **Runtime availability is a UI state, not an error.** Unsupported hardware, an unsupported language, Apple Intelligence off, or model still downloading all resolve to the same calm behaviour as F4: on-device results render immediately, low-confidence fields stay dimmed, and no upsell appears mid-capture.
 
 **Form factors.** iPhone is the design target: capture happens standing at a pump. Screen widths run from **375 pt (SE 2nd/3rd gen, still supported)** to 440 pt (Pro Max), while our artboards are drawn at 390 pt – the dense screens (Trends tile grid, Service line items, the DIN numerals on Confirm) must be verified at 375 pt, and combined with Dynamic Type XL that is the real layout stressor rather than the wide end. **iPad ships as a scaled phone layout, not a bespoke iPad UI** – multi-device sync makes an iPad plausible as a review device, and a simple correct layout beats a broken ambitious one. **Apple Watch is out of scope** (no capture value). **CarPlay is a post-launch experiment, not a plan**: Apple does operate a fueling category, but the entitlement needs Apple's approval and our primary purpose is logging rather than finding or paying for fuel, so approval is genuinely uncertain – Fuelio having CarPlay is a reason to try, not a reason to promise.
 - **Currency:** rates served by our backend's public `/rates` endpoint (daily job: ECB + a CIS source for RUB/KZT/AMD/GEL/BYN – see `SCHEMA.md` Reference data), cached ~2 years on device with an app-bundle seed pack; rates snapshotted per entry so history never shifts. The vehicle's default currency is the reporting currency for all its stats.

@@ -32,7 +32,7 @@ Verified by running it, not by assertion:
 |---|---|
 | **P0** | **Complete.** P0.12c closed the exit gate |
 | **P1** | **Complete** |
-| **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is the only untouched task** |
+| **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -49,10 +49,16 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-1. **P2.8** – Foundation Models normalization, iOS 26+ gated. The only untouched P2 task. Note
-   its own check: *ships only if it strictly improves on an A/B against the corpus*. With the
-   parser at 41.6% and every failure documented as a parsing bug rather than an OCR one, the
-   honest outcome may well be "does not ship" – and the deliverable is then the measurement.
+1. ~~**P2.8**~~ – **cut on 2026-08-25, and the reason is not "we ran out of time".** The iOS 26.5
+   SDK carries `SystemLanguageModel.UnavailableReason.unsupportedLanguageOrLocale` alongside
+   `supportedLanguages`, and **Russian is not in the supported set** (nor Kazakh). The corpus is
+   32 RU/KZ receipts, so the layer would have been unavailable precisely where the rules parser
+   is weakest. Its check – *ships only if it strictly improves on an A/B against the corpus* – is
+   unsatisfiable in principle, not merely unmeasured, which is a stronger reason to stop than
+   P2.7's 0/30 was. **The EU is not the blocker** (Apple Intelligence landed there in iOS 18.4,
+   April 2025); the constraint is language. Full reasoning and the single re-open condition:
+   `docs/VISION.md` -> "Why tier 2 was cut". Normalization for Russian receipts is now tier 3's
+   job, which raises the cloud gateway's expected volume.
 2. **P2.2b** – `FuelExtraction` types money as `Double`; `SCHEMA.md` requires `Decimal`.
    P2.3/P2.5 both convert at their boundary rather than propagate it, so this is contained but
    still wrong at the root.
