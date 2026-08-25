@@ -115,9 +115,16 @@ struct ReminderCompleteSheet: View {
             Text("Log the cost?")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
+            // `fixedSize(vertical:)` is load-bearing: inside a `.medium`
+            // presentation detent SwiftUI compresses flexible content, and this
+            // line was clipped to one with an ellipsis in BOTH languages
+            // ("... the category, title and t...", "... категорией, н..."). It
+            // is the sentence that explains what the button will do, so a
+            // truncated version is worse than none - it stops mid-promise.
             Text("Creates an entry pre-filled with the category, title and today's odometer – type a total and save.")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.top, 3)
 
             Button(action: typeAmount) {
