@@ -5,6 +5,22 @@ import TankbookCore
 /// through `Text(LocalizedStringKey)`; composed rows (units, suggestion subtitles)
 /// read the same catalog through the bundle. Every key here has an EN + RU
 /// entry in Localizable.xcstrings.
+/// **The trap this file cannot save you from.** `Text(_: LocalizedStringKey)`
+/// localises; `Text(_: String)` does not. Any expression that produces a
+/// `String` therefore renders its English key in Russian even when the catalogue
+/// holds a translation, and the P0.3 localization gate cannot see it - the key IS
+/// present, so nothing is missing to report.
+///
+/// Four have been found this way, each by looking at a Russian screenshot:
+///   let text = locked ? "✓" : "checks as you type"     // inferred String
+///   Text(conflict.quote ?? "Odometer breaks the...")   // coalesced String?
+///   Text(selection?.name ?? "Nearby suggestion")       // coalesced String?
+///   hintText("Which currency is this?")                // String parameter
+///
+/// The shape is always the same: **runtime data and copy sharing one expression**.
+/// Split them - `if let x { Text(x) } else { Text("literal") }` - so the literal
+/// reaches the `LocalizedStringKey` overload. When a wrapper must take text, type
+/// its parameter `LocalizedStringKey`, not `String`.
 enum L10n {
     static func localize(_ key: String) -> String {
         Bundle.main.localizedString(forKey: key, value: key, table: nil)

@@ -488,13 +488,32 @@ struct ManualFillUpOdometerCard: View {
         }
     }
 
+    /// The validator's own wording when it has one (already localised at its
+    /// source), else the catalogue literal - reached through the
+    /// `LocalizedStringKey` overload, which a coalesced `String?` cannot be.
+    @ViewBuilder
+    private func conflictText(_ conflict: OdometerConflict) -> some View {
+        if let quote = conflict.quote {
+            Text(quote)
+        } else {
+            Text("Odometer breaks the timeline – check it.")
+        }
+    }
+
     private func warningRow(_ conflict: OdometerConflict) -> some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "exclamationmark.triangle.fill")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.warn)
             VStack(alignment: .leading, spacing: 8) {
-                Text(conflict.quote ?? "Odometer breaks the timeline – check it.")
+                // Split rather than `quote ?? "literal"`: the coalesced
+                // expression is a String, so `Text` takes the non-localising
+                // StringProtocol overload and the fallback renders its ENGLISH
+                // key in Russian - even though the catalogue holds
+                // "Пробег нарушает хронологию – проверьте его.". Same defect as
+                // "checks as you type" (P2.1) and the third of its kind; the
+                // localization gate cannot see it, because the key IS present.
+                conflictText(conflict)
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
                     .accessibilityIdentifier("manualFillUpOdometerWarning")
@@ -523,6 +542,18 @@ struct ManualFillUpStationRow: View {
     let stations: [Station]
     @Binding var selection: Station?
 
+    /// A chosen station's name is runtime data; the placeholder is copy. Coalescing
+    /// them into one `String` sends the literal through `Text(_: String)`, which
+    /// does not localise - see the note atop `L10n.swift`.
+    @ViewBuilder
+    private func stationLabel(_ selection: Station?) -> some View {
+        if let name = selection?.name {
+            Text(name)
+        } else {
+            Text("Nearby suggestion")
+        }
+    }
+
     var body: some View {
         HStack {
             Text("Station")
@@ -545,7 +576,12 @@ struct ManualFillUpStationRow: View {
                     }
                 } label: {
                     HStack(spacing: 4) {
-                        Text(selection?.name ?? "Nearby suggestion")
+                        // Same coalesced-String trap: a station's name is
+                        // runtime data, the fallback is copy. Coalescing them
+                        // makes the whole expression a String and the fallback
+                        // renders its English key. Split so the literal reaches
+                        // the LocalizedStringKey overload.
+                        stationLabel(selection)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.Palette.headlight)
                         Image(systemName: "chevron.up.chevron.down")
