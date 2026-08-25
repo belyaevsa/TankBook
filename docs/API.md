@@ -97,6 +97,45 @@ Account id attached when a bearer token is present; rate-limited per device/IP; 
 ### `POST /extract` – bearer
 `{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**). Images processed transiently – never stored, per the signed-off stance.
 
+#### The device's side of `/extract` (normative)
+
+The endpoint is only half the contract. Two device-side rules are part of it, because the server
+cannot enforce either and the user experience depends on both.
+
+**1 · The image is downscaled and compressed before upload.** A full-resolution iPhone capture is
+several megabytes; uploading one over a forecourt's cell signal is the slowest step in the whole
+flow by an order of magnitude, and the 4 MB envelope cap is a ceiling, not a target. The device
+therefore sends a **long-edge-bounded, JPEG-compressed** rendition (start at long edge 1600 px,
+quality 0.7, and tune down only against the corpus, below).
+
+**Compression is a measurable trade, not a free one.** Fuel receipts are thermal print: the
+digits that matter are small, and over-compression eats exactly them. So the compression settings
+are **gated on the corpus** - re-score the receipt fixtures through the compression step with the
+existing scorer (`AccuracyRatchetTests`), and if hits fall, the settings are too aggressive. This
+is what stops "make the upload faster" from quietly becoming "read the receipt worse".
+
+**2 · The device waits 3 seconds per attempt, then stops making the user wait.** The on-device
+result is already on screen (F4: the app never waits on the gateway to show the card). When the
+budget expires the user is told, in a message that names the next step (hard rule 7), that they
+can carry on with what was read locally.
+
+The budget is about **the user's next step, not about aborting the work** - and the arithmetic
+says it has to be. At a realistic 1 Mbit/s upstream, even a 250 KB rendition takes ~2 s to upload
+before the model has seen a pixel, so a hard 3 s abort would cancel almost every request on a
+mobile link and make the whole tier useless where it is needed most. So: at 3 s the **UI** moves
+on; the request itself may finish in the background.
+
+A late answer is bound by hard rule 13 and by F4:
+
+- it may fill **only fields that are still blank and untouched**, and it renders as a suggestion
+  the user can reject, exactly as any other extracted value;
+- it may **never** overwrite a field the user has typed in or confirmed;
+- and once the entry is **saved, nothing arrives at all** - a saved entry is corrected by its
+  owner alone (`JOURNEYS.md` F4).
+
+Retries are the device's business, not the user's: one silent retry at most, never a dialog, and
+never a second 3 s wait imposed on someone who has already moved on.
+
 ## Account & devices
 
 | Endpoint | Auth | Contract |

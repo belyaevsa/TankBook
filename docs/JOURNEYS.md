@@ -262,6 +262,8 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 **Trigger:** hard image (crumpled receipt, odd charging-app screenshot) where on-device gave low confidence and the user's Pro fallback can't be reached.
 
 - The app **never waits on the gateway to show the card**: on-device results (however partial) render immediately; the fallback was always an *enhancement* pass.
+- **The wait has a 3-second budget** (`API.md` -> "The device's side of `/extract`"). At 3 s the UI stops presenting the call as something to wait for and says so, naming the next step: carry on with what was read locally. The request may still finish in the background - the budget bounds the **user's** wait, not the work - and its late answer may fill only **blank, untouched** fields, as a suggestion (hard rule 13). After save it arrives nowhere.
+- **The upload is compressed on device** before any of this, because on a forecourt signal the upload is the slowest step in the flow. How hard it may be compressed is settled by the corpus, not by taste: if compression costs extraction hits, it is too aggressive.
 - If fallback is unreachable: low-confidence fields stay dimmed with "check these – enhanced reading unavailable right now." User confirms or fixes by hand, saves. A retry never re-asks the user – if the photo later re-processes successfully in background, we *don't* silently change a saved entry; corrections post-save are the user's alone.
 - If quota is spent: same UX, plus a quiet, non-blocking note in Settings – never an upsell interstitial mid-capture. ⚠ Monetization pressure must never leak into the capture flow; that is the incumbents' disease.
 
