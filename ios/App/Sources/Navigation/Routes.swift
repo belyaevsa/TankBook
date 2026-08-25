@@ -25,6 +25,11 @@ enum Route: Hashable {
     /// vehicle. Reached from Garage, the Car switcher's archived row and the
     /// limit sheet's "Archive a car".
     case vehicleDetail(UUID?)
+    /// The selected car's tire sets (P3.3), reached from Vehicle detail.
+    case tireSets
+    /// The tire-set name form. `nil` = create a new set (the list's "New tire
+    /// set"); otherwise the set being renamed.
+    case tireSetForm(UUID?)
     case addVehicle
     case accountDevices
     case paywall
@@ -40,6 +45,8 @@ enum Route: Hashable {
         case .recentlyDeleted: "Recently deleted"
         case .editEntry: "Edit entry"
         case .vehicleDetail: "Vehicle"
+        case .tireSets: "Tire sets"
+        case .tireSetForm: "Tire set"
         case .addVehicle: "Add car"
         case .accountDevices: "Account & devices"
         case .paywall: "Tankbook Pro"

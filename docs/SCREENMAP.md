@@ -68,6 +68,10 @@ flowchart TD
     Garage -->|vehicle| VehicleDetail
     Garage -->|Add car| AddVehicle
     VehicleDetail -.->|back| Garage
+    VehicleDetail -->|Tire sets| TireSets
+    TireSets -->|New tire set / row| TireSetForm
+    TireSets -.->|back| VehicleDetail
+    TireSetForm -->|Save| TireSets
     CarSwitcher -->|pick car| Home
     CarSwitcher -->|Add car| AddVehicle
     CarSwitcher -->|archived car| VehicleDetail
@@ -116,11 +120,13 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
 | Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
-| Service & expenses | Capture (Service mode), ReminderComplete | Save → Home | X → opener (typed input asks first) |
+| Service & expenses | Capture (Service mode), ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version | X → opener |
 | Trends | tab root | insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | vehicle → VehicleDetail · Add car · capture | tab root |
-| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) | back → Garage (or opener) |
+| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets | back → Garage (or opener) |
+| Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
+| Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
 | Reminders | Home banner, VehicleDetail, push notification | complete → ReminderComplete · New reminder → form | back → opener |
 | Reminder form (P3.4) | Reminders (New reminder / row edit, incl. reschedule) | Save → Reminders | back → Reminders |
@@ -131,7 +137,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 
 ## Screens referenced but not yet drawn
 
-The map names four screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Garage tab root** (vehicle grid; today Car switcher covers quick switching, but the tab needs a real screen), **Import wizard** (J2/F6 – source picker, file, preview-verify, partial-import review), **Account & devices** (Settings' signed-in account target; device list + revoke + delete account), **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines.)
+The map names four screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Garage tab root** (vehicle grid; today Car switcher covers quick switching, but the tab needs a real screen), **Import wizard** (J2/F6 – source picker, file, preview-verify, partial-import review), **Account & devices** (Settings' signed-in account target; device list + revoke + delete account), **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines. **Tire sets** was added in **P3.3** – no artboard, so the list and its name form follow the Reminder list/form's card metrics, eyebrows and underlines.)
 
 ## Dead-end audit
 

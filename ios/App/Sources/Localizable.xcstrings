@@ -154,6 +154,59 @@
         }
       }
     },
+    "%lld days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "1 day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld days"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld день"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дня"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld дней"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld days left": {
       "extractionState": "manual",
       "localizations": {
@@ -313,6 +366,23 @@
         }
       }
     },
+    "%lld km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld км"
+          }
+        }
+      }
+    },
     "%lld–": {
       "extractionState": "manual",
       "localizations": {
@@ -466,6 +536,23 @@
         }
       }
     },
+    "A reminder needs a date or an odometer – set one to save.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A reminder needs a date or an odometer – set one to save."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Напоминанию нужна дата или пробег – укажите одно, чтобы сохранить."
+          }
+        }
+      }
+    },
     "AC": {
       "extractionState": "manual",
       "localizations": {
@@ -568,6 +655,23 @@
         }
       }
     },
+    "Add a due date or due odometer to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a due date or due odometer to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Укажите дату или пробег, чтобы сохранить"
+          }
+        }
+      }
+    },
     "Add a line item to save": {
       "extractionState": "manual",
       "localizations": {
@@ -581,6 +685,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добавьте позицию, чтобы сохранить"
+          }
+        }
+      }
+    },
+    "Add a name to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a name to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте название, чтобы сохранить"
           }
         }
       }
@@ -619,6 +740,23 @@
         }
       }
     },
+    "Add a title to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a title to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Укажите название, чтобы сохранить"
+          }
+        }
+      }
+    },
     "Add car": {
       "extractionState": "manual",
       "localizations": {
@@ -632,6 +770,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добавить автомобиль"
+          }
+        }
+      }
+    },
+    "Add date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add date"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить дату"
+          }
+        }
+      }
+    },
+    "Add each seasonal set once, then log swaps to see how far it has run.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add each seasonal set once, then log swaps to see how far it has run."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте каждый сезонный комплект один раз, а затем отмечайте смены, чтобы видеть его пробег."
           }
         }
       }
@@ -819,6 +991,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Архивировать автомобиль"
+          }
+        }
+      }
+    },
+    "Archive tire set?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Archive tire set?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Архивировать комплект шин?"
           }
         }
       }
@@ -1044,6 +1233,23 @@
         }
       }
     },
+    "Category": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Категория"
+          }
+        }
+      }
+    },
     "Category name": {
       "extractionState": "manual",
       "localizations": {
@@ -1163,6 +1369,23 @@
         }
       }
     },
+    "Choose set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать комплект"
+          }
+        }
+      }
+    },
     "Close": {
       "extractionState": "manual",
       "localizations": {
@@ -1227,6 +1450,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сравнить / Восстановить"
+          }
+        }
+      }
+    },
+    "Complete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершить"
           }
         }
       }
@@ -1312,6 +1552,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Текущий пробег"
+          }
+        }
+      }
+    },
+    "Custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Своё"
           }
         }
       }
@@ -1452,6 +1709,23 @@
         }
       }
     },
+    "Delete reminder?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete reminder?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить напоминание?"
+          }
+        }
+      }
+    },
     "Delete this car?": {
       "extractionState": "manual",
       "localizations": {
@@ -1520,6 +1794,23 @@
         }
       }
     },
+    "Deleted reminders are gone – this can't be undone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deleted reminders are gone – this can't be undone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалённые напоминания исчезают безвозвратно."
+          }
+        }
+      }
+    },
     "Diesel": {
       "extractionState": "manual",
       "localizations": {
@@ -1571,6 +1862,40 @@
         }
       }
     },
+    "Dismiss": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отклонить"
+          }
+        }
+      }
+    },
+    "Dismiss reminder?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss reminder?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отклонить напоминание?"
+          }
+        }
+      }
+    },
     "Distance": {
       "extractionState": "manual",
       "localizations": {
@@ -1601,6 +1926,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Готово"
+          }
+        }
+      }
+    },
+    "Due %1$@ · %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due %1$@ · %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Срок %1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "Due at %1$@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due at %1$@ km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Срок %1$@ км"
+          }
+        }
+      }
+    },
+    "Due at %1$@ km or %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Due at %1$@ km or %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Срок %1$@ км или %2$@"
           }
         }
       }
@@ -1639,6 +2015,23 @@
         }
       }
     },
+    "Edit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить"
+          }
+        }
+      }
+    },
     "Edit entry": {
       "extractionState": "manual",
       "localizations": {
@@ -1652,6 +2045,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Редактировать запись"
+          }
+        }
+      }
+    },
+    "Edit reminder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit reminder"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить напоминание"
+          }
+        }
+      }
+    },
+    "Edit tire set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit tire set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить комплект"
           }
         }
       }
@@ -2217,6 +2644,40 @@
         }
       }
     },
+    "In %1$@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %1$@ km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через %1$@ км"
+          }
+        }
+      }
+    },
+    "In %1$@ km or %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In %1$@ km or %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через %1$@ км или %2$@"
+          }
+        }
+      }
+    },
     "In %@": {
       "extractionState": "manual",
       "localizations": {
@@ -2247,6 +2708,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Осмотр"
+          }
+        }
+      }
+    },
+    "Install %1$@ from %2$@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Install %1$@ from %2$@?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Установить %1$@ от %2$@?"
           }
         }
       }
@@ -2336,6 +2814,23 @@
         }
       }
     },
+    "It stays in your history – a reason helps the app learn.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It stays in your history – a reason helps the app learn."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оно останется в истории – причина помогает приложению учиться."
+          }
+        }
+      }
+    },
     "It's right": {
       "extractionState": "manual",
       "localizations": {
@@ -2417,6 +2912,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Продолжить редактирование"
+          }
+        }
+      }
+    },
+    "Kilometres": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kilometres"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Километры"
           }
         }
       }
@@ -2506,6 +3018,40 @@
         }
       }
     },
+    "Link": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Link"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связать"
+          }
+        }
+      }
+    },
+    "Linked": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Linked"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Связано"
+          }
+        }
+      }
+    },
     "Liters": {
       "extractionState": "manual",
       "localizations": {
@@ -2536,6 +3082,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Журнал"
+          }
+        }
+      }
+    },
+    "Log a part as an expense and it appears here, ready for the next service.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Log a part as an expense and it appears here, ready for the next service."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запишите запчасть как расход, и она появится здесь к следующему сервису."
           }
         }
       }
@@ -2608,6 +3171,23 @@
         }
       }
     },
+    "Manage sets and swap history": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage sets and swap history"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комплекты и история смен"
+          }
+        }
+      }
+    },
     "Manual": {
       "extractionState": "manual",
       "localizations": {
@@ -2655,6 +3235,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Объединить"
+          }
+        }
+      }
+    },
+    "Months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Months"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Месяцы"
           }
         }
       }
@@ -2727,6 +3324,23 @@
         }
       }
     },
+    "Needs attention": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Needs attention"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Требует внимания"
+          }
+        }
+      }
+    },
     "New reminder": {
       "extractionState": "manual",
       "localizations": {
@@ -2744,6 +3358,23 @@
         }
       }
     },
+    "New tire set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New tire set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новый комплект шин"
+          }
+        }
+      }
+    },
     "No car yet": {
       "extractionState": "manual",
       "localizations": {
@@ -2757,6 +3388,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Автомобилей пока нет"
+          }
+        }
+      }
+    },
+    "No car yet – add one from Garage to start logging expenses.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No car yet – add one from Garage to start logging expenses."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока нет автомобиля – добавьте его в гараже, чтобы вести учёт расходов."
           }
         }
       }
@@ -2795,6 +3443,40 @@
         }
       }
     },
+    "No car yet – add one from Garage to start reminders.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No car yet – add one from Garage to start reminders."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет машины – добавьте её в Гараж, чтобы создавать напоминания."
+          }
+        }
+      }
+    },
+    "No car yet – add one from Garage to start tire sets.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No car yet – add one from Garage to start tire sets."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автомобиля пока нет – добавьте его в гараже, чтобы вести комплекты шин."
+          }
+        }
+      }
+    },
     "No deleted entries": {
       "extractionState": "manual",
       "localizations": {
@@ -2825,6 +3507,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Записей пока нет"
+          }
+        }
+      }
+    },
+    "No reminders yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No reminders yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока нет напоминаний"
+          }
+        }
+      }
+    },
+    "No tire sets yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tire sets yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комплектов шин пока нет"
+          }
+        }
+      }
+    },
+    "No tire sets yet – add one from Garage.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No tire sets yet – add one from Garage."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комплектов ещё нет – добавьте в гараже."
           }
         }
       }
@@ -2948,6 +3681,23 @@
         }
       }
     },
+    "On shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На полке"
+          }
+        }
+      }
+    },
     "One more full tank and your consumption appears": {
       "extractionState": "manual",
       "localizations": {
@@ -3016,6 +3766,57 @@
         }
       }
     },
+    "Overdue by %1$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue by %1$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Просрочено на %1$@"
+          }
+        }
+      }
+    },
+    "Overdue by %1$@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue by %1$@ km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Просрочено на %1$@ км"
+          }
+        }
+      }
+    },
+    "Overdue by %1$@ km or %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue by %1$@ km or %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Просрочено на %1$@ км или %2$@"
+          }
+        }
+      }
+    },
     "Overwritten by sync": {
       "extractionState": "manual",
       "localizations": {
@@ -3080,6 +3881,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Запчасти"
+          }
+        }
+      }
+    },
+    "Parts on your shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts on your shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запчасти на полке"
+          }
+        }
+      }
+    },
+    "Parts shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Полка запчастей"
+          }
+        }
+      }
+    },
+    "Parts you buy sit here until installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts you buy sit here until installed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Купленные запчасти хранятся здесь до установки"
           }
         }
       }
@@ -3271,6 +4123,23 @@
         }
       }
     },
+    "Reason (optional)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reason (optional)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Причина (необязательно)"
+          }
+        }
+      }
+    },
     "Receipt photo": {
       "extractionState": "manual",
       "localizations": {
@@ -3356,6 +4225,23 @@
         }
       }
     },
+    "Reminder actions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reminder actions"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Действия с напоминанием"
+          }
+        }
+      }
+    },
     "Reminder complete": {
       "extractionState": "manual",
       "localizations": {
@@ -3407,6 +4293,57 @@
         }
       }
     },
+    "Reminders track the date, the odometer, or both – whichever comes first.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reminders track the date, the odometer, or both – whichever comes first."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Напоминания отслеживают дату, пробег или оба – что наступит раньше."
+          }
+        }
+      }
+    },
+    "Remove date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove date"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать дату"
+          }
+        }
+      }
+    },
+    "Remove odometer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove odometer"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать пробег"
+          }
+        }
+      }
+    },
     "Remove page": {
       "extractionState": "manual",
       "localizations": {
@@ -3437,6 +4374,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ремонт"
+          }
+        }
+      }
+    },
+    "Repeat every": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repeat every"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повторять каждые"
           }
         }
       }
@@ -3526,6 +4480,23 @@
         }
       }
     },
+    "Save expense": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save expense"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить расход"
+          }
+        }
+      }
+    },
     "Save fill-up": {
       "extractionState": "manual",
       "localizations": {
@@ -3596,6 +4567,23 @@
         }
       }
     },
+    "Save reminder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save reminder"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить напоминание"
+          }
+        }
+      }
+    },
     "Save service": {
       "extractionState": "manual",
       "localizations": {
@@ -3609,6 +4597,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сохранить сервис"
+          }
+        }
+      }
+    },
+    "Save swap": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save swap"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить замену"
+          }
+        }
+      }
+    },
+    "Save tire set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save tire set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить комплект"
           }
         }
       }
@@ -3694,6 +4716,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Для сканирования нужна камера – включите её в настройках."
+          }
+        }
+      }
+    },
+    "Scheduled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запланировано"
+          }
+        }
+      }
+    },
+    "Select a tire set to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Select a tire set to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите комплект шин, чтобы сохранить"
           }
         }
       }
@@ -4106,6 +5162,23 @@
         }
       }
     },
+    "The set's swap history is kept – its mileage still counts for the car.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The set's swap history is kept – its mileage still counts for the car."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "История смен комплекта сохраняется – его пробег по-прежнему учитывается для автомобиля."
+          }
+        }
+      }
+    },
     "This car is archived – it stays out of your active stats, and its history is kept.": {
       "extractionState": "manual",
       "localizations": {
@@ -4119,6 +5192,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Автомобиль в архиве – он не входит в активную статистику, а его история сохранена."
+          }
+        }
+      }
+    },
+    "Tire set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tire set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комплект шин"
+          }
+        }
+      }
+    },
+    "Tire set actions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tire set actions"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Действия с комплектом"
+          }
+        }
+      }
+    },
+    "Tire set name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tire set name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название комплекта"
+          }
+        }
+      }
+    },
+    "Tire sets": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tire sets"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Комплекты шин"
           }
         }
       }
@@ -4259,6 +5400,23 @@
         }
       }
     },
+    "Unlink": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unlink"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отвязать"
+          }
+        }
+      }
+    },
     "Updated %@": {
       "extractionState": "manual",
       "localizations": {
@@ -4323,6 +5481,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть"
+          }
+        }
+      }
+    },
+    "View shelf": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View shelf"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть полку"
           }
         }
       }
@@ -4429,6 +5604,23 @@
         }
       }
     },
+    "bought %1$@, %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "bought %1$@, %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "куплено %1$@, %2$@"
+          }
+        }
+      }
+    },
     "checks as you type": {
       "extractionState": "manual",
       "localizations": {
@@ -4476,6 +5668,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "не залили до полного?"
+          }
+        }
+      }
+    },
+    "e.g. Oil filter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "e.g. Oil filter"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "напр. Масляный фильтр"
+          }
+        }
+      }
+    },
+    "every %1$@ km": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "every %1$@ km"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "каждые %1$@ км"
+          }
+        }
+      }
+    },
+    "every %1$lld mo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "every %1$lld mo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "каждые %1$lld мес"
           }
         }
       }
@@ -4597,6 +5840,112 @@
           "stringUnit": {
             "state": "translated",
             "value": "гал (США)"
+          }
+        }
+      }
+    },
+    "in %lld days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "in 1 day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "in %lld days"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld день"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld дня"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld дней"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld дней"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "in %lld months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "in 1 month"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "in %lld months"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld месяц"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld месяца"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld месяцев"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "через %lld месяцев"
+                }
+              }
+            }
           }
         }
       }
@@ -4807,6 +6156,23 @@
         }
       }
     },
+    "months": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "months"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "мес"
+          }
+        }
+      }
+    },
     "odometer differed": {
       "extractionState": "manual",
       "localizations": {
@@ -5011,6 +6377,23 @@
         }
       }
     },
+    "–": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "–"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "–"
+          }
+        }
+      }
+    },
     "≈ %d of %d L": {
       "extractionState": "manual",
       "localizations": {
@@ -5041,1425 +6424,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "≈ – · пересчитается онлайн"
-          }
-        }
-      }
-    },
-    "Accessory": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Accessory"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Аксессуар"
-          }
-        }
-      }
-    },
-    "Adds as expense · %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Adds as expense · %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записать как расход · %@"
-          }
-        }
-      }
-    },
-    "Also on this receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Also on this receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Также в этом чеке"
-          }
-        }
-      }
-    },
-    "Fine": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fine"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Штраф"
-          }
-        }
-      }
-    },
-    "Insurance": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Insurance"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Страховка"
-          }
-        }
-      }
-    },
-    "Not car-related · skipped": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not car-related · skipped"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не относится к авто · пропущено"
-          }
-        }
-      }
-    },
-    "Not logged": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Not logged"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не записывается"
-          }
-        }
-      }
-    },
-    "Other": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Other"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прочее"
-          }
-        }
-      }
-    },
-    "Parking": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parking"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Парковка"
-          }
-        }
-      }
-    },
-    "Parts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parts"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запчасти"
-          }
-        }
-      }
-    },
-    "Receipt total %1$@ · logging %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receipt total %1$@ · logging %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сумма по чеку %1$@ · записано %2$@"
-          }
-        }
-      }
-    },
-    "Save fill-up + %lld expenses": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Save fill-up + %lld expense"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Save fill-up + %lld expenses"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расход"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расхода"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расходов"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "Сохранить заправку + %lld расходов"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "Tax": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tax"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Налог"
-          }
-        }
-      }
-    },
-    "Tires": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tires"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Шины"
-          }
-        }
-      }
-    },
-    "Toll": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toll"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Платная дорога"
-          }
-        }
-      }
-    },
-    "Wash": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Wash"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Мойка"
-          }
-        }
-      }
-    },
-    "In %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "В %@"
-          }
-        }
-      }
-    },
-    "converts when online": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "converts when online"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "пересчитается онлайн"
-          }
-        }
-      }
-    },
-    "Manual": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Manual"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вручную"
-          }
-        }
-      }
-    },
-    "Needs attention": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Needs attention"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Требует внимания"
-          }
-        }
-      }
-    },
-    "Scheduled": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scheduled"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запланировано"
-          }
-        }
-      }
-    },
-    "No reminders yet": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No reminders yet"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пока нет напоминаний"
-          }
-        }
-      }
-    },
-    "Reminders track the date, the odometer, or both – whichever comes first.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reminders track the date, the odometer, or both – whichever comes first."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Напоминания отслеживают дату, пробег или оба – что наступит раньше."
-          }
-        }
-      }
-    },
-    "Dismiss reminder?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss reminder?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отклонить напоминание?"
-          }
-        }
-      }
-    },
-    "Reason (optional)": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reason (optional)"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Причина (необязательно)"
-          }
-        }
-      }
-    },
-    "It stays in your history – a reason helps the app learn.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "It stays in your history – a reason helps the app learn."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Оно останется в истории – причина помогает приложению учиться."
-          }
-        }
-      }
-    },
-    "Delete reminder?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete reminder?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить напоминание?"
-          }
-        }
-      }
-    },
-    "Deleted reminders are gone – this can't be undone.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Deleted reminders are gone – this can't be undone."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалённые напоминания исчезают безвозвратно."
-          }
-        }
-      }
-    },
-    "Complete": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Complete"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Завершить"
-          }
-        }
-      }
-    },
-    "Edit": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Изменить"
-          }
-        }
-      }
-    },
-    "Dismiss": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отклонить"
-          }
-        }
-      }
-    },
-    "Reminder actions": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Reminder actions"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Действия с напоминанием"
-          }
-        }
-      }
-    },
-    "Edit reminder": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Edit reminder"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Изменить напоминание"
-          }
-        }
-      }
-    },
-    "Category": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Category"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Категория"
-          }
-        }
-      }
-    },
-    "Custom": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Custom"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Своё"
-          }
-        }
-      }
-    },
-    "Add date": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add date"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Добавить дату"
-          }
-        }
-      }
-    },
-    "Remove date": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove date"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать дату"
-          }
-        }
-      }
-    },
-    "Remove odometer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Remove odometer"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Убрать пробег"
-          }
-        }
-      }
-    },
-    "A reminder needs a date or an odometer – set one to save.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A reminder needs a date or an odometer – set one to save."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Напоминанию нужна дата или пробег – укажите одно, чтобы сохранить."
-          }
-        }
-      }
-    },
-    "Repeat every": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Repeat every"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Повторять каждые"
-          }
-        }
-      }
-    },
-    "Months": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Months"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Месяцы"
-          }
-        }
-      }
-    },
-    "months": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "months"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "мес"
-          }
-        }
-      }
-    },
-    "Kilometres": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kilometres"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Километры"
-          }
-        }
-      }
-    },
-    "Save reminder": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save reminder"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранить напоминание"
-          }
-        }
-      }
-    },
-    "Add a title to save": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add a title to save"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Укажите название, чтобы сохранить"
-          }
-        }
-      }
-    },
-    "Add a due date or due odometer to save": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add a due date or due odometer to save"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Укажите дату или пробег, чтобы сохранить"
-          }
-        }
-      }
-    },
-    "No car yet – add one from Garage to start reminders.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No car yet – add one from Garage to start reminders."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Нет машины – добавьте её в Гараж, чтобы создавать напоминания."
-          }
-        }
-      }
-    },
-    "Due %1$@ · %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Due %1$@ · %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Срок %1$@ · %2$@"
-          }
-        }
-      }
-    },
-    "Overdue by %1$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overdue by %1$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Просрочено на %1$@"
-          }
-        }
-      }
-    },
-    "%lld days": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "1 day"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld days"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld день"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld дня"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld дней"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld дней"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "in %lld days": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "in 1 day"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "in %lld days"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld день"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld дня"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld дней"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld дней"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "in %lld months": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "in 1 month"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "in %lld months"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld месяц"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld месяца"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld месяцев"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "через %lld месяцев"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "%lld km": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld km"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%lld км"
-          }
-        }
-      }
-    },
-    "In %1$@ km": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In %1$@ km"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Через %1$@ км"
-          }
-        }
-      }
-    },
-    "Overdue by %1$@ km": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overdue by %1$@ km"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Просрочено на %1$@ км"
-          }
-        }
-      }
-    },
-    "Due at %1$@ km": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Due at %1$@ km"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Срок %1$@ км"
-          }
-        }
-      }
-    },
-    "In %1$@ km or %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "In %1$@ km or %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Через %1$@ км или %2$@"
-          }
-        }
-      }
-    },
-    "Overdue by %1$@ km or %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Overdue by %1$@ km or %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Просрочено на %1$@ км или %2$@"
-          }
-        }
-      }
-    },
-    "Due at %1$@ km or %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Due at %1$@ km or %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Срок %1$@ км или %2$@"
-          }
-        }
-      }
-    },
-    "every %1$@ km": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "every %1$@ km"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "каждые %1$@ км"
-          }
-        }
-      }
-    },
-    "every %1$lld mo": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "every %1$lld mo"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "каждые %1$lld мес"
-          }
-        }
-      }
-    },
-    "Install %1$@ from %2$@?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Install %1$@ from %2$@?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Установить %1$@ от %2$@?"
-          }
-        }
-      }
-    },
-    "Link": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Link"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Связать"
-          }
-        }
-      }
-    },
-    "Linked": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Linked"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Связано"
-          }
-        }
-      }
-    },
-    "Log a part as an expense and it appears here, ready for the next service.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Log a part as an expense and it appears here, ready for the next service."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запишите запчасть как расход, и она появится здесь к следующему сервису."
-          }
-        }
-      }
-    },
-    "No car yet – add one from Garage to start logging expenses.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No car yet – add one from Garage to start logging expenses."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Пока нет автомобиля – добавьте его в гараже, чтобы вести учёт расходов."
-          }
-        }
-      }
-    },
-    "On shelf": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "On shelf"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "На полке"
-          }
-        }
-      }
-    },
-    "Parts on your shelf": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parts on your shelf"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Запчасти на полке"
-          }
-        }
-      }
-    },
-    "Parts shelf": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parts shelf"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Полка запчастей"
-          }
-        }
-      }
-    },
-    "Parts you buy sit here until installed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Parts you buy sit here until installed"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Купленные запчасти хранятся здесь до установки"
-          }
-        }
-      }
-    },
-    "Save expense": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Save expense"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сохранить расход"
-          }
-        }
-      }
-    },
-    "Unlink": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlink"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отвязать"
-          }
-        }
-      }
-    },
-    "View shelf": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "View shelf"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открыть полку"
-          }
-        }
-      }
-    },
-    "bought %1$@, %2$@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "bought %1$@, %2$@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "куплено %1$@, %2$@"
-          }
-        }
-      }
-    },
-    "e.g. Oil filter": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "e.g. Oil filter"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "напр. Масляный фильтр"
           }
         }
       }

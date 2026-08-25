@@ -40,6 +40,8 @@ struct ServiceEntryView: View {
     /// A nested sheet over this one: the Expense entry (Parts/Other modes) or
     /// the Parts shelf.
     @State private var nestedSheet: SheetRoute?
+    /// The vehicle's tire sets, for the Tires mode picker (P3.3).
+    @State private var tireSets: [TireSet] = []
 
     private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
@@ -57,9 +59,20 @@ struct ServiceEntryView: View {
                                               onAddPage: addPage,
                                               onRemovePage: removePage)
                     }
-                    ServiceEntryModeRow(onParts: { openExpense(preset: .parts) },
+                    // Both halves of the row: Service/Tires select a mode
+                    // (P3.3), Parts/Other are forward exits into the Expense
+                    // entry (P3.2). Each agent wired only its own pair.
+                    ServiceEntryModeRow(mode: $form.mode,
+                                        onParts: { openExpense(preset: .parts) },
                                         onOther: { openExpense(preset: nil) })
-                    ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
+                    if form.mode == .tires {
+                        ServiceEntryTireSetCard(
+                            tireSets: tireSets,
+                            selectedID: form.tireSetId,
+                            onSelect: { form.tireSetId = $0 })
+                    } else {
+                        ServiceEntryHeader(vendor: $form.vendor, totalText: totalText)
+                    }
                     ServiceEntryDateOdometerCard(
                         form: $form,
                         focus: $focus,
@@ -76,12 +89,14 @@ struct ServiceEntryView: View {
                             .accessibilityIdentifier("serviceEntryDatePicker")
                             .padding(.horizontal, Theme.Spacing.cardPadding)
                     }
-                    ForEach($form.items) { $item in
-                        ServiceEntryItemCard(item: $item) {
-                            form.items.removeAll { $0.id == item.id }
+                    if form.mode == .service {
+                        ForEach($form.items) { $item in
+                            ServiceEntryItemCard(item: $item) {
+                                form.items.removeAll { $0.id == item.id }
+                            }
                         }
+                        ServiceEntryAddItemButton(action: addItem)
                     }
-                    ServiceEntryAddItemButton(action: addItem)
                     ServiceEntryPartsSection(
                         shelfParts: suggestedShelfParts,
                         linkedParts: linkedParts,
@@ -146,7 +161,12 @@ struct ServiceEntryView: View {
 
     private var saveEnabled: Bool {
         guard vehicle != nil else { return false }
-        guard form.hasTitledItem else { return false }
+        switch form.mode {
+        case .service:
+            guard form.hasTitledItem else { return false }
+        case .tires:
+            guard form.tireSetId != nil else { return false }
+        }
         return !odometerMissing
     }
 
@@ -187,6 +207,16 @@ struct ServiceEntryView: View {
         didLoad = true
         ServiceEntryTestSeed.seedIfRequested()
         PartsShelfTestSeed.seedIfRequested()
+        // The tire-set seed is only for the Tires-mode scenarios (P3.3). Gated
+        // on its own flags - calling it on every ServiceEntry presentation would
+        // let its `-homeResetDatabase` reset wipe the ServiceEntry seed's
+        // vehicle (each seed owns its own once-per-launch reset).
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-seedServiceEntryTires")
+            || arguments.contains("-seedTireSets")
+            || arguments.contains("-seedTireSetsNoOdometer") {
+            TireSetTestSeed.seedIfRequested()
+        }
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -197,11 +227,18 @@ struct ServiceEntryView: View {
             lastKnownOdometer = lastKnown
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
             shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
+            tireSets = try repository.liveTireSets(forVehicle: vehicle.id)
             if let prefill = invoiceSession.pendingPrefill {
                 apply(prefill)
                 invoiceSession.pendingPrefill = nil
             } else if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
                 apply(prefill)
+            } else if ProcessInfo.processInfo.arguments.contains("-seedServiceEntryTires") {
+                // The Tires-mode screenshot pre-fill (P3.3): a set is chosen for
+                // the camera, and the odometer is already pre-filled from the
+                // last known value.
+                form.mode = .tires
+                form.tireSetId = tireSets.first?.id
             }
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
             // date, seed) - none of them count as an edit.
@@ -210,6 +247,8 @@ struct ServiceEntryView: View {
             form.initialOdometer = form.odometer
             form.initialDate = form.date
             form.initialNote = form.note
+            form.initialMode = form.mode
+            form.initialTireSetId = form.tireSetId
             scheduleAutoAddPageIfRequested()
         } catch {
             Self.log.error("Service entry load failed: \(error.localizedDescription, privacy: .public)")
@@ -310,7 +349,7 @@ struct ServiceEntryView: View {
     private var saveBar: some View {
         VStack(spacing: 8) {
             Button(action: save) {
-                Text("Save service")
+                Text(form.mode == .tires ? "Save swap" : "Save service")
                     .font(.body.weight(.bold))
                     .foregroundStyle(saveEnabled ? Color.white : Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity)
@@ -324,8 +363,8 @@ struct ServiceEntryView: View {
             .disabled(!saveEnabled)
             .accessibilityIdentifier("serviceEntrySaveButton")
 
-            if !saveEnabled && !form.hasTitledItem {
-                Text("Add a line item to save")
+            if !saveEnabled {
+                Text(saveHint)
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("serviceEntrySaveHint")
@@ -335,6 +374,18 @@ struct ServiceEntryView: View {
         .padding(.top, 12)
         .padding(.bottom, 12)
         .background(Theme.Palette.midnight)
+    }
+
+    private var saveHint: String {
+        if vehicle == nil { return "" }
+        switch form.mode {
+        case .service where !form.hasTitledItem:
+            return L10n.localize("Add a line item to save")
+        case .tires where form.tireSetId == nil:
+            return L10n.localize("Select a tire set to save")
+        default:
+            return ""
+        }
     }
 }
 

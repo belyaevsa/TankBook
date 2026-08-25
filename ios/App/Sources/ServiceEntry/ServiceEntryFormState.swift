@@ -34,6 +34,16 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     }
 }
 
+// MARK: - Mode
+
+/// Which entry the ServiceEntry sheet is capturing. Only Service and Tires are
+/// real records; Parts (P3.2) and Other (Expense) are forward exits rendered as
+/// chips in the mode row, not reachable modes.
+enum ServiceEntryMode: Equatable {
+    case service
+    case tires
+}
+
 // MARK: - Form state
 
 /// Everything the ServiceEntry screen collects, plus the derived decisions that
@@ -46,6 +56,12 @@ struct ServiceEntryFormState: Equatable {
     var odometer = ""
     var date = Date()
     var note = ""
+    /// Which entry this sheet captures. `.service` (line items) or `.tires`
+    /// (a seasonal swap mounting one set).
+    var mode: ServiceEntryMode = .service
+    /// The tire set mounted when `mode == .tires` (P3.3). Nil until a set is
+    /// chosen; the odometer rule keys off it.
+    var tireSetId: UUID?
     /// The scanned invoice's pages (P3.1b). Empty for the typed path. The files
     /// are written at capture time; removing a page deletes its file.
     var attachments: [AttachmentID] = []
@@ -65,6 +81,8 @@ struct ServiceEntryFormState: Equatable {
     var initialOdometer = ""
     var initialDate = Date()
     var initialNote = ""
+    var initialMode: ServiceEntryMode = .service
+    var initialTireSetId: UUID?
 
     var odometerValue: Int? {
         let trimmed = odometer.trimmingCharacters(in: .whitespaces)
@@ -83,16 +101,17 @@ struct ServiceEntryFormState: Equatable {
         items.contains(where: \.hasTitle)
     }
 
-    /// Odometer is required when any item sets a km lifetime (a tire set is
-    /// P3.3, nil here). Delegates to the core rule so the save gate, the warning
-    /// and the L1 test can never disagree.
+    /// Odometer is required when any item sets a km lifetime, or a tire set is
+    /// mounted (P3.3) - both anchor on it (docs/SCHEMA.md). Delegates to the
+    /// core rule so the save gate, the warning and the L1 test can never
+    /// disagree.
     var requiresOdometer: Bool {
         ServiceEntryDraft.requiresOdometer(
             items: items.map { item in
                 ServiceItem.make(title: item.title, category: item.category,
                                  lifetime: item.lifetime)
             },
-            tireSetId: nil)
+            tireSetId: tireSetId)
     }
 
     /// The parsed, save-ready shape. This is the conversion the L1 tests drive
@@ -114,7 +133,7 @@ struct ServiceEntryFormState: Equatable {
             date: date,
             odometer: odometerValue,
             note: note,
-            tireSetId: nil,
+            tireSetId: tireSetId,
             attachments: attachments,
             provenance: provenance,
             usedParts: linkedPartIds)
@@ -131,6 +150,8 @@ struct ServiceEntryFormState: Equatable {
         if items != initialItems { return true }
         // Linking a part is a real edit (the link is committed on save).
         if !linkedPartIds.isEmpty { return true }
+        if mode != initialMode { return true }
+        if tireSetId != initialTireSetId { return true }
         if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) {
             return true
         }

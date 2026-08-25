@@ -54,26 +54,36 @@ struct ServiceCategoryLabel: View {
 
 // MARK: - Mode row
 
-/// The Service / Parts / Tires / Other row (artboard). Service is the selected
-/// mode (the screen below it); Parts and Other are the peer forward exits into
-/// the Expense entry (P3.2, hard rule 15); Tires stays an unwired chip until
-/// P3.3.
+/// The Service / Parts / Tires / Other row (artboard).
+///
+/// Merged from P3.2 and P3.3, which each rewrote this row for their own half:
+/// **Service and Tires are real modes** (a tire swap is a ServiceRecord
+/// carrying `tireSetId`, P3.3) and **Parts and Other are forward exits** into
+/// the Expense entry (P3.2, hard rule 15 - they are peer doors, not a fallback).
+/// Neither agent could see the other's branch, so each left the other's chips
+/// unwired; the row only works with both.
 struct ServiceEntryModeRow: View {
+    @Binding var mode: ServiceEntryMode
     let onParts: () -> Void
     let onOther: () -> Void
 
     var body: some View {
         HStack(spacing: 6) {
-            chip("Service", selected: true, identifier: "serviceEntryModeService", action: nil)
-            chip("Parts", selected: false, identifier: "serviceEntryModeParts", action: onParts)
-            chip("Tires", selected: false, identifier: "serviceEntryModeTires", action: nil)
-            chip("Other", selected: false, identifier: "serviceEntryModeOther", action: onOther)
+            selectableChip("Service", selected: mode == .service,
+                           identifier: "serviceEntryModeService") { mode = .service }
+            selectableChip("Parts", selected: false,
+                           identifier: "serviceEntryModeParts", action: onParts)
+            selectableChip("Tires", selected: mode == .tires,
+                           identifier: "serviceEntryModeTires") { mode = .tires }
+            selectableChip("Other", selected: false,
+                           identifier: "serviceEntryModeOther", action: onOther)
         }
     }
 
-    private func chip(_ label: LocalizedStringKey, selected: Bool, identifier: String,
-                      action: (() -> Void)?) -> some View {
-        Button(action: { action?() }) {
+    private func selectableChip(_ label: LocalizedStringKey, selected: Bool,
+                                identifier: String,
+                                action: @escaping () -> Void) -> some View {
+        Button(action: action) {
             Text(label)
                 .font(.caption.weight(selected ? .bold : .semibold))
                 .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
@@ -85,6 +95,65 @@ struct ServiceEntryModeRow: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
+    }
+}
+
+// MARK: - Tire set picker (P3.3)
+
+/// The Tires mode's one decision: which set went on. Selecting a set mounts it
+/// (sets `tireSetId`), which makes the odometer required (P3.1a's rule - the
+/// span anchors on it). When the car has no sets yet, the card names the next
+/// step (add one in the Garage) rather than blocking (hard rule 7).
+struct ServiceEntryTireSetCard: View {
+    let tireSets: [TireSet]
+    let selectedID: UUID?
+    let onSelect: (UUID) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("Tire set")
+                .font(.caption2)
+                .textCase(.uppercase)
+                .tracking(1.0)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            if tireSets.isEmpty {
+                Text("No tire sets yet – add one from Garage.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .padding(.vertical, 8)
+                    .accessibilityIdentifier("serviceEntryTireSetEmpty")
+            } else {
+                Menu {
+                    ForEach(tireSets, id: \.id) { set in
+                        Button {
+                            onSelect(set.id)
+                        } label: {
+                            Text(set.name)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(selectedName ?? L10n.localize("Choose set"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.ink)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    }
+                }
+                .accessibilityIdentifier("serviceEntryTireSetPicker")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 9)
+        .formCard()
+    }
+
+    private var selectedName: String? {
+        guard let selectedID else { return nil }
+        return tireSets.first { $0.id == selectedID }?.name
     }
 }
 

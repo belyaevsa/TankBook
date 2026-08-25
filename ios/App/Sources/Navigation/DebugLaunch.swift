@@ -45,6 +45,8 @@ enum DebugLaunch {
         "recentlyDeleted": .recentlyDeleted,
         "editEntry": .editEntry(nil),
         "vehicleDetail": .vehicleDetail(nil),
+        "tireSets": .tireSets,
+        "tireSetForm": .tireSetForm(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
         "paywall": .paywall,

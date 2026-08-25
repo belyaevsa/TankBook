@@ -94,6 +94,27 @@ struct VehicleDetailView: View {
                                      idPrefix: "vehicleDetail")
                 }
                 VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
+                section("Tire sets") {
+                    NavigationLink(value: Route.tireSets) {
+                        HStack {
+                            Text("Tire sets")
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.Palette.ink)
+                            Spacer(minLength: 8)
+                            Text("Manage sets and swap history")
+                                .font(.caption)
+                                .foregroundStyle(Theme.Palette.inkSoft)
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                                .foregroundStyle(Theme.Palette.inkSoft)
+                        }
+                        .padding(.horizontal, Theme.Spacing.cardPadding)
+                        .padding(.vertical, 12)
+                        .formCard()
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("vehicleDetailTireSetsLink")
+                }
                 section("Improves accuracy") {
                     VehicleDetailAccuracyCard(form: $form, focus: $focus)
                 }
