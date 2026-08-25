@@ -16,12 +16,12 @@ Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty st
 **Exit gate:** TESTING J1, J13-local, F9a, F1-manual-path checks green · **String Catalogs EN/RU wired and the pseudo-localization CI step failing on a deliberately hardcoded string** (P0.3, moved here) · **every value the app suggests is editable after the fact and a user's edit is never overwritten** (hard rule 13; P1.12) · L4 snapshots for every P1 screen in dark+light, EN+RU · a real month of your My Fuel Manager data (hand-entered or imported early) reproduces its known consumption · SCREENMAP back-path audit holds in XCUITest (no dead ends walk).
 
 ## P2 · Capture (the hero)
-Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, Foundation-Models normalization (gated iOS 26+), confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
+Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, ~~Foundation-Models normalization (gated iOS 26+)~~ **cut 2026-08-25 - the on-device model has no Russian (`docs/VISION.md` -> "Why tier 2 was cut")**, confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
 **Exit gate:** L5 corpus gates – receipts at the recorded high-water mark, **pump photos ≥95% or the mode stays off** (VISION rule) · mixed-receipt isolation ≥95% · J3/J4/J5 checks green · M-check: 5 live fill-ups, median capture-to-save < 15 s.
 
 ## P3 · Service, expenses, reminders
 ServiceEntry with invoice split, parts shelf + linking (double-count invariant), tire sets, reminder lifecycle (J7c state machine), local notifications with multi-device cancellation logic (arming rules per NOTIFICATIONS.md; cancellation testable locally before sync exists).
-**Exit gate:** J7/J7b/J7c suites green · cost/km never double-counts a linked part (property test) · reminder state machine covers every transition in SCHEMA.md's lifecycle block.
+**Exit gate:** J7/J7b/J7c suites green · cost/km never double-counts a linked part (property test) · reminder state machine covers every transition in SCHEMA.md's lifecycle block.so,
 
 ## P4 · Account, sync, blobs (the join point)
 Backend auth (session exchange, refresh rotation), sync push/pull with SCN, the iOS sync client (dirty queue, merge, domain revalidation), blob pipeline, Restoring flow, Settings account states, silent APNs nudges, Sign in + J11a wrong-provider detection.
