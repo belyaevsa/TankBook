@@ -140,6 +140,13 @@ capture P2.5-confirm-foreign-ru     ru -seedVehicleForUITests -presentScreen con
 capture P2.5-confirm-foreign-pending    en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 capture P2.5-confirm-foreign-pending-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 
+# P3.1a: the typed ServiceEntry screen - the artboard state (two line items),
+# and the lump-sum variant (one uncategorized item carrying the whole total).
+capture P3.1a-service-entry            en -seedServiceEntry -presentScreen serviceEntry
+capture P3.1a-service-entry-ru         ru -seedServiceEntry -presentScreen serviceEntry
+capture P3.1a-service-entry-lump-sum   en -seedServiceEntryLumpSum -presentScreen serviceEntry
+capture P3.1a-service-entry-lump-sum-ru ru -seedServiceEntryLumpSum -presentScreen serviceEntry
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

@@ -65,7 +65,7 @@ struct SheetDestinationView: View {
         case .tankLevel: TankLevelStandaloneHost()
         case .carSwitcher: CarSwitcherView(onNavigate: onNavigate)
         case .reminderComplete, .signIn: SheetPlaceholderContent()
-        case .serviceEntry: ServiceEntryContent(hasUnsavedChanges: $hasUnsavedChanges)
+        case .serviceEntry: ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges)
         }
     }
 }
@@ -173,21 +173,5 @@ private struct RemindersContent: View {
 private struct SheetPlaceholderContent: View {
     var body: some View {
         Color.clear
-    }
-}
-
-/// Service & expenses placeholder (P3.1) - typed input, same dirty rule.
-private struct ServiceEntryContent: View {
-    @Binding var hasUnsavedChanges: Bool
-    @State private var note = ""
-
-    var body: some View {
-        Form {
-            TextField("Amount", text: $note)
-                .accessibilityIdentifier("serviceNoteField")
-                .onChange(of: note) { _, newValue in
-                    hasUnsavedChanges = !newValue.isEmpty
-                }
-        }
     }
 }

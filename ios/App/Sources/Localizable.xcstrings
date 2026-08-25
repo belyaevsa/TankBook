@@ -551,6 +551,23 @@
         }
       }
     },
+    "Add a line item to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a line item to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте позицию, чтобы сохранить"
+          }
+        }
+      }
+    },
     "Add a note": {
       "extractionState": "manual",
       "localizations": {
@@ -598,6 +615,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добавить автомобиль"
+          }
+        }
+      }
+    },
+    "Add line item": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add line item"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить позицию"
           }
         }
       }
@@ -772,6 +806,23 @@
         }
       }
     },
+    "Battery": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Battery"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккумулятор"
+          }
+        }
+      }
+    },
     "Battery capacity": {
       "extractionState": "manual",
       "localizations": {
@@ -802,6 +853,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Лучший результат за год"
+          }
+        }
+      }
+    },
+    "Brakes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Brakes"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тормоза"
           }
         }
       }
@@ -904,6 +972,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сменить автомобиль"
+          }
+        }
+      }
+    },
+    "Category name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Category name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название категории"
           }
         }
       }
@@ -1278,6 +1363,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить всё, что здесь есть?"
+          }
+        }
+      }
+    },
+    "Delete line item": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete line item"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить позицию"
           }
         }
       }
@@ -1690,6 +1792,23 @@
         }
       }
     },
+    "Fill": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fill"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заполнить"
+          }
+        }
+      }
+    },
     "Fill-up · auto": {
       "extractionState": "manual",
       "localizations": {
@@ -1703,6 +1822,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Заправка · авто"
+          }
+        }
+      }
+    },
+    "Filters": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filters"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Фильтры"
           }
         }
       }
@@ -1996,6 +2132,23 @@
         }
       }
     },
+    "Inspection": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inspection"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Осмотр"
+          }
+        }
+      }
+    },
     "Insurance renews in 12 days": {
       "extractionState": "manual",
       "localizations": {
@@ -2077,6 +2230,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Верно"
+          }
+        }
+      }
+    },
+    "Item name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Item name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название позиции"
           }
         }
       }
@@ -2179,6 +2349,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "л/100 км"
+          }
+        }
+      }
+    },
+    "last known": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "last known"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "последний известный"
           }
         }
       }
@@ -2472,6 +2659,23 @@
         }
       }
     },
+    "No car yet – add one from Garage to start logging services.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No car yet – add one from Garage to start logging services."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет машины – добавьте её в гараже, чтобы вести учёт сервиса."
+          }
+        }
+      }
+    },
     "No deleted entries": {
       "extractionState": "manual",
       "localizations": {
@@ -2553,6 +2757,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Пробег нарушает хронологию – проверьте его."
+          }
+        }
+      }
+    },
+    "Odometer is needed to schedule the next service.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odometer is needed to schedule the next service."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нужен пробег, чтобы запланировать следующее ТО."
+          }
+        }
+      }
+    },
+    "Oil": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oil"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Масло"
           }
         }
       }
@@ -2931,6 +3169,23 @@
         }
       }
     },
+    "Repair": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repair"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ремонт"
+          }
+        }
+      }
+    },
     "Replace photo": {
       "extractionState": "manual",
       "localizations": {
@@ -3029,6 +3284,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сохранить заправку"
+          }
+        }
+      }
+    },
+    "Save service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save service"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранить сервис"
           }
         }
       }
@@ -4582,6 +4854,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Налог"
+          }
+        }
+      }
+    },
+    "Tires": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tires"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Шины"
           }
         }
       }
