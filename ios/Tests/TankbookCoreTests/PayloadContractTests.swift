@@ -111,7 +111,11 @@ private func fullyPopulatedFillUp() -> FillUp {
                 .lineItem(2): FieldExtraction(cropRect: nil, confidence: 0.77, userCorrected: false),
             ],
             pipeline: "vision+rules v3"
-        )
+        ),
+        fiscalIdentity: FiscalDocumentIdentity(
+            fiscalDriveNumber: "7384440900998746",
+            documentNumber: "79802",
+            fiscalSign: "1119386949")
     )
 }
 

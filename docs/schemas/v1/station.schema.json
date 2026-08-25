@@ -157,6 +157,26 @@
       ],
       "type" : "string"
     },
+    "fiscalDocumentIdentity" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "documentNumber" : {
+          "type" : "string"
+        },
+        "fiscalDriveNumber" : {
+          "type" : "string"
+        },
+        "fiscalSign" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "fiscalDriveNumber",
+        "documentNumber",
+        "fiscalSign"
+      ],
+      "type" : "object"
+    },
     "geoCoordinate" : {
       "additionalProperties" : true,
       "properties" : {

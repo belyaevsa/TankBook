@@ -113,6 +113,10 @@ FillUp: EntryCommon {
   crossCheck: .verified | .mismatch(field: FieldRef) | .notApplicable
                                 // volumeL × unitPrice ≈ money.amount, tolerance max(0.02, 0.5%)
   extraction: ExtractionMeta?   // OCR provenance, see Attachment
+  fiscalIdentity: FiscalDocumentIdentity?   // fn + i + fp, set only when the fiscal QR decoded;
+                                // nil otherwise (the common case - 14 of 26 corpus receipts).
+                                // Two DIFFERENT identities prove two fills are different purchases,
+                                // so the duplicate rule consults this before its heuristic (P2.4b).
 }
 ```
 
@@ -315,7 +319,10 @@ FISCAL QR  The ФНС QR is an authoritative ANCHOR, not a capture path (docs/JO
            less than the total but ≥ half of it = the OCR value is the fuel line of a mixed receipt
            (the fuel line stands - hard rule 4); anything else = disagrees, the QR total wins (the
            OCR value was a VAT or rounding line). `fn`+`i`+`fp` identify the fiscal document, so a
-           re-scan is the same purchase, not a second fill-up.
+           re-scan is the same purchase, not a second fill-up. The identity is stored on
+           `FillUp.fiscalIdentity` (nil when no QR decoded) and is the first thing duplicate
+           detection checks: different identities are never duplicates, equal ones always are -
+           a proof that outranks the 30-minute/5% heuristic (receipt-015 vs receipt-026).
 ```
 
 ```swift

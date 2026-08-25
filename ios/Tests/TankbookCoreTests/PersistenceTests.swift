@@ -113,6 +113,49 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     #expect(try repo.vehicle(id: vehicle.id) == vehicle)
 }
 
+/// The v2 migration adds `fillUp.fiscalIdentity` forward over a database seeded
+/// at v1 (P2.4b). A fillUp row written before the column existed reads back
+/// with `fiscalIdentity == nil` after the forward migration - the column is
+/// additive, never a rewrite of existing rows.
+@Test func fiscalIdentityMigrationAppliesForwardOverSeededRows() throws {
+    let database = try TankbookDatabase.inMemory(upTo: "v1")
+    let vehicleID = UUID.v7()
+    let fillUpID = UUID.v7()
+    let time = timestamp.timeIntervalSince1970
+
+    // Seed a vehicle + fillUp against the v1 schema, which has no fiscalIdentity
+    // column. Done in raw SQL because FillUpRow.encode already writes the new
+    // column, which a v1 table does not have yet.
+    try database.write { db in
+        let vehicleSQL = """
+            INSERT INTO vehicle (id, createdAt, updatedAt, name, powertrain, fuelKinds,
+                homeCurrency, distanceUnit, volumeUnit, consumptionUnit, energyUnit)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+        try db.execute(sql: vehicleSQL,
+                       arguments: [vehicleID.uuidString, time, time, "Volvo", "ice",
+                                   #"["petrol95"]"#, "eur", "km", "l", "lPer100", "kWhPer100"])
+
+        let fillUpSQL = """
+            INSERT INTO fillUp (id, createdAt, updatedAt, vehicleId, date, provenance,
+                conflict, crossCheck, volumeL, fuelKind)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """
+        try db.execute(sql: fillUpSQL,
+                       arguments: [fillUpID.uuidString, time, time, vehicleID.uuidString, time,
+                                   #"{"tag":"manual"}"#, #"{"tag":"none"}"#,
+                                   #"{"tag":"verified"}"#, 42.3, "petrol95"])
+    }
+
+    // Apply the forward migrations over the seeded rows.
+    try database.migrator.migrate(database.writer)
+
+    let repo = TankbookRepository(database: database)
+    let fills = try repo.liveFillUps(forVehicle: vehicleID)
+    #expect(fills.count == 1)
+    #expect(fills.first?.fiscalIdentity == nil)
+}
+
 // MARK: - CRUD round-trips (catch Decimal / date / enum mapping bugs)
 
 @Test func vehicleCRUDRoundTrip() throws {
@@ -169,6 +212,30 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
             pipeline: "vision+rules v3"))
     try repo.upsertFillUp(fillUp)
     #expect(try repo.liveFillUps(forVehicle: vehicleId) == [fillUp])
+}
+
+/// `fiscalIdentity` (P2.4b) round-trips through the database; a fill without one
+/// reads back nil - the common case (14 of 26 corpus receipts have no decodable
+/// QR).
+@Test func fillUpFiscalIdentityRoundTripsAndNilStaysNil() throws {
+    let repo = try makeRepository()
+    let vehicleId = UUID.v7()
+    try repo.upsertVehicle(makeVehicle(id: vehicleId))
+
+    let identity = FiscalDocumentIdentity(
+        fiscalDriveNumber: "7384440900998746", documentNumber: "79802", fiscalSign: "1119386949")
+    var withIdentity = makeFillUp(vehicleId: vehicleId)
+    withIdentity.fiscalIdentity = identity
+    try repo.upsertFillUp(withIdentity)
+
+    var withoutIdentity = makeFillUp(id: UUID.v7(), vehicleId: vehicleId,
+                                     date: timestamp.addingTimeInterval(3_600))
+    withoutIdentity.fiscalIdentity = nil
+    try repo.upsertFillUp(withoutIdentity)
+
+    let fills = try repo.liveFillUps(forVehicle: vehicleId)
+    #expect(fills.first { $0.id == withIdentity.id }?.fiscalIdentity == identity)
+    #expect(fills.first { $0.id == withoutIdentity.id }?.fiscalIdentity == nil)
 }
 
 @Test func chargeSessionCRUDRoundTrip() throws {

@@ -157,6 +157,26 @@
       ],
       "type" : "string"
     },
+    "fiscalDocumentIdentity" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "documentNumber" : {
+          "type" : "string"
+        },
+        "fiscalDriveNumber" : {
+          "type" : "string"
+        },
+        "fiscalSign" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "fiscalDriveNumber",
+        "documentNumber",
+        "fiscalSign"
+      ],
+      "type" : "object"
+    },
     "geoCoordinate" : {
       "additionalProperties" : true,
       "properties" : {
@@ -518,6 +538,9 @@
     },
     "extraction" : {
       "$ref" : "#/$defs/extractionMeta"
+    },
+    "fiscalIdentity" : {
+      "$ref" : "#/$defs/fiscalDocumentIdentity"
     },
     "fuelGrade" : {
       "type" : "string"

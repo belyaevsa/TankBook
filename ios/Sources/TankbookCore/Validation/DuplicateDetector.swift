@@ -86,7 +86,20 @@ public enum DuplicateDetector {
     /// same vehicle, `abs(date diff) <= 30 minutes`, volume within 5%
     /// (`abs(a - b) <= 0.05 * min(a, b)` - one fill at most 5% larger than the
     /// other).
+    ///
+    /// Ahead of that heuristic sits one proof, not a heuristic: the fiscal
+    /// document identity (`fn`+`i`+`fp`, P2.4b). Two different fiscal
+    /// identities are definitively two different purchases - `receipt-015` and
+    /// `receipt-026` are identical to the kopeck and 34 minutes apart, and a
+    /// false "duplicate" offer there is a merge the user has to notice to undo.
+    /// Equal identities are the same document re-scanned (minutes or days
+    /// later), so they are duplicates regardless of the window. When either
+    /// fill has no identity (no decodable QR - the common case), the heuristic
+    /// below decides unchanged.
     public static func isDuplicate(_ lhs: FillUp, _ rhs: FillUp) -> Bool {
+        if let lhsIdentity = lhs.fiscalIdentity, let rhsIdentity = rhs.fiscalIdentity {
+            return lhsIdentity == rhsIdentity
+        }
         guard lhs.vehicleId == rhs.vehicleId else { return false }
         guard abs(lhs.date.timeIntervalSince(rhs.date)) <= 30 * 60 else { return false }
         let smaller = min(lhs.volumeL, rhs.volumeL)

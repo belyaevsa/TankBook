@@ -26,6 +26,11 @@
   "tankLevelAfterPct": 100,
   "stationId": "77777777-7777-7777-8777-777777777777",
   "crossCheck": { "tag": "verified" },
+  "fiscalIdentity": {
+    "fiscalDriveNumber": "7384440900998746",
+    "documentNumber": "79802",
+    "fiscalSign": "1119386949"
+  },
   "extraction": {
     "fields": {
       "total": {

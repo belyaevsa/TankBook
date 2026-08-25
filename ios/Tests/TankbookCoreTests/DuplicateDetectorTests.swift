@@ -34,7 +34,8 @@ private func duplicateFill(vehicleID: UUID, date: Date, odometer: Int?,
                            attachments: [AttachmentID] = [],
                            note: String? = nil,
                            conflict: ConflictState = .none,
-                           purchaseGroupID: UUID? = nil) -> FillUp {
+                           purchaseGroupID: UUID? = nil,
+                           fiscalIdentity: FiscalDocumentIdentity? = nil) -> FillUp {
     let stamp = createdAt ?? date
     return FillUp(
         id: UUID.v7(), createdAt: stamp, updatedAt: stamp, deletedAt: nil,
@@ -43,7 +44,7 @@ private func duplicateFill(vehicleID: UUID, date: Date, odometer: Int?,
         provenance: .manual, conflict: conflict, purchaseGroupId: purchaseGroupID,
         volumeL: litres, unitPrice: nil, fuelKind: .petrol95, fuelGrade: nil,
         isFull: isFull, tankLevelAfterPct: isFull ? 100 : nil, stationId: nil,
-        crossCheck: .notApplicable, extraction: nil)
+        crossCheck: .notApplicable, extraction: nil, fiscalIdentity: fiscalIdentity)
 }
 
 private func duplicateRepository() throws -> TankbookRepository {
@@ -431,5 +432,102 @@ struct DuplicateSingleCountTests {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC")!
         return calendar
+    }
+}
+
+// MARK: - Fiscal identity outranks the heuristic (P2.4b)
+
+/// The corpus case (`Spike/ReceiptSpike/fixtures/receipts/README.md` §5b):
+/// `receipt-015` and `receipt-026` are two genuine fills, identical to the
+/// kopeck, 34 minutes apart. A fiscal identity difference is a proof the
+/// purchases differ, not a heuristic - so `isDuplicate` consults it first.
+struct FiscalDuplicateTests {
+
+    /// receipt-026 (fixtures/receipts/receipt-026-kedr-feodosia-95-ru.qr.txt):
+    /// `t=20260711T1029&s=5380.00&fn=7384440900998746&i=79802&fp=1119386949&n=1`.
+    private static let receipt026Identity = FiscalDocumentIdentity(
+        fiscalDriveNumber: "7384440900998746", documentNumber: "79802", fiscalSign: "1119386949")
+
+    /// receipt-015 (fixtures/receipts/README.md §5b) publishes ФД/ФП = 30045 /
+    /// 4064907347 but no `fn`. The drive number is set distinctly so all three
+    /// components differ from receipt-026; the difference already holds on the
+    /// two published components alone.
+    private static let receipt015Identity = FiscalDocumentIdentity(
+        fiscalDriveNumber: "7384440900998745", documentNumber: "30045", fiscalSign: "4064907347")
+
+    @Test static func corpusIdenticalFillsWithDifferentFiscalIdentitiesAreNeverDuplicates() {
+        let vehicleID = UUID.v7()
+        // receipt-026 10:29 and receipt-015 11:03 - 34 minutes apart, identical
+        // volume (20 L) and total (5380.00). Different fiscal identities: not
+        // duplicates, regardless of the 30-minute window.
+        let fill026 = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf, odometer: 118_000,
+                                    litres: 20, amount: "5380.00", isFull: true,
+                                    fiscalIdentity: receipt026Identity)
+        let fill015 = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 34 * duplicateMinute,
+                                    odometer: 118_000, litres: 20, amount: "5380.00", isFull: true,
+                                    fiscalIdentity: receipt015Identity)
+        #expect(!DuplicateDetector.isDuplicate(fill026, fill015))
+        #expect(DuplicateDetector.pairs(in: [fill026, fill015]).isEmpty)
+
+        // Move one fill to FOUR minutes apart: today's heuristic alone would flag
+        // it (same vehicle, 4 min, identical volume), but the differing identities
+        // still veto it. This half is the test - the 34-minute half passes by luck
+        // of the clock on the un-wired detector.
+        let fill015Moved = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 4 * duplicateMinute,
+                                         odometer: 118_000, litres: 20, amount: "5380.00", isFull: true,
+                                         fiscalIdentity: receipt015Identity)
+        #expect(!DuplicateDetector.isDuplicate(fill026, fill015Moved))
+        #expect(DuplicateDetector.pairs(in: [fill026, fill015Moved]).isEmpty)
+    }
+
+    @Test static func equalFiscalIdentitiesAreDuplicatesOutsideTheWindow() {
+        let vehicleID = UUID.v7()
+        // The same receipt scanned twice, two days apart. Equal identities: a
+        // duplicate, no matter how far outside the 30-minute window.
+        let first = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf, odometer: 118_000,
+                                  litres: 20, amount: "5380.00", isFull: true,
+                                  fiscalIdentity: receipt026Identity)
+        let rescan = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 2 * duplicateDay,
+                                   odometer: 118_000, litres: 20, amount: "5380.00", isFull: true,
+                                   fiscalIdentity: receipt026Identity)
+        #expect(DuplicateDetector.isDuplicate(first, rescan))
+        #expect(DuplicateDetector.pairs(in: [first, rescan]).count == 1)
+    }
+
+    @Test static func nilIdentityFallsBackToTheHeuristicUnchanged() {
+        let vehicleID = UUID.v7()
+        // Both nil: the heuristic decides, byte-for-byte as before.
+        let within = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf, odometer: 118_000,
+                                   litres: 42, isFull: true)
+        let near = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 29 * duplicateMinute,
+                                 odometer: 118_000, litres: 42, isFull: true)
+        let far = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 31 * duplicateMinute,
+                                odometer: 118_000, litres: 42, isFull: true)
+        #expect(DuplicateDetector.isDuplicate(within, near))
+        #expect(!DuplicateDetector.isDuplicate(within, far))
+
+        // One identity present, one nil: also the heuristic, not the veto and not
+        // the equality proof.
+        let withIdentity = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf, odometer: 118_000,
+                                         litres: 42, isFull: true, fiscalIdentity: receipt026Identity)
+        #expect(DuplicateDetector.isDuplicate(withIdentity, near))
+        #expect(!DuplicateDetector.isDuplicate(withIdentity, far))
+    }
+
+    @Test static func singleCountInvariantHoldsForFiscalIdentityPairs() {
+        // A re-scan forms exactly ONE pair (so stats count once, docs/SYNC.md S2),
+        // and the counted/excluded choice is the unchanged deterministic one.
+        let vehicleID = UUID.v7()
+        let earlier = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf, odometer: 118_000,
+                                    litres: 20, amount: "5380.00", isFull: true,
+                                    createdAt: duplicateAsOf, fiscalIdentity: receipt026Identity)
+        let rescan = duplicateFill(vehicleID: vehicleID, date: duplicateAsOf + 2 * duplicateDay,
+                                   odometer: 118_000, litres: 20, amount: "5380.00", isFull: true,
+                                   createdAt: duplicateAsOf + 2 * duplicateDay,
+                                   fiscalIdentity: receipt026Identity)
+        let pairs = DuplicateDetector.pairs(in: [earlier, rescan])
+        #expect(pairs.count == 1)
+        #expect(DuplicateDetector.counted(earlier, rescan) == earlier.id)
+        #expect(DuplicateDetector.counted(rescan, earlier) == earlier.id)
     }
 }
