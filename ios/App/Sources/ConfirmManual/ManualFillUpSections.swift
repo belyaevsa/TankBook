@@ -72,13 +72,16 @@ struct CurrencyChipRow: View {
     }
 }
 
-/// The currency section (artboard): the chip row plus the hint that explains
-/// the current conversion state (rate-pending for a foreign pick, the neutral
-/// caption otherwise).
+/// The currency section (artboard): the chip row plus, depending on the
+/// foreign-currency state, the amber low-confidence prompt or the neutral
+/// caption. The conversion card itself (rate-pending / converted) renders as a
+/// separate card below the three-number card, matching ConfirmForeign.dc.html -
+/// this section only owns the chips and the two inline hints.
 struct ManualFillUpCurrencySection: View {
     @Binding var form: ManualFillUpFormState
     let homeCurrency: CurrencyCode
     let lowConfidence: Bool
+    let state: ForeignCurrencyState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -91,16 +94,18 @@ struct ManualFillUpCurrencySection: View {
 
     @ViewBuilder
     private var hint: some View {
-        if lowConfidence {
+        switch state {
+        case .lowConfidence:
+            // Never silently convert: an uncertain currency asks, in amber.
             hintText(L10n.localize("Which currency is this?"), color: Theme.Palette.warn,
                      identifier: "manualFillUpCurrencyHint")
-        } else if form.currency != homeCurrency {
-            hintText(L10n.localize("≈ – · converts when online"), color: Theme.Palette.inkSoft,
-                     identifier: "manualFillUpConversionHint")
-        } else {
+        case .notForeign:
             hintText(String(format: L10n.localize("Recent first · a foreign amount converts to %@ automatically"),
                             homeCurrency.rawValue),
                      color: Theme.Palette.inkSoft, identifier: nil)
+        case .ratePending, .converted:
+            // The conversion card owns the rate-pending / converted copy.
+            EmptyView()
         }
     }
 

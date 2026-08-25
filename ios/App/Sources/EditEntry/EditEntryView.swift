@@ -94,6 +94,14 @@ struct EditEntryView: View {
         AddVehicleSupport.currencySymbol(for: fillForm.currency)
     }
 
+    /// The edit screen shows no conversion card (P5.2 owns money editing incl.
+    /// the manual rate); the currency section just needs to stay silent for a
+    /// foreign amount rather than showing the neutral same-currency caption.
+    private var editConversionState: ForeignCurrencyState {
+        let home = vehicle?.homeCurrency ?? .eur
+        return fillForm.currency == home ? .notForeign : .ratePending
+    }
+
     // MARK: - FillUp content
 
     private func fillUpContent(_ fill: FillUp) -> some View {
@@ -106,7 +114,7 @@ struct EditEntryView: View {
                 ManualFillUpStationRow(stations: stations, selection: $selectedStation)
                 ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
                 ManualFillUpCurrencySection(form: $fillForm, homeCurrency: vehicle?.homeCurrency ?? .eur,
-                                            lowConfidence: false)
+                                            lowConfidence: false, state: editConversionState)
                 ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
                                         volumeUnit: volumeUnit, currencySymbol: currencySymbol,
                                         reduceMotion: accessibilityReduceMotion)

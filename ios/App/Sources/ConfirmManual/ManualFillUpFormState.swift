@@ -94,6 +94,14 @@ struct ManualFillUpFormState: Equatable {
         ManualFillUpMath.derive(from: mathFields(volumeUnit: volumeUnit))
     }
 
+    /// The total that will actually be saved: the derived total (which covers
+    /// the typed-total case too) when two of three are present, else the typed
+    /// total, else nil. Used by the foreign-currency card so its converted
+    /// figure matches what Save writes.
+    func effectiveTotal(volumeUnit: VolumeUnit) -> Decimal? {
+        derived(volumeUnit: volumeUnit)?.total ?? totalDecimal
+    }
+
     /// The value a field displays: the typed digits if the user has typed, else
     /// the derived value when this is the field the deriver fills in, else nil.
     func displayText(for field: ManualFillUpMath.Field, volumeUnit: VolumeUnit) -> String? {
