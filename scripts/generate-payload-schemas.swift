@@ -212,6 +212,12 @@ let serviceItemDef = schemaObject([
     "lifetime": schemaRef("lifetime"),
 ], ["title", "category"])
 
+let fiscalDocumentIdentityDef = schemaObject([
+    "fiscalDriveNumber": schemaString,
+    "documentNumber": schemaString,
+    "fiscalSign": schemaString,
+], ["fiscalDriveNumber", "documentNumber", "fiscalSign"])
+
 let allDefs: [String: Any] = [
     "money": moneyDef,
     "fieldRef": fieldRefDef,
@@ -233,6 +239,7 @@ let allDefs: [String: Any] = [
     "fieldExtraction": fieldExtractionDef,
     "extractionMeta": extractionMetaDef,
     "serviceItem": serviceItemDef,
+    "fiscalDocumentIdentity": fiscalDocumentIdentityDef,
 ]
 
 // MARK: - Entity field tables
@@ -290,6 +297,7 @@ let fillUpProperties: [String: Any] = [
     "stationId": schemaUUID,
     "crossCheck": schemaRef("crossCheckState"),
     "extraction": schemaRef("extractionMeta"),
+    "fiscalIdentity": schemaRef("fiscalDocumentIdentity"),
 ]
 
 let chargeSessionProperties: [String: Any] = [

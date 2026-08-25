@@ -292,7 +292,8 @@ public struct FillUpRow: FetchableRecord, PersistableRecord {
             tankLevelAfterPct: row["tankLevelAfterPct"] as Double?,
             stationId: decodeOptionalUUID(row, column: "stationId"),
             crossCheck: try decodeJSON(CrossCheckState.self, from: row, column: "crossCheck"),
-            extraction: try decodeOptionalJSON(ExtractionMeta.self, from: row, column: "extraction"))
+            extraction: try decodeOptionalJSON(ExtractionMeta.self, from: row, column: "extraction"),
+            fiscalIdentity: try decodeOptionalJSON(FiscalDocumentIdentity.self, from: row, column: "fiscalIdentity"))
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -308,6 +309,7 @@ public struct FillUpRow: FetchableRecord, PersistableRecord {
         container["stationId"] = fillUp.stationId?.uuidString
         container["crossCheck"] = try encodeJSON(fillUp.crossCheck)
         container["extraction"] = try encodeOptionalJSON(fillUp.extraction)
+        container["fiscalIdentity"] = try encodeOptionalJSON(fillUp.fiscalIdentity)
     }
 }
 

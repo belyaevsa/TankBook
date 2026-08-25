@@ -431,6 +431,28 @@ extension FieldExtraction {
 
 // MARK: - Entries with bare Decimal columns (decimals must be JSON strings)
 
+/// `FiscalDocumentIdentity` is three decimal-digit strings. The synthesized
+/// Codable shape `{ fiscalDriveNumber, documentNumber, fiscalSign }` is exactly
+/// the payload contract, so this spells it out explicitly rather than relying on
+/// synthesis - the type is declared in FiscalQR.swift, and Swift only synthesizes
+/// conformance in the declaring file.
+extension FiscalDocumentIdentity: Codable {
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: PayloadCodingKey.self)
+        try container.encode(fiscalDriveNumber, forKey: PayloadCodingKey("fiscalDriveNumber"))
+        try container.encode(documentNumber, forKey: PayloadCodingKey("documentNumber"))
+        try container.encode(fiscalSign, forKey: PayloadCodingKey("fiscalSign"))
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: PayloadCodingKey.self)
+        self.init(
+            fiscalDriveNumber: try container.decode(String.self, forKey: PayloadCodingKey("fiscalDriveNumber")),
+            documentNumber: try container.decode(String.self, forKey: PayloadCodingKey("documentNumber")),
+            fiscalSign: try container.decode(String.self, forKey: PayloadCodingKey("fiscalSign")))
+    }
+}
+
 extension FillUp {
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: PayloadCodingKey.self)
@@ -456,6 +478,7 @@ extension FillUp {
         try c.encodeIfPresent(stationId, forKey: key("stationId"))
         try c.encode(crossCheck, forKey: key("crossCheck"))
         try c.encodeIfPresent(extraction, forKey: key("extraction"))
+        try c.encodeIfPresent(fiscalIdentity, forKey: key("fiscalIdentity"))
     }
 
     public init(from decoder: Decoder) throws {
@@ -499,7 +522,8 @@ extension FillUp {
             tankLevelAfterPct: try c.decodeIfPresent(Double.self, forKey: key("tankLevelAfterPct")),
             stationId: try c.decodeIfPresent(UUID.self, forKey: key("stationId")),
             crossCheck: try c.decode(CrossCheckState.self, forKey: key("crossCheck")),
-            extraction: try c.decodeIfPresent(ExtractionMeta.self, forKey: key("extraction"))
+            extraction: try c.decodeIfPresent(ExtractionMeta.self, forKey: key("extraction")),
+            fiscalIdentity: try c.decodeIfPresent(FiscalDocumentIdentity.self, forKey: key("fiscalIdentity"))
         )
     }
 }

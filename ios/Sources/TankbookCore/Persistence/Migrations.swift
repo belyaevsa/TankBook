@@ -76,6 +76,11 @@ public enum TankbookMigrations {
             try createDuplicateResolution(db)
             try createIndexes(db)
         }
+        migrator.registerMigration("v2") { db in
+            try db.alter(table: TankbookSchema.fillUp) { table in
+                table.add(column: "fiscalIdentity", .text)   // JSON FiscalDocumentIdentity?
+            }
+        }
         return migrator
     }
 

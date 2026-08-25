@@ -35,6 +35,19 @@ public struct TankbookDatabase {
         return TankbookDatabase(writer: writer, migrator: migrator)
     }
 
+    /// Opens an in-memory database migrated only up to `version` (GRDB's
+    /// `migrate(_:upTo:)`). Test support: seed a schema at an older version and
+    /// then apply the forward migrations over the seeded rows, proving each
+    /// migration is additive rather than a rewrite.
+    public static func inMemory(upTo version: String,
+                                migrator: DatabaseMigrator = TankbookMigrations.migrator) throws -> TankbookDatabase {
+        var configuration = Configuration()
+        configuration.foreignKeysEnabled = true
+        let writer = try DatabaseQueue(configuration: configuration)
+        try migrator.migrate(writer, upTo: version)
+        return TankbookDatabase(writer: writer, migrator: migrator)
+    }
+
     private init(writer: any DatabaseWriter, migrator: DatabaseMigrator) {
         self.writer = writer
         self.migrator = migrator

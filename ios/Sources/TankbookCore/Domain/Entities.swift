@@ -141,6 +141,12 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
     public var stationId: UUID?
     public var crossCheck: CrossCheckState
     public var extraction: ExtractionMeta?
+    /// The fiscal document identity (`fn`+`i`+`fp`) when the fill came from a
+    /// decodable fiscal QR (docs/SCHEMA.md, FillUp). nil for every fill without
+    /// one - the common case (14 of 26 corpus receipts). Two different
+    /// identities are a proof that two fills are different purchases, so the
+    /// duplicate rule consults this before its heuristic (P2.4b).
+    public var fiscalIdentity: FiscalDocumentIdentity?
 
     /// Memberwise initializer, public so the app target can save a `FillUp`
     /// from the ConfirmManual sheet (P1.3) - the same construction blocker that
@@ -153,7 +159,8 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
                 purchaseGroupId: UUID? = nil, volumeL: Double, unitPrice: Decimal? = nil,
                 fuelKind: FuelKind, fuelGrade: String? = nil, isFull: Bool,
                 tankLevelAfterPct: Double? = nil, stationId: UUID? = nil,
-                crossCheck: CrossCheckState, extraction: ExtractionMeta? = nil) {
+                crossCheck: CrossCheckState, extraction: ExtractionMeta? = nil,
+                fiscalIdentity: FiscalDocumentIdentity? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -176,6 +183,7 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
         self.stationId = stationId
         self.crossCheck = crossCheck
         self.extraction = extraction
+        self.fiscalIdentity = fiscalIdentity
     }
 }
 
