@@ -518,3 +518,49 @@ Two more findings from this one photo:
   KZT. Filed as **P2.10**; `docs/SCHEMA.md` types money as a pair, so an undetected currency is a
   fill-up that cannot be converted.
 
+### 7. `receipt-034` - the B2B contract receipt, and two bugs it found
+
+`receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg` (ЛУКОЙЛ-Центрнефтепродукт, АЗС 69472,
+M-11, 25.08.2026) is a **corporate fuel-card fill**: the price is settled between the fleet and the
+network by contract, so the driver's copy prints
+
+```
+ТРК №8 Бензин автомобильный ЭКТО Plus (АИ-95-К5), л
+30.61 Х 0.00
+Цена определена договором
+ИТОГ                    0.00
+```
+
+**A zero here means "not printed", never "free".** It is a whole class of receipt (fleet cards are
+common across RU/KZ), not an anomaly - so the app must support it rather than survive it. It also
+brings **VAT 22%**, a fourth rate in the corpus.
+
+It found two real bugs, both now fixed with tests:
+
+**1. A petrol fill was classified as DIESEL.** `FuelKindNormalizer` matched fuel families by bare
+substring, and **"ДТ" occurs inside "ПОДТВЕРЖДЕНА"** - from "Операция подтверждена вводом ПИН", the
+card-terminal line on every Russian card receipt. `fuelKind` is a stored domain field, so this was
+a confident wrong value, the one thing hard rule 13 forbids.
+
+The fix is subtler than "match whole words", and the corpus said so within a minute: the existing
+case `"зимнеекдт-3-к3"` is OCR with the words glued together, so a word-START rule rejects a
+genuine diesel line. What actually separates them is **the character that follows**: a grade code
+runs into a separator, a digit or the end of the line - never into more letters.
+
+**2. A zero total was stored as money.** Both parsers returned `total = 0.00`. That biases stats
+*silently*: `costPerKm` keeps the fill's odometer span in the denominator while contributing
+nothing to the numerator, so every corporate fill drags the rate down. Extraction now maps a zero
+total or unit price to **nil**, which is what the rest of the app is already built for - `money` is
+optional end to end and `costPerKm` skips entries without it. Consumption still computes from the
+volume, so a B2B fill remains a perfectly good consumption data point; only the cost figures
+abstain.
+
+**The purest consistency-is-not-correctness case in the corpus.** `30.61 × 0.00 = 0.00` satisfies
+the arithmetic cross-check exactly, on a triple that carries no information at all. The swapped
+operand pair (`a × b == b × a`) was the first lesson; this is its degenerate form.
+
+Still unresolved here, and deliberately left as nil rather than guessed: the product line OCRs as
+`Plus (AИ-95-К5), л` with a **Latin A** in `AИ`, so the octane regex (Cyrillic `А[ИН]`) misses it
+and the kind is now nil rather than wrong. Mixed-script OCR of Cyrillic receipts is its own trap -
+filed as **P2.11**.
+

@@ -27,6 +27,22 @@ public struct FuelExtractor: Sendable {
         result.liters = volumePrice.liters
         result.unitPrice = volumePrice.price
         result.total = resolveTotal(lines, liters: result.liters, unitPrice: result.unitPrice)
+
+        // A printed ZERO is "the price is not on this receipt", never "the fuel
+        // was free". B2B contract fuel cards settle the price between the fleet
+        // and the network, so the driver's copy prints `30.61 X 0.00` and
+        // `ИТОГ 0.00` under "Цена определена договором" (receipt-034). Storing
+        // 0.00 would be a confident wrong value (hard rule 13) and it biases
+        // stats silently: cost/km keeps the fill's odometer span in the
+        // denominator while contributing nothing to the numerator, so every
+        // corporate fill drags the rate down.
+        //
+        // `FillUp.money` is already optional and `ConsumptionEngine.costPerKm`
+        // already skips entries without it, so nil is the representation the
+        // rest of the app is built for: consumption still computes from volume,
+        // and only the cost figures abstain.
+        if result.total == 0 { result.total = nil }
+        if result.unitPrice == 0 { result.unitPrice = nil }
         return result
     }
 

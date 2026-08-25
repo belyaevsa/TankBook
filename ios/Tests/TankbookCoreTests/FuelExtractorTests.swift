@@ -191,6 +191,68 @@ struct FuelKindNormalizerTests {
         let result = extractor.extract(textLines: lines, source: .pump)
         #expect(result.fuelKind == nil)
     }
+
+    // MARK: - receipt-034: the B2B contract receipt
+
+    /// "ДТ" occurs inside "ПОДТВЕРЖДЕНА" - the card-terminal line printed on
+    /// every Russian card receipt ("Операция подтверждена вводом ПИН"). A bare
+    /// substring match classified `receipt-034`'s АИ-95 fill as **diesel**, and
+    /// `fuelKind` is a stored domain field, so that is a confident wrong value.
+    ///
+    /// The test asserts BOTH directions on purpose: a rule that simply stopped
+    /// matching "ДТ" would pass the first half while silently breaking every
+    /// real diesel receipt in the corpus - and one did, immediately. The corpus
+    /// case `"зимнеекдт-3-к3"` is OCR with the words glued together, so a
+    /// word-START rule rejects a genuine diesel line. What actually separates
+    /// the two is the character that FOLLOWS: a grade code runs into a
+    /// separator, a digit or the end of the line, never into more letters.
+    @Test("a fuel word inside a longer word is not a fuel word")
+    func fuelFamiliesMatchAtWordStartsOnly() {
+        #expect(FuelKindNormalizer.normalize("Операция подтверждена Вводом") == nil)
+        #expect(FuelKindNormalizer.normalize("ПОДТВЕРЖДЕНА") == nil)
+        #expect(!FuelKindNormalizer.isProductLine("подтверждена Вводом"))
+
+        // Real product lines still resolve - prefixes and hyphenated forms.
+        #expect(FuelKindNormalizer.normalize("ДТ-Л-К5") == .diesel)
+        #expect(FuelKindNormalizer.normalize("ДИЗЕЛЬНОЕ ТОПЛИВО") == .diesel)
+        #expect(FuelKindNormalizer.normalize("ДТ-Е-К5 Танеко") == .diesel)
+        #expect(FuelKindNormalizer.normalize("АИ-95-К5") == .petrol95)
+        #expect(FuelKindNormalizer.normalize("СУГ") == .lpg)
+        #expect(FuelKindNormalizer.normalize("МЕТАН CNG") == .cng)
+        // Glued OCR must keep working: the rule is about what follows a grade
+        // code, not about where a word begins.
+        #expect(FuelKindNormalizer.normalize("зимнеекдт-3-к3") == .diesel)
+    }
+
+    /// A printed zero is "the price is not on this receipt", never "the fuel was
+    /// free". `receipt-034` is a **B2B contract fuel card**: the price is settled
+    /// between the fleet and the network, so the driver's copy prints
+    /// `30.61 X 0.00` / `ИТОГ 0.00` under "Цена определена договором".
+    ///
+    /// Storing 0.00 biases stats silently rather than loudly: `costPerKm` keeps
+    /// the fill's odometer span in the denominator while it contributes nothing
+    /// to the numerator, so every corporate fill drags the rate down. `money` is
+    /// optional end to end and `costPerKm` already skips entries without it, so
+    /// nil is the representation the rest of the app expects.
+    @Test("a contract-priced receipt yields no money at all, never a zero")
+    func zeroMoneyIsAbsentNotFree() {
+        let lines = ["ТРК №8 Бензин автомобильный ЭКТО",
+                     "Plus (АИ-95-К5), л",
+                     "30.61 Х 0.00",
+                     "Цена определена договором",
+                     "ИТОГ",
+                     "0.00"]
+        let result = FuelExtractor().extract(textLines: lines)
+        #expect(result.total == nil, "a zero total must not be stored as money")
+        #expect(result.unitPrice == nil, "a zero unit price must not be stored as money")
+        // The volume is real and must survive: consumption is computed from it,
+        // and a B2B fill is a perfectly good consumption data point.
+        #expect(result.fuelKind == .petrol95)
+
+        // The degenerate cross-check: 30.61 x 0.00 == 0.00 is arithmetically
+        // perfect and carries no information. It must not read as verified.
+        #expect(!result.crossCheckPassed)
+    }
 }
 
 // MARK: - Helpers
