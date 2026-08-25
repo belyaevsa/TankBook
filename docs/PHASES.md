@@ -19,7 +19,7 @@ Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty st
 Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, ~~Foundation-Models normalization (gated iOS 26+)~~ **cut 2026-08-25 - the on-device model has no Russian (`docs/VISION.md` -> "Why tier 2 was cut")**, confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
 **Exit gate:** L5 corpus gates – receipts at the recorded high-water mark, **pump photos ≥95% or the mode stays off** (VISION rule) · mixed-receipt isolation ≥95% · J3/J4/J5 checks green · M-check: 5 live fill-ups, median capture-to-save < 15 s.
 
-## P3 · Service, expenses, reminders — **COMPLETE (2026-08-26)**
+## P3 · Service, expenses, reminders – **COMPLETE (2026-08-26)**
 ServiceEntry with invoice split, parts shelf + linking (double-count invariant), tire sets, reminder lifecycle (J7c state machine), local notifications with multi-device cancellation logic (arming rules per NOTIFICATIONS.md; cancellation testable locally before sync exists).
 **Exit gate: MET**, each clause on evidence rather than assertion - every load-bearing rule was broken deliberately and seen to fail.
 - **J7** (service visit): P3.1a typed + P3.1b scan. The split-or-lump-sum rule is mutation-checked - forcing `sumsToTotal` true fails three assertions.
