@@ -109,10 +109,9 @@ final class ConfirmManualUITests: XCTestCase {
         XCTAssertTrue(chip.isHittable)
 
         // One tap selects the foreign currency; with no rates service the money
-        // pair is rate-pending and the F9 hint replaces the neutral caption.
+        // pair is rate-pending and the conversion card appears (the F9 state).
         chip.tap()
-        XCTAssertTrue(app.staticTexts["manualFillUpConversionHint"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["≈ – · converts when online"].exists)
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
     }
 }
 
@@ -338,5 +337,64 @@ extension ConfirmManualUITests {
         // the normal Confirm form (hard rule 15's sibling principle).
         XCTAssertFalse(app.otherElements["mixedReceiptSection"].exists)
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].exists)
+    }
+}
+
+// MARK: - P2.5 foreign currency
+
+/// P2.5: detection comes from the extraction's currency (or the chip choice),
+/// never the device locale. The conversion card shows the converted home amount
+/// plus the rate and its date; a rate miss saves rate-pending (F9); a
+/// low-confidence currency asks instead of converting; and the ordinary sheet
+/// is unchanged when the currency matches home.
+extension ConfirmManualUITests {
+
+    func testForeignFillShowsTheConvertedAmountAndRate() {
+        let app = launchWithPrefill("-seedConfirmForeign")
+        openForm(app)
+
+        // The conversion card renders with the worked number (289.50 PLN /
+        // 4.2706 = 67.79 EUR) and the rate line names the pair, source and date.
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+        let value = app.staticTexts["manualFillUpConvertedValue"]
+        XCTAssertTrue(value.exists)
+        XCTAssertTrue(value.label.contains("67.79"), "converted value was '\(value.label)'")
+        let rateLine = app.staticTexts["manualFillUpRateLine"]
+        XCTAssertTrue(rateLine.exists)
+        XCTAssertTrue(rateLine.label.contains("4.2706"), "rate line was '\(rateLine.label)'")
+        XCTAssertTrue(rateLine.label.contains("ECB"))
+    }
+
+    func testForeignFillWithoutRateIsRatePending() {
+        let app = launchWithPrefill("-seedConfirmForeignPending")
+        openForm(app)
+
+        // No rate for 2020-01-01: the entry is rate-pending (F9) - the card
+        // shows the "≈ –" placeholder and the pending hint, never a number.
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["manualFillUpPendingValue"].exists)
+        XCTAssertTrue(app.staticTexts["manualFillUpPendingHint"].exists)
+        XCTAssertFalse(app.staticTexts["manualFillUpConvertedValue"].exists)
+    }
+
+    func testLowConfidenceCurrencyAsksAndNeverConverts() {
+        let app = launchWithPrefill("-seedConfirmForeignLowConfidence")
+        openForm(app)
+
+        // An uncertain currency shows the amber prompt and NO conversion card,
+        // even though the seed pack has a rate for the pair on that date.
+        XCTAssertTrue(app.staticTexts["manualFillUpCurrencyHint"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Which currency is this?"].exists)
+        XCTAssertFalse(app.otherElements["manualFillUpConversionCard"].exists)
+        XCTAssertFalse(app.staticTexts["manualFillUpConvertedValue"].exists)
+    }
+
+    func testHomeCurrencyShowsNoConversionCard() {
+        let app = launchWithPrefill("-seedConfirmPrefill")
+        openForm(app)
+
+        // Currency matches home (EUR): the ordinary sheet, no conversion card.
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.otherElements["manualFillUpConversionCard"].exists)
     }
 }

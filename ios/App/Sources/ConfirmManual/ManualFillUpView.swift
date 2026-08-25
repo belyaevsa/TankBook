@@ -31,13 +31,13 @@ struct ManualFillUpView: View {
     /// pre-filled - never an error, never a "scan failed" state (hard rule 15).
     private let injectedPrefill: ConfirmPrefill?
 
-    @State private var form = ManualFillUpFormState()
+    @State var form = ManualFillUpFormState()
     @FocusState private var focus: ManualFillUpFocus?
-    @State private var vehicle: Vehicle?
+    @State var vehicle: Vehicle?
     @State private var existingEntries: [any Entry] = []
     @State private var stations: [Station] = []
     @State private var selectedStation: Station?
-    @State private var currencyLowConfidence = false
+    @State var currencyLowConfidence = false
     @State private var showDatePicker = false
     @State private var showTankLevel = false
     @State private var didLoad = false
@@ -52,7 +52,7 @@ struct ManualFillUpView: View {
 
     private static let log = Logger(subsystem: "app.tankbook", category: "confirmManual")
 
-    private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
+    var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
     /// Reduce Motion (docs/DESIGN.md -> Motion): the cross-check lock's spring
@@ -72,7 +72,8 @@ struct ManualFillUpView: View {
                     ManualFillUpCurrencySection(
                         form: $form,
                         homeCurrency: vehicle!.homeCurrency,
-                        lowConfidence: currencyLowConfidence)
+                        lowConfidence: currencyLowConfidence,
+                        state: conversionState)
                     ManualFillUpNumbersCard(
                         form: $form, focus: $focus,
                         volumeUnit: volumeUnit,
@@ -80,6 +81,13 @@ struct ManualFillUpView: View {
                         crops: prefill?.crops ?? [:],
                         reduceMotion: reduceMotion,
                         onVerify: { field, crop in verifyCrop = VerifyCrop(field: field, evidence: crop) })
+                    if conversionState.showsConversionCard {
+                        ForeignCurrencyCard(
+                            currency: form.currency,
+                            homeCurrency: vehicle!.homeCurrency,
+                            state: conversionState,
+                            convertedAmount: convertedAmount)
+                    }
                     if case .mixed(let lines, let fuelLine, let grandTotal) = detection {
                         MixedReceiptSection(
                             lines: lines,
@@ -185,7 +193,8 @@ struct ManualFillUpView: View {
             form.initialTotal = form.total
             form.initialLiters = form.liters
             form.initialPricePerL = form.pricePerL
-            currencyLowConfidence = ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
+            currencyLowConfidence = currencyLowConfidence
+                || ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
             if ProcessInfo.processInfo.arguments.contains("-screenshotPrefill") {
                 // Screenshot hook: land the three-number card in its derived
                 // state (total + liters typed, price fills in) without typing.
@@ -203,6 +212,7 @@ struct ManualFillUpView: View {
     /// moment it is offered and afterwards (hard rule 13).
     private func apply(_ prefill: ConfirmPrefill, vehicle: Vehicle) {
         guard let extraction = prefill.extraction else { return }
+        currencyLowConfidence = prefill.currencyLowConfidence
         form.resolvedByExtraction.removeAll()
         switch ConfirmQRTotal.resolve(extraction: extraction, qrAnchor: prefill.qrAnchor) {
         case .noAnchor(let ocrTotal):
@@ -296,8 +306,8 @@ struct ManualFillUpView: View {
                     let row = Expense(
                         id: expense.id, createdAt: now, updatedAt: now, deletedAt: nil,
                         vehicleId: vehicle.id, date: form.date, odometer: nil,
-                        money: Money(amount: expense.amount, currency: form.currency,
-                                     homeCurrency: vehicle.homeCurrency),
+                        money: convertForSave(Money(amount: expense.amount, currency: form.currency,
+                                                    homeCurrency: vehicle.homeCurrency)),
                         note: nil, attachments: [], provenance: .receiptScan,
                         conflict: .none, purchaseGroupId: plan.purchaseGroupId,
                         category: expense.category, title: expense.title)
@@ -317,8 +327,8 @@ struct ManualFillUpView: View {
     /// blocked, a flagged entry surfaces its amber badge later.
     private func buildFillUp(vehicle: Vehicle, derived: ManualFillUpMath.Derived) -> FillUp {
         let now = Date()
-        let money = Money(amount: derived.total, currency: form.currency,
-                          homeCurrency: vehicle.homeCurrency)
+        let money = convertForSave(Money(amount: derived.total, currency: form.currency,
+                                         homeCurrency: vehicle.homeCurrency))
         var candidate = FillUp(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicle.id, date: form.date, odometer: form.odometerValue,
@@ -365,28 +375,6 @@ struct ManualFillUpView: View {
         .padding(.top, 12)
         .padding(.bottom, 12)
         .background(Theme.Palette.midnight)
-    }
-
-    // MARK: - No vehicle
-
-    private var noVehicleCard: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "car")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Text("No car yet – add one from Garage to start logging fill-ups.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .background(Theme.Palette.dash)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .stroke(Theme.Palette.hairline, lineWidth: 1)
-        )
-        .accessibilityIdentifier("manualFillUpNoVehicleHint")
     }
 }
 

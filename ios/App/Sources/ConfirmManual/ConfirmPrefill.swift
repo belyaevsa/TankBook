@@ -30,6 +30,10 @@ struct ConfirmPrefill {
     var crops: [ManualFillUpMath.Field: CropEvidence] = [:]
     var qrAnchor: FiscalQRAnchor?
     var ocrLines: [OCRLine] = []
+    /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
+    /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
+    /// OCR-confidence signal lands with the Foundation-models work (P2.8).
+    var currencyLowConfidence: Bool = false
 }
 
 // MARK: - Debug seeding (screenshots + UI tests)
@@ -49,8 +53,13 @@ struct ConfirmPrefill {
 ///   total (a VAT/rounding line was grabbed): the QR total fills the field.
 /// - `-seedConfirmPrefillMixed` - a mixed receipt: the fuel line stands
 ///   (hard rule 4), never the grand total.
+/// - `-seedConfirmForeign` / `-seedConfirmForeignPending` /
+///   `-seedConfirmForeignLowConfidence` - the P2.5 foreign-currency states:
+///   converted (rate in the seed pack), rate-pending (date outside it), and
+///   low-confidence (asks, never converts).
 enum ConfirmPrefillSeed {
     static func from(arguments: [String]) -> ConfirmPrefill? {
+        if let foreign = foreignPrefill(from: arguments) { return foreign }
         if arguments.contains("-seedConfirmPrefillEmpty") {
             return ConfirmPrefill(extraction: FuelExtraction())
         }
@@ -84,13 +93,13 @@ enum ConfirmPrefillSeed {
                                                              date: "17.08.2026"),
                                   crops: [:],
                                   qrAnchor: FiscalQRAnchor(total: 4334.83,
-                                                           date: Date(timeIntervalSince1970: 1_700_000_000)))
+                                                            date: Date(timeIntervalSince1970: 1_700_000_000)))
         }
         if arguments.contains("-seedConfirmPrefillMixed") {
             return ConfirmPrefill(extraction: FuelExtraction(liters: 20.0, unitPrice: 2.0,
-                                                              total: 40.00,
-                                                              currency: .eur, fuelKind: .petrol95,
-                                                              date: "17.08.2026"),
+                                                               total: 40.00,
+                                                               currency: .eur, fuelKind: .petrol95,
+                                                               date: "17.08.2026"),
                                   crops: crops(for: [.total, .volume, .unitPrice]),
                                   qrAnchor: FiscalQRAnchor(total: 50.00,
                                                             date: Date(timeIntervalSince1970: 1_700_000_000)))
@@ -117,6 +126,42 @@ enum ConfirmPrefillSeed {
                                                              currency: .eur, fuelKind: .petrol95,
                                                              date: "17.08.2026"),
                                   crops: crops(for: [.volume, .unitPrice]))
+        }
+        return nil
+    }
+
+    /// P2.5: the three foreign-currency seeds (converted / rate-pending /
+    /// low-confidence). Split out so the main switch stays under the lint
+    /// complexity budget.
+    private static func foreignPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        if arguments.contains("-seedConfirmForeign") {
+            // The artboard's foreign fill (ORLEN, 47.30 L x 6.12/L = 289.50 PLN),
+            // dated 2026-08-21 - inside the bundled seed pack - so the conversion
+            // card shows the worked number: 289.50 / 4.2706 = 67.79 EUR.
+            return ConfirmPrefill(extraction: FuelExtraction(liters: 47.30, unitPrice: 6.12,
+                                                             total: 289.50, currency: .pln,
+                                                             fuelKind: .diesel,
+                                                             date: "21.08.2026"),
+                                  crops: crops(for: [.total, .volume, .unitPrice]))
+        }
+        if arguments.contains("-seedConfirmForeignPending") {
+            // The same foreign fill dated far outside the seed pack (2020-01-01):
+            // no rate, so the sheet is rate-pending (F9) - the original amount
+            // is exact, the home amount is absent.
+            return ConfirmPrefill(extraction: FuelExtraction(liters: 47.30, unitPrice: 6.12,
+                                                             total: 289.50, currency: .pln,
+                                                             fuelKind: .diesel,
+                                                             date: "01.01.2020"))
+        }
+        if arguments.contains("-seedConfirmForeignLowConfidence") {
+            // Foreign currency flagged low-confidence: the sheet asks ("Which
+            // currency is this?") and never converts, even though the seed pack
+            // HAS a rate for the pair on that date.
+            return ConfirmPrefill(extraction: FuelExtraction(liters: 47.30, unitPrice: 6.12,
+                                                             total: 289.50, currency: .pln,
+                                                             fuelKind: .diesel,
+                                                             date: "21.08.2026"),
+                                  currencyLowConfidence: true)
         }
         return nil
     }

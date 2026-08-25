@@ -34,6 +34,9 @@ let package = Package(
                 // Bundled vehicle catalog seed pack (docs/SCHEMA.md -> Vehicle
                 // catalog): Add-car autocomplete works offline on day one.
                 .copy("Catalog/VehicleCatalog.seed.json"),
+                // Bundled exchange-rate seed pack (docs/SCHEMA.md -> Exchange
+                // rates): a first launch offline still converts common pairs.
+                .copy("Rates/Rates.seed.json")
             ]
         ),
         .target(
