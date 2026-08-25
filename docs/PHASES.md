@@ -19,9 +19,15 @@ Manual entry (ConfirmManual as the form), Home (garage card, log, guest/empty st
 Vision OCR pipeline productionized from the Spike, all confirm variants (standard/foreign/mixed), fiscal QR, ~~Foundation-Models normalization (gated iOS 26+)~~ **cut 2026-08-25 - the on-device model has no Russian (`docs/VISION.md` -> "Why tier 2 was cut")**, confidence gating + tap-to-verify crops, pump-photo mode behind the accuracy flag.
 **Exit gate:** L5 corpus gates – receipts at the recorded high-water mark, **pump photos ≥95% or the mode stays off** (VISION rule) · mixed-receipt isolation ≥95% · J3/J4/J5 checks green · M-check: 5 live fill-ups, median capture-to-save < 15 s.
 
-## P3 · Service, expenses, reminders
+## P3 · Service, expenses, reminders — **COMPLETE (2026-08-26)**
 ServiceEntry with invoice split, parts shelf + linking (double-count invariant), tire sets, reminder lifecycle (J7c state machine), local notifications with multi-device cancellation logic (arming rules per NOTIFICATIONS.md; cancellation testable locally before sync exists).
-**Exit gate:** J7/J7b/J7c suites green · cost/km never double-counts a linked part (property test) · reminder state machine covers every transition in SCHEMA.md's lifecycle block.so,
+**Exit gate: MET**, each clause on evidence rather than assertion - every load-bearing rule was broken deliberately and seen to fail.
+- **J7** (service visit): P3.1a typed + P3.1b scan. The split-or-lump-sum rule is mutation-checked - forcing `sumsToTotal` true fails three assertions.
+- **J7b** (parts, tires): P3.2 shelf + linking, P3.3 tire spans. Mutation-checked both.
+- **J7c** (reminder lifecycle): P3.4 transitions, P3.5 completion chain, P3.6 notifications. Anchoring the next cycle at the due date instead of completion fails the late-completion test.
+- **cost/km never double-counts a linked part**: a property test over five compositions; pricing a linked part twice in `costPerKm` fails it.
+- **the state machine covers every transition**: complete / reschedule / dismiss / delete, plus re-arm after a fired `.attention`.
+- Suites at close: **554 unit, 112 UI, 0 failures**, `swiftlint` 0, localization gate 0.so,
 
 ## P4 · Account, sync, blobs (the join point)
 Backend auth (session exchange, refresh rotation), sync push/pull with SCN, the iOS sync client (dirty queue, merge, domain revalidation), blob pipeline, Restoring flow, Settings account states, silent APNs nudges, Sign in + J11a wrong-provider detection.
