@@ -200,6 +200,13 @@ capture P3.4-reminders-empty-ru   ru -presentScreen reminders
 capture P3.4-reminder-form        en -seedReminders -seedReminderForm -presentScreen reminderForm
 capture P3.4-reminder-form-ru     ru -seedReminders -seedReminderForm -presentScreen reminderForm
 
+# P3.3: the tire-set list (one set with derived mileage, one with "–") and the
+# ServiceEntry Tires mode mounting a set (odometer required, pre-filled).
+capture P3.3-tire-sets            en -seedTireSets -presentScreen tireSets
+capture P3.3-tire-sets-ru         ru -seedTireSets -presentScreen tireSets
+capture P3.3-tire-mount           en -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
+capture P3.3-tire-mount-ru        ru -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
