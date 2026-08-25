@@ -1,7 +1,7 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-25 at the end of the P3 session. Read this first, then `CLAUDE.md` for the
-rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Rewritten 2026-08-26, with Phase 3 complete. Read this first, then `CLAUDE.md` for the rules and
+`docs/TASKS.md` for the backlog with live status marks.*
 
 ## What this project is
 
@@ -17,14 +17,16 @@ Product thesis: `docs/VISION.md`. Market research: `docs/COMPETITORS.md`.
 Verified by running it, not by assertion:
 
 - Every P1 screen is built, plus the P2 capture surface, the Confirm sheet's scan path, mixed
-  receipts and foreign currency.
-- **iOS: 529 unit tests, 108 UI tests**, `swiftlint lint` exit **0** from the repo root,
-  localization gate exit **0** at 359 keys / 100% RU. **Backend: 134 tests.**
+  receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
+  shelf with install linking, tire sets, the reminder lifecycle end to end, and local
+  notifications.
+- **iOS: 554 unit tests, 112 UI tests, 0 failures**, `swiftlint lint` exit **0** from the repo
+  root, localization gate exit **0** at 375 keys / 100% RU. **Backend: 134 tests.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
 
-40 screenshots, EN and RU, in `design/screenshots/`.
+68 screenshots, EN and RU, in `design/screenshots/` - every one opened by a human before it was committed.
 
 ## Where the work stands
 
@@ -33,7 +35,8 @@ Verified by running it, not by assertion:
 | **P0** | **Complete.** P0.12c closed the exit gate |
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
-| **P3** | **Most of the way.** P3.1a, P3.1b, P3.2, P3.3, P3.4, P3.7 done and merged; **P3.5 (reminder completion chain) and P3.6 (local notifications) not started**; P3.8 (seed/capture fix) dispatched |
+| **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
+| **P4** | Not started. P4.10 (LLM gateway server) and P4.11 (`Date` round-trip) are filed with their reasoning |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -50,22 +53,123 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-1. **P3.8 is dispatched** (flash): one reset gate for the whole process instead of five
-   independent ones, and an EN capture that actually sets EN. **Until it lands, no screenshot can
-   be trusted** - and screenshots are the only check that catches colour, truncation and layout.
-2. **P3.5** - the ReminderComplete sheet -> pre-filled entry -> next cycle chain. The lifecycle
-   engine and its transition table already exist (P3.4); this is the integration.
-3. **P3.6** - local notifications: arming at write time, humane scheduling, cancellation on status
-   change. P3.4 stores the `.attention` transition precisely so this can fire once.
-4. **The `headlight` cyan question, unresolved and now with four instances** ("Add line item", the
-   verify magnifier, Home's empty states, "Open shelf"). `docs/DESIGN.md` says cyan encodes
-   *electric*; the app uses it as the generic interactive colour. One decision, not four.
-5. The P2 follow-ups still open: **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (the
-   Fuel row offers fuels the car cannot burn), **P1.13** (the Confirm sheet's odometer renders
-   ungrouped), **P2.9/P2.10/P2.11** (three-decimal volumes, KZT detection, mixed-script OCR).
-6. **P4.10/P4.11** are filed and unstarted: the LLM gateway server (with the 3-second device
-   budget and corpus-gated compression), and `Date` not round-tripping exactly through
-   persistence.
+**Phase 3 is closed.** The next phase is **P4 · Account, sync, blobs**, which is the join point
+between the app and the backend and the largest single step in the roadmap: auth (P4.1), sync
+push/pull with SCN (P4.2), blobs (P4.3), the iOS sync client with the S1-S9 scenario suite (P4.5),
+restore-from-zero (P4.7). `docs/PHASES.md` carries its exit gate; `docs/SYNC.md` and `docs/API.md`
+are the authorities.
+
+Before starting P4, two of its own tasks are already filed and worth reading:
+
+- **P4.10** - the LLM gateway server. It is the **only** model-assisted extraction path left after
+  P2.8 was cut, and the only one available to Russian receipts. Its device-side contract (a 3 s
+  budget, corpus-gated compression) is normative in `API.md`. Note it depends on **P4.1** for
+  bearer auth, which does not exist yet.
+- **P4.11** - `Date` does not round-trip exactly through persistence (one ulp on `createdAt` /
+  `updatedAt`). Harmless today because the drift is idempotent, but sync's LWW ordering and the
+  S1-S8 scenarios all lean on "a record read back equals the record written", which is currently
+  false. Fix it **before** the sync client, not after.
+
+Smaller work still open, none of it blocking:
+
+1. **The `headlight` cyan question, now with five instances** ("Add line item", the verify
+   magnifier, Home's empty states, "Open shelf", "New reminder"). `docs/DESIGN.md` says cyan
+   encodes *electric*; the app uses it as the generic interactive colour. One decision, not five.
+2. **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (the Fuel row offers fuels the car
+   cannot burn), **P1.13** (the Confirm sheet's odometer renders ungrouped),
+   **P2.9/P2.10/P2.11** (three-decimal volumes, KZT detection, mixed-script OCR).
+3. **Notification tap does not deep-link to Reminders** (P3.6 left it deliberately; the delegate
+   only handles foreground presentation).
+4. **P2.4's mixed-receipt gate** still needs more than two fixtures to be a percentage rather than
+   arithmetic.
+
+## What the P3 sessions cost, and what they proved
+
+Twenty-nine commits took P2's follow-ups and the whole of P3. The engineering is in the log; these
+are the things that will happen again.
+
+### Measure before you fix
+
+An entry-form reorder took the UI suite to 8 failures. I blamed the tests **three times** - "below
+the fold", "the wrong scroll view", "machine load" - each with a plausible fix and no evidence.
+**One instrumented assertion disproved all three in fifteen seconds.** Two of the eight were real
+defects in the new code:
+
+- the currency fold's `isExpanded` lived in the section's own `@State`, which resets on every
+  parent re-render, so the row could be tapped and never opened;
+- the collapsed row had no `.contentShape`, and a `.plain` Button's hit area is its **rendered
+  content** - the row is a label, a Spacer and a value, so its middle, exactly where a tap lands,
+  was empty.
+
+Both shipped a control that renders correctly, reports `isHittable = true`, and does nothing.
+Invisible to a screenshot and to a reading of the diff. **Only the suite could catch them, and I
+spent three rounds assuming the suite was what was wrong.**
+
+### XCUITest's `isHittable` does not model occlusion
+
+An element under a `safeAreaInset` save bar reports itself hittable. "Tapping" it hit the bar and
+**saved the entry**, so the failure read as a missing button. Two consequences now encoded in the
+test helpers: scroll by **geometry** (clear of the bar's top), and drag the **hittable** scroll
+view - `app.scrollViews.firstMatch` is the screen *behind* a presented sheet, and a swipe starting
+lower is eaten by the keyboard.
+
+### Two ConfirmManual tests are device-specific, not broken
+
+`testCrossCheckMismatchShowsAmberRefusesLockButSaveAnywayWorks` and
+`testReducedMotionLockStillLandsWithoutAnimation` **fail on `iPhone 17 Pro` and pass on
+`iPhone 17`**, verified on clean `main` on both. They join the `AddVehicle` pair in the
+device-specific family.
+
+The procedural lesson is sharper than the fact: an agent reported them as pre-existing and **I
+doubted it**, having just watched that suite pass 19/19 - on a different simulator. My "disproof"
+was device-specific evidence. When an agent's claim conflicts with yours, check you ran the same
+device before concluding it is wrong.
+
+### Four ways an agent dispatch dies, all reporting EXITED
+
+`agent-health.sh` says `EXITED` for every one; **log size is the first discriminator**.
+
+| Failure | Signature | Response |
+|---|---|---|
+| Wrong provider prefix | instant `UnknownError`, ~166 bytes | fully qualify `deepseek/...` |
+| Provider outage | instant `UnknownError` on every model | wait |
+| Wedged/stalled run | silence, socket **ESTABLISHED**, **zero byte delta** | kill, re-dispatch |
+| Network unreachable | `Cannot connect to API`, ~139 bytes | check the host, retry |
+
+`lsof` is not enough - a stalled run holds its socket open. The decisive check is
+`nettop -P -x -J bytes_in -l 2`: if the counter does not move over 45-60 s, the stream is dead.
+
+**And a silent agent mid-`xcodebuild` is not a stalled one.** The monitor now checks for a running
+`xcodebuild` before calling anything wedged. P3.5 and P3.6 each went silent for 17 minutes inside a
+full UI suite; killing a healthy agent 40 minutes into its task is the expensive mistake.
+
+### Seeds reset the database more than once per launch (fixed, P3.8)
+
+Five types called `AppStore.resetForTests()` and only three had a gate, **each private to its own
+type**, so one launch could reset several times and a later seed wiped an earlier one. It became
+reachable the moment P3.3's and P3.4's seeds merged: a capture run rendered the **empty** Home for
+`-seedHomeFullHistory` and reported `ok` for all 62 files. The gate is now process-wide. The same
+run also proved `capture()` relied on an argument's **absence** to undo `-AppleLanguages "(ru)"`,
+so EN captures rendered Russian.
+
+**A capture script proves a file was written, nothing more.** That is now three distinct silent
+bugs in it.
+
+### Two agents on adjacent tasks WILL collide
+
+P3.2 and P3.3 each rewrote `ServiceEntryModeRow` for their own half and left the other's chips
+unwired - neither could see the other's branch, so taking either side would have shipped a row
+that half works. And a conflicted `Localizable.xcstrings` is **not line-mergeable**: merge it
+structurally (340 + 345 keys -> 359 union), because resolving it by hunk silently drops keys.
+
+### Design for testability, or the phase gate cannot be met
+
+`AppTabBar`'s padding arithmetic lived in the app target, which the package tests cannot import -
+so the double-counted inset was "verified by looking at one device" and survived P1 and P2. P3.7
+moved it to `TankbookCore.TabBarMetrics` and the injected-inset tests caught both mutations
+immediately. P3.6 was briefed the same way up front: the notification **plan** is a value type in
+core and `UNUserNotificationCenter` is an injected adapter, which is the only reason "exactly one
+overdue follow-up, never a nag loop" could be proved **as a loop**.
 
 ## The corpus – the most valuable artefact in the repo
 
@@ -114,11 +218,14 @@ Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dum
    every screenshot was **iOS 26's system rendering**, which iOS 18 would never produce. P2.1b
    replaced it with an owned bar, so that specific gap is closed – but L4 baselines recorded on
    26.5 still need re-recording, and the iOS 18 runtime needs an explicit ~8 GB fetch.
-2. **The `AddVehicle` pair, correctly diagnosed at last.** `testConfirmItIsRightIsOneTap` and
-   `testImplausibleOdometerWarnsButNeverBlocksSave` fail on **iPhone 17 Pro Max in isolation** –
-   so they were never "load-sensitive", as previously recorded here. The real failure is
-   `typeText` after a successful tap, with the field leaving the accessibility tree. Repro
-   command and the evidence are in `AddVehicleUITests.swift`. **Do not fix it with sleeps.**
+2. **The `AddVehicle` pair and the `ConfirmManual` pair are DEVICE-SPECIFIC, not broken.**
+   `testConfirmItIsRightIsOneTap` and `testImplausibleOdometerWarnsButNeverBlocksSave`, plus
+   `testCrossCheckMismatchShowsAmberRefusesLockButSaveAnywayWorks` and
+   `testReducedMotionLockStillLandsWithoutAnimation`, fail on some simulators and pass on others -
+   all four passed on `iPhone 17` in a full idle-machine run, and the `ConfirmManual` two
+   reproduce on `iPhone 17 Pro` from clean `main`. The shared shape is `typeText` after a
+   successful tap, with the field leaving the accessibility tree. **Do not fix it with sleeps**,
+   and do not call a suite red or green without naming the device it ran on.
 
 ## Working with agents (opencode)
 
@@ -141,7 +248,7 @@ unattended run, `--thinking` because it makes long silent stretches legible.
 validator's prose; and **the orchestrator opens every screenshot personally**, because agents
 have no image input.
 
-### The three ways process-detection lied this session
+### The three ways process-detection lied (P2 session)
 
 All the same mistake – inferring liveness from a string match instead of real pids:
 
