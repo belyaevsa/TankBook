@@ -97,15 +97,10 @@ import Testing
         try repo.upsertReminder(built)
         let readBack = try repo.liveReminders(forVehicle: vehicle.id)
         #expect(readBack.count == 1)
-        // The two envelope timestamps drift by one Double ulp through the
-        // round trip (the epoch-offset artefact recorded in ServiceEntryTests /
-        // docs/SCHEMA.md P4.11); every domain field must match exactly.
-        var expected = built
-        expected.createdAt = readBack[0].createdAt
-        expected.updatedAt = readBack[0].updatedAt
-        #expect(readBack[0] == expected)
-        #expect(abs(readBack[0].createdAt.timeIntervalSinceReferenceDate
-                    - built.createdAt.timeIntervalSinceReferenceDate) < 0.001)
+        // Whole-record equality (P4.11): dates round-trip exactly now that they
+        // are stored as `timeIntervalSinceReferenceDate`, so no normalization
+        // and no tolerance.
+        #expect(readBack[0] == built)
     }
 
     // MARK: - Applied (the edit/reschedule path)

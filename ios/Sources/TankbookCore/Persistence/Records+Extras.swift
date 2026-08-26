@@ -30,7 +30,7 @@ public struct ReminderRow: FetchableRecord, PersistableRecord {
             vehicleId: vehicleId,
             title: row["title"],
             category: try decodeJSON(ReminderCategory.self, from: row, column: "category"),
-            dueDate: (row["dueDate"] as Double?).map(Date.init(timeIntervalSince1970:)),
+            dueDate: (row["dueDate"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)),
             dueOdometer: row["dueOdometer"] as Int?,
             recurrence: try decodeOptionalJSON(Reminder.Recurrence.self, from: row, column: "recurrence"),
             sourceEntryId: decodeOptionalUUID(row, column: "sourceEntryId"),
@@ -44,7 +44,7 @@ public struct ReminderRow: FetchableRecord, PersistableRecord {
         container["vehicleId"] = reminder.vehicleId.uuidString
         container["title"] = reminder.title
         container["category"] = try encodeJSON(reminder.category)
-        container["dueDate"] = reminder.dueDate?.timeIntervalSince1970
+        container["dueDate"] = reminder.dueDate?.timeIntervalSinceReferenceDate
         container["dueOdometer"] = reminder.dueOdometer
         container["recurrence"] = try encodeOptionalJSON(reminder.recurrence)
         container["sourceEntryId"] = reminder.sourceEntryId?.uuidString
@@ -81,7 +81,7 @@ public struct StationRow: FetchableRecord, PersistableRecord {
                 ? GeoCoordinate(latitude: latitude!, longitude: longitude!) : nil,
             favorite: row["favorite"] as Bool,
             defaults: try decodeJSON(Station.Defaults.self, from: row, column: "defaults"),
-            lastUsedAt: (row["lastUsedAt"] as Double?).map(Date.init(timeIntervalSince1970:)))
+            lastUsedAt: (row["lastUsedAt"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)))
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -94,7 +94,7 @@ public struct StationRow: FetchableRecord, PersistableRecord {
         container["locationLng"] = station.location?.longitude
         container["favorite"] = station.favorite
         container["defaults"] = try encodeJSON(station.defaults)
-        container["lastUsedAt"] = station.lastUsedAt?.timeIntervalSince1970
+        container["lastUsedAt"] = station.lastUsedAt?.timeIntervalSinceReferenceDate
     }
 }
 
@@ -123,7 +123,7 @@ public struct TariffRow: FetchableRecord, PersistableRecord {
             name: row["name"],
             pricePerKWh: row["pricePerKWh"] as Decimal,
             currency: try decodeCurrency(row, column: "currency"),
-            validFrom: Date(timeIntervalSince1970: row["validFrom"] as Double))
+            validFrom: Date(timeIntervalSinceReferenceDate: row["validFrom"] as Double))
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -134,7 +134,7 @@ public struct TariffRow: FetchableRecord, PersistableRecord {
         container["name"] = tariff.name
         container["pricePerKWh"] = tariff.pricePerKWh
         container["currency"] = tariff.currency.rawValue
-        container["validFrom"] = tariff.validFrom.timeIntervalSince1970
+        container["validFrom"] = tariff.validFrom.timeIntervalSinceReferenceDate
     }
 }
 
@@ -202,7 +202,7 @@ public struct AttachmentRow: FetchableRecord, PersistableRecord {
             file: LocalFileRef(
                 sha256: row["fileSha256"],
                 relativePath: row["fileRelativePath"]),
-            extractedTimestamp: (row["extractedTimestamp"] as Double?).map(Date.init(timeIntervalSince1970:)),
+            extractedTimestamp: (row["extractedTimestamp"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)),
             ocrText: row["ocrText"] as String?)
         (syncState, syncScn) = decodeSync(row)
     }
@@ -213,7 +213,7 @@ public struct AttachmentRow: FetchableRecord, PersistableRecord {
         container["kind"] = attachment.kind.rawValue
         container["fileSha256"] = attachment.file.sha256
         container["fileRelativePath"] = attachment.file.relativePath
-        container["extractedTimestamp"] = attachment.extractedTimestamp?.timeIntervalSince1970
+        container["extractedTimestamp"] = attachment.extractedTimestamp?.timeIntervalSinceReferenceDate
         container["ocrText"] = attachment.ocrText
     }
 }
@@ -278,7 +278,7 @@ public struct ExchangeRateRow: FetchableRecord, PersistableRecord {
         rate = ExchangeRate(
             base: base,
             quote: quote,
-            date: Date(timeIntervalSince1970: row["date"] as Double),
+            date: Date(timeIntervalSinceReferenceDate: row["date"] as Double),
             rate: row["rate"] as Decimal,
             source: RateSource(rawValue: row["source"]) ?? .ecb)
     }
@@ -286,7 +286,7 @@ public struct ExchangeRateRow: FetchableRecord, PersistableRecord {
     public func encode(to container: inout PersistenceContainer) throws {
         container["base"] = rate.base.rawValue
         container["quote"] = rate.quote.rawValue
-        container["date"] = rate.date.timeIntervalSince1970
+        container["date"] = rate.date.timeIntervalSinceReferenceDate
         container["rate"] = rate.rate
         container["source"] = rate.source.rawValue
     }

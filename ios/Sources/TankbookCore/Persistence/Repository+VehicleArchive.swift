@@ -13,7 +13,7 @@ extension TankbookRepository {
     /// (docs/SCHEMA.md, Vehicle -> archivedAt).
     public func archiveVehicle(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            let stamp = date.timeIntervalSince1970
+            let stamp = date.timeIntervalSinceReferenceDate
             try db.execute(sql: """
                 UPDATE \(TankbookSchema.vehicle)
                 SET archived = 1, archivedAt = ?, updatedAt = ?, syncState = 'dirty', syncScn = NULL
@@ -25,7 +25,7 @@ extension TankbookRepository {
     /// Unarchives a vehicle: back in active stats, the archive stamp cleared.
     public func unarchiveVehicle(id: UUID) throws {
         try database.write { db in
-            let stamp = Date().timeIntervalSince1970
+            let stamp = Date().timeIntervalSinceReferenceDate
             try db.execute(sql: """
                 UPDATE \(TankbookSchema.vehicle)
                 SET archived = 0, archivedAt = NULL, updatedAt = ?, syncState = 'dirty', syncScn = NULL

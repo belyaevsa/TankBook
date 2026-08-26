@@ -96,40 +96,13 @@ import Testing
 
         let readBack = try repo.liveServiceRecords(forVehicle: vehicle.id)
         #expect(readBack.count == 1)
-        print("PROBE date", readBack[0].date == built.date, readBack[0].date.timeIntervalSince1970, built.date.timeIntervalSince1970)
-        print("PROBE createdAt", readBack[0].createdAt == built.createdAt, readBack[0].createdAt.timeIntervalSince1970, built.createdAt.timeIntervalSince1970)
-        print("PROBE updatedAt", readBack[0].updatedAt == built.updatedAt, readBack[0].updatedAt.timeIntervalSince1970, built.updatedAt.timeIntervalSince1970)
-        print("PROBE money", readBack[0].money == built.money)
-        print("PROBE items", readBack[0].items == built.items)
-        print("PROBE cost", String(describing: readBack[0].items[0].cost?.amount), String(describing: built.items[0].cost?.amount))
-        print("PROBE provenance", readBack[0].provenance == built.provenance, readBack[0].conflict == built.conflict)
-        let a = readBack[0], b = built
-        print("PROBE rest", a.id == b.id, a.vehicleId == b.vehicleId, a.deletedAt == b.deletedAt,
-              a.odometer == b.odometer, a.note == b.note, a.vendor == b.vendor,
-              a.attachments == b.attachments, a.usedParts == b.usedParts,
-              a.tireSetId == b.tireSetId, a.proposedReminderId == b.proposedReminderId,
-              a.purchaseGroupId == b.purchaseGroupId)
-        print("PROBE moneyparts", String(describing: a.money?.amount), String(describing: b.money?.amount),
-              String(describing: a.money?.homeAmount), String(describing: b.money?.homeAmount),
-              String(describing: a.money?.rate), String(describing: b.money?.rate),
-              String(describing: a.money?.rateDate), String(describing: b.money?.rateDate))
-        // Everything the record carries survives the round trip - except the
-        // two envelope timestamps, which drift by one Double ulp (~1.2e-7 s).
-        // `Records.swift` stores dates as `timeIntervalSince1970`, and adding
-        // the 978307200 s epoch offset shifts the fractional bits out of the
-        // mantissa. The drift is **idempotent** (a second round trip is stable,
-        // asserted below), so sync's `updatedAt` LWW ordering is unaffected -
-        // but "reads back identical" is not literally true, and pretending it
-        // is would be the vacuous version of this test. Recorded as **P4.11**.
-        var normalized = readBack[0]
-        normalized.createdAt = built.createdAt
-        normalized.updatedAt = built.updatedAt
-        #expect(normalized == built, "every field but the envelope timestamps must round-trip exactly")
-        #expect(abs(readBack[0].createdAt.timeIntervalSinceReferenceDate
-                    - built.createdAt.timeIntervalSinceReferenceDate) < 0.001,
-                "timestamp drift must stay in the sub-millisecond noise floor, not become a real offset")
+        // Whole-record equality, no normalization and no tolerance (P4.11):
+        // dates are stored as `timeIntervalSinceReferenceDate`, so a record read
+        // straight back is exactly the record written - the envelope timestamps
+        // included.
+        #expect(readBack[0] == built, "every field, including the envelope timestamps, must round-trip exactly")
 
-        // The drift converges: writing what we read back changes nothing.
+        // Writing what we read back changes nothing (the round trip is the identity).
         try repo.upsertServiceRecord(readBack[0])
         #expect(try repo.liveServiceRecords(forVehicle: vehicle.id)[0] == readBack[0],
                 "the round trip must be idempotent - otherwise every sync cycle would dirty the record")
