@@ -255,4 +255,75 @@ enum L10n {
     static func downloading(percent: Int) -> String {
         String(format: localize("downloading · %@"), "\(percent)%")
     }
+
+    // MARK: - Settings sync surface (P4.9b)
+
+    /// The account card's identity line: the display email when the provider
+    /// handed one ("driver@icloud.com"), else the provider account name
+    /// ("Apple ID" / "Google") for a hidden private-relay identity.
+    static func accountTitle(email: String?, provider: AuthProvider) -> String {
+        if let email { return email }
+        return providerAccountName(provider)
+    }
+
+    /// The status line's reassurance text (docs/ERRORS.md -> Settings): "Synced
+    /// just now", "Synced 3 hours ago" or "Synced 5 days ago". A full localised
+    /// phrase per language with real plural rules (RU час/часа/часов,
+    /// день/дня/дней) - never concatenation. A nil `lastSyncDate` (signed in,
+    /// nothing has synced yet) reads as "just now": nothing is pending, so it is
+    /// reassurance, never a warning.
+    static func syncedAgo(lastSyncDate: Date?, now: Date = Date()) -> String {
+        guard let lastSyncDate else { return localize("Synced just now") }
+        let interval = now.timeIntervalSince(lastSyncDate)
+        if interval < 3600 { return localize("Synced just now") }
+        let hours = Int(interval / 3600)
+        if hours < 24 { return syncedHoursAgo(hours) }
+        return syncedDaysAgo(Int(interval / 86_400))
+    }
+
+    /// "Synced %lld hours ago" - plural (RU час / часа / часов).
+    static func syncedHoursAgo(_ hours: Int) -> String {
+        String(localized: "Synced \(hours) hours ago")
+    }
+
+    /// "Synced %lld days ago" - plural (RU день / дня / дней).
+    static func syncedDaysAgo(_ days: Int) -> String {
+        String(localized: "Synced \(days) days ago")
+    }
+
+    /// "Waiting to sync · %lld changes" - plural (RU изменение / изменения /
+    /// изменений). The status is reassurance, never a warning: a long queue is
+    /// not an error state (docs/SYNC.md S7).
+    static func waitingToSync(_ count: Int) -> String {
+        String(localized: "Waiting to sync · \(count) changes")
+    }
+
+    /// "N entries need a look" - the flagged-entries count and link only, plural
+    /// (RU запись требует / записи требуют / записей требуют). Settings resolves
+    /// nothing; the count is derived and the link goes to where the data lives.
+    static func flaggedEntries(_ count: Int) -> String {
+        String(localized: "\(count) entries need a look")
+    }
+
+    /// "Photo storage 95% full – older photos stay on this phone only."
+    /// (docs/ERRORS.md -> Settings). One full localised phrase; the percent is
+    /// runtime data.
+    static func quotaFull(percent: Int) -> String {
+        String(format: localize("Photo storage %lld%% full – older photos stay on this phone only."), percent)
+    }
+
+    /// "This device was signed out – sign in to reconnect. Your data on this
+    /// phone is untouched." (docs/ERRORS.md -> Settings, the 410 card).
+    static var deviceRevokedMessage: String {
+        localize("This device was signed out – sign in to reconnect. Your data on this phone is untouched.")
+    }
+
+    /// "Sync service unreachable – your data is safe on this phone. It will go
+    /// up automatically when the service is back." (docs/ERRORS.md -> Settings,
+    /// the server-5xx card). Reassurance, never amber.
+    static var syncServiceUnreachableMessage: String {
+        let key = "Sync service unreachable – your data is safe on this phone. "
+            + "It will go up automatically when the service is back."
+        return localize(key)
+    }
 }

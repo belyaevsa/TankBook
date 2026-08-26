@@ -82,7 +82,7 @@ public struct RemoteAuthService: AuthService {
         guard (200...299).contains(response.status) else {
             throw Self.error(for: response.status)
         }
-        return try Self.decodeSession(response.body, provider: identity.provider)
+        return try Self.decodeSession(response.body, provider: identity.provider, email: identity.email)
     }
 
     public func refresh(_ session: AuthSession) async throws -> AuthSession {
@@ -142,7 +142,7 @@ public struct RemoteAuthService: AuthService {
         let refreshToken: String
     }
 
-    private static func decodeSession(_ data: Data?, provider: AuthProvider) throws -> AuthSession {
+    private static func decodeSession(_ data: Data?, provider: AuthProvider, email: String?) throws -> AuthSession {
         guard let data else { throw AuthError.invalidResponse }
         let payload = try JSONDecoder().decode(SessionPayload.self, from: data)
         return AuthSession(
@@ -150,7 +150,8 @@ public struct RemoteAuthService: AuthService {
             refreshToken: payload.refreshToken,
             accountId: payload.accountId,
             deviceId: payload.deviceId,
-            provider: provider
+            provider: provider,
+            email: email
         )
     }
 
