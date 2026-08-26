@@ -17,6 +17,7 @@ accounts   (id uuid pk, apple_sub text unique, google_sub text unique, email tex
             created_at timestamptz, deleted_at timestamptz)
 devices    (id uuid pk, account_id fk, name text, platform text, last_pull_scn bigint,
             last_seen_at timestamptz, push_token text null,   -- APNs/FCM token, NOTIFICATIONS.md
+            last_nudged_at timestamptz null,                  -- sync-nudge throttle, NOTIFICATIONS.md
             revoked_at timestamptz null)                       -- set by revoke-device; next pull gets 410
 records    (account_id fk, id uuid, entity_type text,        -- "vehicle" | "fillup" | …
             schema_version int not null,                     -- payload contract version (see below)

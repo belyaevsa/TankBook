@@ -1,4 +1,5 @@
 using System.Data;
+using System.Net;
 using System.Reflection;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Notifications;
 using Tankbook.Api.Options;
 using Tankbook.Api.Sync;
 
@@ -31,6 +33,10 @@ builder.Services.Configure<AuthOptions>(
     builder.Configuration.GetSection(AuthOptions.SectionName));
 builder.Services.Configure<AccountOptions>(
     builder.Configuration.GetSection(AccountOptions.SectionName));
+builder.Services.Configure<ApnsOptions>(
+    builder.Configuration.GetSection(ApnsOptions.SectionName));
+builder.Services.Configure<NudgeOptions>(
+    builder.Configuration.GetSection(NudgeOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -97,6 +103,24 @@ builder.Services.AddScoped<PayloadValidator>();
 builder.Services.AddScoped<PayloadBackfillService>();
 builder.Services.AddScoped<SyncRepository>();
 builder.Services.AddScoped<SyncService>();
+
+// Silent sync nudges (docs/NOTIFICATIONS.md). IApnsClient is the APNs seam:
+// ApnsClient talks HTTP/2 to Apple (token-based JWT auth), and L2 tests swap in
+// a recording double (the same seam IBlobStorage uses). The factory is lazy - an
+// app with no Apns config still boots - and the client reports "not configured"
+// as a transient failure, so a nudge degrades to polling instead of erroring.
+builder.Services.AddHttpClient("apns", client =>
+{
+    client.DefaultRequestVersion = HttpVersion.Version20;
+    client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
+});
+builder.Services.AddSingleton<IApnsClient>(sp =>
+    new ApnsClient(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        sp.GetRequiredService<IOptions<ApnsOptions>>(),
+        sp.GetRequiredService<TimeProvider>()));
+builder.Services.AddScoped<NudgeRepository>();
+builder.Services.AddScoped<SyncNudgeService>();
 
 // Remote config (docs/CONFIG.md). The signer is a singleton built from the
 // Config:SigningKey secret (empty placeholder in appsettings.json, dev default
