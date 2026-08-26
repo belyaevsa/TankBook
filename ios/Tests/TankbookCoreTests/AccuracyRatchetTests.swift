@@ -129,12 +129,6 @@ struct CorpusAccuracyGateTests {
         }
     }
 
-    private struct ScoredClass {
-        let name: String
-        let hits: Int
-        let total: Int
-    }
-
     @Test func corpusScoresDoNotRegress() throws {
         let highWater = try loadHighWater()
         var failures: [String] = []
@@ -182,53 +176,32 @@ struct CorpusAccuracyGateTests {
 
     private func scoreClass(_ name: String) throws -> ScoredClass {
         let folder = Self.fixturesRoot.appendingPathComponent(name)
-        let expected = try loadExpected(folder.appendingPathComponent("expected.csv"))
+        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
-            .filter { ["jpg", "jpeg", "png", "heic", "tiff"].contains($0.pathExtension.lowercased()) }
+            .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
         let extractor = FuelExtractor()
-        var hits = 0
-        var total = 0
+        var records: [String: ExtractionRecord] = [:]
         for image in images {
-            guard let want = expected[image.lastPathComponent] else { continue }
+            guard expected[image.lastPathComponent] != nil else { continue }
             let ocrLines = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
             let result = extractor.extract(lines: ocrLines)
-            if let wantValue = want.liters {
-                total += 1
-                if let got = result.liters, abs(got - wantValue) < 0.005 { hits += 1 }
-            }
-            if let wantValue = want.unitPrice {
-                total += 1
-                if let got = result.unitPrice, abs(got - wantValue) < 0.005 { hits += 1 }
-            }
-            if let wantValue = want.total {
-                total += 1
-                if let got = result.total, abs(got - wantValue) < 0.005 { hits += 1 }
-            }
-        }
-        return ScoredClass(name: name, hits: hits, total: total)
-    }
-
-    private struct ExpectedRow {
-        let liters: Double?
-        let unitPrice: Double?
-        let total: Double?
-    }
-
-    private func loadExpected(_ url: URL) throws -> [String: ExpectedRow] {
-        let csv = try String(contentsOf: url, encoding: .utf8)
-        var result: [String: ExpectedRow] = [:]
-        for line in csv.split(separator: "\n").dropFirst() {
-            let cols = line.split(separator: ",", omittingEmptySubsequences: false).map { String($0) }
-            guard cols.count >= 4 else { continue }
-            result[cols[0]] = ExpectedRow(
-                liters: Double(cols[1]),
-                unitPrice: Double(cols[2]),
-                total: Double(cols[3])
+            records[image.lastPathComponent] = ExtractionRecord(
+                filename: image.lastPathComponent,
+                liters: result.liters,
+                unitPrice: result.unitPrice,
+                total: result.total
             )
         }
-        return result
+        // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,
+        // so the rules arm of the A/B is scored with an identical comparison.
+        return CorpusScorer.score(
+            name: name,
+            images: images.map(\.lastPathComponent),
+            records: records,
+            expected: expected
+        )
     }
 
     private func loadHighWater() throws -> HighWater {

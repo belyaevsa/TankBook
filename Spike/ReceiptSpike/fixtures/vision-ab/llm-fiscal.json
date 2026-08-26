@@ -1,0 +1,15 @@
+{
+  "className": "fiscal",
+  "engine": "llm",
+  "entries": [
+    {
+      "error": null,
+      "filename": "fiscal-002-lukoil-ru.png",
+      "latencySeconds": 5.59,
+      "liters": 23.0,
+      "total": 1680.38,
+      "unitPrice": 73.06
+    }
+  ],
+  "generated": "2026-08-26"
+}

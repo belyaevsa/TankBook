@@ -1,0 +1,162 @@
+{
+  "className" : "receipts",
+  "engine" : "rules",
+  "entries" : [
+    {
+      "filename" : "receipt-001.heic",
+      "liters" : 67,
+      "total" : 125.223,
+      "unitPrice" : 1.869
+    },
+    {
+      "filename" : "receipt-002-krymoil-yalta-100-ru.png",
+      "total" : 19719
+    },
+    {
+      "filename" : "receipt-003-krymoil-sevastopol-diesel-ru.png",
+      "total" : 5180
+    },
+    {
+      "filename" : "receipt-004-krymoil-azs166-95-ru.png",
+      "total" : 4100
+    },
+    {
+      "filename" : "receipt-005-krymoil-azs166-95-flat-ru.png",
+      "total" : 4100
+    },
+    {
+      "filename" : "receipt-006-gridyaeva-92-ru.jpeg",
+      "liters" : 40,
+      "total" : 7800,
+      "unitPrice" : 195
+    },
+    {
+      "filename" : "receipt-007-lukoil-spb-100-ru.png",
+      "total" : 4334
+    },
+    {
+      "filename" : "receipt-008-kemerovo-95-2022-ru.png",
+      "total" : 2385.83
+    },
+    {
+      "filename" : "receipt-009-mkad-mixed-fuel-water-ru.png",
+      "liters" : 47.56,
+      "total" : 6135.240000000001,
+      "unitPrice" : 129
+    },
+    {
+      "filename" : "receipt-010-gazpromneft-diesel-bonus-ru.jpeg",
+      "liters" : 63,
+      "total" : 3058
+    },
+    {
+      "filename" : "receipt-011-samara-diesel-ru.png",
+      "liters" : 66.81,
+      "total" : 4201.68,
+      "unitPrice" : 62.89
+    },
+    {
+      "filename" : "receipt-012-neftmagistral-lpg-ru.jpeg",
+      "total" : 1251
+    },
+    {
+      "filename" : "receipt-013-rn-moscow-95-ru.png",
+      "liters" : 50,
+      "total" : 3562.5,
+      "unitPrice" : 71.25
+    },
+    {
+      "filename" : "receipt-014-orion-penza-95-ru.jpeg",
+      "total" : 3000
+    },
+    {
+      "filename" : "receipt-015-kedr-simferopol-95-ru.jpg",
+      "total" : 5380
+    },
+    {
+      "filename" : "receipt-016-rn-moscow-fuelcard-nonfiscal-ru.jpeg",
+      "liters" : 30,
+      "total" : 1932,
+      "unitPrice" : 64.4
+    },
+    {
+      "filename" : "receipt-017-tatneft-domodedovo-diesel-2020-ru.jpg",
+      "total" : 961.8
+    },
+    {
+      "filename" : "receipt-018-krymoil-yalta-100-clear-ru.png",
+      "total" : 3555.89
+    },
+    {
+      "filename" : "receipt-019-web-2018-ru.jpg",
+      "total" : 3621
+    },
+    {
+      "filename" : "receipt-020-web-2020-ru.jpg",
+      "total" : 2134.4
+    },
+    {
+      "filename" : "receipt-021-web-2018-ru.jpg",
+      "total" : 2519.81
+    },
+    {
+      "filename" : "receipt-022-teboil-spb-100-2024-ru.jpg",
+      "liters" : 70.5,
+      "total" : 5660.45,
+      "unitPrice" : 80.29
+    },
+    {
+      "filename" : "receipt-023-rn-tver-fuelcard-95-ru.png",
+      "liters" : 32986034,
+      "total" : 1366
+    },
+    {
+      "filename" : "receipt-024-krymoil-sevastopol-diesel-newpower-ru.png",
+      "total" : 3317.3
+    },
+    {
+      "filename" : "receipt-025-tatneft-mkad-mixed-service-2019-ru.png",
+      "total" : 1729.87
+    },
+    {
+      "filename" : "receipt-026-kedr-feodosia-95-ru.png",
+      "total" : 5380
+    },
+    {
+      "filename" : "receipt-027-lukoil-voronezh-95-ru.png",
+      "total" : 2101
+    },
+    {
+      "filename" : "receipt-028-siboil-yakutsk-95-2023-ru.png",
+      "total" : 622
+    },
+    {
+      "filename" : "receipt-029-lukoil-dashboard-100-2021-ru.png",
+      "total" : 2529.97
+    },
+    {
+      "filename" : "receipt-030-yandex-zapravki-agent-95-2023-ru.png",
+      "total" : 479.05
+    },
+    {
+      "filename" : "receipt-031-gazprom-discount-list-vs-paid-ru.png",
+      "total" : 2099.4
+    },
+    {
+      "filename" : "receipt-032-rn-stupino-pulsar95-ru.png",
+      "total" : 1463
+    },
+    {
+      "filename" : "receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg",
+      "total" : 6000
+    },
+    {
+      "filename" : "receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg"
+    },
+    {
+      "filename" : "receipt-035-gdrive95-fuelcard-priced-ru.jpeg",
+      "total" : 2747.16
+    }
+  ],
+  "generated" : "2026-08-26"
+}

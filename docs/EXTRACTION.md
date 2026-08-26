@@ -271,11 +271,11 @@ measurable gate.
    items specified in this doc today - the `reconciled` cross-check outcome and the `L`/`Gab.`
    discriminator - are free and land parser accuracy without any model.
 2. **Implement digit repair** (above). Deterministic, testable, costs nothing.
-3. **Finish `P4.12`** - the full-corpus A/B against the cloud vision model, with the same scorer.
-   The first probe already read **9 of 12** pump fields exactly where the rules parser scores
-   1/46, so the cloud path may make a trained reader unnecessary. It also produced a **confident
-   swap** and a decimal shift, so whatever it measures, the gateway suggests and cross-checks -
-   it never trusts.
+3. **P4.12 is done - see "The P4.12 measurement" below.** The full-corpus A/B against the cloud
+   vision model, scored with the same scorer as the rules parser. It read **31/46** pump fields
+   where the rules parser scores **1/46**, and it still produced **five** confident swaps and a
+   decimal shift that pass the cross-check - so the gateway cross-checks and suggests, it never
+   trusts.
 4. **Only then**, and only if pump capture still matters after step 3, build the narrow
    seven-segment Core ML reader on synthetic data, validated against the 17 held-out photos.
 
@@ -287,6 +287,67 @@ wrong value is worse than a `nil`**. The corpus has the worked example: the clou
 `70.44 X 39.000` as 70.44 litres, a clean swap that passes every arithmetic check. The rules
 parser's `nil` on the same line costs the user two taps. The swap costs them a silently wrong
 consumption figure for the life of the vehicle.
+
+## The P4.12 measurement, and what the gateway must do
+
+P4.12 ran the whole corpus through `deepseek/deepseek-v4-flash-vision-exp` - one complete
+sweep, 61 images, 0 errors - and scored both arms with the one shared scorer
+(`ios/Tests/TankbookCoreTests/CorpusABScorer.swift`) and one tolerance. Raw results are
+committed in `Spike/ReceiptSpike/fixtures/vision-ab/`, per class and per engine, so the next
+person re-scores offline and never pays for the sweep again.
+
+| class | rules | cloud model |
+|---|---|---|
+| receipts | 46/96 | **84/96** |
+| pump | 1/46 | **31/46** |
+| fiscal | 1/3 | 2/3 |
+| screenshots | 7/24 | **22/24** |
+
+The model is stronger everywhere, and the pump gap is not marginal: the rules parser is blind on
+pumps (1/46) where the model reads 31/46, including `pump-004` - the fixture where Vision returns
+a wrong digit at confidence 1.00 - and the four-price `pump-005`. On receipts it reads the
+unmarked pairs the ladder refuses (`receipt-007`, `receipt-008`, `receipt-023`, `receipt-033`)
+and the mixed-receipt fuel lines (`receipt-009`, `screenshot-008`) exactly.
+
+**And none of that is a reason to trust it.** The failures are the corpus's own traps, and they
+are silent:
+
+1. **The swap, five times.** `receipt-002`, `-014`, `-017`, `-025` and `-035` came back with
+   volume and price the wrong way round. On `receipt-035` it read `70.44 X 39.000` as 70.44
+   litres - a clean swap that passes the cross-check, because `a x b == b x a`. A swapped fill is
+   stored wrong by a factor with every arithmetic check green.
+2. **The decimal shift.** `pump-009` (zero-padded) read `40.00 / 50.95 / 2038.00` as
+   `400.0 / 50.95 / 20380.0` - a factor-of-ten shift on two fields the cross-check cannot see,
+   because `liters x unitPrice == total` is scale-invariant.
+3. **Non-determinism.** The probe of 2026-08-26 recorded the shift on `pump-005`; this sweep
+   read `pump-005` exactly, three runs in a row, and put the shift on `pump-009` instead - which
+   then read correctly on a re-run. Same image, same model, different answers. A reader that is
+   not stable cannot be trusted even statistically.
+4. **Confident zeros.** `receipt-034` prints `30.61 X 0.00` and `ИТОГ 0.00` (contract pricing).
+   The model returned `unitPrice = 0.0`, `total = 0.0` where the rules parser correctly returns
+   nil. A zero is a confident wrong value, not a value.
+5. **Latency.** Median 6.5-8.3 s per image, max 40 s - above the 3 s per-attempt budget in every
+   class. The gateway is a late-answer path, not a synchronous peer of the camera.
+
+**Recommendation: the gateway cross-checks and suggests. It never trusts.** Concretely:
+
+- Every field the model returns is a **suggestion** - a default input the user edits (hard rule
+  13), never a locked value, no matter how green the cross-check looks.
+- The four-outcome cross-check still runs, because it catches the model's genuinely inconsistent
+  triples (`pump-011` returned `58.01 x 1.789 = 15.15`; `pump-015` returned `1.589 x 1.144 =
+  2000`; `pump-013` abstained entirely). A `mismatch` demotes to nil. That is real value - it
+  just is not a correctness test.
+- The cross-check must **not** be used to "verify" the operand assignment, because the two
+  failures that actually occur both pass it. Volume-vs-price still needs the resolution ladder
+  (unit markers, decimal count, price bands) and the user.
+
+**What would change the answer.** Nothing short of removing the silent failures moves it from
+"suggest" to "trust". If the operand assignment were anchored to a unit marker or a price band
+*before* the model was trusted (so a swap could not occur), and if the scale were pinned by an
+external signal the cross-check cannot see (tank capacity, a band), then "cross-check" would
+become meaningful. Determinism would help too - a model that returns the same answer for the same
+image can at least be measured. And if latency ever drops under 3 s, the gateway becomes a
+synchronous peer rather than a background fill-blanks path.
 
 ## Growing the corpus is the highest-value work
 
