@@ -132,6 +132,13 @@ Each local row carries `syncState: synced(scn) | dirty | pushing`, plus the SCHE
 
 So `Vehicle` carries per-field `updatedAt` (or an equivalent changed-field set on push) and merges field by field, newest write per field. Entries keep record-level LWW – S1 is unchanged, and its documented "the iPhone's odometer edit is lost" outcome still stands for entries.
 
+**Client implementation notes (P4.5, landed with the sync client):**
+
+- **The base SCN survives local edits.** The `syncScn` column is the *base* the next push names for conflict detection (S6). A local edit marks the row `dirty` but **preserves** `syncScn`; only a first-ever record has none (`baseScn = 0`). Nulling it on edit would turn a stale push into an idempotent replay that silently loses the conflict.
+- **The merge is a pure value type** (`RecordMerge` in `TankbookCore/Sync/`): record-level LWW for everything, field-level for `Vehicle`, over plain `SyncRecord` values with no `URLSession` or database – that is what makes the S1–S9 suite deterministic and mutation-checkable.
+- **`Vehicle` field versions travel in the payload** under the reserved key `fieldVersions` (a map of field name to ISO-8601 timestamp). A pushing device writes it by diffing the current payload against its last-synced payload; a pulling device reads it for the merge. The domain `Vehicle` type is unchanged – the key is opaque to the codec and preserved as forward-compatibility data.
+- **The losing version's undo log is a device-local table** (`syncOverwrite`), written when a merge overwrites a locally-authored (`.dirty`/`.pushing`) edit (S1/S4). It is bookkeeping like the sync cursor, never synced, and is what the Recently deleted "Overwritten by sync" section reads.
+
 **Domain validation after merge, not during:** LWW can produce a timeline that violates the odometer invariant (two drivers logging the same car offline – JOURNEYS J12/F9a). The sync layer doesn't care; after every merge batch, validation re-runs locally and flags entries with the amber `ConflictState` – the *user-visible* conflict system and the *transport* conflict system stay decoupled. Nothing is ever dropped silently.
 
 **Clock skew:** `clientUpdatedAt` is device-clock; the server stamps `received_at` and rejects timestamps > 24h in the future (clamps to server time, marks the record so the client can warn). Good enough for LWW between a person's own devices.

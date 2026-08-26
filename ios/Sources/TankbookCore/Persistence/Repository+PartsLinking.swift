@@ -14,7 +14,9 @@ extension TankbookRepository {
     public func upsertServiceRecord(_ service: ServiceRecord, linkedParts expenses: [Expense],
                                     syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try ServiceRecordRow(service: service, syncState: syncState).save(db)
+            var recordRow = ServiceRecordRow(service: service, syncState: syncState)
+            recordRow.syncScn = try preservingScn(syncState, table: TankbookSchema.serviceRecord, id: service.id, in: db)
+            try recordRow.save(db)
             // Items are an ordered value list: replace wholesale.
             try db.execute(sql: "DELETE FROM \(TankbookSchema.serviceItem) WHERE serviceRecordId = ?",
                            arguments: [service.id.uuidString])
@@ -22,7 +24,9 @@ extension TankbookRepository {
                 try ServiceItemRow(serviceRecordId: service.id, position: position, item: item).insert(db)
             }
             for expense in expenses {
-                try ExpenseRow(expense: expense, syncState: syncState).save(db)
+                var expenseRow = ExpenseRow(expense: expense, syncState: syncState)
+                expenseRow.syncScn = try preservingScn(syncState, table: TankbookSchema.expense, id: expense.id, in: db)
+                try expenseRow.save(db)
             }
         }
     }
@@ -33,8 +37,12 @@ extension TankbookRepository {
     /// here, so `installedInServiceId` and `usedParts` commit together.
     public func saveLink(expense: Expense, service: ServiceRecord) throws {
         try database.write { db in
-            try ExpenseRow(expense: expense, syncState: .dirty).save(db)
-            try ServiceRecordRow(service: service, syncState: .dirty).save(db)
+            var expenseRow = ExpenseRow(expense: expense, syncState: .dirty)
+            expenseRow.syncScn = try preservingScn(.dirty, table: TankbookSchema.expense, id: expense.id, in: db)
+            try expenseRow.save(db)
+            var serviceRow = ServiceRecordRow(service: service, syncState: .dirty)
+            serviceRow.syncScn = try preservingScn(.dirty, table: TankbookSchema.serviceRecord, id: service.id, in: db)
+            try serviceRow.save(db)
         }
     }
 

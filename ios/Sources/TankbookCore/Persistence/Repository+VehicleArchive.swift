@@ -16,7 +16,7 @@ extension TankbookRepository {
             let stamp = date.timeIntervalSinceReferenceDate
             try db.execute(sql: """
                 UPDATE \(TankbookSchema.vehicle)
-                SET archived = 1, archivedAt = ?, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+                SET archived = 1, archivedAt = ?, updatedAt = ?, syncState = 'dirty'
                 WHERE id = ? AND deletedAt IS NULL
                 """, arguments: [stamp, stamp, id.uuidString])
         }
@@ -28,7 +28,7 @@ extension TankbookRepository {
             let stamp = Date().timeIntervalSinceReferenceDate
             try db.execute(sql: """
                 UPDATE \(TankbookSchema.vehicle)
-                SET archived = 0, archivedAt = NULL, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+                SET archived = 0, archivedAt = NULL, updatedAt = ?, syncState = 'dirty'
                 WHERE id = ? AND deletedAt IS NULL
                 """, arguments: [stamp, id.uuidString])
         }
