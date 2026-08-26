@@ -28,6 +28,11 @@ public struct SyncEngine {
     public let maxConflictRetries: Int
     public let batchLimit: Int
     public let pullPageLimit: Int
+    /// The blob gate attachments hook into the existing push loop through
+    /// (docs/SYNC.md, upload step 5). Nil (the default) keeps the pre-P4.6
+    /// behaviour: attachment records push without a committed blob - wired only
+    /// by the production app and the attachment tests.
+    public let blobGate: (any BlobPushGate)?
 
     public init(
         repository: TankbookRepository,
@@ -36,7 +41,8 @@ public struct SyncEngine {
         payloadMemory: any SyncPayloadMemory = InMemorySyncPayloadMemory(),
         maxConflictRetries: Int = 3,
         batchLimit: Int = 200,
-        pullPageLimit: Int = 500
+        pullPageLimit: Int = 500,
+        blobGate: (any BlobPushGate)? = nil
     ) {
         self.repository = repository
         self.transport = transport
@@ -45,6 +51,7 @@ public struct SyncEngine {
         self.maxConflictRetries = maxConflictRetries
         self.batchLimit = batchLimit
         self.pullPageLimit = pullPageLimit
+        self.blobGate = blobGate
     }
 
     public func synchronize() async -> SyncOutcome {
@@ -190,6 +197,18 @@ public struct SyncEngine {
 
             for change in batch {
                 guard let local = try repository.localSyncRecord(id: change.id, entityType: change.entityType) else { continue }
+                // Upload ordering (docs/SYNC.md, step 5): a live attachment
+                // record must have its blob committed before it pushes. The gate
+                // runs the begin -> PUT -> commit chain here, before the batch's
+                // push; a deferral (missing file, 413/429, transport down) leaves
+                // the record dirty for the next cycle - the entry syncs
+                // text-first with the blob pending (S7).
+                if change.entityType == Attachment.entityType, !local.record.deleted, let gate = blobGate {
+                    guard let attachment = try? attachment(from: local.record),
+                          await gate.ensureBlobCommitted(for: attachment) else {
+                        continue
+                    }
+                }
                 var record = local.record
                 if local.record.entityType == Vehicle.entityType {
                     let versions = VehicleFieldVersions.compute(
@@ -212,6 +231,10 @@ public struct SyncEngine {
                 ))
                 items.append((change.id, change.entityType))
             }
+
+            // Every live attachment record in this batch was deferred (blob not
+            // committed yet); nothing to push, nothing to mark in flight.
+            if changes.isEmpty { continue }
 
             let entityTypes = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0.entityType) })
             try repository.markPushing(ids: items)
@@ -313,5 +336,16 @@ public struct SyncEngine {
         case .dirty, .pushing: return true
         case .synced: return false
         }
+    }
+
+    /// Decodes an `Attachment` entity from a record payload so the blob gate can
+    /// read its content address and kind.
+    private func attachment(from record: SyncRecord) throws -> Attachment {
+        try PayloadCodec.decode(
+            PayloadEnvelope(entityType: record.entityType,
+                            schemaVersion: record.schemaVersion,
+                            payload: record.payload),
+            as: Attachment.self
+        ).entity
     }
 }

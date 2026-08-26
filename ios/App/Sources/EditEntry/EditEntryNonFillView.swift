@@ -13,6 +13,7 @@ struct EditEntryNonFillView: View {
     let attachments: [Attachment]
     @Binding var showDatePicker: Bool
     let showChangedBySync: Bool
+    let pendingBlobIDs: Set<UUID>
 
     @FocusState private var odometerFocused: Bool
 
@@ -22,7 +23,8 @@ struct EditEntryNonFillView: View {
         ScrollView {
             VStack(spacing: 9) {
                 if !attachments.isEmpty {
-                    EditEntryRows.receiptCard(attachments: attachments, entry: entry)
+                    EditEntryRows.receiptCard(attachments: attachments, entry: entry,
+                                              pendingBlobIDs: pendingBlobIDs)
                 }
                 typeCard
                 moneyCard

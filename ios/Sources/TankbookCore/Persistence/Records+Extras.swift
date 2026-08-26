@@ -203,7 +203,8 @@ public struct AttachmentRow: FetchableRecord, PersistableRecord {
                 sha256: row["fileSha256"],
                 relativePath: row["fileRelativePath"]),
             extractedTimestamp: (row["extractedTimestamp"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)),
-            ocrText: row["ocrText"] as String?)
+            ocrText: row["ocrText"] as String?,
+            thumbnailBase64: row["thumbnailBase64"] as String?)
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -215,6 +216,7 @@ public struct AttachmentRow: FetchableRecord, PersistableRecord {
         container["fileRelativePath"] = attachment.file.relativePath
         container["extractedTimestamp"] = attachment.extractedTimestamp?.timeIntervalSinceReferenceDate
         container["ocrText"] = attachment.ocrText
+        container["thumbnailBase64"] = attachment.thumbnailBase64
     }
 }
 

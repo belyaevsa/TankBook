@@ -11,18 +11,47 @@ enum SyncService {
                                 sessionStore: any SessionStore) -> SyncCoordinator {
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
             ?? URL(string: "https://api.tankbook.app")!
+        let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let transport = RemoteSyncTransport(
             baseURL: baseURL,
             transport: URLSessionTransport(),
-            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)
+            tokenProvider: tokenProvider
+        )
+        // P4.6: the blob gate hooks attachments into the push loop - a live
+        // attachment record uploads its rendition (begin -> PUT -> commit)
+        // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
+        let blobGate = LocalFileBlobPushGate(
+            uploader: BlobUploader(transport: RemoteBlobTransport(
+                baseURL: baseURL, transport: URLSessionTransport(), tokenProvider: tokenProvider)),
+            source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
         )
         let engine = SyncEngine(
             repository: repository,
             transport: transport,
             cursorStore: UserDefaultsSyncCursorStore(),
-            payloadMemory: InMemorySyncPayloadMemory()
+            payloadMemory: InMemorySyncPayloadMemory(),
+            blobGate: blobGate
         )
         return SyncCoordinator(engine: engine)
+    }
+
+    /// The lazy-download fetcher for opening an entry (docs/SYNC.md -> Delivery):
+    /// nil when signed out - a guest never downloads, and the inline thumbnail
+    /// still renders the chip. The fetch verifies the sha256 and caches forever
+    /// after; a failure leaves the "photo syncing" shimmer, never an error.
+    static func makeBlobFetcher(sessionStore: any SessionStore) -> LazyBlobFetcher? {
+        guard (try? sessionStore.load()) != nil else { return nil }
+        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
+            ?? URL(string: "https://api.tankbook.app")!
+        let transport = RemoteBlobTransport(
+            baseURL: baseURL,
+            transport: URLSessionTransport(),
+            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)
+        )
+        let store = FileBackedBlobStore(
+            directory: (try? VehiclePhotoStore.attachmentsDirectory())
+                ?? FileManager.default.temporaryDirectory)
+        return LazyBlobFetcher(transport: transport, store: store)
     }
 }
 

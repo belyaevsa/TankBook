@@ -251,11 +251,12 @@ private func fullyPopulatedPayloads() throws -> [(entityType: String, payload: J
     let attachment = Attachment(
         id: UUID(uuidString: "aaaaaaaa-aaaa-7aaa-8aaa-aaaaaaaaaaaa")!,
         createdAt: testTimestamp, updatedAt: testTimestamp, deletedAt: testTimestamp,
-        kind: .pdf,
+        kind: .photo,
         file: LocalFileRef(sha256: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
-                           relativePath: "docs/2026/08/service.pdf"),
+                           relativePath: "photos/2026/08/9f86d081.jpg"),
         extractedTimestamp: testTimestamp,
-        ocrText: "BOSCH SERVICE 89.00"
+        ocrText: "BOSCH SERVICE 89.00",
+        thumbnailBase64: "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA=="
     )
     return [
         (Vehicle.entityType, try payload(fullyPopulatedVehicle())),

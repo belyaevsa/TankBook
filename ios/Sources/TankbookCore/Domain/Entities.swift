@@ -501,12 +501,17 @@ public struct Attachment: Entity, Codable, Sendable, Equatable {
     public var file: LocalFileRef
     public var extractedTimestamp: Date?
     public var ocrText: String?
+    /// The inline ~120 px JPEG thumbnail, base64, carried inside the Attachment
+    /// payload so lists render photo chips with zero blob fetches
+    /// (docs/SYNC.md -> Attachments: the blob pipeline). Nil for a PDF.
+    public var thumbnailBase64: String?
 
     /// Memberwise initializer, public so the app target can build an `Attachment`
     /// (the same construction blocker that `Vehicle` had; see its note).
     public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
                 kind: AttachmentKind, file: LocalFileRef,
-                extractedTimestamp: Date? = nil, ocrText: String? = nil) {
+                extractedTimestamp: Date? = nil, ocrText: String? = nil,
+                thumbnailBase64: String? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -515,6 +520,7 @@ public struct Attachment: Entity, Codable, Sendable, Equatable {
         self.file = file
         self.extractedTimestamp = extractedTimestamp
         self.ocrText = ocrText
+        self.thumbnailBase64 = thumbnailBase64
     }
 }
 

@@ -7,19 +7,28 @@ import TankbookCore
 @MainActor
 enum EditEntryRows {
 
-    /// The artboard's receipt strip. Presentational until P2 (photo viewer):
-    /// the entry's attachment is shown with its scanned timestamp, never a dead
-    /// chevron that promises a viewer that does not exist yet.
-    static func receiptCard(attachments: [Attachment], entry: any Entry) -> some View {
+    /// The artboard's receipt strip. The first attachment renders as a photo
+    /// chip from its inline thumbnail (zero blob fetches); while the full
+    /// rendition blob is still syncing, the chip shimmers - the entry stays
+    /// openable and editable throughout (hard rule 1).
+    static func receiptCard(attachments: [Attachment], entry: any Entry,
+                            pendingBlobIDs: Set<UUID> = []) -> some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Theme.Palette.dash)
-                .frame(width: 44, height: 56)
-                .overlay(
-                    Image(systemName: "doc.text")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
+            if let first = attachments.first {
+                AttachmentPhotoChip(
+                    attachment: first,
+                    blobAvailable: !pendingBlobIDs.contains(first.id)
                 )
+            } else {
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(Theme.Palette.dash)
+                    .frame(width: 44, height: 56)
+                    .overlay(
+                        Image(systemName: "doc.text")
+                            .font(.caption)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    )
+            }
             VStack(alignment: .leading, spacing: 2) {
                 Text("Receipt photo")
                     .font(.footnote.weight(.semibold))
@@ -32,7 +41,6 @@ enum EditEntryRows {
         }
         .padding(12)
         .formCard()
-        .accessibilityIdentifier("editEntryReceiptCard")
     }
 
     private static func scannedLine(attachments: [Attachment], entry: any Entry) -> String {
