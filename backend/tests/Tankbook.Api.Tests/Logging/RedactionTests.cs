@@ -38,7 +38,7 @@ public class RedactionTests
 
         logger.LogInformation("populated entity {@Entity}", entity);
 
-        var output = string.Join('\n', writer.Lines);
+        var output = string.Join('\n', writer.Lines).WithoutMachineFields();
 
         // Sensitive values must not appear anywhere.
         Assert.DoesNotContain("Shell Station Berlin West", output);
@@ -95,12 +95,13 @@ public class RedactionTests
         // Never fields are dropped entirely.
         Assert.False(root.TryGetProperty("Payload", out _));
         Assert.False(root.TryGetProperty("payload", out _));
-        Assert.DoesNotContain("do-not-leak", line);
+        var swept = line.WithoutMachineFields();
+        Assert.DoesNotContain("do-not-leak", swept);
 
         // The raw values never reached the message either.
-        Assert.DoesNotContain("12.34", line);
-        Assert.DoesNotContain("Shell", line);
-        Assert.DoesNotContain("driver@example.com", line);
+        Assert.DoesNotContain("12.34", swept);
+        Assert.DoesNotContain("Shell", swept);
+        Assert.DoesNotContain("driver@example.com", swept);
     }
 
     [Fact]
@@ -151,6 +152,38 @@ public class RedactionTests
         Assert.NotEqual(email, hash);
         Assert.Equal(hash, AccountHash.Compute(email, salt));
         Assert.NotEqual(hash, AccountHash.Compute(email, "other-salt"));
+    }
+    /// <summary>
+    /// The sweep helper itself, pinned deterministically. This exists because the
+    /// bug it prevents is a **flake**: the assertions above failed once on a
+    /// timestamp that happened to read ":12.342Z", and would fail roughly one run
+    /// in 600 on ":42.3xx". A flake that only reproduces on the clock cannot be
+    /// caught by the tests it breaks, so it is caught here instead - with a
+    /// hand-built line rather than a real log, so it reproduces every time.
+    /// </summary>
+    [Fact]
+    public void WithoutMachineFields_BlanksTheClockAndTheDuration_ButNeverARealLeak()
+    {
+        // Both machine fields are spelling needles the redaction sweeps assert absent.
+        const string collision =
+            """{"timestamp":"2026-08-26T09:42:42.317Z","DurationMs":9876.5432,"event":"sync.push"}""";
+
+        var swept = collision.WithoutMachineFields();
+
+        Assert.DoesNotContain("42.3", swept, StringComparison.Ordinal);
+        Assert.DoesNotContain("9876.54", swept, StringComparison.Ordinal);
+        // The line is blanked, not deleted - the sweep still has something to sweep.
+        Assert.Contains("sync.push", swept, StringComparison.Ordinal);
+
+        // The half that keeps the helper honest: the same needles in a REAL field
+        // must survive, or the sweep would pass by deleting the evidence.
+        const string leak =
+            """{"timestamp":"2026-08-26T09:00:00.000Z","DurationMs":1,"Amount":"42.3","StationName":"9876.54"}""";
+
+        var leaked = leak.WithoutMachineFields();
+
+        Assert.Contains("42.3", leaked, StringComparison.Ordinal);
+        Assert.Contains("9876.54", leaked, StringComparison.Ordinal);
     }
 }
 

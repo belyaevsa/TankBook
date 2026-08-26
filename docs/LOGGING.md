@@ -11,6 +11,18 @@ Every value is one of three classes. When in doubt, downgrade.
 | Class | Examples | Rule |
 |---|---|---|
 | **Safe** | entity ids (UUIDs), entityType, schemaVersion, SCN, counts, byte sizes, durations, HTTP status, error codes, JSON pointers, sha256 hashes, device/app version, platform | Log freely, at any level |
+
+**Testing the Never rule: do not sweep the clock.** The tests that prove a domain value never
+reached a log line do it by substring search over the rendered output, and two Safe fields are
+**free-running numbers that can spell the value being searched for**: `timestamp` renders seconds
+as `SS.mmm`, so `...:42.317Z` contains `42.3`; and `DurationMs` is `TimeSpan.TotalMilliseconds`,
+so a 9.87-second request renders `9876.5432` and contains `9876.54`. Both are real needles in the
+current suite, and the timestamp one has already produced a red run. Sweep through
+`WithoutMachineFields()` (`LoggingTestHelpers`), which blanks exactly those two - never by
+loosening the assertion, and never by changing the needle, because the next needle would have the
+same problem. **Identifiers stay in the sweep on purpose**: `traceId`, `deviceId` and
+`accountHash` are also machine-generated, but leaving them means a domain value wrongly routed
+into one is still caught.
 | **Sensitive** | station and vendor names, notes, plate, monetary amounts, volumes, odometer, coordinates, filenames, email | **Never logged in production.** Debug builds may log them behind an explicit opt-in flag; they are never written to a file that leaves the device |
 | **Never** | payload bodies (`records.payload`), blob bytes, images, OCR text, auth tokens, refresh tokens, presigned URLs, API keys, passwords | Never logged at any level, in any build. Redact at the logger, not at the call site |
 

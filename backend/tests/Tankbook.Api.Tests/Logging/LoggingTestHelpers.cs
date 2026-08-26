@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
@@ -245,6 +246,41 @@ internal static class LoggingTestHelpers
     /// emit accountHash both as a correlation field and as a renamed email) the
     /// last occurrence wins, mirroring JsonElement.TryGetProperty.
     /// </summary>
+    /// <summary>
+    /// Rendered log output with the <b>free-running machine-generated numbers</b>
+    /// blanked, for the substring sweeps that assert a domain value never reached
+    /// the log (hard rule 12).
+    ///
+    /// Two fields vary on every run and can coincidentally spell a value the sweep
+    /// asserts is absent:
+    /// <list type="bullet">
+    /// <item><c>timestamp</c> renders seconds as <c>SS.mmm</c>, so <c>...:42.317Z</c>
+    /// contains "42.3" and <c>...:12.342Z</c> contains "12.34" - both needles in
+    /// <c>RedactionTests</c>. On the clock alone that is a red run roughly once in
+    /// 600.</item>
+    /// <item><c>DurationMs</c> is <c>TimeSpan.TotalMilliseconds</c>, an unbounded
+    /// decimal, so a 9.87-second request renders <c>9876.5432</c> and contains
+    /// "9876.54" - the secret-amount needle in <c>SyncEndpointTests</c>.</item>
+    /// </list>
+    ///
+    /// Both are machine metadata that can never legitimately carry user data, so
+    /// removing them costs the sweep nothing. **Identifiers (traceId, deviceId,
+    /// accountHash) are deliberately left in**: they are also machine-generated,
+    /// but leaving them means a domain value wrongly routed into one is still
+    /// caught, and a hex id colliding with a decimal needle is not a real risk.
+    ///
+    /// A failure caused by the clock is a red that says nothing about redaction,
+    /// and the fix is to stop sweeping the clock - never to loosen the assertion.
+    /// </summary>
+    public static string WithoutMachineFields(this string rendered)
+    {
+        var timeout = TimeSpan.FromSeconds(1);
+        var swept = Regex.Replace(
+            rendered, "\"timestamp\":\"[^\"]*\"", "\"timestamp\":\"\"", RegexOptions.None, timeout);
+        return Regex.Replace(
+            swept, "\"[Dd]urationMs\":[0-9.eE+-]*", "\"DurationMs\":0", RegexOptions.None, timeout);
+    }
+
     public static string? Prop(this JsonElement element, string name)
     {
         string? result = null;

@@ -328,7 +328,7 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
         var pull = await PullAsync(app.Client, token, since: 0, limit: 500);
         Assert.Equal(HttpStatusCode.OK, pull.StatusCode);
 
-        var all = string.Join('\n', writer.Lines);
+        var all = string.Join('\n', writer.Lines).WithoutMachineFields();
 
         // The capture is proven non-empty: the sync event lines are present.
         Assert.Contains(lines, l => l.Contains("sync.push", StringComparison.Ordinal));
