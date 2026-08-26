@@ -135,6 +135,8 @@ Account id attached when a bearer token is present; rate-limited per device/IP; 
 ### `POST /extract` – bearer
 `{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**). Images processed transiently – never stored, per the signed-off stance.
 
+Status codes: `400` unknown `kind` or missing/undecodable `image`; `413` base64 image over the 4 MB cap (enforced at the envelope, before the provider is called); `502` provider failure (not metered – a failed call never bills, and the client falls back to the on-device result). A low-confidence field is returned as a value plus a low confidence – never dropped, which would silently turn "uncertain" into "absent".
+
 #### The device's side of `/extract` (normative)
 
 The endpoint is only half the contract. Two device-side rules are part of it, because the server

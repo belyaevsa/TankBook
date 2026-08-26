@@ -11,6 +11,7 @@ using Tankbook.Api.Auth;
 using Tankbook.Api.Blobs;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
+using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Notifications;
 using Tankbook.Api.Options;
@@ -44,6 +45,8 @@ builder.Services.Configure<NudgeOptions>(
     builder.Configuration.GetSection(NudgeOptions.SectionName));
 builder.Services.Configure<RateOptions>(
     builder.Configuration.GetSection(RateOptions.SectionName));
+builder.Services.Configure<LlmGatewayOptions>(
+    builder.Configuration.GetSection(LlmGatewayOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -198,6 +201,19 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<RatesHostedService>();
 }
 
+// LLM gateway (docs/API.md "LLM gateway (Pro)", docs/EXTRACTION.md). ILlmProvider
+// is the model seam: OpenAiCompatibleLlmProvider talks the chat-completions wire
+// to the configured base URL (key server-side, docs/SECURITY.md), and L2 tests
+// swap in a recording double so the suite never makes a paid call (the same seam
+// IBlobStorage / IApnsClient / IRateFeed use). The factory is lazy - an app with
+// no Llm config still boots and only fails if /extract is actually called.
+builder.Services.AddSingleton<ILlmProvider>(sp =>
+    new OpenAiCompatibleLlmProvider(
+        sp.GetRequiredService<IHttpClientFactory>(),
+        sp.GetRequiredService<IOptions<LlmGatewayOptions>>()));
+builder.Services.AddScoped<LlmRepository>();
+builder.Services.AddScoped<LlmService>();
+
 var app = builder.Build();
 
 if (!builder.Environment.IsDevelopment() &&
@@ -335,6 +351,9 @@ account.MapGet("/devices", AccountEndpoints.GetDevices);
 account.MapPut("/devices/{id}/push-token", AccountEndpoints.SetPushToken);
 account.MapDelete("/devices/{id}", AccountEndpoints.DeleteDevice);
 account.MapDelete("", AccountEndpoints.DeleteAccount);
+
+// LLM gateway (docs/API.md "LLM gateway (Pro)"): POST /v1/extract, bearer.
+v1.MapPost("/extract", ExtractEndpoints.Extract);
 
 app.Run();
 

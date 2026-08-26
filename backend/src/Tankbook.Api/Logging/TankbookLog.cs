@@ -151,13 +151,14 @@ public static class TankbookLog
 
     public static void LlmExtract(
         ILogger logger,
+        LogLevel level,
         string kind,
         long quotaBefore,
         long quotaAfter,
         string model,
         TimeSpan duration,
         string outcome)
-        => Emit(logger, LogLevel.Information, "llm.extract",
+        => Emit(logger, level, "llm.extract",
             ("Kind", kind),
             ("QuotaBefore", quotaBefore),
             ("QuotaAfter", quotaAfter),
