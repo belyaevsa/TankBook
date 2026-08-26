@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Tankbook.Api.Auth;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
 using Tankbook.Api.Logging;
@@ -22,6 +23,8 @@ builder.Services.Configure<S3Options>(
     builder.Configuration.GetSection(S3Options.SectionName));
 builder.Services.Configure<ConfigSigningOptions>(
     builder.Configuration.GetSection(ConfigSigningOptions.SectionName));
+builder.Services.Configure<AuthOptions>(
+    builder.Configuration.GetSection(AuthOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -99,6 +102,20 @@ builder.Services.AddScoped<ConfigRepository>();
 builder.Services.AddScoped<IConfigReadService, ConfigReadService>();
 builder.Services.AddScoped<ConfigPublishService>();
 
+// Auth (docs/API.md Auth, docs/SECURITY.md). The idToken verifier fetches and
+// caches Apple/Google JWKS behind IIdTokenVerifier - the seam L2 tests swap for
+// a test-signer so they can mint tokens with no network. The access-token
+// issuer mints/validates the server's own RS256 JWTs; the signing key is
+// Auth:JwtSigningKeyBase64 (ephemeral dev fallback, see JwtAccessTokenIssuer).
+builder.Services.AddMemoryCache();
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<JwtAccessTokenIssuer>();
+builder.Services.AddSingleton<AppleGoogleIdTokenVerifier>();
+builder.Services.AddSingleton<IIdTokenVerifier>(sp => sp.GetRequiredService<AppleGoogleIdTokenVerifier>());
+builder.Services.AddScoped<AuthRepository>();
+builder.Services.AddScoped<AuthService>();
+
 var app = builder.Build();
 
 if (!builder.Environment.IsDevelopment() &&
@@ -109,9 +126,21 @@ if (!builder.Environment.IsDevelopment() &&
         "Tankbook:Logging:HashSalt is unset or the dev placeholder; set it from secrets in production. accountHash is not reliable.");
 }
 
+if (!builder.Environment.IsDevelopment() &&
+    string.IsNullOrWhiteSpace(builder.Configuration["Auth:JwtSigningKeyBase64"]))
+{
+    app.Logger.LogWarning(
+        "Auth:JwtSigningKeyBase64 is unset; access tokens are signed with an ephemeral key and will not survive a restart. Set it from secrets in production.");
+}
+
 // Trace correlation + the per-request line must wrap everything below so every
 // log line for this request carries the traceId (docs/LOGGING.md §2).
 app.UseMiddleware<TraceCorrelationMiddleware>();
+
+// Bearer authentication (docs/API.md Auth, adopted by sync/blobs in P4.2/P4.3):
+// validates an Authorization header when present and exposes the account/device
+// identity via AuthContext. Public endpoints simply see no identity.
+app.UseMiddleware<BearerAuthenticationMiddleware>();
 
 // Errors become problem+json with the traceId extension member, and every
 // ERROR line carries errorCode/exceptionType/message/stackTrace/traceId plus
@@ -189,6 +218,12 @@ var v1 = app.MapGroup("/v1");
 var config = v1.MapGroup("/config");
 config.MapGet("", ConfigEndpoints.GetConfig);
 config.MapGet("/public-key", ConfigEndpoints.GetPublicKey);
+
+// Auth (docs/API.md Auth): session exchange, refresh rotation, sign-out.
+var auth = v1.MapGroup("/auth");
+auth.MapPost("/session", AuthEndpoints.CreateSession);
+auth.MapPost("/refresh", AuthEndpoints.Refresh);
+auth.MapDelete("/session", AuthEndpoints.SignOut);
 
 app.Run();
 

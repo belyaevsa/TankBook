@@ -87,7 +87,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 
 | ID | Task | Checks |
 |---|---|---|
-| P4.1 | Auth endpoints: session exchange, refresh rotation | L2: test-signer tokens, garbage/expired, concurrent-first-sign-in creates exactly one account, **reuse-revokes-chain** |
+| **[x]** P4.1 | Auth endpoints: session exchange, refresh rotation | L2: test-signer tokens, garbage/expired, concurrent-first-sign-in creates exactly one account, **reuse-revokes-chain** |
 | P4.2 | Sync push/pull + SCN allocation | L2: ordering, pagination under concurrent writes, idempotent replay, per-item conflict, 410 |
 | P4.3 | Blob endpoints + S3 storage + quotas + orphan sweep | L2: dedupe, 25/10 MB caps, 429 quota, commit-verifies, presign expiry, **cross-account 404** |
 | P4.4 | iOS: Sign in + Restoring screens, Keychain session, J11a detection | L4: wrong-provider empty-account flow; provider-notice snapshot; sign-out escape; L1: token storage |
