@@ -349,6 +349,40 @@ become meaningful. Determinism would help too - a model that returns the same an
 image can at least be measured. And if latency ever drops under 3 s, the gateway becomes a
 synchronous peer rather than a background fill-blanks path.
 
+## A third arm worth measuring: PaddleOCR (P4.13)
+
+Filed 2026-08-26, after P4.12. Not a recommendation - a **measurement that is now cheap**, because
+P4.12 built the harness: sweep script -> committed result files -> shared scorer -> offline tests.
+
+**Why it is worth the run.** P4.12's cloud arm is far more accurate than the rules parser
+everywhere, but it has four problems: silent failures, non-determinism, per-call cost, and a
+median latency above the 3 s device budget in every class. A self-hosted PaddleOCR attacks three
+of the four at once - no per-call cost, no third-party image sharing, and plausibly much faster.
+And **Russian is supported** (`cyrillic_PP-OCRv5_mobile_rec`, and PaddleOCR-VL across 109
+languages), which is precisely the gap that killed the Foundation Models tier.
+
+**Two arms, because together they answer what neither answers alone:**
+
+| Arm | What it is | What it settles |
+|---|---|---|
+| **A** | PP-OCRv5 Cyrillic recognition -> the **existing** `FuelExtractor` | **Isolates recognition.** If it scores about the same as Vision + parser, this doc's central claim is **confirmed**. If it scores far better, the claim is **wrong** |
+| **B** | PaddleOCR-VL -> fields directly | Competes with the cloud arm on accuracy, latency, cost and determinism |
+
+**Arm A is the one that matters intellectually, because it can falsify this document.** The whole
+"interpretation, not recognition" split rests on Vision reading receipts at confidence 1.00 while
+the parser still misses half the fields. Feeding a *different* reader into the *same* parser tests
+that directly. A result that contradicts it must rewrite the split, not be explained away.
+
+**What it cannot become.** Hard rule 1: anything server-side is a network dependency, so this can
+only ever be an alternative implementation of the P4.10 gateway. **On-device Vision stays tier 0.**
+PaddleOCR competes with the cloud model for the fallback slot; it does not replace Vision.
+
+**The real cost is ops**, and it should be weighed openly: a Python/PaddlePaddle container adds a
+third runtime to a C#/Swift stack. Everything runs in Docker for environment consistency and
+ASP.NET reaches it behind an injected seam - the same shape as `IBlobStorage`, `IApnsClient` and
+`IRateFeed` - so the *code* cost is small. The *operational* cost is not, and no measurement
+excuses it: a marginal accuracy gain would not justify the runtime.
+
 ## Growing the corpus is the highest-value work
 
 Any path here - better rules, a cloud A/B, a trained reader - is limited by the same 62 images.
