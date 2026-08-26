@@ -107,7 +107,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 
 | ID | Task | Checks |
 |---|---|---|
-| P5.1 | Rates service + daily fetch job (ECB + CIS) + endpoints | L2: weekend/holiday carry-forward fixtures; append-only; immutable caching headers |
+| **[x]** P5.1 | Rates service + daily fetch job (ECB + CIS) + endpoints | L2: weekend/holiday carry-forward fixtures; append-only; immutable caching headers |
 | P5.2 | Money end-to-end in app incl. manual rate + S8 backfill | L1: full J10/S8 suite; L4: rate-pending → filled transition |
 | P5.3 | RU localization pass | Pseudo-loc green; L1: plural rules (1 литр/2 литра/5 литров); M: native review + no clipped numerals on device |
 | P5.4 | Importers ×6 (Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope, My Fuel Manager) | L1: round-trip per format + known-value assertions; **the real MFM export as fixture reproduces 8.222 L/100km**; F6 partial-import review flow |

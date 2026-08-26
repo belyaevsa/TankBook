@@ -411,9 +411,15 @@ Two datasets the backend curates and every client consumes. Both are **unauthent
 ### Exchange rates
 
 ```sql
-exchange_rates (date date, base char(3), quote char(3), rate numeric(18,8), source text,
-                fetched_at timestamptz, primary key (date, base, quote))
+exchange_rates (id bigint identity primary key, date date, base char(3), quote char(3),
+                rate numeric(18,8), source text, fetched_at timestamptz, deleted_at timestamptz,
+                unique (date, base, quote) where deleted_at is null)
 ```
+
+`deleted_at` (null = live) and the surrogate `id` key are the correction-path machinery
+(migration 009): a soft-deleted row stays physically but frees its `(date, base, quote)` slot, so
+a re-fetch inserts a corrected row instead of rewriting the old one. Append-only holds for every
+path except that documented correction.
 
 - **Updated by** a daily background job (ASP.NET hosted service, ~17:00 CET after ECB publishes): ECB reference rates for the majors, plus a CIS source (CBR/NBK or a commercial feed) for RUB/KZT/AMD/GEL/BYN – the gap ECB left. Weekends/holidays carry the last published rate forward, stored per-date so `rateDate` lookups are exact. Manual correction path for a bad feed day (soft-delete + re-fetch); rows are append-only otherwise – snapshots in entries mean a correction never rewrites user history.
 - **Served as** `GET /rates?date=2026-08-21&base=EUR` → all quotes for that date (one small JSON, cache-forever for past dates), and `GET /rates/pack?from=&to=` → a bulk range for the device's rolling cache and the app-bundle seed pack.
