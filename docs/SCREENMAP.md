@@ -91,6 +91,7 @@ flowchart TD
     Settings -->|account card, guest| SignIn
     Settings -->|account card, signed in| AccountDevices
     Settings -->|Import| ImportWizard
+    Settings -->|"2 entries need a look"| Log
     Settings -->|Recently deleted| RecentlyDeleted
     Settings -->|Pro| Paywall
     Settings -->|About| About

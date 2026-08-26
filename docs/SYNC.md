@@ -326,6 +326,40 @@ The same reasoning covers `initialOdometer`, `homeCurrency`, `units` and `paceLi
 ### S7 · Server unavailable – during everything above
 The backend is down for a day; both devices keep logging, editing, deleting.
 - **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.
+
+### The Settings sync surface (normative)
+
+Three things live there, and the split between them is what keeps hard rule 8 intact.
+
+1. **Status, always present when signed in.** A relative timestamp on the account card:
+   "Synced just now", "Synced 3 hours ago", or "Waiting to sync · 5 changes" with
+   "Will sync when you're back online" when there is no connection. It is **reassurance, never a
+   warning**: it does not turn amber with age, and a long queue is not an error state, because a
+   week offline is the same as an hour (S7). A status row that nags is a status row that teaches
+   the user to babysit a queue the app is supposed to drain by itself.
+
+2. **"Sync now" - a manual trigger, never a requirement.** Sync is automatic; this exists because
+   a user who has just edited something on another device wants to *pull now* rather than wonder.
+   Constraints: it is **idempotent** (inert while a sync is in flight, so a repeated tap is never
+   a second push); offline it is **not an error** - the row simply settles back to "Will sync when
+   you're back online"; on a server failure it names its next step (hard rule 7) and the automatic
+   retry continues regardless. **It may never be the only path to a synced state** (hard rule 1);
+   removing the button must change nothing about whether data eventually arrives.
+
+3. **Issues - but only the two kinds that belong here.** The distinction is load-bearing:
+
+   | Class | Example | Where it belongs |
+   |---|---|---|
+   | **Transport** - the connection itself, and the user can act | 410 device revoked, auth expired, blob quota 429, server down | **Settings**, as a card with its next step. This is about the account, not about any record |
+   | **Domain** - a merge flagged specific records (S1-S5) | out-of-order odometer, duplicate pair, entry changed by sync | **Where the data lives**, as a badge (hard rule 8). Settings shows a **count and a link** - "2 entries need a look" tapping through to the Log filtered to flagged entries - and **never resolves anything itself** |
+
+   The count is **derived, never stored**: it is the number of records carrying a `ConflictState`,
+   recomputed like every other statistic. A stored counter drifts out of agreement with the badges
+   and then the two surfaces disagree about the same data.
+
+   Putting a resolution UI in Settings would be the exact failure hard rule 8 exists to prevent -
+   conflicts torn out of the context that makes them decidable, so the user is asked to adjudicate
+   an odometer discrepancy without the entry in front of them.
 - **On recovery:** the queues drain (pull → merge → push per device); *only then* do S1–S5 outcomes materialize. This is why domain conflicts must never be modal: they can arrive in a batch, hours after the user did anything – a stack of interrupting dialogs about yesterday would be hostile. Badges absorb a batch gracefully; a single unobtrusive summary toast covers the rest: "Synced. 2 entries need a look" → tapping filters the Log to flagged entries.
 - **Extended outage:** nothing degrades further – a week offline is the same as an hour, just a longer queue. The sin this design refuses to repeat is Мой Авто's "servers disabled; app freezes at login": Tankbook has no sync-gated screen at all.
 

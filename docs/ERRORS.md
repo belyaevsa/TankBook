@@ -130,7 +130,13 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Settings
 | Condition | Shows | Next step |
 |---|---|---|
+| Synced, nothing pending | Account card, relative: "Synced just now" / "Synced 3 hours ago" | None. **This is reassurance, not a warning** - it never turns amber with age |
 | Sync pending (S7) | Passive row: "Waiting to sync · 5 changes" | None needed; tap for detail |
+| Offline with a queue | Same passive row, plus "Will sync when you're back online" | None. **A long queue is not an error state** - a week offline is the same as an hour (S7) |
+| **Sync now** tapped, offline | Row settles back to "Will sync when you're back online" | None. The tap is never punished with an error |
+| **Sync now** tapped, server 5xx | "Sync service unreachable - your data is safe on this phone. It will go up automatically when the service is back." | Try again · leave it (auto-retry continues) |
+| **Sync now** tapped, already syncing | Action is inert while a sync is in flight (spinner on the row) | None; the tap is idempotent, never a second push |
+| Entries flagged by a merge (S1-S5) | Summary row: "2 entries need a look" | **Tap -> Log filtered to flagged entries.** Settings never resolves a conflict - the badge lives where the data lives (hard rule 8) |
 | Sync auth expired / device revoked (410) | Card: "This device was signed out – sign in to reconnect. Your data on this phone is untouched." | Sign in · stay local |
 | Storage quota near/full (blob 429) | Row: "Photo storage 95% full – older photos stay on this phone only." | Manage · Pro |
 | Export fails (disk) | "Not enough space to build the export." | Free space · try smaller (no photos) export |
