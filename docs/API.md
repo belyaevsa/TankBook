@@ -54,6 +54,15 @@ Per-item outcomes; `conflict` returns the server's current record for client-sid
 | `POST /blobs/commit` | bearer | `{ sha256 }` → `204` after server verifies object + size. Referencing records must push only after commit. |
 | `GET /blobs/{sha256}` | bearer | `302` → short-lived presigned GET (~10 min, single object). `404` if not owned by this account. |
 
+`begin` refuses a malformed body with `400` (a `sha256` that is not 64 lowercase hex digits, or a
+missing/negative `size`) and a content type outside the allow-list with `415`; it answers `413` per
+type (images 25 MB, PDFs 10 MB) and `429` when the account's metered storage quota (default 5 GB,
+configurable) would be exceeded. `commit` verifies the stored object against the size declared at
+`begin` (the server remembers it between the two calls) - a commit with no preceding `begin`, no
+uploaded object, or a size mismatch answers `409` and creates no row; it is idempotent (`204` on
+replay). A revoked device or deleted account gets `410` on all three. A presigned URL is never
+minted for a blob this account does not own, and never appears in a log (`LOGGING.md`).
+
 ## Reference data (public, CDN-cacheable)
 
 | Endpoint | Auth | Contract |

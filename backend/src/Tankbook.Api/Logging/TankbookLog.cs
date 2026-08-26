@@ -116,6 +116,18 @@ public static class TankbookLog
             ("Sha256", sha256),
             ("PresignTtlSec", presignTtlSec));
 
+    /// <summary>Orphan sweep removed some blobs (docs/LOGGING.md §3 hygiene). Counts and account id only.</summary>
+    public static void BlobSweep(ILogger logger, Guid accountId, int deleted)
+        => Emit(logger, LogLevel.Information, "blob.sweep",
+            ("AccountId", accountId),
+            ("Deleted", deleted));
+
+    /// <summary>Account blob prefix was purged (docs/LOGGING.md §3 hygiene). Counts and account id only.</summary>
+    public static void BlobPurge(ILogger logger, Guid accountId, int deleted)
+        => Emit(logger, LogLevel.Information, "blob.purge",
+            ("AccountId", accountId),
+            ("Deleted", deleted));
+
     public static void LlmExtract(
         ILogger logger,
         string kind,

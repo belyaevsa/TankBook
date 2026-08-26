@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Npgsql;
 using Tankbook.Api.Auth;
+using Tankbook.Api.Blobs;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
 using Tankbook.Api.Logging;
@@ -21,6 +22,8 @@ builder.Services.Configure<ConnectionStringsOptions>(
     builder.Configuration.GetSection(ConnectionStringsOptions.SectionName));
 builder.Services.Configure<S3Options>(
     builder.Configuration.GetSection(S3Options.SectionName));
+builder.Services.Configure<BlobOptions>(
+    builder.Configuration.GetSection(BlobOptions.SectionName));
 builder.Services.Configure<ConfigSigningOptions>(
     builder.Configuration.GetSection(ConfigSigningOptions.SectionName));
 builder.Services.Configure<AuthOptions>(
@@ -117,6 +120,20 @@ builder.Services.AddSingleton<AppleGoogleIdTokenVerifier>();
 builder.Services.AddSingleton<IIdTokenVerifier>(sp => sp.GetRequiredService<AppleGoogleIdTokenVerifier>());
 builder.Services.AddScoped<AuthRepository>();
 builder.Services.AddScoped<AuthService>();
+
+// Blob pipeline (docs/API.md "Attachments", docs/SYNC.md "Attachments: the blob
+// pipeline"). IBlobStorage is the storage seam: S3BlobStorage talks the S3 API
+// (MinIO locally, R2/B2/etc. in deployment - the credentials are server-side,
+// docs/SECURITY.md) and L2 tests swap in a recording double so presign generation
+// and expiry are assertable without a running container (the same seam
+// IPayloadSchemaProvider uses). The factory is lazy: an app with no S3 config
+// still boots, and only fails if a blob endpoint is actually called.
+builder.Services.AddSingleton<IBlobStorage>(sp =>
+    new S3BlobStorage(
+        sp.GetRequiredService<IOptions<S3Options>>(),
+        sp.GetRequiredService<TimeProvider>()));
+builder.Services.AddScoped<BlobRepository>();
+builder.Services.AddScoped<BlobService>();
 
 var app = builder.Build();
 
@@ -232,6 +249,14 @@ auth.MapDelete("/session", AuthEndpoints.SignOut);
 var sync = v1.MapGroup("/sync");
 sync.MapGet("/pull", SyncEndpoints.Pull);
 sync.MapPost("/push", SyncEndpoints.Push);
+
+// Attachments (docs/API.md "Attachments"): the content-addressed blob pipeline.
+// All three bearer endpoints; the server never proxies file bytes - it only
+// mints presigned URLs and keeps the index.
+var blobs = v1.MapGroup("/blobs");
+blobs.MapPost("/begin", BlobEndpoints.Begin);
+blobs.MapPost("/commit", BlobEndpoints.Commit);
+blobs.MapGet("/{sha256}", BlobEndpoints.Get);
 
 app.Run();
 

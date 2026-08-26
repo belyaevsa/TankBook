@@ -181,6 +181,17 @@ Presigned upload means the ASP.NET server never proxies file bytes – it stays 
 - **Hygiene:** contentType allow-list (JPEG/PNG/HEIC/PDF), server-verified size on commit, per-account storage quota (generous free tier, metered like LLM usage), orphan sweep (blobs unreferenced by any live record + grace period → deleted), and account deletion purges the whole prefix.
 - **Not in scope deliberately:** server-side thumbnailing or image processing (the client ships both renditions – the server never opens user images), and virus scanning (nothing is ever served to anyone but the owning account's authenticated devices).
 
+The **orphan sweep** is per-account and deletes a blob from both the index and storage when it was
+committed longer ago than the grace period and no *protecting* record references it. A record
+protects a blob when it is live (`deleted = false`) or was tombstoned within the grace period
+(`deleted = true` with `client_updated_at` inside the window) and its payload carries the blob's
+sha256. The grace period defaults to the 30-day undo window (hard rule 8), so a blob whose record
+can still be restored is never swept out from under it. The reference check is a content-address
+containment check - a sha256 is an identifier (Safe class, `LOGGING.md`), not a domain value - so
+the server still never reads what a field means (hard rule 9). The per-account storage quota
+defaults to 5 GB, is configurable, is enforced at `begin`, and is metered from the blob index
+(`SUM(size_bytes)`), never from a stored counter that could drift.
+
 ## Reference data: server-curated packs (vehicle catalog, rates)
 
 The vehicle catalog is **curated on the server**, and the server is the **master copy**. The app ships a

@@ -28,6 +28,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "payload_migrations",
         "config_documents",
         "refresh_tokens",
+        "blob_pending",
     };
 
     [SkippableFact]
@@ -55,7 +56,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(5, applied.Single());
+        Assert.Equal(6, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -86,9 +87,37 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("payload_migrations", tables);
         Assert.DoesNotContain("config_documents", tables);
         Assert.DoesNotContain("refresh_tokens", tables);
+        Assert.DoesNotContain("blob_pending", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
+    }
+
+    [SkippableFact]
+    public async Task Migration006_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The sweep index and the pending-upload table exist after apply.
+        var index = await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_blobs_account_created'");
+        Assert.Equal(1L, index);
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'blob_pending'"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        // And both are gone after rollback.
+        var indexAfter = await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_blobs_account_created'");
+        Assert.Equal(0L, indexAfter);
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'blob_pending'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '006'"));
     }
 
     [SkippableFact]
