@@ -27,6 +27,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "payload_schemas",
         "payload_migrations",
         "config_documents",
+        "refresh_tokens",
     };
 
     [SkippableFact]
@@ -54,7 +55,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(3, applied.Single());
+        Assert.Equal(4, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -84,6 +85,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("payload_schemas", tables);
         Assert.DoesNotContain("payload_migrations", tables);
         Assert.DoesNotContain("config_documents", tables);
+        Assert.DoesNotContain("refresh_tokens", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());

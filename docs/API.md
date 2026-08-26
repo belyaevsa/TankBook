@@ -12,6 +12,8 @@ Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7
 | `POST /auth/refresh` | refresh token | `{ refreshToken }` → new token pair. Refresh tokens rotate; reuse of a rotated token revokes the chain (theft signal). |
 | `DELETE /auth/session` | bearer | Sign out this device (revokes its refresh chain; local data stays local). |
 
+Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
+
 All endpoints below marked **bearer** take `Authorization: Bearer <accessToken>`. **public** = no auth.
 
 ## Sync (the core – "latest data" and "changes")

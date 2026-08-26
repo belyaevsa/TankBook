@@ -74,46 +74,46 @@ public sealed class TankbookRedactor
                 or float or double or decimal or char or Guid or DateTime or DateTimeOffset or TimeSpan or DateOnly:
                 return value;
             case IDictionary<string, object?> map:
-            {
-                var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                foreach (var (key, entryValue) in map)
                 {
-                    var redacted = RedactProperty(key, entryValue);
-                    if (redacted is not null)
+                    var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (key, entryValue) in map)
                     {
-                        result[redacted.Name] = redacted.Value;
+                        var redacted = RedactProperty(key, entryValue);
+                        if (redacted is not null)
+                        {
+                            result[redacted.Name] = redacted.Value;
+                        }
                     }
+                    return result;
                 }
-                return result;
-            }
             case IDictionary nonGeneric:
-            {
-                var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                foreach (DictionaryEntry entry in nonGeneric)
                 {
-                    var key = Convert.ToString(entry.Key, System.Globalization.CultureInfo.InvariantCulture);
-                    if (key is null)
+                    var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                    foreach (DictionaryEntry entry in nonGeneric)
                     {
-                        continue;
-                    }
+                        var key = Convert.ToString(entry.Key, System.Globalization.CultureInfo.InvariantCulture);
+                        if (key is null)
+                        {
+                            continue;
+                        }
 
-                    var redacted = RedactProperty(key, entry.Value);
-                    if (redacted is not null)
-                    {
-                        result[redacted.Name] = redacted.Value;
+                        var redacted = RedactProperty(key, entry.Value);
+                        if (redacted is not null)
+                        {
+                            result[redacted.Name] = redacted.Value;
+                        }
                     }
+                    return result;
                 }
-                return result;
-            }
             case IEnumerable sequence:
-            {
-                var result = new List<object?>();
-                foreach (var item in sequence)
                 {
-                    result.Add(RedactValue(item));
+                    var result = new List<object?>();
+                    foreach (var item in sequence)
+                    {
+                        result.Add(RedactValue(item));
+                    }
+                    return result;
                 }
-                return result;
-            }
             default:
                 return RedactObject(value);
         }
