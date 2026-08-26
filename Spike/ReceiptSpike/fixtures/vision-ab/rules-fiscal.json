@@ -1,0 +1,11 @@
+{
+  "className" : "fiscal",
+  "engine" : "rules",
+  "entries" : [
+    {
+      "filename" : "fiscal-002-lukoil-ru.png",
+      "total" : 1680
+    }
+  ],
+  "generated" : "2026-08-26"
+}

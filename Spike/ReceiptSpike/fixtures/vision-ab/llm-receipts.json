@@ -1,0 +1,287 @@
+{
+  "className": "receipts",
+  "engine": "llm",
+  "entries": [
+    {
+      "error": null,
+      "filename": "receipt-001.heic",
+      "latencySeconds": 18.79,
+      "liters": 67.0,
+      "total": 125.22,
+      "unitPrice": 1.869
+    },
+    {
+      "error": null,
+      "filename": "receipt-002-krymoil-yalta-100-ru.png",
+      "latencySeconds": 10.53,
+      "liters": 450.0,
+      "total": 19719.0,
+      "unitPrice": 43.82
+    },
+    {
+      "error": null,
+      "filename": "receipt-003-krymoil-sevastopol-diesel-ru.png",
+      "latencySeconds": 7.2,
+      "liters": 20.0,
+      "total": 5180.0,
+      "unitPrice": 259.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-004-krymoil-azs166-95-ru.png",
+      "latencySeconds": 21.78,
+      "liters": 20.0,
+      "total": 4100.0,
+      "unitPrice": 205.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-005-krymoil-azs166-95-flat-ru.png",
+      "latencySeconds": 6.03,
+      "liters": 20.0,
+      "total": 4100.0,
+      "unitPrice": 205.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-006-gridyaeva-92-ru.jpeg",
+      "latencySeconds": 5.56,
+      "liters": 40.0,
+      "total": 7800.0,
+      "unitPrice": 195.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-007-lukoil-spb-100-ru.png",
+      "latencySeconds": 6.0,
+      "liters": 43.61,
+      "total": 4334.0,
+      "unitPrice": 99.4
+    },
+    {
+      "error": null,
+      "filename": "receipt-008-kemerovo-95-2022-ru.png",
+      "latencySeconds": 7.37,
+      "liters": 48.89,
+      "total": 2385.83,
+      "unitPrice": 48.8
+    },
+    {
+      "error": null,
+      "filename": "receipt-009-mkad-mixed-fuel-water-ru.png",
+      "latencySeconds": 17.34,
+      "liters": 47.56,
+      "total": 6135.24,
+      "unitPrice": 129.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-010-gazpromneft-diesel-bonus-ru.jpeg",
+      "latencySeconds": 17.2,
+      "liters": 63.0,
+      "total": 3058.0,
+      "unitPrice": 69.11
+    },
+    {
+      "error": null,
+      "filename": "receipt-011-samara-diesel-ru.png",
+      "latencySeconds": 5.18,
+      "liters": 66.81,
+      "total": 4201.68,
+      "unitPrice": 62.89
+    },
+    {
+      "error": null,
+      "filename": "receipt-012-neftmagistral-lpg-ru.jpeg",
+      "latencySeconds": 5.96,
+      "liters": 52.15,
+      "total": 1251.0,
+      "unitPrice": 23.99
+    },
+    {
+      "error": null,
+      "filename": "receipt-013-rn-moscow-95-ru.png",
+      "latencySeconds": 6.21,
+      "liters": 50.0,
+      "total": 3562.5,
+      "unitPrice": 71.25
+    },
+    {
+      "error": null,
+      "filename": "receipt-014-orion-penza-95-ru.jpeg",
+      "latencySeconds": 8.54,
+      "liters": 100.0,
+      "total": 3000.0,
+      "unitPrice": 30.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-015-kedr-simferopol-95-ru.jpg",
+      "latencySeconds": 8.83,
+      "liters": 20.0,
+      "total": 5380.0,
+      "unitPrice": 269.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-016-rn-moscow-fuelcard-nonfiscal-ru.jpeg",
+      "latencySeconds": 6.48,
+      "liters": 30.0,
+      "total": 1932.0,
+      "unitPrice": 64.4
+    },
+    {
+      "error": null,
+      "filename": "receipt-017-tatneft-domodedovo-diesel-2020-ru.jpg",
+      "latencySeconds": 7.05,
+      "liters": 48.09,
+      "total": 961.8,
+      "unitPrice": 20.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-018-krymoil-yalta-100-clear-ru.png",
+      "latencySeconds": 10.37,
+      "liters": 43.82,
+      "total": 19719.0,
+      "unitPrice": 450.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-019-web-2018-ru.jpg",
+      "latencySeconds": 16.03,
+      "liters": 81.1,
+      "total": 3621.0,
+      "unitPrice": 44.65
+    },
+    {
+      "error": null,
+      "filename": "receipt-020-web-2020-ru.jpg",
+      "latencySeconds": 8.93,
+      "liters": 46.0,
+      "total": 2134.4,
+      "unitPrice": 46.4
+    },
+    {
+      "error": null,
+      "filename": "receipt-021-web-2018-ru.jpg",
+      "latencySeconds": 8.05,
+      "liters": 51.06,
+      "total": 2519.81,
+      "unitPrice": 49.35
+    },
+    {
+      "error": null,
+      "filename": "receipt-022-teboil-spb-100-2024-ru.jpg",
+      "latencySeconds": 8.89,
+      "liters": 70.5,
+      "total": 5660.45,
+      "unitPrice": 80.29
+    },
+    {
+      "error": null,
+      "filename": "receipt-023-rn-tver-fuelcard-95-ru.png",
+      "latencySeconds": 7.21,
+      "liters": 20.0,
+      "total": 1366.0,
+      "unitPrice": 68.3
+    },
+    {
+      "error": null,
+      "filename": "receipt-024-krymoil-sevastopol-diesel-newpower-ru.png",
+      "latencySeconds": 15.26,
+      "liters": 13.54,
+      "total": 3317.3,
+      "unitPrice": 245.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-025-tatneft-mkad-mixed-service-2019-ru.png",
+      "latencySeconds": 15.38,
+      "liters": 43.38,
+      "total": 1660.59,
+      "unitPrice": 38.28
+    },
+    {
+      "error": null,
+      "filename": "receipt-026-kedr-feodosia-95-ru.png",
+      "latencySeconds": 4.68,
+      "liters": 20.0,
+      "total": 5380.0,
+      "unitPrice": 269.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-027-lukoil-voronezh-95-ru.png",
+      "latencySeconds": 4.12,
+      "liters": 30.0,
+      "total": 2101.5,
+      "unitPrice": 70.05
+    },
+    {
+      "error": null,
+      "filename": "receipt-028-siboil-yakutsk-95-2023-ru.png",
+      "latencySeconds": 5.13,
+      "liters": 10.0,
+      "total": 622.0,
+      "unitPrice": 62.2
+    },
+    {
+      "error": null,
+      "filename": "receipt-029-lukoil-dashboard-100-2021-ru.png",
+      "latencySeconds": 6.79,
+      "liters": 43.24,
+      "total": 2529.97,
+      "unitPrice": 58.51
+    },
+    {
+      "error": null,
+      "filename": "receipt-030-yandex-zapravki-agent-95-2023-ru.png",
+      "latencySeconds": 5.3,
+      "liters": 11.0,
+      "total": 479.05,
+      "unitPrice": 43.55
+    },
+    {
+      "error": null,
+      "filename": "receipt-031-gazprom-discount-list-vs-paid-ru.png",
+      "latencySeconds": 7.39,
+      "liters": 30.0,
+      "total": 2099.4,
+      "unitPrice": 69.98
+    },
+    {
+      "error": null,
+      "filename": "receipt-032-rn-stupino-pulsar95-ru.png",
+      "latencySeconds": 7.26,
+      "liters": 20.0,
+      "total": 1463.0,
+      "unitPrice": 73.15
+    },
+    {
+      "error": null,
+      "filename": "receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg",
+      "latencySeconds": 9.06,
+      "liters": 24.69,
+      "total": 6000.0,
+      "unitPrice": 243.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg",
+      "latencySeconds": 7.87,
+      "liters": 30.61,
+      "total": 0.0,
+      "unitPrice": 0.0
+    },
+    {
+      "error": null,
+      "filename": "receipt-035-gdrive95-fuelcard-priced-ru.jpeg",
+      "latencySeconds": 6.18,
+      "liters": 70.44,
+      "total": 2747.16,
+      "unitPrice": 39.0
+    }
+  ],
+  "generated": "2026-08-26"
+}

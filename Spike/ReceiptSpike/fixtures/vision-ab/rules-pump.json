@@ -1,0 +1,69 @@
+{
+  "className" : "pump",
+  "engine" : "rules",
+  "entries" : [
+    {
+      "filename" : "pump-001.heic",
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-002-lukoil-spb-ru.png"
+    },
+    {
+      "filename" : "pump-003-kz-95-kzt.jpg"
+    },
+    {
+      "filename" : "pump-004-kz-95-kzt-tokheim.jpg",
+      "liters" : 1
+    },
+    {
+      "filename" : "pump-005-dresser-wayne-four-prices-ru.png"
+    },
+    {
+      "filename" : "pump-006-kz-adast-92-kzt.png"
+    },
+    {
+      "filename" : "pump-007-lukoil-spb-comma-decimals-ru.png"
+    },
+    {
+      "filename" : "pump-008-topaz-video-overlay-92-ru.png"
+    },
+    {
+      "filename" : "pump-009-gilbarco-zero-padded-ru.png"
+    },
+    {
+      "filename" : "pump-010-scheidt-preset-amount-ru.png"
+    },
+    {
+      "filename" : "pump-011-gilbarco-circlek-ee-zero-padded.heic",
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-012-gilbarco-circlek-ee-glare-total.heic",
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-013-dresser-wayne-ee-four-prices.heic",
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-014-dresser-wayne-ee-glare-partial.heic",
+      "liters" : 5,
+      "total" : 1
+    },
+    {
+      "filename" : "pump-015-dresser-wayne-ee-diesel.heic",
+      "liters" : 5,
+      "total" : 30.02
+    },
+    {
+      "filename" : "pump-016-wayne-ee-idle-zero.heic",
+      "liters" : 2
+    },
+    {
+      "filename" : "pump-017-wayne-ee-idle-zero-angled.heic",
+      "liters" : 2
+    }
+  ],
+  "generated" : "2026-08-26"
+}

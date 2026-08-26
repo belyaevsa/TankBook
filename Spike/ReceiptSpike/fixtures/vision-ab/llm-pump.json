@@ -1,0 +1,143 @@
+{
+  "className": "pump",
+  "engine": "llm",
+  "entries": [
+    {
+      "error": null,
+      "filename": "pump-001.heic",
+      "latencySeconds": 24.08,
+      "liters": 6.1,
+      "total": 15.522,
+      "unitPrice": 1.859
+    },
+    {
+      "error": null,
+      "filename": "pump-002-lukoil-spb-ru.png",
+      "latencySeconds": 4.96,
+      "liters": 43.61,
+      "total": 4334.83,
+      "unitPrice": 99.4
+    },
+    {
+      "error": null,
+      "filename": "pump-003-kz-95-kzt.jpg",
+      "latencySeconds": 10.51,
+      "liters": 85.25,
+      "total": 20886.3,
+      "unitPrice": 245.0
+    },
+    {
+      "error": null,
+      "filename": "pump-004-kz-95-kzt-tokheim.jpg",
+      "latencySeconds": 5.86,
+      "liters": 12.38,
+      "total": 3008.0,
+      "unitPrice": 243.0
+    },
+    {
+      "error": null,
+      "filename": "pump-005-dresser-wayne-four-prices-ru.png",
+      "latencySeconds": 8.22,
+      "liters": 87.92,
+      "total": 4621.08,
+      "unitPrice": 52.56
+    },
+    {
+      "error": null,
+      "filename": "pump-006-kz-adast-92-kzt.png",
+      "latencySeconds": 7.01,
+      "liters": 45.0,
+      "total": 10980.0,
+      "unitPrice": 244.0
+    },
+    {
+      "error": null,
+      "filename": "pump-007-lukoil-spb-comma-decimals-ru.png",
+      "latencySeconds": 7.56,
+      "liters": 60.25,
+      "total": 4593.46,
+      "unitPrice": 76.24
+    },
+    {
+      "error": null,
+      "filename": "pump-008-topaz-video-overlay-92-ru.png",
+      "latencySeconds": 4.71,
+      "liters": 20.0,
+      "total": 1098.0,
+      "unitPrice": 54.9
+    },
+    {
+      "error": null,
+      "filename": "pump-009-gilbarco-zero-padded-ru.png",
+      "latencySeconds": 10.29,
+      "liters": 400.0,
+      "total": 20380.0,
+      "unitPrice": 50.95
+    },
+    {
+      "error": null,
+      "filename": "pump-010-scheidt-preset-amount-ru.png",
+      "latencySeconds": 5.86,
+      "liters": 13.17,
+      "total": 1000.0,
+      "unitPrice": 75.95
+    },
+    {
+      "error": null,
+      "filename": "pump-011-gilbarco-circlek-ee-zero-padded.heic",
+      "latencySeconds": 5.41,
+      "liters": 58.01,
+      "total": 15.15,
+      "unitPrice": 1.789
+    },
+    {
+      "error": null,
+      "filename": "pump-012-gilbarco-circlek-ee-glare-total.heic",
+      "latencySeconds": 14.91,
+      "liters": 563.0,
+      "total": 1000.0,
+      "unitPrice": 1.789
+    },
+    {
+      "error": null,
+      "filename": "pump-013-dresser-wayne-ee-four-prices.heic",
+      "latencySeconds": 12.64,
+      "liters": null,
+      "total": null,
+      "unitPrice": null
+    },
+    {
+      "error": null,
+      "filename": "pump-014-dresser-wayne-ee-glare-partial.heic",
+      "latencySeconds": 8.55,
+      "liters": 3.92,
+      "total": 18.7,
+      "unitPrice": 4.77
+    },
+    {
+      "error": null,
+      "filename": "pump-015-dresser-wayne-ee-diesel.heic",
+      "latencySeconds": 40.13,
+      "liters": 1.589,
+      "total": 2000.0,
+      "unitPrice": 1.144
+    },
+    {
+      "error": null,
+      "filename": "pump-016-wayne-ee-idle-zero.heic",
+      "latencySeconds": 17.43,
+      "liters": 0.0,
+      "total": 0.0,
+      "unitPrice": null
+    },
+    {
+      "error": null,
+      "filename": "pump-017-wayne-ee-idle-zero-angled.heic",
+      "latencySeconds": 8.28,
+      "liters": 0.0,
+      "total": 0.0,
+      "unitPrice": 1.699
+    }
+  ],
+  "generated": "2026-08-26"
+}
