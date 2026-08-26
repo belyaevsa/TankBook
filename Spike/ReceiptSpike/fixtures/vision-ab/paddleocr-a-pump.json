@@ -1,0 +1,89 @@
+{
+  "className" : "pump",
+  "engine" : "paddleocr-a",
+  "entries" : [
+    {
+      "filename" : "pump-001.heic",
+      "latencySeconds" : 7.99,
+      "liters" : 5,
+      "total" : 9.345,
+      "unitPrice" : 1.869
+    },
+    {
+      "filename" : "pump-002-lukoil-spb-ru.png",
+      "latencySeconds" : 3.85
+    },
+    {
+      "filename" : "pump-003-kz-95-kzt.jpg",
+      "latencySeconds" : 3.22
+    },
+    {
+      "filename" : "pump-004-kz-95-kzt-tokheim.jpg",
+      "latencySeconds" : 4.63,
+      "liters" : 1
+    },
+    {
+      "filename" : "pump-005-dresser-wayne-four-prices-ru.png",
+      "latencySeconds" : 4.23
+    },
+    {
+      "filename" : "pump-006-kz-adast-92-kzt.png",
+      "latencySeconds" : 5.98
+    },
+    {
+      "filename" : "pump-007-lukoil-spb-comma-decimals-ru.png",
+      "latencySeconds" : 7.53
+    },
+    {
+      "filename" : "pump-008-topaz-video-overlay-92-ru.png",
+      "latencySeconds" : 5.39
+    },
+    {
+      "filename" : "pump-009-gilbarco-zero-padded-ru.png",
+      "latencySeconds" : 5.71
+    },
+    {
+      "filename" : "pump-010-scheidt-preset-amount-ru.png",
+      "latencySeconds" : 5.37
+    },
+    {
+      "filename" : "pump-011-gilbarco-circlek-ee-zero-padded.heic",
+      "latencySeconds" : 8.24,
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-012-gilbarco-circlek-ee-glare-total.heic",
+      "latencySeconds" : 8.6,
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-013-dresser-wayne-ee-four-prices.heic",
+      "latencySeconds" : 7.41,
+      "liters" : 5
+    },
+    {
+      "filename" : "pump-014-dresser-wayne-ee-glare-partial.heic",
+      "latencySeconds" : 7.4,
+      "liters" : 5,
+      "total" : 9.120000000000001,
+      "unitPrice" : 1.824
+    },
+    {
+      "filename" : "pump-015-dresser-wayne-ee-diesel.heic",
+      "latencySeconds" : 8.94,
+      "liters" : 5,
+      "total" : 30.02
+    },
+    {
+      "filename" : "pump-016-wayne-ee-idle-zero.heic",
+      "latencySeconds" : 8.21,
+      "liters" : 2
+    },
+    {
+      "filename" : "pump-017-wayne-ee-idle-zero-angled.heic",
+      "latencySeconds" : 8.06,
+      "liters" : 2
+    }
+  ],
+  "generated" : "2026-08-26"
+}

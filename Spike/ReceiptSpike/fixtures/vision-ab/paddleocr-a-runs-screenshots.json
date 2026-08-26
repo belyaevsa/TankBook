@@ -1,0 +1,146 @@
+{
+  "className" : "screenshots",
+  "engine" : "paddleocr-a",
+  "entries" : [
+    {
+      "filename" : "screenshot-001-gpn-email.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.56,
+          "total" : 1809.88
+        },
+        {
+          "latencySeconds" : 5.83,
+          "total" : 1809.88
+        },
+        {
+          "latencySeconds" : 5.83,
+          "total" : 1809.88
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-002-lukoil-eresept-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.83,
+          "total" : 1476
+        },
+        {
+          "latencySeconds" : 5.91,
+          "total" : 1476
+        },
+        {
+          "latencySeconds" : 5.97,
+          "total" : 1476
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-003-loyalty-app-98-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4,
+          "liters" : 35,
+          "unitPrice" : 98
+        },
+        {
+          "latencySeconds" : 3.74,
+          "liters" : 35,
+          "unitPrice" : 98
+        },
+        {
+          "latencySeconds" : 3.92,
+          "liters" : 35,
+          "unitPrice" : 98
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-004-circlek-jarvevana-ee-diesel.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.33,
+          "total" : 125.22
+        },
+        {
+          "latencySeconds" : 3.88,
+          "total" : 125.22
+        },
+        {
+          "latencySeconds" : 4.12,
+          "total" : 125.22
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-005-circlek-garliava-lt-diesel.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.43,
+          "total" : 121.18
+        },
+        {
+          "latencySeconds" : 4.06,
+          "total" : 121.18
+        },
+        {
+          "latencySeconds" : 4.33,
+          "total" : 121.18
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-006-circlek-sikupilli-ee-diesel.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.18,
+          "total" : 121.31
+        },
+        {
+          "latencySeconds" : 4.29,
+          "total" : 121.31
+        },
+        {
+          "latencySeconds" : 4.53,
+          "total" : 121.31
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-007-circlek-jarvevana-ee-diesel-jun.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.73,
+          "total" : 101.38
+        },
+        {
+          "latencySeconds" : 4.7,
+          "total" : 101.38
+        },
+        {
+          "latencySeconds" : 4.14,
+          "total" : 101.38
+        }
+      ]
+    },
+    {
+      "filename" : "screenshot-008-circlek-jugla-lv-mixed.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.91,
+          "total" : 122.99
+        },
+        {
+          "latencySeconds" : 4.89,
+          "total" : 122.99
+        },
+        {
+          "latencySeconds" : 5.42,
+          "total" : 122.99
+        }
+      ]
+    }
+  ],
+  "generated" : "2026-08-26"
+}

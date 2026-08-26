@@ -1,0 +1,12 @@
+{
+  "className" : "fiscal",
+  "engine" : "paddleocr-a",
+  "entries" : [
+    {
+      "filename" : "fiscal-002-lukoil-ru.png",
+      "latencySeconds" : 8.41,
+      "total" : 1680
+    }
+  ],
+  "generated" : "2026-08-26"
+}

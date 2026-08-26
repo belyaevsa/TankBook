@@ -1,0 +1,609 @@
+{
+  "className" : "receipts",
+  "engine" : "paddleocr-a",
+  "entries" : [
+    {
+      "filename" : "receipt-001.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 10.93,
+          "total" : 100.98,
+          "unitPrice" : 1.01
+        },
+        {
+          "latencySeconds" : 11.88,
+          "total" : 100.98,
+          "unitPrice" : 1.01
+        },
+        {
+          "latencySeconds" : 11.64,
+          "total" : 100.98,
+          "unitPrice" : 1.01
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-002-krymoil-yalta-100-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.19,
+          "total" : 19719
+        },
+        {
+          "latencySeconds" : 5.88,
+          "total" : 19719
+        },
+        {
+          "latencySeconds" : 5.85,
+          "total" : 19719
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-003-krymoil-sevastopol-diesel-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.73,
+          "total" : 5180
+        },
+        {
+          "latencySeconds" : 5.62,
+          "total" : 5180
+        },
+        {
+          "latencySeconds" : 5.84,
+          "total" : 5180
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-004-krymoil-azs166-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.44,
+          "total" : 4100
+        },
+        {
+          "latencySeconds" : 6.66,
+          "total" : 4100
+        },
+        {
+          "latencySeconds" : 6.29,
+          "total" : 4100
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-005-krymoil-azs166-95-flat-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.36,
+          "total" : 4100
+        },
+        {
+          "latencySeconds" : 6.58,
+          "total" : 4100
+        },
+        {
+          "latencySeconds" : 6.52,
+          "total" : 4100
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-006-gridyaeva-92-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 7.01,
+          "liters" : 40,
+          "total" : 7800,
+          "unitPrice" : 195
+        },
+        {
+          "latencySeconds" : 6.68,
+          "liters" : 40,
+          "total" : 7800,
+          "unitPrice" : 195
+        },
+        {
+          "latencySeconds" : 7.34,
+          "liters" : 40,
+          "total" : 7800,
+          "unitPrice" : 195
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-007-lukoil-spb-100-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 8.24,
+          "total" : 4334
+        },
+        {
+          "latencySeconds" : 6.18,
+          "total" : 4334
+        },
+        {
+          "latencySeconds" : 5.47,
+          "total" : 4334
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-008-kemerovo-95-2022-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 8.05,
+          "total" : 2385.83
+        },
+        {
+          "latencySeconds" : 7.75,
+          "total" : 2385.83
+        },
+        {
+          "latencySeconds" : 9.99,
+          "total" : 2385.83
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-009-mkad-mixed-fuel-water-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 12.52,
+          "total" : 6264
+        },
+        {
+          "latencySeconds" : 7.82,
+          "total" : 6264
+        },
+        {
+          "latencySeconds" : 11.6,
+          "total" : 6264
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-010-gazpromneft-diesel-bonus-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 14.67,
+          "total" : 3058
+        },
+        {
+          "latencySeconds" : 9.21,
+          "total" : 3058
+        },
+        {
+          "latencySeconds" : 9.3,
+          "total" : 3058
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-011-samara-diesel-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.6,
+          "total" : 4201.68
+        },
+        {
+          "latencySeconds" : 6.95,
+          "total" : 4201.68
+        },
+        {
+          "latencySeconds" : 6.83,
+          "total" : 4201.68
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-012-neftmagistral-lpg-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.4,
+          "total" : 1251
+        },
+        {
+          "latencySeconds" : 9.65,
+          "total" : 1251
+        },
+        {
+          "latencySeconds" : 8.74,
+          "total" : 1251
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-013-rn-moscow-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.83,
+          "total" : 3562.5
+        },
+        {
+          "latencySeconds" : 5.5,
+          "total" : 3562.5
+        },
+        {
+          "latencySeconds" : 5.48,
+          "total" : 3562.5
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-014-orion-penza-95-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 6.72,
+          "total" : 3000
+        },
+        {
+          "latencySeconds" : 6.38,
+          "total" : 3000
+        },
+        {
+          "latencySeconds" : 6.27,
+          "total" : 3000
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-015-kedr-simferopol-95-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.16,
+          "total" : 5380
+        },
+        {
+          "latencySeconds" : 7.68,
+          "total" : 5380
+        },
+        {
+          "latencySeconds" : 7.7,
+          "total" : 5380
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-016-rn-moscow-fuelcard-nonfiscal-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.32
+        },
+        {
+          "latencySeconds" : 7.63
+        },
+        {
+          "latencySeconds" : 8.48
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-017-tatneft-domodedovo-diesel-2020-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.94,
+          "total" : 961.8
+        },
+        {
+          "latencySeconds" : 8.8,
+          "total" : 961.8
+        },
+        {
+          "latencySeconds" : 8.08,
+          "total" : 961.8
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-018-krymoil-yalta-100-clear-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.81,
+          "total" : 19719
+        },
+        {
+          "latencySeconds" : 6.63,
+          "total" : 19719
+        },
+        {
+          "latencySeconds" : 7.09,
+          "total" : 19719
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-019-web-2018-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 7.3,
+          "total" : 3621
+        },
+        {
+          "latencySeconds" : 6.75,
+          "total" : 3621
+        },
+        {
+          "latencySeconds" : 12.41,
+          "total" : 3621
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-020-web-2020-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 9.88,
+          "total" : 2134.4
+        },
+        {
+          "latencySeconds" : 10.13,
+          "total" : 2134.4
+        },
+        {
+          "latencySeconds" : 7.49,
+          "total" : 2134.4
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-021-web-2018-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 10.65,
+          "total" : 5050
+        },
+        {
+          "latencySeconds" : 11.18,
+          "total" : 2519.81
+        },
+        {
+          "latencySeconds" : 7.51,
+          "total" : 2519.81
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-022-teboil-spb-100-2024-ru.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 20.96,
+          "liters" : 70.5,
+          "total" : 5660.45,
+          "unitPrice" : 80.29
+        },
+        {
+          "latencySeconds" : 11.5,
+          "liters" : 70.5,
+          "total" : 5660.45,
+          "unitPrice" : 80.29
+        },
+        {
+          "latencySeconds" : 8.42,
+          "liters" : 70.5,
+          "total" : 5660.45,
+          "unitPrice" : 80.29
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-023-rn-tver-fuelcard-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 8.02,
+          "total" : 1366
+        },
+        {
+          "latencySeconds" : 7.63,
+          "total" : 1366
+        },
+        {
+          "latencySeconds" : 8.02,
+          "total" : 1366
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-024-krymoil-sevastopol-diesel-newpower-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 7.07,
+          "total" : 3317.3
+        },
+        {
+          "latencySeconds" : 6.66,
+          "total" : 3317.3
+        },
+        {
+          "latencySeconds" : 6.67,
+          "total" : 3317.3
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-025-tatneft-mkad-mixed-service-2019-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 7.94,
+          "total" : 1729.87
+        },
+        {
+          "latencySeconds" : 9.26,
+          "total" : 1729.87
+        },
+        {
+          "latencySeconds" : 8.01,
+          "total" : 1729.87
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-026-kedr-feodosia-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.26,
+          "total" : 970.16
+        },
+        {
+          "latencySeconds" : 5.98,
+          "total" : 970.16
+        },
+        {
+          "latencySeconds" : 7.53,
+          "total" : 5380
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-027-lukoil-voronezh-95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 7.52,
+          "total" : 0.5
+        },
+        {
+          "latencySeconds" : 6.93,
+          "total" : 0.5
+        },
+        {
+          "latencySeconds" : 6.78,
+          "total" : 0.5
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-028-siboil-yakutsk-95-2023-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.51,
+          "total" : 622
+        },
+        {
+          "latencySeconds" : 5.38,
+          "total" : 622
+        },
+        {
+          "latencySeconds" : 5.42,
+          "total" : 622
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-029-lukoil-dashboard-100-2021-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 7.58
+        },
+        {
+          "latencySeconds" : 7.32,
+          "total" : 421.66
+        },
+        {
+          "latencySeconds" : 7.86
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-030-yandex-zapravki-agent-95-2023-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.27,
+          "total" : 479.05
+        },
+        {
+          "latencySeconds" : 6.34,
+          "total" : 479.05
+        },
+        {
+          "latencySeconds" : 6.28,
+          "total" : 479.05
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-031-gazprom-discount-list-vs-paid-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.76,
+          "total" : 2099.4
+        },
+        {
+          "latencySeconds" : 4.46,
+          "total" : 2099.4
+        },
+        {
+          "latencySeconds" : 4.76,
+          "total" : 2099.4
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-032-rn-stupino-pulsar95-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.54,
+          "total" : 1463
+        },
+        {
+          "latencySeconds" : 4.84,
+          "total" : 1463
+        },
+        {
+          "latencySeconds" : 6.95,
+          "total" : 1463
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-033-lukoil-astana-92-kzt-vat16-kz.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.3,
+          "total" : 6000
+        },
+        {
+          "latencySeconds" : 6.8,
+          "total" : 6000
+        },
+        {
+          "latencySeconds" : 6.84,
+          "total" : 6000
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 8.31
+        },
+        {
+          "latencySeconds" : 9.37
+        },
+        {
+          "latencySeconds" : 10.95
+        }
+      ]
+    },
+    {
+      "filename" : "receipt-035-gdrive95-fuelcard-priced-ru.jpeg",
+      "runs" : [
+        {
+          "latencySeconds" : 7.69,
+          "total" : 2747.16
+        },
+        {
+          "latencySeconds" : 8,
+          "total" : 2747.16
+        },
+        {
+          "latencySeconds" : 9.96,
+          "total" : 2747.16
+        }
+      ]
+    }
+  ],
+  "generated" : "2026-08-26"
+}
