@@ -43,4 +43,7 @@ internal sealed class DirectorySchemaProvider : IPayloadSchemaProvider
         => _schemas.TryGetValue(entityType, out var versions) && versions.TryGetValue(schemaVersion, out var json)
             ? json
             : null;
+
+    public int CurrentVersion
+        => _schemas.Values.SelectMany(versions => versions.Keys).DefaultIfEmpty(0).Max();
 }

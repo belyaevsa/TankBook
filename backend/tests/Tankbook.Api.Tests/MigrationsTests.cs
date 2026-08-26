@@ -55,7 +55,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(4, applied.Single());
+        Assert.Equal(5, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();

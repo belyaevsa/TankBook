@@ -59,10 +59,16 @@ public static class PostgresContainer
 
     private static async Task<PostgreSqlContainer> StartAsync()
     {
+        // max_connections is raised well above the default 100: the L2 suite runs
+        // test classes in parallel, each booting its own host and its own Npgsql
+        // pool (unique database per test), so idle pooled connections from a
+        // finished test can still count against the server limit for a while. The
+        // sync concurrency tests alone drive ~30 parallel connections.
         var container = new PostgreSqlBuilder("postgres:17-alpine")
             .WithDatabase("postgres")
             .WithUsername("postgres")
             .WithPassword("postgres")
+            .WithCommand("-c", "max_connections=500")
             .Build();
 
         await container.StartAsync();

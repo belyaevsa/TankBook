@@ -53,6 +53,9 @@ public sealed class EmbeddedPayloadSchemaProvider : IPayloadSchemaProvider
             ? json
             : null;
 
+    public int CurrentVersion
+        => _schemas.Values.SelectMany(versions => versions.Keys).DefaultIfEmpty(0).Max();
+
     private static (string EntityType, int Version) ParseResourceName(string resourceName)
     {
         // Tankbook.Api.PayloadSchemas.v1.vehicle.schema.json

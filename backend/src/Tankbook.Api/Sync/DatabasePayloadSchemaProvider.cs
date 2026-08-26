@@ -31,6 +31,9 @@ public sealed class DatabasePayloadSchemaProvider : IPayloadSchemaProvider
             ? json
             : null;
 
+    public int CurrentVersion
+        => EnsureLoaded().Values.SelectMany(versions => versions.Keys).DefaultIfEmpty(0).Max();
+
     private IReadOnlyDictionary<string, IReadOnlyDictionary<int, string>> EnsureLoaded()
     {
         if (_schemas is not null)

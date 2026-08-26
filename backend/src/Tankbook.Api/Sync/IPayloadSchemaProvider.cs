@@ -16,4 +16,12 @@ public interface IPayloadSchemaProvider
 
     /// <summary>The registered schema text for (entity_type, schema_version), or null.</summary>
     string? GetSchemaJson(string entityType, int schemaVersion);
+
+    /// <summary>
+    /// The highest schema_version registered across all entity types, or 0 when
+    /// the registry is empty. This is the "current" side of the pull response's
+    /// schemaPolicy (docs/API.md GET /sync/pull): the version clients upcast to
+    /// on read.
+    /// </summary>
+    int CurrentVersion { get; }
 }
