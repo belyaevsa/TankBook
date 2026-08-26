@@ -85,6 +85,27 @@ public static class TankbookLog
             ("More", more),
             ("DurationMs", duration.TotalMilliseconds));
 
+    /// <summary>The silent sync nudge (docs/NOTIFICATIONS.md): counts and outcome only - device ids and counts are Safe, the push token is a Never credential and stays out (hard rule 12).</summary>
+    public static void SyncNudge(
+        ILogger logger,
+        Guid accountId,
+        int candidates,
+        int delivered,
+        int invalidToken,
+        int transient,
+        int throttled,
+        bool config,
+        TimeSpan duration)
+        => Emit(logger, LogLevel.Information, "sync.nudge",
+            ("AccountId", accountId),
+            ("Candidates", candidates),
+            ("Delivered", delivered),
+            ("InvalidToken", invalidToken),
+            ("Transient", transient),
+            ("Throttled", throttled),
+            ("Config", config),
+            ("DurationMs", duration.TotalMilliseconds));
+
     public static void BlobBegin(
         ILogger logger,
         string sha256,

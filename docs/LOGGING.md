@@ -54,6 +54,7 @@ Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one 
 | `auth.refresh` | outcome, rotation id, `reuse_detected: true` when a rotated token is replayed – this one is a **security event**, log at WARN and include deviceId |
 | `sync.push` | batchSize, accepted, conflicts, rejected, `assignedScnRange: [from,to]`, durationMs; and a compact per-item array of `{id, entityType, schemaVersion, outcome, errorCode?, pointer?}` – **ids and outcomes, never values** |
 | `sync.pull` | sinceScn, returned, nextSince, more, durationMs |
+| `sync.nudge` | accountId, candidates, delivered, invalidToken, transient, throttled, config, durationMs – counts and outcome only; **never the push token** (a Never credential) |
 | `blob.begin` / `blob.commit` | sha256, sizeBytes, contentType, `dedupe: hit\|miss`, quotaUsedPct |
 | `blob.get` | sha256, `presignTtlSec` – never the signed URL |
 | `llm.extract` | kind, quotaBefore/After, model, durationMs, outcome. **Never the image, never the extracted values.** |

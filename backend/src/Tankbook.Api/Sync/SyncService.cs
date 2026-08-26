@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.Json;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Notifications;
 
 namespace Tankbook.Api.Sync;
 
@@ -32,6 +33,7 @@ public sealed class SyncService
     private readonly SyncRepository _repository;
     private readonly PayloadValidator _validator;
     private readonly IPayloadSchemaProvider _schemas;
+    private readonly SyncNudgeService _nudge;
     private readonly ILogger<SyncService> _logger;
     private readonly TimeProvider _time;
 
@@ -39,12 +41,14 @@ public sealed class SyncService
         SyncRepository repository,
         PayloadValidator validator,
         IPayloadSchemaProvider schemas,
+        SyncNudgeService nudge,
         ILogger<SyncService> logger,
         TimeProvider time)
     {
         _repository = repository;
         _validator = validator;
         _schemas = schemas;
+        _nudge = nudge;
         _logger = logger;
         _time = time;
     }
@@ -129,6 +133,15 @@ public sealed class SyncService
             assigned.Count == 0 ? null : (assigned.Min(), assigned.Max()),
             stopwatch.Elapsed,
             items);
+
+        // The silent sync nudge (docs/NOTIFICATIONS.md): after a push that wrote
+        // at least one record, the account's other devices get a "pull" wakeup.
+        // Best-effort and out of band - the service swallows every failure, so a
+        // dead provider or a throttled device can never change the push result.
+        if (assigned.Count > 0)
+        {
+            await _nudge.NudgeSiblingsAsync(accountId, deviceId, config: false, cancellationToken);
+        }
 
         return new PushOutcome(PushStatus.Ok, results);
     }
