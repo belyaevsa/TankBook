@@ -50,7 +50,8 @@ enum DebugLaunch {
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
         "paywall": .paywall,
-        "importWizard": .importWizard
+        "importWizard": .importWizard,
+        "flaggedEntries": .flaggedEntries
     ]
 }
 #endif

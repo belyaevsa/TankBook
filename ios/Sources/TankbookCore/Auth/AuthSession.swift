@@ -14,19 +14,25 @@ public struct AuthSession: Sendable, Equatable {
     public let accountId: String
     public let deviceId: String
     public let provider: AuthProvider
+    /// Display identity for the Settings account card ("driver@icloud.com").
+    /// Nil for a hidden Apple private-relay identity (the provider never handed
+    /// an email), in which case the UI falls back to the provider name.
+    public let email: String?
 
     public init(
         accessToken: String,
         refreshToken: String,
         accountId: String,
         deviceId: String,
-        provider: AuthProvider
+        provider: AuthProvider,
+        email: String? = nil
     ) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.accountId = accountId
         self.deviceId = deviceId
         self.provider = provider
+        self.email = email
     }
 
     /// A copy with a rotated token pair and every other field unchanged (the
@@ -37,7 +43,8 @@ public struct AuthSession: Sendable, Equatable {
             refreshToken: refreshToken,
             accountId: accountId,
             deviceId: deviceId,
-            provider: provider
+            provider: provider,
+            email: email
         )
     }
 }

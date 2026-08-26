@@ -119,19 +119,39 @@ final class TankbookShellUITests: XCTestCase {
         app.buttons["settingsButton"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
 
-        // Settings -> About -> back
-        app.buttons["aboutButton"].tap()
-        XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 5))
-        app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+        // The real Settings screen (P4.9b) is taller than the P1.1 placeholder:
+        // About and Recently deleted sit below the fold, so scroll them into
+        // reach before tapping.
+        let scroll = app.scrollViews.firstMatch
+        XCTAssertTrue(scroll.waitForExistence(timeout: 5))
 
-        // Settings -> Recently deleted -> back (P1.7 replaced the placeholder
-        // link with the real screen; Restore works in place on that screen and
-        // is covered by RecentlyDeletedUITests).
-        app.buttons["recentlyDeletedButton"].tap()
+        // Settings -> Recently deleted -> back
+        let recentlyDeleted = app.buttons["settingsRecentlyDeletedRow"]
+        scrollTo(recentlyDeleted, in: scroll)
+        recentlyDeleted.tap()
         XCTAssertTrue(app.navigationBars["Recently deleted"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+
+        // Settings -> About -> back
+        let about = app.buttons["settingsAboutRow"]
+        scrollTo(about, in: scroll)
+        about.tap()
+        XCTAssertTrue(app.navigationBars["About"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+    }
+
+    /// Scrolls the Settings list until `element` is hittable (the same
+    /// defensive pattern as `ConfirmManualUITests`: a tap on a covered row
+    /// misses, and the failure reads like a missing element).
+    private func scrollTo(_ element: XCUIElement, in scroll: XCUIElement, maxSwipes: Int = 6) {
+        var swipes = 0
+        while !element.isHittable && swipes < maxSwipes {
+            scroll.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(element.isHittable, "\(element) is on screen but not reachable")
     }
 
     // MARK: - Sheet dismissal (explicit close)

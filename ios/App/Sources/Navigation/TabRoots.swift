@@ -28,6 +28,9 @@ struct AppRootView: View {
     @State private var reminderCompletionSession = ReminderCompletionSession()
     /// Owns local-notification arming, cancellation and permission (P3.6).
     @State private var notificationCoordinator = ReminderNotificationCoordinator()
+    /// The app's single sync surface (P4.9b): the Settings status, "Sync now"
+    /// trigger and the derived flagged count all read from here.
+    @State private var sync = AppSync()
     @State private var tabSelection: AppTab
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
@@ -135,6 +138,7 @@ struct AppRootView: View {
         .environment(expenseEntrySession)
         .environment(reminderCompletionSession)
         .environment(notificationCoordinator)
+        .environment(sync)
         .task { runPurgeIfNeeded() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { runPurgeIfNeeded() }

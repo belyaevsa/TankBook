@@ -34,6 +34,9 @@ enum Route: Hashable {
     case accountDevices
     case paywall
     case importWizard
+    /// The Log filtered to flagged entries (docs/SYNC.md -> Settings shows a
+    /// count and a link only; resolution lives where the data lives).
+    case flaggedEntries
 
     /// Navigation title, resolved through the String Catalog (EN + RU).
     var title: LocalizedStringKey {
@@ -51,6 +54,7 @@ enum Route: Hashable {
         case .accountDevices: "Account & devices"
         case .paywall: "Tankbook Pro"
         case .importWizard: "Import"
+        case .flaggedEntries: "Needs a look"
         }
     }
 }

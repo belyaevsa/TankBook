@@ -64,7 +64,8 @@ enum SignInTestSeed {
                 refreshToken: "stub-refresh-token",
                 accountId: UUID().uuidString,
                 deviceId: UUID().uuidString,
-                provider: identity.provider
+                provider: identity.provider,
+                email: identity.email
             )
         }
 

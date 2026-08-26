@@ -55,7 +55,8 @@ public struct KeychainSessionStore: SessionStore {
             refreshToken: refreshToken,
             accountId: metadata.accountId,
             deviceId: deviceId,
-            provider: metadata.provider
+            provider: metadata.provider,
+            email: metadata.email
         )
     }
 
@@ -63,7 +64,7 @@ public struct KeychainSessionStore: SessionStore {
         write(Account.accessToken, session.accessToken)
         write(Account.refreshToken, session.refreshToken)
         write(Account.deviceId, session.deviceId)
-        let metadata = SessionMetadata(accountId: session.accountId, provider: session.provider)
+        let metadata = SessionMetadata(accountId: session.accountId, provider: session.provider, email: session.email)
         if let data = try? JSONEncoder().encode(metadata) {
             writeData(Account.metadata, data)
         }
@@ -145,5 +146,6 @@ public struct KeychainSessionStore: SessionStore {
     private struct SessionMetadata: Codable {
         let accountId: String
         let provider: AuthProvider
+        let email: String?
     }
 }

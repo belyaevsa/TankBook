@@ -25,7 +25,7 @@ struct DestinationView: View {
     @ViewBuilder
     private var content: some View {
         switch route {
-        case .settings: SettingsContent()
+        case .settings: SettingsView()
         case .about: LeafContent()
         case .reminders: RemindersView()
         case .reminderForm(let reminderID): ReminderFormView(reminderID: reminderID)
@@ -38,6 +38,7 @@ struct DestinationView: View {
         case .accountDevices: LeafContent()
         case .paywall: LeafContent()
         case .importWizard: LeafContent()
+        case .flaggedEntries: FlaggedEntriesView()
         }
     }
 }
@@ -156,30 +157,6 @@ struct ModalDestinationView: View {
 struct LeafContent: View {
     var body: some View {
         Color.clear
-    }
-}
-
-private struct SettingsContent: View {
-    @State private var showsSignIn = false
-
-    var body: some View {
-        List {
-            Button {
-                showsSignIn = true
-            } label: {
-                Text("Sign in to sync")
-            }
-            .accessibilityIdentifier("settingsSignInButton")
-
-            NavigationLink("About", value: Route.about)
-                .accessibilityIdentifier("aboutButton")
-
-            NavigationLink("Recently deleted", value: Route.recentlyDeleted)
-                .accessibilityIdentifier("recentlyDeletedButton")
-        }
-        .sheet(isPresented: $showsSignIn) {
-            SignInFlowHost()
-        }
     }
 }
 

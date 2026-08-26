@@ -238,6 +238,24 @@ capture P4.4-sign-in-ru           ru -presentScreen signIn
 capture P4.4-wrong-provider       en -presentScreen signIn -signInWrongProvider
 capture P4.4-wrong-provider-ru    ru -presentScreen signIn -signInWrongProvider
 
+# P4.9b: the Settings sync surface, six states (guest, synced, pending, flagged,
+# revoked, quota). The status row is reassurance and never turns amber with age;
+# the flagged row is a derived count and a link only (hard rule 8). RU is where
+# "Waiting to sync · 5 changes" and "2 entries need a look" overflow worst - RU
+# runs 20-30% longer and short strings expand.
+capture P4.9b-settings-guest      en -presentScreen settings -seedSettingsGuest
+capture P4.9b-settings-guest-ru   ru -presentScreen settings -seedSettingsGuest
+capture P4.9b-settings-synced     en -presentScreen settings -seedSettingsSynced
+capture P4.9b-settings-synced-ru  ru -presentScreen settings -seedSettingsSynced
+capture P4.9b-settings-pending    en -presentScreen settings -seedSettingsPending
+capture P4.9b-settings-pending-ru ru -presentScreen settings -seedSettingsPending
+capture P4.9b-settings-flagged    en -presentScreen settings -seedSettingsFlagged
+capture P4.9b-settings-flagged-ru ru -presentScreen settings -seedSettingsFlagged
+capture P4.9b-settings-revoked    en -presentScreen settings -seedSettingsRevoked
+capture P4.9b-settings-revoked-ru ru -presentScreen settings -seedSettingsRevoked
+capture P4.9b-settings-quota      en -presentScreen settings -seedSettingsQuota
+capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
