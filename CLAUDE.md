@@ -18,6 +18,7 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/CONFIG.md` | Remote config: the three precedence layers, `apiBaseUrl` guardrails and auto-revert, delivery by poll with push as a hint | Adding a remote flag, changing endpoints, anything that must ship without an App Store release |
 | `docs/SECURITY.md` | Threat model, where every secret lives (Keychain classes, file protection, server secret store), transport, enforcement checks | Touching auth, tokens, storage of anything sensitive, or adding a dependency that wants a key |
 | `docs/NOTIFICATIONS.md` | Notification delivery (local vs silent APNs), scenario catalog, multi-device cancellation, permission timing | Any notification, background-refresh, or push work |
+| `docs/EXTRACTION.md` | The recognition pipeline: image -> OCR -> role assignment -> cross-check -> pre-fill; the four cross-check outcomes; named failure modes with their fixtures; where a trained model does and does not belong | Any OCR, parser, confirm-prefill or capture-accuracy work |
 | `docs/SCHEMA.md` | Entities, fields, naming (canonical across Swift/C#/SQL), validation invariants, consumption math, backup format, reference data services, import mappings | Any data model, algorithm, or persistence work |
 | `docs/SYNC.md` | Sync protocol, conflict scenarios S1–S8, blob pipeline, encryption stance (decided), offline behavior | Any sync, backend-storage, or attachment work |
 | `docs/API.md` | The complete HTTP contract: auth, sync, blobs, reference data, feedback, LLM gateway, account | Any endpoint work, client networking; changes here = breaking-change review |
@@ -60,7 +61,7 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 ## Repo layout & commands
 
 ```
-docs/                    # all 13 spec documents (see map above)
+docs/                    # all 14 spec documents (see map above)
 design/screens/          # .dc.html artboards + canvas.json (edit → re-seed canvas per session notes)
 Spike/ReceiptSpike/      # Swift package: OCR harness. Build/test:
                          #   cd Spike/ReceiptSpike && swift test
