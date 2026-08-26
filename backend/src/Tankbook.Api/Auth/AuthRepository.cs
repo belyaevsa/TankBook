@@ -288,6 +288,31 @@ public sealed class AuthRepository
     }
 
     /// <summary>
+    /// Revokes every refresh chain belonging to an account (docs/API.md
+    /// DELETE /account). After account deletion every device must stop refreshing
+    /// too, not just stop syncing; this revokes all of them in one statement.
+    /// Deletes nothing - the refresh-token rows remain, marked revoked.
+    /// </summary>
+    public async Task RevokeAccountAsync(Guid accountId, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            await _db.ExecuteAsync(new CommandDefinition(
+                "UPDATE refresh_tokens SET revoked_at = now() WHERE account_id = @AccountId AND revoked_at IS NULL",
+                new { AccountId = accountId },
+                cancellationToken: cancellationToken));
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>
     /// Revokes every refresh chain belonging to a device (docs/API.md
     /// DELETE /auth/session). Deletes nothing - local data stays local.
     /// </summary>
