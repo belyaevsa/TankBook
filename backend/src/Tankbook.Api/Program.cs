@@ -89,6 +89,8 @@ builder.Services.AddSingleton<PayloadTransformEngine>();
 builder.Services.AddScoped<IPayloadSchemaProvider, DatabasePayloadSchemaProvider>();
 builder.Services.AddScoped<PayloadValidator>();
 builder.Services.AddScoped<PayloadBackfillService>();
+builder.Services.AddScoped<SyncRepository>();
+builder.Services.AddScoped<SyncService>();
 
 // Remote config (docs/CONFIG.md). The signer is a singleton built from the
 // Config:SigningKey secret (empty placeholder in appsettings.json, dev default
@@ -224,6 +226,12 @@ var auth = v1.MapGroup("/auth");
 auth.MapPost("/session", AuthEndpoints.CreateSession);
 auth.MapPost("/refresh", AuthEndpoints.Refresh);
 auth.MapDelete("/session", AuthEndpoints.SignOut);
+
+// Sync (docs/API.md Sync, docs/SYNC.md): push and pull over the record stream.
+// Both bearer endpoints; fetching the latest data is pulling from 0.
+var sync = v1.MapGroup("/sync");
+sync.MapGet("/pull", SyncEndpoints.Pull);
+sync.MapPost("/push", SyncEndpoints.Push);
 
 app.Run();
 

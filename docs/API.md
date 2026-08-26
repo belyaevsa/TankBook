@@ -42,7 +42,7 @@ Strictly SCN-ordered, paginated; the client persists `nextSince` per device only
 → 426 upgrade_required   // whole batch: client schemaVersion < server minSupported.
                          // PULL still works – never lock a user out of their own data.
 ```
-Per-item outcomes; `conflict` returns the server's current record for client-side LWW merge + re-push (SYNC.md S1/S6). Payloads with `clientUpdatedAt` >24h in the future are clamped and flagged in the result.
+Per-item outcomes; `conflict` returns the server's current record for client-side LWW merge + re-push (SYNC.md S1/S6). Payloads with `clientUpdatedAt` >24h in the future are clamped to server time and the accepted result carries `"clamped": true` so the client can warn.
 
 **Payload validation** (per-item `rejected` codes, full contract in `SYNC.md` → "Payload contract and versioning"): `payload_invalid` (not an object, >256 KB, bad entityType), `schema_version_unsupported` (newer than the server knows – the *server* needs updating, and the message says so), `payload_schema_violation` (fails the registered JSON Schema; `pointer` names the offending field). A **known** entityType is strictly validated; an **unknown** one with a well-formed envelope is accepted unvalidated, which is what keeps the entity set open for older servers.
 

@@ -18,10 +18,13 @@ public sealed partial class PayloadValidator
     public const int MaxPayloadBytes = 256 * 1024; // 256 KB, docs/SYNC.md
     public const int MaxEntityTypeLength = 64;     // chars, docs/SYNC.md
 
+    /// <summary>The default minimum schema_version the server still accepts writes for.</summary>
+    public const int DefaultMinSupportedVersion = 1;
+
     private readonly IPayloadSchemaProvider _schemas;
     private readonly int _minSupportedVersion;
 
-    public PayloadValidator(IPayloadSchemaProvider schemas, int minSupportedVersion = 1)
+    public PayloadValidator(IPayloadSchemaProvider schemas, int minSupportedVersion = DefaultMinSupportedVersion)
     {
         _schemas = schemas;
         _minSupportedVersion = minSupportedVersion;

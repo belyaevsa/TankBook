@@ -16,7 +16,8 @@ The server stores *records*, not domain tables – it never interprets entries, 
 accounts   (id uuid pk, apple_sub text unique, google_sub text unique, email text not null,
             created_at timestamptz, deleted_at timestamptz)
 devices    (id uuid pk, account_id fk, name text, platform text, last_pull_scn bigint,
-            last_seen_at timestamptz, push_token text null)  -- APNs/FCM token, NOTIFICATIONS.md
+            last_seen_at timestamptz, push_token text null,   -- APNs/FCM token, NOTIFICATIONS.md
+            revoked_at timestamptz null)                       -- set by revoke-device; next pull gets 410
 records    (account_id fk, id uuid, entity_type text,        -- "vehicle" | "fillup" | …
             schema_version int not null,                     -- payload contract version (see below)
             scn bigint,                                      -- per-account monotonic, assigned on write
@@ -113,7 +114,7 @@ GET  /sync/pull?since=SCN&limit=500
 
 Device identity is carried by the bearer token (assigned at `POST /auth/session` – `API.md` is authoritative for the HTTP surface); no explicit deviceId parameters.
 
-- **Push:** for each change, if `baseScn` matches the server's current SCN for that id (or the record is new), the server writes it and assigns the next SCN. Otherwise → `conflict` with the current server record; the client merges and re-pushes with the new base. First-writer-wins at the transport level; the *merge* decides content.
+- **Push:** for each change, if `baseScn` matches the server's current SCN for that id (or the record is new), the server writes it and assigns the next SCN. Otherwise → `conflict` with the current server record; the client merges and re-pushes with the new base. First-writer-wins at the transport level; the *merge* decides content. **Idempotent replay:** a `baseScn` of 0 against an id the server already holds (a new-record push whose response the client never received) returns the same accepted outcome with the record's existing SCN - it never writes a second row or allocates a second SCN. This is what makes the endpoints idempotent "by id + baseScn".
 - **Pull:** strictly ordered by SCN, paginated, cursor stored per device (`last_pull_scn`). A device that was offline for a year just replays the stream. Fresh install + sign-in = pull from 0 (this IS restore).
 - Sync cycle: pull → merge → push, triggered on app foreground, after every local write (debounced), and by push notification nudge (silent APNs "there's news" – no content in the push).
 
