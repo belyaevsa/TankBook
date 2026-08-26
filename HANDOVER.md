@@ -1,7 +1,27 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-26, with Phase 3 complete. Read this first, then `CLAUDE.md` for the rules and
-`docs/TASKS.md` for the backlog with live status marks.*
+*Rewritten 2026-08-26, with Phase 3 complete and Phase 4 under way. Read this first, then
+`CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+
+## Start here (paste this to open a new session)
+
+> Read `HANDOVER.md`, then `CLAUDE.md`, then `docs/TASKS.md`. You are orchestrating opencode agents
+> to build this app. Briefs go in `agents/briefs/<task-id>.md` **before** dispatch; read that
+> folder's `README.md` first. Fully qualify the model: `deepseek/deepseek-v4-pro` for
+> architecture, algorithms and security, `deepseek/deepseek-v4-flash` for artboard-driven screens,
+> `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
+>
+> Non-negotiables, all learned the hard way: **verify every agent's work yourself before
+> committing** - re-run `swift build`, `swift test`, `xcodebuild test`, `swiftlint` and, for
+> backend work, `dotnet build/test/format`, judged by **exit code**, and name the **simulator**
+> you ran on. **Mutation-check the load-bearing invariant of every task**: break it, confirm a test
+> fails, restore byte-for-byte. **Open every screenshot yourself, EN and RU** - agents have no
+> image input. **Measure before you fix** a failing test; instrument an assertion rather than
+> guessing at a cause. Never `pgrep -f` for a build. One task = one verified commit.
+>
+> **Next: P4.5** (the iOS sync client and the S1-S9 scenario suite) - the endpoints and the local
+> exactness it needs are already merged. **Read P4.12 first**: the cloud vision model reads pump
+> displays the rules parser cannot, and that changes what the gateway is for.
 
 ## What this project is
 
@@ -20,8 +40,9 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 554 unit tests, 112 UI tests, 0 failures**, `swiftlint lint` exit **0** from the repo
-  root, localization gate exit **0** at 375 keys / 100% RU. **Backend: 134 tests.**
+- **iOS: 581 unit tests, 115 UI tests** (113 passing; the two failures are the device-specific
+  `ConfirmManual` pair below), `swiftlint lint` exit **0**, localization gate exit **0** at 413
+  keys / 100% RU. **Backend: 155 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
@@ -36,7 +57,7 @@ Verified by running it, not by assertion:
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
-| **P4** | Not started. P4.10 (LLM gateway server) and P4.11 (`Date` round-trip) are filed with their reasoning |
+| **P4** | **Under way.** `[x]` P4.1 auth (rotation + reuse revocation), `[x]` P4.2 sync push/pull + SCN, `[x]` P4.4 Sign in / Keychain / J11a, `[x]` P4.11 `Date` round-trip. **Next: P4.5** (iOS sync client). P4.3, P4.6-P4.10, P4.12 open |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -53,35 +74,37 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-**Phase 3 is closed.** The next phase is **P4 · Account, sync, blobs**, which is the join point
-between the app and the backend and the largest single step in the roadmap: auth (P4.1), sync
-push/pull with SCN (P4.2), blobs (P4.3), the iOS sync client with the S1-S9 scenario suite (P4.5),
-restore-from-zero (P4.7). `docs/PHASES.md` carries its exit gate; `docs/SYNC.md` and `docs/API.md`
-are the authorities.
+**P4.5 - the iOS sync client** is the next real step: the dirty queue, the pull/merge/push loop,
+domain revalidation after merge, **field-level merge for `Vehicle`** (every other entity stays
+record-level LWW), and the **L3 scenario suite - one deterministic test per S1-S9**. Everything it
+needs is merged: the endpoints (P4.1, P4.2) and the local exactness it leans on (P4.11).
 
-Before starting P4, two of its own tasks are already filed and worth reading:
+**Read P4.12 before designing P4.10.** A first probe of `deepseek/deepseek-v4-flash-vision-exp`
+(4-7 s per image) changes what the gateway is for:
 
-- **P4.10** - the LLM gateway server. It is the **only** model-assisted extraction path left after
-  P2.8 was cut, and the only one available to Russian receipts. Its device-side contract (a 3 s
-  budget, corpus-gated compression) is normative in `API.md`. Note it depends on **P4.1** for
-  bearer auth, which does not exist yet.
-- **P4.11** - `Date` does not round-trip exactly through persistence (one ulp on `createdAt` /
-  `updatedAt`). Harmless today because the drift is idempotent, but sync's LWW ordering and the
-  S1-S8 scenarios all lean on "a record read back equals the record written", which is currently
-  false. Fix it **before** the sync client, not after.
+- on **pump displays**, where the rules parser scores **0/30**, it read **9 of 12 fields** exactly,
+  including `pump-004` - the fixture where Vision returns a **wrong digit at confidence 1.00**;
+- its two failures are the corpus's own documented traps and **both pass an arithmetic
+  cross-check**: `pump-005` lost a decimal separator (5.256 / 462.08, a clean factor-of-ten shift)
+  and `receipt-035` **swapped** volume and price (`70.44 X 39.000` read as 70.44 L).
 
-Smaller work still open, none of it blocking:
+So the model is strongest exactly where the parser is blind, and its failure modes are silent. **A
+confident swap is worse than a nil** (hard rule 13): the gateway should cross-check or suggest, not
+trust. Run the full corpus through it with the existing scorer first - that is P4.12.
 
-1. **The `headlight` cyan question, now with five instances** ("Add line item", the verify
-   magnifier, Home's empty states, "Open shelf", "New reminder"). `docs/DESIGN.md` says cyan
-   encodes *electric*; the app uses it as the generic interactive colour. One decision, not five.
-2. **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (the Fuel row offers fuels the car
-   cannot burn), **P1.13** (the Confirm sheet's odometer renders ungrouped),
-   **P2.9/P2.10/P2.11** (three-decimal volumes, KZT detection, mixed-script OCR).
-3. **Notification tap does not deep-link to Reminders** (P3.6 left it deliberately; the delegate
-   only handles foreground presentation).
-4. **P2.4's mixed-receipt gate** still needs more than two fixtures to be a percentage rather than
-   arithmetic.
+Also open, none of it blocking:
+
+1. **P4.3** blobs, **P4.6** attachment sync, **P4.7** restore end-to-end, **P4.8** silent APNs,
+   **P4.9** Settings account states, **P4.10** the gateway server.
+2. **Google sign-in needs the Google SDK** - the button exists per the artboard and returns a
+   next-step error (P4.4 left it deliberately).
+3. **The `headlight` cyan question, five instances.** `docs/DESIGN.md` says cyan encodes
+   *electric*; the app uses it as the generic interactive colour. One decision, not five.
+4. **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (fuels the car cannot burn),
+   **P1.13** (Confirm sheet's odometer ungrouped), **P2.9/P2.10/P2.11** (three-decimal volumes,
+   KZT detection, mixed-script OCR). **P2.9 now has two fixtures** and is the best-evidenced of
+   them.
+5. **Notification tap does not deep-link to Reminders** (P3.6, deliberate).
 
 ## What the P3 sessions cost, and what they proved
 
@@ -171,9 +194,33 @@ immediately. P3.6 was briefed the same way up front: the notification **plan** i
 core and `UNUserNotificationCenter` is an injected adapter, which is the only reason "exactly one
 overdue follow-up, never a nag loop" could be proved **as a loop**.
 
+## The P4 session so far, and the one new lesson
+
+Four tasks merged, each mutation-checked on the rule it exists for:
+
+| Task | The mutation that proves it |
+|---|---|
+| **P4.1** auth | rejecting a reused refresh token **without revoking its chain** fails 3 of 4 rotation tests |
+| **P4.2** sync | advancing `nextSince` **one past** the last returned record fails the no-skip test |
+| **P4.4** sign-in | bypassing `HostAllowlist` fails the off-allowlist test, which also proves the token was **never fetched** |
+| **P4.11** dates | leaving the **writer** on the old epoch, and converting **twice**, each fail their tests |
+
+### A fifth way a dispatch dies: "database is locked"
+
+Launching two agents in the same instant kills one - opencode's own local store cannot take
+concurrent starts. **Stagger dispatches by ~a minute.** Like the other four, it reports `EXITED`;
+the tell is a tiny log containing that string.
+
+### Two tracks that cannot collide
+
+`ios/` and `backend/` are different toolchains, different test runners and different files, so an
+iOS agent and a backend agent run in parallel with no simulator contention and no merge conflicts.
+P4.1+P4.11 and P4.2+P4.4 were run that way. **Two agents in the same tier will collide** (P3.2 and
+P3.3 both rewrote one view); two agents across tiers do not.
+
 ## The corpus – the most valuable artefact in the repo
 
-`Spike/ReceiptSpike/fixtures/`: **34 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
+`Spike/ReceiptSpike/fixtures/`: **35 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
 fiscal PDFs**, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
 bilingual, a kofd.kz QR, a money-first fill) and `receipt-034` (a B2B contract fill printing
 `30.61 X 0.00` - a zero means "not printed", never "free", and it found two real parser bugs).
@@ -183,13 +230,23 @@ measured, so the parser could have lost 16 fields with CI green. 2018–2026, RU
 
 | class | score | note |
 |---|---|---|
-| receipts | **45/93 (48.4%)** | every miss is a parsing bug, not an OCR one |
+| receipts | **45/96 (46.9%)** | every miss is a parsing bug, not an OCR one |
 | pump | **0/30** | ten devices, six manufacturers. This zero is why P2.7 ships off |
 | fiscal | 0/3 | only one of the three rows is an OCR-scorable image |
 | screenshots | 6/9 (66.7%) | app screenshots are the easiest input that exists |
 
 Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dump-text` to debug).
 **OCR is not the bottleneck** – Vision reads these at confidence 1.00 and the parser still misses.
+
+### `receipt-035` proved operand position carries no information
+
+Same corporate fuel card as `receipt-034`, one printing a price and one not (contract pricing). And
+the operand order is **reversed** against `receipt-033`: volume first there (`24.690 X 243.00`),
+volume second here (`70.44 X 39.000`). Same country, same year, both fuel cards.
+
+What survives the flip is the **decimal count** - three on the volume, two on the price, in both.
+That is now the strongest evidence for **P2.9**, and it is the signal the cloud vision model
+ignored when it swapped this receipt.
 
 ### What the corpus proved, that no amount of design discussion would have
 
