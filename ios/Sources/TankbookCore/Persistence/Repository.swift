@@ -58,7 +58,9 @@ public struct TankbookRepository {
 extension TankbookRepository {
     public func upsertVehicle(_ vehicle: Vehicle, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try VehicleRow(vehicle: vehicle, syncState: syncState).save(db)
+            var row = VehicleRow(vehicle: vehicle, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.vehicle, id: vehicle.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -121,7 +123,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertFillUp(_ fillUp: FillUp, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try FillUpRow(fillUp: fillUp, syncState: syncState).save(db)
+            var row = FillUpRow(fillUp: fillUp, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.fillUp, id: fillUp.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -149,7 +153,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertChargeSession(_ chargeSession: ChargeSession, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try ChargeSessionRow(chargeSession: chargeSession, syncState: syncState).save(db)
+            var row = ChargeSessionRow(chargeSession: chargeSession, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.chargeSession, id: chargeSession.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -204,7 +210,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertExpense(_ expense: Expense, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try ExpenseRow(expense: expense, syncState: syncState).save(db)
+            var row = ExpenseRow(expense: expense, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.expense, id: expense.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -251,7 +259,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertReminder(_ reminder: Reminder, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try ReminderRow(reminder: reminder, syncState: syncState).save(db)
+            var row = ReminderRow(reminder: reminder, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.reminder, id: reminder.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -279,7 +289,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertStation(_ station: Station, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try StationRow(station: station, syncState: syncState).save(db)
+            var row = StationRow(station: station, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.station, id: station.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -310,7 +322,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertTariff(_ tariff: Tariff, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try TariffRow(tariff: tariff, syncState: syncState).save(db)
+            var row = TariffRow(tariff: tariff, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.tariff, id: tariff.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -341,7 +355,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertTireSet(_ tireSet: TireSet, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try TireSetRow(tireSet: tireSet, syncState: syncState).save(db)
+            var row = TireSetRow(tireSet: tireSet, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.tireSet, id: tireSet.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -369,7 +385,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertAttachment(_ attachment: Attachment, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try AttachmentRow(attachment: attachment, syncState: syncState).save(db)
+            var row = AttachmentRow(attachment: attachment, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.attachment, id: attachment.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -400,7 +418,9 @@ extension TankbookRepository {
 extension TankbookRepository {
     public func upsertPreferences(_ preferences: Preferences, syncState: SyncState = .dirty) throws {
         try database.write { db in
-            try PreferencesRow(preferences: preferences, syncState: syncState).save(db)
+            var row = PreferencesRow(preferences: preferences, syncState: syncState)
+            row.syncScn = try preservingScn(syncState, table: TankbookSchema.preferences, id: preferences.id, in: db)
+            try row.save(db)
         }
     }
 
@@ -553,78 +573,20 @@ extension TankbookRepository {
     }
 }
 
-// MARK: - Recently deleted (P1.7)
-
-extension TankbookRepository {
-    /// All tombstoned entries across the entry tables, newest deletion first -
-    /// the Recently deleted screen's data (hard rule 8: nothing lost silently;
-    /// every tombstone lives here for the 30-day window). Each row knows what
-    /// it was (the entry is intact), when it was deleted and how long it has
-    /// left. `deletedOnDevice` is nil - the real device attribution arrives
-    /// with sync (P4); the app target fakes it for fixtures.
-    public func deletedEntries() throws -> [DeletedEntry] {
-        try database.read { db in
-            var result: [DeletedEntry] = []
-            let predicate = Column("deletedAt") != nil
-
-            let fills: [DeletedEntry] = try FillUpRow
-                .filter(predicate).fetchAll(db)
-                .compactMap { $0.fillUp.deletedAt != nil ? DeletedEntry(entry: $0.fillUp) : nil }
-            result.append(contentsOf: fills)
-
-            let charges: [DeletedEntry] = try ChargeSessionRow
-                .filter(predicate).fetchAll(db)
-                .compactMap { $0.chargeSession.deletedAt != nil ? DeletedEntry(entry: $0.chargeSession) : nil }
-            result.append(contentsOf: charges)
-
-            let serviceRows = try ServiceRecordRow.filter(predicate).fetchAll(db)
-            let services: [DeletedEntry] = serviceRows
-                .compactMap { $0.service.deletedAt != nil ? DeletedEntry(entry: $0.service) : nil }
-            result.append(contentsOf: services)
-
-            let expenses: [DeletedEntry] = try ExpenseRow
-                .filter(predicate).fetchAll(db)
-                .compactMap { $0.expense.deletedAt != nil ? DeletedEntry(entry: $0.expense) : nil }
-            result.append(contentsOf: expenses)
-
-            return result.sorted { ($0.deletedAt, $0.entry.date) > ($1.deletedAt, $1.entry.date) }
-        }
-    }
-
-    /// Restores any tombstoned entry - the screen's Restore button (hard rule
-    /// 8: restoring clears the tombstone and the entry re-enters the Log and
-    /// the statistics, because stats are derived and the next recompute sees
-    /// the live row again - docs/SCHEMA.md, Recalculation on edit). Returns
-    /// true when a tombstone was found and restored.
-    @discardableResult
-    public func restoreEntry(id: UUID) throws -> Bool {
-        try database.write { db in
-            let stamp = Date().timeIntervalSinceReferenceDate
-            for table in TankbookSchema.entryTables {
-                try db.execute(sql: """
-                    UPDATE \(table)
-                    SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty', syncScn = NULL
-                    WHERE id = ? AND deletedAt IS NOT NULL
-                    """, arguments: [stamp, id.uuidString])
-                if db.changesCount > 0 { return true }
-            }
-            return false
-        }
-    }
-
-    /// Permanently removes EVERY tombstone regardless of age - the Recently
-    /// deleted screen's destructive "Delete all now" (system-confirmed, the one
-    /// place red lives, hard rule 5). This is the same purge path as the
-    /// scheduled one (same safety rule: a vehicle tombstone is kept while any
-    /// of its rows are still live), just with no grace period. Idempotent.
-    public func purgeAllTombstones() throws {
-        try purgeTombstones(olderThan: Date())
-    }
-}
-
 // MARK: - Helpers
 
 extension TankbookRepository {
+    /// The base SCN to preserve when writing a row: a `.synced` write carries its
+    /// own SCN; a `.dirty`/`.pushing` write keeps the row's last-accepted SCN so
+    /// the next push can name its real base for conflict detection (docs/SYNC.md
+    /// S6 - the base is what the server compares, and a nulled base degrades a
+    /// stale push into an idempotent replay that loses the conflict).
+    func preservingScn(_ syncState: SyncState, table: String, id: UUID, in db: Database) throws -> Int64? {
+        if case .synced(let scn) = syncState { return scn }
+        return try Int64.fetchOne(db, sql: "SELECT syncScn FROM \(table) WHERE id = ?",
+                                  arguments: [id.uuidString])
+    }
+
     private func fetchLive<Record: FetchableRecord & TableRecord>(
         _ type: Record.Type, vehicleId: UUID, in db: Database
     ) throws -> [Record] {
@@ -664,7 +626,7 @@ extension TankbookRepository {
     private func tombstone(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
-            SET deletedAt = ?, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+            SET deletedAt = ?, updatedAt = ?, syncState = 'dirty'
             WHERE id = ? AND deletedAt IS NULL
             """, arguments: [stamp, stamp, id.uuidString])
     }
@@ -672,7 +634,7 @@ extension TankbookRepository {
     private func restoreRow(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
-            SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+            SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty'
             WHERE id = ? AND deletedAt IS NOT NULL
             """, arguments: [stamp, id.uuidString])
     }
@@ -680,7 +642,7 @@ extension TankbookRepository {
     private func tombstoneAll(forVehicle vehicleId: UUID, in table: String, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
-            SET deletedAt = ?, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+            SET deletedAt = ?, updatedAt = ?, syncState = 'dirty'
             WHERE vehicleId = ? AND deletedAt IS NULL
             """, arguments: [stamp, stamp, vehicleId.uuidString])
     }
@@ -688,7 +650,7 @@ extension TankbookRepository {
     private func restoreAll(forVehicle vehicleId: UUID, deletedAt: TimeInterval, in table: String, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
-            SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty', syncScn = NULL
+            SET deletedAt = NULL, updatedAt = ?, syncState = 'dirty'
             WHERE vehicleId = ? AND deletedAt = ?
             """, arguments: [stamp, vehicleId.uuidString, deletedAt])
     }

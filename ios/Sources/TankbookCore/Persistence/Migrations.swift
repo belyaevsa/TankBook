@@ -22,6 +22,10 @@ public enum TankbookSchema {
     /// Device-local record of S2 duplicate resolutions ("keep both") - NOT in
     /// `syncedTables`: it is derived-state bookkeeping, like the sync cursor.
     public static let duplicateResolution = "duplicateResolution"
+    /// Device-local undo log of versions a sync merge overwrote (docs/SYNC.md
+    /// S1/S4: "the losing version is kept in a local 30-day undo log"). NOT in
+    /// `syncedTables` - it is bookkeeping, like the sync cursor.
+    public static let syncOverwrite = "syncOverwrite"
 
     /// Every synced entity table (has the envelope + syncState bookkeeping).
     /// The reference data (exchangeRate) is deliberately NOT here.
@@ -87,6 +91,9 @@ public enum TankbookMigrations {
         }
         migrator.registerMigration("v3") { db in
             try convertDateColumnsToReferenceDate(db)
+        }
+        migrator.registerMigration("v4") { db in
+            try createSyncOverwrite(db)
         }
         return migrator
     }
@@ -345,6 +352,22 @@ public enum TankbookMigrations {
             table.column("excludedEntryID", .text).notNull()
             table.column("resolution", .text).notNull()     // DuplicateResolution.Resolution
         }
+    }
+
+    private static func createSyncOverwrite(_ db: Database) throws {
+        // The local 30-day undo log of versions a sync merge overwrote
+        // (docs/SYNC.md S1/S4). Device-local like the sync cursor - deliberately
+        // NO syncState/syncScn columns, and not in `syncedTables`.
+        try db.create(table: TankbookSchema.syncOverwrite) { table in
+            table.column("id", .text).primaryKey()
+            table.column("recordId", .text).notNull()
+            table.column("entityType", .text).notNull()
+            table.column("losingPayload", .text).notNull()     // canonical JSON of the losing payload
+            table.column("losingUpdatedAt", .double).notNull()
+            table.column("replacedAt", .double).notNull()
+        }
+        try db.create(index: "idx_syncOverwrite_record", on: TankbookSchema.syncOverwrite,
+                      columns: ["recordId", "replacedAt"])
     }
 
     // MARK: - Shared column groups
