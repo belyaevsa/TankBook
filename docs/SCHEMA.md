@@ -223,6 +223,8 @@ Attachment {
   file: LocalFileRef            // synced as content-addressed blob (sha256 – SYNC.md); backup same
   extractedTimestamp: Date?     // printed date on receipt / QR timestamp – anchors date-side validation (F9a)
   ocrText: String?              // full recognized text, retained for re-parsing after parser upgrades
+  thumbnailBase64: String?      // ~120px JPEG, base64, rides INSIDE the payload so lists render photo chips
+                                // with zero blob fetches (SYNC.md -> Attachments); nil for a PDF
 }
 
 ExtractionMeta {                // embedded in FillUp/ChargeSession

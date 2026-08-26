@@ -540,6 +540,9 @@
     "ocrText" : {
       "type" : "string"
     },
+    "thumbnailBase64" : {
+      "type" : "string"
+    },
     "updatedAt" : {
       "format" : "date-time",
       "type" : "string"

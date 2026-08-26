@@ -7,6 +7,152 @@ import os
 // scripted responses, so the S1-S9 suite asserts against what was actually sent
 // rather than a mock's opinion (the same trap named in the P4.4 brief).
 
+/// A thread-safe, interleaved call log shared across the sync and blob transport
+/// doubles. P4.6's upload-ordering invariant spans two transports - the blob
+/// chain (begin/PUT/commit) must complete before the record's push - so both
+/// doubles append to one log and the test asserts relative positions rather
+/// than "both happened".
+final class OrderLog: @unchecked Sendable {
+    private let lock = NSLock()
+    private var events: [String] = []
+
+    func append(_ event: String) {
+        lock.lock(); events.append(event); lock.unlock()
+    }
+
+    var recorded: [String] {
+        lock.lock(); defer { lock.unlock() }
+        return events
+    }
+}
+
+/// A scripted, recording `BlobTransport`. Records every begin/put/commit/
+/// download and returns scripted results, so the attachment suite asserts what
+/// was actually issued (put was skipped on dedupe; download count is zero on a
+/// payload-only list; commit precedes push).
+final class BlobTransportDouble: BlobTransport, @unchecked Sendable {
+    private struct State {
+        var beginResult: BlobBeginResult = .exists
+        var beginError: BlobSyncError?
+        var putError: BlobSyncError?
+        var commitError: BlobSyncError?
+        var downloadError: BlobSyncError?
+        var downloadResult: Data = Data()
+        var beginRequests: [(sha256: String, size: Int, contentType: String)] = []
+        var putRequests: [URL] = []
+        var commits: [String] = []
+        var downloads: [String] = []
+    }
+
+    private let lock = OSAllocatedUnfairLock(initialState: State())
+    private let orderLog: OrderLog?
+
+    init(orderLog: OrderLog? = nil) {
+        self.orderLog = orderLog
+    }
+
+    func setBeginResult(_ result: BlobBeginResult) {
+        lock.withLock { $0.beginResult = result }
+    }
+
+    func setBeginError(_ error: BlobSyncError?) {
+        lock.withLock { $0.beginError = error }
+    }
+
+    func setPutError(_ error: BlobSyncError?) {
+        lock.withLock { $0.putError = error }
+    }
+
+    func setCommitError(_ error: BlobSyncError?) {
+        lock.withLock { $0.commitError = error }
+    }
+
+    func setDownloadError(_ error: BlobSyncError?) {
+        lock.withLock { $0.downloadError = error }
+    }
+
+    func setDownloadResult(_ data: Data) {
+        lock.withLock { $0.downloadResult = data }
+    }
+
+    var putRequestCount: Int {
+        lock.withLock { $0.putRequests.count }
+    }
+
+    var commitCount: Int {
+        lock.withLock { $0.commits.count }
+    }
+
+    var downloadCount: Int {
+        lock.withLock { $0.downloads.count }
+    }
+
+    var recordedBeginRequests: [(sha256: String, size: Int, contentType: String)] {
+        lock.withLock { $0.beginRequests }
+    }
+
+    func begin(sha256: String, size: Int, contentType: String) async throws -> BlobBeginResult {
+        orderLog?.append("begin")
+        let snapshot = lock.withLock { state -> (error: BlobSyncError?, result: BlobBeginResult) in
+            state.beginRequests.append((sha256, size, contentType))
+            return (state.beginError, state.beginResult)
+        }
+        if let error = snapshot.error { throw error }
+        return snapshot.result
+    }
+
+    func put(_ data: Data, to url: URL, contentType: String) async throws {
+        orderLog?.append("put")
+        let error = lock.withLock { state -> BlobSyncError? in
+            state.putRequests.append(url)
+            return state.putError
+        }
+        if let error { throw error }
+    }
+
+    func commit(sha256: String) async throws {
+        orderLog?.append("commit")
+        let error = lock.withLock { state -> BlobSyncError? in
+            state.commits.append(sha256)
+            return state.commitError
+        }
+        if let error { throw error }
+    }
+
+    func download(sha256: String) async throws -> Data {
+        orderLog?.append("download")
+        let snapshot = lock.withLock { state -> (error: BlobSyncError?, result: Data) in
+            state.downloads.append(sha256)
+            return (state.downloadError, state.downloadResult)
+        }
+        if let error = snapshot.error { throw error }
+        return snapshot.result
+    }
+}
+
+/// A `BlobSource` that answers every attachment with the same fixed bytes - the
+/// test double for the file-backed rendition source (no file I/O).
+struct FixedBlobSource: BlobSource {
+    let data: Data?
+    func renditionData(for attachment: Attachment) throws -> Data? { data }
+}
+
+/// An in-memory `BlobStore` - the test double for the content-addressed cache.
+final class InMemoryBlobStore: BlobStore, @unchecked Sendable {
+    private let lock = NSLock()
+    private var store: [String: Data] = [:]
+
+    func data(for sha256: String) throws -> Data? {
+        lock.lock(); defer { lock.unlock() }
+        return store[sha256]
+    }
+
+    func save(_ data: Data, for sha256: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        store[sha256] = data
+    }
+}
+
 /// A scripted, recording `SyncTransport`. The lock makes it a valid `Sendable`
 /// double for the async engine.
 final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
@@ -22,6 +168,11 @@ final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
     }
 
     private let lock = OSAllocatedUnfairLock(initialState: State())
+    private let orderLog: OrderLog?
+
+    init(orderLog: OrderLog? = nil) {
+        self.orderLog = orderLog
+    }
 
     func enqueuePull(_ response: SyncPullResponse) {
         lock.withLock { $0.pullResponses.append(.success(response)) }
@@ -67,6 +218,7 @@ final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
     }
 
     func pull(since: Int64, limit: Int) async throws -> SyncPullResponse {
+        orderLog?.append("pull")
         let snapshot = lock.withLock { state -> (failAll: Bool, next: Result<SyncPullResponse, SyncServerError>?) in
             state.pullRequests.append((since, limit))
             state.callOrder.append("pull")
@@ -81,6 +233,7 @@ final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
     }
 
     func push(_ changes: [SyncPushChange]) async throws -> SyncPushResponse {
+        orderLog?.append("push")
         struct Snapshot {
             var failAll: Bool
             var alwaysConflict: Bool
@@ -179,7 +332,19 @@ func makeSyncRepository() throws -> TankbookRepository {
 func makeSyncEngine(repository: TankbookRepository, transport: any SyncTransport,
                     cursor: SyncCursorStore = InMemorySyncCursorStore(),
                     memory: SyncPayloadMemory = InMemorySyncPayloadMemory(),
-                    maxConflictRetries: Int = 3) -> SyncEngine {
+                    maxConflictRetries: Int = 3,
+                    blobGate: (any BlobPushGate)? = nil) -> SyncEngine {
     SyncEngine(repository: repository, transport: transport, cursorStore: cursor,
-               payloadMemory: memory, maxConflictRetries: maxConflictRetries)
+               payloadMemory: memory, maxConflictRetries: maxConflictRetries,
+               blobGate: blobGate)
+}
+
+func makeSyncAttachment(id: UUID = UUID.v7(), kind: AttachmentKind = .photo,
+                        sha256: String, thumbnailBase64: String? = nil,
+                        relativePath: String = "photos/seed.jpg") -> Attachment {
+    Attachment(
+        id: id, createdAt: testTimestamp, updatedAt: testTimestamp, deletedAt: nil,
+        kind: kind, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
+        extractedTimestamp: nil, ocrText: nil, thumbnailBase64: thumbnailBase64
+    )
 }

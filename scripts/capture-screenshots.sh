@@ -256,6 +256,12 @@ capture P4.9b-settings-revoked-ru ru -presentScreen settings -seedSettingsRevoke
 capture P4.9b-settings-quota      en -presentScreen settings -seedSettingsQuota
 capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
 
+# P4.6: the "photo syncing" shimmer - an entry whose inline thumbnail has
+# arrived (in the payload) but whose full rendition blob is still pending. The
+# chip shimmers and the entry is openable and editable throughout.
+capture P4.6-photo-syncing        en -seedPhotoSyncing -presentScreen editEntry
+capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

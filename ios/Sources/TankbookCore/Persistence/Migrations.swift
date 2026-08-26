@@ -95,6 +95,14 @@ public enum TankbookMigrations {
         migrator.registerMigration("v4") { db in
             try createSyncOverwrite(db)
         }
+        migrator.registerMigration("v5") { db in
+            // P4.6: the inline thumbnail rides in the Attachment payload; it is
+            // also persisted so a pulled record renders its photo chip without
+            // re-fetching the blob (docs/SYNC.md -> Attachments).
+            try db.alter(table: TankbookSchema.attachment) { table in
+                table.add(column: "thumbnailBase64", .text)
+            }
+        }
         return migrator
     }
 

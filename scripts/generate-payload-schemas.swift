@@ -425,6 +425,9 @@ let attachmentProperties: [String: Any] = [
     "file": schemaRef("localFileRef"),
     "extractedTimestamp": schemaDate,
     "ocrText": schemaString,
+    // P4.6: the inline ~120px JPEG thumbnail, base64, carried inside the
+    // payload so lists render photo chips with zero blob fetches.
+    "thumbnailBase64": schemaString,
 ]
 
 let preferencesProperties: [String: Any] = [

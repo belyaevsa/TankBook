@@ -49,6 +49,7 @@ struct EditEntryView: View {
     @State private var showChangedBySync = false
     @State private var didLoad = false
     @State private var loadFailed = false
+    @State private var pendingBlobIDs: Set<UUID> = []
 
     private static let log = Logger(subsystem: "app.tankbook", category: "editEntry")
 
@@ -71,7 +72,10 @@ struct EditEntryView: View {
             }
         }
         .background(Theme.Palette.midnight)
-        .task { await load() }
+        .task {
+            await load()
+            await fetchPendingBlobs()
+        }
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
                 TankLevelSheet(tankLevelAfterPct: $fillForm.tankLevelAfterPct,
@@ -108,7 +112,8 @@ struct EditEntryView: View {
         ScrollView {
             VStack(spacing: 9) {
                 if !attachments.isEmpty {
-                    EditEntryRows.receiptCard(attachments: attachments, entry: fill)
+                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                              pendingBlobIDs: pendingBlobIDs)
                 }
                 ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
                 ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
@@ -170,7 +175,8 @@ struct EditEntryView: View {
                              vehicle: vehicle,
                              attachments: attachments,
                              showDatePicker: $showDatePicker,
-                             showChangedBySync: showChangedBySync)
+                             showChangedBySync: showChangedBySync,
+                             pendingBlobIDs: pendingBlobIDs)
             .safeAreaInset(edge: .bottom) { saveBar }
     }
 
@@ -180,6 +186,7 @@ struct EditEntryView: View {
         guard !didLoad else { return }
         didLoad = true
         EditEntryTestSeed.seedIfRequested()
+        PhotoSyncingTestSeed.seedIfRequested()
         showChangedBySync = ProcessInfo.processInfo.arguments.contains("-forceChangedBySync")
         do {
             let repository = try AppStore.repository()
@@ -200,6 +207,9 @@ struct EditEntryView: View {
             stations = try repository.liveStations()
             attachments = try repository.liveAttachments()
                 .filter { target.attachments.contains($0.id) }
+            pendingBlobIDs = Set(attachments
+                .filter { !BlobService.isBlobAvailable($0) }
+                .map(\.id))
             if let fill = target as? FillUp {
                 fillUp = fill
                 selectedStation = stations.first { $0.id == fill.stationId }
@@ -236,6 +246,21 @@ struct EditEntryView: View {
             nonFillForm.title = expense.title
         default:
             break
+        }
+    }
+
+    /// P4.6 lazy download: opening the entry fetches the missing full rendition
+    /// (docs/SYNC.md -> Delivery). Signed-out or offline, the fetch fails
+    /// silently and the "photo syncing" shimmer stays - nothing blocks the
+    /// entry (hard rule 1).
+    private func fetchPendingBlobs() async {
+        guard !pendingBlobIDs.isEmpty,
+              let fetcher = SyncService.makeBlobFetcher(sessionStore: KeychainSessionStore()) else { return }
+        for id in pendingBlobIDs {
+            guard let attachment = attachments.first(where: { $0.id == id }) else { continue }
+            if (try? await fetcher.fetch(sha256: attachment.file.sha256)) != nil {
+                pendingBlobIDs.remove(id)
+            }
         }
     }
 
