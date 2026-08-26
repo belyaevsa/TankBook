@@ -349,39 +349,88 @@ become meaningful. Determinism would help too - a model that returns the same an
 image can at least be measured. And if latency ever drops under 3 s, the gateway becomes a
 synchronous peer rather than a background fill-blanks path.
 
-## A third arm worth measuring: PaddleOCR (P4.13)
+## P4.13 measured: PaddleOCR as a third arm (2026-08-26)
 
-Filed 2026-08-26, after P4.12. Not a recommendation - a **measurement that is now cheap**, because
-P4.12 built the harness: sweep script -> committed result files -> shared scorer -> offline tests.
+P4.13 ran the same corpus, the same scorer (`CorpusScorer`, tolerance 0.005) and the same
+committed-file shape through PaddleOCR in a pinned container. Two arms were specified; one ran,
+one could not. Raw results are committed in `Spike/ReceiptSpike/fixtures/vision-ab/` as
+`paddleocr-a-*.json` (fields) and `paddleocr-a-runs-*.json` (three runs + latency), scored offline
+by `PaddleOCRTests`. The container is `Spike/PaddleOCR/Dockerfile`, started by
+`scripts/dev-up-paddleocr.sh` (plain `docker run`, image `tankbook-paddleocr:0.1.0`, base
+`python:3.12-slim-bookworm`, `paddlepaddle==3.2.2` pinned because 3.3.x ships no Linux aarch64
+wheel).
 
-**Why it is worth the run.** P4.12's cloud arm is far more accurate than the rules parser
-everywhere, but it has four problems: silent failures, non-determinism, per-call cost, and a
-median latency above the 3 s device budget in every class. A self-hosted PaddleOCR attacks three
-of the four at once - no per-call cost, no third-party image sharing, and plausibly much faster.
-And **Russian is supported** (`cyrillic_PP-OCRv5_mobile_rec`, and PaddleOCR-VL across 109
-languages), which is precisely the gap that killed the Foundation Models tier.
+### Arm A - PP-OCRv5 (server det + `cyrillic_PP-OCRv5_mobile_rec`) -> the existing `FuelExtractor`
 
-**Two arms, because together they answer what neither answers alone:**
+| class | rules (Vision) | Arm A (PaddleOCR) | DeepSeek cloud |
+|---|---|---|---|
+| receipts | 46/96 | **29/96** | 84/96 |
+| pump | 1/46 | **2/46** | 31/46 |
+| fiscal | 1/3 | 1/3 | 2/3 |
+| screenshots | 7/24 | 7/24 | 22/24 |
 
-| Arm | What it is | What it settles |
-|---|---|---|
-| **A** | PP-OCRv5 Cyrillic recognition -> the **existing** `FuelExtractor` | **Isolates recognition.** If it scores about the same as Vision + parser, this doc's central claim is **confirmed**. If it scores far better, the claim is **wrong** |
-| **B** | PaddleOCR-VL -> fields directly | Competes with the cloud arm on accuracy, latency, cost and determinism |
+Arm A does **not** score far better than Vision + parser - it scores *worse* on receipts (29 vs 46)
+and within noise everywhere else. So the doc's central claim is **not falsified**: a different
+reader does not unlock the parser, which is what "recognition is the hidden bottleneck" would have
+required. But "about the same" does not survive either, and the reason is the actual finding: **the
+parser is coupled to Vision's output, not reader-agnostic.**
 
-**Arm A is the one that matters intellectually, because it can falsify this document.** The whole
-"interpretation, not recognition" split rests on Vision reading receipts at confidence 1.00 while
-the parser still misses half the fields. Feeding a *different* reader into the *same* parser tests
-that directly. A result that contradicts it must rewrite the split, not be explained away.
+The two couplings, both on real fixtures:
 
-**What it cannot become.** Hard rule 1: anything server-side is a network dependency, so this can
-only ever be an alternative implementation of the P4.10 gateway. **On-device Vision stays tier 0.**
-PaddleOCR competes with the cloud model for the fallback slot; it does not replace Vision.
+1. **Line segmentation.** Vision emits `1,869` and `EUR/L` as two lines; PaddleOCR's detector (all
+   of `PP-OCRv5_server_det`, `PP-OCRv5_mobile_det`, `PP-OCRv4_mobile_det`, `PP-OCRv3_mobile_det`)
+   merges them into `1,869 EUR/L`. The parser's `loneMarkers` finds a price "directly below its
+   `/L` label", so it cannot resolve the price from the merged line. `receipt-001` (a Latin-script
+   Estonian Circle K receipt, not Russian) is the worked example: Vision reads `67,00L` + `EUR/L` +
+   `1,869` and the parser resolves 67.00 / 1.869 / 125.22; PaddleOCR reads `67,00.` (the `L` dropped
+   by `server_det`) + `1,869 EUR/L`, and the parser returns the discount `1,01` and `100,98`.
+2. **Script.** `cyrillic_PP-OCRv5_mobile_rec` is a Cyrillic-only reader; the corpus is mixed
+   (RU/KZ receipts, EE/LV/LT screenshots). It reads Latin numbers correctly but misreads labels -
+   `ИТОГ` becomes `НТОГ` on `receipt-021`, dropping the primary total label and leaving two payment
+   candidates tied.
 
-**The real cost is ops**, and it should be weighed openly: a Python/PaddlePaddle container adds a
-third runtime to a C#/Swift stack. Everything runs in Docker for environment consistency and
-ASP.NET reaches it behind an injected seam - the same shape as `IBlobStorage`, `IApnsClient` and
-`IRateFeed` - so the *code* cost is small. The *operational* cost is not, and no measurement
-excuses it: a marginal accuracy gain would not justify the runtime.
+On receipts where the Cyrillic model reads the operand line cleanly (`receipt-006`, `receipt-022`),
+Arm A matches Vision exactly; where the label is legible it is occasionally *better*
+(`receipt-018`'s total, `receipt-023`'s volume, both of which Vision gets wrong). The score is not a
+flat defeat - it is a reader whose segmentation and script coverage differ from Vision's, and a
+parser tuned to Vision.
+
+**Determinism, measured not assumed.** PaddleOCR's OCR output is byte-identical across three runs
+per image. But the three-run sweep surfaced a *pre-existing parser* non-determinism: when
+`FuelExtractor.modal` ties two total candidates and no primary label names one, it breaks the tie
+via `Dictionary(grouping:)` iteration order, which Swift does not guarantee. Three receipts
+(`-021`, `-026`, `-029`) flip their total across process runs, moving the receipt score between
+29/96 and 30/96. The coordinate conversion is proven separately by `PaddleOCRCalibrationTests`
+(formula + a mutation that inverts the y-flip) - the parser tie is not a coordinate bug.
+
+### Arm B - PaddleOCR-VL -> fields directly
+
+**Blocked in this environment, and that is the finding.** PaddleOCR-VL (`PaddleOCR-VL-0.9B`) does
+not run on this machine: `paddlex` calls `paddle.amp.is_bfloat16_supported()` with no place
+argument, which raises on paddlepaddle 3.2.2 aarch64 CPU ("Invoked with: Place(undefined:0)");
+forcing float32 (the only way past it) makes the 0.9 B model ~3.8 GB of weights plus graph, and the
+container is OOM-killed (exit 137) inside the 7.6 GB Docker VM. On this hardware it needs a GPU or
+12+ GB RAM to run at all, and float32 CPU inference on a 0.9 B VLM is minutes per image - the full
+three-run sweep is not feasible in a session. The `/extract` endpoint, the sweep path and the dump
+scaffold are committed; the result files are not, because there are no results.
+
+### The conclusion, stated plainly
+
+Arm A **confirms** the split in the negative sense - recognition is not the lever that unlocks the
+parser (a different reader did not score better) - and **corrects** it in the positive: the parser
+is coupled to Vision's line segmentation and script handling, so it cannot be fed an arbitrary
+reader and score the same. That coupling, not "interpretation is hard" in the abstract, is the
+precise reason a different reader does not help.
+
+**The ops cost is not justified.** A Python/PaddlePaddle container adds a third runtime, and the
+measurement buys nothing back: Arm A is *worse* than on-device Vision on receipts (29 vs 46), its
+median latency (4.5-8.4 s, max 21.0 s) is still above the 3 s budget in every class - self-hosting
+does not buy latency back without a GPU - and its per-script recognition models mean a production
+deployment needs script detection or a multilingual model just to cover the corpus. Arm B cannot
+run on modest hardware at all. The DeepSeek cloud arm (84/96 receipts, 31/46 pump) remains the only
+reader that beats the rules parser, and its four problems from P4.12 - silent swaps, decimal
+shifts, non-determinism, per-call cost - are the cost of that accuracy. PaddleOCR does not displace
+either; on-device Vision stays tier 0, and PaddleOCR does not earn the fallback slot.
 
 ## Growing the corpus is the highest-value work
 

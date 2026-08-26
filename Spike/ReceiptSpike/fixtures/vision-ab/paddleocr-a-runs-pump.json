@@ -1,0 +1,287 @@
+{
+  "className" : "pump",
+  "engine" : "paddleocr-a",
+  "entries" : [
+    {
+      "filename" : "pump-001.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 13.75,
+          "liters" : 5,
+          "total" : 9.345,
+          "unitPrice" : 1.869
+        },
+        {
+          "latencySeconds" : 7.41,
+          "liters" : 5,
+          "total" : 9.345,
+          "unitPrice" : 1.869
+        },
+        {
+          "latencySeconds" : 7.99,
+          "liters" : 5,
+          "total" : 9.345,
+          "unitPrice" : 1.869
+        }
+      ]
+    },
+    {
+      "filename" : "pump-002-lukoil-spb-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 3.96
+        },
+        {
+          "latencySeconds" : 3.85
+        },
+        {
+          "latencySeconds" : 3.7
+        }
+      ]
+    },
+    {
+      "filename" : "pump-003-kz-95-kzt.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 3.19
+        },
+        {
+          "latencySeconds" : 3.49
+        },
+        {
+          "latencySeconds" : 3.22
+        }
+      ]
+    },
+    {
+      "filename" : "pump-004-kz-95-kzt-tokheim.jpg",
+      "runs" : [
+        {
+          "latencySeconds" : 4.97,
+          "liters" : 1
+        },
+        {
+          "latencySeconds" : 4.41,
+          "liters" : 1
+        },
+        {
+          "latencySeconds" : 4.63,
+          "liters" : 1
+        }
+      ]
+    },
+    {
+      "filename" : "pump-005-dresser-wayne-four-prices-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 4.22
+        },
+        {
+          "latencySeconds" : 4.23
+        },
+        {
+          "latencySeconds" : 4.38
+        }
+      ]
+    },
+    {
+      "filename" : "pump-006-kz-adast-92-kzt.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.99
+        },
+        {
+          "latencySeconds" : 5.95
+        },
+        {
+          "latencySeconds" : 5.98
+        }
+      ]
+    },
+    {
+      "filename" : "pump-007-lukoil-spb-comma-decimals-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 6.97
+        },
+        {
+          "latencySeconds" : 8.51
+        },
+        {
+          "latencySeconds" : 7.53
+        }
+      ]
+    },
+    {
+      "filename" : "pump-008-topaz-video-overlay-92-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.39
+        },
+        {
+          "latencySeconds" : 5.27
+        },
+        {
+          "latencySeconds" : 6.6
+        }
+      ]
+    },
+    {
+      "filename" : "pump-009-gilbarco-zero-padded-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.71
+        },
+        {
+          "latencySeconds" : 5.88
+        },
+        {
+          "latencySeconds" : 5.55
+        }
+      ]
+    },
+    {
+      "filename" : "pump-010-scheidt-preset-amount-ru.png",
+      "runs" : [
+        {
+          "latencySeconds" : 5.53
+        },
+        {
+          "latencySeconds" : 5.37
+        },
+        {
+          "latencySeconds" : 5.27
+        }
+      ]
+    },
+    {
+      "filename" : "pump-011-gilbarco-circlek-ee-zero-padded.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 8.25,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 8.08,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 8.24,
+          "liters" : 5
+        }
+      ]
+    },
+    {
+      "filename" : "pump-012-gilbarco-circlek-ee-glare-total.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 8.6,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 8.78,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 8.33,
+          "liters" : 5
+        }
+      ]
+    },
+    {
+      "filename" : "pump-013-dresser-wayne-ee-four-prices.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 7.41,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 7.16,
+          "liters" : 5
+        },
+        {
+          "latencySeconds" : 7.57,
+          "liters" : 5
+        }
+      ]
+    },
+    {
+      "filename" : "pump-014-dresser-wayne-ee-glare-partial.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 6.95,
+          "liters" : 5,
+          "total" : 9.120000000000001,
+          "unitPrice" : 1.824
+        },
+        {
+          "latencySeconds" : 7.46,
+          "liters" : 5,
+          "total" : 9.120000000000001,
+          "unitPrice" : 1.824
+        },
+        {
+          "latencySeconds" : 7.4,
+          "liters" : 5,
+          "total" : 9.120000000000001,
+          "unitPrice" : 1.824
+        }
+      ]
+    },
+    {
+      "filename" : "pump-015-dresser-wayne-ee-diesel.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 8.94,
+          "liters" : 5,
+          "total" : 30.02
+        },
+        {
+          "latencySeconds" : 8.63,
+          "liters" : 5,
+          "total" : 30.02
+        },
+        {
+          "latencySeconds" : 9.55,
+          "liters" : 5,
+          "total" : 30.02
+        }
+      ]
+    },
+    {
+      "filename" : "pump-016-wayne-ee-idle-zero.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 8.36,
+          "liters" : 2
+        },
+        {
+          "latencySeconds" : 7.91,
+          "liters" : 2
+        },
+        {
+          "latencySeconds" : 8.21,
+          "liters" : 2
+        }
+      ]
+    },
+    {
+      "filename" : "pump-017-wayne-ee-idle-zero-angled.heic",
+      "runs" : [
+        {
+          "latencySeconds" : 8.06,
+          "liters" : 2
+        },
+        {
+          "latencySeconds" : 8.14,
+          "liters" : 2
+        },
+        {
+          "latencySeconds" : 7.41,
+          "liters" : 2
+        }
+      ]
+    }
+  ],
+  "generated" : "2026-08-26"
+}
