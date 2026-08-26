@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Tankbook.Api.Account;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Blobs;
 using Tankbook.Api.Config;
@@ -28,6 +29,8 @@ builder.Services.Configure<ConfigSigningOptions>(
     builder.Configuration.GetSection(ConfigSigningOptions.SectionName));
 builder.Services.Configure<AuthOptions>(
     builder.Configuration.GetSection(AuthOptions.SectionName));
+builder.Services.Configure<AccountOptions>(
+    builder.Configuration.GetSection(AccountOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -134,6 +137,19 @@ builder.Services.AddSingleton<IBlobStorage>(sp =>
         sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddScoped<BlobRepository>();
 builder.Services.AddScoped<BlobService>();
+
+// Account & devices (docs/API.md "Account & devices") and the grace purge job
+// (docs/SYNC.md "Offline & failure behavior"). The purge is a scoped service so
+// tests resolve it and drive one pass directly; the hosted timer that runs it on
+// a schedule is registered only outside test hosts (the timer must not run
+// inside WebApplicationFactory - P4.3 declined to add one for exactly that reason).
+builder.Services.AddScoped<AccountRepository>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<AccountPurgeService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<AccountPurgeHostedService>();
+}
 
 var app = builder.Build();
 
@@ -257,6 +273,14 @@ var blobs = v1.MapGroup("/blobs");
 blobs.MapPost("/begin", BlobEndpoints.Begin);
 blobs.MapPost("/commit", BlobEndpoints.Commit);
 blobs.MapGet("/{sha256}", BlobEndpoints.Get);
+
+// Account & devices (docs/API.md "Account & devices"): the manage-devices
+// screen, push-token registration, per-device revocation, and account deletion.
+var account = v1.MapGroup("/account");
+account.MapGet("/devices", AccountEndpoints.GetDevices);
+account.MapPut("/devices/{id}/push-token", AccountEndpoints.SetPushToken);
+account.MapDelete("/devices/{id}", AccountEndpoints.DeleteDevice);
+account.MapDelete("", AccountEndpoints.DeleteAccount);
 
 app.Run();
 

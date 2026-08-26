@@ -327,7 +327,7 @@ The backend is down for a day; both devices keep logging, editing, deleting.
 - Every feature works with sync unreachable (F3/F4 unchanged); `dirty` records queue indefinitely.
 - Push retries with exponential backoff; partial batch acceptance is fine (idempotent by id + baseScn).
 - A device deleted server-side (user revokes it) gets `410` on its cursor → re-onboards via full pull.
-- Account deletion: tombstone the account, purge `records`/`blobs` after grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing).
+- Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything.
 - Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).
 
 ## Phasing
