@@ -90,7 +90,7 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 | **[x]** P4.1 | Auth endpoints: session exchange, refresh rotation | L2: test-signer tokens, garbage/expired, concurrent-first-sign-in creates exactly one account, **reuse-revokes-chain** |
 | P4.2 | Sync push/pull + SCN allocation | L2: ordering, pagination under concurrent writes, idempotent replay, per-item conflict, 410 |
 | P4.3 | Blob endpoints + S3 storage + quotas + orphan sweep | L2: dedupe, 25/10 MB caps, 429 quota, commit-verifies, presign expiry, **cross-account 404** |
-| P4.4 | iOS: Sign in + Restoring screens, Keychain session, J11a detection | L4: wrong-provider empty-account flow; provider-notice snapshot; sign-out escape; L1: token storage |
+| **[x]** P4.4 | iOS: Sign in + Restoring screens, Keychain session, J11a detection | L4: wrong-provider empty-account flow; provider-notice snapshot; sign-out escape; L1: token storage |
 | P4.5 | iOS sync client: dirty queue, pull/merge/push loop, domain revalidation after merge, **field-level merge for `Vehicle`** (every other entity stays record-level LWW) | **L3: the S1–S9 simulator suite, one deterministic test per scenario.** S9 specifically: a stale device writing one `Vehicle` field must not revert another field edited more recently elsewhere – the hard-rule-13 case, and the one whose failure is invisible |
 | P4.6 | Attachment sync: rendition generation, inline thumbnails, lazy/eager download | L1: ≤2048px/size caps, sha verify-on-download; L4: "photo syncing" shimmer state |
 | P4.7 | Restore end-to-end | L3: pull-from-zero hash-equals origin; interrupted-restore resume; F7 server-down state |
