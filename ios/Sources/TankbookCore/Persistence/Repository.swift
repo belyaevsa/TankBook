@@ -66,7 +66,7 @@ extension TankbookRepository {
     /// `restoreVehicle` can bring exactly those back.
     public func softDeleteVehicle(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            let stamp = date.timeIntervalSince1970
+            let stamp = date.timeIntervalSinceReferenceDate
             try tombstone(table: TankbookSchema.vehicle, id: id, at: stamp, in: db)
             for table in Self.vehicleScopedTables {
                 try tombstoneAll(forVehicle: id, in: table, at: stamp, in: db)
@@ -84,7 +84,7 @@ extension TankbookRepository {
                   let deletedAt = row["deletedAt"] as Double? else {
                 return
             }
-            let stamp = Date().timeIntervalSince1970
+            let stamp = Date().timeIntervalSinceReferenceDate
             try restoreRow(table: TankbookSchema.vehicle, id: id, at: stamp, in: db)
             for table in Self.vehicleScopedTables {
                 try restoreAll(forVehicle: id, deletedAt: deletedAt, in: table, at: stamp, in: db)
@@ -119,13 +119,13 @@ extension TankbookRepository {
 
     public func softDeleteFillUp(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.fillUp, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.fillUp, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreFillUp(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.fillUp, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.fillUp, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -147,13 +147,13 @@ extension TankbookRepository {
 
     public func softDeleteChargeSession(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.chargeSession, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.chargeSession, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreChargeSession(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.chargeSession, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.chargeSession, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -173,13 +173,13 @@ extension TankbookRepository {
 
     public func softDeleteServiceRecord(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.serviceRecord, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.serviceRecord, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreServiceRecord(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.serviceRecord, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.serviceRecord, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -202,13 +202,13 @@ extension TankbookRepository {
 
     public func softDeleteExpense(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.expense, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.expense, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreExpense(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.expense, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.expense, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -249,13 +249,13 @@ extension TankbookRepository {
 
     public func softDeleteReminder(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.reminder, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.reminder, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreReminder(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.reminder, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.reminder, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -277,13 +277,13 @@ extension TankbookRepository {
 
     public func softDeleteStation(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.station, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.station, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreStation(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.station, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.station, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -308,13 +308,13 @@ extension TankbookRepository {
 
     public func softDeleteTariff(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.tariff, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.tariff, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreTariff(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.tariff, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.tariff, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -339,13 +339,13 @@ extension TankbookRepository {
 
     public func softDeleteTireSet(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.tireSet, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.tireSet, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreTireSet(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.tireSet, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.tireSet, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -367,13 +367,13 @@ extension TankbookRepository {
 
     public func softDeleteAttachment(id: UUID, at date: Date = Date()) throws {
         try database.write { db in
-            try tombstone(table: TankbookSchema.attachment, id: id, at: date.timeIntervalSince1970, in: db)
+            try tombstone(table: TankbookSchema.attachment, id: id, at: date.timeIntervalSinceReferenceDate, in: db)
         }
     }
 
     public func restoreAttachment(id: UUID) throws {
         try database.write { db in
-            try restoreRow(table: TankbookSchema.attachment, id: id, at: Date().timeIntervalSince1970, in: db)
+            try restoreRow(table: TankbookSchema.attachment, id: id, at: Date().timeIntervalSinceReferenceDate, in: db)
         }
     }
 
@@ -417,7 +417,7 @@ extension TankbookRepository {
             try ExchangeRateRow
                 .filter(Column("base") == base.rawValue
                     && Column("quote") == quote.rawValue
-                    && Column("date") == date.timeIntervalSince1970)
+                    && Column("date") == date.timeIntervalSinceReferenceDate)
                 .fetchOne(db)?
                 .rate
         }
@@ -503,7 +503,7 @@ extension TankbookRepository {
                     changes.append(PendingChange(
                         entityType: entity.entityType,
                         id: id,
-                        updatedAt: Date(timeIntervalSince1970: row["updatedAt"] as Double),
+                        updatedAt: Date(timeIntervalSinceReferenceDate: row["updatedAt"] as Double),
                         deleted: (row["deletedAt"] as Double?) != nil))
                 }
             }
@@ -519,7 +519,7 @@ extension TankbookRepository {
         olderThan cutoff: Date = Date().addingTimeInterval(-Self.tombstoneGracePeriod)
     ) throws {
         try database.write { db in
-            let cutoff = cutoff.timeIntervalSince1970
+            let cutoff = cutoff.timeIntervalSinceReferenceDate
             let entryTables = TankbookSchema.entryTables
             for table in entryTables {
                 try db.execute(sql: """
@@ -591,7 +591,7 @@ extension TankbookRepository {
     @discardableResult
     public func restoreEntry(id: UUID) throws -> Bool {
         try database.write { db in
-            let stamp = Date().timeIntervalSince1970
+            let stamp = Date().timeIntervalSinceReferenceDate
             for table in TankbookSchema.entryTables {
                 try db.execute(sql: """
                     UPDATE \(table)

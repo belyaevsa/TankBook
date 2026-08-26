@@ -8,9 +8,9 @@ import GRDB
 // money columns that the domain protocol cannot represent.
 //
 // Money columns are flattened (docs/SCHEMA.md, Money): amount/currency/
-// homeAmount/homeCurrency/rate/rateDate/rateSource. Dates are REAL Unix
-// timestamps and Decimals are TEXT - both exact round-trips (see the storage
-// conventions comment in Migrations.swift).
+// homeAmount/homeCurrency/rate/rateDate/rateSource. Dates are REAL
+// `timeIntervalSinceReferenceDate` values and Decimals are TEXT - both exact
+// round-trips (see the storage conventions comment in Migrations.swift).
 
 // MARK: - Shared helpers
 
@@ -27,16 +27,16 @@ func decodeEnvelope(_ row: Row) throws -> Envelope {
     }
     return Envelope(
         id: id,
-        createdAt: Date(timeIntervalSince1970: row["createdAt"] as Double),
-        updatedAt: Date(timeIntervalSince1970: row["updatedAt"] as Double),
-        deletedAt: (row["deletedAt"] as Double?).map(Date.init(timeIntervalSince1970:)))
+        createdAt: Date(timeIntervalSinceReferenceDate: row["createdAt"] as Double),
+        updatedAt: Date(timeIntervalSinceReferenceDate: row["updatedAt"] as Double),
+        deletedAt: (row["deletedAt"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)))
 }
 
 func setEnvelope<Value: Entity>(_ value: Value, into container: inout PersistenceContainer) {
     container["id"] = value.id.uuidString
-    container["createdAt"] = value.createdAt.timeIntervalSince1970
-    container["updatedAt"] = value.updatedAt.timeIntervalSince1970
-    container["deletedAt"] = value.deletedAt?.timeIntervalSince1970
+    container["createdAt"] = value.createdAt.timeIntervalSinceReferenceDate
+    container["updatedAt"] = value.updatedAt.timeIntervalSinceReferenceDate
+    container["deletedAt"] = value.deletedAt?.timeIntervalSinceReferenceDate
 }
 
 func decodeSync(_ row: Row) -> (state: SyncState, scn: Int64?) {
@@ -102,7 +102,7 @@ func setMoney(_ money: Money?, into container: inout PersistenceContainer, prefi
     container[TankbookSchema.moneyColumn(prefix, "homeAmount")] = money.homeAmount
     container[TankbookSchema.moneyColumn(prefix, "homeCurrency")] = money.homeCurrency.rawValue
     container[TankbookSchema.moneyColumn(prefix, "rate")] = money.rate
-    container[TankbookSchema.moneyColumn(prefix, "rateDate")] = money.rateDate?.timeIntervalSince1970
+    container[TankbookSchema.moneyColumn(prefix, "rateDate")] = money.rateDate?.timeIntervalSinceReferenceDate
     container[TankbookSchema.moneyColumn(prefix, "rateSource")] = money.rateSource.rawValue
 }
 
@@ -122,7 +122,7 @@ func decodeMoney(_ row: Row, prefix: String = "") throws -> Money? {
     if currency != homeCurrency,
        row[TankbookSchema.moneyColumn(prefix, "homeAmount")] as Decimal? != nil,
        let rate = row[TankbookSchema.moneyColumn(prefix, "rate")] as Decimal?,
-       let rateDate = (row[TankbookSchema.moneyColumn(prefix, "rateDate")] as Double?).map(Date.init(timeIntervalSince1970:)) {
+       let rateDate = (row[TankbookSchema.moneyColumn(prefix, "rateDate")] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)) {
         let source = (row[TankbookSchema.moneyColumn(prefix, "rateSource")] as String?)
             .flatMap(RateSource.init(rawValue:)) ?? .ecb
         money = money.converted(using: RateSnapshot(rate: rate, rateDate: rateDate, source: source))
@@ -148,7 +148,7 @@ struct EntryCommonParts {
 func setEntryCommon<Value: Entry>(_ value: Value, into container: inout PersistenceContainer) throws {
     setEnvelope(value, into: &container)
     container["vehicleId"] = value.vehicleId.uuidString
-    container["date"] = value.date.timeIntervalSince1970
+    container["date"] = value.date.timeIntervalSinceReferenceDate
     container["odometer"] = value.odometer
     setMoney(value.money, into: &container)
     container["note"] = value.note
@@ -165,7 +165,7 @@ func decodeEntryCommon(_ row: Row) throws -> EntryCommonParts {
     return EntryCommonParts(
         envelope: try decodeEnvelope(row),
         vehicleId: vehicleId,
-        date: Date(timeIntervalSince1970: row["date"] as Double),
+        date: Date(timeIntervalSinceReferenceDate: row["date"] as Double),
         odometer: row["odometer"] as Int?,
         money: try decodeMoney(row),
         note: row["note"] as String?,
@@ -223,7 +223,7 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
                 energy: EnergyUnit(rawValue: row["energyUnit"]) ?? .kWhPer100),
             photo: decodeOptionalUUID(row, column: "photo"),
             archived: row["archived"] as Bool,
-            archivedAt: (row["archivedAt"] as Double?).map(Date.init(timeIntervalSince1970:)),
+            archivedAt: (row["archivedAt"] as Double?).map(Date.init(timeIntervalSinceReferenceDate:)),
             paceLimitKmPerDay: row["paceLimitKmPerDay"] as Double,
             initialOdometer: row["initialOdometer"] as Int?)
         (syncState, syncScn) = decodeSync(row)
@@ -248,7 +248,7 @@ public struct VehicleRow: FetchableRecord, PersistableRecord {
         container["energyUnit"] = vehicle.units.energy.rawValue
         container["photo"] = vehicle.photo?.uuidString
         container["archived"] = vehicle.archived
-        container["archivedAt"] = vehicle.archivedAt?.timeIntervalSince1970
+        container["archivedAt"] = vehicle.archivedAt?.timeIntervalSinceReferenceDate
         container["paceLimitKmPerDay"] = vehicle.paceLimitKmPerDay
         container["initialOdometer"] = vehicle.initialOdometer
     }

@@ -51,10 +51,14 @@ public enum TankbookSchema {
 ///   round-trip with no floating-point drift. No `Double` conversion anywhere
 ///   on the money path. (docs/SCHEMA.md: "Money is always a pair", rate
 ///   snapshots are immutable.)
-/// - **Dates are stored as REAL** (`timeIntervalSince1970`). GRDB's default
-///   `Date` encoding is a millisecond-truncated TEXT, which would corrupt
-///   sub-millisecond round-trips; a Double timestamp round-trips exactly
-///   because `Date` is itself a Double internally.
+/// - **Dates are stored as REAL** (`timeIntervalSinceReferenceDate`). GRDB's
+///   default `Date` encoding is a millisecond-truncated TEXT, which would
+///   corrupt sub-millisecond round-trips; a Double of the reference-date
+///   interval round-trips exactly because `Date` is itself that Double
+///   internally. `timeIntervalSince1970` was the original format, but adding
+///   the 978307200 s epoch offset shifts the fractional bits out of the Double
+///   mantissa, so a written date read straight back drifted by one ulp
+///   (~1.2e-7 s). The `v3` migration converts every date column in place.
 /// - **`syncState` / `syncScn`** on every synced table implement the local
 ///   sync bookkeeping from docs/SYNC.md ("Client state & merge").
 public enum TankbookMigrations {
@@ -81,7 +85,55 @@ public enum TankbookMigrations {
                 table.add(column: "fiscalIdentity", .text)   // JSON FiscalDocumentIdentity?
             }
         }
+        migrator.registerMigration("v3") { db in
+            try convertDateColumnsToReferenceDate(db)
+        }
         return migrator
+    }
+
+    // MARK: - Date columns (P4.11)
+
+    /// Seconds between the 2001 reference date and the 1970 Unix epoch:
+    /// `timeIntervalSince1970 == timeIntervalSinceReferenceDate + epochOffset`.
+    private static let epochOffset: Double = 978_307_200
+
+    /// Every column that stores a `Date` as a REAL Double, as (table, column).
+    /// This is the complete inventory - a column missed here is a silently
+    /// half-migrated database. Envelope columns live on every table that has an
+    /// envelope; the rest are the per-entity date fields plus the flattened
+    /// Money `rateDate` and the local `exchangeRate.date` cache.
+    private static let dateColumns: [(table: String, column: String)] = {
+        let envelopeTables = TankbookSchema.syncedTables + [TankbookSchema.duplicateResolution]
+        var columns: [(String, String)] = []
+        for table in envelopeTables {
+            columns.append((table, "createdAt"))
+            columns.append((table, "updatedAt"))
+            columns.append((table, "deletedAt"))
+        }
+        for table in TankbookSchema.entryTables {
+            columns.append((table, "date"))
+            columns.append((table, "rateDate"))
+        }
+        columns.append((TankbookSchema.serviceItem, "costRateDate"))
+        columns.append((TankbookSchema.vehicle, "archivedAt"))
+        columns.append((TankbookSchema.reminder, "dueDate"))
+        columns.append((TankbookSchema.station, "lastUsedAt"))
+        columns.append((TankbookSchema.tariff, "validFrom"))
+        columns.append((TankbookSchema.attachment, "extractedTimestamp"))
+        columns.append((TankbookSchema.exchangeRate, "date"))
+        return columns
+    }()
+
+    /// P4.11: rewrites every date column from `timeIntervalSince1970` seconds to
+    /// `timeIntervalSinceReferenceDate` seconds (subtracting the epoch offset).
+    /// Applied once by the `v3` migration; a fresh database has no rows so the
+    /// updates are no-ops.
+    private static func convertDateColumnsToReferenceDate(_ db: Database) throws {
+        for (table, column) in dateColumns {
+            try db.execute(
+                sql: "UPDATE \(table) SET \(column) = \(column) - ? WHERE \(column) IS NOT NULL",
+                arguments: [epochOffset])
+        }
     }
 
     // MARK: - Tables
