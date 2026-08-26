@@ -14,9 +14,14 @@ using Tankbook.Api.Data;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Notifications;
 using Tankbook.Api.Options;
+using Tankbook.Api.Rates;
 using Tankbook.Api.Sync;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Dapper needs a bridge for DateOnly (Npgsql supports it, Dapper's parameter
+// engine does not). Registered before any database call; idempotent.
+DapperTypeHandlers.Register();
 
 // Options binding. No secrets ever ship in committed files: appsettings.json
 // carries only empty placeholders, and appsettings.Development.json holds the
@@ -37,6 +42,8 @@ builder.Services.Configure<ApnsOptions>(
     builder.Configuration.GetSection(ApnsOptions.SectionName));
 builder.Services.Configure<NudgeOptions>(
     builder.Configuration.GetSection(NudgeOptions.SectionName));
+builder.Services.Configure<RateOptions>(
+    builder.Configuration.GetSection(RateOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -175,6 +182,22 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<AccountPurgeHostedService>();
 }
 
+// Exchange rates (docs/SCHEMA.md "Reference data -> Exchange rates"). IRateFeed
+// is the feed seam: the daily job talks to ECB/CIS only through it, and L2 tests
+// swap in a recording double so the suite never touches a live feed. The real
+// HTTP implementations sit behind the interface unexercised. The job is a scoped
+// service so tests drive RunAsync directly; the hosted timer that runs it on a
+// schedule is registered only outside test hosts (the timer must not run inside
+// WebApplicationFactory - the same reason the purge timer is gated).
+builder.Services.AddSingleton<IRateFeed>(sp => new EcbRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
+builder.Services.AddSingleton<IRateFeed>(sp => new CisRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
+builder.Services.AddScoped<RateRepository>();
+builder.Services.AddScoped<RatesJobService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<RatesHostedService>();
+}
+
 var app = builder.Build();
 
 if (!builder.Environment.IsDevelopment() &&
@@ -277,6 +300,13 @@ var v1 = app.MapGroup("/v1");
 var config = v1.MapGroup("/config");
 config.MapGet("", ConfigEndpoints.GetConfig);
 config.MapGet("/public-key", ConfigEndpoints.GetPublicKey);
+
+// Exchange rates (docs/API.md reference data, docs/SCHEMA.md). Both endpoints
+// are public - no auth, no account - because guests and signed-out users need
+// rates too. Past dates are served immutable; today is revalidatable.
+var rates = v1.MapGroup("/rates");
+rates.MapGet("", RateEndpoints.GetRates);
+rates.MapGet("/pack", RateEndpoints.GetRatesPack);
 
 // Auth (docs/API.md Auth): session exchange, refresh rotation, sign-out.
 var auth = v1.MapGroup("/auth");

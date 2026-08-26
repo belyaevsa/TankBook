@@ -72,6 +72,33 @@ minted for a blob this account does not own, and never appears in a log (`LOGGIN
 | `GET /rates/pack?from=&to=&base=` | public | Bulk range for device cache / seed refresh. |
 | `GET /catalog?since_version=` | public | Vehicle catalog delta or full pack + `packVersion`. ETag'd. |
 
+### Exchange rates (`GET /rates`, `GET /rates/pack`)
+
+Both public, no auth. `base` is a three-letter ISO 4217 code (missing or malformed → `400`);
+`date`/`from`/`to` are ISO-8601 `yyyy-MM-dd` (missing or malformed → `400`). Rates are served
+as `1 base = rate quote units` (the `Money` original-per-home direction, `SCHEMA.md`).
+
+```json
+// GET /rates?date=2026-08-21&base=EUR
+{ "date": "2026-08-21", "base": "EUR", "quotes": [
+  { "quote": "USD", "rate": 1.0856, "source": "ecb" },
+  { "quote": "RUB", "rate": 90.1234, "source": "cis:carried-forward" } ] }
+
+// GET /rates/pack?from=2026-08-01&to=2026-08-31&base=EUR
+{ "from": "2026-08-01", "to": "2026-08-31", "base": "EUR", "rates": [
+  { "date": "2026-08-01", "quote": "USD", "rate": 1.0800, "source": "ecb" } ] }
+```
+
+`source` distinguishes a published quote (`ecb`, `cis`) from one carried forward across a
+non-publishing day (`ecb:carried-forward`). A **past** date's quotes never change, so they are
+served `Cache-Control: immutable` and `ETag`/`If-None-Match` (304 when unchanged); **today's**
+can still change (a late publish or a correction), so it is served revalidatable, never
+immutable. A date with no data answers `200` with an empty `quotes` array - never a
+neighbouring date's value (carry-forward is a stored row with its own date, `SCHEMA.md`).
+`/rates/pack` rejects a range wider than the server's bound (`400`) rather than streaming an
+unbounded span.
+
+
 ### `GET /reference/fuel-price-bands`
 
 Coarse plausible price-per-litre ranges, used client-side to decide which operand on a

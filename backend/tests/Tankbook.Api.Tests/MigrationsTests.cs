@@ -56,7 +56,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(8, applied.Single());
+        Assert.Equal(9, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -160,6 +160,43 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.columns WHERE table_name = 'devices' AND column_name = 'last_nudged_at'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '008'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration009_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The correction-path columns and the partial unique index exist after apply.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'exchange_rates' AND column_name = 'deleted_at'"));
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'exchange_rates' AND column_name = 'id'"));
+        Assert.Equal(1, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'uq_exchange_rates_active'"));
+
+        // The primary key now sits on the surrogate id, not (date, base, quote).
+        var pkColumns = await db.QueryAsync<string>(
+            """
+            SELECT a.attname
+            FROM pg_index i
+            JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY(i.indkey)
+            WHERE i.indrelid = 'exchange_rates'::regclass AND i.indisprimary
+            ORDER BY a.attnum
+            """);
+        Assert.Equal(new[] { "id" }, pkColumns.ToArray());
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        // And both are gone after rollback (the table itself is dropped by 001's
+        // rollback, so the columns and index vanish with it).
+        Assert.Equal(0, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'uq_exchange_rates_active'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '009'"));
     }
 
     [SkippableFact]

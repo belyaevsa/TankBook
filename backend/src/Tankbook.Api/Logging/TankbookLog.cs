@@ -208,6 +208,19 @@ public static class TankbookLog
         => Emit(logger, LogLevel.Warning, "config.expired.fallback",
             ("Version", version));
 
+    /// <summary>The daily rates pass (docs/SCHEMA.md): a date, currency-agnostic counts. A date and a count are Safe; a user's amount never enters here (hard rule 12).</summary>
+    public static void RatesFetch(
+        ILogger logger,
+        string date,
+        int published,
+        int carriedForward,
+        int sourcesFailed)
+        => Emit(logger, LogLevel.Information, "rates.fetch",
+            ("Date", date),
+            ("Published", published),
+            ("CarriedForward", carriedForward),
+            ("SourcesFailed", sourcesFailed));
+
     public static void AccountDelete(
         ILogger logger,
         string accountHash,
