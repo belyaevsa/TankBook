@@ -19,10 +19,10 @@
 > image input. **Measure before you fix** a failing test; instrument an assertion rather than
 > guessing at a cause. Never `pgrep -f` for a build. One task = one verified commit.
 >
-> **Next: P4.12** (the corpus A/B against the cloud vision model) - it must land **before P4.10 is
-> designed**, because the model reads pump displays the rules parser cannot and that changes what
-> the gateway is for. **P4.9b** (Settings + the sync surface) may be in flight; check
-> `agents/briefs/` and the worktree list before dispatching anything iOS.
+> **Next: P2.14** - `FuelExtractor.modal` is non-deterministic and it destabilises every accuracy
+> number in the project, including the CI gates. Then **P5.2** (money end-to-end, unblocked by
+> P5.1) or **P6.3** (the gateway client, unblocked by P4.10). **P4.7** (restore) may still be in
+> flight - check `git worktree list` and `pgrep -f "opencode run"` before dispatching anything iOS.
 
 ## What this project is
 
@@ -58,7 +58,8 @@ Verified by running it, not by assertion:
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
-| **P4** | **Over half done.** `[x]` P4.1 auth, `[x]` P4.2 sync push/pull + SCN, `[x]` P4.3 blobs, `[x]` P4.4 Sign in / Keychain / J11a, `[x]` P4.5 iOS sync client + S1-S9, `[x]` P4.9a account lifecycle (server), `[x]` P4.11 `Date` round-trip. **Open: P4.6** attachments, **P4.7** restore, **P4.8** silent APNs, **P4.9b** Settings + sync surface, **P4.10** LLM gateway (gated on P4.12), **P4.12** corpus A/B |
+| **P4** | **COMPLETE bar P4.7.** All of P4.1-P4.6 and P4.8-P4.13 merged. **P4.7** (restore end-to-end) was in flight at session end. The backend half is entirely done: auth, sync, blobs, nudges, account lifecycle, LLM gateway |
+| **P5** | **Started.** `[x]` P5.1 rates service (ECB + CIS, carry-forward, two public endpoints). P5.2 money end-to-end is unblocked by it |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -75,31 +76,21 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-**P4.12 - the corpus A/B** is the next real step, and it **gates P4.10**. Run the full corpus
-through `deepseek/deepseek-v4-flash-vision-exp` with the existing `AccuracyRatchetTests` scorer and
-record per-class numbers, asserting the two known failure modes explicitly rather than averaging
-them away.
+**P2.14 - the `modal` tie-break** is the next real step, because it is the only open item that
+makes *other* measurements untrustworthy: the accuracy ratchet and `PumpPhotoGate.measuredHits` are
+gates asserted against a live score that can move between runs. It also blocks raising the stale
+receipts mark.
 
-**P4.9b (Settings + the sync surface)** was dispatched at the end of this session and may still be
-in flight - check `agents/briefs/P4.9b.md` and `git worktree list` before dispatching any iOS work.
-Its design is already normative in `docs/SYNC.md` -> "The Settings sync surface": the status row is
-**reassurance and never turns amber with age**, "Sync now" is **idempotent and not an error
-offline** and may never be the only path to a synced state, and Settings shows a **count and a link
-only** for flagged entries because conflicts belong where the data lives (hard rule 8). The flagged
-count is **derived**, never stored.
+After that, two are newly unblocked and independent:
 
-**Read P4.12 before designing P4.10.** A first probe of `deepseek/deepseek-v4-flash-vision-exp`
-(4-7 s per image) changes what the gateway is for:
+- **P5.2** money end-to-end in the app (P5.1 shipped the rates service). This closes a gap visible
+  in shipped UI: P2.5's foreign-currency confirm renders "converts when online" against a feed that
+  now exists.
+- **P6.3** the gateway client (P4.10 shipped the server). Note its device-side budget is the 3 s
+  rule that measurement has already contradicted - **read `EXTRACTION.md` before implementing it**,
+  because a hard 3 s abort would cancel almost every request on a mobile link.
 
-- on **pump displays**, where the rules parser scores **0/30**, it read **9 of 12 fields** exactly,
-  including `pump-004` - the fixture where Vision returns a **wrong digit at confidence 1.00**;
-- its two failures are the corpus's own documented traps and **both pass an arithmetic
-  cross-check**: `pump-005` lost a decimal separator (5.256 / 462.08, a clean factor-of-ten shift)
-  and `receipt-035` **swapped** volume and price (`70.44 X 39.000` read as 70.44 L).
-
-So the model is strongest exactly where the parser is blind, and its failure modes are silent. **A
-confident swap is worse than a nil** (hard rule 13): the gateway should cross-check or suggest, not
-trust. Run the full corpus through it with the existing scorer first - that is P4.12.
+**P4.7** (restore) was dispatched at session end and may still be running.
 
 Also open, none of it blocking:
 
@@ -203,7 +194,85 @@ immediately. P3.6 was briefed the same way up front: the notification **plan** i
 core and `UNUserNotificationCenter` is an injected adapter, which is the only reason "exactly one
 overdue follow-up, never a nag loop" could be proved **as a loop**.
 
-## The P4 session (2026-08-26, second half)
+## The P4 completion session (2026-08-26/27) - ten tasks, seventeen mutations
+
+Ten merged in one sitting, at most three agents at once, on the lanes that cannot collide.
+
+| Task | Tests | The mutation that proves it |
+|---|---|---|
+| **P4.3** blobs | 155 -> 169 | relaxing the `account_id` filter kills **two** tests - cross-account `404` and per-account dedupe. Isolation and dedupe are the same predicate |
+| **P4.5** sync client | 581 -> 593 | forcing `Vehicle` to record-level LWW kills **only** S9, with 8 issues, alone in a 14-test suite |
+| **P4.9a** account | 169 -> 179 | dropping `deleted_at <= @Cutoff` kills only the **survivor** case |
+| **P4.8** nudges | 179 -> 190 | removing `id <> @PusherDeviceId`, and removing the throttle predicate, each kill exactly one test |
+| **P5.1** rates | 190 -> 202 | disabling carry-forward kills both gap tests; `DO NOTHING` -> `DO UPDATE` kills the append-only test |
+| **P4.12** corpus A/B | 593 -> 603 | widening the shared tolerance 0.005 -> 5.0 breaks 8 tests across 4 suites |
+| **P4.9b** Settings | 603 -> 607, UI -> 123 | constant flagged-count, and neutered in-flight guard (push count 2, not `isEnabled`) |
+| **P4.13** PaddleOCR | 607 -> 619 | negative result; archived with its evidence |
+| **P4.10** gateway | 202 -> 211 | disabled size cap, and metering a failed call |
+| **P4.6** attachments | 619 -> 627, UI -> 124 | blob gate **consulted but not awaited** - the subtlest break - kills two tests |
+
+State: **backend 211**, **iOS 627 unit + 124 UI** on `iPhone 17`, `swiftlint` 0 from the repo root,
+`dotnet format` 0.
+
+### Three findings that outrank their tasks
+
+- **The gateway must suggest and cross-check, never trust.** P4.12 measured the cloud model far
+  ahead of the rules parser everywhere (receipts 84/96 vs 46/96, pump 31/46 vs 1/46) - and its
+  failures **silent**: five receipts came back with volume and price swapped, which passes the
+  arithmetic cross-check because `a x b == b x a`. It is also **stochastic**: `pump-009` flipped
+  between correct and shifted across identical runs.
+- **The 3 s device budget is contradicted by measurement.** `API.md` calls it normative; every
+  class median exceeds it and pump peaks at 40 s. Self-hosting does not fix it - P4.13's PaddleOCR
+  arm was 4.5-8.4 s on CPU. A product decision is owed.
+- **The parser is coupled to Vision's line segmentation.** PaddleOCR merges `1,869 EUR/L` into one
+  line where Vision emits two, and `loneMarkers` needs the price below its `/L` label. So
+  `EXTRACTION.md`'s "interpretation, not recognition" holds **only under Vision-quality
+  recognition** - neither confirmed nor falsified, which is sharper than either.
+
+### `FuelExtractor.modal` is non-deterministic - P2.14, and it blocks a gate
+
+`Dictionary(grouping:)` iteration order is not guaranteed, so a tie on both count and
+primary-label count resolves to whatever the hash seed left last. The receipt score moves between
+29/96 and 30/96 across identical runs. **This is why the stale receipts high-water mark (45/93
+recorded, 46/96 live) was deliberately NOT raised**: pinning a gate to a number that is not
+reproducible makes CI intermittently red. Fix the tie-break, prove stability, then raise the mark
+in the same change.
+
+### Three ways git will do something correct-looking that is not what you meant
+
+None of these fail a test, and all three produce a tree that looks right.
+
+1. **A `git merge` run from inside a worktree reports "Already up to date".** A `cd` persists across
+   lines in one shell call, so the merge targets the branch's own worktree. That message reads
+   exactly like success. Check `git merge-base --is-ancestor <branch> HEAD`, not the output.
+2. **A `git commit` while a merge is staged silently absorbs it.** Committing an unrelated file
+   during a `--no-commit` merge produces the merge commit under the wrong message. Amend rather
+   than rewrite; the tree is fine, the record is not.
+3. **Resolving a `TASKS.md` conflict by side silently un-ticks a task.** One side had P4.9b ticked,
+   the other P4.10; `--ours` or `--theirs` loses one. Same class as `Localizable.xcstrings`, which
+   is why sequential iOS dispatch is gated on the previous task being **merged**, not finished.
+
+### An agent's silence means nothing on its own
+
+A wedge check that watches only `xcodebuild` fires a false positive during the **screenshot
+capture** phase, which drives `simctl` for ~20 minutes and writes nothing to the agent log. Acting
+on it would have killed a healthy agent 82 minutes in, right after its suite passed. Treat **any**
+of `xcodebuild`, `simctl`, `swift-frontend`, `xctest`, `swift`, `xcrun` as "busy"; the wedge is
+log-flat **and** no child process **and** near-zero CPU.
+
+### Agents pushed back twice, and were right both times
+
+- **P4.10 declined to build the cross-check signal.** My brief said the server *may* report whether
+  the three numbers multiply out; it refused, because computing that is the server reading what a
+  field **means** (hard rule 9). A "may" that invites a rule violation is a badly written brief.
+- **P4.13 could not pass the calibration test I demanded** and said so, with evidence: `receipt-001`
+  is Estonian (Latin script) read by a Cyrillic model whose detector merges the price line. My test
+  conflated "is the conversion right" with "can this parser consume this reader"; its substitute
+  separates them and is stronger.
+
+**Read an agent's refusal before overruling it.** Both were better reasoning than the brief.
+
+## The earlier P4 session (2026-08-26, first half)
 
 Three tasks merged in one sitting, two agents at a time on the two tiers that cannot collide.
 
@@ -287,7 +356,7 @@ P3.3 both rewrote one view); two agents across tiers do not.
 ## The corpus – the most valuable artefact in the repo
 
 `Spike/ReceiptSpike/fixtures/`: **35 receipts, 17 pump photos, 8 e-receipt/app screenshots, 2
-fiscal PDFs**, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
+fiscal PDFs**, plus P4.12/P4.13's committed A/B result files under `vision-ab/`, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
 bilingual, a kofd.kz QR, a money-first fill) and `receipt-034` (a B2B contract fill printing
 `30.61 X 0.00` - a zero means "not printed", never "free", and it found two real parser bugs).
 **The accuracy ratchet was toothless** and is re-baselined: it recorded 29/47 against 45/92
