@@ -18,13 +18,18 @@ import Foundation
 /// Vision-gated ratchet test asserts they match the live corpus score - so the
 /// constant cannot drift from reality without a failing test.
 public enum PumpPhotoGate {
-    /// Pump fields resolved by the parser at build time. 0 today - the pump
-    /// corpus scores 0 of 30 fields across ten pumps from six manufacturers
-    /// (Spike/ReceiptSpike/fixtures/pump/README.md).
-    public static let measuredHits: Int = 0
+    /// Pump fields resolved by the parser at build time. 1 today - the pump
+    /// corpus scores 1 of 46 fields (2.2%) across seventeen pumps from six
+    /// manufacturers (Spike/ReceiptSpike/fixtures/pump/README.md). Seven
+    /// Estonian Circle K displays were added 2026-08-26; they moved the score
+    /// from 0/30 to 1/46, which is noise, not progress. The gate is 95%.
+    public static let measuredHits: Int = 1
 
-    /// Pump fields scored at build time (10 fixtures x 3 fields).
-    public static let measuredTotal: Int = 30
+    /// Pump fields scored at build time. Not 17 x 3: four fields are blank in
+    /// expected.csv because the photo does not legibly carry them (glare on a
+    /// total, and the two idle pumps have no meaningful unit price), and a
+    /// blank is skipped rather than counted as a miss.
+    public static let measuredTotal: Int = 46
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95

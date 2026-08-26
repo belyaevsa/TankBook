@@ -301,3 +301,61 @@ folder it is pointed at. Leave a field empty rather than guessing.
 Breadth that matters here: different pump makes (Wayne, Gilbarco, Tokheim),
 sunlight and glare on the glass, angled shots, and displays that show the
 running total mid-fill rather than the final one.
+
+## `pump-011` .. `pump-017` - seven Estonian Circle K displays, and a seven-segment trap
+
+Added 2026-08-26. All seven are Estonian Circle K forecourts, EUR, comma or dot
+decimals, shot in daylight through glass. Two makes: Gilbarco Veeder-Root
+(`pump-011`, `pump-012`, zero-padded `0019,70` / `0011,01`) and Dresser Wayne
+(`pump-013` .. `pump-017`, `SUMMA` / `LIITRIT` / `HIND/1L` labels).
+
+### The trap: a glare-lit `9` reads as a `4`
+
+This is the finding that matters, and it is why three of these rows carry values
+that a first reading of the photo does not give:
+
+`pump-015` shows `SUMMA 30.02`, `LIITRIT 15.89`, and four price displays that
+read `1.884 / 1.824 / 1.834 / 1.774`. But `15.89 x 1.884 = 29.94`, not `30.02`.
+`15.89 x 1.889 = 30.02` exactly. The price is **1.889**, and the terminal `9` is
+being read as a `4` because glare fills the segment that distinguishes them.
+
+`pump-016` and `pump-017` settle it independently: the same pump family shot at a
+different angle, out of the glare, shows `1.889` and `1.769` unambiguously.
+
+The same correction then resolves `pump-013`: `7.34 x 1.779 = 13.06`, matching its
+displayed `SUMMA`, where the naive `1.774` gives `13.02`.
+
+**What this means for the parser.** Cross-multiplication is not only a confidence
+check on a good read - on a seven-segment display it is a *digit repair*. When
+`liters x unitPrice` misses the total by roughly one least-significant step of one
+operand, the likely cause is a single misread segment, not three independent
+errors. The candidate correction is testable: substitute each 4/9, 8/9, 3/9, 5/6
+pair in turn and see whether one makes the product close. That is a legitimate
+suggestion under hard rule 13 - offer the repaired value as a pre-fill, never
+apply it silently.
+
+### The two idle pumps are negative fixtures
+
+`pump-016` and `pump-017` show `0.00 EUR` and `0.00 LIITRIT` - a pump standing
+ready, not a fill. Their `unitPrice` is deliberately **blank** in `expected.csv`:
+three prices are displayed and none of them is "the" price, because nothing was
+dispensed.
+
+The behaviour these two exist to pin down is **refusal**, not extraction. A scan
+of an idle pump must not produce a zero-litre fill-up; it must say so and offer
+the manual door (hard rule 15). A parser that happily returns `0.00 / 0.00` and a
+screen that accepts it are both bugs, and `pump-017` adds an angled, keystoned
+view of the same situation so the refusal cannot be keyed on a straight-on frame.
+
+### Fields left blank, and why
+
+- `pump-012` **total**: glare sits on the last digit, which reads as `10,00` or
+  `10,07`. Litres (`0005,63`) and price (`1,789`) are clean. `5.63 x 1.789 = 10.07`
+  says which it is, but that is a *derivation*, and this file's job is to be
+  ground truth for exactly that derivation - so the field stays empty rather than
+  quietly encoding the answer to its own question.
+- `pump-014` **unitPrice and total**: `LIITRIT 3.92` is clean, `SUMMA` reads
+  `7.0?` with the last digit lost, and no candidate price closes the arithmetic
+  against 3.92. Two unknowns and one equation; both stay empty.
+
+`pump-011` is fully clean and cross-checks: `11.01 x 1.789 = 19.70`.

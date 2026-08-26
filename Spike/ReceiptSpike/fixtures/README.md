@@ -10,9 +10,11 @@ fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
               13 receipts / 14 files, 10 brands, 5 years, RU. Baseline 36.6% - see its README
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
+              17 displays, 5 makes, EE/RU/KZ. pump-016/017 are idle pumps - negative fixtures
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
+              8 screens, RU + Circle K EE/LV/LT. See its README on discounts vs the cross-check
 ```
 
 `screenshots/` is Vision OCR like `receipts/`, but of *rendered* text rather
@@ -61,7 +63,11 @@ file.
 ## A matched pair is worth more than two photos
 
 `pump/pump-002-lukoil-spb-ru.png` and `receipts/receipt-007-lukoil-spb-100-ru.png`
-are the same purchase. That is what proved the parser returns litres and unit
+are the same purchase. So are `receipt-001`, `pump-001` and
+`screenshots/screenshot-004` - a **triple**, and the third view is what finally
+explained the other two: the app record shows a `1.01 EUR` discount line, so the
+receipt's `1.869` is the effective price and the pump's `1.884` is the list
+price. Neither was wrong. See `screenshots/README.md`. That is what proved the parser returns litres and unit
 price **swapped** on receipt-007 - the pump states them separately and labelled,
 so it settles what no amount of re-reading the receipt could. `receipt-001` and
 `pump-001` are the other such pair. Prefer shooting both when you can.
@@ -81,8 +87,10 @@ hard rule 4 exists for.
 
 ## Known gaps in the current corpus
 
-- **1 receipt, 0 pump displays.** Every accuracy figure below a few dozen images
-  is anecdote, not measurement.
+- **Breadth is still the limit, not count.** Every accuracy figure below a few
+  dozen images per class is anecdote, not measurement. As of 2026-08-26 the
+  corpus holds 35 receipts, 17 pump displays, 8 screenshots and 2 fiscal
+  documents.
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,
   unit price and total exactly, and the cross-check locks
   (67.00 × 1.869 = 125.22). It reports fuel kind **98**, which is wrong - the
