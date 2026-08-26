@@ -181,4 +181,78 @@ enum L10n {
     static func partBought(date: String, amount: String) -> String {
         String(format: localize("bought %1$@, %2$@"), date, amount)
     }
+
+    // MARK: - Sign in & restore (P4.4)
+
+    static func providerName(_ provider: AuthProvider) -> String {
+        switch provider {
+        case .apple: localize("Apple")
+        case .google: localize("Google")
+        }
+    }
+
+    /// The account's name for a provider ("Apple ID" / "Google") - the J11a
+    /// wrong-provider question names both the account that is empty and the one
+    /// to try instead, and the two word differently.
+    static func providerAccountName(_ provider: AuthProvider) -> String {
+        switch provider {
+        case .apple: localize("Apple ID")
+        case .google: localize("Google")
+        }
+    }
+
+    /// "driver@icloud.com · signed in with Apple" - the Restoring screen's
+    /// identity line. A hidden (private-relay) identity renders the bare
+    /// "signed in with Apple". One full localised phrase per language.
+    static func signedInSubtitle(email: String?, provider: AuthProvider) -> String {
+        let name = providerName(provider)
+        if let email {
+            return String(format: localize("%1$@ · signed in with %2$@"), email, name)
+        }
+        return String(format: localize("signed in with %@"), name)
+    }
+
+    /// The J11a wrong-provider question (docs/JOURNEYS.md J11a): names the
+    /// account that turned out empty and the provider to try instead.
+    static func wrongProviderQuestion(signedInWith current: AuthProvider,
+                                      switchTo other: AuthProvider) -> String {
+        String(format: localize("Nothing is stored under this %1$@. Last time, did you sign in with %2$@?"),
+               providerAccountName(current), providerName(other))
+    }
+
+    /// "Use Google instead" - the one-tap provider switch.
+    static func switchProvider(_ provider: AuthProvider) -> String {
+        String(format: localize("Use %@ instead"), providerName(provider))
+    }
+
+    /// "2 cars" - pluralised (Russian has three forms).
+    static func carCount(_ count: Int) -> String {
+        String(localized: "\(count) cars")
+    }
+
+    /// "428 entries" - pluralised.
+    static func entryCount(_ count: Int) -> String {
+        String(localized: "\(count) entries")
+    }
+
+    /// "from your Android phone, yesterday" - the last-odometer provenance. One
+    /// full localised phrase: the device name and the relative day are runtime
+    /// data sharing the sentence, never concatenated.
+    static func lastOdometerSource(deviceName: String, daysAgo: Int) -> String {
+        String(format: localize("from your %1$@, %2$@"), deviceName, relativeDay(daysAgo))
+    }
+
+    /// "today" / "yesterday" / "3 days ago" (plural).
+    static func relativeDay(_ daysAgo: Int) -> String {
+        switch daysAgo {
+        case 0: localize("today")
+        case 1: localize("yesterday")
+        default: String(localized: "\(daysAgo) days ago")
+        }
+    }
+
+    /// "downloading · 38%" - the Restoring screen's photo progress line.
+    static func downloading(percent: Int) -> String {
+        String(format: localize("downloading · %@"), "\(percent)%")
+    }
 }

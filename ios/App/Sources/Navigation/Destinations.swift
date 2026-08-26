@@ -66,7 +66,8 @@ struct SheetDestinationView: View {
         case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
         case .tankLevel: TankLevelStandaloneHost()
         case .carSwitcher: CarSwitcherView(onNavigate: onNavigate)
-        case .reminderComplete, .signIn: SheetPlaceholderContent()
+        case .signIn: SignInFlowHost()
+        case .reminderComplete: SheetPlaceholderContent()
         case .serviceEntry: ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges)
         case .expenseEntry: ExpenseEntryView(hasUnsavedChanges: $hasUnsavedChanges)
         case .partsShelf: PartsShelfView()
@@ -159,13 +160,25 @@ struct LeafContent: View {
 }
 
 private struct SettingsContent: View {
+    @State private var showsSignIn = false
+
     var body: some View {
         List {
+            Button {
+                showsSignIn = true
+            } label: {
+                Text("Sign in to sync")
+            }
+            .accessibilityIdentifier("settingsSignInButton")
+
             NavigationLink("About", value: Route.about)
                 .accessibilityIdentifier("aboutButton")
 
             NavigationLink("Recently deleted", value: Route.recentlyDeleted)
                 .accessibilityIdentifier("recentlyDeletedButton")
+        }
+        .sheet(isPresented: $showsSignIn) {
+            SignInFlowHost()
         }
     }
 }

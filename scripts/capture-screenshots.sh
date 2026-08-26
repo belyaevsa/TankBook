@@ -229,6 +229,15 @@ capture P3.3-tire-sets-ru         ru -seedTireSets -presentScreen tireSets
 capture P3.3-tire-mount           en -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
 capture P3.3-tire-mount-ru        ru -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
 
+# P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
+# the decision moment) and the J11a wrong-provider question (empty account +
+# "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the
+# shape that overflows.
+capture P4.4-sign-in              en -presentScreen signIn
+capture P4.4-sign-in-ru           ru -presentScreen signIn
+capture P4.4-wrong-provider       en -presentScreen signIn -signInWrongProvider
+capture P4.4-wrong-provider-ru    ru -presentScreen signIn -signInWrongProvider
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

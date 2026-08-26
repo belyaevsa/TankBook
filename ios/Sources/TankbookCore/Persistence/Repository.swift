@@ -106,6 +106,14 @@ extension TankbookRepository {
             try VehicleRow.fetchOne(db, key: id.uuidString)?.vehicle
         }
     }
+
+    /// Whether the device holds any local data that sign-in must never overwrite
+    /// (docs/JOURNEYS.md J11a -> "when a local log exists: never overwrite it,
+    /// upload it"). A live vehicle - even with no entries yet - is the user's
+    /// data; its presence flips the sign-in decision to "upload".
+    public func hasLocalData() throws -> Bool {
+        try !liveVehicles().isEmpty
+    }
 }
 
 // MARK: - FillUp
