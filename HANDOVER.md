@@ -19,9 +19,10 @@
 > image input. **Measure before you fix** a failing test; instrument an assertion rather than
 > guessing at a cause. Never `pgrep -f` for a build. One task = one verified commit.
 >
-> **Next: P4.5** (the iOS sync client and the S1-S9 scenario suite) - the endpoints and the local
-> exactness it needs are already merged. **Read P4.12 first**: the cloud vision model reads pump
-> displays the rules parser cannot, and that changes what the gateway is for.
+> **Next: P4.12** (the corpus A/B against the cloud vision model) - it must land **before P4.10 is
+> designed**, because the model reads pump displays the rules parser cannot and that changes what
+> the gateway is for. **P4.9b** (Settings + the sync surface) may be in flight; check
+> `agents/briefs/` and the worktree list before dispatching anything iOS.
 
 ## What this project is
 
@@ -57,7 +58,7 @@ Verified by running it, not by assertion:
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
-| **P4** | **Under way.** `[x]` P4.1 auth (rotation + reuse revocation), `[x]` P4.2 sync push/pull + SCN, `[x]` P4.4 Sign in / Keychain / J11a, `[x]` P4.11 `Date` round-trip. **Next: P4.5** (iOS sync client). P4.3, P4.6-P4.10, P4.12 open |
+| **P4** | **Over half done.** `[x]` P4.1 auth, `[x]` P4.2 sync push/pull + SCN, `[x]` P4.3 blobs, `[x]` P4.4 Sign in / Keychain / J11a, `[x]` P4.5 iOS sync client + S1-S9, `[x]` P4.9a account lifecycle (server), `[x]` P4.11 `Date` round-trip. **Open: P4.6** attachments, **P4.7** restore, **P4.8** silent APNs, **P4.9b** Settings + sync surface, **P4.10** LLM gateway (gated on P4.12), **P4.12** corpus A/B |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -74,10 +75,18 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-**P4.5 - the iOS sync client** is the next real step: the dirty queue, the pull/merge/push loop,
-domain revalidation after merge, **field-level merge for `Vehicle`** (every other entity stays
-record-level LWW), and the **L3 scenario suite - one deterministic test per S1-S9**. Everything it
-needs is merged: the endpoints (P4.1, P4.2) and the local exactness it leans on (P4.11).
+**P4.12 - the corpus A/B** is the next real step, and it **gates P4.10**. Run the full corpus
+through `deepseek/deepseek-v4-flash-vision-exp` with the existing `AccuracyRatchetTests` scorer and
+record per-class numbers, asserting the two known failure modes explicitly rather than averaging
+them away.
+
+**P4.9b (Settings + the sync surface)** was dispatched at the end of this session and may still be
+in flight - check `agents/briefs/P4.9b.md` and `git worktree list` before dispatching any iOS work.
+Its design is already normative in `docs/SYNC.md` -> "The Settings sync surface": the status row is
+**reassurance and never turns amber with age**, "Sync now" is **idempotent and not an error
+offline** and may never be the only path to a synced state, and Settings shows a **count and a link
+only** for flagged entries because conflicts belong where the data lives (hard rule 8). The flagged
+count is **derived**, never stored.
 
 **Read P4.12 before designing P4.10.** A first probe of `deepseek/deepseek-v4-flash-vision-exp`
 (4-7 s per image) changes what the gateway is for:
@@ -194,7 +203,64 @@ immediately. P3.6 was briefed the same way up front: the notification **plan** i
 core and `UNUserNotificationCenter` is an injected adapter, which is the only reason "exactly one
 overdue follow-up, never a nag loop" could be proved **as a loop**.
 
-## The P4 session so far, and the one new lesson
+## The P4 session (2026-08-26, second half)
+
+Three tasks merged in one sitting, two agents at a time on the two tiers that cannot collide.
+
+| Task | Merged | Tests | The mutation that proves it |
+|---|---|---|---|
+| **P4.3** blobs | `a075e21` | 155 -> 169 | relaxing the `account_id` filter kills **two** tests - cross-account `404` **and** per-account dedupe. Isolation and dedupe are the same predicate, so a mistake in it cannot hide in one of them |
+| **P4.5** sync client | `998c46c` | 581 -> 593 | forcing `Vehicle` to record-level LWW kills **only** S9, with 8 issues, alone in a 14-test suite. The failure shows `tankCapacityL: 60` going to the undo log - the exact silent revert |
+| **P4.9a** account lifecycle | `0557078` | 169 -> 179 | dropping `deleted_at <= @Cutoff` kills only the **survivor** case. A purge-only test stays green while the job deletes restorable data |
+
+State now: **backend 179 tests**, **iOS 593 unit + 115 UI** on `iPhone 17`, `swiftlint` 0 from the
+repo root, `dotnet format` 0.
+
+### The three rules those mutations encode
+
+- **`DELETE /account` is a TOMBSTONE.** Its correct behaviour is that records **remain** - devices
+  learn via `410`, the user keeps their whole log locally. A test asserting only a `204` misses the
+  entire guarantee, and a server expecting the client to wipe itself would be the bug.
+- **A blob `404` must be refused BEFORE a presigned URL is minted.** One returned then discarded is
+  already in the logs and traces.
+- **S9 only tests anything if the stale device is OLDER on the field it is not writing.** An
+  on-time stale device makes field-level merge and record-level LWW agree, and the test proves
+  nothing while staying green.
+
+### A latent CI flake that would have been blamed on whoever was in flight
+
+`RedactionTests` swept rendered log output by substring for values that must never be logged. Two
+**Safe-class machine fields are free-running numbers that can spell the needle**: `timestamp`
+renders seconds as `SS.mmm`, so `...:42.317Z` contains `"42.3"`; and `DurationMs` is
+`TimeSpan.TotalMilliseconds`, so a 9.87-second request renders `9876.5432` and contains
+`"9876.54"`. The first one fired during P4.3 verification; on the clock alone `"42.3"` fails
+roughly **one run in 600**.
+
+Fixed with `WithoutMachineFields()` (`LoggingTestHelpers`), applied at every log-output sweep, and
+pinned by a test built from a hand-written line - because **a flake cannot be caught by the tests
+it breaks**. Identifiers (`traceId`, `deviceId`, `accountHash`) are deliberately left in the sweep
+so a domain value wrongly routed into one is still caught. Recorded in `docs/LOGGING.md`. The rule:
+**fix the sweep, never loosen the assertion and never change the needle** - the next needle has the
+same problem.
+
+### Two process notes
+
+- **A merge can silently do nothing.** `cd`-ing into a worktree persists across lines in one shell
+  call, so a `git merge` meant for `main` ran inside the branch's own worktree and reported
+  *"Already up to date"* - which reads exactly like success. Check
+  `git merge-base --is-ancestor <branch> HEAD` rather than believing the message.
+- **Gate a dispatch on the machine being free.** P4.9a was held until `xcodebuild` cleared, because
+  a backend agent's Docker and `dotnet test` bursts during a UI suite risk a spurious red that then
+  costs 18 minutes to disprove. The brief takes the same time to write either way.
+
+### A brief can be over-specified, and that is the orchestrator's error
+
+P4.5's brief demanded `xcodebuild test` rise above 115. It stayed at 115, correctly: the sync
+client is core-only, S7 forbids banners and modals, and the passive status row belongs to P4.9b.
+Forcing a UI test there would have produced a **vacuous** one, which is worse than none. Accepted
+and recorded rather than argued.
+
+## The earlier P4 session, and the one new lesson
 
 Four tasks merged, each mutation-checked on the rule it exists for:
 
@@ -220,7 +286,7 @@ P3.3 both rewrote one view); two agents across tiers do not.
 
 ## The corpus – the most valuable artefact in the repo
 
-`Spike/ReceiptSpike/fixtures/`: **35 receipts, 10 pump photos, 3 e-receipt/app screenshots, 2
+`Spike/ReceiptSpike/fixtures/`: **35 receipts, 17 pump photos, 8 e-receipt/app screenshots, 2
 fiscal PDFs**, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
 bilingual, a kofd.kz QR, a money-first fill) and `receipt-034` (a B2B contract fill printing
 `30.61 X 0.00` - a zero means "not printed", never "free", and it found two real parser bugs).
@@ -230,10 +296,15 @@ measured, so the parser could have lost 16 fields with CI green. 2018–2026, RU
 
 | class | score | note |
 |---|---|---|
-| receipts | **45/96 (46.9%)** | every miss is a parsing bug, not an OCR one |
-| pump | **0/30** | ten devices, six manufacturers. This zero is why P2.7 ships off |
-| fiscal | 0/3 | only one of the three rows is an OCR-scorable image |
-| screenshots | 6/9 (66.7%) | app screenshots are the easiest input that exists |
+| receipts | **45/93** | every miss is a parsing bug, not an OCR one |
+| pump | **1/46** | seventeen devices, six makes. This near-zero is why P2.7 ships off |
+| fiscal | 1/3 | only one of the three rows is an OCR-scorable image |
+| screenshots | **7/24** | app screenshots are the easiest input that exists |
+
+**Score these with the TankbookCore ratchet test, NOT `swift run ReceiptSpike`.** The two parsers
+disagree - the harness scored the same corpus 0/46 and 11/24 where the ratchet measures 1/46 and
+7/24 - and baselining `high-water.json` from the harness makes the ratchet fail instantly. Run
+`cd ios && swift test --filter AccuracyRatchet` and read the numbers out of its failure message.
 
 Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dump-text` to debug).
 **OCR is not the bottleneck** – Vision reads these at confidence 1.00 and the parser still misses.
