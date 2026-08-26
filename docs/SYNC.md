@@ -14,7 +14,8 @@ The server stores *records*, not domain tables – it never interprets entries, 
 
 ```sql
 accounts   (id uuid pk, apple_sub text unique, google_sub text unique, email text not null,
-            created_at timestamptz, deleted_at timestamptz)
+            created_at timestamptz, deleted_at timestamptz,
+            llm_tier text not null default 'free')             -- cloud-extraction entitlement, API.md "LLM gateway (Pro)"
 devices    (id uuid pk, account_id fk, name text, platform text, last_pull_scn bigint,
             last_seen_at timestamptz, push_token text null,   -- APNs/FCM token, NOTIFICATIONS.md
             last_nudged_at timestamptz null,                  -- sync-nudge throttle, NOTIFICATIONS.md

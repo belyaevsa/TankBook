@@ -56,7 +56,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(9, applied.Single());
+        Assert.Equal(10, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -197,6 +197,30 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.ExecuteScalarAsync<long>(
             "SELECT count(*) FROM pg_indexes WHERE indexname = 'uq_exchange_rates_active'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '009'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration010_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The LLM tier column exists after apply, and a fresh account defaults
+        // to the free tier (so an account never gets a paid allowance unprompted).
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'llm_tier'"));
+        await db.ExecuteAsync("INSERT INTO accounts (id, email) VALUES (gen_random_uuid(), 'tier@example.com')");
+        Assert.Equal("free", await db.QuerySingleAsync<string>("SELECT llm_tier FROM accounts WHERE email = 'tier@example.com'"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        // And it is gone after rollback.
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'llm_tier'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '010'"));
     }
 
     [SkippableFact]
