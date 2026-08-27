@@ -116,6 +116,84 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
     }
 
     [SkippableFact]
+    public async Task EveryResponseNamesItsKind_FullAndDeltaFromTheSameEndpoint()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenAndMigrateAsync();
+        using var app = await StartAsync(db.ConnectionString);
+        using var client = app.Client;
+
+        // Even an empty catalog's full pack (missing since_version) names its kind.
+        var empty = await GetAsync(client, "/v1/catalog");
+        var emptyBody = JsonDocument.Parse(await empty.Content.ReadAsStringAsync()).RootElement;
+        Assert.Equal("full", emptyBody.GetProperty("kind").GetString());
+
+        var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
+        var toyota = new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", TankCapacityL: 50m);
+        var clio = new CatalogTestData.Entry(Guid.NewGuid(), "Renault", "Clio", TankCapacityL: 45m);
+        await PublishAsync(client, CatalogTestData.Pack(1, volvo, toyota));
+        await PublishAsync(client, CatalogTestData.Pack(2, clio));
+
+        // Full pack (no since_version): marked "full". A test of only this side
+        // would pass an implementation that hard-codes the marker - the delta
+        // half below is what pins it.
+        var full = await GetAsync(client, "/v1/catalog");
+        var fullBody = JsonDocument.Parse(await full.Content.ReadAsStringAsync()).RootElement;
+        Assert.Equal(2, fullBody.GetProperty("packVersion").GetInt32());
+        Assert.Equal(3, fullBody.GetProperty("entries").GetArrayLength());
+        Assert.Equal("full", fullBody.GetProperty("kind").GetString());
+
+        // Delta (since_version=1): marked "delta", entries are only what changed.
+        var delta = await GetAsync(client, "/v1/catalog?since_version=1");
+        var deltaBody = JsonDocument.Parse(await delta.Content.ReadAsStringAsync()).RootElement;
+        Assert.Equal("delta", deltaBody.GetProperty("kind").GetString());
+        Assert.Equal(2, deltaBody.GetProperty("packVersion").GetInt32());
+        Assert.Equal(new[] { clio.Id }, EntriesById(deltaBody).Keys.ToArray());
+
+        // An honest empty delta (since == current) is still marked "delta" -
+        // the marker is never inferred from a non-empty entries array.
+        var emptyDelta = await GetAsync(client, "/v1/catalog?since_version=2");
+        var emptyDeltaBody = JsonDocument.Parse(await emptyDelta.Content.ReadAsStringAsync()).RootElement;
+        Assert.Equal("delta", emptyDeltaBody.GetProperty("kind").GetString());
+        Assert.Equal(2, emptyDeltaBody.GetProperty("packVersion").GetInt32());
+        Assert.Empty(emptyDeltaBody.GetProperty("entries").EnumerateArray());
+    }
+
+    [SkippableFact]
+    public async Task PublishWithRemovedIds_WithdrawsTheEntry_AndTheFullPackLacksIt()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenAndMigrateAsync();
+        using var app = await StartAsync(db.ConnectionString);
+        using var client = app.Client;
+
+        var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
+        var toyota = new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", TankCapacityL: 50m);
+        await PublishAsync(client, CatalogTestData.Pack(1, volvo, toyota));
+
+        // A pack that withdraws the Volvo (removedIds) and corrects the Toyota
+        // in the same publish: removal IS expressible on the wire.
+        var correctedToyota = toyota with { TankCapacityL = 51m };
+        using var response = await PostPackAsync(client,
+            CatalogTestData.Pack(2, [correctedToyota], [volvo.Id]));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // The subsequent full pack lacks the withdrawn entry entirely - the row
+        // is physically gone, not merely unpresented for one client.
+        var full = await GetAsync(client, "/v1/catalog");
+        var fullBody = JsonDocument.Parse(await full.Content.ReadAsStringAsync()).RootElement;
+        Assert.Equal("full", fullBody.GetProperty("kind").GetString());
+        Assert.Equal(2, fullBody.GetProperty("packVersion").GetInt32());
+        var entries = EntriesById(fullBody);
+        Assert.Equal(new[] { toyota.Id }, entries.Keys.OrderBy(x => x).ToArray());
+        Assert.Equal(51m, entries[toyota.Id].GetProperty("tankCapacityL").GetDecimal());
+
+        // And the withdrawn row is gone from the database, not hidden.
+        var ids = (await db.QueryAsync<Guid>("SELECT id FROM vehicle_catalog")).OrderBy(x => x).ToArray();
+        Assert.Equal(new[] { toyota.Id }, ids);
+    }
+
+    [SkippableFact]
     public async Task Etag_MatchingIfNoneMatchIs304_NonMatchingIs200WithBody()
     {
         _fixture.RequireAvailable();

@@ -218,7 +218,7 @@ cache costs a refetch and nothing else. None of S1–S9 apply.
 |---|---|---|
 | **1 · Bundled seed pack** | Compiled into the app bundle | Everything. Changed only by an App Store release |
 | **2 · Cached pack** | Last successfully fetched + validated pack | Restarts, offline, backend outage |
-| **3 · Server pack** | `GET /catalog?since_version=<n>` → delta or full pack + `packVersion` | Until the next fetch |
+| **3 · Server pack** | `GET /catalog?since_version=<n>` → delta or full pack, each naming its `kind`, + `packVersion` | Until the next fetch |
 
 Deliberately the same shape as the remote-config layering (`CONFIG.md`), for the same reason: **the app
 must be fully functional using only what is compiled into the binary.** Add-car autocomplete works on day
@@ -229,7 +229,7 @@ one, offline, with no account – so this is never a network dependency (hard ru
 **On overlap, the server wins.** A cached entry with the same identity as a server entry is replaced, not
 merged: curation exists precisely to correct wrong figures, and a device that clung to a stale tank
 capacity would keep miscomputing partial fills. Entries the server no longer publishes are dropped on a
-full pack.
+full pack (see "Applying an update" - the full pack is authoritative and replaces the client's held set).
 
 **But this never touches user data.** Catalog values are *suggestions copied into the `Vehicle` row at
 Add-car time*, and **no `Vehicle` ever references a catalog entry by id** (`SCHEMA.md` → Vehicle catalog).
@@ -243,6 +243,18 @@ A user's override is theirs permanently.
   changed since, or a full pack when the delta would be larger or the client is too far behind. `ETag` /
   `If-None-Match`, so an unchanged catalog costs a `304`. The concrete threshold (how far behind is "too
   far") is a server rule - `Catalog:MaxDeltaEntries`, default 50 - stated and tested in `API.md`.
+- **The response names its kind, and the kind decides how it is applied.** Every response carries
+  `kind: "full" | "delta"` (P6.12) - a client never infers it from an entry count or from whether
+  `since_version` was sent. A **full** pack is authoritative: the client **replaces** its held set with
+  the pack's entries, so an entry absent from the pack was withdrawn and stops being offered. A **delta**
+  **overlays** only the entries it mentions by identity and never removes anything. The bundled seed stays
+  layer 1 underneath both, so Add-car suggestions work with no cache and no network (hard rule 1).
+- **Removals travel in full packs.** A withdrawal is a physical delete at publish time - the operator
+  names the dropped ids in `removedIds` on `POST /catalog/publish` (`API.md`), the rows are deleted (never
+  tombstoned - the server does not remember what it withdrew), and the subsequent full pack simply lacks
+  them. A delta cannot express a removal; a client close behind the server that never pulls a full pack
+  may retain a withdrawn entry until it does, which is exactly the trade the "dropped on a full pack"
+  sentence in the master rule states.
 - **Validated before it is applied, whole or not at all.** A pack that fails its schema is rejected
   entirely and the previous cache stands – the same all-or-nothing document rule as config. A partially
   applied pack is worse than a stale one.

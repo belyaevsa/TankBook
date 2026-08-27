@@ -52,7 +52,7 @@ public sealed class CatalogPublishService
                 string.Join(" | ", errors)));
         }
 
-        if (!TryMapEntries(packJson, out var entries))
+        if (!TryMapPack(packJson, out var entries, out var removedIds))
         {
             // The schema guarantees the mapping below succeeds; reaching here
             // means the schema and the mapper disagree, which is a server bug.
@@ -76,7 +76,7 @@ public sealed class CatalogPublishService
                 $"Pack version {version} is not greater than the current version {current}."));
         }
 
-        if (!await _repository.TryPublishPackAsync(version, entries, cancellationToken))
+        if (!await _repository.TryPublishPackAsync(version, entries, removedIds, cancellationToken))
         {
             var nowCurrent = await _repository.GetCurrentPackVersionAsync(cancellationToken);
             TankbookLog.CatalogPublish(_logger, version, entries.Count, "rejected", "version_not_monotonic");
@@ -126,10 +126,14 @@ public sealed class CatalogPublishService
         }
     }
 
-    /// <summary>Maps a schema-valid pack to typed inserts. Runs only after schema validation has passed.</summary>
-    private static bool TryMapEntries(string packJson, out IReadOnlyList<CatalogEntryInsert> entries)
+    /// <summary>Maps a schema-valid pack to typed inserts and withdrawals. Runs only after schema validation has passed.</summary>
+    private static bool TryMapPack(
+        string packJson,
+        out IReadOnlyList<CatalogEntryInsert> entries,
+        out IReadOnlyList<Guid> removedIds)
     {
         entries = [];
+        removedIds = [];
 
         PackEnvelope? envelope;
         try
@@ -166,6 +170,7 @@ public sealed class CatalogPublishService
         }
 
         entries = list;
+        removedIds = envelope.RemovedIds ?? [];
         return true;
     }
 
@@ -174,6 +179,8 @@ public sealed class CatalogPublishService
         public int PackVersion { get; set; }
 
         public List<EntryEnvelope>? Entries { get; set; }
+
+        public List<Guid>? RemovedIds { get; set; }
     }
 
     private sealed class EntryEnvelope

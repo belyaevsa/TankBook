@@ -1,15 +1,30 @@
 import Foundation
 
-/// A fetched catalog pack: the version plus the entries to apply (docs/API.md
-/// -> Vehicle catalog). An honest empty delta arrives as `entries: []` with the
-/// current `packVersion` - that is not an error and not an empty catalog.
+/// What kind of pack a response is (docs/API.md -> Vehicle catalog). Every
+/// response names its kind - a client never infers it from an entry count or
+/// from whether `since_version` was sent. A `.full` pack IS the whole catalog:
+/// the client replaces its held set with it, so an entry absent from the pack
+/// is withdrawn. A `.delta` pack is only what changed since the held version
+/// and is overlaid, never removing anything (docs/SYNC.md -> Applying an
+/// update).
+public enum CatalogPackKind: String, Codable, Sendable, Equatable {
+    case full
+    case delta
+}
+
+/// A fetched catalog pack: the version, the entries to apply and which kind of
+/// pack it is (docs/API.md -> Vehicle catalog). An honest empty delta arrives
+/// as `entries: []` with the current `packVersion` - that is not an error and
+/// not an empty catalog.
 public struct VehicleCatalogPack: Sendable, Equatable {
     public let packVersion: Int
     public let entries: [VehicleCatalogEntry]
+    public let kind: CatalogPackKind
 
-    public init(packVersion: Int, entries: [VehicleCatalogEntry]) {
+    public init(packVersion: Int, entries: [VehicleCatalogEntry], kind: CatalogPackKind = .delta) {
         self.packVersion = packVersion
         self.entries = entries
+        self.kind = kind
     }
 }
 
@@ -80,12 +95,18 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
     /// Decodes a pack body exactly. A structural problem - bad JSON, a missing
     /// field, an unknown powertrain or fuel kind, a `years` that is neither a
     /// 2-integer pair nor null - throws and the caller rejects the pack WHOLE:
-    /// a partially applied pack is worse than a stale one (docs/SYNC.md).
+    /// a partially applied pack is worse than a stale one (docs/SYNC.md). A
+    /// missing `kind` decodes as a delta: an older server predates the marker,
+    /// and overlaying is exactly what the client did before this change, so a
+    /// new client against an old server degrades to yesterday's behaviour
+    /// rather than to something worse.
     static func decodePack(_ data: Data?) throws -> VehicleCatalogPack {
         guard let data else { throw CatalogFetchError.invalidResponse }
         let wire = try JSONDecoder().decode(VehicleCatalogPackWire.self, from: data)
         let entries = try wire.entries.map { try Self.domain($0, packVersion: wire.packVersion) }
-        return VehicleCatalogPack(packVersion: wire.packVersion, entries: entries)
+        return VehicleCatalogPack(packVersion: wire.packVersion,
+                                  entries: entries,
+                                  kind: wire.kind ?? .delta)
     }
 
     private static func domain(_ wire: VehicleCatalogEntryWire, packVersion: Int) throws -> VehicleCatalogEntry {
@@ -117,6 +138,7 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
     private struct VehicleCatalogPackWire: Decodable {
         let packVersion: Int
         let entries: [VehicleCatalogEntryWire]
+        let kind: CatalogPackKind?
     }
 
     private struct VehicleCatalogEntryWire: Decodable {

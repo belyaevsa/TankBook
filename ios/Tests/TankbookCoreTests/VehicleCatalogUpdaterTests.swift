@@ -127,6 +127,14 @@ private func correctedV60(tank: Double, id: String = "11111111-1111-1111-1111-11
                         batteryCapacityKWh: nil, packVersion: version)
 }
 
+/// A model the seed never carried - server-only, so a full pack omitting it proves a withdrawal (P6.12).
+private func serverOnlyRivian(version: Int) -> VehicleCatalogEntry {
+    VehicleCatalogEntry(id: "33333333-3333-3333-3333-333333333333", make: "Rivian",
+                        model: "R1T", generation: "", years: [2022, nil], powertrain: .ev,
+                        fuelKinds: [.electricity], tankCapacityL: nil, batteryCapacityKWh: 135,
+                        packVersion: version)
+}
+
 private func makeLog() -> (TankbookLog, InMemorySink) {
     let sink = InMemorySink()
     let log = TankbookLog(sink: sink, context: {
@@ -137,8 +145,9 @@ private func makeLog() -> (TankbookLog, InMemorySink) {
 
 // MARK: - Wire builders (the body as the server shipped it, camelCase)
 
-private func packJSON(version: Int, entries: [String]) -> Data {
-    Data("{ \"packVersion\": \(version), \"entries\": [\(entries.joined(separator: ","))] }".utf8)
+private func packJSON(version: Int, entries: [String], kind: String? = nil) -> Data {
+    let kindJSON = kind.map { ", \"kind\": \"\($0)\"" } ?? ""
+    return Data("{ \"packVersion\": \(version), \"entries\": [\(entries.joined(separator: ","))]\(kindJSON) }".utf8)
 }
 
 private func v60EntryJSON(id: String = "11111111-1111-1111-1111-111111111111",
@@ -187,6 +196,82 @@ private func v60EntryJSON(id: String = "11111111-1111-1111-1111-111111111111",
 
     // Unchanged model lines keep the seed values.
     #expect(updater.suggestions(for: "xc60").first?.entry.tankCapacityL == 71)
+}
+
+// MARK: - P6.12: a full pack REPLACES, a delta OVERLAYS
+
+@Test func fullPackReplacesAndAWithdrawnEntryStopsBeingSuggested() async throws {
+    let dir = tempCacheDirectory()
+    defer { remove(dir) }
+    let fetcher = StubCatalogFetcher()
+    let updater = VehicleCatalogUpdater(bundled: makeBundledSeed(), cacheDirectory: dir,
+                                        fetcher: fetcher, minimumFetchInterval: 0)
+    fetcher.script(VehicleCatalogPack(packVersion: 3, entries: [serverOnlyRivian(version: 3)]))
+    await updater.refresh()
+    #expect(updater.suggestions(for: "rivian").first?.entry.title == "Rivian R1T")
+    fetcher.script(VehicleCatalogPack(packVersion: 4,
+                                      entries: [correctedV60(tank: 60, version: 4)],
+                                      kind: .full))
+    await updater.refresh()
+    // A FULL pack replaces: the withdrawn model stops being suggested at all.
+    #expect(updater.suggestions(for: "rivian", limit: 20).isEmpty)
+    #expect(updater.heldPackVersion == 4)
+    #expect(updater.suggestions(for: "volvo v60").first?.entry.tankCapacityL == 60)
+}
+
+@Test func deltaOverlaysAndDoesNotRemoveEntriesTheServerDidNotMention() async throws {
+    let dir = tempCacheDirectory()
+    defer { remove(dir) }
+    let fetcher = StubCatalogFetcher()
+    let updater = VehicleCatalogUpdater(bundled: makeBundledSeed(), cacheDirectory: dir,
+                                        fetcher: fetcher, minimumFetchInterval: 0)
+    fetcher.script(VehicleCatalogPack(packVersion: 3, entries: [serverOnlyRivian(version: 3)]))
+    await updater.refresh()
+    fetcher.script(VehicleCatalogPack(packVersion: 4, entries: [correctedV60(tank: 60, version: 4)]))
+    await updater.refresh()
+    // A DELTA overlays: the unmentioned model line survives - this stops
+    // "replace" being applied to everything.
+    #expect(updater.suggestions(for: "rivian").first?.entry.title == "Rivian R1T")
+    #expect(updater.suggestions(for: "volvo v60").first?.entry.tankCapacityL == 60)
+    #expect(updater.heldPackVersion == 4)
+}
+
+@Test func staleClientConvergesExactlyOnTheServerSetViaAFullPack() async throws {
+    let dir = tempCacheDirectory()
+    defer { remove(dir) }
+    let fetcher = StubCatalogFetcher()
+    let updater = VehicleCatalogUpdater(bundled: makeBundledSeed(), cacheDirectory: dir,
+                                        fetcher: fetcher, minimumFetchInterval: 0)
+    fetcher.script(VehicleCatalogPack(packVersion: 3, entries: [
+        correctedV60(tank: 71, version: 3),
+        serverOnlyRivian(version: 3)
+    ]))
+    await updater.refresh()
+    fetcher.script(VehicleCatalogPack(packVersion: 9, entries: [
+        correctedV60(tank: 60, version: 9),
+        VehicleCatalogEntry(id: "44444444-4444-4444-4444-444444444444", make: "Toyota",
+                            model: "Corolla", generation: "E210", years: [2018, nil],
+                            powertrain: .hybrid, fuelKinds: [.petrol95, .electricity],
+                            tankCapacityL: 43, batteryCapacityKWh: nil, packVersion: 9)
+    ], kind: .full))
+    await updater.refresh()
+    // A stale client converges EXACTLY on the server's set: not a superset, the
+    // withdrawn model gone and the seed lines still underneath.
+    #expect(updater.heldPackVersion == 9)
+    #expect(updater.suggestions(for: "rivian", limit: 20).isEmpty)
+    #expect(updater.suggestions(for: "volvo v60").first?.entry.tankCapacityL == 60)
+    #expect(updater.suggestions(for: "volvo xc60").first?.entry.tankCapacityL == 71)
+}
+
+@Test func packKindDecodesFromTheWireAndMissingKindMeansDelta() throws {
+    // A body from an older server (no marker) is consumed as a delta - the
+    // client degrades to yesterday's behaviour, never something worse.
+    #expect(try RemoteVehicleCatalogFetcher.decodePack(
+        packJSON(version: 8, entries: [v60EntryJSON()], kind: "full")).kind == .full)
+    #expect(try RemoteVehicleCatalogFetcher.decodePack(
+        packJSON(version: 8, entries: [v60EntryJSON()], kind: "delta")).kind == .delta)
+    #expect(try RemoteVehicleCatalogFetcher.decodePack(
+        packJSON(version: 8, entries: [v60EntryJSON()])).kind == .delta)
 }
 
 // MARK: - 3. The master rule's limit: a corrected pack never rewrites a Vehicle

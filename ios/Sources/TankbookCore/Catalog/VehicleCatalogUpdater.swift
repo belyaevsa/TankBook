@@ -27,6 +27,13 @@ public enum CatalogRejectReason: String, Sendable {
 /// string on purpose - there is no error surface, because there is no next
 /// step a user could take.
 ///
+/// A pack is consumed according to its wire `kind` (docs/SYNC.md -> "Applying
+/// an update"): a **full** pack replaces the held server set - an entry absent
+/// from it was withdrawn by curation and stops being offered - while a
+/// **delta** overlays only the entries it mentions and never removes anything.
+/// The bundled seed stays layer 1 underneath both, so Add-car suggestions work
+/// with no cache and no network (hard rule 1).
+///
 /// A corrected pack changes what the *next* car pre-fills and never rewrites a
 /// car already saved - no `Vehicle` references a catalog entry (docs/SCHEMA.md
 /// -> Vehicle catalog). "Server is master" governs the catalog, never the
@@ -201,7 +208,20 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
             guard Self.validate(pack) else {
                 return .rejected(.invalid)
             }
-            let server = Self.resolved(bundled: state.serverEntries, server: pack.entries)
+            // The kind decides how the pack is consumed (docs/SYNC.md ->
+            // "Applying an update"): a FULL pack IS everything the server
+            // publishes, so the held set is REPLACED - an entry absent from it
+            // was withdrawn and stops being offered as a suggestion. A DELTA is
+            // only what changed, so it is OVERLAID by identity and can never
+            // remove an entry the server did not mention. The bundled seed
+            // stays layer 1 underneath either way (hard rule 1).
+            let server: [VehicleCatalogEntry]
+            switch pack.kind {
+            case .full:
+                server = pack.entries
+            case .delta:
+                server = Self.resolved(bundled: state.serverEntries, server: pack.entries)
+            }
             state.serverEntries = server
             state.heldVersion = pack.packVersion
             return .applied(entries: server)

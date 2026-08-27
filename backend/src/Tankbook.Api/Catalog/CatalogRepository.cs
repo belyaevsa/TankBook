@@ -179,13 +179,20 @@ public sealed class CatalogRepository
     /// Publishes a pack: claims <paramref name="version"/> on the singleton
     /// state row (refusing a version not greater than the current one, which
     /// serializes concurrent publishes and gives rollback protection at the
-    /// database) and upserts the entries at that version, all in one
-    /// transaction. Returns false when the version claim failed - nothing was
-    /// written. Returns true when the whole pack landed atomically.
+    /// database), deletes any <paramref name="removedIds"/> (withdrawal) and
+    /// upserts the entries at that version, all in one transaction. Deletion
+    /// happens before upsert, so an id in both lists is a withdrawn entry -
+    /// the pack's own contradiction is resolved in the removal's favour. A
+    /// withdrawal is a physical delete, not a tombstone: the full pack reads
+    /// back exactly what is published, and the server never has to remember
+    /// what it withdrew (docs/SYNC.md "Applying an update"). Returns false
+    /// when the version claim failed - nothing was written. Returns true when
+    /// the whole pack landed atomically.
     /// </summary>
     public async Task<bool> TryPublishPackAsync(
         int version,
         IReadOnlyList<CatalogEntryInsert> entries,
+        IReadOnlyList<Guid> removedIds,
         CancellationToken cancellationToken)
     {
         var opened = await OpenIfNeededAsync();
@@ -209,6 +216,15 @@ public sealed class CatalogRepository
             if (claimed is null)
             {
                 return false;
+            }
+
+            if (removedIds.Count > 0)
+            {
+                await _db.ExecuteAsync(new CommandDefinition(
+                    "DELETE FROM vehicle_catalog WHERE id = ANY(@Ids)",
+                    new { Ids = removedIds.ToArray() },
+                    transaction: transaction,
+                    cancellationToken: cancellationToken));
             }
 
             foreach (var entry in entries)

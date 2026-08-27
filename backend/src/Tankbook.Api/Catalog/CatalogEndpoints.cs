@@ -35,6 +35,10 @@ public static class CatalogEndpoints
     /// full pack by documented default. A <c>since_version</c> at or above the
     /// current version gets an honest empty delta with the current packVersion -
     /// never a fabricated entry, never a full pack pretending to be a delta.
+    /// Every response names its kind with <c>kind: "full" | "delta"</c>, so a
+    /// client can tell "here is everything" from "here is what changed" - the
+    /// marker that makes entry withdrawal expressible (a full pack is
+    /// authoritative and replaces the client's held set; a delta is an overlay).
     /// </summary>
     public static async Task<IResult> GetCatalog(
         [FromQuery(Name = "since_version")] string? sinceVersion,
@@ -56,6 +60,15 @@ public static class CatalogEndpoints
 
         var current = await repository.GetCurrentPackVersionAsync(cancellationToken);
 
+        // The response always says which kind it is (docs/API.md "Vehicle
+        // catalog"): "full" means entries ARE the whole catalog - the client
+        // replaces its held set with them, so an entry absent from the pack is
+        // withdrawn - while "delta" means entries are only what changed since
+        // the client's version and are overlaid, never removing anything
+        // (docs/SYNC.md "Applying an update"). The marker is present on every
+        // response, never inferred from an entry count or from the absence of
+        // since_version.
+        var isFull = since is null;
         IReadOnlyList<CatalogEntryRow> entries;
         if (since is null)
         {
@@ -68,13 +81,19 @@ public static class CatalogEndpoints
         else
         {
             var deltaCount = await repository.GetDeltaCountAsync(since.Value, cancellationToken);
-            entries = deltaCount <= options.Value.MaxDeltaEntries
-                ? await repository.GetDeltaAsync(since.Value, cancellationToken)
-                : await repository.GetFullPackAsync(cancellationToken);
+            if (deltaCount <= options.Value.MaxDeltaEntries)
+            {
+                entries = await repository.GetDeltaAsync(since.Value, cancellationToken);
+            }
+            else
+            {
+                isFull = true;
+                entries = await repository.GetFullPackAsync(cancellationToken);
+            }
         }
 
         var body = JsonSerializer.Serialize(
-            new CatalogResponse(current, entries.Select(ToResponse).ToList()),
+            new CatalogResponse(current, entries.Select(ToResponse).ToList(), isFull ? "full" : "delta"),
             WireJson);
 
         httpContext.Response.Headers.CacheControl = CacheControl;
@@ -181,7 +200,7 @@ public static class CatalogEndpoints
     private static IResult InvalidRequest(string detail)
         => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid catalog request.", detail: detail);
 
-    private sealed record CatalogResponse(int PackVersion, IReadOnlyList<CatalogEntryResponse> Entries);
+    private sealed record CatalogResponse(int PackVersion, IReadOnlyList<CatalogEntryResponse> Entries, string Kind);
 
     private sealed record CatalogEntryResponse(
         Guid Id,

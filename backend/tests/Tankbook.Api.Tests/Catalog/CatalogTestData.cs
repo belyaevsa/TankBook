@@ -30,6 +30,14 @@ internal static class CatalogTestData
     /// <summary>A complete publish pack in the wire shape, schema-valid by default.</summary>
     public static string Pack(int version, params Entry[] entries)
     {
+        return Pack(version, entries, []);
+    }
+
+    /// <summary>A publish pack that also withdraws entries via <c>removedIds</c>
+    /// (docs/API.md "Vehicle catalog" - a withdrawal is a physical delete, so
+    /// the subsequent full pack lacks the withdrawn id).</summary>
+    public static string Pack(int version, Entry[] entries, Guid[] removedIds)
+    {
         var envelope = new
         {
             packVersion = version,
@@ -45,6 +53,7 @@ internal static class CatalogTestData
                 e.TankCapacityL,
                 e.BatteryCapacityKwh,
             }),
+            removedIds,
         };
         return JsonSerializer.Serialize(envelope, WireJson);
     }
