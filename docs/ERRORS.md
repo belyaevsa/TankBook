@@ -167,7 +167,7 @@ nothing worth interrupting them for. Same principle as remote config.
 |---|---|---|
 | Pack fetch fails (offline, 5xx, timeout) | **Nothing.** Suggestions keep working from the pack already on device; retry with backoff | Nothing to do |
 | Pack fails validation, or is malformed | **Nothing.** Rejected whole – never partially applied – previous pack stands, logged at WARN | Nothing to do |
-| Pack `packVersion` older than the one held | **Nothing.** Ignored (rollback protection) | Nothing to do |
+| Pack `packVersion` not greater than the one held | **Nothing.** Ignored - an older pack is rollback protection, an equal one (an honest empty delta) is "nothing changed". `>` vs `>=` is the client guard (P5.7) | Nothing to do |
 | Catalog cache unreadable or truncated | **Nothing.** Falls back to the bundled seed pack and refetches | Nothing to do |
 | Model genuinely not in the catalog | On Add car: "Can't find it? Type the name yourself – you can add tank size in Garage." The miss is counted (a **count only**, never the typed text – hard rule 12) and feeds curation | Type it manually; nothing blocks, nothing is lost |
 

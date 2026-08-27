@@ -376,6 +376,62 @@ public struct ConfigBaseURLRevert: LogEvent {
     }
 }
 
+// MARK: - Vehicle catalog updates (docs/SYNC.md -> Reference data)
+
+/// Which catalog layer is now serving. The catalog is our data, not the user's,
+/// so these are Safe-class fields.
+public enum CatalogPackSource: String, Sendable {
+    case bundled
+    case cache
+    case live
+}
+
+/// A catalog layer was applied (docs/SYNC.md -> "Applying an update"). Only
+/// versions, sources and counts are logged - never the pack body and never a
+/// model name (docs/LOGGING.md hard rule 12).
+public struct CatalogApply: LogEvent {
+    public let eventName = "catalog.apply"
+    public let category = LogCategory.config
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(version: Int, source: CatalogPackSource, changedEntries: Int) {
+        fields = [
+            .safe("version", version),
+            .safe("source", source.rawValue),
+            .safe("changedEntries", changedEntries),
+        ]
+    }
+}
+
+/// A catalog pack was not applied (docs/ERRORS.md -> Vehicle catalog updates:
+/// every failure here is invisible). `reason` is a stable code. Logged at WARN
+/// - handled degradation - and the previous layer keeps serving.
+public struct CatalogReject: LogEvent {
+    public let eventName = "catalog.reject"
+    public let category = LogCategory.config
+    public let level = LogLevel.warn
+    public let fields: [LogField]
+
+    public init(reason: CatalogRejectReason) {
+        fields = [.safe("reason", reason.rawValue)]
+    }
+}
+
+/// One "model not found" search miss (docs/SYNC.md -> Curation feedback loop).
+/// Only the running count is logged; the typed text is Never-class and can
+/// never be attached (docs/LOGGING.md hard rule 12).
+public struct CatalogMiss: LogEvent {
+    public let eventName = "catalog.miss"
+    public let category = LogCategory.config
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(totalCount: Int) {
+        fields = [.safe("totalCount", totalCount)]
+    }
+}
+
 // MARK: - Capture / OCR (docs/LOGGING.md §4)
 
 /// One OCR field: the field *name* and its confidence value, never the

@@ -246,7 +246,14 @@ A user's override is theirs permanently.
 - **Validated before it is applied, whole or not at all.** A pack that fails its schema is rejected
   entirely and the previous cache stands – the same all-or-nothing document rule as config. A partially
   applied pack is worse than a stale one.
-- **`packVersion` is monotonic**: a pack older than the one held is ignored (rollback protection).
+- **`packVersion` is monotonic**: the client applies a pack only when its `packVersion` is **greater**
+  than the one held. An older pack is ignored (rollback protection), and so is an **equal** one - an
+  honest empty delta at the held version (or a `304`) means "nothing changed", not "re-publish", so the
+  client's guard is `packVersion > held`, never `>=` (P5.7).
+- **Overlap identity is the model line** - make/model/generation/powertrain - not the server row `id`:
+  the bundled seed entries carry no server ids, so overlap must be decidable across all three layers
+  without one. Two powertrain variants of one model line are distinct catalog rows and never replace
+  each other (P5.7).
 - **Atomic write** to the cache: temp file then rename, so a crash mid-write cannot leave a truncated pack
   that fails validation on next launch. The cache is regenerable, so it is **excluded from backups**.
 - **Never at launch-blocking time.** Checked in the background, throttled; a cold start uses whatever is
