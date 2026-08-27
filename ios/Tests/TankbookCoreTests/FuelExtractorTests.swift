@@ -29,11 +29,11 @@ struct FuelExtractorVolumePriceTests {
         let extractor = FuelExtractor()
         let first = extractor.extract(textLines: ["40 л Х 195.00"])
         #expect(first.liters == 40.0)
-        #expect(first.unitPrice == 195.00)
+        #expect(first.unitPrice == decimal("195.00"))
 
         let second = extractor.extract(textLines: ["62.89*66.810л"])
         #expect(second.liters == 66.810)
-        #expect(second.unitPrice == 62.89)
+        #expect(second.unitPrice == decimal("62.89"))
     }
 
     @Test("an unmarked pair resolves through the injected band, never by guessing")
@@ -42,7 +42,7 @@ struct FuelExtractorVolumePriceTests {
         let extractor = FuelExtractor(bandProvider: provider)
         let result = extractor.extract(textLines: ["43.61 Х 99.40"])
         #expect(result.liters == 43.61)
-        #expect(result.unitPrice == 99.40)
+        #expect(result.unitPrice == decimal("99.40"))
     }
 
     @Test("an unmarked pair with no history and no band is undecided -> nil")
@@ -51,7 +51,7 @@ struct FuelExtractorVolumePriceTests {
         let result = extractor.extract(textLines: ["205.00*20", "Л =4100.00", "ИТОГ", "=4100.00"])
         #expect(result.liters == nil)
         #expect(result.unitPrice == nil)
-        #expect(result.total == 4100.00)
+        #expect(result.total == decimal("4100.00"))
     }
 
     @Test("the labelled column names quantity and price by x position")
@@ -79,8 +79,8 @@ struct FuelExtractorVolumePriceTests {
         let extractor = FuelExtractor()
         let result = extractor.extract(lines: boxes)
         #expect(result.liters == 50.0)
-        #expect(result.unitPrice == 71.25)
-        #expect(result.total == 3562.50)
+        #expect(result.unitPrice == decimal("71.25"))
+        #expect(result.total == decimal("3562.50"))
     }
 }
 
@@ -98,7 +98,7 @@ struct FuelExtractorTotalTests {
         ]
         let extractor = FuelExtractor()
         let result = extractor.extract(textLines: lines)
-        #expect(result.total == 19719.00)
+        #expect(result.total == decimal("19719.00"))
     }
 
     @Test("receipt-011: the total is the fuel total, not the VAT amount")
@@ -109,9 +109,9 @@ struct FuelExtractorTotalTests {
         ]
         let extractor = FuelExtractor()
         let result = extractor.extract(textLines: lines)
-        #expect(result.total == 4201.68)
+        #expect(result.total == decimal("4201.68"))
         #expect(result.liters == 66.810)
-        #expect(result.unitPrice == 62.89)
+        #expect(result.unitPrice == decimal("62.89"))
     }
 
     @Test("receipt-012: the rounding line is not the total")
@@ -122,7 +122,7 @@ struct FuelExtractorTotalTests {
         ]
         let extractor = FuelExtractor()
         let result = extractor.extract(textLines: lines)
-        #expect(result.total == 1251.00)
+        #expect(result.total == decimal("1251.00"))
     }
 
     @Test("receipt-009: a mixed receipt's fuel line, not the grand total")
@@ -136,8 +136,8 @@ struct FuelExtractorTotalTests {
         let extractor = FuelExtractor()
         let result = extractor.extract(textLines: lines)
         #expect(result.liters == 47.56)
-        #expect(result.unitPrice == 129.00)
-        #expect(close(result.total, 6135.24))
+        #expect(result.unitPrice == decimal("129.00"))
+        #expect(close(result.total, "6135.24"))
     }
 
     @Test("receipt-007: the ИТОГ value, not the pre-rounding fuel line")
@@ -148,7 +148,7 @@ struct FuelExtractorTotalTests {
         ]
         let extractor = FuelExtractor()
         let result = extractor.extract(textLines: lines)
-        #expect(result.total == 4334.00)
+        #expect(result.total == decimal("4334.00"))
     }
 }
 
@@ -352,7 +352,11 @@ private func box(x: CGFloat, y: CGFloat) -> CGRect {
     CGRect(x: x, y: y, width: 0.1, height: 0.5)
 }
 
-private func close(_ value: Double?, _ expected: Double) -> Bool {
+private func decimal(_ string: String) -> Decimal {
+    Decimal(string: string, locale: Locale(identifier: "en_US_POSIX"))!
+}
+
+private func close(_ value: Decimal?, _ expected: String) -> Bool {
     guard let value else { return false }
-    return abs(value - expected) < 0.005
+    return abs(value - decimal(expected)) < decimal("0.005")
 }

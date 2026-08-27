@@ -13,8 +13,14 @@ private func dec(_ string: String) -> Decimal { Decimal(string: string)! }
 
 private func evaluate(_ liters: Double, _ unitPrice: Double, _ total: Double,
                       _ lines: [String]) -> ExtractionCrossCheck {
-    ExtractionCrossCheck.evaluate(liters: liters, unitPrice: unitPrice, total: total,
-                                  lines: lines.map { OCRLine(text: $0) })
+    // The evaluator now takes exact Decimals for money (P2.2b); the test
+    // convenience converts through the same ConfirmFormat boundary the
+    // extraction uses, so these constructed triples exercise the same path.
+    ExtractionCrossCheck.evaluate(
+        liters: liters,
+        unitPrice: ConfirmFormat.decimal(fromExtraction: unitPrice, fractionDigits: 3),
+        total: ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2),
+        lines: lines.map { OCRLine(text: $0) })
 }
 
 @Suite("Cross-check: four outcomes (P2.12)")
@@ -174,9 +180,9 @@ struct CrossCheckTests {
     func screenshot008ReturnsTheFuelLine() {
         let result = FuelExtractor().extract(textLines: Self.screenshot008Lines)
         #expect(result.liters == 59.78)
-        #expect(result.unitPrice == 1.924)
-        #expect(result.total == 112.63)
-        #expect(result.total != 122.99, "hard rule 4: the fuel amount is the fuel line")
+        #expect(result.unitPrice == dec("1.924"))
+        #expect(result.total == dec("112.63"))
+        #expect(result.total != dec("122.99"), "hard rule 4: the fuel amount is the fuel line")
         guard case .reconciled(let residual, let discountLine) = result.crossCheck else {
             Issue.record("expected reconciled, got \(result.crossCheck)")
             return
@@ -192,8 +198,8 @@ struct CrossCheckTests {
                      "1.01 EUR", "Discount", "You saved 1.01 EUR"]
         let result = FuelExtractor().extract(textLines: lines)
         #expect(result.liters == 67.0)
-        #expect(result.unitPrice == 1.884)
-        #expect(result.total == 125.22)
+        #expect(result.unitPrice == dec("1.884"))
+        #expect(result.total == dec("125.22"))
     }
 
     // The screenshot-008 OCR lines in reading order (from the real Vision run).

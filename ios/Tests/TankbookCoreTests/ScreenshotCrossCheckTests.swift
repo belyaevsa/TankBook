@@ -49,8 +49,8 @@ struct ScreenshotCrossCheckTests {
     func screenshot004Reconciles() throws {
         let result = try extract("screenshot-004-circlek-jarvevana-ee-diesel.png")
         #expect(abs((result.liters ?? 0) - 67.00) < 0.005)
-        #expect(abs((result.unitPrice ?? 0) - 1.884) < 0.005)
-        #expect(abs((result.total ?? 0) - 125.22) < 0.005)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.884")) < dec("0.005"))
+        #expect(abs((result.total ?? 0) - dec("125.22")) < dec("0.005"))
         expectReconciled(result, residual: "1.01", discountLine: "1.01")
     }
 
@@ -58,8 +58,8 @@ struct ScreenshotCrossCheckTests {
     func screenshot005Reconciles() throws {
         let result = try extract("screenshot-005-circlek-garliava-lt-diesel.png")
         #expect(abs((result.liters ?? 0) - 58.01) < 0.005)
-        #expect(abs((result.unitPrice ?? 0) - 2.159) < 0.005)
-        #expect(abs((result.total ?? 0) - 121.18) < 0.005)
+        #expect(abs((result.unitPrice ?? 0) - dec("2.159")) < dec("0.005"))
+        #expect(abs((result.total ?? 0) - dec("121.18")) < dec("0.005"))
         expectReconciled(result, residual: "4.06", discountLine: "4.06")
     }
 
@@ -67,8 +67,8 @@ struct ScreenshotCrossCheckTests {
     func screenshot006Reconciles() throws {
         let result = try extract("screenshot-006-circlek-sikupilli-ee-diesel.png")
         #expect(abs((result.liters ?? 0) - 68.00) < 0.005)
-        #expect(abs((result.unitPrice ?? 0) - 1.799) < 0.005)
-        #expect(abs((result.total ?? 0) - 121.31) < 0.005)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.799")) < dec("0.005"))
+        #expect(abs((result.total ?? 0) - dec("121.31")) < dec("0.005"))
         expectReconciled(result, residual: "1.02", discountLine: "1.02")
     }
 
@@ -76,8 +76,8 @@ struct ScreenshotCrossCheckTests {
     func screenshot007Reconciles() throws {
         let result = try extract("screenshot-007-circlek-jarvevana-ee-diesel-jun.png")
         #expect(abs((result.liters ?? 0) - 64.00) < 0.005)
-        #expect(abs((result.unitPrice ?? 0) - 1.614) < 0.005)
-        #expect(abs((result.total ?? 0) - 101.38) < 0.005)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.614")) < dec("0.005"))
+        #expect(abs((result.total ?? 0) - dec("101.38")) < dec("0.005"))
         expectReconciled(result, residual: "1.92", discountLine: "1.92")
     }
 
@@ -85,10 +85,10 @@ struct ScreenshotCrossCheckTests {
     func screenshot008Reconciles() throws {
         let result = try extract("screenshot-008-circlek-jugla-lv-mixed.png")
         #expect(abs((result.liters ?? 0) - 59.78) < 0.005)
-        #expect(abs((result.unitPrice ?? 0) - 1.924) < 0.005)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.924")) < dec("0.005"))
         // Hard rule 4: the fuel amount is the fuel line, never the grand total.
-        #expect(abs((result.total ?? 0) - 112.63) < 0.005)
-        #expect(abs((result.total ?? 0) - 122.99) >= 0.005)
+        #expect(abs((result.total ?? 0) - dec("112.63")) < dec("0.005"))
+        #expect(abs((result.total ?? 0) - dec("122.99")) >= dec("0.005"))
         // product 115.02 + shop list 11.14 == 122.99 + 3.17: the residual 2.39
         // is the fuel's share of the printed discount.
         expectReconciled(result, residual: "2.39", discountLine: "3.17")
@@ -119,8 +119,8 @@ struct ScreenshotCrossCheckTests {
         #expect(result.crossCheck == .notApplicable)
 
         // The honest outcome with the ground-truth triple: lock, not reconciled.
-        let outcome = ExtractionCrossCheck.evaluate(liters: 45.22, unitPrice: 1.754,
-                                                    total: 79.32, lines: ocr)
+        let outcome = ExtractionCrossCheck.evaluate(liters: 45.22, unitPrice: dec("1.754"),
+                                                    total: dec("79.32"), lines: ocr)
         #expect(outcome == .lock, "got \(outcome)")
     }
 }

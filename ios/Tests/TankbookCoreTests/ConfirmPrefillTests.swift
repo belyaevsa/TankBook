@@ -14,8 +14,8 @@ import Foundation
         Decimal(string: string)!
     }
 
-    private func extraction(liters: Double? = nil, unitPrice: Double? = nil,
-                            total: Double? = nil) -> FuelExtraction {
+    private func extraction(liters: Double? = nil, unitPrice: Decimal? = nil,
+                            total: Decimal? = nil) -> FuelExtraction {
         FuelExtraction(liters: liters, unitPrice: unitPrice, total: total)
     }
 
@@ -122,7 +122,7 @@ import Foundation
     // MARK: - The Decimal boundary (money precision)
 
     @Test func doubleEntersTheFormAsAnExactDecimal() {
-        // The boundary conversion: Double -> formatted string -> Decimal(string:).
+        // The volume boundary: Double -> formatted string -> Decimal(string:).
         // 4201.68 must survive as the exact decimal, never a binary approximation.
         let converted = ConfirmFormat.decimal(fromExtraction: 4201.68, fractionDigits: 2)
         #expect(converted == decimal("4201.68"))
@@ -130,7 +130,8 @@ import Foundation
 
     @Test func nilExtractionFieldStaysBlank() {
         #expect(ConfirmFormat.decimal(fromExtraction: nil, fractionDigits: 2) == nil)
-        #expect(ConfirmFormat.string(fromExtraction: nil, fractionDigits: 2) == "")
+        #expect(ConfirmFormat.string(fromExtraction: Double?.none, fractionDigits: 2) == "")
+        #expect(ConfirmFormat.string(fromExtraction: Decimal?.none, fractionDigits: 2) == "")
     }
 
     @Test func stringBoundaryRoundTripsThroughDecimalString() {
@@ -147,6 +148,16 @@ import Foundation
         #expect(ConfirmFormat.string(fromExtraction: 1.679, fractionDigits: 3) == "1.679")
     }
 
+    // MARK: - P2.2b: extraction money is born Decimal, exactly
+
+    @Test func extractionMoneyFormatsDirectlyWithoutADoubleRoundTrip() {
+        // The extraction's money fields are Decimal, so formatting them must
+        // not route through Double (which would corrupt e.g. 71.02). The
+        // Decimal overload formats the exact value.
+        #expect(ConfirmFormat.string(fromExtraction: decimal("71.02"), fractionDigits: 2) == "71.02")
+        #expect(ConfirmFormat.string(fromExtraction: decimal("1.679"), fractionDigits: 3) == "1.679")
+    }
+
     // MARK: - QR-anchor total resolution
 
     private func qrAnchor(_ total: String) -> FiscalQRAnchor {
@@ -154,7 +165,7 @@ import Foundation
     }
 
     @Test func qrAgreesKeepsTheOcrTotal() {
-        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: 71.02),
+        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: decimal("71.02")),
                                               qrAnchor: qrAnchor("71.02"))
         #expect(resolved == .ocrConfirmed(decimal("71.02")))
     }
@@ -162,7 +173,7 @@ import Foundation
     @Test func qrDisagreesFillsTheFieldWithTheQrTotal() {
         // The corpus case: OCR grabbed the VAT line (706.00 on a 4334.83
         // receipt); the QR total is exact and wins.
-        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: 706.00),
+        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: decimal("706.00")),
                                               qrAnchor: qrAnchor("4334.83"))
         #expect(resolved == .qrAuthoritative(decimal("4334.83")))
     }
@@ -181,8 +192,8 @@ import Foundation
         // line, never the grand total, so the fuel line stands in exact
         // Decimal - computed from the formatted operands, never Decimal(double:).
         let resolved = ConfirmQRTotal.resolve(extraction: extraction(liters: 20.0,
-                                                                      unitPrice: 2.0,
-                                                                      total: 40.00),
+                                                                      unitPrice: decimal("2.00"),
+                                                                      total: decimal("40.00")),
                                               qrAnchor: qrAnchor("50.00"))
         #expect(resolved == .fuelLineStands(decimal("40.00")))
     }
@@ -191,13 +202,13 @@ import Foundation
         // No liters/price to compute a fuel line: the only evidence is the OCR
         // total, which stays (the check line then shows honestly whether the
         // triple verifies).
-        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: 40.00),
+        let resolved = ConfirmQRTotal.resolve(extraction: extraction(total: decimal("40.00")),
                                               qrAnchor: qrAnchor("50.00"))
         #expect(resolved == .fuelLineStands(decimal("40.00")))
     }
 
     @Test func noAnchorLeavesTheOcrTotalAndBlankMeansBlank() {
-        #expect(ConfirmQRTotal.resolve(extraction: extraction(total: 71.02),
+        #expect(ConfirmQRTotal.resolve(extraction: extraction(total: decimal("71.02")),
                                        qrAnchor: nil) == .noAnchor(ocrTotal: decimal("71.02")))
         #expect(ConfirmQRTotal.resolve(extraction: extraction(),
                                        qrAnchor: nil) == .noAnchor(ocrTotal: nil))

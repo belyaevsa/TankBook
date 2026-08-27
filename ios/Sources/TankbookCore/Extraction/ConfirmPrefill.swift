@@ -4,11 +4,13 @@ import Foundation
 //
 // Everything the Confirm sheet needs to land a scan as ordinary input: the
 // confidence gate that dims resolved-but-unconfirmed fields, the Decimal
-// boundary that converts the extractor's `Double`s without binary noise, the
-// QR-anchor total resolution, the date parse, and the reduce-motion decision.
-// All thresholds live HERE, in one named place with unit tests - none of them
-// is an OCR confidence score, which `pump-004` proved worthless (Vision
-// returned a wrong digit at confidence 1.00).
+// boundary (P2.2b: the extraction now types money as Decimal, so this boundary
+// converts the extractor's remaining `Double` - the VOLUME - and formats exact
+// Decimals for the form, without binary noise), the QR-anchor total resolution,
+// the date parse, and the reduce-motion decision. All thresholds live HERE, in
+// one named place with unit tests - none of them is an OCR confidence score,
+// which `pump-004` proved worthless (Vision returned a wrong digit at
+// confidence 1.00).
 
 // MARK: - The dimming gate
 
@@ -66,12 +68,15 @@ public enum ConfirmConfidenceGate {
 
 // MARK: - The Decimal boundary
 
-/// The boundary where the extractor's `Double`s become form input (task P2.3
-/// check 8). The extraction types money as `Double` (the `Decimal` fix is
-/// P2.2b), so a value enters the form state formatted to the field's fraction
-/// digits and is re-parsed with `Decimal(string:)` - never `Decimal(double:)`,
-/// whose binary rounding under-specifies money. `4201.68` survives this path
-/// as the exact `Decimal` `4201.68`.
+/// The boundary where the extractor's remaining `Double` - the volume - becomes
+/// form input, and where exact `Decimal`s are formatted for the form fields.
+/// Since P2.2b the extraction types money as `Decimal` (born exact at the OCR
+/// boundary, `docs/SCHEMA.md` types money as Decimal), so `unitPrice` and
+/// `total` never pass through `Double` here; the `Double` overload survives
+/// only for `liters`. The volume enters the form state formatted to its field's
+/// fraction digits and is re-parsed with `Decimal(string:)` - never
+/// `Decimal(double:)`, whose binary rounding under-specifies money. `4201.68`
+/// survives this path as the exact `Decimal` `4201.68`.
 public enum ConfirmFormat {
 
     /// The display digits per numeric field, matching the receipt card
@@ -85,7 +90,9 @@ public enum ConfirmFormat {
     }
 
     /// `Double` -> `Decimal` through a formatted string. `nil` passes through
-    /// (a nil extraction field stays blank and focusable - never `0`).
+    /// (a nil extraction field stays blank and focusable - never `0`). This is
+    /// the volume boundary (P2.2b); extraction money is born Decimal and never
+    /// needs this path.
     public static func decimal(fromExtraction value: Double?, fractionDigits: Int) -> Decimal? {
         guard let value else { return nil }
         let formatted = String(format: "%.\(fractionDigits)f", value)
@@ -93,12 +100,20 @@ public enum ConfirmFormat {
     }
 
     /// `Double` -> display string for a form field, with no thousand grouping
-    /// (grouping is display-only and belongs to the odometer formatter).
+    /// (grouping is display-only and belongs to the odometer formatter). Used
+    /// for the volume field, which stays `Double`.
     public static func string(fromExtraction value: Double?, fractionDigits: Int) -> String {
         guard let decimal = decimal(fromExtraction: value, fractionDigits: fractionDigits) else {
             return ""
         }
         return string(decimal: decimal, fractionDigits: fractionDigits)
+    }
+
+    /// An exact `Decimal` (extraction money since P2.2b, a QR total, a typed
+    /// form value) -> display string. `nil` stays blank.
+    public static func string(fromExtraction value: Decimal?, fractionDigits: Int) -> String {
+        guard let value else { return "" }
+        return string(decimal: value, fractionDigits: fractionDigits)
     }
 
     /// A `Decimal` (e.g. a QR total, already exact) -> display string.
@@ -149,8 +164,8 @@ public enum ConfirmQRTotal {
 
     public static func resolve(extraction: FuelExtraction,
                                qrAnchor: FiscalQRAnchor?) -> ConfirmQRTotalResolution {
-        let ocrTotal = ConfirmFormat.decimal(fromExtraction: extraction.total,
-                                             fractionDigits: 2)
+        // The extraction's total is already an exact Decimal (P2.2b).
+        let ocrTotal = extraction.total
         guard let qrAnchor else { return .noAnchor(ocrTotal: ocrTotal) }
         guard let ocrTotal else { return .qrAuthoritative(qrAnchor.total) }
 
@@ -165,8 +180,7 @@ public enum ConfirmQRTotal {
             // to the OCR total only when the operands are missing.
             if let liters = ConfirmFormat.decimal(fromExtraction: extraction.liters,
                                                   fractionDigits: 2),
-               let price = ConfirmFormat.decimal(fromExtraction: extraction.unitPrice,
-                                                 fractionDigits: 3) {
+               let price = extraction.unitPrice {
                 return .fuelLineStands(liters * price)
             }
             return .fuelLineStands(ocrTotal)

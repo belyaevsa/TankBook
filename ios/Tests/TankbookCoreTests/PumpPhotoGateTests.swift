@@ -33,10 +33,13 @@ struct PumpPhotoGateTests {
     }
 }
 
+private func dec(_ string: String) -> Decimal { Decimal(string: string)! }
+
 @Suite("Pump-photo capture path")
 struct PumpPhotoCaptureTests {
 
-    private let extraction = FuelExtraction(liters: 60.25, unitPrice: 76.24, total: 4593.46,
+    private let extraction = FuelExtraction(liters: 60.25, unitPrice: dec("76.24"),
+                                            total: dec("4593.46"),
                                             currency: .rub, date: "17.08.2026")
 
     @Test("off degrades to the manual form with nothing pre-filled")

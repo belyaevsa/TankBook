@@ -41,6 +41,14 @@ public enum DigitRepair {
     /// A completed repair: one digit of one operand substituted so that the
     /// product reproduces the total. `original` is what OCR delivered, `repaired`
     /// is the parser's best hypothesis for the user to confirm.
+    ///
+    /// `original` and `repaired` are `Double` by design (P2.2b): they are
+    /// provenance of the display-precision hypothesis (at most 3 fraction
+    /// digits, the pump display's precision), never the money boundary. The
+    /// authoritative money write happens when `FuelExtractor.extract` assigns
+    /// `repair.repaired` into `FuelExtraction.unitPrice` through the exact
+    /// `ConfirmFormat.decimal(fromExtraction:)` path, and the volume operand
+    /// (`liters`) stays `Double` per SCHEMA.md.
     public struct Result: Sendable, Equatable, Codable {
         public let operand: Operand
         public let original: Double
@@ -70,21 +78,20 @@ public enum DigitRepair {
     /// - a product that already reproduces the total (nothing to repair),
     /// - zero closing substitutions (the misread-segment hypothesis fails),
     /// - more than one (the document does not determine the answer).
-    public static func apply(liters: Double?, unitPrice: Double?, total: Double?,
+    public static func apply(liters: Double?, unitPrice: Decimal?, total: Decimal?,
                              source: ExtractionSource) -> Result? {
         guard source == .pump else { return nil }
         guard let liters, let unitPrice, let total else { return nil }
+        // `unitPrice` and `total` are already exact Decimals (the extraction
+        // types money as Decimal since P2.2b); only the volume goes through the
+        // Double -> Decimal boundary.
         guard let litersDecimal = ConfirmFormat.decimal(
-                  fromExtraction: liters, fractionDigits: ConfirmFormat.fractionDigits(for: .volume)),
-              let priceDecimal = ConfirmFormat.decimal(
-                  fromExtraction: unitPrice, fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)),
-              let totalDecimal = ConfirmFormat.decimal(
-                  fromExtraction: total, fractionDigits: ConfirmFormat.fractionDigits(for: .total)) else {
+                  fromExtraction: liters, fractionDigits: ConfirmFormat.fractionDigits(for: .volume)) else {
             return nil
         }
         // A triple that already reproduces the total needs no repair: the
         // misread-segment hypothesis is unnecessary.
-        guard !reproduces(liters: litersDecimal, price: priceDecimal, total: totalDecimal) else {
+        guard !reproduces(liters: litersDecimal, price: unitPrice, total: total) else {
             return nil
         }
 
@@ -93,14 +100,23 @@ public enum DigitRepair {
             operand: .liters, value: liters,
             formatted: ConfirmFormat.string(
                 fromExtraction: liters, fractionDigits: ConfirmFormat.fractionDigits(for: .volume)),
-            other: priceDecimal, total: totalDecimal)
+            other: unitPrice, total: total)
         candidates += closingCandidates(
-            operand: .unitPrice, value: unitPrice,
-            formatted: ConfirmFormat.string(
-                fromExtraction: unitPrice, fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)),
-            other: litersDecimal, total: totalDecimal)
+            operand: .unitPrice, value: faithfulDouble(unitPrice),
+            formatted: ConfirmFormat.string(decimal: unitPrice,
+                                            fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)),
+            other: litersDecimal, total: total)
         guard candidates.count == 1 else { return nil }
         return candidates[0]
+    }
+
+    /// The `Double` whose value equals the decimal's shortest representation -
+    /// the faithful inverse of the extraction's `Double -> Decimal(string:)`
+    /// boundary, so the repair's provenance records the same `Double` the
+    /// pre-P2.2b pipeline carried (`NSDecimalNumber.doubleValue` can land one
+    /// ULP off for values like 1.774).
+    private static func faithfulDouble(_ value: Decimal) -> Double {
+        Double("\(value)") ?? 0
     }
 
     // MARK: - Candidates

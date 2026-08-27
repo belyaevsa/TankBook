@@ -16,8 +16,8 @@ private func lines(_ texts: [String]) -> [OCRLine] {
     texts.map { OCRLine(text: $0) }
 }
 
-private func extraction(liters: Double? = nil, unitPrice: Double? = nil,
-                        total: Double? = nil) -> FuelExtraction {
+private func extraction(liters: Double? = nil, unitPrice: Decimal? = nil,
+                        total: Decimal? = nil) -> FuelExtraction {
     FuelExtraction(liters: liters, unitPrice: unitPrice, total: total)
 }
 
@@ -43,7 +43,7 @@ private let receipt009 = [
 ]
 
 private func receipt009Extraction() -> FuelExtraction {
-    FuelExtraction(liters: 47.56, unitPrice: 129.00, total: 6135.24,
+    FuelExtraction(liters: 47.56, unitPrice: decimal("129.00"), total: decimal("6135.24"),
                    currency: .rub, fuelKind: .petrol95)
 }
 
@@ -107,8 +107,8 @@ struct MixedReceiptDetectorTests {
         let plainLines = ["ДТ-Л-К5 ДИЗЕЛЬ", "42.30 л X 1.679", "ИТОГ", "71.02"]
         let detection = MixedReceiptDetector.detect(lines: lines(plainLines),
                                                     extraction: extraction(liters: 42.30,
-                                                                           unitPrice: 1.679,
-                                                                           total: 71.02),
+                                                                           unitPrice: decimal("1.679"),
+                                                                           total: decimal("71.02")),
                                                     qrAnchor: qrAnchor("71.02"))
         #expect(detection == .notMixed)
     }
@@ -129,13 +129,16 @@ struct MixedReceiptDetectorTests {
 
         let cases = [
             MixedReceiptCase(texts: receipt007,
-                             extraction: extraction(liters: 43.61, unitPrice: 99.40, total: 4334.00),
+                             extraction: extraction(liters: 43.61, unitPrice: decimal("99.40"),
+                                                    total: decimal("4334.00")),
                              qr: qrAnchor("4334.00")),
             MixedReceiptCase(texts: receipt011,
-                             extraction: extraction(liters: 66.810, unitPrice: 62.89, total: 4201.68),
+                             extraction: extraction(liters: 66.810, unitPrice: decimal("62.89"),
+                                                    total: decimal("4201.68")),
                              qr: qrAnchor("4201.68")),
             MixedReceiptCase(texts: receipt002,
-                             extraction: extraction(liters: 43.820, unitPrice: 450.00, total: 19719.00),
+                             extraction: extraction(liters: 43.820, unitPrice: decimal("450.00"),
+                                                    total: decimal("19719.00")),
                              qr: qrAnchor("19719.00"))
         ]
         for candidate in cases {
@@ -156,8 +159,8 @@ struct MixedReceiptDetectorTests {
                      "ИТОГ", "71.02"]
         let detection = MixedReceiptDetector.detect(lines: lines(texts),
                                                     extraction: extraction(liters: 42.30,
-                                                                           unitPrice: 1.679,
-                                                                           total: 71.02),
+                                                                           unitPrice: decimal("1.679"),
+                                                                           total: decimal("71.02")),
                                                     qrAnchor: nil)
         #expect(detection == .notMixed)
     }
@@ -168,8 +171,8 @@ struct MixedReceiptDetectorTests {
                      "Кофе американо", "1 X 4.80", "83.82", "ИТОГ", "БЕЗНАЛИЧНЫМИ", "83.82"]
         let detection = MixedReceiptDetector.detect(lines: lines(texts),
                                                     extraction: extraction(liters: 42.30,
-                                                                           unitPrice: 1.679,
-                                                                           total: 71.02),
+                                                                           unitPrice: decimal("1.679"),
+                                                                           total: decimal("71.02")),
                                                     qrAnchor: nil)
         guard case .mixed(let items, let fuelLine, let grandTotal) = detection else {
             Issue.record("the two-item receipt should be detected as mixed")
@@ -199,8 +202,8 @@ struct MixedReceiptGroupPlanTests {
                      "95.82", "ИТОГ", "БЕЗНАЛИЧНЫМИ", "95.82"]
         return MixedReceiptDetector.detect(lines: lines(texts),
                                            extraction: extraction(liters: 42.30,
-                                                                  unitPrice: 1.679,
-                                                                  total: 71.02),
+                                                                  unitPrice: decimal("1.679"),
+                                                                  total: decimal("71.02")),
                                            qrAnchor: nil)
     }
 
@@ -335,7 +338,7 @@ struct MixedReceiptPersistenceTests {
                      "Кофе американо", "1 X 4.80", "6148.04", "ИТОГ", "БЕЗНАЛИЧНЫМИ", "6148.04"]
         let detection = MixedReceiptDetector.detect(
             lines: lines(texts),
-            extraction: FuelExtraction(liters: 47.56, unitPrice: 129.00, total: 6135.24,
+            extraction: FuelExtraction(liters: 47.56, unitPrice: decimal("129.00"), total: decimal("6135.24"),
                                        currency: .rub, fuelKind: .petrol95),
             qrAnchor: nil)
         guard case .mixed(let items, let fuelLine, _) = detection else {
