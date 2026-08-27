@@ -1,28 +1,53 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-26, with Phase 3 complete and Phase 4 under way. Read this first, then
+*Rewritten 2026-08-27, with Phase 4 COMPLETE and Phase 5 started. Read this first, then
 `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
 
-> Read `HANDOVER.md`, then `CLAUDE.md`, then `docs/TASKS.md`. You are orchestrating opencode agents
-> to build this app. Briefs go in `agents/briefs/<task-id>.md` **before** dispatch; read that
-> folder's `README.md` first. Fully qualify the model: `deepseek/deepseek-v4-pro` for
-> architecture, algorithms and security, `deepseek/deepseek-v4-flash` for artboard-driven screens,
-> `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
+> Read `HANDOVER.md`, then `CLAUDE.md`, then `docs/TASKS.md`. You are orchestrating opencode
+> agents to build this app. Every brief goes in `agents/briefs/<task-id>.md` **before** dispatch -
+> read that folder's `README.md` first; every fence in those briefs exists because something went
+> wrong once.
 >
-> Non-negotiables, all learned the hard way: **verify every agent's work yourself before
-> committing** - re-run `swift build`, `swift test`, `xcodebuild test`, `swiftlint` and, for
-> backend work, `dotnet build/test/format`, judged by **exit code**, and name the **simulator**
-> you ran on. **Mutation-check the load-bearing invariant of every task**: break it, confirm a test
-> fails, restore byte-for-byte. **Open every screenshot yourself, EN and RU** - agents have no
-> image input. **Measure before you fix** a failing test; instrument an assertion rather than
-> guessing at a cause. Never `pgrep -f` for a build. One task = one verified commit.
+> **Dispatch:** `opencode run --auto --thinking -m <model> --title "<id>" "$(cat
+> agents/briefs/<id>.md)"`, from the task's own worktree. **Fully qualify the provider** -
+> `deepseek/deepseek-v4-pro` for anything whose invariant is subtle enough that a plausible test
+> could be vacuous; `deepseek/deepseek-v4-flash` for implementation against a fixed artboard or a
+> well-diagnosed one-line fix; `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
+> A bare model name silently resolves to another provider that returns an instant error.
 >
-> **Next: P2.14** - `FuelExtractor.modal` is non-deterministic and it destabilises every accuracy
-> number in the project, including the CI gates. Then **P5.2** (money end-to-end, unblocked by
-> P5.1) or **P6.3** (the gateway client, unblocked by P4.10). **P4.7** (restore) may still be in
-> flight - check `git worktree list` and `pgrep -f "opencode run"` before dispatching anything iOS.
+> **Verification is the job, and it is not delegable to the agent's own report.** Re-run
+> `swift build`, `swift test`, `xcodebuild test`, `swiftlint` (from the **repo root**) and, for
+> backend work, `dotnet build/test/format` - judged by **exit code**, naming the **simulator**.
+> `swift build` does not compile `ios/App`; only `xcodebuild` does. Re-run the gates **on the
+> merged tree**, not just the branch. Validation itself may go to a `deepseek-v4-pro` validator
+> (`agents/briefs/VALIDATE.md`) - read its captured exit codes, not its prose.
+>
+> **Mutation-check the load-bearing invariant of every task**: break it, confirm a test fails,
+> restore byte-for-byte. **Break it in its subtlest form** - a gate consulted but not awaited, a
+> filter relaxed rather than removed. This is not ceremony: it found a *vacuous headline test* in
+> P4.7 where stripping the payload out of the restore hash left all 15 tests green.
+> **Reading a test tells you its claim; only breaking the code tells you its coverage.**
+>
+> **Open every screenshot yourself, EN and RU** - agents have no image input, and no test asserts
+> appearance. Zoom in before judging: a spinner is invisible at thumbnail scale. Read the rendered
+> Russian for **grammar**, not just for overflow.
+>
+> **Measure before you fix.** Instrument an assertion rather than guessing at a cause. **Check
+> state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
+> wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
+>
+> **Next: P5.2** (money end-to-end in the app - P5.1 shipped the rates service, and P2.5's
+> foreign-currency confirm currently says "converts when online" against a feed that now exists),
+> or **P6.3** (the gateway client - **read `docs/EXTRACTION.md` first**: measurement contradicts
+> its normative 3 s budget, so a hard abort would cancel almost every request). Both are iOS-UI, so
+> **run them one at a time** - two UI tasks collide in `Localizable.xcstrings`, which is not
+> line-mergeable and where resolving by hunk silently drops keys. A non-UI iOS task parallelises
+> with a UI one safely, and `backend/` always does.
+>
+> **One decision is owed by the user, not by you:** `docs/DESIGN.md` says headlight cyan encodes
+> *electric*, and the app now uses it as the generic interactive colour in **eight** places. Ask.
 
 ## What this project is
 
@@ -58,7 +83,7 @@ Verified by running it, not by assertion:
 | **P1** | **Complete** |
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
-| **P4** | **COMPLETE bar P4.7.** All of P4.1-P4.6 and P4.8-P4.13 merged. **P4.7** (restore end-to-end) was in flight at session end. The backend half is entirely done: auth, sync, blobs, nudges, account lifecycle, LLM gateway |
+| **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
 | **P5** | **Started.** `[x]` P5.1 rates service (ECB + CIS, carry-forward, two public endpoints). P5.2 money end-to-end is unblocked by it |
 
 ### The three `[~]`s are blocked on facts, not effort
@@ -210,8 +235,10 @@ Ten merged in one sitting, at most three agents at once, on the lanes that canno
 | **P4.13** PaddleOCR | 607 -> 619 | negative result; archived with its evidence |
 | **P4.10** gateway | 202 -> 211 | disabled size cap, and metering a failed call |
 | **P4.6** attachments | 619 -> 627, UI -> 124 | blob gate **consulted but not awaited** - the subtlest break - kills two tests |
+| **P4.7** restore | 627 -> 635, UI -> 127 | stripping `payload` from `RestoreHash` left **all 15 tests green** - the headline test was vacuous |
+| **P2.14** modal | 627 -> 634 | 20 separate processes return `nil` 20/20; the old code gave two different answers across 40 |
 
-State: **backend 211**, **iOS 627 unit + 124 UI** on `iPhone 17`, `swiftlint` 0 from the repo root,
+State: **backend 211**, **iOS 642 unit + 127 UI** on `iPhone 17`, `swiftlint` 0 from the repo root,
 `dotnet format` 0.
 
 ### Three findings that outrank their tasks
@@ -237,6 +264,48 @@ primary-label count resolves to whatever the hash seed left last. The receipt sc
 recorded, 46/96 live) was deliberately NOT raised**: pinning a gate to a number that is not
 reproducible makes CI intermittently red. Fix the tie-break, prove stability, then raise the mark
 in the same change.
+
+### A green suite hid a vacuous test, and prose described one that did not exist
+
+P4.7's headline test, `hashMovesWhenAFieldIsDroppedWhereACountWouldNot`, seeded **two**
+repositories and compared their hashes - but `seedRichDataset` mints fresh `UUID.v7()` ids per
+call, so the two datasets were entirely different records whose hashes differ regardless. The
+`volumeL = 0` tamper never influenced the result.
+
+**The mutation is what found it**: stripping `payload` out of `RestoreHash.compute` left **all 15
+tests green**. The restore guarantee the task is named for rested on an assertion that could not
+fail. The implementation was never wrong; nothing pinned it. Fixed by tampering **one** repository
+in place, so ids are identical by construction.
+
+The orchestrator had read that test and called it genuine. **Reading a test tells you its claim;
+only breaking the code tells you its coverage.** And an agent's report can be articulate, specific
+and confidently wrong: this one explained exactly why a count would miss the defect, in a test that
+never checked it.
+
+### A `%@` that receives runtime data must not sit inside a case-governed phrase in Russian
+
+`from your %1$@, %2$@` was translated `с вашего %1$@, %2$@`, rendering
+**"с вашего телефон Android"**. `с вашего` governs the genitive; `%1$@` receives a
+**server-supplied device name** that cannot be declined. No better translation fixes it - the
+sentence shape is wrong.
+
+This is the **second** time a Russian agreement error has shipped through a `%@` slot (P1.4's
+`"%@ spend"` -> "АВГУСТ РАСХОДЫ" was the first). The existing rule - a full localised phrase per
+language, never concatenation - did **not** prevent it, because this *was* a full phrase. The
+sharper rule now: **if a `%@` receives runtime data, the surrounding phrase must not govern its
+case.** Caught only by reading the rendered Russian; no test can see it.
+
+### The screenshot set churns on the clock, so it is not a regression baseline
+
+A full re-capture rewrote **71 of 72** files. Masking the top 130 px and pixel-comparing showed
+**36 differed only by the status-bar clock** (0-2 pixels of app area out of 3.16 million) and the
+other 35 by date fields rendering *today*. Three separate agents hit this independently and
+reverted the noise.
+
+So an unchanged app does **not** produce unchanged files, which undercuts the convention's premise.
+Fixable by freezing the simulator clock (`simctl status_bar override --time`) and pinning seed
+dates. Until then, **compare masked crops rather than committing a churned set** - and know that
+`P1.6-edit-entry` is genuinely stale since P4.6 replaced its placeholder with a chip.
 
 ### Three ways git will do something correct-looking that is not what you meant
 
