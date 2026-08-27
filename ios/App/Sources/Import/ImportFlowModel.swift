@@ -95,15 +95,25 @@ final class ImportFlowModel {
 
     /// Installs a stub parse response directly (no file picker) so the UI tests
     /// and screenshots drive the preview/review against a known fixture. The
-    /// bytes come from the same bundle resources the stub transport serves.
-    func installSeededParse(resourceName: String, fileName: String) {
+    /// parse bytes come from the same bundle resources the stub transport
+    /// serves; `rawFileResource` is the ORIGINAL file (the real CSV export) the
+    /// parse claims to have read, so the review list's "Original row" renders a
+    /// real source line instead of the wire envelope (P6.15c).
+    func installSeededParse(resourceName: String, fileName: String,
+                            rawFileResource: String? = nil) {
         guard let url = Bundle.main.url(forResource: resourceName, withExtension: "json"),
               let data = try? Data(contentsOf: url) else { return }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let result = try? decoder.decode(ImportParseResponse.self, from: data) else { return }
         pickedFileName = fileName
-        uploadedFileData = data
+        if let rawFileResource,
+           let rawURL = Bundle.main.url(forResource: rawFileResource, withExtension: "csv"),
+           let rawData = try? Data(contentsOf: rawURL) {
+            uploadedFileData = rawData
+        } else {
+            uploadedFileData = data
+        }
         parse = result
         ensureTargetCar(preferredVehicleID: nil)
         rebuildClassification()

@@ -449,6 +449,13 @@ enum L10n {
         String(format: localize("Row %@"), "\(sourceRow)")
     }
 
+    /// "The original line isn't available." - the honest words an unparsed row
+    /// shows when its source line is genuinely absent (P6.15c: never a
+    /// serialized candidate the user has not seen).
+    static var originalLineUnavailable: String {
+        localize("The original line isn't available.")
+    }
+
     /// "Imported car" - the fallback name when a file names no vehicle.
     static var importedCarName: String {
         localize("Imported car")

@@ -28,6 +28,10 @@ struct ImportWizardView: View {
             }
         }
         .background(Theme.Palette.midnight)
+        // The artboards draw their own header (Back/close | title | trailing
+        // action), so the system nav bar - which would stack a second "Import"
+        // title above it (P6.15a) - is hidden for all three wizard steps.
+        .toolbar(.hidden, for: .navigationBar)
         .task {
             guard !didLoad else { return }
             didLoad = true
