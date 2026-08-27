@@ -61,18 +61,22 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
     private let fetcher: (any VehicleCatalogFetcher)?
     private let clock: Clock
     private let minimumFetchInterval: TimeInterval
+    private let powerState: any PowerStateProvider
     private let log: TankbookLog?
 
     /// Builds the updater and performs the cold-start read: loads the cache if
     /// present (a truncated or corrupt cache falls back to the seed - never a
     /// crash) and resolves `entries` from what is on disk. Nothing here is
     /// launch-blocking and nothing here needs a network (hard rule 1).
+    /// `powerState` is the injected Low Power Mode state (docs/SYNC.md) that
+    /// `refresh()` defers on - never `ProcessInfo` read inline.
     public init(
         bundled: [VehicleCatalogEntry],
         cacheDirectory: URL,
         fetcher: (any VehicleCatalogFetcher)? = nil,
         clock: @escaping Clock = { Date() },
         minimumFetchInterval: TimeInterval = 3600,
+        powerState: any PowerStateProvider = ProcessInfoPowerState(),
         log: TankbookLog? = nil
     ) {
         self.bundled = bundled
@@ -80,6 +84,7 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
         self.fetcher = fetcher
         self.clock = clock
         self.minimumFetchInterval = minimumFetchInterval
+        self.powerState = powerState
         self.log = log
 
         let bundledVersion = bundled.map(\.packVersion).max() ?? 0
@@ -139,8 +144,20 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
     /// throws and never produces a user-facing error (docs/ERRORS.md). While a
     /// fetch is in flight a second call is a no-op; a refresh inside
     /// `minimumFetchInterval` of the last one is a no-op.
-    public func refresh() async {
-        guard let fetcher else { return }
+    ///
+    /// Returns `true` when the refresh was not deferred, `false` when Low Power
+    /// Mode postponed it. The fetch is opportunistic work (docs/SYNC.md -> Low
+    /// Power Mode table), so the trigger defaults to `.background`; a
+    /// user-initiated fetch would pass `.userInitiated`. A deferral loses
+    /// nothing: the held pack stands and the next non-deferred call fetches.
+    @discardableResult
+    public func refresh(trigger: PowerWorkTrigger = .background) async -> Bool {
+        // P6.8: the catalog pack fetch defers while the mode is on.
+        if LowPowerPolicy.defers(work: .catalogPackFetch, trigger: trigger,
+                                 lowPowerMode: powerState.isLowPowerModeEnabled) {
+            return false
+        }
+        guard let fetcher else { return true }
         let now = clock()
         let shouldStart = lock.withLock { state -> Bool in
             if state.fetchInFlight { return false }
@@ -150,7 +167,7 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
             state.fetchInFlight = true
             return true
         }
-        guard shouldStart else { return }
+        guard shouldStart else { return true }
 
         defer {
             lock.withLock { state in
@@ -170,17 +187,18 @@ public final class VehicleCatalogUpdater: @unchecked Sendable {
             case .invalidResponse:
                 log?.emit(CatalogReject(reason: .malformed))
             }
-            return
+            return true
         } catch {
             // A test double or future fetcher threw an unknown error: one
             // silent miss, the previous pack stands.
             log?.emit(CatalogReject(reason: .fetchFailed))
-            return
+            return true
         }
 
         // A nil pack is a 304: the catalog is unchanged. Nothing to do.
-        guard let pack else { return }
+        guard let pack else { return true }
         apply(pack: pack)
+        return true
     }
 
     /// Counts one "model not found" search miss. Only the count is recorded and

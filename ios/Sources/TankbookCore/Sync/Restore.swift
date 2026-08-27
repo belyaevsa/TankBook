@@ -114,7 +114,11 @@ public struct RestoreEngine {
     }
 
     public func restore(now: Date = Date()) async -> RestoreOutcome {
-        let outcome = await engine.synchronize()
+        // P6.8: a restore is work the user asked for, so the trigger is
+        // explicit and it never defers - even while Low Power Mode is on
+        // (docs/SYNC.md -> Low Power Mode table: "A sync, restore, export or
+        // retry the user asked for").
+        let outcome = await engine.synchronize(trigger: .userInitiated)
         if outcome.deviceRevoked { return .deviceRevoked }
 
         let stats = try? RestoreStats.compute(repository: engine.repository, now: now)

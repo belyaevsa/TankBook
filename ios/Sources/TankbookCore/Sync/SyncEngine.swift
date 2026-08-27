@@ -18,6 +18,11 @@ public struct SyncOutcome: Equatable, Sendable {
     /// one. Nothing is lost either way - the rows stay dirty (S7).
     public var refusedByServer: SyncServerError?
     public var retryAfterSeconds: Int?
+    /// P6.8: the cycle was postponed because Low Power Mode is on and this was
+    /// opportunistic work (docs/SYNC.md -> Low Power Mode). Nothing ran, the
+    /// dirty queue is exactly as it was, and the work drains when the mode
+    /// ends - resume, not next launch.
+    public var deferred = false
 
     public init() {}
 }
@@ -40,6 +45,9 @@ public struct SyncEngine {
     /// behaviour: attachment records push without a committed blob - wired only
     /// by the production app and the attachment tests.
     public let blobGate: (any BlobPushGate)?
+    /// The injected power state (docs/SYNC.md -> Low Power Mode). Consulted for
+    /// the blob-upload deferral; never `ProcessInfo` read inline.
+    public let powerState: any PowerStateProvider
 
     public init(
         repository: TankbookRepository,
@@ -49,7 +57,8 @@ public struct SyncEngine {
         maxConflictRetries: Int = 3,
         batchLimit: Int = 200,
         pullPageLimit: Int = 500,
-        blobGate: (any BlobPushGate)? = nil
+        blobGate: (any BlobPushGate)? = nil,
+        powerState: any PowerStateProvider = ProcessInfoPowerState()
     ) {
         self.repository = repository
         self.transport = transport
@@ -59,9 +68,10 @@ public struct SyncEngine {
         self.batchLimit = batchLimit
         self.pullPageLimit = pullPageLimit
         self.blobGate = blobGate
+        self.powerState = powerState
     }
 
-    public func synchronize() async -> SyncOutcome {
+    public func synchronize(trigger: PowerWorkTrigger = .userInitiated) async -> SyncOutcome {
         var outcome = SyncOutcome()
         try? repository.recoverStuckPushes()
         var affected = Set<UUID>()
@@ -81,7 +91,7 @@ public struct SyncEngine {
 
         // 2. PUSH.
         do {
-            let summary = try await pushAll()
+            let summary = try await pushAll(trigger: trigger)
             outcome.pushed = summary.pushed
             outcome.conflictsResolved = summary.conflicts
             outcome.clampedIds = summary.clamped
@@ -195,7 +205,7 @@ public struct SyncEngine {
         var touched = Set<UUID>()
     }
 
-    private func pushAll() async throws -> PushSummary {
+    private func pushAll(trigger: PowerWorkTrigger) async throws -> PushSummary {
         var summary = PushSummary()
 
         // Snapshot the dirty set once: each row gets one push attempt this
@@ -221,6 +231,17 @@ public struct SyncEngine {
                 // the record dirty for the next cycle - the entry syncs
                 // text-first with the blob pending (S7).
                 if change.entityType == Attachment.entityType, !local.record.deleted, let gate = blobGate {
+                    // P6.8: blob upload is the heaviest work there is and
+                    // defers while Low Power Mode is on (docs/SYNC.md), even
+                    // inside a user-initiated sync - the record stays dirty and
+                    // the entry syncs text-first with the blob pending (S7),
+                    // exactly as it does when the blob transport is down.
+                    // Nothing is lost: the row is not pushed, so it stays dirty
+                    // for the next cycle.
+                    if LowPowerPolicy.defers(work: .blobUpload, trigger: trigger,
+                                             lowPowerMode: powerState.isLowPowerModeEnabled) {
+                        continue
+                    }
                     guard let attachment = try? attachment(from: local.record),
                           await gate.ensureBlobCommitted(for: attachment) else {
                         continue

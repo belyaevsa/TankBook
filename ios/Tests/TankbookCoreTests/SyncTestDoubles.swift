@@ -339,11 +339,13 @@ func makeSyncEngine(repository: TankbookRepository, transport: any SyncTransport
                     memory: SyncPayloadMemory = InMemorySyncPayloadMemory(),
                     maxConflictRetries: Int = 3,
                     pullPageLimit: Int = 500,
-                    blobGate: (any BlobPushGate)? = nil) -> SyncEngine {
+                    blobGate: (any BlobPushGate)? = nil,
+                    powerState: any PowerStateProvider = ProcessInfoPowerState()) -> SyncEngine {
     SyncEngine(repository: repository, transport: transport, cursorStore: cursor,
                payloadMemory: memory, maxConflictRetries: maxConflictRetries,
                pullPageLimit: pullPageLimit,
-               blobGate: blobGate)
+               blobGate: blobGate,
+               powerState: powerState)
 }
 
 func makeSyncAttachment(id: UUID = UUID.v7(), kind: AttachmentKind = .photo,
