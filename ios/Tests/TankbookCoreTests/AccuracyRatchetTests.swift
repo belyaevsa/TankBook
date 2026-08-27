@@ -191,7 +191,9 @@ struct CorpusAccuracyGateTests {
                 filename: image.lastPathComponent,
                 liters: result.liters,
                 unitPrice: result.unitPrice,
-                total: result.total
+                total: result.total,
+                fuelKind: result.fuelKind,
+                currency: result.currency
             )
         }
         // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,

@@ -33,7 +33,10 @@ struct CorpusABRulesDumpTests {
         var summaries: [String] = []
         for name in ["receipts", "pump", "fiscal", "screenshots"] {
             let folder = Self.fixturesRoot.appendingPathComponent(name)
-            let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+            // Numeric-only view of expected: the regenerated snapshot must stay
+            // comparable with the committed 2026-08-26 sweep, which carried no
+            // fuelKind/currency - see `CorpusScorer.loadExpectedNumericsOnly`.
+            let expected = try CorpusScorer.loadExpectedNumericsOnly(folder.appendingPathComponent("expected.csv"))
             let imageURLs = try FileManager.default.contentsOfDirectory(
                 at: folder, includingPropertiesForKeys: nil
             )

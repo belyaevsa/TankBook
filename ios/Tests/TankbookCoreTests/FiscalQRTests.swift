@@ -48,6 +48,8 @@ private func qrPayload(_ base: String) throws -> String {
 }
 
 /// The `total` column of every `expected.csv`, keyed by fixture base name.
+/// `total` is the fourth column; P6.14 appended `fuelKind,currency` after it,
+/// so the guard is `>= 4`, never `== 4`.
 private func expectedTotals() throws -> [String: Decimal] {
     let locale = Locale(identifier: "en_US_POSIX")
     var result: [String: Decimal] = [:]
@@ -55,7 +57,7 @@ private func expectedTotals() throws -> [String: Decimal] {
         let content = try String(contentsOf: dir.appendingPathComponent("expected.csv"), encoding: .utf8)
         for line in content.split(separator: "\n") {
             let cols = line.split(separator: ",", omittingEmptySubsequences: false)
-            guard cols.count == 4 else { continue }
+            guard cols.count >= 4 else { continue }
             let filename = String(cols[0])
             guard !filename.isEmpty, filename != "filename" else { continue }
             let base = (filename as NSString).deletingPathExtension

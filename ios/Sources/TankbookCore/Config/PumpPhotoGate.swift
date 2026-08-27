@@ -18,22 +18,23 @@ import Foundation
 /// Vision-gated ratchet test asserts they match the live corpus score - so the
 /// constant cannot drift from reality without a failing test.
 public enum PumpPhotoGate {
-    /// Pump fields resolved by the parser at build time. 1 today - the pump
-    /// corpus scores 2 of 61 fields (3.3%) across twenty-three pumps from six
-    /// manufacturers (Spike/ReceiptSpike/fixtures/pump/README.md). Seven
-    /// Estonian Circle K displays were added 2026-08-26; they moved the score
-    /// from 0/30 to 1/46, which is noise, not progress. Six more joined
-    /// 2026-08-27 (pump-018 through pump-023) and brought the SECOND hit this
-    /// class has ever recorded. Two hits in sixty-one fields is still noise
-    /// against a 95% gate - it is 3.3%.
-    public static let measuredHits: Int = 2
+    /// Pump fields resolved by the parser at build time. 21 today, over 84 -
+    /// the pump corpus scores 25.0% across twenty-three pumps from six
+    /// manufacturers (Spike/ReceiptSpike/fixtures/pump/README.md). The jump
+    /// from 2/61 came in P6.14, and it is NOT a parser improvement: the gate
+    /// began scoring `currency`, and the extractor's marker-word detector
+    /// (РУБ/€/EUR/...) already reads 19 of the 23 displays. The three numeric
+    /// fields are still 2/61 - pump extraction remains the hard problem, and
+    /// 25.0% is still noise against a 95% gate, which is why the mode still
+    /// ships off.
+    public static let measuredHits: Int = 21
 
-    /// Pump fields scored at build time. Not 23 x 3: seven fields are blank in
-    /// expected.csv because the photo does not legibly carry them (glare on a
-    /// total, the two idle pumps have no meaningful unit price, and
-    /// pump-021/022/023 show a grade price BOARD rather than the transaction's
-    /// unit price), and a blank is skipped rather than counted as a miss.
-    public static let measuredTotal: Int = 61
+    /// Pump fields scored at build time. Not 23 x 3: the blank numeric cells
+    /// stay skipped (glare on a total, the two idle pumps have no meaningful
+    /// unit price, and pump-021/022/023 show a grade price BOARD rather than
+    /// the transaction's unit price), and `fuelKind` is never asserted for a
+    /// pump at all. The 23 currency cells are what raised 61 -> 84.
+    public static let measuredTotal: Int = 84
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95
