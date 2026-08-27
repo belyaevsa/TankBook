@@ -99,6 +99,21 @@ extension TankbookRepository {
 
     // MARK: - Whole-or-nothing apply
 
+    /// Commits import-derived fills (the review list's kept rows, P5.5b) into
+    /// one transaction. Reuses the archive apply path so the two user-held
+    /// imports share the same atomic, tombstone-safe write; rows land `.dirty`
+    /// (a user-held import is local data that must sync). Returns the count
+    /// written. This is the ONLY write the import flow performs - building the
+    /// preview, computing the figures and cancelling all happen without touching
+    /// the repository (F6a: nothing is written until the user confirms).
+    @discardableResult
+    public func commitImportFills(_ fills: [FillUp], source: String) throws -> Int {
+        guard !fills.isEmpty else { return 0 }
+        let records = fills.map { ArchiveImportRecord.fillUp($0) }
+        try applyArchiveRecords(records, syncState: .dirty)
+        return fills.count
+    }
+
     /// Commits a fully-validated archive in ONE transaction. The reader has
     /// already schema-validated and typed-decoded every record, so nothing here
     /// can fail on meaning - only on the database itself. If any row throws,

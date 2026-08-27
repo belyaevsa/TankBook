@@ -1,0 +1,297 @@
+import SwiftUI
+import TankbookCore
+import UniformTypeIdentifiers
+
+// The import wizard host (P5.5b) - the three screens from the artboards
+// (ImportSource / ImportPreview / ImportReview) over one `ImportFlowModel`.
+// Wired to `Route.importWizard` in `Destinations.swift`. The whole screen
+// exists to honour F6a: nothing is written until the user confirms, so the only
+// repository mutation anywhere in this file is `confirmImport`.
+struct ImportWizardView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(AppCarSelection.self) private var carSelection
+    @Environment(AppToastCenter.self) private var toastCenter
+
+    @State private var model: ImportFlowModel?
+    @State private var showingFilePicker = false
+    @State private var showingCarPicker = false
+    @State private var showingNotSupported = false
+    @State private var showingSendFile = false
+    @State private var didLoad = false
+
+    var body: some View {
+        Group {
+            if let model {
+                content(model)
+            } else {
+                Color.clear
+            }
+        }
+        .background(Theme.Palette.midnight)
+        .task {
+            guard !didLoad else { return }
+            didLoad = true
+            ImportTestSeed.seedDatabaseIfRequested()
+            if model == nil, let repository = try? AppStore.repository() {
+                model = ImportService.makeModel(repository: repository)
+            }
+            if let model {
+                await model.loadFormats()
+                ImportTestSeed.seedFlowIfRequested(model: model)
+            }
+        }
+        .fileImporter(isPresented: $showingFilePicker,
+                      allowedContentTypes: [.commaSeparatedText, .plainText, .item],
+                      allowsMultipleSelection: false) { result in
+            guard case .success(let urls) = result, let url = urls.first,
+                  let model else { return }
+            let preferred = carSelection.selectedVehicle((try? model.repository.liveVehicles()) ?? [])?.id
+            Task { await model.parse(fileURL: url, preferredVehicleID: preferred) }
+        }
+        .sheet(isPresented: $showingCarPicker) {
+            if let model { ImportTargetCarSheet(model: model) }
+        }
+        .sheet(isPresented: $showingNotSupported) {
+            ImportNotSupportedSheet(model: model)
+        }
+    }
+
+    @ViewBuilder
+    private func content(_ model: ImportFlowModel) -> some View {
+        switch model.step {
+        case .source:
+            ImportSourceView(
+                model: model,
+                onChooseFile: { showingFilePicker = true },
+                onNotSupported: { showingNotSupported = true },
+                onBack: { dismiss() })
+        case .preview:
+            ImportPreviewView(
+                model: model,
+                onBack: { model.backToSource() },
+                onCancel: {
+                    Task {
+                        await model.cancelImport()
+                        dismiss()
+                    }
+                },
+                onChangeCar: { showingCarPicker = true },
+                onShowReview: { model.showReview() },
+                onImport: {
+                    Task {
+                        let ok = await model.confirmImport()
+                        if ok {
+                            toastCenter.show(L10n.importedFillUps(model.commitCount))
+                            dismiss()
+                        }
+                    }
+                })
+        case .review:
+            ImportReviewView(
+                model: model,
+                onBack: { model.showPreview() },
+                onDone: { model.showPreview() })
+        }
+    }
+}
+
+// MARK: - Shared chrome (artboards: custom header + bottom bar)
+
+/// The wizard's custom header: Back | title | trailing action. The artboards
+/// draw their own chrome, so the system nav bar is hidden on this screen.
+/// `title` is a `Text` (not a `LocalizedStringKey`) so a dynamic, already
+/// localised count like "3 rows need a look" renders without being looked up as
+/// a key a second time.
+struct ImportHeader: View {
+    let title: Text
+    let backLabel: LocalizedStringKey?
+    let trailingLabel: LocalizedStringKey?
+    var onBack: () -> Void = {}
+    var onTrailing: () -> Void = {}
+
+    var body: some View {
+        HStack {
+            if let backLabel {
+                Button(action: onBack) {
+                    Text(backLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("importHeaderBack")
+            }
+            Spacer()
+            title
+                .font(.headline)
+                .foregroundStyle(Theme.Palette.ink)
+            Spacer()
+            if let trailingLabel {
+                Button(action: onTrailing) {
+                    Text(trailingLabel)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.headlight)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("importHeaderTrailing")
+            } else {
+                Color.clear.frame(width: 1, height: 1)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.top, 8)
+        .padding(.bottom, 6)
+    }
+}
+
+/// The primary action bar, drawn like the artboards' taillight button.
+struct ImportPrimaryBar<Label: View>: View {
+    let label: Label
+    var enabled: Bool
+    let action: () -> Void
+
+    init(action: @escaping () -> Void, enabled: Bool = true, @ViewBuilder label: () -> Label) {
+        self.enabled = enabled
+        self.action = action
+        self.label = label()
+    }
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .font(.body.weight(.bold))
+                .foregroundStyle(Color.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 15)
+                .background(Theme.Palette.taillight)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .shadow(color: Theme.Palette.taillight.opacity(0.3), radius: 18, y: 4)
+        }
+        .buttonStyle(.plain)
+        .opacity(enabled ? 1 : 0.5)
+        .disabled(!enabled)
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+    }
+}
+
+// MARK: - Target car chooser (the "Imports into … Change" sheet)
+
+/// Where the import lands, chosen before it lands (hard rule 13: the car is a
+/// default the user decides, and the preview recomputes against it).
+struct ImportTargetCarSheet: View {
+    let model: ImportFlowModel
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionEyebrow("Imports into")
+            ScrollView {
+                VStack(spacing: 8) {
+                    ForEach(model.liveVehicles, id: \.id) { vehicle in
+                        carRow(vehicle, isSelected: isSelected(vehicle))
+                    }
+                    newCarRow
+                }
+            }
+        }
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.top, 20)
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+    }
+
+    private func isSelected(_ vehicle: Vehicle) -> Bool {
+        if case .existing(let current) = model.targetCar {
+            return current.id == vehicle.id
+        }
+        return false
+    }
+
+    private func carRow(_ vehicle: Vehicle, isSelected: Bool) -> some View {
+        Button {
+            model.selectExistingVehicle(vehicle)
+            dismiss()
+        } label: {
+            HStack {
+                Text(vehicle.name)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Spacer(minLength: 8)
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.Palette.headlight)
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 13)
+            .formCard()
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var newCarRow: some View {
+        Button {
+            model.selectNewCar()
+            dismiss()
+        } label: {
+            HStack {
+                Text("New car")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.headlight)
+                Spacer(minLength: 8)
+            }
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 13)
+            .formCard()
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("importNewCarRow")
+    }
+}
+
+// MARK: - "Your app isn't here?" sheet
+
+/// The not-listed next step (docs/ERRORS.md -> Import wizard): names what IS
+/// supported rather than dead-ending, and offers to take the file.
+struct ImportNotSupportedSheet: View {
+    let model: ImportFlowModel?
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingSendFile = false
+
+    private var supportedNames: String {
+        guard let model else { return "" }
+        return model.formats.map(\.displayName).joined(separator: ", ")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("We don't read that one yet.")
+                .font(.title3.weight(.bold))
+                .foregroundStyle(Theme.Palette.ink)
+            Text(L10n.weReadThese(supportedNames: supportedNames))
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.5)
+            Spacer()
+            ImportPrimaryBar(action: { showingSendFile = true },
+                             label: { Text("Send us the file") })
+            Button("Pick a different app") {
+                dismiss()
+            }
+            .buttonStyle(.plain)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
+        .presentationDetents([.medium])
+        .sheet(isPresented: $showingSendFile) {
+            ActivityView(items: [L10n.sendUsTheFileMessage])
+                .presentationDetents([.medium, .large])
+        }
+    }
+}

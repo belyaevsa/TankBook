@@ -37,7 +37,7 @@ struct DestinationView: View {
         case .addVehicle: AddVehicleView()
         case .accountDevices: LeafContent()
         case .paywall: LeafContent()
-        case .importWizard: LeafContent()
+        case .importWizard: ImportWizardView()
         case .flaggedEntries: FlaggedEntriesView()
         }
     }
