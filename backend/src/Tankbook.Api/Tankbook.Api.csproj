@@ -20,6 +20,10 @@
          and used to validate every document at publish time - a malformed
          document must never reach a device. -->
     <EmbeddedResource Include="Config\config.schema.json" />
+    <!-- The vehicle catalog pack JSON Schema (docs/API.md "Vehicle catalog").
+         Embedded and used to validate every pack at publish time, whole or not
+         at all - a malformed pack must never reach a device. -->
+    <EmbeddedResource Include="Catalog\catalog.schema.json" />
   </ItemGroup>
 
   <ItemGroup>

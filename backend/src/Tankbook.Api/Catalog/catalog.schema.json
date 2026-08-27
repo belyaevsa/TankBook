@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tankbook.app/schemas/catalog-pack/1",
+  "title": "Tankbook vehicle catalog pack",
+  "description": "A pack the operator publishes into vehicle_catalog (docs/API.md 'Vehicle catalog'). Validated against this schema AT PUBLISH TIME on the server, whole or not at all, so a malformed pack never reaches a device and the previously published pack keeps serving. The schema enforces structure and types only - it never interprets what a field means (CLAUDE.md hard rule 9): the server curates this data, and an offer set like fuelKinds is listed, not decided.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "packVersion",
+    "entries"
+  ],
+  "properties": {
+    "packVersion": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic pack version; a version not greater than the currently published one is refused (rollback protection, docs/SYNC.md 'Applying an update')."
+    },
+    "entries": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "entry": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "make",
+        "model",
+        "powertrain",
+        "fuelKinds"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Stable identity across packs: publishing the same id again corrects the entry in place (docs/SYNC.md 'The master rule')."
+        },
+        "make": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "generation": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1,
+          "description": "The model line's generation label, or null when the line has none."
+        },
+        "years": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "minItems": 2,
+          "maxItems": 2,
+          "description": "Production years as an inclusive [firstYear, lastYear] pair, or null. Stored as an int4range with inclusive bounds."
+        },
+        "powertrain": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fuelKinds": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "The OFFER SET the model line is sold with (docs/SCHEMA.md 'Vehicle catalog') - petrol95/diesel/lpg/... - never the fuel of one car. Non-empty."
+        },
+        "tankCapacityL": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "batteryCapacityKwh": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

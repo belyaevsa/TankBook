@@ -241,7 +241,8 @@ A user's override is theirs permanently.
 
 - **Delta by default**: the client sends the `packVersion` it holds; the server answers with the entries
   changed since, or a full pack when the delta would be larger or the client is too far behind. `ETag` /
-  `If-None-Match`, so an unchanged catalog costs a `304`.
+  `If-None-Match`, so an unchanged catalog costs a `304`. The concrete threshold (how far behind is "too
+  far") is a server rule - `Catalog:MaxDeltaEntries`, default 50 - stated and tested in `API.md`.
 - **Validated before it is applied, whole or not at all.** A pack that fails its schema is rejected
   entirely and the previous cache stands – the same all-or-nothing document rule as config. A partially
   applied pack is worse than a stale one.

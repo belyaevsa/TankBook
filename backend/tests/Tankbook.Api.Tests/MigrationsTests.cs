@@ -29,6 +29,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "config_documents",
         "refresh_tokens",
         "blob_pending",
+        "catalog_pack_state",
     };
 
     [SkippableFact]
@@ -56,7 +57,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(10, applied.Single());
+        Assert.Equal(11, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -88,6 +89,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("config_documents", tables);
         Assert.DoesNotContain("refresh_tokens", tables);
         Assert.DoesNotContain("blob_pending", tables);
+        Assert.DoesNotContain("catalog_pack_state", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
@@ -221,6 +223,37 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.columns WHERE table_name = 'accounts' AND column_name = 'llm_tier'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '010'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration011_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The singleton pack-state row exists after apply and is seeded from the
+        // (empty) catalog, so a fresh table reads back pack version 0.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'catalog_pack_state'"));
+        var (singleton, seeded) = await db.QuerySingleAsync<(int, int)>(
+            "SELECT singleton, pack_version FROM catalog_pack_state");
+        Assert.Equal(1, singleton);
+        Assert.Equal(0, seeded);
+
+        // The CHECK constraint keeps it a true singleton: a second row is refused.
+        await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.ExecuteAsync(
+            "INSERT INTO catalog_pack_state (singleton, pack_version) VALUES (2, 5)"));
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM catalog_pack_state"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        // And the table is gone after rollback.
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'catalog_pack_state'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '011'"));
     }
 
     [SkippableFact]

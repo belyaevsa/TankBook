@@ -9,6 +9,7 @@ using Npgsql;
 using Tankbook.Api.Account;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Blobs;
+using Tankbook.Api.Catalog;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
 using Tankbook.Api.Llm;
@@ -47,6 +48,8 @@ builder.Services.Configure<RateOptions>(
     builder.Configuration.GetSection(RateOptions.SectionName));
 builder.Services.Configure<LlmGatewayOptions>(
     builder.Configuration.GetSection(LlmGatewayOptions.SectionName));
+builder.Services.Configure<CatalogOptions>(
+    builder.Configuration.GetSection(CatalogOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -143,6 +146,14 @@ builder.Services.AddSingleton<ConfigSchemaValidator>();
 builder.Services.AddScoped<ConfigRepository>();
 builder.Services.AddScoped<IConfigReadService, ConfigReadService>();
 builder.Services.AddScoped<ConfigPublishService>();
+
+// Vehicle catalog (docs/SYNC.md "Reference data", docs/API.md "Vehicle catalog").
+// The publish service validates a pack against its schema and enforces the
+// monotonic packVersion before anything is written; the endpoint gates it on the
+// Catalog:AdminToken secret, never on a user account. The read side is public.
+builder.Services.AddSingleton<CatalogSchemaValidator>();
+builder.Services.AddScoped<CatalogRepository>();
+builder.Services.AddScoped<CatalogPublishService>();
 
 // Auth (docs/API.md Auth, docs/SECURITY.md). The idToken verifier fetches and
 // caches Apple/Google JWKS behind IIdTokenVerifier - the seam L2 tests swap for
@@ -323,6 +334,14 @@ config.MapGet("/public-key", ConfigEndpoints.GetPublicKey);
 var rates = v1.MapGroup("/rates");
 rates.MapGet("", RateEndpoints.GetRates);
 rates.MapGet("/pack", RateEndpoints.GetRatesPack);
+
+// Vehicle catalog (docs/API.md "Vehicle catalog", docs/SYNC.md "Reference data").
+// GET is public - no auth, no account - because a signed-out user's Add-car
+// autocomplete needs the dictionary too. POST /publish is an OPERATOR surface
+// gated on the Catalog:AdminToken secret, never on a user account.
+var catalog = v1.MapGroup("/catalog");
+catalog.MapGet("", CatalogEndpoints.GetCatalog);
+catalog.MapPost("/publish", CatalogEndpoints.Publish);
 
 // Auth (docs/API.md Auth): session exchange, refresh rotation, sign-out.
 var auth = v1.MapGroup("/auth");
