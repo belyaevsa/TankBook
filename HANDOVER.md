@@ -38,16 +38,18 @@
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
-> **Next: P5.2** (money end-to-end in the app - P5.1 shipped the rates service, and P2.5's
-> foreign-currency confirm currently says "converts when online" against a feed that now exists),
-> or **P6.3** (the gateway client - **read `docs/EXTRACTION.md` first**: measurement contradicts
-> its normative 3 s budget, so a hard abort would cancel almost every request). Both are iOS-UI, so
-> **run them one at a time** - two UI tasks collide in `Localizable.xcstrings`, which is not
+> **Next: P6.3** (the gateway client - **read `docs/EXTRACTION.md` first**: measurement
+> contradicts its normative 3 s budget, so a hard abort would cancel almost every request), or any
+> of the P6 rows filed on 2026-08-27: **P6.7** (the `action` token), **P6.10** (the alpha-capture
+> notice), **P6.11**'s surface, **P6.13** (RU clips at Dynamic Type XL). **They are all iOS-UI, so
+> run them one at a time** - two UI tasks collide in `Localizable.xcstrings`, which is not
 > line-mergeable and where resolving by hunk silently drops keys. A non-UI iOS task parallelises
-> with a UI one safely, and `backend/` always does.
+> with a UI one safely, and `backend/` always does - but note **there is no open backend row left**,
+> so parallelism now has to come from non-UI iOS work.
 >
-> **One decision is owed by the user, not by you:** `docs/DESIGN.md` says headlight cyan encodes
-> *electric*, and the app now uses it as the generic interactive colour in **eight** places. Ask.
+> **Also: `docs/TASKS.md` is the file three concurrent agents will conflict in.** Tell every agent
+> NOT to tick it; the orchestrator ticks at merge. Resolving that file by side silently un-ticks
+> somebody else's task.
 
 ## What this project is
 
@@ -84,7 +86,7 @@ Verified by running it, not by assertion:
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
-| **P5** | **RU localization pass complete.** `[x]` P5.1 rates service (ECB + CIS, carry-forward, two public endpoints), P5.2 money end-to-end, P5.3 the RU pass (case governance + plural edges + the `Text(_: String)` gate) |
+| **P5** | **P5.1, P5.2, P5.3, P5.6, P5.7 done.** Rates service; money end-to-end (feed client, S8 backfill, manual rate, F9 footnote); the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21, the `Text(_: String)` gate extension). Vehicle catalog **server and client both shipped**, and P6.12 gave the wire a `kind` marker so a full pack can express a removal. **Open: P5.4 importers, P5.5 backup UI** |
 
 ### The three `[~]`s are blocked on facts, not effort
 
