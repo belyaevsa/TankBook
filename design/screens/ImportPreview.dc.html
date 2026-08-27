@@ -1,0 +1,117 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+  </style>
+</helmet>
+<!-- Import step 2: the PREVIEW GATE (docs/JOURNEYS.md F6a).
+     Nothing is written until the user confirms. The server returned candidates and
+     committed nothing (hard rule 9's named exception); this screen is the review.
+
+     It follows F7's rule, not a progress bar: trust is re-established with NUMBERS,
+     not a checkmark. The figure that carries the screen is the derived consumption -
+     a driver knows their own average, so 8.2 L/100km reads as right or wrong
+     instantly where "220 rows parsed" does not. It is also the same number the
+     importer's acceptance test asserts.
+
+     Every figure here comes from the candidates through the SAME engine that will
+     compute them after commit. A display-only total would make this worse than no
+     preview: the user would have approved something they never saw. -->
+<div style="width: 390px; height: 844px; background: #101318; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 58px 20px 0;">
+    <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Back</span>
+    <span style="font-family: 'Archivo', sans-serif; font-stretch: 85%; font-weight: 700; font-size: 17px;">Review import</span>
+    <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Cancel</span>
+  </div>
+
+  <div style="padding: 22px 24px 0;">
+    <div style="font-family: 'Archivo', sans-serif; font-stretch: 80%; font-weight: 800; font-size: 22px; line-height: 1.2;">Here's what we read</div>
+    <div style="font-size: 12.5px; color: #98A2B3; margin-top: 6px;">from <span style="color:#EAEDF2;">MyFuelManager_2026-08.csv</span> · nothing is saved yet</div>
+  </div>
+
+  <!-- The headline figure. Biggest thing on the screen because it is the one a
+       human can actually check from memory. -->
+  <div style="margin: 18px 20px 0; background: #1A1F27; border: 1px solid #232A36; border-radius: 16px; padding: 16px 18px;">
+    <div style="font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #98A2B3;">Consumption this works out to</div>
+    <div style="display: flex; align-items: baseline; gap: 7px; margin-top: 4px;">
+      <span style="font-family: 'Archivo', sans-serif; font-stretch: 78%; font-weight: 800; font-size: 40px; letter-spacing: -0.01em; font-variant-numeric: tabular-nums;">8.2</span>
+      <span style="font-size: 14px; color: #98A2B3;">L/100km</span>
+    </div>
+    <div style="font-size: 12px; color: #98A2B3; margin-top: 4px; line-height: 1.4;">Does that look like your car? If not, something was read wrong - check the units below.</div>
+  </div>
+
+  <!-- The supporting figures. Each is checkable against the user's own memory. -->
+  <div style="margin: 10px 20px 0; background: #1A1F27; border: 1px solid #232A36; border-radius: 16px; padding: 4px 18px;">
+    <div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #232A36;">
+      <span style="font-size: 13px; color: #98A2B3;">Fill-ups</span>
+      <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;">220</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #232A36;">
+      <span style="font-size: 13px; color: #98A2B3;">Date range</span>
+      <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;">Mar 2023 – Aug 2026</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #232A36;">
+      <span style="font-size: 13px; color: #98A2B3;">Odometer</span>
+      <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;">31 200 – 118 930 km</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid #232A36;">
+      <span style="font-size: 13px; color: #98A2B3;">Total spend</span>
+      <span style="font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums;">14 208.40 €</span>
+    </div>
+    <!-- The F6 ambiguity question, asked ONCE for the file and answered here rather
+         than in a separate modal. Editable at the moment it is offered (hard rule 13). -->
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 11px 0;">
+      <span style="font-size: 13px; color: #98A2B3;">Units &amp; currency</span>
+      <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">L/100km · EUR &nbsp;›</span>
+    </div>
+  </div>
+
+  <!-- Where it lands, said BEFORE it lands. Per-car scope: an import becomes one
+       car (docs/SCHEMA.md -> Backup format). -->
+  <div style="margin: 10px 20px 0; background: #1A1F27; border: 1px solid #232A36; border-radius: 16px; padding: 13px 18px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <div style="font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #98A2B3;">Imports into</div>
+        <div style="font-size: 14px; font-weight: 600; margin-top: 3px;">Volvo V60</div>
+      </div>
+      <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Change &nbsp;›</span>
+    </div>
+    <!-- Duplicates are surfaced in the preview, not after the fact (hard rule 8,
+         SYNC.md S2). Amber = attention, which this genuinely is. -->
+    <div style="display: flex; align-items: flex-start; gap: 8px; margin-top: 11px; padding-top: 11px; border-top: 1px solid #232A36;">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="margin-top:1px;"><path d="M7 1.6l5.6 9.8H1.4z" stroke="#F0A030" stroke-width="1.4" stroke-linejoin="round"/><path d="M7 5.8v2.4M7 9.9v.5" stroke="#F0A030" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <span style="font-size: 12px; color: #F0A030; line-height: 1.4;">3 look like fill-ups you already have. They'll be flagged, not merged - you decide after.</span>
+    </div>
+  </div>
+
+  <!-- Partial parse is the normal outcome, not an error (F6). It sits under the
+       figures rather than blocking them. -->
+  <div style="margin: 10px 20px 0; background: #161B22; border: 1px solid #232A36; border-radius: 14px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between;">
+    <div>
+      <div style="font-size: 13px;"><strong style="font-variant-numeric: tabular-nums;">6</strong> rows need a look</div>
+      <div style="font-size: 11.5px; color: #98A2B3; margin-top: 2px;">The other 214 are ready</div>
+    </div>
+    <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Review &nbsp;›</span>
+  </div>
+
+  <div style="flex: 1;"></div>
+
+  <div style="padding: 0 20px 34px; display: flex; flex-direction: column; gap: 10px;">
+    <div style="background: #F4503A; border-radius: 14px; height: 50px; display: flex; align-items: center; justify-content: center;">
+      <span style="font-size: 16px; font-weight: 700; color: #FFFFFF;">Import 214 fill-ups</span>
+    </div>
+    <div style="text-align: center; font-size: 12px; color: #98A2B3;">Nothing has been saved yet. Cancel leaves your garage untouched.</div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>
