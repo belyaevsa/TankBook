@@ -255,6 +255,95 @@ struct FuelKindNormalizerTests {
         // all, so the outcome is `.notApplicable`, never a lock.
         #expect(result.crossCheck == .notApplicable)
     }
+
+    // MARK: - P2.11: mixed-script homoglyphs
+
+    /// `receipt-034`'s product line OCRs as `Plus (AИ-95-К5), л` - a LATIN A
+    /// followed by a Cyrillic И. Vision picks glyphs by shape, not by the
+    /// document's language, so a Russian receipt is a *mixture* of scripts.
+    /// The octane matcher must accept either script for each confusable glyph
+    /// (docs/EXTRACTION.md: interpretation, not recognition).
+    ///
+    /// This runs through the REAL extractor - not a unit test of the
+    /// normaliser alone - so a fix that only the normaliser understands is a
+    /// fix the product does not have.
+    @Test("receipt-034: the Latin-A product line resolves petrol95 through the extractor")
+    func latinAOctaneResolvesPetrol95() {
+        let lines = ["ТРК №8 Бензин автомобильный ЭКТО",
+                     "Plus (AИ-95-К5), л",
+                     "30.61 Х 0.00",
+                     "Цена определена договором",
+                     "ИТОГ",
+                     "0.00"]
+        let result = FuelExtractor().extract(textLines: lines)
+        #expect(result.fuelKind == .petrol95)
+        // The contract-priced zeros stay nil (see the Cyrillic-АИ twin above).
+        #expect(result.unitPrice == nil)
+        #expect(result.total == nil)
+    }
+
+    @Test("a genuinely Latin product line still resolves after canonicalisation")
+    func genuinelyLatinProductLinesStillResolve() {
+        #expect(FuelKindNormalizer.normalize("DIESEL") == .diesel)
+        #expect(FuelKindNormalizer.normalize("G-DRIVE 95") == .petrol95)
+        #expect(FuelKindNormalizer.isProductLine("DIESEL"))
+        #expect(FuelKindNormalizer.isProductLine("G-DRIVE 95"))
+        // And through the extractor, for a Latin-script diesel receipt.
+        let result = FuelExtractor().extract(textLines: ["DIESEL", "43.61 Х 99.40", "ИТОГ", "4334.83"])
+        #expect(result.fuelKind == .diesel)
+    }
+
+    /// The whole confusable set, as printed on a station header. A station name
+    /// is user-visible STORED text (docs/SCHEMA.md -> Station): the entry must
+    /// hold exactly these bytes. Canonicalisation is a matching key and never
+    /// leaves the comparison path - it must not touch a single character that
+    /// could reach `station`/`vendor`.
+    @Test("stored text is never canonicalised - matching only, never storage")
+    func storedTextIsNotNormalised() {
+        let printedStation = "СЕВЕР-МОТОРС АЗС «КОМПАС» №7"
+        let printedDate = "25.08.2026"
+
+        // Through the real extractor: the mixed-script octane resolves because
+        // the matching path canonicalises...
+        let lines = [
+            printedStation,
+            printedDate,
+            "ТРК №8 Бензин автомобильный ЭКТО",
+            "Plus (AИ-95-К5), л",
+            "30.61 Х 0.00",
+            "Цена определена договором",
+            "ИТОГ",
+            "0.00"
+        ]
+        let result = FuelExtractor().extract(textLines: lines)
+        #expect(result.fuelKind == .petrol95)
+
+        // ...while the string the extraction actually carries is byte-identical
+        // to what was printed. A normalisation applied too early - to the OCR
+        // text itself - would have transliterated the Cyrillic Е/С/М/О/Р/Т/А of
+        // the station header into Latin; the date is the one String field that
+        // would survive such a bug's siblings, so pinning it pins the split.
+        #expect(result.date == printedDate)
+        #expect(lines[0] == printedStation)
+        #expect(FuelKindNormalizer.normalize(printedStation) == nil)
+        #expect(!FuelKindNormalizer.isProductLine(printedStation))
+    }
+
+    /// Every confusable letter must map onto its Latin twin (and the reverse
+    /// direction is a no-op, so genuinely Latin text is untouched by design).
+    @Test("the canonical matching key covers the full confusable set, both ways")
+    func canonicalKeyCoversTheFullConfusableSet() {
+        for (cyrillic, latin) in FuelKindNormalizer.latinTwin {
+            #expect(FuelKindNormalizer.canonicalKey(String(cyrillic)) == String(latin))
+            #expect(FuelKindNormalizer.canonicalKey(String(latin)) == String(latin))
+        }
+        // The defect's octane token, canonicalised: each confusable becomes its
+        // Latin twin (А->A, Н->H, К->K). И is NOT in the confusable set, so the
+        // canonical form of "АИ" is the mixed-script "AИ" the pattern reads.
+        #expect(FuelKindNormalizer.canonicalKey("АН-95-К5") == "AH-95-K5")
+        // A line that mixes several confusables in one go still resolves.
+        #expect(FuelKindNormalizer.normalize("ЭKТО-100 (АИ-100-К5)") == .petrol100)
+    }
 }
 
 // MARK: - Helpers
