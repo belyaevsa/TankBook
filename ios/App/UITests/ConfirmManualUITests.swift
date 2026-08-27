@@ -508,3 +508,78 @@ extension ConfirmManualUITests {
         XCTAssertFalse(app.otherElements["manualFillUpConversionCard"].exists)
     }
 }
+
+// MARK: - P5.2b the manual rate (F9 next step, hard rule 13)
+
+/// The rate-pending card's missing next step (docs/ERRORS.md -> Confirm: "Save
+/// anyway (converts later) · enter rate manually"): the user can type a rate on
+/// the card, it flips to converted with the Manual source in place, and the
+/// rate is an OPTION, never a gate - Save works from the pending state without
+/// one. The scroll is geometric (`scrollClearOfSaveBar`), because `isHittable`
+/// does not model occlusion by the pinned save bar.
+extension ConfirmManualUITests {
+
+    /// The pending card offers its next step, and the next step is reachable
+    /// and hittable - above the save bar's top, not merely reported hittable
+    /// while sitting under it.
+    func testPendingCardOffersTheManualRateNextStep() {
+        let app = launchWithPrefill("-seedConfirmForeignPending")
+        openForm(app)
+
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["manualFillUpPendingHint"].exists, "converts when online")
+        XCTAssertTrue(app.staticTexts["manualFillUpPendingValue"].exists, "≈ – placeholder")
+        XCTAssertFalse(app.staticTexts["manualFillUpConvertedValue"].exists)
+
+        let field = app.textFields["manualFillUpManualRateField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5),
+                      "the pending card must offer its manual-rate next step")
+        scrollClearOfSaveBar(app, field)
+        XCTAssertTrue(field.isHittable, "the next step must be reachable, not merely present")
+        field.tap()
+    }
+
+    /// Entering a rate flips the card from pending to converted IN PLACE, with
+    /// the manual source visible: 289.50 PLN at 4.2706 -> 67.79 EUR, rate line
+    /// "4.2706 zł/€ · Manual, ...".
+    func testEnteringRateFlipsPendingCardToConvertedInPlace() {
+        let app = launchWithPrefill("-seedConfirmForeignPending")
+        openForm(app)
+
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["manualFillUpPendingValue"].exists)
+
+        let field = app.textFields["manualFillUpManualRateField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        scrollClearOfSaveBar(app, field)
+        field.tap()
+        field.typeText("4.2706")
+
+        let value = app.staticTexts["manualFillUpConvertedValue"]
+        XCTAssertTrue(value.waitForExistence(timeout: 5),
+                      "a typed rate must flip the pending card to converted in place")
+        XCTAssertTrue(value.label.contains("67.79"), "converted value was '\(value.label)'")
+        XCTAssertFalse(app.staticTexts["manualFillUpPendingValue"].exists)
+        let rateLine = app.staticTexts["manualFillUpRateLine"]
+        XCTAssertTrue(rateLine.exists)
+        XCTAssertTrue(rateLine.label.contains("4.2706"), "rate line was '\(rateLine.label)'")
+        XCTAssertTrue(rateLine.label.contains("Manual"),
+                      "the manual source must be visible, got '\(rateLine.label)'")
+    }
+
+    /// Save still works from the pending state without entering a rate: the
+    /// manual rate is an option, never a save-blocker (F9).
+    func testPendingStateSavesWithoutEnteringARate() {
+        let app = launchWithPrefill("-seedConfirmForeignPending")
+        openForm(app)
+
+        XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled, "a pending rate is an option, never a gate (F9)")
+
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "Save must work from the pending state without a rate")
+    }
+}

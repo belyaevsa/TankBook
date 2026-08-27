@@ -84,6 +84,22 @@ final class TrendsUITests: XCTestCase {
                       "tap -> the flagged entry (hard rule 7)")
     }
 
+    // MARK: - P5.2b the F9 pending-rates footnote
+
+    /// Trends footnotes the rate-pending entries too (docs/JOURNEYS.md F9:
+    /// "entry shows original currency in trends with a footnote count"). The
+    /// wording is the derived count with real plural rules; it is a hint, not
+    /// a warning.
+    func testPendingRatesFootnoteAppearsOnTrends() {
+        let app = launch(args: ["-seedHomePendingRates", "-selectTrendsTab"])
+
+        let footnote = app.staticTexts["trendsPendingRatesFootnote"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 10),
+                      "Trends must footnote the rate-pending entries")
+        XCTAssertTrue(footnote.label.contains("3 entries pending rates"),
+                      "the footnote must show the derived count, got '\(footnote.label)'")
+    }
+
     // MARK: - Omit, never fabricate
 
     func testDataPoorStateOmitsTilesAndNoNATiles() {

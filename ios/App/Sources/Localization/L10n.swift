@@ -133,6 +133,17 @@ enum L10n {
         String(localized: "\(count) entries excluded")
     }
 
+    /// "3 entries pending rates" - the F9 footnote count for entries still
+    /// waiting on a rate (docs/JOURNEYS.md F9, the text verbatim). Real plural
+    /// rules per language (Russian has three forms - 1 запись ждёт курс /
+    /// 2 записи ждут курс / 5 записей ждут курс) via the String Catalog's
+    /// "%lld entries pending rates" plural variations, exactly like
+    /// `entriesExcluded`. It is a hint, never a warning: nothing is wrong, the
+    /// number is simply not known yet.
+    static func pendingRates(_ count: Int) -> String {
+        String(localized: "\(count) entries pending rates")
+    }
+
     /// The honest consumption-span label, localized (docs/SCHEMA.md ->
     /// HEADLINE; docs/ERRORS.md -> Trends). Shared by Home and Trends so they
     /// render the identical wording from one place. `Headline.Label.honestText()`

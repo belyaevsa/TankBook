@@ -16,11 +16,23 @@ extension ManualFillUpFormState {
         liters = ManualFillUpFormat.decimal(displayVolume, fractionDigits: 2)
         pricePerL = fill.unitPrice.map { ManualFillUpFormat.decimal($0, fractionDigits: 3) } ?? ""
         currency = fill.money?.currency ?? vehicle.homeCurrency
+        manualRate = Self.loadedManualRate(from: fill.money)
+        isManualRateEditorOpen = fill.money?.rateSource == .manual
         fuelKind = fill.fuelKind
         isFull = fill.isFull
         tankLevelAfterPct = fill.tankLevelAfterPct
         odometer = fill.odometer.map(OdometerFormat.grouped) ?? ""
         date = fill.date
+    }
+
+    /// A stored USER-set rate loads back into the manual-rate field (hard rule
+    /// 13, "and again afterwards"): the conversion card then shows it as
+    /// Manual and it stays editable. A feed-written rate is NOT loaded - the
+    /// feed's number is a suggestion, and the manual field only ever holds the
+    /// user's own decision.
+    private static func loadedManualRate(from money: Money?) -> String {
+        guard let money, money.rateSource == .manual, let rate = money.rate else { return "" }
+        return ManualFillUpFormat.decimal(rate, fractionDigits: 4)
     }
 
     /// The edited `FillUp` from the form + the entry's original identity.

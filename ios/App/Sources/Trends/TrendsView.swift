@@ -80,6 +80,11 @@ struct TrendsView: View {
                     destination: stats.home.excludedEntryIDs.first.map(Route.editEntry))
                     .padding(.top, 4)
             }
+            if stats.pendingRateCount > 0 {
+                PendingRatesFootnote(count: stats.pendingRateCount,
+                                     identifier: "trendsPendingRatesFootnote")
+                    .padding(.top, 4)
+            }
         } else {
             TrendsEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }

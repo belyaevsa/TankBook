@@ -119,10 +119,10 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture | tab root – no back |
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
-| Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
+| Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
 | Service & expenses | Capture (Service mode), ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
-| Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version | X → opener |
+| Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | Trends | tab root | insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | vehicle → VehicleDetail · Add car · capture | tab root |
 | Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets | back → Garage (or opener) |
