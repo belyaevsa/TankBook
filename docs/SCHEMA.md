@@ -362,8 +362,18 @@ HEADLINE   headline(segments, window = 90 days, floor = 3):
              value = Σ liters / Σ km × 100        // distance-weighted, not mean of per100s
              label = honest span: "last 3 months" / "last 5 months" / "first estimate · N fill cycles"
 LIFETIME   Σ liters / Σ km over all conflict-free segments – secondary stat.
-ANOMALY    rolling vs trailing-12-month baseline; fires ≥ +10–12% sustained (thresholds tunable,
-           seasonality-aware; dismissible with reason – J9).
+ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the same-length window
+           one year (365 days) earlier, drawn from the trailing 12 months – NOT month-over-month
+           (a winter rise is only an anomaly if it exceeds last winter; docs/VISION.md). Fires
+           when rolling ≥ baseline × (1 + minimumRelativeDrift = 0.12), sustained: the trailing
+           30 days must be elevated too, so a recovering drift stays quiet. Segment floor of 3 per
+           window (the anomaly does NOT extend its window to reach the floor – that would mix
+           seasons); a missing seasonally-aligned baseline yields NOTHING, never a guess. The
+           verdict is derived, never stored (hard rule 2): recompute is deterministic per
+           (segments, asOf). Dismissible per cause = (metric, evaluation month), the reason kept as
+           data (AnomalyDismissal: cause, reason, dismissedAt – the ReminderLifecycle precedent);
+           a dismissed cause stays quiet across recomputes and a different cause still fires.
+           Thresholds tunable, seasonality-aware – J9.
 EV         same structure: segments between charges with known SoC, or simple kWh/100km over
            sessions when odometer deltas exist; €/100km = window cost / window km (the household
            comparison needs nothing extra).
