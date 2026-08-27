@@ -154,6 +154,20 @@ capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus autho
 # row's degradation is on the record, not assumed.
 capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -powertrain phev
 
+# P6.10: the alpha-testing disclosure on the capture surface (docs/ERRORS.md ->
+# Capture). A fresh database is the point: with zero captures the notice is
+# active, sitting directly above the shutter. `-alphaNoticeReset` clears the
+# dismissal state so the notice renders even after a prior test/run dismissed it
+# (UserDefaults survive `-homeResetDatabase`). RU is where the multi-line notice
+# wraps longest ("...продолжайте снимать и отнеситесь с пониманием к
+# ошибкам."), and the XL shot is the overflow check at a Dynamic Type the
+# footnote actually scales to - the disclosure must grow without pushing the
+# shutter off-screen.
+capture P6.10-capture              en -presentScreen capture -cameraStatus authorized -seedCaptureDetection -alphaNoticeReset
+capture P6.10-capture-ru           ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -alphaNoticeReset
+capture P6.10-capture-ru-xl        ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection \
+  -alphaNoticeReset -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+
 # P2.3: the scanned path lands in the SAME ConfirmManual sheet. The main pair
 # shows the partly-resolved reality (liters + price pre-filled and dimmed, the
 # total deriving), and -empty-ru the hard-rule-15 state: an all-nil extraction

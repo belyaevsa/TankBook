@@ -379,4 +379,139 @@ final class CaptureUITests: XCTestCase {
         XCTAssertTrue(frame.label.contains("SHELL"),
                       "the frame must carry the artboard's extracted lines")
     }
+
+    // MARK: - P6.10: the alpha-testing notice on the capture surface
+
+    /// The exact copy, so the assertions check what the user reads, not just
+    /// that "some element exists". The full sentence is too long for a query
+    /// string (XCTest's 128-char limit), so the lookup matches the label by
+    /// predicate and the copy is still asserted verbatim via `label`. The `+`
+    /// join keeps each line under the lint limit; the UI tests are outside the
+    /// localization gate's source scan, and this constant never reaches a
+    /// `Text` initialiser.
+    private static let alphaNoticeCopy = "Recognition is in alpha testing – it can't get every field right yet. "
+        + "Your captures improve it, so keep them coming and bear with mistakes."
+
+    private func alphaNotice(_ app: XCUIApplication) -> XCUIElement {
+        app.descendants(matching: .any)["captureAlphaNotice"]
+    }
+
+    private func alphaNoticeCopyText(in app: XCUIApplication) -> XCUIElement {
+        app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
+                                             "Recognition is in alpha testing")).firstMatch
+    }
+
+    /// The notice is on the capture surface (a disclosure, `inkSoft`, never
+    /// amber) before the shutter - it renders on the live camera surface with
+    /// no captures yet, and carries its dismiss affordance.
+    func testAlphaNoticeRendersOnCaptureSurface() {
+        let app = launch(args: ["-homeResetDatabase", "-presentScreen", "capture",
+                                "-cameraStatus", "authorized", "-alphaNoticeReset"])
+        openCapture(app)
+
+        let copy = alphaNoticeCopyText(in: app)
+        XCTAssertTrue(copy.waitForExistence(timeout: 5),
+                      "the alpha notice must render on the capture surface")
+        XCTAssertEqual(copy.label, Self.alphaNoticeCopy,
+                       "the notice must render its exact copy")
+        XCTAssertTrue(alphaNotice(app).exists,
+                      "the notice container must be present on the capture surface")
+        XCTAssertTrue(app.buttons["captureAlphaNoticeDismissButton"].exists,
+                      "the notice must be dismissable, never an unremovable nag")
+    }
+
+    /// The half that keeps it from becoming a nag: the notice is NEVER on the
+    /// Confirm sheet. It lives only on the capture surface, so a Confirm sheet
+    /// (here the manual form, opened via the peer "Type it" door) must not
+    /// carry it. On the sheet it is neither present nor hittable.
+    func testAlphaNoticeNeverOnConfirmSheet() {
+        let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                "-presentScreen", "capture",
+                                "-cameraStatus", "authorized", "-alphaNoticeReset"])
+        openCapture(app)
+        XCTAssertTrue(alphaNoticeCopyText(in: app).waitForExistence(timeout: 5),
+                      "precondition: the notice is on the capture surface")
+
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 5))
+        typeIt.tap()
+
+        let confirm = app.textFields["manualFillUpTotalField"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5),
+                      "the Confirm sheet must be on screen")
+
+        // The notice is structurally part of the capture surface, which stays
+        // mounted beneath the sheet - so `exists` is not the guard. What must
+        // hold is that the sheet itself does not carry it: the notice must be
+        // absent from the sheet's own hierarchy and unreachable in the
+        // foreground. SwiftUI pages expose their sheet as `app.sheets`; if that
+        // lookup is unavailable the fallback is non-hittability of the copy.
+        let sheetCount = app.sheets.count
+        if sheetCount > 0 {
+            let sheet = app.sheets.firstMatch
+            XCTAssertFalse(sheet.descendants(matching: .any)["captureAlphaNotice"].exists,
+                           "the alpha notice must not exist inside the Confirm sheet")
+            XCTAssertFalse(sheet.staticTexts
+                .matching(NSPredicate(format: "label CONTAINS %@",
+                                      "Recognition is in alpha testing")).firstMatch.exists,
+                "the alpha notice copy must not exist inside the Confirm sheet")
+        }
+        XCTAssertFalse(alphaNoticeCopyText(in: app).isHittable,
+                       "the notice must not be visible or reachable on the Confirm sheet")
+        XCTAssertFalse(app.buttons["captureAlphaNoticeDismissButton"].isHittable,
+                       "the notice's dismiss affordance must not be reachable on the Confirm sheet")
+    }
+
+    /// Dismissal persists across launches (test 2 of the task): the × hides the
+    /// notice for the day, and a relaunch the same day must not bring it back.
+    /// The relaunch deliberately drops `-alphaNoticeReset` - the point is that
+    /// the persisted dismissal, not a launch argument, is what keeps it hidden.
+    func testAlphaNoticeDismissalPersistsAcrossLaunches() {
+        let app = launch(args: ["-homeResetDatabase", "-presentScreen", "capture",
+                                "-cameraStatus", "authorized", "-alphaNoticeReset"])
+        openCapture(app)
+        XCTAssertTrue(alphaNoticeCopyText(in: app).waitForExistence(timeout: 5))
+
+        app.buttons["captureAlphaNoticeDismissButton"].tap()
+        XCTAssertFalse(alphaNotice(app).exists,
+                       "dismissing must remove the notice from the capture surface")
+
+        app.terminate()
+        let relaunch = XCUIApplication()
+        relaunch.launchArguments = ["-homeResetDatabase", "-presentScreen", "capture",
+                                    "-cameraStatus", "authorized"]
+        relaunch.launch()
+        XCTAssertTrue(relaunch.buttons["captureCloseButton"].waitForExistence(timeout: 10))
+        XCTAssertFalse(alphaNotice(relaunch).exists,
+                       "a dismissal must persist across launches (same day)")
+    }
+
+    /// Retirement by experience: once the device has logged three captures the
+    /// user judges recognition from their own scans, and the disclosure has
+    /// done its job. Full history is well past the threshold, so the notice is
+    /// gone even though it was never dismissed - never a permanent nag.
+    func testAlphaNoticeRetiresAfterThreeCaptures() {
+        let app = launch(args: ["-homeResetDatabase", "-seedHomeFullHistory",
+                                "-presentScreen", "capture",
+                                "-cameraStatus", "authorized", "-alphaNoticeReset"])
+        openCapture(app)
+
+        XCTAssertFalse(alphaNotice(app).exists,
+                       "after three captures the notice must retire permanently")
+        XCTAssertFalse(app.buttons["captureAlphaNoticeDismissButton"].exists,
+                       "a retired notice must carry no dismiss affordance either")
+    }
+
+    /// Retirement by repetition: three dismissals across three days means the
+    /// user has read the notice three times; further repetition is nagging. The
+    /// seeded dismissal count stands in for the three separate days.
+    func testAlphaNoticeRetiresAfterThreeDismissals() {
+        let app = launch(args: ["-homeResetDatabase", "-presentScreen", "capture",
+                                "-cameraStatus", "authorized",
+                                "-alphaNoticeDismissCount", "3"])
+        openCapture(app)
+
+        XCTAssertFalse(alphaNotice(app).exists,
+                       "after three dismissals the notice must retire permanently")
+    }
 }

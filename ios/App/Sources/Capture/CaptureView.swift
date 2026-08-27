@@ -31,6 +31,9 @@ struct CaptureView: View {
     @State private var resolved = false
     @State private var pickedImage: UIImage?
     @State private var showDocumentCamera = false
+    /// The P6.10 alpha-testing disclosure, derived on appear from the capture
+    /// count and the persisted dismissal state (see `CaptureAlphaNoticeState`).
+    @State private var alphaNoticeVisible = false
 
     /// The selected car's powertrain, which decides the mode row
     /// (`CaptureMode.modes(for:)`). Defaults to `.ice` so the screen renders
@@ -67,7 +70,7 @@ struct CaptureView: View {
             }
         }
         .task { await resolvePermission() }
-        .onAppear { loadInjected(); loadPowertrain() }
+        .onAppear { loadInjected(); loadPowertrain(); loadAlphaNotice() }
         .onChange(of: scenePhase) { _, phase in
             // Coming back from Settings after a denial: re-read the status so
             // a grant in Settings resumes the camera surface without a relaunch.
@@ -140,6 +143,34 @@ struct CaptureView: View {
         } else if ProcessInfo.processInfo.arguments.contains("-seedCaptureDetection") {
             detection = .sample
         }
+    }
+
+    // MARK: - Alpha notice (P6.10)
+
+    /// Seeds first (the `-presentScreen capture` screenshots and tests open the
+    /// cover straight at launch, before Home's own `.task` has run) and then
+    /// derives whether the notice should show: not retired (fewer than three
+    /// captures and fewer than three dismissals) and not dismissed today.
+    private func loadAlphaNotice() {
+        CaptureAlphaNoticeState.resetForTestsIfRequested()
+        HomeTestSeed.seedIfRequested()
+        alphaNoticeVisible = CaptureAlphaNoticeState.shouldShow(captureCount: captureEntryCount())
+    }
+
+    /// How many captures the device holds - every entry, across every live
+    /// vehicle. The retirement threshold of three is the same "enough first-hand
+    /// data" number as the floor-3 consumption model.
+    private func captureEntryCount() -> Int {
+        guard let repository = try? AppStore.repository(),
+              let vehicles = try? repository.liveVehicles() else { return 0 }
+        return vehicles.reduce(0) { count, vehicle in
+            count + ((try? repository.liveEntries(forVehicle: vehicle.id))?.count ?? 0)
+        }
+    }
+
+    private func dismissAlphaNotice() {
+        CaptureAlphaNoticeState.dismiss()
+        alphaNoticeVisible = false
     }
 
     // MARK: - Background
@@ -240,7 +271,10 @@ struct CaptureView: View {
                 .padding(.horizontal, 36)
                 .padding(.bottom, 22)
             modeRow
-                .padding(.bottom, 18)
+                .padding(.bottom, 14)
+            if alphaNoticeVisible {
+                CaptureAlphaNotice(dismiss: dismissAlphaNotice)
+            }
             bottomActions
         }
         .padding(.bottom, 24)
