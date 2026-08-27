@@ -526,8 +526,8 @@ vehicle_catalog (id uuid pk, make text, model text, generation text, years int4r
 
 | Source | Format | Notable mappings |
 |---|---|---|
-| My Fuel Manager | CSV/backup (schema TBD from real export) | `Runned` → derived check only; `Tank status after fillup` → `tankLevelAfterPct`; `Tank filled/Free` → capacity inference; `Fuel quality` → `fuelGrade` |
-| Fuelio | CSV | fill-ups, costs, vehicles; units per file header |
+| My Fuel Manager | CSV/backup (**schema still TBD - blocked on a real export; P5.4**) | `Runned` → derived check only; `Tank status after fillup` → `tankLevelAfterPct`; `Tank filled/Free` → capacity inference; `Fuel quality` → `fuelGrade` |
+| Fuelio *(deferred, P5.4b)* | CSV | fill-ups, costs, vehicles; units per file header |
 | Drivvo | CSV | expenses + income (income → skip in v1, warn) |
 | Fuelly / aCar | CSV/XML | service logs map to ServiceRecord with single item |
 | Spritmonitor | CSV | bi-fuel rows → separate FillUps by fuelKind |
