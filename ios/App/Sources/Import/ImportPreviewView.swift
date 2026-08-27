@@ -129,7 +129,7 @@ struct ImportPreviewView: View {
         guard let min = model.summary?.odometerMin, let max = model.summary?.odometerMax else {
             return "–"
         }
-        return "\(ImportFormatting.odometer(min)) – \(ImportFormatting.odometer(max)) km"
+        return "\(ImportFormatting.odometer(min)) – \(ImportFormatting.odometer(max)) \(L10n.distanceUnit(model.distanceUnit))"
     }
 
     private var totalSpendText: String {
