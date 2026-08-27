@@ -15,7 +15,7 @@ public struct FuelExtractor: Sendable {
 
     public func extract(lines: [OCRLine], source: ExtractionSource = .receipt) -> FuelExtraction {
         var result = FuelExtraction()
-        result.currency = detectCurrency(lines)
+        result.currency = CurrencyDetection.detect(in: lines)
         result.date = detectDate(lines)
         if source != .pump {
             result.fuelKind = detectFuelKind(lines)
@@ -323,22 +323,6 @@ public struct FuelExtractor: Sendable {
     }
 
     // MARK: - Currency / date / fuel kind
-
-    private func detectCurrency(_ lines: [OCRLine]) -> CurrencyCode? {
-        let markers: [(String, String)] = [
-            ("₽", "RUB"), ("РУБ", "RUB"), ("RUB", "RUB"), ("ТЕНГЕ", "KZT"), ("KZT", "KZT"),
-            ("€", "EUR"), ("EUR", "EUR"), ("PLN", "PLN"), ("ZŁ", "PLN"),
-            ("CZK", "CZK"), ("KČ", "CZK"), ("USD", "USD"), ("$", "USD"),
-            ("GBP", "GBP"), ("£", "GBP"), ("CHF", "CHF")
-        ]
-        for line in lines {
-            let upper = line.text.uppercased()
-            for (marker, code) in markers where upper.contains(marker) {
-                if let currency = CurrencyCode(rawValue: code) { return currency }
-            }
-        }
-        return nil
-    }
 
     private func detectDate(_ lines: [OCRLine]) -> String? {
         let regex = /\b(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{2,4})\b|\b(\d{4})-(\d{2})-(\d{2})\b/
