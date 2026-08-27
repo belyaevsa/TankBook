@@ -460,7 +460,14 @@ Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dum
 
 Same corporate fuel card as `receipt-034`, one printing a price and one not (contract pricing). And
 the operand order is **reversed** against `receipt-033`: volume first there (`24.690 X 243.00`),
-volume second here (`70.44 X 39.000`). Same country, same year, both fuel cards.
+volume second here (`70.44 X 39.000`). Both fuel cards, same year.
+
+**Corrected 2026-08-27: these two are NOT the same country.** `receipt-033` is Kazakh (Astana, KZT,
+16% VAT, a `kofd.kz` QR); `receipt-035` is Russian (G-Drive card, Tver, RUB) - the filenames and
+`expected.csv` both say so. The original wording claimed "same country", and that error survived
+long enough to be copied into the P2.10 brief, which asked an agent to make `receipt-035` resolve
+KZT. It refused, correctly, and pointed at the evidence. **The corpus has exactly ONE Kazakh
+fixture**, so any rule of the "two fixtures make it a rule" kind does not apply to KZ yet.
 
 What survives the flip is the **decimal count** - three on the volume, two on the price, in both.
 That is now the strongest evidence for **P2.9**, and it is the signal the cloud vision model
