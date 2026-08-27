@@ -150,6 +150,10 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | File partially parses | "214 of 220 imported – 6 rows need a look" + row list | Fix inline · skip rows |
 | Nothing parses | "This looks like a PDF report, not a data export – here's where the CSV lives in Drivvo." | Guide per source app · send us the file (consent) |
 | Ambiguous units/currency | One question, once per file: "MPG or L/100km?" | Answer; import proceeds |
+| **Choosing the source** (not an error - the first step) | "Which app is this file from?" with the **server-driven** supported list (`GET /import/formats`). The user declares it; the app never sniffs, because two vendors' CSVs look alike and a confident mis-mapping is worse than a question (hard rule 13) | Pick the app · "My app isn't listed" |
+| **Source app not listed** | "We don't read that one yet." Names what *is* supported rather than dead-ending, and offers to take the file so the format can be added - the same ask as the capture notice (P6.10) | Send us the file (explicit consent) · pick a different app · cancel |
+| **File does not match the declared source** (`422`) | Specific, never generic: "This doesn't look like a My Fuel Manager export." Offers the picker again with the likely alternatives, because picking the wrong app is the expected mistake, not a rare one | Choose a different app · send us the file · cancel |
+| **Offline** | "Importing needs a connection - reading these files happens on our server." Says so plainly rather than failing vaguely: this is hard rule 1's named exception (rule 9), and it is the *only* part of import that needs the network | Retry when online · everything else in the app keeps working |
 
 ### About & feedback
 | Condition | Shows | Next step |

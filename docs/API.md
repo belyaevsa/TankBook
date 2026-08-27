@@ -203,7 +203,22 @@ Account id attached when a bearer token is present; rate-limited per device/IP; 
 on 2026-08-27. It exists so a single parser serves every client and a mapping bug is fixed by a
 deploy rather than an App Store release.
 
-`multipart` upload of a third-party export (`format: "mfm" | ...`, file <= 8 MB) ->
+**`GET /import/formats`** - the supported-source list, **server-driven and public**. Returns
+`[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion } ]`, ETag'd like the other reference
+data.
+
+**This endpoint is what makes server-side parsing pay off, and hardcoding the list in the app would
+throw that away.** Moving the parser to the server buys two things: fixing a mapping without an App
+Store release, and *adding a format* without one. Only the first survives if the picker's list ships
+in the binary - a new parser nobody can select is a parser that does not exist. So the client
+renders whatever the server lists, and an older client simply shows fewer options.
+
+**The user declares the format; the server does not sniff it.** The import UI asks *which app this
+file came from* and offers the list above (`docs/ERRORS.md` -> Import). Two vendors' CSVs can look
+nearly identical, and a confident mis-mapping is worse than a question - hard rule 13, the same
+reasoning as the currency chip on Confirm.
+
+`multipart` upload of a third-party export (`format: "mfm" | ...` **as declared by the user**, file <= 8 MB) ->
 `{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
    ambiguities: [ { kind: "units" | "currency", options, rowCount } ] }`
 
@@ -220,7 +235,9 @@ deploy rather than an App Store release.
   and the answer is applied client-side.
 - **Unparseable rows do not fail the file**: they come back in `unparsed` with a reason and land on
   the review list, so a partial import is the normal outcome rather than an error (F6, hard rule 8).
-- `413` oversize, `415` unrecognised format, `422` a file whose shape matches no known mapping.
+- `413` oversize, `415` unrecognised format id, `422` **the file does not look like the format the
+  user declared** - the client says so specifically ("this does not look like a My Fuel Manager
+  export") and offers the picker again, never a generic failure (F7 forbids "something went wrong").
 - **Logs carry shape only**: format, row counts, error counts. Never a station, note, amount or
   coordinate (hard rule 12).
 
