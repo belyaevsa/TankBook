@@ -552,7 +552,7 @@ vehicle_catalog (id uuid pk, make text, model text, generation text, years int4r
 
 | Source | Format | Notable mappings |
 |---|---|---|
-| My Fuel Manager | CSV/backup (**schema still TBD - blocked on a real export; P5.4**) | `Runned` → derived check only; `Tank status after fillup` → `tankLevelAfterPct`; `Tank filled/Free` → capacity inference; `Fuel quality` → `fuelGrade` |
+| My Fuel Manager | **CSV, `;`-delimited, header on line 2** (real export committed at `Spike/ImportFixtures/mfm/`) | Per-file upload. `fuel.csv` → `FillUp` (**no unit-price column - price/L is derived**); `costs.csv` → `ServiceRecord`/`Expense`; `vehicles.csv` → `Vehicle`; `incomes.csv` out of scope in v1. `Tank status after fillup` (`F`/`P`) + `%` → `tankLevelAfterPct` and the full-tank flag; `Fuel` is a numeric code, not a name; dates are `M/D/YYYY` (**ambiguous - the F6 question**); `Currency` is `USD` on every row regardless of where fuel was bought, so it is a default the user corrects (hard rule 13) |
 | Fuelio *(deferred, P5.4b)* | CSV | fill-ups, costs, vehicles; units per file header |
 | Drivvo | CSV | expenses + income (income → skip in v1, warn) |
 | Fuelly / aCar | CSV/XML | service logs map to ServiceRecord with single item |

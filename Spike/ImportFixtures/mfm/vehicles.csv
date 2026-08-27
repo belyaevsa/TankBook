@@ -1,0 +1,7 @@
+My Fuel Manager - Vehicles
+Registration number;Vehicle name;Fuel;Initial odometer*;Year;Vehicle price;Tank volume;Initial tank status;LPG tank volume;Initial LPG tank status;Color
+"AA000AA";"AUDI A4 Avant 2.0 TDI Komfort - 105.00kW [2009]";00100003;179094;2009;500000;65;50;0;0;000000
+"BB111BB";"AUDI A6 Avant 2.5 TDI [2002]";00100003;359468;2003;0;70;10;0;0;000000
+"CC222CC";"LADA 2110 1.5 16V Komfort [2004]";00100001;190700;2003;0;42;100;0;0;C0C0C0
+"";"NISSAN X-Trail 2.5 Columbia Elegance A/T [2006]";00100001;64088;2008;0;60;50;0;0;E0D0B0
+"DD333DD";"Volvo";00100003;71449;2020;33990;71;10;0;0;FFFFFF
