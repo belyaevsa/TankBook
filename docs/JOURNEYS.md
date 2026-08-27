@@ -287,6 +287,36 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Metric:** recovery rate of failed imports after guidance ≥50%; importer coverage grows from submitted samples.
 
+### F6a · The import preview: nothing is written until the user says so
+
+**Trigger:** a file parsed (fully or partially) and is about to become someone's history.
+
+The server parses and returns **candidates**; the garage is untouched until the user confirms
+(hard rules 9 and 13). Between those two moments sits a preview, and it follows **F7's rule
+rather than a progress bar: trust is re-established with numbers, not a checkmark.**
+
+- **Show what was understood, as figures the user can check against their own memory:** fill-up
+  count, date range, odometer span, detected currency and units, total spend, and - the one that
+  matters most - **the consumption it derives**. A driver knows their own average. `8.2 L/100km`
+  reads as right or wrong instantly, where "220 rows parsed" does not, and that is the same
+  number the importer's acceptance test asserts.
+- **Say where it will land** before it lands: a new car, or merged into a named existing one
+  (per-car scope, `SCHEMA.md` → Backup format). Merging into a car that already has entries shows
+  the S2 duplicate count **in the preview**, not after the fact.
+- **Everything shown is adjustable here** - currency, units, the target car, and the individual
+  rows that need a look (hard rule 13: editable at the moment it is offered). The F6 ambiguity
+  question is answered in this screen, once per file.
+- **Cancel leaves nothing behind**: no entries, and the stored file is deleted rather than left to
+  age out (`DELETE /import/{importId}`).
+- ⚠ **The preview is not a receipt.** If it renders a number the parse did not actually produce -
+  a total assembled for display, a consumption computed differently from the engine - it is worse
+  than no preview, because the user has now approved something they never saw. Every figure comes
+  from the candidates themselves, through the same engine that will compute them after commit.
+
+**Metric:** imports abandoned at preview are a *success* signal, not a funnel loss - they are
+mis-parses caught before they became someone's history; zero "my imported data is wrong" reports
+traced to a figure the preview showed correctly.
+
 ### F7 · Restore fails or comes back empty (J11's nightmare)
 **Trigger:** new phone, sign-in works, but the backup is missing, corrupt, or the backend is down. The category's fatal moment – this journey gets engineered redundancy, not just good copy.
 
