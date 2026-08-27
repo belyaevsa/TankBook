@@ -1,7 +1,7 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-27, with Phase 4 COMPLETE and Phase 5 started. Read this first, then
-`CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Rewritten 2026-08-28, with Phase 4 COMPLETE, Phase 5 COMPLETE, and Phase 6 under way. Read this
+first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
 
@@ -38,18 +38,33 @@
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
-> **Next: P6.3** (the gateway client - **read `docs/EXTRACTION.md` first**: measurement
-> contradicts its normative 3 s budget, so a hard abort would cancel almost every request), or any
-> of the P6 rows filed on 2026-08-27: **P6.7** (the `action` token), **P6.10** (the alpha-capture
-> notice), **P6.11**'s surface, **P6.13** (RU clips at Dynamic Type XL). **They are all iOS-UI, so
-> run them one at a time** - two UI tasks collide in `Localizable.xcstrings`, which is not
-> line-mergeable and where resolving by hunk silently drops keys. A non-UI iOS task parallelises
-> with a UI one safely, and `backend/` always does - but note **there is no open backend row left**,
-> so parallelism now has to come from non-UI iOS work.
+> **Next: the UI queue, one at a time.** `P6.7` (the `action` token sweep, ~66 sites - mechanical
+> and unblocks nothing, so it is the safest filler), `P6.13` (RU clips at Dynamic Type XL),
+> `P6.11`'s surface (426 is handled in core and read by nothing in `App/`), `P6.1b` (the insight
+> card for the engine merged in P6.1a), `P6.8`'s app wiring, `P6.4` (Garage root + Account &
+> devices). **`P6.3` needs a product decision first** - see Open decisions.
 >
-> **Also: `docs/TASKS.md` is the file three concurrent agents will conflict in.** Tell every agent
-> NOT to tick it; the orchestrator ticks at merge. Resolving that file by side silently un-ticks
-> somebody else's task.
+> **They are all iOS-UI, so run them one at a time** - two UI tasks collide in
+> `Localizable.xcstrings`, which is not line-mergeable and where resolving by hunk silently drops
+> keys. **There is no open backend row left**, so parallelism now comes only from non-UI iOS work,
+> and that lane is nearly empty too: `P2.9` (needs its row rewritten first, below) and `P5.4b`
+> (deferred by the product owner).
+>
+> **`docs/TASKS.md` is the file concurrent agents conflict in.** Tell every agent NOT to tick it;
+> the orchestrator ticks at merge. Resolving that file by side silently un-ticks somebody else's
+> task.
+>
+> **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28). A
+> `Monitor` watching `pgrep -x opencode` for a shrinking pid set fires the moment an agent exits.
+> Without one you discover completions by asking, which cost real time repeatedly on 2026-08-27 -
+> agents sat finished for twenty minutes while lanes stood idle. Re-arm it after each dispatch,
+> because a one-shot waiter dies with the event it was waiting for.
+>
+> **The monitor automates *noticing*, never *verifying*.** Everything that has actually caught a
+> bug - mutating an invariant in its subtlest form, reading rendered Russian for grammar, opening a
+> screenshot to see a card below the fold - is judgment a script cannot do. Wiring "auto-verify and
+> auto-dispatch" would degrade into reading agent reports and believing them, which is the failure
+> mode this whole process exists to prevent.
 
 ## What this project is
 
@@ -68,14 +83,19 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 581 unit tests, 115 UI tests** (113 passing; the two failures are the device-specific
-  `ConfirmManual` pair below), `swiftlint lint` exit **0**, localization gate exit **0** at 413
-  keys / 100% RU. **Backend: 155 tests, `dotnet format` 0.**
+- **iOS: 815 unit tests, 141 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
+  from the repo root, localization gate exit **0** at **533 keys / 100% RU**. **Backend: 253 tests,
+  `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
 
-68 screenshots, EN and RU, in `design/screenshots/` - every one opened by a human before it was committed.
+**116 screenshots**, EN and RU, in `design/screenshots/` - every one opened by a human before it
+was committed. Four were **deleted rather than committed** in P5.2b because they missed their
+subject (P6.9): a capture that does not show its feature is evidence for the wrong code.
+
+The repo is public at `github.com/belyaevsa/TankBook` (pushed 2026-08-27, with the product owner's
+explicit decision on what that publishes - see Open decisions).
 
 ## Where the work stands
 
@@ -86,7 +106,8 @@ Verified by running it, not by assertion:
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
-| **P5** | **P5.1, P5.2, P5.3, P5.6, P5.7 done.** Rates service; money end-to-end (feed client, S8 backfill, manual rate, F9 footnote); the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21, the `Text(_: String)` gate extension). Vehicle catalog **server and client both shipped**, and P6.12 gave the wire a `kind` marker so a full pack can express a removal. **Open: P5.4 importers, P5.5 backup UI** |
+| **P5** | **COMPLETE (2026-08-28).** Rates service; money end-to-end; the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21); the MFM importer parsed **server-side**; the per-car backup archive; vehicle catalog server **and** client. P5.4b (five more importers) is **deferred by the product owner**, not blocked |
+| **P6** | **Under way.** `[x]` P6.12 catalog wire `kind` marker, P6.14 the L5 gate scores `fuelKind`/`currency`, P6.15 import-UI defects. `[~]` P6.1 (engine done, card is P6.1b), P6.8 (core done, app wiring open), P6.11 (core done, surface open). Open: P6.3, P6.4, P6.7, P6.9, P6.10, P6.13, P6.5, P6.6 |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -103,35 +124,108 @@ Verified by running it, not by assertion:
 
 ## What to do next
 
-**P2.14 - the `modal` tie-break** is the next real step, because it is the only open item that
-makes *other* measurements untrustworthy: the accuracy ratchet and `PumpPhotoGate.measuredHits` are
-gates asserted against a live score that can move between runs. It also blocks raising the stale
-receipts mark.
+Everything left is **iOS UI**, and two UI agents collide in `Localizable.xcstrings`. So the queue is
+sequential, and the ordering below is by "unblocks something else" rather than by size:
 
-After that, two are newly unblocked and independent:
+1. **P6.11's surface.** `426 upgrade_required` is handled in core and **read by nothing in
+   `App/`** - `SyncEngine` sets `outcome.upgradeRequired` and no screen consults it. The copy is
+   **version-first, never an upsell** ("this needs a newer version"), which is both hard rule 7 and
+   simply true: there is no Pro tier.
+2. **P6.1b**, the insight card for the engine merged in P6.1a. The engine is real and pinned;
+   nothing renders it.
+3. **P6.8's app wiring.** Nothing constructs `ProcessInfoPowerState`/`LowPowerResumer` or passes
+   `.background` at the launch/foreground/timer triggers, so the policy exists and is never
+   consulted.
+4. **P6.13** (RU clips at Dynamic Type XL), **P6.9** (the ConfirmManual capture blind spot),
+   **P6.7** (the `action` token sweep - mechanical, ~66 sites, unblocks nothing, ideal filler).
+5. **P6.4**: Garage tab root and Account & devices. The row was rewritten 2026-08-27 - the Import
+   wizard is drawn and the Paywall is cancelled.
+6. **P6.3** is blocked on a decision, not on effort. See Open decisions.
 
-- **P5.2** money end-to-end in the app (P5.1 shipped the rates service). This closes a gap visible
-  in shipped UI: P2.5's foreign-currency confirm renders "converts when online" against a feed that
-  now exists.
-- **P6.3** the gateway client (P4.10 shipped the server). Note its device-side budget is the 3 s
-  rule that measurement has already contradicted - **read `EXTRACTION.md` before implementing it**,
-  because a hard 3 s abort would cancel almost every request on a mobile link.
+**Two rows must be rewritten before they are dispatched:**
 
-**P4.7** (restore) was dispatched at session end and may still be running.
+- **P2.9** ("resolve an unmarked operand pair by decimal places"). Its premise was that the decimal
+  count identifies the operand - three on the volume, two on the price. **`receipt-037` breaks
+  that**: it prints `99.99 X 25 Л`, two decimals on the price and **none** on the volume, so "more
+  decimals means price" is right there by luck and wrong on `receipt-033`. What actually resolves
+  both is the **unit marker** (`Л`, `лит`, `РУБ`), which is `loneMarkers` territory. Dispatching the
+  row as written would build a rule the corpus has already falsified.
+- **P6.14's follow-up**: `fuelKind` and `currency` are now scored, but a **sixth** `Text(_: String)`
+  instance shipped this week (two in the import feature alone). The gate cannot see an interpolated
+  `String`, only a missing key. That deserves its own gate extension rather than a seventh
+  discovery.
 
-Also open, none of it blocking:
+## The P5-completion session (2026-08-27/28) - fourteen tasks, and three documents that lied
 
-1. **P4.3** blobs, **P4.6** attachment sync, **P4.7** restore end-to-end, **P4.8** silent APNs,
-   **P4.9** Settings account states, **P4.10** the gateway server.
-2. **Google sign-in needs the Google SDK** - the button exists per the artboard and returns a
-   next-step error (P4.4 left it deliberately).
-3. **The `headlight` cyan question, five instances.** `docs/DESIGN.md` says cyan encodes
-   *electric*; the app uses it as the generic interactive colour. One decision, not five.
-4. **P2.2b** (money as `Double` in `Extraction/`), **P2.3b** (fuels the car cannot burn),
-   **P1.13** (Confirm sheet's odometer ungrouped), **P2.9/P2.10/P2.11** (three-decimal volumes,
-   KZT detection, mixed-script OCR). **P2.9 now has two fixtures** and is the best-evidenced of
-   them.
-5. **Notification tap does not deep-link to Reminders** (P3.6, deliberate).
+Fourteen merged in one sitting, at most three agents at once. iOS **642 -> 815** unit tests,
+**127 -> 141** UI, backend **211 -> 253**.
+
+| Task | The mutation that proves it |
+|---|---|
+| **P5.2a** money core | RELAXING the fill-blanks guard to `homeAmount == nil \|\| snapshot.source == .manual` left **all 661 tests green** - see below |
+| **P5.2b** money UI | making the backfill post a toast fails the S8 silence test |
+| **P5.6/P5.7** catalog | rollback guard `>` -> `>=` fails the equal-version test; the garage-untouchable limit is **structural** (the updater holds no repository) |
+| **P2.12** cross-check | zeroing the residual difference so any discount "explains" any residual fails the genuine-mismatch test |
+| **P6.12** wire `kind` | a full pack that OVERLAYS instead of replacing fails the stale-client test; the mirror (delta replaces) fails the other half |
+| **P5.3** RU pass | swapping RU `many`/`few` - both plausible - is visible **only at 11 and 21** |
+| **P5.4** MFM importer | a "plausibility repair" nulling odometers below 100 fails 2 of 16 |
+| **P5.5a** archive | letting a `scope: "vehicle"` archive pass an account restore fails both scope tests |
+| **P2.10** KZT | injecting a magnitude heuristic fails both no-evidence tests |
+| **P2.13** digit repair | `count == 1` -> `!isEmpty` (ties pick the first) fails the refusal test |
+| **P2.2b** Decimal money | restoring `Decimal(value)` prints the corruption: `1.679` -> `1.6789999999999995904` |
+| **P6.1a** anomaly engine | baseline lag `365 -> 90` fires **seven** winter false positives |
+| **P6.14** scorer | letting the frozen A/B arms see the new columns breaks every pinned number |
+
+### Three documents lied, and each cost real work
+
+This is the session's sharpest lesson, and it is not about code.
+
+1. **`HANDOVER.md` said `receipt-033` and `receipt-035` were "same country".** They are not - one is
+   Kazakh, one Russian. I read that at session start and copied it into the P2.10 brief hours later,
+   which asked an agent to make a Russian receipt resolve KZT. **It refused and pointed at the
+   evidence.** Corrected in place.
+2. **`docs/TASKS.md` described 8.222 L/100km as an odometer-span figure.** It is not - computing it
+   gives 8.241 for the LADA and nonsense for two cars carrying an odometer typo. 8.222 is what the
+   **engine** produces. The acceptance test therefore has to run the engine, not arithmetic.
+3. **`docs/SCHEMA.md` said the MFM schema was "TBD from real export"** while the row demanded a
+   number only the real file could produce. P5.4 sat blocked until the file arrived - correctly.
+
+**A stale sentence in a doc everyone reads first is more expensive than a bug.** A bug fails a test;
+a wrong premise gets faithfully implemented. Fix the source, not just the brief.
+
+### Agents refused three times and were right every time
+
+P2.10 (receipt-035 is not Kazakh), P2.11 (`FuelExtraction` has no `station` field, so the test I
+asked for cannot exist; and the ratchet is flat *because* `fuelKind` was unscored), P2.13 (the pump
+class cannot move because no fixture resolves all three fields). **Read an agent's refusal before
+overruling it** - that is now five instances across three sessions.
+
+### A mutation that PASSES is itself a finding
+
+Twice this session:
+
+- **P2.11**: applying the homoglyph canonicalisation to stored text broke nothing, because the only
+  stored `String` is a numeric date with no letters. So "stored text is never normalised" is
+  guaranteed by *where the function is called*, not by any test - true today, unenforced tomorrow.
+- **P6.14**: my first mutation "passed" because zsh **glob-expanded** `vision-ab/*.json` inside an
+  inline `python3 -c` string, so the edit never applied. Use a heredoc. **Distrust a passing
+  mutation** - it is either a real coverage gap or a broken experiment, and both need finding.
+
+### The `Text(_: String)` blind spot has now shipped SIX times
+
+Two of them this week, both in the import feature, both `Text("\(number) km")` rendering Latin `km`
+in Russian while the localization gate reported **0 violations**. The shape never varies: a string
+*literal* is a `LocalizedStringKey` and localises; an **interpolated `String`** does not, and the
+gate cannot tell them apart because no key is missing. P5.3 extended the gate to catch part of the
+class; the interpolated-unit form still slips through.
+
+### Verification found what reports did not
+
+`P5.2b` shipped four screenshots that **missed their subject** - the ConfirmManual conversion card
+sits below the fold and `simctl` cannot scroll, so the files were written, the script exited 0, and
+every image showed a screen without the feature. Deleted rather than committed (P6.9). Opening the
+import screens later caught a **double header**, **RU labels hyphenating mid-word**, and a row
+rendering **our own wire JSON** instead of the user's CSV line - none visible to any test.
 
 ## What the P3 sessions cost, and what they proved
 
@@ -433,25 +527,37 @@ P3.3 both rewrote one view); two agents across tiers do not.
 
 ## The corpus – the most valuable artefact in the repo
 
-`Spike/ReceiptSpike/fixtures/`: **35 receipts, 17 pump photos, 8 e-receipt/app screenshots, 2
-fiscal PDFs**, plus P4.12/P4.13's committed A/B result files under `vision-ab/`, 23 decoded QR payloads. Two joined today: `receipt-033` (KZ tenge, VAT 16%,
-bilingual, a kofd.kz QR, a money-first fill) and `receipt-034` (a B2B contract fill printing
-`30.61 X 0.00` - a zero means "not printed", never "free", and it found two real parser bugs).
-**The accuracy ratchet was toothless** and is re-baselined: it recorded 29/47 against 45/92
-measured, so the parser could have lost 16 fields with CI green. 2018–2026, RU and KZ, RUB/KZT/EUR, two VAT rates, petrol
-92/95/98/100, diesel, LPG. Four classes scored separately so none flatters another.
+`Spike/ReceiptSpike/fixtures/`: **39 receipts, 23 pump photos, 8 e-receipt/app screenshots, 2
+fiscal PDFs**, plus P4.12/P4.13's committed A/B result files under `vision-ab/` and 22 decoded QR
+payloads. 2013-2026, RU/KZ/EE, RUB/KZT/EUR, VAT at 16/20/22%, petrol 92/95/98/100, diesel, LPG.
+Four classes scored separately so none flatters another.
+
+**The gate now scores five fields, not three** (P6.14): `liters`, `unitPrice`, `total`, **plus
+`fuelKind` and `currency`**. That is why the totals jumped - every newly-scored field starts as a
+miss. Before it, an entire class of extraction correctness could not move the number that guards
+extraction: P2.11 fixed fuel-kind resolution and the score stayed flat, correctly.
+
+There is also a separate importer corpus at `Spike/ImportFixtures/mfm/` - a **real** My Fuel Manager
+export (plates scrubbed, `trips.csv` dropped), 513 fuel rows over 13 years. Read its README before
+touching the importer: the header is on **line 2**, the delimiter is **`;`**, dates are `M/D/YYYY`
+and genuinely ambiguous, there is **no unit-price column**, and `Fuel` is a numeric code. It
+preserves a real odometer typo (a Volvo row reading `9`) that makes a naive span compute
+3.4 L/100km - **do not clean it**; it is what the import preview's consumption figure exists to
+catch.
 
 | class | score | note |
 |---|---|---|
-| receipts | **45/93** | every miss is a parsing bug, not an OCR one |
-| pump | **1/46** | seventeen devices, six makes. This near-zero is why P2.7 ships off |
-| fiscal | 1/3 | only one of the three rows is an OCR-scorable image |
-| screenshots | **7/24** | app screenshots are the easiest input that exists |
+| receipts | **88/175** | every miss is a parsing bug, not an OCR one |
+| pump | **21/84** | twenty-three devices, six makes. Still why P2.7 ships off - the gate is 95% |
+| fiscal | 2/5 | only one of the rows is an OCR-scorable image |
+| screenshots | **27/40** | app screenshots are the easiest input that exists |
 
 **Score these with the TankbookCore ratchet test, NOT `swift run ReceiptSpike`.** The two parsers
-disagree - the harness scored the same corpus 0/46 and 11/24 where the ratchet measures 1/46 and
-7/24 - and baselining `high-water.json` from the harness makes the ratchet fail instantly. Run
-`cd ios && swift test --filter AccuracyRatchet` and read the numbers out of its failure message.
+disagree - when this was measured the harness scored the same corpus 0/46 and 11/24 where the
+ratchet measured 1/46 and 7/24 - and baselining `high-water.json` from the harness makes the ratchet
+fail instantly. The gap is structural, not a stale number: the harness does not score `fuelKind` or
+`currency` at all. Run `cd ios && swift test --filter AccuracyRatchet` and read the numbers out of
+its failure message; **blanking the marks to 9999 is the quickest way to print the live scores**.
 
 Run: `cd Spike/ReceiptSpike && swift run ReceiptSpike fixtures/receipts` (`--dump-text` to debug).
 **OCR is not the bottleneck** – Vision reads these at confidence 1.00 and the parser still misses.
@@ -469,9 +575,13 @@ long enough to be copied into the P2.10 brief, which asked an agent to make `rec
 KZT. It refused, correctly, and pointed at the evidence. **The corpus has exactly ONE Kazakh
 fixture**, so any rule of the "two fixtures make it a rule" kind does not apply to KZ yet.
 
-What survives the flip is the **decimal count** - three on the volume, two on the price, in both.
-That is now the strongest evidence for **P2.9**, and it is the signal the cloud vision model
-ignored when it swapped this receipt.
+What survives the flip *between those two* is the **decimal count** - three on the volume, two on
+the price. That was the strongest evidence for **P2.9** until 2026-08-27, when **`receipt-037`
+falsified it**: it prints `99.99 X 25 Л`, two decimals on the price and **none** on the volume,
+because the volume is a whole number of litres. So "more decimals means price" is right on 037 by
+luck and wrong on `receipt-033`. **The unit marker is what actually resolves both**, which is
+`loneMarkers` territory rather than decimal counting - and P2.9's row must be rewritten before it
+is dispatched.
 
 ### What the corpus proved, that no amount of design discussion would have
 
@@ -495,7 +605,13 @@ ignored when it swapped this receipt.
 
 ## Open decisions (product, not implementation)
 
-1. **iOS 18 validation.** Everything is built and screenshotted on **iOS 26.5**; the deployment
+1. **The 3 s gateway budget, owed before P6.3 can be dispatched.** `docs/API.md` calls it
+   **normative**; measurement contradicts it in every class - P4.12 measured median **6.5-8.3 s**,
+   max **40 s**, and P4.13's self-hosted arm was **4.5-8.4 s on CPU**. A hard 3 s abort cancels
+   almost every request on a mobile link. Raise it to something measured, make it adaptive, or keep
+   3 s and accept the gateway is a rare-success path. **P6.3's row says do not implement 3 s as
+   written without this decision.**
+2. **iOS 18 validation.** Everything is built and screenshotted on **iOS 26.5**; the deployment
    target is 18.0. This session found the concrete cost: the tab bar we had been reviewing in
    every screenshot was **iOS 26's system rendering**, which iOS 18 would never produce. P2.1b
    replaced it with an owned bar, so that specific gap is closed – but L4 baselines recorded on
