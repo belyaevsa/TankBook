@@ -390,7 +390,8 @@ Reference implementation and test vectors: the four-drivers simulation (`Spike/`
 One archive; inner structure:
 
 ```
-manifest.json   { schemaVersion: 1, exportedAt, appVersion, vehicleCount, entryCount }   // always readable (restore UI)
+manifest.json   { schemaVersion: 1, scope: "vehicle" | "account", vehicleIds: [...],
+                  exportedAt, appVersion, vehicleCount, entryCount }   // always readable (restore UI)
 data.json       { vehicles: [...], entries: [...], reminders: [...], stations: [...], tariffs: [...] }
                 // exact shapes above, tombstones included; enums as strings; dates ISO-8601 UTC
 attachments/    content-addressed blobs (sha256 filename) referenced by Attachment.file
@@ -399,6 +400,31 @@ attachments/    content-addressed blobs (sha256 filename) referenced by Attachme
 ### Payload schemas (the machine-checkable contract)
 
 The entity shapes above are not only prose. Each is published as a JSON Schema under `docs/schemas/v<N>/<entityType>.schema.json`, generated from the domain model and committed. That artifact is the contract three consumers share: the iOS client validates what it encodes, the backend validates what it stores (registered in `payload_schemas` – see `SYNC.md` → "Payload contract and versioning"), and the fixture corpus under `docs/fixtures/payloads/v<N>/` proves both agree. A new entity without a registered schema fails the build; a schema change without a version bump and an upcaster fails the migration tests.
+
+### Scope: a user-held export is PER CAR (decided 2026-08-27)
+
+A user exporting their data is exporting **one car** – its `Vehicle`, that car's entries of every
+type, its reminders and tariffs, the stations those entries reference, the matching attachments,
+and **the tombstones for all of it**. Whole-account archives still exist for backend snapshots and
+the F7 restore path; they are not what the export button produces.
+
+**So `manifest.json` declares its `scope`, and a reader must branch on it.** This is the same
+failure the catalog wire had before P6.12: a consumer that cannot tell *"here is everything"* from
+*"here is a part"* will treat a part as everything – and here that means importing one car's
+archive as a full restore, leaving a garage that looks correct and is silently missing every other
+car. The scope marker is **mandatory on every archive**, never inferred from `vehicleCount == 1`
+(a one-car user's full account and a one-car export are indistinguishable by count).
+
+Consequences that follow from per-car scope:
+
+- **Import lands as a car**, either a new one or merged into a chosen existing car – the user
+  decides which, and is told which before it happens (hard rule 13).
+- **Merging into a car that already has entries runs the S2 duplicate heuristic**, and conflicts
+  are flagged where the data lives, never dropped (hard rule 8, `SYNC.md` S2).
+- **Money needs nothing extra**: every `Money` carries its own rate snapshot, so a car's history is
+  self-contained and re-imports at the same numbers on a device with no rate cache (hard rule 3).
+- **A per-car archive is not a backup of the account.** Anywhere the UI could be read as "your data
+  is safe", it must say which car.
 
 Rules: additive schema evolution only (new optional fields); a `schemaVersion` bump requires a migrator both on iOS and (later) Android, plus a declarative server transform when the change is mechanical; the same format serves user-held export, backend backup snapshots, and the future Android bridge. Protection (per the signed-off stance in `SYNC.md`): server-side snapshots live under the backend's at-rest encryption; a user-held export can optionally be passphrase-protected (AES) at export time – no user-held key is ever *required*.
 
