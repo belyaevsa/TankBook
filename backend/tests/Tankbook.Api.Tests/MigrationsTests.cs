@@ -30,6 +30,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "refresh_tokens",
         "blob_pending",
         "catalog_pack_state",
+        "import_parses",
     };
 
     [SkippableFact]
@@ -57,7 +58,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(11, applied.Single());
+        Assert.Equal(12, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -90,6 +91,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("refresh_tokens", tables);
         Assert.DoesNotContain("blob_pending", tables);
         Assert.DoesNotContain("catalog_pack_state", tables);
+        Assert.DoesNotContain("import_parses", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
@@ -254,6 +256,37 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'catalog_pack_state'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '011'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration012_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The import-parse index exists after apply, with the purge-scan index
+        // on created_at and the account-deletion index on account_id.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'import_parses'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_import_parses_created_at'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_import_parses_account'"));
+
+        // A row round-trips, including a NULL account_id (the signed-out shape).
+        await db.ExecuteAsync(
+            "INSERT INTO import_parses (id, account_id, device_id, format, file_kind, file_key, result_key, rows_read, candidate_count, unparsed_count) VALUES (gen_random_uuid(), NULL, gen_random_uuid(), 'mfm', 'fuel', 'k/original', 'k/result.json', 513, 513, 0)");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM import_parses"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        // And the table and indexes are gone after rollback.
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'import_parses'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '012'"));
     }
 
     [SkippableFact]

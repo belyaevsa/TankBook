@@ -205,7 +205,7 @@ deploy rather than an App Store release.
 
 **`GET /import/formats`** - the supported-source list, **server-driven and public**. Returns
 `[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion } ]`, ETag'd like the other reference
-data.
+data. Today it lists one format: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], addedInPackVersion: 1 }`.
 
 **This endpoint is what makes server-side parsing pay off, and hardcoding the list in the app would
 throw that away.** Moving the parser to the server buys two things: fixing a mapping without an App
@@ -220,26 +220,48 @@ reasoning as the currency chip on Confirm.
 
 `multipart` upload of a third-party export (`format: "mfm" | ...` **as declared by the user**, file <= 8 MB) ->
 `{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
-   ambiguities: [ { kind: "units" | "currency", options, rowCount } ] }`
+   ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ] }`
 
 - **It commits nothing.** `candidates` are *proposals*; the device reviews, edits and writes them
   (hard rule 13). The server holds no user data beyond the stored file and its parse result, and
   changes no account state.
 - **Works signed out.** No bearer required; stored under the device identity when there is no
   account. Import must not require an account (hard rule 1's exception covers the network, not a
-  sign-in).
+  sign-in). A signed-out parse is attributed to the `X-Device-Id` header (the client's existing
+  `deviceId`); without it, and without a bearer, `POST` answers `400`. With a bearer the parse is
+  stored under the account, not the device.
 - **`GET /import/{importId}`** re-reads a stored parse so a review can be resumed on another device
-  or after a crash. `DELETE /import/{importId}` drops it early; otherwise it is **purged after 30
-  days** (`docs/SECURITY.md` -> Import files at rest).
-- **Ambiguity is returned, never guessed** - units and currency are asked **once per file** (F6),
-  and the answer is applied client-side.
+  or after a crash. An account-owned parse answers `404` to anyone but its owner; a device-owned
+  parse is governed by the importId itself (the id is the capability). **`DELETE /import/{importId}`**
+  drops it early, **idempotently** (`204` whether or not it existed); otherwise it is **purged after
+  30 days** (`docs/SECURITY.md` -> Import files at rest).
+- **Ambiguity is returned, never guessed** - the F6 once-per-file questions, applied client-side:
+  - `dateFormat` (`M/D/YYYY` vs `D/M/YYYY`, the real MFM export contains genuinely ambiguous dates):
+    `options` names both readings and `rowCount` is the number of rows whose day is also ≤ 12, so
+    the same string would parse either way. The candidates carry the format's M/D reading; if the
+    user answers D/M, the client flips exactly the counted rows.
+  - `currency`: `options` is the single currency the file declares on every row (the real export
+    reads `USD` regardless of where fuel was bought) - a **default the user corrects** (hard rule
+    13), never a fact.
+  - `units`: emitted by formats that carry an ambiguous unit; MFM is metric, so it emits none.
+  - `outOfScope`: a recognised file whose rows are deliberately unmapped (`income`, `reminder`) -
+    `rowCount` is the number of rows skipped, so the client can say "this file has N income rows;
+    income isn't imported in v1" instead of silently showing nothing.
+- **Candidates are entity payloads the client can commit** (id/createdAt/updatedAt/vehicleId/
+  attachments/conflict are added at commit), carrying two extra proposal-only fields: `sourceRow`
+  (the 1-based data-row number in the file, for the review list) and, where the file carries one,
+  `vehicleName` (which car the row belongs to). `provenance = { tag: "import", source: <format> }`
+  on every row (`docs/SCHEMA.md` import rules). `unparsed[].row` is the same 1-based data-row
+  numbering and `reason` is a stable code (`invalid_date`, `invalid_number`, `missing_required`,
+  `unknown_fuel_code`, `unknown_finance_category`, `wrong_column_count`).
 - **Unparseable rows do not fail the file**: they come back in `unparsed` with a reason and land on
   the review list, so a partial import is the normal outcome rather than an error (F6, hard rule 8).
 - `413` oversize, `415` unrecognised format id, `422` **the file does not look like the format the
   user declared** - the client says so specifically ("this does not look like a My Fuel Manager
   export") and offers the picker again, never a generic failure (F7 forbids "something went wrong").
-- **Logs carry shape only**: format, row counts, error counts. Never a station, note, amount or
-  coordinate (hard rule 12).
+- **Logs carry shape only**: format, file kind, row counts, error counts. Never a station, note,
+  amount or coordinate (hard rule 12). `POST` is a public native-app endpoint with no browser
+  cookies, so the anti-forgery metadata that multipart binding would otherwise attach is disabled.
 
 ## LLM gateway (Pro)
 

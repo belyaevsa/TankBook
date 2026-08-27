@@ -245,6 +245,41 @@ public static class TankbookLog
             ("BlobsPurged", blobsPurged),
             ("GraceEndsAt", graceEndsAt));
 
+    /// <summary>A file was parsed (docs/API.md "Import parsing"). Shape only -
+    /// format, file kind and counts - never a station, note, amount or coordinate
+    /// (hard rule 12).</summary>
+    public static void ImportParse(
+        ILogger logger,
+        string format,
+        string fileKind,
+        int rowsRead,
+        int candidates,
+        int unparsed,
+        int ambiguities,
+        TimeSpan duration,
+        string outcome)
+        => Emit(logger, LogLevel.Information, "import.parse",
+            ("Format", format),
+            ("FileKind", fileKind),
+            ("RowsRead", rowsRead),
+            ("Candidates", candidates),
+            ("Unparsed", unparsed),
+            ("Ambiguities", ambiguities),
+            ("DurationMs", duration.TotalMilliseconds),
+            ("Outcome", outcome));
+
+    /// <summary>A stored parse was dropped early (DELETE /import/{importId}). Shape only.</summary>
+    public static void ImportDelete(ILogger logger, string format, string fileKind, string outcome)
+        => Emit(logger, LogLevel.Information, "import.delete",
+            ("Format", format),
+            ("FileKind", fileKind),
+            ("Outcome", outcome));
+
+    /// <summary>The 30-day import purge dropped some stored parses. Count only (hard rule 12).</summary>
+    public static void ImportPurge(ILogger logger, int purged)
+        => Emit(logger, LogLevel.Information, "import.purge",
+            ("Purged", purged));
+
     /// <summary>Unhandled-exception ERROR line from the exception handler.</summary>
     public static void UnhandledException(ILogger logger, Exception exception, string? endpoint)
         => logger.Log(

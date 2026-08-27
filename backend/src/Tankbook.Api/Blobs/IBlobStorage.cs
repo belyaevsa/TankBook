@@ -20,6 +20,15 @@ public interface IBlobStorage
     /// <summary>Mints a presigned GET valid for <paramref name="lifetime"/>. Pure local computation, no network.</summary>
     PresignedUrl CreateDownloadUrl(string key, TimeSpan lifetime);
 
+    /// <summary>Writes an object's bytes. Used by import parsing (docs/API.md
+    /// "Import parsing"): the uploaded file and its parse result are stored here
+    /// server-side, unlike the presigned-URL blob pipeline where the client PUTs
+    /// to storage directly.</summary>
+    Task PutObjectAsync(string key, byte[] bytes, string contentType, CancellationToken cancellationToken);
+
+    /// <summary>Reads an object's bytes, or null when the key does not exist. Used to re-read a stored import result.</summary>
+    Task<byte[]?> GetObjectAsync(string key, CancellationToken cancellationToken);
+
     /// <summary>The stored object's size in bytes, or null when the key does not exist.</summary>
     Task<long?> GetObjectSizeAsync(string key, CancellationToken cancellationToken);
 

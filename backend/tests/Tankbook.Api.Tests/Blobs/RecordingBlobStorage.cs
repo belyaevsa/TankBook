@@ -27,8 +27,23 @@ public sealed class RecordingBlobStorage : IBlobStorage
 
     public IReadOnlyDictionary<string, long> Objects => _objects;
 
+    private readonly Dictionary<string, byte[]> _bytes = new(StringComparer.Ordinal);
+
+    /// <summary>The raw bytes held for each key (import files and results).</summary>
+    public IReadOnlyDictionary<string, byte[]> ByteObjects => _bytes;
+
     /// <summary>Seeds an object into storage (the "client PUTs the bytes" step, done by the test).</summary>
     public void Put(string key, long size) => _objects[key] = size;
+
+    public Task PutObjectAsync(string key, byte[] bytes, string contentType, CancellationToken cancellationToken)
+    {
+        _objects[key] = bytes.Length;
+        _bytes[key] = bytes;
+        return Task.CompletedTask;
+    }
+
+    public Task<byte[]?> GetObjectAsync(string key, CancellationToken cancellationToken)
+        => Task.FromResult(_bytes.TryGetValue(key, out var bytes) ? bytes : (byte[]?)null);
 
     public PresignedUrl CreateUploadUrl(string key, TimeSpan lifetime)
     {
@@ -59,6 +74,7 @@ public sealed class RecordingBlobStorage : IBlobStorage
     {
         DeletedKeys = DeletedKeys.Append(key).ToList();
         _objects.Remove(key);
+        _bytes.Remove(key);
         return Task.CompletedTask;
     }
 
@@ -68,6 +84,7 @@ public sealed class RecordingBlobStorage : IBlobStorage
         {
             DeletedKeys = DeletedKeys.Append(key).ToList();
             _objects.Remove(key);
+            _bytes.Remove(key);
         }
 
         return Task.CompletedTask;

@@ -69,3 +69,12 @@ cars with the odometer defect. 8.222 is what the **consumption engine** produces
 floor 3, full-tank segments only (`docs/SCHEMA.md` → consumption). The test must run the engine, not
 arithmetic, which is the point: it asserts the import lands data the engine reads correctly, not
 that a CSV was read.
+
+## The parse output fixture
+
+`parsed.json` in this directory is the **server's** parse of `fuel.csv` (the wire envelope of
+`POST /import/parse`: `importId` is a fixed placeholder, `format`, `scope`, `candidates`,
+`unparsed`, `ambiguities`). It is committed so the iOS side can assert the engine's 8.222 against
+the candidates **offline**, the way the receipt corpus scores without a model call – it must not be
+hand-edited, only regenerated from the parser. The other files' parse outputs are not committed;
+the server tests drive the real files directly.
