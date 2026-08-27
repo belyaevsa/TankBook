@@ -120,6 +120,51 @@ Server-side this is static curated data - **no domain logic, no query parameters
 the server interpret meaning** (hard rule 9). The client downloads the pack and does the
 matching itself; the endpoint only serves rows.
 
+### `GET /catalog` and `POST /catalog/publish` (vehicle catalog)
+
+`GET /catalog` is **public** - no auth, no account - because a signed-out user's Add-car
+autocomplete needs the dictionary too (docs/SYNC.md → Reference data). The server is the
+**master copy**; the client consumes one-way, and nothing here has an SCN, a tombstone or a
+conflict state.
+
+```
+GET /catalog[?since_version=<n>]
+→ 200 { packVersion: <current>, entries: [ <entry> ] }
+→ 304 when If-None-Match matches the current representation
+
+<entry> = { id, make, model, generation?, years?, powertrain, fuelKinds, tankCapacityL?, batteryCapacityKwh? }
+  years      = [firstYear, lastYear] inclusive, or null
+  fuelKinds  = the model line's OFFER SET (petrol95/diesel/lpg/...), never one car's fuel (docs/SCHEMA.md)
+```
+
+- **`since_version`**: the `packVersion` the client holds. **Missing** = full pack (the
+  documented default: a fresh client or a seed refresh asks for the whole catalog, and
+  400-ing first contact would make the simplest client call fail). Malformed (not a
+  non-negative integer) = `400` problem+json. **At or above the current version** = an
+  **empty delta** carrying the current `packVersion` - a truthful answer, never a
+  fabricated entry and never a full pack pretending to be a delta.
+- **Delta vs full pack** (a stated rule, not an accident): the server answers with the
+  entries changed since `since_version`, **unless** more than `Catalog:MaxDeltaEntries`
+  (**default 50**) entries changed - then the client is too far behind and the full pack
+  is served instead. Either way the body is the same `{ packVersion, entries }` envelope;
+  the client applies the entries and holds `packVersion` from then on.
+- **`packVersion` is monotonic** (docs/SYNC.md rollback protection): a response is always
+  at the current version, and the publish path refuses to go backwards.
+- **ETag / If-None-Match**: a strong ETag over the exact body; an unchanged catalog costs
+  a `304`. `Cache-Control: public, max-age=300, must-revalidate` (curation is rare but
+  does happen, so the full pack is revalidatable, never immutable).
+
+`POST /catalog/publish` is an **operator surface**, not a public one - **never** a user
+endpoint. It is gated on the `Catalog:AdminToken` server-side secret (docs/SECURITY.md),
+sent as `X-Admin-Token`; a server with no token configured answers `503` (curation
+disabled). The body is a pack of the same entry shape wrapped in
+`{ packVersion, entries }`. A pack is validated against its schema **at publish time,
+whole or not at all**: a pack that fails its schema (`400`) or whose `packVersion` is not
+greater than the current one (`409` - `<=` is a rollback and is refused) is never served,
+and the previously published pack keeps serving untouched. Success is `200`
+`{ packVersion, entriesPublished }`. This is server-owned reference data that the server
+itself curates, so validating it is required - it is not a hard-rule-9 violation.
+
 ## Feedback
 
 ### `POST /feedback` – public (bearer optional)

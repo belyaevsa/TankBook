@@ -61,6 +61,7 @@ Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one 
 | `migration.ddl` | version, direction, durationMs |
 | `migration.payload` | entityType, fromVersion→toVersion, rowsScanned, rowsRewritten, batches, durationMs |
 | `account.delete` | accountHash, recordsPurged, blobsPurged, graceEndsAt |
+| `catalog.publish` | version, entries (a count), outcome (published/rejected), reason (schema_validation_failed / version_not_monotonic / invalid_document) – **never the pack's contents**: the curation feedback loop records model strings as counts only, and that discipline holds here too |
 
 **What changed** is expressed as identity + outcome (`id`, `entityType`, `schema_version`, old→new `scn`), never as a value diff. A record's history is already in the stream; the log's job is to say *that* it changed and whether it succeeded.
 

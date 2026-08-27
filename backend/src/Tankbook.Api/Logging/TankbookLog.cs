@@ -204,6 +204,17 @@ public static class TankbookLog
             ("Version", version),
             ("Outcome", outcome));
 
+    /// <summary>A catalog pack was published or refused (docs/API.md "Vehicle
+    /// catalog"). Version, an entry count and an outcome are Safe; the pack's
+    /// contents are never logged - the curation feedback loop records model
+    /// strings as counts only, and that discipline holds here too (hard rule 12).</summary>
+    public static void CatalogPublish(ILogger logger, int version, int entries, string outcome, string? reason = null)
+        => Emit(logger, LogLevel.Information, "catalog.publish",
+            ("Version", version),
+            ("Entries", entries),
+            ("Outcome", outcome),
+            ("Reason", reason));
+
     /// <summary>No document is valid (all expired/unpublished); the latest was served anyway.</summary>
     public static void ConfigExpiredFallback(ILogger logger, int version)
         => Emit(logger, LogLevel.Warning, "config.expired.fallback",
