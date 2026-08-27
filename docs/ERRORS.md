@@ -147,7 +147,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Import wizard (planned screen; F6 rules)
 | Condition | Shows | Next step |
 |---|---|---|
-| File partially parses | "214 of 220 imported – 6 rows need a look" + row list | Fix inline · skip rows |
+| File partially parses | "214 of 220 imported – 6 rows need a look" + row list. **Rows render as parsed, labelled fields - never raw CSV** (`JOURNEYS.md` F6b): the server mapped most of the row, so only the field that is actually wrong is marked, and a blank stays blank rather than becoming `0`. The original line stays available behind "Original row" for the rarer case where the *mapping* is wrong rather than a value | Fix inline · skip rows |
 | Nothing parses | "This looks like a PDF report, not a data export – here's where the CSV lives in Drivvo." | Guide per source app · send us the file (consent) |
 | Ambiguous units/currency | One question, once per file: "MPG or L/100km?" | Answer; import proceeds |
 | **Choosing the source** (not an error - the first step) | "Which app is this file from?" with the **server-driven** supported list (`GET /import/formats`). The user declares it; the app never sniffs, because two vendors' CSVs look alike and a confident mis-mapping is worse than a question (hard rule 13) | Pick the app · "My app isn't listed" |

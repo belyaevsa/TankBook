@@ -317,6 +317,31 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
 mis-parses caught before they became someone's history; zero "my imported data is wrong" reports
 traced to a figure the preview showed correctly.
 
+### F6b · A flagged import row is fields, not a line of CSV
+
+**Trigger:** a row reached the review list, so something about it needs a person.
+
+**It renders as parsed, labelled fields - date, station, litres, price, total, odometer, note -
+and only the field that is actually wrong is marked.** Showing the raw comma line instead makes
+the user do the parser's job: they have to count separators to find which value is missing, on a
+phone, for six rows.
+
+This is the same rule Confirm already follows for OCR. An extracted value becomes an editable
+field, never raw text, because a value the app cannot use is still a **default input the user
+edits** (hard rule 13) - and a missing one stays **blank, never `0`**, since a zero is a wrong
+fact where a blank is an honest absence.
+
+- **Only the broken field carries the marker.** A missing odometer marks the odometer; a
+  cross-check failure marks the two operands that disagree, and names the residual in money. A row
+  outlined entirely in amber tells the user nothing about where to look.
+- **The raw line stays one tap away** behind "Original row". It is the right answer for the rarer
+  failure - the *mapping* is wrong, not the value - and the wrong answer for the common one.
+- **A row that is not a fill-up is offered as what it is** rather than discarded: a tyre change
+  with a total and an odometer imports as a service entry (hard rule 8).
+
+**Metric:** flagged rows resolved rather than skipped ≥60% - a review list people skip wholesale
+is a review list that failed to explain itself.
+
 ### F7 · Restore fails or comes back empty (J11's nightmare)
 **Trigger:** new phone, sign-in works, but the backup is missing, corrupt, or the backend is down. The category's fatal moment – this journey gets engineered redundancy, not just good copy.
 

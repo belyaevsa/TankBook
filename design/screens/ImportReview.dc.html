@@ -13,13 +13,18 @@
   </style>
 </helmet>
 <!-- Import step 2b: the rows that need a look (docs/JOURNEYS.md F6).
-     "Partial parse is the goal: import what parses... All-or-nothing imports are how
-     switchers bounce." So this screen is a normal outcome, not a failure screen - it
-     carries no red, and the import button stays live behind it.
+     Partial parse is the goal, so this is a normal outcome, not a failure screen:
+     no red, and the import stays live behind it.
 
-     Each row shows the RAW TEXT the server could not map, because the user is the
-     only one who knows what it meant. Every row names its next step (hard rule 7),
-     and the two steps are always both available: fix it, or leave it out. -->
+     Fields are PARSED AND LABELLED, never raw CSV. The server did map most of the
+     row; showing the whole comma line would make the user find the broken field
+     themselves, and it contradicts what Confirm already does with OCR - extracted
+     values become editable fields, never raw text (hard rule 13: a default input
+     the user edits, at the moment it is offered).
+
+     The one field that is wrong is the one that is marked. The original line stays
+     available behind "Original row" for the rare case where the MAPPING is wrong
+     rather than a value. -->
 <div style="width: 390px; height: 844px; background: #101318; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden;">
 
   <div style="display: flex; align-items: center; justify-content: space-between; padding: 58px 20px 0;">
@@ -28,57 +33,112 @@
     <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Skip all</span>
   </div>
 
-  <div style="padding: 18px 24px 0;">
-    <div style="font-size: 13px; color: #98A2B3; line-height: 1.45;">214 of 220 rows are ready. These six didn't map cleanly - fix one, or leave it out and import the rest.</div>
+  <div style="padding: 16px 24px 0;">
+    <div style="font-size: 12.5px; color: #98A2B3; line-height: 1.45;">214 rows are ready. These six are missing something - fix one, or leave it out.</div>
   </div>
 
-  <div style="padding: 16px 20px 0; display: flex; flex-direction: column; gap: 9px;">
+  <div style="padding: 14px 20px 0; display: flex; flex-direction: column; gap: 10px;">
 
-    <!-- A row whose problem is a missing column: the file simply had no odometer.
-         The next step is to supply it or drop the row. -->
-    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Row 47</span>
-        <span style="font-size: 11.5px; color: #F0A030;">No odometer</span>
+    <!-- A missing value. Everything else parsed, so everything else is shown as a
+         normal field and only the gap is marked. -->
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+        <span style="font-size: 13px; font-weight: 600;">3 Nov 2024 · Neste</span>
+        <span style="font-size: 11px; color: #F0A030;">Odometer missing</span>
       </div>
-      <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #98A2B3; background: #101318; border-radius: 8px; padding: 8px 10px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">2024-11-03,,42.31,1.749,74.00,Neste</div>
-      <div style="display: flex; gap: 18px; margin-top: 10px;">
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Litres</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">42.31</div>
+        </div>
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Price/L</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">1.749</div>
+        </div>
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Total</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">74.00</div>
+        </div>
+        <!-- The gap, as an empty field with its own underline - a blank is an honest
+             absence, never a 0 (the Confirm-sheet rule). -->
+        <div style="flex: 1.15; background: #101318; border-radius: 9px; padding: 7px 9px; border: 1px solid #F0A030;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #F0A030;">Odometer</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; color: #566172; margin-top: 2px;">– km</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 16px; margin-top: 11px; align-items: center;">
         <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Add odometer</span>
         <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Leave out</span>
+        <span style="flex: 1;"></span>
+        <span style="font-size: 11.5px; color: #566172;">Original row</span>
       </div>
     </div>
 
-    <!-- A row whose numbers do not multiply out. The residual is SHOWN rather than
-         hidden, the same discipline as the confirm-sheet cross-check (P2.12). -->
-    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Row 112</span>
-        <span style="font-size: 11.5px; color: #F0A030;">Numbers disagree by 4.20 €</span>
+    <!-- A cross-check failure. The residual is named in money, and the two fields
+         that disagree are the ones marked - not the whole row. -->
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+        <span style="font-size: 13px; font-weight: 600;">18 Feb 2025 · Circle K</span>
+        <span style="font-size: 11px; color: #F0A030;">Off by 4.20 €</span>
       </div>
-      <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #98A2B3; background: #101318; border-radius: 8px; padding: 8px 10px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">2025-02-18,71204,38.00,1.812,64.66,Circle K</div>
-      <div style="font-size: 11.5px; color: #98A2B3; margin-top: 7px;">38.00 × 1.812 = 68.86, but the file says 64.66. A discount line, or a typo.</div>
-      <div style="display: flex; gap: 18px; margin-top: 10px;">
-        <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Fix numbers</span>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px; border: 1px solid #F0A030;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #F0A030;">Litres</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">38.00</div>
+        </div>
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px; border: 1px solid #F0A030;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #F0A030;">Price/L</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">1.812</div>
+        </div>
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Total</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">64.66</div>
+        </div>
+        <div style="flex: 1.15; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Odometer</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">71 204</div>
+        </div>
+      </div>
+      <div style="font-size: 11.5px; color: #98A2B3; margin-top: 8px; line-height: 1.4;">38.00 × 1.812 is 68.86, but the file says 64.66. A discount, or a typo.</div>
+      <div style="display: flex; gap: 16px; margin-top: 10px; align-items: center;">
+        <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Fix</span>
         <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Import as-is</span>
         <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Leave out</span>
+        <span style="flex: 1;"></span>
+        <span style="font-size: 11.5px; color: #566172;">Original row</span>
       </div>
     </div>
 
-    <!-- A row that is not a fill-up at all. Imported as the right kind of entry
-         rather than discarded - nothing is lost silently (hard rule 8). -->
-    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 16px;">
-      <div style="display: flex; justify-content: space-between; align-items: baseline;">
-        <span style="font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Row 158</span>
-        <span style="font-size: 11.5px; color: #98A2B3;">Not a fill-up</span>
+    <!-- Not a fill-up. It parsed perfectly well - it is simply another kind of
+         entry, so it is offered as one rather than discarded (hard rule 8). -->
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 14px; padding: 13px 15px;">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px;">
+        <span style="font-size: 13px; font-weight: 600;">2 Jun 2025 · Tyre change</span>
+        <span style="font-size: 11px; color: #98A2B3;">No fuel on this row</span>
       </div>
-      <div style="font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #98A2B3; background: #101318; border-radius: 8px; padding: 8px 10px; margin-top: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">2025-06-02,84990,,,189.00,Tyre change</div>
-      <div style="display: flex; gap: 18px; margin-top: 10px;">
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Total</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">189.00</div>
+        </div>
+        <div style="flex: 1; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Odometer</div>
+          <div style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 700; font-size: 15px; font-variant-numeric: tabular-nums; margin-top: 2px;">84 990</div>
+        </div>
+        <div style="flex: 2.3; background: #101318; border-radius: 9px; padding: 7px 9px;">
+          <div style="font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #98A2B3;">Note</div>
+          <div style="font-size: 13px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tyre change</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 16px; margin-top: 11px; align-items: center;">
         <span style="font-size: 13px; font-weight: 600; color: #8FB4D9;">Import as service</span>
         <span style="font-size: 13px; font-weight: 600; color: #98A2B3;">Leave out</span>
+        <span style="flex: 1;"></span>
+        <span style="font-size: 11.5px; color: #566172;">Original row</span>
       </div>
     </div>
 
-    <div style="text-align: center; font-size: 12px; color: #98A2B3; padding-top: 4px;">3 more</div>
+    <div style="text-align: center; font-size: 12px; color: #98A2B3; padding-top: 2px;">3 more</div>
   </div>
 
   <div style="flex: 1;"></div>
