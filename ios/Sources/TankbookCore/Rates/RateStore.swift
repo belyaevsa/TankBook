@@ -36,17 +36,22 @@ public final class RateStore: @unchecked Sendable {
     private let fetcher: (any RateFetcher)?
     private let clock: Clock
     private let calendar: Calendar
+    private let powerState: any PowerStateProvider
 
     /// Builds a store over `seed` rows. `calendar` determines what "the entry's
     /// day" means when matching a `Date` to a rate row's day; injectable so
     /// tests are deterministic. `fetcher` is optional - absent until the sync
     /// work supplies a real one; `clock` supplies "today" for `refresh()` only.
+    /// `powerState` is the injected Low Power Mode state (docs/SYNC.md) that
+    /// `refresh()` defers on - never `ProcessInfo` read inline.
     public init(seed: [ExchangeRate], fetcher: (any RateFetcher)? = nil,
                 clock: @escaping Clock = { Date() },
-                calendar: Calendar = .current) {
+                calendar: Calendar = .current,
+                powerState: any PowerStateProvider = ProcessInfoPowerState()) {
         self.fetcher = fetcher
         self.clock = clock
         self.calendar = calendar
+        self.powerState = powerState
         self.lock = OSAllocatedUnfairLock(initialState: State(rates: seed.map {
             $0.normalizedDay(in: calendar)
         }))
@@ -116,16 +121,30 @@ public final class RateStore: @unchecked Sendable {
     /// Fetches a ~2-year rolling pack (base EUR) when a fetcher is present;
     /// otherwise a no-op. A fetch failure is silent - a miss is not an error
     /// (docs/SCHEMA.md -> Exchange rates, F9).
-    public func refresh() async {
-        guard let fetcher else { return }
+    ///
+    /// Returns `true` when the refresh was not deferred, `false` when Low Power
+    /// Mode postponed it (or there is no fetcher). The refresh is opportunistic
+    /// work (docs/SYNC.md -> Low Power Mode table), so the trigger defaults to
+    /// `.background`; a user-initiated fetch would pass `.userInitiated`.
+    @discardableResult
+    public func refresh(trigger: PowerWorkTrigger = .background) async -> Bool {
+        guard let fetcher else { return false }
+        // P6.8: the rate pack refresh defers while the mode is on. Nothing is
+        // lost - a miss is not an error (F9): entries save rate-pending and
+        // backfill later, fill-blanks-only.
+        if LowPowerPolicy.defers(work: .ratePackRefresh, trigger: trigger,
+                                 lowPowerMode: powerState.isLowPowerModeEnabled) {
+            return false
+        }
         let now = clock()
         let from = calendar.date(byAdding: .year, value: -2, to: now) ?? now
         do {
             let rates = try await fetcher.fetchPack(from: from, to: now, base: .eur)
             merge(rates)
         } catch {
-            return
+            return true
         }
+        return true
     }
 }
 

@@ -25,10 +25,14 @@ public final class SyncCoordinator: @unchecked Sendable {
     }
 
     private let engine: SyncEngine
+    private let powerState: any PowerStateProvider
     private let state = OSAllocatedUnfairLock(initialState: State())
 
-    public init(engine: SyncEngine, lastSyncDate: Date? = nil) {
+    public init(engine: SyncEngine,
+                powerState: any PowerStateProvider = ProcessInfoPowerState(),
+                lastSyncDate: Date? = nil) {
         self.engine = engine
+        self.powerState = powerState
         state.withLock { $0.lastSyncDate = lastSyncDate }
     }
 
@@ -56,8 +60,24 @@ public final class SyncCoordinator: @unchecked Sendable {
     /// no transport call is made. Offline is not an error - the engine maps a
     /// transport failure to `transportUnavailable` and the dirty queue is
     /// untouched (docs/SYNC.md S7).
+    ///
+    /// The trigger is explicit at every call site (docs/SYNC.md -> Low Power
+    /// Mode): while the mode is on, an **opportunistic** cycle (`.background`)
+    /// defers - the queue is exactly as it was, nothing dropped (hard rule 8) -
+    /// and a sync the **user asked for** (`.userInitiated`) always runs. The
+    /// automatic triggers (launch, foreground, debounced write, silent nudge)
+    /// MUST pass `.background`; the default is `.userInitiated` because every
+    /// current caller is a user's own tap, and a deferral bug is worse than a
+    /// run bug.
     @discardableResult
-    public func syncNow() async -> SyncOutcome {
+    public func syncNow(trigger: PowerWorkTrigger = .userInitiated) async -> SyncOutcome {
+        if LowPowerPolicy.defers(work: .syncCycle, trigger: trigger,
+                                 lowPowerMode: powerState.isLowPowerModeEnabled) {
+            var outcome = SyncOutcome()
+            outcome.deferred = true
+            return outcome
+        }
+
         let shouldRun = state.withLock { snapshot -> Bool in
             if snapshot.inFlight { return false }
             snapshot.inFlight = true
@@ -67,7 +87,7 @@ public final class SyncCoordinator: @unchecked Sendable {
             return state.withLock { $0.lastOutcome ?? SyncOutcome() }
         }
 
-        let outcome = await engine.synchronize()
+        let outcome = await engine.synchronize(trigger: trigger)
         state.withLock { snapshot in
             snapshot.lastOutcome = outcome
             if !outcome.transportUnavailable {

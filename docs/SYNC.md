@@ -374,7 +374,15 @@ starts on launch, the prefetch it starts on a WiFi change, the refresh it starts
 
 **Resume on the state change, not on the next launch.** `NSProcessInfoPowerStateDidChange` is the
 trigger; a policy that only re-checks at launch leaves a device that left Low Power Mode hours ago
-still holding its queue.
+still holding its queue. The resumer lives in core (`LowPowerResumer`, injected `PowerStateProvider`
++ `NotificationCenter`): the app registers the deferred work - a background sync, the rate pack
+refresh, the catalog fetch - as closures, and the resumer drains them when the mode ends.
+
+**Blob upload defers even inside a user-asked sync.** "The heaviest work there is" waits while the
+mode is on, full stop: a user-initiated sync pushes text and defers its blobs - the record stays
+dirty and the entry syncs text-first with the blob pending, exactly as it does when the blob
+transport is down (S7, upload step 5: a record never points at a blob the server can't serve). The
+sync the user asked for runs; the heaviest network work still waits for power.
 
 **Surface: the existing passive status row, and nothing else.** S7's row gains a reason, not a
 severity – "Waiting to sync · 5 changes · Low Power Mode is on". It is **reassurance, never a
