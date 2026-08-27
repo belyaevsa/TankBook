@@ -552,7 +552,7 @@ vehicle_catalog (id uuid pk, make text, model text, generation text, years int4r
 
 | Source | Format | Notable mappings |
 |---|---|---|
-| My Fuel Manager | **CSV, `;`-delimited, header on line 2** (real export committed at `Spike/ImportFixtures/mfm/`) | Per-file upload. `fuel.csv` → `FillUp` (**no unit-price column - price/L is derived**); `costs.csv` → `ServiceRecord`/`Expense`; `vehicles.csv` → `Vehicle`; `incomes.csv` out of scope in v1. `Tank status after fillup` (`F`/`P`) + `%` → `tankLevelAfterPct` and the full-tank flag; `Fuel` is a numeric code, not a name; dates are `M/D/YYYY` (**ambiguous - the F6 question**); `Currency` is `USD` on every row regardless of where fuel was bought, so it is a default the user corrects (hard rule 13) |
+| My Fuel Manager | **CSV, `;`-delimited, header on line 2** (real export committed at `Spike/ImportFixtures/mfm/`, parse output at `Spike/ImportFixtures/mfm/parsed.json`) | Per-file upload. `fuel.csv` → `FillUp` (**no unit-price column - price/L is derived**); `costs.csv` → `ServiceRecord`/`Expense`; `vehicles.csv` → `Vehicle`; `incomes.csv` and `reminders.csv` are recognised but **unmapped in v1** (accepted, yield nothing - income is out of scope and there is no reminder mapping yet). `Tank status after fillup` (`F`/`P`) + `%` → `tankLevelAfterPct` and the full-tank flag; `Fuel` is a **numeric code, not a name**; dates are `M/D/YYYY` (**ambiguous - the F6 question**); `Currency` is `USD` on every row regardless of where fuel was bought, so it is a default the user corrects (hard rule 13) |
 | Fuelio *(deferred, P5.4b)* | CSV | fill-ups, costs, vehicles; units per file header |
 | Drivvo | CSV | expenses + income (income → skip in v1, warn) |
 | Fuelly / aCar | CSV/XML | service logs map to ServiceRecord with single item |
@@ -560,6 +560,38 @@ vehicle_catalog (id uuid pk, make text, model text, generation text, years int4r
 | CarScope | CSV | closest schema to ours |
 
 Import rules (F6): ambiguity (units/currency) asks once per file; unparseable rows import partially with a review list; `provenance = .import(source)` on every row; conflicts flagged, not dropped.
+
+### MFM mapping, written from the real export (P5.4)
+
+The parser runs server-side (`POST /import/parse`, `docs/API.md`). These are the decisions the real
+file forced - each one is a documented mapping, never a silent guess:
+
+- **Fuel is a bitmask code, not a name.** Per-fill `Fuel` is `1` (petrol) or `2` (diesel); the
+  vehicle's fuel field is the same bitmask zero-padded (`00100001` = petrol, `00100003` =
+  petrol+diesel). Petrol maps to `petrol95` as a **default the user corrects** - the octane is not
+  in the file (hard rule 13). An unknown code lands the row in `unparsed` (`unknown_fuel_code`).
+- **Odometer is exported as a number with a fractional part** (the fixture carries a `3.22` row
+  alongside the `9` and `11436` typo rows). Tankbook stores whole km, so a fractional reading
+  rounds to the nearest kilometre - a format mapping, not a repair: `3.22` still reads 3 and still
+  lies off the car's timeline, exactly where the preview's derived-consumption figure catches it
+  (F6a). The `9` and `11436` are integers and pass through untouched.
+- **`costs.csv` finance categories**: `WORK` → `ServiceRecord(.repair)`, `Diagnostic` →
+  `.inspection`, `Oil` → `.oil`, `Washing` → `.wash`; `Replacement parts` → `Expense(.parts)`,
+  `Parking` → `Expense(.parking)`. Each `ServiceRecord` carries a single item (title = the note,
+  cost = the row total). An unknown category lands the row in `unparsed`
+  (`unknown_finance_category`). MFM exports an unrecorded cost odometer as `0`, which maps to
+  `null` (the field is optional off a fill-up) rather than a nonsense zero reading.
+- **`incomes.csv` / `reminders.csv` are accepted and yield nothing**: income is out of scope in v1
+  and there is no reminder mapping yet. The response reports them via an `outOfScope` ambiguity
+  with the skipped row count, so the client can say what was skipped.
+- **Unit price is derived** (`Total price` ÷ `Fillup volume`, rounded to 6 dp) - the format has no
+  unit-price column.
+- **Date ambiguity** (`M/D/YYYY` vs `D/M/YYYY`) is returned as an ambiguity with the count of rows
+  whose day is also ≤ 12 (215 of the 513 fuel rows); candidates carry the M/D reading and the
+  client flips the counted rows if the user answers D/M.
+- The **8.222 L/100km acceptance number is the Swift consumption engine's**, computed from
+  `parsed.json` (rolling 90 days, floor 3, full-tank segments) - it is **not** a backend assertion,
+  and the backend does not reimplement consumption.
 
 ## Open questions
 

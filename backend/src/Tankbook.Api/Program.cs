@@ -12,6 +12,7 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Catalog;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
+using Tankbook.Api.Import;
 using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Notifications;
@@ -50,6 +51,8 @@ builder.Services.Configure<LlmGatewayOptions>(
     builder.Configuration.GetSection(LlmGatewayOptions.SectionName));
 builder.Services.Configure<CatalogOptions>(
     builder.Configuration.GetSection(CatalogOptions.SectionName));
+builder.Services.Configure<ImportOptions>(
+    builder.Configuration.GetSection(ImportOptions.SectionName));
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -154,6 +157,20 @@ builder.Services.AddScoped<ConfigPublishService>();
 builder.Services.AddSingleton<CatalogSchemaValidator>();
 builder.Services.AddScoped<CatalogRepository>();
 builder.Services.AddScoped<CatalogPublishService>();
+
+// Import parsing (docs/API.md "Import parsing", hard rule 9's named exception):
+// the one endpoint that reads what a field means. The parser is a pure
+// function - it returns candidate proposals and commits nothing. Stored parses
+// are purged after 30 days on the same hosted-service pattern as the account
+// purge; the timer is registered only outside test hosts so tests drive the
+// purge directly.
+builder.Services.AddScoped<ImportRepository>();
+builder.Services.AddScoped<ImportService>();
+builder.Services.AddScoped<ImportPurgeService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<ImportPurgeHostedService>();
+}
 
 // Auth (docs/API.md Auth, docs/SECURITY.md). The idToken verifier fetches and
 // caches Apple/Google JWKS behind IIdTokenVerifier - the seam L2 tests swap for
@@ -342,6 +359,20 @@ rates.MapGet("/pack", RateEndpoints.GetRatesPack);
 var catalog = v1.MapGroup("/catalog");
 catalog.MapGet("", CatalogEndpoints.GetCatalog);
 catalog.MapPost("/publish", CatalogEndpoints.Publish);
+
+// Import parsing (docs/API.md "Import parsing"): the one endpoint that reads
+// what a field means, plus the public format list and the stored-parse read and
+// drop. GET /formats is public and ETag'd like the other reference data; POST
+// and the {importId} routes are public with the bearer optional - import must
+// work signed out (hard rule 1's exception covers the network, not a sign-in).
+var import = v1.MapGroup("/import");
+import.MapGet("/formats", ImportEndpoints.Formats);
+// The parse endpoint is a public multipart upload consumed by the native app -
+// there are no browser cookies to protect, so the anti-forgery metadata that
+// [FromForm] would otherwise attach is disabled (docs/API.md "Import parsing").
+import.MapPost("/parse", ImportEndpoints.Parse).DisableAntiforgery();
+import.MapGet("/{importId:guid}", ImportEndpoints.Get);
+import.MapDelete("/{importId:guid}", ImportEndpoints.Delete);
 
 // Auth (docs/API.md Auth): session exchange, refresh rotation, sign-out.
 var auth = v1.MapGroup("/auth");

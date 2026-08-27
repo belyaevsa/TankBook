@@ -85,6 +85,36 @@ public sealed class S3BlobStorage : IBlobStorage
         }
     }
 
+    public async Task PutObjectAsync(string key, byte[] bytes, string contentType, CancellationToken cancellationToken)
+    {
+        using var stream = new MemoryStream(bytes, writable: false);
+        await _client.PutObjectAsync(
+            new PutObjectRequest
+            {
+                BucketName = _bucket,
+                Key = key,
+                ContentType = contentType,
+                InputStream = stream,
+            },
+            cancellationToken);
+    }
+
+    public async Task<byte[]?> GetObjectAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await _client.GetObjectAsync(_bucket, key, cancellationToken);
+            await using var stream = response.ResponseStream;
+            using var buffer = new MemoryStream();
+            await stream.CopyToAsync(buffer, cancellationToken);
+            return buffer.ToArray();
+        }
+        catch (AmazonS3Exception ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+    }
+
     public async Task<IReadOnlyList<string>> ListKeysAsync(string prefix, CancellationToken cancellationToken)
     {
         var keys = new List<string>();
