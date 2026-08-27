@@ -33,7 +33,10 @@ struct PaddleOCRDumpTests {
                 wroteAny = true
                 let rawFile = try Self.loadRaw(arm: arm, cls: name)
                 let folder = PaddleOCRCorpus.fixturesRoot.appendingPathComponent(name)
-                let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+                // Numeric-only view of expected: the regenerated snapshot must
+                // stay comparable with the committed 2026-08-26 sweep, which
+                // carried no fuelKind/currency (`CorpusScorer.loadExpectedNumericsOnly`).
+                let expected = try CorpusScorer.loadExpectedNumericsOnly(folder.appendingPathComponent("expected.csv"))
                 let images = try CorpusScorer.imageFilenames(in: folder)
 
                 var records: [String: ExtractionRecord] = [:]

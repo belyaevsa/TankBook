@@ -50,12 +50,24 @@ swift run ReceiptSpike fixtures/receipts --dump-text  # raw OCR, to debug a miss
 ## expected.csv
 
 Machine-read, so **no comment lines and no blank lines** - the harness drops only
-the first line as a header and needs four columns per row.
+the first line as a header and needs six columns per row.
 
 ```csv
-filename,liters,unitPrice,total
-receipt-001.heic,67.00,1.869,125.22
+filename,liters,unitPrice,total,fuelKind,currency
+receipt-001.heic,67.00,1.869,125.22,diesel,EUR
 ```
+
+- `fuelKind` is written as the canonical `FuelKind` raw value
+  (`diesel`, `petrol92`, `petrol95`, `petrol98`, `petrol100`, `lpg`, `cng`,
+  `e85`, `electricity` - exactly as `docs/SCHEMA.md` spells them), `currency`
+  as the ISO-4217 code (`RUB`, `EUR`, `KZT`, ...). Both are compared exactly,
+  never with the numeric tolerance.
+- On a **pump display** `fuelKind` stays empty for every row: the grades shown
+  belong to every nozzle, not to this fill, so no pump photo carries a
+  claimable fuel kind (`pump/README.md`). The receipt or the user decides.
+- `currency` is claimed wherever the document or its paired fixture settles the
+  money's denomination (a `₽`/`РУБ`/`€`/`EUR`/`ТЕНГЕ`/`KZT` marker, or a
+  matched pair whose sibling states it). Where neither exists it stays empty.
 
 **Leave a field empty rather than guessing.** A wrong ground truth is worse than
 a missing one: the gate ratchets against it, so a guess becomes a permanent lie

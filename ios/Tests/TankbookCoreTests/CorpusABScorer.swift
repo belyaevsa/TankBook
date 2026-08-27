@@ -1,4 +1,5 @@
 import Foundation
+@testable import TankbookCore
 
 // P4.12 - the ONE scorer for the corpus A/B (cloud vision model vs the rules
 // parser). The comparison is shared between the two arms on purpose: the whole
@@ -7,6 +8,14 @@ import Foundation
 // comparison. The tolerance and the empty-skip rule are copied from
 // `AccuracyRatchetTests` (abs(got - want) < 0.005; an empty expected.csv field
 // is skipped, never scored as a miss).
+//
+// P6.14 - the scorer now also measures `fuelKind` and `currency`, which
+// `FuelExtraction` has always carried and which neither the ratchet nor the A/B
+// scored. An empty expected cell stays skipped, never a miss, for these columns
+// exactly as for the numerics. The P4.12/P4.13 committed result files predate
+// the two new columns and carry no value for either, so those frozen arms are
+// scored through `loadExpectedNumericsOnly` - same scorer, same tolerance, an
+// expected set from which the unmeasured columns are absent.
 
 /// One image's extracted fields, as written by the sweep script (LLM arm) or the
 /// rules dump (rules arm). A field is `nil` when the engine abstained or the call
@@ -16,6 +25,8 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
     let liters: Double?
     let unitPrice: Double?
     let total: Double?
+    let fuelKind: FuelKind?
+    let currency: CurrencyCode?
     let latencySeconds: Double?
     let error: String?
 
@@ -24,6 +35,8 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
         liters: Double?,
         unitPrice: Double?,
         total: Double?,
+        fuelKind: FuelKind? = nil,
+        currency: CurrencyCode? = nil,
         latencySeconds: Double? = nil,
         error: String? = nil
     ) {
@@ -31,6 +44,8 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
         self.liters = liters
         self.unitPrice = unitPrice
         self.total = total
+        self.fuelKind = fuelKind
+        self.currency = currency
         self.latencySeconds = latencySeconds
         self.error = error
     }
@@ -51,11 +66,29 @@ struct ABResultFile: Codable {
 }
 
 /// Ground truth for one image, from a class's `expected.csv`. Empty fields stay
-/// `nil` - that is what makes them "skipped, not missed".
+/// `nil` - that is what makes them "skipped, not missed". `fuelKind` and
+/// `currency` are compared exactly (they are enum values, not measurements), so
+/// they carry no tolerance.
 struct ExpectedRow: Equatable, Sendable {
     let liters: Double?
     let unitPrice: Double?
     let total: Double?
+    let fuelKind: FuelKind?
+    let currency: CurrencyCode?
+
+    init(
+        liters: Double? = nil,
+        unitPrice: Double? = nil,
+        total: Double? = nil,
+        fuelKind: FuelKind? = nil,
+        currency: CurrencyCode? = nil
+    ) {
+        self.liters = liters
+        self.unitPrice = unitPrice
+        self.total = total
+        self.fuelKind = fuelKind
+        self.currency = currency
+    }
 }
 
 /// Per-class hits/total, identical in shape to `AccuracyRatchetTests.ScoredClass`.
@@ -101,13 +134,55 @@ enum CorpusScorer {
                 total += 1
                 if let got = record?.total, abs(got - wantValue) < tolerance { hits += 1 }
             }
+            // P6.14: `fuelKind` and `currency` are enum values, so they are
+            // compared exactly - the numeric tolerance does not apply. The
+            // empty-skip rule is identical: an empty expected cell adds no total
+            // and cannot miss; a nil extracted value against a non-empty
+            // expectation is a miss, never a skip.
+            if let wantKind = want.fuelKind {
+                total += 1
+                if record?.fuelKind == wantKind { hits += 1 }
+            }
+            if let wantCurrency = want.currency {
+                total += 1
+                if record?.currency == wantCurrency { hits += 1 }
+            }
         }
         return ScoredClass(name: name, hits: hits, total: total)
     }
 
-    /// Parses a class's `expected.csv` (header `filename,liters,unitPrice,total`).
-    /// An empty column becomes `nil` - the field is skipped, not guessed.
+    /// Parses a class's `expected.csv` (header
+    /// `filename,liters,unitPrice,total,fuelKind,currency`). An empty column
+    /// becomes `nil` - the field is skipped, not guessed. `fuelKind` is written
+    /// as a `FuelKind` raw value (e.g. `petrol95`, `diesel`), `currency` as an
+    /// ISO-4217 code (e.g. `RUB`, `EUR`, `KZT`); both are compared exactly.
     static func loadExpected(_ url: URL) throws -> [String: ExpectedRow] {
+        let csv = try String(contentsOf: url, encoding: .utf8)
+        var result: [String: ExpectedRow] = [:]
+        for line in csv.split(separator: "\n").dropFirst() {
+            let cols = line.split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+            guard cols.count >= 4 else { continue }
+            result[cols[0]] = ExpectedRow(
+                liters: Double(cols[1]),
+                unitPrice: Double(cols[2]),
+                total: Double(cols[3]),
+                fuelKind: cols.count > 4 ? FuelKind(rawValue: cols[4]) : nil,
+                currency: cols.count > 5 ? CurrencyCode(rawValue: cols[5]) : nil
+            )
+        }
+        return result
+    }
+
+    /// The legacy numeric-only view of an `expected.csv` (columns
+    /// `liters,unitPrice,total`), used by the P4.12/P4.13 A/B arms and their
+    /// dump generators. Their committed result files predate the
+    /// `fuelKind`/`currency` columns, so no record in them carries a value for
+    /// either; scoring those columns against such a file would count every new
+    /// field as a miss and silently rewrite what the frozen arms measured - and
+    /// their pinned totals are part of the measurement (a re-sweep is not a way
+    /// back: the cloud arm is stochastic). Same CSV, same header - only which
+    /// columns are read differs. The comparison itself stays the one `score`.
+    static func loadExpectedNumericsOnly(_ url: URL) throws -> [String: ExpectedRow] {
         let csv = try String(contentsOf: url, encoding: .utf8)
         var result: [String: ExpectedRow] = [:]
         for line in csv.split(separator: "\n").dropFirst() {

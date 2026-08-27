@@ -25,7 +25,11 @@ struct CorpusABTests {
 
     private static func scoreClass(_ name: String, engine: String) throws -> ScoredClass {
         let folder = fixturesRoot.appendingPathComponent(name)
-        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        // Numeric-only view of expected: the committed P4.12 sweep predates the
+        // `fuelKind`/`currency` columns and carries no value for either, so this
+        // frozen arm must keep scoring exactly the three fields it scored then
+        // (`CorpusScorer.loadExpectedNumericsOnly`).
+        let expected = try CorpusScorer.loadExpectedNumericsOnly(folder.appendingPathComponent("expected.csv"))
         let file = try CorpusScorer.loadABResultFile(
             abRoot.appendingPathComponent("\(engine)-\(name).json")
         )
