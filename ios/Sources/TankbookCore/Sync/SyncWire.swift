@@ -130,4 +130,20 @@ public enum SyncServerError: Error, Equatable, Sendable {
     case transportUnavailable
     /// The server answered but the body could not be decoded.
     case invalidResponse
+    /// `402`: the server gated this on a tier or capability THIS CLIENT does not
+    /// have. There is no Pro tier today - every user has full access - so the
+    /// only way a shipped client sees this is a server that has moved ahead of
+    /// it, which makes the honest reading "this app is out of date", not "buy
+    /// something" (hard rule 7: monetization appears in no error surface but the
+    /// car-limit sheet). Nothing is lost: the push is refused, the rows stay
+    /// dirty, and the pull is unaffected.
+    case tierRefused
+    /// `429`: rate- or quota-limited for this period, with the server's
+    /// `Retry-After` in seconds when it sent one. A wait, not a failure.
+    case rateLimited(retryAfterSeconds: Int?)
+    /// Any other 4xx: a gate this client version does not know about. Kept
+    /// DISTINCT from `invalidResponse` on purpose - "the body could not be
+    /// decoded" is a lie about a response that decoded perfectly well and simply
+    /// said no, and a generic failure message is what JOURNEYS F7 forbids.
+    case refused(status: Int)
 }

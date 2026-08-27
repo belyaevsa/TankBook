@@ -53,14 +53,27 @@ public struct RemoteSyncTransport: SyncTransport {
             throw SyncServerError.transportUnavailable
         }
         switch response.status {
+        case 200...299:
+            return response
         case 410:
             throw SyncServerError.deviceRevoked
         case 426:
             throw SyncServerError.upgradeRequired
-        case 200...299:
-            return response
+        case 402:
+            throw SyncServerError.tierRefused
+        case 429:
+            throw SyncServerError.rateLimited(
+                retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init)
+            )
+        case 400...499:
+            // An unknown gate from a server newer than this client. Reported as
+            // what it is - a refusal carrying its status - never as "could not
+            // decode" and never as a generic failure (JOURNEYS F7).
+            throw SyncServerError.refused(status: response.status)
         default:
-            throw SyncServerError.invalidResponse
+            // 5xx and anything non-HTTP-shaped: the server is having a problem,
+            // which is S7 - rows return to dirty and the cycle retries.
+            throw SyncServerError.transportUnavailable
         }
     }
 

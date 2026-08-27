@@ -11,6 +11,13 @@ public struct SyncOutcome: Equatable, Sendable {
     public var deviceRevoked = false
     public var upgradeRequired = false
     public var transportUnavailable = false
+    /// A `402`/unknown-4xx refusal from a server newer than this client, or a
+    /// `429` wait. Distinct from `transportUnavailable` because the honest next
+    /// step differs: an outage resolves itself, a refusal needs a newer app
+    /// (P6.11). `retryAfterSeconds` carries the server's own hint when it sent
+    /// one. Nothing is lost either way - the rows stay dirty (S7).
+    public var refusedByServer: SyncServerError?
+    public var retryAfterSeconds: Int?
 
     public init() {}
 }
@@ -81,6 +88,16 @@ public struct SyncEngine {
             affected.formUnion(summary.touched)
         } catch SyncServerError.upgradeRequired {
             outcome.upgradeRequired = true
+            try? repository.recoverStuckPushes()
+        } catch SyncServerError.tierRefused {
+            outcome.refusedByServer = .tierRefused
+            try? repository.recoverStuckPushes()
+        } catch SyncServerError.rateLimited(let retryAfter) {
+            outcome.refusedByServer = .rateLimited(retryAfterSeconds: retryAfter)
+            outcome.retryAfterSeconds = retryAfter
+            try? repository.recoverStuckPushes()
+        } catch SyncServerError.refused(let status) {
+            outcome.refusedByServer = .refused(status: status)
             try? repository.recoverStuckPushes()
         } catch {
             outcome.transportUnavailable = true
