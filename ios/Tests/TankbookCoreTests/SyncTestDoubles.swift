@@ -151,6 +151,11 @@ final class InMemoryBlobStore: BlobStore, @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         store[sha256] = data
     }
+
+    func remove(sha256: String) throws {
+        lock.lock(); defer { lock.unlock() }
+        store.removeValue(forKey: sha256)
+    }
 }
 
 /// A scripted, recording `SyncTransport`. The lock makes it a valid `Sendable`
