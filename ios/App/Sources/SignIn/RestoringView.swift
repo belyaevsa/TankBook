@@ -101,13 +101,15 @@ struct RestoringView: View {
     }
 
     private var carsLine: Text {
-        Text(L10n.carCount(snapshot.carCount)).bold()
-            + Text(verbatim: " – \(snapshot.carNames.joined(separator: ", "))")
+        Text(L10n.restoreCarsLine(carCount: snapshot.carCount,
+                                  names: snapshot.carNames.joined(separator: ", ")))
     }
 
     private var entriesLine: Text {
-        Text(L10n.entryCount(snapshot.entryCount)).bold()
-            + Text(verbatim: " · \(dateRange)")
+        Text(L10n.restoreEntriesLine(
+            entryCount: snapshot.entryCount,
+            startMonthYear: monthYear(snapshot.earliestEntry),
+            endMonthYear: monthYear(snapshot.latestEntry)))
     }
 
     private var lastOdometerLine: Text {
@@ -139,11 +141,9 @@ struct RestoringView: View {
         }
     }
 
-    private var dateRange: String {
-        let formatter = Self.monthYearFormatter
-        let start = snapshot.earliestEntry.map(formatter.string) ?? "–"
-        let end = snapshot.latestEntry.map(formatter.string) ?? "–"
-        return "\(start) – \(end)"
+    private func monthYear(_ date: Date?) -> String {
+        guard let date else { return "–" }
+        return Self.monthYearFormatter.string(from: date)
     }
 
     private var photosCard: some View {

@@ -58,8 +58,9 @@ enum SyncService {
 /// Supplies the current access token to the sync transport, read from the
 /// Keychain exactly as the auth service does (docs/SECURITY.md -> the token is
 /// bound to the host, not the session). The host allowlist is enforced by
-/// `TankbookHTTPClient` before this is consulted.
-private struct KeychainTokenProvider: AuthorizationTokenProvider {
+/// `TankbookHTTPClient` before this is consulted. Internal (not private) so the
+/// sign-in restore provider (P4.7) reuses the same token path.
+struct KeychainTokenProvider: AuthorizationTokenProvider {
     let sessionStore: any SessionStore
 
     func token() -> String? {

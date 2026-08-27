@@ -119,4 +119,80 @@ final class SignInUITests: XCTestCase {
         save.tap()
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
     }
+
+    // MARK: - The restoring screen's verification stats (docs/JOURNEYS.md J11)
+
+    /// The Restoring screen shows the verification stats - numbers, not a
+    /// checkmark - composed as full localised phrases (RU plural rules for the
+    /// count, never concatenation).
+    func testRestoringScreenShowsVerificationStats() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestore"])
+
+        XCTAssertTrue(app.buttons["restoringOpenGarageButton"].waitForExistence(timeout: 10))
+
+        // The two full phrases: cars and entries, each one localised string with
+        // the plural count (RU plural rules), never concatenation.
+        let cars = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "2 cars – Volvo V60, ID.4"))
+        XCTAssertTrue(cars.firstMatch.exists, "the cars line must name the count and the cars")
+
+        let entries = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "428 entries"))
+        XCTAssertTrue(entries.firstMatch.exists, "the entries line must show the literal entry count")
+
+        // The escape and the finish affordance are both present.
+        XCTAssertTrue(app.buttons["restoringSignOutButton"].exists)
+    }
+
+    // MARK: - The empty-restore recovery entry point (docs/JOURNEYS.md F7)
+    /// An empty restore must reach the recovery entry point BEFORE any "add a
+    /// car" affordance is usable - the whole point is preventing the user from
+    /// typing first and creating a merge conflict when the backup reappears.
+    func testEmptyRestoreShowsRecoveryBeforeAddCarIsUsable() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestoreEmpty"])
+
+        // The recovery entry point is shown...
+        XCTAssertTrue(app.staticTexts["emptyRestoreRecoveryPrompt"].waitForExistence(timeout: 10),
+                      "an empty restore must show the 'Expecting your data?' recovery entry point")
+        XCTAssertTrue(app.staticTexts["Expecting your data?"].exists)
+        XCTAssertTrue(app.buttons["emptyRestoreStartFreshButton"].exists)
+
+        // ...BEFORE the add-a-car affordance is usable: it sits behind the sheet,
+        // so it must not be hittable while the recovery screen is up.
+        XCTAssertFalse(app.buttons["homeAddFirstCarButton"].isHittable,
+                       "the add-a-car affordance must not be usable before the empty-restore decision")
+
+        // "Start fresh" is the explicit acceptance of the empty garage - only
+        // then does add-a-car become reachable.
+        app.buttons["emptyRestoreStartFreshButton"].tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["homeAddFirstCarButton"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["homeAddFirstCarButton"].isHittable,
+                      "add-a-car becomes usable only after the user accepts the empty garage")
+    }
+
+    // MARK: - The backend-down state (docs/JOURNEYS.md F7)
+
+    /// A down backend says exactly that, with its next step and a reachable
+    /// import path - never a generic "something went wrong".
+    func testBackendDownShowsF7CopyAndReachableImportPath() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestoreUnreachable"])
+
+        // The F7 copy, verbatim (docs/ERRORS.md -> Restoring), not a generic error.
+        // Asserted by identifier + label: the literal exceeds XCUITest's 128-char
+        // identifier ceiling, so query by the element's id and check its text.
+        let message = app.staticTexts["restoreUnreachableMessage"]
+        XCTAssertTrue(message.waitForExistence(timeout: 10))
+        let f7Copy = "Sync service unreachable – your data is safe on the server. "
+            + "You can import an export file, or it will all arrive when the service is back."
+        XCTAssertEqual(message.label, f7Copy)
+
+        // The import path is reachable from it, and the retry is one tap.
+        XCTAssertTrue(app.buttons["restoreUnreachableImportRow"].exists)
+        XCTAssertTrue(app.buttons["restoreUnreachableImportRow"].isHittable)
+        XCTAssertTrue(app.buttons["restoreUnreachableRetryButton"].exists)
+
+        // No add-a-car path is offered while the backend is down either.
+        XCTAssertFalse(app.buttons["homeAddFirstCarButton"].isHittable)
+    }
 }

@@ -2,20 +2,27 @@ import Foundation
 import TankbookCore
 
 /// DEBUG/test doubles and launch-argument scenarios for the sign-in flow, so
-/// the Sign in and Restoring screens render (and the wrong-provider flow runs)
-/// without a real Apple ID, a Google SDK, or a reachable backend. The production
-/// path uses `AppIDTokenProvider` + `RemoteAuthService`; these are swapped in
-/// only under the scenario arguments below.
+/// the Sign in, Restoring, empty-restore and server-down screens render (and the
+/// wrong-provider flow runs) without a real Apple ID, a Google SDK, or a
+/// reachable backend. The production path uses `AppIDTokenProvider` +
+/// `RemoteAuthService` + the real sync restore; these are swapped in only under
+/// the scenario arguments below.
 enum SignInTestSeed {
 
     enum Scenario {
         case none
         case wrongProvider
         case restore
+        case restoreEmpty
+        case restoreUnreachable
     }
 
     static func scenario(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Scenario {
+        // The specific flags before the general one: "-signInRestore" is a
+        // prefix of "-signInRestoreEmpty"/"-signInRestoreUnreachable".
         if arguments.contains("-signInWrongProvider") { return .wrongProvider }
+        if arguments.contains("-signInRestoreEmpty") { return .restoreEmpty }
+        if arguments.contains("-signInRestoreUnreachable") { return .restoreUnreachable }
         if arguments.contains("-signInRestore") { return .restore }
         return .none
     }
@@ -74,17 +81,36 @@ enum SignInTestSeed {
         func signOut(_ session: AuthSession) async throws {}
     }
 
-    /// Returns a fixed snapshot, or nil (an empty account - the wrong-provider
-    /// signal).
-    struct StubRestoreStats: RestoreStatsProviding {
-        let snapshot: RestoreSnapshot?
+    /// Returns a fixed restore outcome, or the artboard restore under
+    /// `-signInRestore`.
+    struct StubRestoreProvider: RestoreProviding {
+        let outcome: RestoreOutcome
 
-        func snapshot(accountId: String) async throws -> RestoreSnapshot? { snapshot }
+        func restore(accountId: String) async -> RestoreOutcome { outcome }
     }
 
     static func stubAuthService() -> any AuthService { StubAuthService() }
 
-    static func stubRestoreStats() -> any RestoreStatsProviding {
-        StubRestoreStats(snapshot: scenario() == .restore ? restoreSnapshot() : nil)
+    static func stubRestoreProvider() -> any RestoreProviding {
+        let outcome: RestoreOutcome
+        switch scenario() {
+        case .restore:
+            let snapshot = restoreSnapshot()
+            outcome = .restored(RestoreStats(
+                carCount: snapshot.carCount,
+                carNames: snapshot.carNames,
+                entryCount: snapshot.entryCount,
+                earliestEntry: snapshot.earliestEntry,
+                latestEntry: snapshot.latestEntry,
+                lastOdometerKm: snapshot.lastOdometerKm,
+                lastOdometerDaysAgo: snapshot.lastOdometerDaysAgo))
+        case .restoreEmpty:
+            outcome = .empty
+        case .restoreUnreachable:
+            outcome = .unreachable
+        case .none, .wrongProvider:
+            outcome = .empty
+        }
+        return StubRestoreProvider(outcome: outcome)
     }
 }

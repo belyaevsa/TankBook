@@ -238,6 +238,17 @@ capture P4.4-sign-in-ru           ru -presentScreen signIn
 capture P4.4-wrong-provider       en -presentScreen signIn -signInWrongProvider
 capture P4.4-wrong-provider-ru    ru -presentScreen signIn -signInWrongProvider
 
+# P4.7: restore end-to-end - the Restoring screen (verification stats before
+# finishing), the empty-restore recovery entry point (F7's merge-conflict
+# prevention), and the backend-down state (the honest F7 copy with its next
+# step, never a generic error).
+capture P4.7-restoring            en -presentScreen signIn -signInRestore
+capture P4.7-restoring-ru         ru -presentScreen signIn -signInRestore
+capture P4.7-restore-empty        en -presentScreen signIn -signInRestoreEmpty
+capture P4.7-restore-empty-ru     ru -presentScreen signIn -signInRestoreEmpty
+capture P4.7-restore-unreachable  en -presentScreen signIn -signInRestoreUnreachable
+capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnreachable
+
 # P4.9b: the Settings sync surface, six states (guest, synced, pending, flagged,
 # revoked, quota). The status row is reassurance and never turns amber with age;
 # the flagged row is a derived count and a link only (hard rule 8). RU is where

@@ -605,7 +605,7 @@ extension TankbookRepository {
             .fetchAll(db)
     }
 
-    private func attachServiceItems(_ rows: [ServiceRecordRow], in db: Database) throws -> [ServiceRecord] {
+    func attachServiceItems(_ rows: [ServiceRecordRow], in db: Database) throws -> [ServiceRecord] {
         let ids = rows.map { $0.service.id.uuidString }
         guard !ids.isEmpty else { return rows.map(\.service) }
         let itemRows = try ServiceItemRow
