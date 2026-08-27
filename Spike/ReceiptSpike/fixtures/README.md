@@ -12,7 +12,7 @@ fixtures/
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
               23 displays, 6 makes, EE/RU/KZ. pump-016/017 are idle pumps - negative fixtures
-              pump-021/022/023 are sun-glared and UNREADABLE: all expected fields empty, 0 scored
+              pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text

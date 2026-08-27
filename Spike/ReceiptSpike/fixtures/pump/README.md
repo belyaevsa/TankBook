@@ -405,26 +405,37 @@ is the finding.
   €/L 1,859`, a round-money preset fill (10.76 x 1.859 = 20.003). Self-consistent
   without needing a second document.
 
-**Three are sun-glared Wayne/Dresser displays and their values could not be read
-at all:**
+**Three are sun-glared Wayne/Dresser displays, and they are the reason this
+README carries a correction:**
 
-`pump-021-wayne-circlek-sun-glare-ee.jpg`, `pump-022-wayne-circlek-pump1-glare-ee.jpg`
-and `pump-023-wayne-circlek-glare-ee.jpg` all carry legible **grade price panels**
-(1,744 / 1,794 / 1,804 / 1,854) beside a **SUMMA/LIITRIT area washed out by
-reflected sky**. Every one of their `expected.csv` fields is **empty on purpose**.
-They were cropped and enlarged to 5x before that call was made; on `pump-022` the
-totals resolve to something like `52,4?` over `30,0?`, and no combination of the
-four printed prices makes those two numbers multiply out - so any value written
-down would have been a guess, and a guess in `expected.csv` becomes a permanent
-lie the ratchet measures from.
+`pump-021-wayne-circlek-sun-glare-ee.jpg` (15,00 € / 8,09 L),
+`pump-022-wayne-circlek-pump1-glare-ee.jpg` (52,49 € / 30,01 L) and
+`pump-023-wayne-circlek-glare-ee.jpg` (51,71 € / 29,65 L).
 
-**They therefore add 0 scored fields.** That is not a defect: they are negative
-fixtures, in the same family as the two idle pumps, and they document the single
-most common real-world pump-capture failure - a phone held up to a reflective LCD
-in direct sun. A corpus that only holds the photos that worked measures the wrong
-thing.
+**They were first committed with every field empty**, because the orchestrator
+cropped and enlarged them to 5x and still could not read the SUMMA/LIITRIT area
+under the reflected sky. The person who took the photos read them off the pump
+and supplied the values, which is the only reason this class gained its second
+hit ever. **The lesson is not "try harder at 5x"** - it is that a photo can be
+past the point where any amount of zooming recovers it, while the human standing
+at the pump has no difficulty at all. That is precisely the situation hard rule
+15 exists for: the capture is a head start, and the user is the authority.
 
-The class is now **1/55 across 23 devices, 1.8%** - down from 2.2%, because six
-devices joined and none of them resolved a field. **The ratio getting worse as the
-corpus grows is the honest signal**, and it is the clearest statement yet of why
-P2.7 ships off: the gate is 95%.
+The first attempt also reasoned wrongly about the arithmetic. `pump-022`'s
+52,49 / 30,01 works out to **1,749 €/L**, which matches none of the four prices
+printed beside it, and that was briefly taken as evidence of a misread digit.
+It is not, because **those four panels are a grade price BOARD** - badged 95,
+95 miles+, 98 and D - **not the transaction's unit price.** `receipt-038` settles
+it independently: that fill was charged **1,754 €/L**, a number that appears
+nowhere on the board either. So on this forecourt the customer's price routinely
+differs from the posted one.
+
+**Hence their `unitPrice` column is empty and their liters/total are not.** A
+display of this layout does not print a transaction unit price at all, and a
+parser that scrapes "the price" off one of these four panels has a one-in-four
+chance of being right. That is a concrete extraction hazard, recorded here
+because no other fixture in the corpus shows it.
+
+The class is now **2/61 across 23 devices, 3.3%** - the first movement in
+`PumpPhotoGate.measuredHits` since it was written. Two hits in sixty-one fields
+is still noise against a **95%** gate, which is why P2.7 ships off.

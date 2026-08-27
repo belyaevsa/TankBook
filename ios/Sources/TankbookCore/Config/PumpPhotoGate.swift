@@ -19,21 +19,21 @@ import Foundation
 /// constant cannot drift from reality without a failing test.
 public enum PumpPhotoGate {
     /// Pump fields resolved by the parser at build time. 1 today - the pump
-    /// corpus scores 1 of 55 fields (1.8%) across twenty-three pumps from six
+    /// corpus scores 2 of 61 fields (3.3%) across twenty-three pumps from six
     /// manufacturers (Spike/ReceiptSpike/fixtures/pump/README.md). Seven
     /// Estonian Circle K displays were added 2026-08-26; they moved the score
     /// from 0/30 to 1/46, which is noise, not progress. Six more joined
-    /// 2026-08-27 (pump-018 through pump-023) and resolved nothing between
-    /// them, so 1/46 became 1/55 - the ratio is getting WORSE as the corpus
-    /// grows, which is the honest signal. The gate is 95%.
-    public static let measuredHits: Int = 1
+    /// 2026-08-27 (pump-018 through pump-023) and brought the SECOND hit this
+    /// class has ever recorded. Two hits in sixty-one fields is still noise
+    /// against a 95% gate - it is 3.3%.
+    public static let measuredHits: Int = 2
 
-    /// Pump fields scored at build time. Not 23 x 3: thirteen fields are blank
-    /// in expected.csv because the photo does not legibly carry them (glare on
-    /// a total, the two idle pumps have no meaningful unit price, and
-    /// pump-021/022/023 are sun-glared Wayne displays whose values could not be
-    /// read at all), and a blank is skipped rather than counted as a miss.
-    public static let measuredTotal: Int = 55
+    /// Pump fields scored at build time. Not 23 x 3: seven fields are blank in
+    /// expected.csv because the photo does not legibly carry them (glare on a
+    /// total, the two idle pumps have no meaningful unit price, and
+    /// pump-021/022/023 show a grade price BOARD rather than the transaction's
+    /// unit price), and a blank is skipped rather than counted as a miss.
+    public static let measuredTotal: Int = 61
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95
