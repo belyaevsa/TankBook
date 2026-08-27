@@ -322,6 +322,65 @@ extension TankbookRepository {
     }
 }
 
+// MARK: - The record stream (restore / backup snapshot)
+
+extension TankbookRepository {
+    /// Every record across the synced tables - live and tombstoned - as the sync
+    /// engine reads them: the record stream a backup snapshot is (docs/SYNC.md:
+    /// "backups are a snapshot of records at an SCN"). Device-local sync
+    /// bookkeeping (`syncState`/`syncScn`) is absent by construction, and the
+    /// payloads are re-encoded from the decoded entity so the in-transit
+    /// `fieldVersions` key never leaks in - two devices hold the same data iff
+    /// their records are equal here (the restore hash-equals-origin check).
+    public func allRecords() throws -> [SyncRecord] {
+        try database.read { db in
+            var records: [SyncRecord] = []
+            records += try fetchAllRecords(VehicleRow.self, entityType: Vehicle.entityType, in: db) { $0.vehicle }
+            records += try fetchAllRecords(FillUpRow.self, entityType: FillUp.entityType, in: db) { $0.fillUp }
+            records += try fetchAllRecords(ChargeSessionRow.self, entityType: ChargeSession.entityType, in: db) { $0.chargeSession }
+            records += try allServiceRecords(in: db)
+            records += try fetchAllRecords(ExpenseRow.self, entityType: Expense.entityType, in: db) { $0.expense }
+            records += try fetchAllRecords(ReminderRow.self, entityType: Reminder.entityType, in: db) { $0.reminder }
+            records += try fetchAllRecords(StationRow.self, entityType: Station.entityType, in: db) { $0.station }
+            records += try fetchAllRecords(TariffRow.self, entityType: Tariff.entityType, in: db) { $0.tariff }
+            records += try fetchAllRecords(TireSetRow.self, entityType: TireSet.entityType, in: db) { $0.tireSet }
+            records += try fetchAllRecords(AttachmentRow.self, entityType: Attachment.entityType, in: db) { $0.attachment }
+            records += try fetchAllRecords(PreferencesRow.self, entityType: Preferences.entityType, in: db) { $0.preferences }
+            return records
+        }
+    }
+
+    private func fetchAllRecords<R: FetchableRecord & TableRecord, E: SyncedEntity>(
+        _ type: R.Type, entityType: String, in db: Database, entity: (R) -> E
+    ) throws -> [SyncRecord] {
+        try R.fetchAll(db).map { row in
+            let value = entity(row)
+            return SyncRecord(
+                id: value.id,
+                entityType: entityType,
+                schemaVersion: PayloadCodec.currentSchemaVersion,
+                payload: try PayloadCodec.encode(value).payload,
+                clientUpdatedAt: value.updatedAt,
+                deleted: value.deletedAt != nil
+            )
+        }
+    }
+
+    private func allServiceRecords(in db: Database) throws -> [SyncRecord] {
+        let services = try attachServiceItems(ServiceRecordRow.fetchAll(db), in: db)
+        return services.map { service in
+            SyncRecord(
+                id: service.id,
+                entityType: ServiceRecord.entityType,
+                schemaVersion: PayloadCodec.currentSchemaVersion,
+                payload: (try? PayloadCodec.encode(service).payload) ?? .object([:]),
+                clientUpdatedAt: service.updatedAt,
+                deleted: service.deletedAt != nil
+            )
+        }
+    }
+}
+
 // MARK: - Domain re-validation after merge (S3)
 
 extension TankbookRepository {

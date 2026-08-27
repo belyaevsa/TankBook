@@ -333,9 +333,11 @@ func makeSyncEngine(repository: TankbookRepository, transport: any SyncTransport
                     cursor: SyncCursorStore = InMemorySyncCursorStore(),
                     memory: SyncPayloadMemory = InMemorySyncPayloadMemory(),
                     maxConflictRetries: Int = 3,
+                    pullPageLimit: Int = 500,
                     blobGate: (any BlobPushGate)? = nil) -> SyncEngine {
     SyncEngine(repository: repository, transport: transport, cursorStore: cursor,
                payloadMemory: memory, maxConflictRetries: maxConflictRetries,
+               pullPageLimit: pullPageLimit,
                blobGate: blobGate)
 }
 

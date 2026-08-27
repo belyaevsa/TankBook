@@ -256,6 +256,23 @@ enum L10n {
         String(format: localize("downloading · %@"), "\(percent)%")
     }
 
+    // MARK: - Restore states (P4.7)
+
+    /// "428 entries · Sep 2019 – Aug 2026" - the Restoring screen's entries line.
+    /// One full localised phrase per language, never concatenation: the count
+    /// (real RU plural rules) and the two month-year strings are runtime data
+    /// sharing one sentence (the trap at the top of this file).
+    static func restoreEntriesLine(entryCount: Int, startMonthYear: String, endMonthYear: String) -> String {
+        String(localized: "\(entryCount) entries · \(startMonthYear) – \(endMonthYear)")
+    }
+
+    /// "2 cars – Volvo V60, ID.4" - the Restoring screen's cars line. One full
+    /// localised phrase (RU plural rules); the names are user data sharing the
+    /// sentence, never concatenated copy.
+    static func restoreCarsLine(carCount: Int, names: String) -> String {
+        String(localized: "\(carCount) cars – \(names)")
+    }
+
     // MARK: - Settings sync surface (P4.9b)
 
     /// The account card's identity line: the display email when the provider
