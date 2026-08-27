@@ -117,6 +117,74 @@ final class ImportUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["importTargetCarName"].exists)
     }
 
+    // MARK: - One header, not two (P6.15a)
+
+    /// The artboard draws ONE header row ("Back | Review import | Cancel"); the
+    /// system nav bar must be hidden, or a second "Import" title stacks above
+    /// it. Sibling tabs keep their own hidden root bars in the tree, so count
+    /// THIS screen's bar - zero of them - and check the wizard's own header
+    /// title is the one that renders.
+    func testPreviewHasExactlyOneHeader() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubParse", "mfm", "-seedImportPreview"])
+        XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.navigationBars.matching(NSPredicate(format: "identifier == %@", "Import")).count, 0,
+                       "the system 'Import' bar must not stack above the preview's own header")
+        XCTAssertEqual(app.staticTexts.matching(NSPredicate(format: "label == %@", "Review import")).count, 1,
+                       "the wizard's own header title renders once, as its own single header")
+        XCTAssertTrue(app.buttons["importHeaderBack"].exists,
+                      "the wizard's own Back affordance is present")
+    }
+
+    // MARK: - An unreadable row shows the original line, never our JSON (P6.15c)
+
+    /// F6b says an unparseable row shows its raw line - the line the USER's file
+    /// contained, not our wire envelope. The review seed renders a genuinely
+    /// broken row (row 6: 6/31/2026): the screen must show that CSV line and no
+    /// `entityType` or `{` anywhere.
+    func testUnreadableRowShowsTheOriginalLineNotOurJSON() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubParse", "review", "-seedImportReview"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+        let labels = app.staticTexts.allElementsBoundByIndex.map(\.label)
+        XCTAssertFalse(labels.contains { $0.contains("entityType") },
+                       "an unreadable row must never render our wire envelope")
+        XCTAssertFalse(labels.contains { $0.contains("{") },
+                       "an unreadable row must never render serialized JSON")
+        let originalLine = #"6/31/2026;40;117000;72.00;USD;2;F;100;Shell;"Volvo""#
+        XCTAssertTrue(app.staticTexts[originalLine].exists,
+                      "the original delimited source line renders for the unparsed row")
+    }
+
+    // MARK: - RU review actions stack, not hyphenate (P6.15b)
+
+    /// RU's 20-30% expansion makes «Исправить / Импортировать как есть /
+    /// Пропустить» wider than the card, so the compact one-line row is rejected
+    /// and the actions stack onto separate lines. This asserts the RENDERED
+    /// frames differ vertically - a real layout statement, not the vacuous "the
+    /// label text is unhyphenated" check that reads the string the view was
+    /// given. Mid-word hyphenation itself is pixels, so the RU screenshot is the
+    /// other half of this guarantee.
+    func testReviewActionsStackInRussianInsteadOfSharingOneLine() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubParse", "review", "-seedImportReview"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+        let row = app.otherElements["importReviewRow-3"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "the cross-check row is on screen")
+        let fix = row.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Исправить")).firstMatch
+        let importAsIs = row.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Импортировать как есть")).firstMatch
+        let leaveOut = row.descendants(matching: .any)
+            .matching(NSPredicate(format: "label == %@", "Пропустить")).firstMatch
+        XCTAssertTrue(fix.exists && importAsIs.exists && leaveOut.exists,
+                      "all three RU actions are present")
+        let lines = Set([fix.frame.minY, importAsIs.frame.minY, leaveOut.frame.minY])
+        XCTAssertTrue(lines.count >= 2,
+                      "RU review actions must stack onto separate lines, not share one hyphenating row")
+    }
+
     // MARK: - Per-car export (P5.5b export lane)
 
     /// The Garage's car screen offers the per-car export row (the archive

@@ -32,11 +32,13 @@ enum ImportTestSeed {
         model.reloadVehicles()
         if arguments.contains("-seedImportPreview") {
             model.installSeededParse(resourceName: "import-parse-mfm",
-                                     fileName: "MyFuelManager_2026-08.csv")
+                                     fileName: "MyFuelManager_2026-08.csv",
+                                     rawFileResource: "import-mfm-sample")
             model.showPreview()
         } else if arguments.contains("-seedImportReview") {
             model.installSeededParse(resourceName: "import-parse-review",
-                                     fileName: "MyFuelManager_2026-08.csv")
+                                     fileName: "MyFuelManager_2026-08.csv",
+                                     rawFileResource: "import-mfm-review")
             model.showReview()
         } else if arguments.contains("-seedImportParse422") {
             // Drive the real parse path against the stub transport's 422, so

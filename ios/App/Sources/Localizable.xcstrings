@@ -9786,6 +9786,23 @@
         }
       }
     },
+    "The original line isn't available.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original line isn't available."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходная строка недоступна."
+          }
+        }
+      }
+    },
     "Import %lld fill-ups": {
       "extractionState": "manual",
       "localizations": {

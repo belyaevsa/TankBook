@@ -158,6 +158,17 @@ private struct ImportReviewRowView: View {
                     .padding(9)
                     .background(Theme.Palette.midnight)
                     .clipShape(RoundedRectangle(cornerRadius: 9))
+            } else {
+                // The original line is genuinely absent (the client and the
+                // server disagreed on row numbering, or the file is gone). Say
+                // so in words - never a serialized candidate (P6.15c).
+                Text(L10n.originalLineUnavailable)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(9)
+                    .background(Theme.Palette.midnight)
+                    .clipShape(RoundedRectangle(cornerRadius: 9))
             }
         default:
             if let fill = row.fill {
@@ -228,21 +239,17 @@ private struct ImportReviewRowView: View {
             .padding(.bottom, 2)
     }
 
-    // MARK: Actions
+    // MARK: - Actions
 
+    /// The row's two next steps (hard rule 7) plus the "Original row" reveal.
+    /// `ViewThatFits` keeps the compact one-line row where it fits (EN, short RU)
+    /// and stacks the actions when they do not - RU's 20-30% expansion breaks
+    /// «Исправить / Импортировать как есть / Пропустить» into mid-word
+    /// hyphenation on one line (P6.15b), and a stacked action is still a named
+    /// next step where a clipped one is not.
     private var actions: some View {
-        HStack(spacing: 16) {
-            primaryAction
-            if case .crossCheckMismatch = row.kind {
-                Text("Import as-is")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
-            }
-            Text("Leave out")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isSkipped ? Theme.Palette.headlight : Theme.Palette.inkSoft)
-                .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+        HStack(alignment: .firstTextBaseline, spacing: 16) {
+            toggleActions
             Spacer(minLength: 0)
             Text("Original row")
                 .font(.caption)
@@ -250,6 +257,45 @@ private struct ImportReviewRowView: View {
                 .onTapGesture { showingRawLine.toggle() }
         }
         .padding(.top, 10)
+    }
+
+    /// The deciding actions (primary + "Import as-is" + "Leave out"): one line
+    /// when it fits, stacked when it does not. The compact candidate measures at
+    /// its ideal width (`.fixedSize`) so a too-wide row is genuinely rejected
+    /// instead of being compressed into hyphenation.
+    @ViewBuilder
+    private var toggleActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 16) {
+                primaryAction
+                if case .crossCheckMismatch = row.kind {
+                    importAsIs
+                }
+                leaveOut
+            }
+            .fixedSize(horizontal: true, vertical: false)
+            VStack(alignment: .leading, spacing: 8) {
+                primaryAction
+                if case .crossCheckMismatch = row.kind {
+                    importAsIs
+                }
+                leaveOut
+            }
+        }
+    }
+
+    private var importAsIs: some View {
+        Text("Import as-is")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+    }
+
+    private var leaveOut: some View {
+        Text("Leave out")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isSkipped ? Theme.Palette.headlight : Theme.Palette.inkSoft)
+            .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
     }
 
     @ViewBuilder
@@ -337,7 +383,9 @@ private struct ImportReviewRowView: View {
         if let raw = row.rawLine {
             Text(raw)
         } else {
-            Text("–")
+            // Never a serialized candidate here either (P6.15c): the line is
+            // absent, so say so in words.
+            Text(L10n.originalLineUnavailable)
         }
     }
 }
