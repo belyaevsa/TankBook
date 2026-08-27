@@ -44,7 +44,7 @@ struct DigitRepairTests {
         // 15.89 x 1.884 = 29.94, not 30.02, and 15.89 x 1.889 = 30.02 exactly
         // (fixtures/pump/README.md). A glare fills the segment that turns a
         // seven-segment 9 into a 4, so the terminal digit is the repair target.
-        let repair = DigitRepair.apply(liters: 15.89, unitPrice: 1.884, total: 30.02, source: .pump)
+        let repair = DigitRepair.apply(liters: 15.89, unitPrice: dec("1.884"), total: dec("30.02"), source: .pump)
         guard let repair else {
             Issue.record("pump-015 did not repair")
             return
@@ -58,7 +58,7 @@ struct DigitRepairTests {
     func pump013RepairsItsPrice() {
         // pump-013: 7.34 x 1.774 = 13.02, where 7.34 x 1.779 = 13.06 reproduces
         // the displayed SUMMA. The 9-as-4 is at the price's last digit.
-        let repair = DigitRepair.apply(liters: 7.34, unitPrice: 1.774, total: 13.06, source: .pump)
+        let repair = DigitRepair.apply(liters: 7.34, unitPrice: dec("1.774"), total: dec("13.06"), source: .pump)
         guard let repair else {
             Issue.record("pump-013 did not repair")
             return
@@ -73,8 +73,8 @@ struct DigitRepairTests {
         let lines = pumpLines(volume: "15.89 L", price: "1.884", total: "30.02")
         let result = FuelExtractor().extract(lines: lines, source: .pump)
         #expect(result.liters == 15.89)
-        #expect(abs((result.unitPrice ?? 0) - 1.889) < 0.005)
-        #expect(result.total == 30.02)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.889")) < dec("0.005"))
+        #expect(result.total == dec("30.02"))
         #expect(result.digitRepair != nil)
     }
 
@@ -83,8 +83,8 @@ struct DigitRepairTests {
         let lines = pumpLines(volume: "7.34 L", price: "1.774", total: "13.06")
         let result = FuelExtractor().extract(lines: lines, source: .pump)
         #expect(result.liters == 7.34)
-        #expect(abs((result.unitPrice ?? 0) - 1.779) < 0.005)
-        #expect(result.total == 13.06)
+        #expect(abs((result.unitPrice ?? 0) - dec("1.779")) < dec("0.005"))
+        #expect(result.total == dec("13.06"))
         #expect(result.digitRepair != nil)
     }
 
@@ -98,20 +98,20 @@ struct DigitRepairTests {
         //   1.70 x 1.10 = 1.87   (price 7->1, the same confusion on the price)
         // Each alone is a consistent triple - which is exactly why the document
         // does not determine the answer. The engine must return nil, not pick.
-        #expect(DigitRepair.apply(liters: 1.70, unitPrice: 1.70, total: 1.87, source: .pump) == nil)
+        #expect(DigitRepair.apply(liters: 1.70, unitPrice: dec("1.70"), total: dec("1.87"), source: .pump) == nil)
 
         // The proof that each candidate really does close: the engine repairs
         // nothing on the already-consistent results, because there is nothing
         // left to fix - yet it will not choose between them on the original.
-        #expect(DigitRepair.apply(liters: 1.10, unitPrice: 1.70, total: 1.87, source: .pump) == nil)
-        #expect(DigitRepair.apply(liters: 1.70, unitPrice: 1.10, total: 1.87, source: .pump) == nil)
+        #expect(DigitRepair.apply(liters: 1.10, unitPrice: dec("1.70"), total: dec("1.87"), source: .pump) == nil)
+        #expect(DigitRepair.apply(liters: 1.70, unitPrice: dec("1.10"), total: dec("1.87"), source: .pump) == nil)
     }
 
     @Test("a triple that already reproduces the total is never repaired")
     func alreadyConsistentTripleIsNotRepaired() {
         // 15.89 x 1.889 = 30.02: the product rounds to the total, so the
         // misread-segment hypothesis is unnecessary.
-        #expect(DigitRepair.apply(liters: 15.89, unitPrice: 1.889, total: 30.02, source: .pump) == nil)
+        #expect(DigitRepair.apply(liters: 15.89, unitPrice: dec("1.889"), total: dec("30.02"), source: .pump) == nil)
     }
 
     @Test("pump-010's preset-amount rounding is never 'corrected'")
@@ -122,7 +122,7 @@ struct DigitRepairTests {
         // displayed 13.17 and 1000.00, and the cross-check tolerance absorbs
         // the 0.26. Digit repair must NOT invent a correction here: no single
         // substitution reproduces the total exactly, so the engine abstains.
-        #expect(DigitRepair.apply(liters: 13.17, unitPrice: 75.95, total: 1000.00, source: .pump) == nil)
+        #expect(DigitRepair.apply(liters: 13.17, unitPrice: dec("75.95"), total: dec("1000.00"), source: .pump) == nil)
     }
 
     // MARK: - Pump source only
@@ -132,9 +132,10 @@ struct DigitRepairTests {
         // The same numbers that repair under .pump are untouched under .receipt:
         // thermal print has no segment topology, so a repair there would be a
         // fabricated number with no physical story behind it.
-        #expect(DigitRepair.apply(liters: 15.89, unitPrice: 1.884, total: 30.02, source: .receipt) == nil)
-        #expect(DigitRepair.apply(liters: 15.89, unitPrice: 1.884, total: 30.02, source: .fiscal) == nil)
-        #expect(DigitRepair.apply(liters: 15.89, unitPrice: 1.884, total: 30.02, source: .screenshot) == nil)
+        #expect(DigitRepair.apply(liters: 15.89, unitPrice: dec("1.884"), total: dec("30.02"), source: .receipt) == nil)
+        #expect(DigitRepair.apply(liters: 15.89, unitPrice: dec("1.884"), total: dec("30.02"), source: .fiscal) == nil)
+        #expect(DigitRepair.apply(liters: 15.89, unitPrice: dec("1.884"),
+                                  total: dec("30.02"), source: .screenshot) == nil)
     }
 
     @Test("a receipt that would repair under pump keeps its read value through the extractor")
@@ -146,8 +147,8 @@ struct DigitRepairTests {
         let lines = ["SUMMA", "30.02", "15.89 L x 1.884"]
         let result = FuelExtractor().extract(textLines: lines) // source defaults to .receipt
         #expect(result.liters == 15.89)
-        #expect(result.unitPrice == 1.884, "a receipt is never repaired - the read price stands")
-        #expect(result.total == 30.02)
+        #expect(result.unitPrice == dec("1.884"), "a receipt is never repaired - the read price stands")
+        #expect(result.total == dec("30.02"))
         #expect(result.digitRepair == nil)
     }
 
@@ -175,8 +176,7 @@ struct DigitRepairTests {
         let recomputed = ExtractionCrossCheck.evaluate(
             liters: result.liters, unitPrice: result.unitPrice, total: result.total, lines: []
         )
-        #expect(recomputed == .lock)
-    }
+        #expect(recomputed == .lock)    }
 
     // MARK: - Missing numbers and Codable
 
@@ -190,7 +190,8 @@ struct DigitRepairTests {
     @Test("the repair marker survives a Codable round-trip")
     func repairMarkerSurvivesCodable() throws {
         let repair = DigitRepair.Result(operand: .unitPrice, original: 1.884, repaired: 1.889)
-        let extraction = FuelExtraction(liters: 15.89, unitPrice: 1.889, total: 30.02, digitRepair: repair)
+        let extraction = FuelExtraction(liters: 15.89, unitPrice: dec("1.889"),
+                                        total: dec("30.02"), digitRepair: repair)
         let data = try JSONEncoder().encode(extraction)
         let decoded = try JSONDecoder().decode(FuelExtraction.self, from: data)
         #expect(decoded.digitRepair == repair)
@@ -201,7 +202,7 @@ struct DigitRepairTests {
         // An extraction carrying no repair (an "old" payload, as the encoder
         // omits a nil optional) decodes with digitRepair nil - adding the field
         // must not break decoding of existing FuelExtraction payloads.
-        let extraction = FuelExtraction(liters: 15.89, unitPrice: 1.884, total: 30.02)
+        let extraction = FuelExtraction(liters: 15.89, unitPrice: dec("1.884"), total: dec("30.02"))
         let data = try JSONEncoder().encode(extraction)
         let decoded = try JSONDecoder().decode(FuelExtraction.self, from: data)
         #expect(decoded.digitRepair == nil)

@@ -40,11 +40,13 @@ public enum ExtractionCrossCheck: Sendable, Equatable, Hashable, Codable {
 /// (`ConfirmConfidenceGate.crossCheckTolerance`) - forked nowhere, and not
 /// loosened to make a fixture pass: P4.12/P4.13 scored three engine arms at it.
 public extension ExtractionCrossCheck {
-    static func evaluate(liters: Double?, unitPrice: Double?, total: Double?,
+    static func evaluate(liters: Double?, unitPrice: Decimal?, total: Decimal?,
                          lines: [OCRLine]) -> ExtractionCrossCheck {
+        // The volume enters through the exact Decimal boundary; `unitPrice` and
+        // `total` are already exact Decimals (the extraction types money as
+        // Decimal since P2.2b), so they need no Double round trip here.
         guard let liters = ConfirmFormat.decimal(fromExtraction: liters, fractionDigits: 2),
-              let unitPrice = ConfirmFormat.decimal(fromExtraction: unitPrice, fractionDigits: 3),
-              let total = ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2) else {
+              let unitPrice, let total else {
             return .notApplicable
         }
         let product = liters * unitPrice

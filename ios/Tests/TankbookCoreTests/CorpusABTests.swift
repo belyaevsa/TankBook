@@ -118,8 +118,15 @@ struct CorpusABTests {
         #expect(abs(liters - 39.000) >= 0.005)
         #expect(abs(unitPrice - 70.44) >= 0.005)
 
-        let outcome = ExtractionCrossCheck.evaluate(liters: liters, unitPrice: unitPrice,
-                                                    total: total, lines: [])
+        // The evaluator takes exact Decimals for money (P2.2b); the committed
+        // sweep stores JSON numbers (Double), so they cross the boundary through
+        // the same ConfirmFormat path the extraction uses - identical Decimals,
+        // identical outcome.
+        let outcome = ExtractionCrossCheck.evaluate(
+            liters: liters,
+            unitPrice: ConfirmFormat.decimal(fromExtraction: unitPrice, fractionDigits: 3),
+            total: ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2),
+            lines: [])
         #expect(outcome == .lock, "the swap must pass the cross-check - that is the trap")
     }
 
@@ -143,8 +150,13 @@ struct CorpusABTests {
         #expect(abs(liters - 40.00 * 10) < 0.005)
         #expect(abs(total - 2038.00 * 10) < 0.005)
 
-        let outcome = ExtractionCrossCheck.evaluate(liters: liters, unitPrice: unitPrice,
-                                                    total: total, lines: [])
+        // Same boundary as receipt-035 above: committed sweep Double -> exact
+        // Decimal through ConfirmFormat, then the evaluator.
+        let outcome = ExtractionCrossCheck.evaluate(
+            liters: liters,
+            unitPrice: ConfirmFormat.decimal(fromExtraction: unitPrice, fractionDigits: 3),
+            total: ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2),
+            lines: [])
         #expect(outcome == .lock, "the shift must pass the cross-check - scale-invariant")
     }
 

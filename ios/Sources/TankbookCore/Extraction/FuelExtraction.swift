@@ -5,9 +5,17 @@ import Foundation
 /// uncertain field is returned nil so the user fills it, never a confident
 /// wrong value.
 public struct FuelExtraction: Sendable, Equatable, Codable {
+    /// Volume, always in litres. Deliberately `Double` - `docs/SCHEMA.md` types
+    /// `volumeL: Double` on purpose: it is a volume, not money. Only `unitPrice`
+    /// and `total` are money and therefore `Decimal` (P2.2b).
     public var liters: Double?
-    public var unitPrice: Double?
-    public var total: Double?
+    /// Money. `Decimal` because `docs/SCHEMA.md` types money as `Decimal`, and a
+    /// `Double` does not survive a binary-float round trip (`4201.68` is not
+    /// exactly representable). Born exact at the OCR boundary through
+    /// `ConfirmFormat.decimal(fromExtraction:)` - never `Decimal(Double)`.
+    public var unitPrice: Decimal?
+    /// Money. Same rationale as `unitPrice`.
+    public var total: Decimal?
     public var currency: CurrencyCode?
     public var fuelKind: FuelKind?
     public var date: String?
@@ -27,8 +35,8 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
 
     public init(
         liters: Double? = nil,
-        unitPrice: Double? = nil,
-        total: Double? = nil,
+        unitPrice: Decimal? = nil,
+        total: Decimal? = nil,
         currency: CurrencyCode? = nil,
         fuelKind: FuelKind? = nil,
         date: String? = nil,
@@ -47,10 +55,14 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
 
     /// The fuel-line amount when volume and price are both known, else nil.
     /// On a mixed receipt this is the amount the fill-up records (hard rule 4),
-    /// distinct from the receipt's grand total.
-    public var fuelLineAmount: Double? {
+    /// distinct from the receipt's grand total. Money, so `Decimal`: the volume
+    /// enters through the exact `ConfirmFormat` boundary (never `Decimal(Double)`)
+    /// and multiplies the already-exact `unitPrice`.
+    public var fuelLineAmount: Decimal? {
         guard let liters, let unitPrice else { return nil }
-        return liters * unitPrice
+        let volume = ConfirmFormat.decimal(
+            fromExtraction: liters, fractionDigits: ConfirmFormat.fractionDigits(for: .volume)) ?? 0
+        return volume * unitPrice
     }
 }
 

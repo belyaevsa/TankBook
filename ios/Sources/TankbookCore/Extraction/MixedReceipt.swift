@@ -113,20 +113,21 @@ public enum MixedReceiptDetector {
 
     // MARK: - Fuel line
 
-    /// The fuel line as an exact Decimal: liters x unit price, computed through
-    /// the same Decimal(string:) boundary as the Confirm sheet (P2.3) and then
-    /// rounded to the currency's two decimal places - the receipt prints the
-    /// fuel line as money (42.30 x 1.679 prints "71.02", not "71.0217"), so the
-    /// detector and the form can never disagree about the figure. Falls back to
-    /// the OCR total when the operands are missing.
+    /// The fuel line as an exact Decimal: liters x unit price. The price is
+    /// already an exact Decimal (the extraction types money as Decimal since
+    /// P2.2b); the volume enters through the same Decimal(string:) boundary as
+    /// the Confirm sheet (P2.3) and the product is then rounded to the
+    /// currency's two decimal places - the receipt prints the fuel line as
+    /// money (42.30 x 1.679 prints "71.02", not "71.0217"), so the detector
+    /// and the form can never disagree about the figure. Falls back to the OCR
+    /// total when the operands are missing.
     static func fuelLineAmount(_ extraction: FuelExtraction) -> Decimal? {
         if let liters = ConfirmFormat.decimal(fromExtraction: extraction.liters,
                                               fractionDigits: 2),
-           let price = ConfirmFormat.decimal(fromExtraction: extraction.unitPrice,
-                                             fractionDigits: 3) {
+           let price = extraction.unitPrice {
             return rounded(liters * price)
         }
-        return ConfirmFormat.decimal(fromExtraction: extraction.total, fractionDigits: 2)
+        return extraction.total
     }
 
     /// Rounds a Decimal to the currency's two decimal places (the receipt's own

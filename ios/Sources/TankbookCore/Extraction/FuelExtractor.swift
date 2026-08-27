@@ -25,8 +25,12 @@ public struct FuelExtractor: Sendable {
             lines, currency: result.currency, fuelKind: result.fuelKind, date: nil
         )
         result.liters = volumePrice.liters
-        result.unitPrice = volumePrice.price
-        result.total = resolveTotal(lines, liters: result.liters, unitPrice: result.unitPrice)
+        // Money is born Decimal here (P2.2b), never Decimal(Double).
+        result.unitPrice = volumePrice.price.flatMap {
+            ConfirmFormat.decimal(fromExtraction: $0,
+                                  fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
+        }
+        result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
 
         // A printed ZERO is "the price is not on this receipt", never "the fuel
         // was free". B2B contract fuel cards settle the price between the fleet
@@ -60,14 +64,13 @@ public struct FuelExtractor: Sendable {
                                           total: result.total, source: source) {
             let residual = (ConfirmFormat.decimal(fromExtraction: result.liters,
                                                   fractionDigits: ConfirmFormat.fractionDigits(for: .volume)) ?? 0)
-                * (ConfirmFormat.decimal(fromExtraction: result.unitPrice,
-                                         fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)) ?? 0)
-                - (ConfirmFormat.decimal(fromExtraction: result.total,
-                                         fractionDigits: ConfirmFormat.fractionDigits(for: .total)) ?? 0)
+                * (result.unitPrice ?? 0)
+                - (result.total ?? 0)
             result.crossCheck = .mismatch(residual: ExtractionCrossCheck.rounded(residual))
             switch repair.operand {
             case .liters: result.liters = repair.repaired
-            case .unitPrice: result.unitPrice = repair.repaired
+            case .unitPrice: result.unitPrice = ConfirmFormat.decimal(
+                fromExtraction: repair.repaired, fractionDigits: 3)
             }
             result.digitRepair = repair
         }
@@ -250,7 +253,10 @@ public struct FuelExtractor: Sendable {
 
     // MARK: - Total finder
 
-    func resolveTotal(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Double? {
+    /// Resolves the total the extraction records as an exact `Decimal`; the
+    /// DECISION stays in `Double` so the mode selection and fuel-line comparison
+    /// stay bit-identical (a Decimal re-key would move the pinned scores).
+    func resolveTotal(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Decimal? {
         let total = grandTotal(lines)
         // Hard rule 4: on a mixed receipt the fill-up amount is the fuel line,
         // never the grand total. Detection is the cross-check itself
@@ -259,13 +265,15 @@ public struct FuelExtractor: Sendable {
         // discount makes the charged line differ from liters x unitPrice -
         // screenshot-008 returns 112.63, never 115.02 or the grand total
         // 122.99).
-        guard let liters, let unitPrice, let total else { return total }
+        guard let liters, let unitPrice, let total else {
+            return total.map { ConfirmFormat.decimal(fromExtraction: $0, fractionDigits: 2) ?? .zero }
+        }
         let fuelLine = ExtractionCrossCheck.printedFuelLineAmount(lines, liters: liters, unitPrice: unitPrice)
             ?? liters * unitPrice
         if abs(fuelLine - total) > max(0.02, total * 0.005) {
-            return fuelLine
+            return ConfirmFormat.decimal(fromExtraction: fuelLine, fractionDigits: 2) ?? .zero
         }
-        return total
+        return ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2) ?? .zero
     }
 
     /// The receipt's own grand total (ИТОГ/ВСЕГО/...), independent of the fuel

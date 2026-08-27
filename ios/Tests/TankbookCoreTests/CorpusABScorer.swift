@@ -51,6 +51,52 @@ struct ExtractionRecord: Codable, Equatable, Sendable {
     }
 }
 
+// MARK: - The boundary: extraction (Decimal money) -> record (Double)
+
+extension ExtractionRecord {
+    /// The one place a live `FuelExtraction` becomes a scored record (P2.2b).
+    ///
+    /// The record deliberately keeps `Double` money fields: it is the shape of
+    /// the COMMITTED `vision-ab/*.json` result files, which are a frozen
+    /// measurement whose values decode as JSON numbers. Re-typing them to
+    /// `Decimal` would not add exactness (Swift's default `Decimal` decoding
+    /// routes through `Double` anyway) and would churn the decoder for no
+    /// measured gain: the scorer compares with `abs(got - want) < 0.005`, far
+    /// above any representation error for a 2-3 decimal money value, so the
+    /// pinned totals cannot move either way. `Decimal -> Double` here is exact
+    /// in the measured direction - `NSDecimalNumber(decimal:).doubleValue` is
+    /// the nearest `Double` to the exact decimal, i.e. the same `Double` the
+    /// pre-P2.2b pipeline stored.
+    init(filename: String, extraction: FuelExtraction,
+         latencySeconds: Double? = nil, error: String? = nil) {
+        self.init(
+            filename: filename,
+            liters: extraction.liters,
+            unitPrice: extraction.unitPrice.map(\.corpusBoundaryDouble),
+            total: extraction.total.map(\.corpusBoundaryDouble),
+            fuelKind: extraction.fuelKind,
+            currency: extraction.currency,
+            latencySeconds: latencySeconds,
+            error: error
+        )
+    }
+}
+
+// MARK: - The Double the pre-P2.2b pipeline stored
+
+extension Decimal {
+    /// The `Double` whose value equals this decimal's shortest decimal
+    /// representation - the faithful inverse of the extraction's
+    /// `Double -> Decimal(string:)` boundary. This is the same `Double` the
+    /// old Double pipeline stored, so converting an extraction's Decimal back
+    /// for the scorer reproduces the committed numbers bit-for-bit. Plain
+    /// `NSDecimalNumber(decimal:).doubleValue` is NOT guaranteed correct here:
+    /// it lands one ULP off for values like 1.774.
+    var corpusBoundaryDouble: Double {
+        Double("\(self)") ?? 0
+    }
+}
+
 /// The committed per-class result file (one of `vision-ab/rules-*.json` /
 /// `vision-ab/llm-*.json`). Self-describing so a re-score never has to guess
 /// which engine produced it.

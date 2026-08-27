@@ -49,8 +49,8 @@ struct PaddleOCRDumpTests {
                             : PaddleOCRCorpus.extractArmB(run)
                         return PaddleOCRRunRecord(
                             liters: extraction.liters,
-                            unitPrice: extraction.unitPrice,
-                            total: extraction.total,
+                            unitPrice: extraction.unitPrice.map(\.corpusBoundaryDouble),
+                            total: extraction.total.map(\.corpusBoundaryDouble),
                             latencySeconds: run.latencySeconds
                         )
                     }

@@ -50,10 +50,7 @@ struct CorpusABRulesDumpTests {
                 let ocrLines = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
                 let result = extractor.extract(lines: ocrLines)
                 records[image.lastPathComponent] = ExtractionRecord(
-                    filename: image.lastPathComponent,
-                    liters: result.liters,
-                    unitPrice: result.unitPrice,
-                    total: result.total
+                    filename: image.lastPathComponent, extraction: result
                 )
             }
 

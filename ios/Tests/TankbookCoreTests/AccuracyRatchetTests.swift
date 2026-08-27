@@ -192,13 +192,12 @@ struct CorpusAccuracyGateTests {
             // the app does not run for this class.
             let source: ExtractionSource = name == "pump" ? .pump : .receipt
             let result = extractor.extract(lines: ocrLines, source: source)
+            // The record keeps Double money (the scorer's boundary - see
+            // CorpusABScorer); the exact Decimal the extraction now carries is
+            // converted through NSDecimalNumber, lossless in the measured
+            // direction for corpus values.
             records[image.lastPathComponent] = ExtractionRecord(
-                filename: image.lastPathComponent,
-                liters: result.liters,
-                unitPrice: result.unitPrice,
-                total: result.total,
-                fuelKind: result.fuelKind,
-                currency: result.currency
+                filename: image.lastPathComponent, extraction: result
             )
         }
         // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,
