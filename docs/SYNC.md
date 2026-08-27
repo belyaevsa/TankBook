@@ -329,6 +329,43 @@ The same reasoning covers `initialOdometer`, `homeCurrency`, `units` and `paceLi
 The backend is down for a day; both devices keep logging, editing, deleting.
 - **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.
 
+### Low Power Mode – background work defers, the user's own taps never do
+
+When iOS Low Power Mode is on, the app **postpones background and opportunistic work** and keeps
+everything else exactly as it was. This is the same principle as S7: the queue waits, nothing is
+lost, and no screen is gated.
+
+**The load-bearing distinction is background vs user-initiated.** A deferral policy that cannot
+tell them apart will postpone a restore or a "sync now" tap, and a user staring at a spinner that
+was silently cancelled has no next step (hard rule 7) and reads as a hang.
+
+| Defers while Low Power Mode is on | Never defers |
+|---|---|
+| Opportunistic sync cycles (launch, foreground, timer) | Any **save** – always local, always immediate (hard rule 1) |
+| Attachment/blob **upload** and **prefetch** – the heaviest work there is | A sync, restore, export or retry the **user asked for** |
+| Rate pack refresh (`RateStore.refresh`) | Capture, OCR and the confirm sheet the user is standing in |
+| Vehicle catalog pack fetch | An already-scheduled local notification |
+| Any repeating timer job | Reading, editing and deleting – the whole local app |
+
+**What the OS already does, and what it does not.** iOS disables Background App Refresh in Low
+Power Mode and deprioritises discretionary `URLSession` work, so the app must neither duplicate
+that nor rely on it: the gap the app closes is **foreground opportunistic** work – the sync it
+starts on launch, the prefetch it starts on a WiFi change, the refresh it starts on a timer.
+
+**Resume on the state change, not on the next launch.** `NSProcessInfoPowerStateDidChange` is the
+trigger; a policy that only re-checks at launch leaves a device that left Low Power Mode hours ago
+still holding its queue.
+
+**Surface: the existing passive status row, and nothing else.** S7's row gains a reason, not a
+severity – "Waiting to sync · 5 changes · Low Power Mode is on". It is **reassurance, never a
+warning**: no amber, no badge, no toast, no modal (hard rule 8 – conflicts and waits surface where
+the data lives, never as a modal at sync time), and it disappears when the mode ends. A user who
+turned Low Power Mode on chose this; the app agreeing with them is not an error state.
+
+**The power state is an injected value, never `ProcessInfo` read inline.** Same reason
+`TabBarMetrics` and `PumpPhotoGate` are values in core: a policy that reads the device directly
+cannot be tested, and this one's whole content is *when it says no*.
+
 ### The Settings sync surface (normative)
 
 Three things live there, and the split between them is what keeps hard rule 8 intact.
