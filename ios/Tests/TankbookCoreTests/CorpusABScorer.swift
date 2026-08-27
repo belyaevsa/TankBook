@@ -166,14 +166,23 @@ enum CorpusScorer {
 /// corpus growth from silently shrinking the A/B's coverage.
 enum PostSweepCorpusAdditions {
     /// 2026-08-27, the Татнефть АЗС-172 triplet (one 25 L / 99.99 RUB fill shot
-    /// three ways). See `Spike/ReceiptSpike/fixtures/receipts/README.md`.
+    /// three ways) and the Circle K Sikupilli set (a matched receipt/pump pair,
+    /// a zero-volume receipt, and three sun-glared Wayne displays). See
+    /// `Spike/ReceiptSpike/fixtures/receipts/README.md` and `pump/README.md`.
     static let byClass: [String: Set<String>] = [
         "receipts": [
             "receipt-036-tatneft-azs172-98-terminal-slip-ru.jpeg",
             "receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg",
+            "receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg",
+            "receipt-039-circlek-sikupilli-zero-volume-pump7-ee.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
+            "pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg",
+            "pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg",
+            "pump-021-wayne-circlek-sun-glare-ee.jpg",
+            "pump-022-wayne-circlek-pump1-glare-ee.jpg",
+            "pump-023-wayne-circlek-glare-ee.jpg",
         ],
     ]
 

@@ -11,7 +11,8 @@ fixtures/
               13 receipts / 14 files, 10 brands, 5 years, RU. Baseline 36.6% - see its README
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-              18 displays, 6 makes, EE/RU/KZ. pump-016/017 are idle pumps - negative fixtures
+              23 displays, 6 makes, EE/RU/KZ. pump-016/017 are idle pumps - negative fixtures
+              pump-021/022/023 are sun-glared and UNREADABLE: all expected fields empty, 0 scored
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
@@ -76,6 +77,11 @@ so it settles what no amount of re-reading the receipt could. `receipt-001` and
 Note the two disagree on the total *by design*: the pump reads 4334.83, the
 receipt 4334.00, because Лукойл rounds the fiscal total down to the whole rouble
 (`fiscal/README.md`). Same fill, both correct, ~1 ₽ apart.
+
+`receipt-038` and `pump-019` are a matched pair that **agrees to the cent** - the
+only one of the three pump/receipt pairs that does. `pump-002` differs by a fiscal
+rounding rule and `pump-018` by display rounding, so agreement is one outcome of
+three rather than the expected case.
 
 `receipt-036`, `receipt-037` and `pump-018` are a **triplet of one transaction**
 (Татнефть АЗС-172, 25.00 L x 99.99 ₽): the card-terminal slip, the fiscal cheque

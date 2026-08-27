@@ -386,3 +386,45 @@ a permanent lie the ratchet measured from.
 
 The parser resolves **none** of its three fields, which is what moved the class
 from 1/46 to 1/49 – eighteen devices now, still one hit.
+
+## `pump-019` … `pump-023` – Circle K Sikupilli, and three displays nobody can read
+
+Five displays from one forecourt (Tartu mnt 86, Tallinn), 2026-08-27, in bright
+low-angle morning sun. They split into two very different groups, and the split
+is the finding.
+
+**Two are clean and scored:**
+
+- `pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg` - `€ 79,32 · L 45,22 ·
+  €/L 1,754`. **The same fill as `../receipts/receipt-038`**, and the two agree
+  to the cent. Of the corpus's three matched pump/receipt pairs, this is the only
+  one where the totals match: `pump-002` differs because ЛУКОЙЛ rounds the fiscal
+  total down to the rouble, and `pump-018` differs because the pump rounds its
+  money line up to 0.1 ₽. Agreement is one outcome of three, not the norm.
+- `pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg` - `€ 20,00 · L 10,76 ·
+  €/L 1,859`, a round-money preset fill (10.76 x 1.859 = 20.003). Self-consistent
+  without needing a second document.
+
+**Three are sun-glared Wayne/Dresser displays and their values could not be read
+at all:**
+
+`pump-021-wayne-circlek-sun-glare-ee.jpg`, `pump-022-wayne-circlek-pump1-glare-ee.jpg`
+and `pump-023-wayne-circlek-glare-ee.jpg` all carry legible **grade price panels**
+(1,744 / 1,794 / 1,804 / 1,854) beside a **SUMMA/LIITRIT area washed out by
+reflected sky**. Every one of their `expected.csv` fields is **empty on purpose**.
+They were cropped and enlarged to 5x before that call was made; on `pump-022` the
+totals resolve to something like `52,4?` over `30,0?`, and no combination of the
+four printed prices makes those two numbers multiply out - so any value written
+down would have been a guess, and a guess in `expected.csv` becomes a permanent
+lie the ratchet measures from.
+
+**They therefore add 0 scored fields.** That is not a defect: they are negative
+fixtures, in the same family as the two idle pumps, and they document the single
+most common real-world pump-capture failure - a phone held up to a reflective LCD
+in direct sun. A corpus that only holds the photos that worked measures the wrong
+thing.
+
+The class is now **1/55 across 23 devices, 1.8%** - down from 2.2%, because six
+devices joined and none of them resolved a field. **The ratio getting worse as the
+corpus grows is the honest signal**, and it is the clearest statement yet of why
+P2.7 ships off: the gate is 95%.

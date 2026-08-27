@@ -613,3 +613,43 @@ RU and 16% KZ). Anything keyed on a fixed set of VAT rates is wrong; the rate is
 read, never assumed.
 
 Scored: the two receipts added 6 fields and 2 hits (45/96 -> 47/102).
+
+## `receipt-038` / `receipt-039` – Circle K Sikupilli, and a receipt for nothing
+
+Circle K Sikupilli teenindusjaam, Tartu mnt 86, Tallinn, 2026-08-27. Two receipts
+six minutes apart, from two different pumps.
+
+`receipt-038` is an ordinary fill: `95E0 miles`, **Kogus 45,22 L**, **Hind 1,754
+EUR/L**, **Summa 79,32**, pump 8, 10:17, käibemaks 24%. It is the **same fill as
+`../pump/pump-019`** - a matched pair, and the pump's `€ 79,32 / L 45,22 /
+€/L 1,754` agrees with the paper exactly. That is worth recording precisely
+because the corpus's other two pairs *disagree* on the total (`pump-002` by a
+rounding rule, `pump-018` by display rounding): a pair agreeing is not the
+default, it is one of three outcomes.
+
+Note the `EXTRA SOODUS -0,23 EUR` line under the item while `K O K K U` still
+reads `79,32`. The discount is printed but not subtracted from the total, so a
+parser that sums or subtracts every money-looking line gets this wrong. Ground
+truth is the printed `79,32`.
+
+### `receipt-039` is a receipt for zero litres
+
+Pump 7, 10:11, six minutes earlier: **Kogus 0,00L**, Hind 1,744 EUR/L, Summa
+0,00, `K O K K U 0,00 EUR`, käibemaks 0,00. A complete, valid, fiscally-printed
+receipt for a purchase that did not happen.
+
+**Its ground truth is deliberately `,1.744,`** - the unit price recorded, litres
+and total left EMPTY. That follows `receipt-034`'s rule (*a zero means "not
+printed", never "free"*) and the extraction behaviour built for it, which maps a
+zero total or unit price to nil so a non-purchase cannot drag `costPerKm` down.
+Recording `0.00` here would assert the opposite of that decision.
+
+**The inconsistency is real and is left visible rather than papered over:**
+`pump-016`/`pump-017`, the two idle pumps, *do* record `0.00` in their liters and
+total columns. So the corpus currently treats a printed zero one way on paper and
+another way on a display. Both readings are defensible - an idle pump really is
+at zero, whereas a zero on a receipt means the transaction was void - but they
+should not diverge silently, and whichever way it is settled belongs in
+`docs/SCHEMA.md` rather than in two `expected.csv` files that disagree.
+
+Scored: the two receipts added 4 fields and 1 hit (47/102 -> 48/106).
