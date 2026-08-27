@@ -56,6 +56,9 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 >
 > **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28). A
 > `Monitor` watching `pgrep -x opencode` for a shrinking pid set fires the moment an agent exits.
+> **Emit only on the TRANSITION, never on the state** - a first version of this re-announced "all
+> agents idle" every 45 s once the last one finished, which is noise that trains you to ignore the
+> monitor. Fire once when a pid disappears, and say nothing while nothing changes.
 > Without one you discover completions by asking, which cost real time repeatedly on 2026-08-27 -
 > agents sat finished for twenty minutes while lanes stood idle. Re-arm it after each dispatch,
 > because a one-shot waiter dies with the event it was waiting for.
