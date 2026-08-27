@@ -359,3 +359,30 @@ view of the same situation so the refusal cannot be keyed on a straight-on frame
   against 3.92. Two unknowns and one equation; both stay empty.
 
 `pump-011` is fully clean and cross-checks: `11.01 x 1.789 = 19.70`.
+
+## `pump-018` – the money line rounds, and the paper does not
+
+`pump-018-gilbarco-tatneft-tver-98-ru.jpeg` – Татнефть АЗС-172, Тверская обл.,
+Gilbarco Veeder-Root seven-segment. **The same fill as `../receipts/receipt-036`
+and `../receipts/receipt-037`** – a *triplet*, and the only one in the corpus
+where all three views are of one transaction on one day.
+
+Truth: `РУБЛИ 2499,8` · `ЛИТРЫ 25,00` · `ЦЕНА/ЛИТР 99,99`.
+
+`25.00 x 99.99 = 2499.75`, and the pump shows **2499,8** – it rounds its money
+line to 0.1 ₽ while the receipt prints the exact `2499.75`. That is the second
+independent instance of the pump and the paper disagreeing on the total *by
+design* (`pump-002` is the first, where ЛУКОЙЛ rounds down to the whole rouble),
+and the two round in **opposite directions**. So a cross-check that compares a
+pump total against a receipt total must tolerate the display's own rounding, and
+must not treat the difference as a misread digit.
+
+**The last digit is why this fixture was nearly recorded wrong.** At thumbnail
+scale the `8` reads as a `0`, because the display is a reflective LCD whose
+*unlit* segments stay faintly visible – so a `0` and an `8` differ only by a
+middle bar that glare washes out. It resolves only at full zoom. Ground truth
+here was read at 5x crop, not from the whole frame, and `2499,0` would have been
+a permanent lie the ratchet measured from.
+
+The parser resolves **none** of its three fields, which is what moved the class
+from 1/46 to 1/49 – eighteen devices now, still one hit.

@@ -564,3 +564,52 @@ Still unresolved here, and deliberately left as nil rather than guessed: the pro
 and the kind is now nil rather than wrong. Mixed-script OCR of Cyrillic receipts is its own trap -
 filed as **P2.11**.
 
+
+## `receipt-036` / `receipt-037` – one fill, two papers, reversed operand order
+
+Татнефть АЗС-172 (Тверская обл., М-10), 27.08.2026 07:32. **25.00 L of АИ-98 at
+99.99 ₽/L = 2499.75 ₽**, captured three ways: the card-terminal slip
+(`receipt-036`), the fiscal cheque (`receipt-037`), and the pump display
+(`../pump/pump-018`). The pump reads `2499,8` – see `../pump/README.md` for why
+the two totals differ by design.
+
+**`receipt-036` is the first non-fiscal terminal slip in the corpus.** It is
+headed `НЕФИСКАЛЬНАЯ КВИТАНЦИЯ` and carries no QR, no ФН/ФД/ФП and no VAT line –
+only the card authorisation and a `Список товаров`. A user photographs whichever
+slip the attendant hands over, so this is a document class the parser meets in
+the wild, not a curiosity.
+
+### The operand order reverses between two papers printed one minute apart
+
+```
+receipt-036 (terminal slip)   Аи-98 x25.00 лит x99.99 РУБ     volume first, then price
+receipt-037 (fiscal cheque)   99.99 X 25 Л                    price first, then volume
+```
+
+Same station, same till, same transaction. The corpus already knew that operand
+order varies within one receipt (`receipt-031`) and reverses between two receipts
+of the same fuel card (`receipt-033` vs `receipt-035`); this is the tightest
+instance yet – **one purchase, two documents, opposite orders**. Nothing about a
+printer's layout can be inferred from the one beside it.
+
+### It also breaks the decimal-count heuristic, which is the strongest evidence P2.9 had
+
+`receipt-035` made the case that the **decimal count** identifies the operand:
+three decimals on the volume, two on the price, holding even when the order
+flipped. `receipt-037` prints `99.99 X 25 Л` – **two decimals on the price and
+none at all on the volume**, because the volume is a whole number of litres. So
+the rule "three decimals means volume" does not fire here, and a rule "more
+decimals means price" would have picked correctly by luck on this fixture and
+wrongly on `receipt-033` (`24.690 X 243.00`).
+
+What actually resolves both is the **unit marker**: `Л` follows the 25, and `лит`
+/ `РУБ` label both operands on the slip. That is `loneMarkers` territory, not
+decimal counting - and it is the reading P2.9 should be written against.
+
+### `НДС 22%`
+
+The VAT line is **22%**, a rate the corpus has not carried before (it holds 20%
+RU and 16% KZ). Anything keyed on a fixed set of VAT rates is wrong; the rate is
+read, never assumed.
+
+Scored: the two receipts added 6 fields and 2 hits (45/96 -> 47/102).

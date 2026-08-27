@@ -19,17 +19,19 @@ import Foundation
 /// constant cannot drift from reality without a failing test.
 public enum PumpPhotoGate {
     /// Pump fields resolved by the parser at build time. 1 today - the pump
-    /// corpus scores 1 of 46 fields (2.2%) across seventeen pumps from six
+    /// corpus scores 1 of 49 fields (2.0%) across eighteen pumps from six
     /// manufacturers (Spike/ReceiptSpike/fixtures/pump/README.md). Seven
     /// Estonian Circle K displays were added 2026-08-26; they moved the score
-    /// from 0/30 to 1/46, which is noise, not progress. The gate is 95%.
+    /// from 0/30 to 1/46, which is noise, not progress. A Gilbarco
+    /// Veeder-Root display joined 2026-08-27 (pump-018) and resolved nothing,
+    /// so 1/46 became 1/49. The gate is 95%.
     public static let measuredHits: Int = 1
 
-    /// Pump fields scored at build time. Not 17 x 3: four fields are blank in
+    /// Pump fields scored at build time. Not 18 x 3: four fields are blank in
     /// expected.csv because the photo does not legibly carry them (glare on a
     /// total, and the two idle pumps have no meaningful unit price), and a
     /// blank is skipped rather than counted as a miss.
-    public static let measuredTotal: Int = 46
+    public static let measuredTotal: Int = 49
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95

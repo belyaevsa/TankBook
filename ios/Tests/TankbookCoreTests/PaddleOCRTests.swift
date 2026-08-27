@@ -24,7 +24,7 @@ struct PaddleOCRTests {
 
     // MARK: - 2. Coverage: no image silently skipped
 
-    @Test("Arm A has a record for every image in every class")
+    @Test("every image is either swept by Arm A or a declared post-sweep addition")
     func armACoversEveryImage() throws {
         for cls in Self.classes {
             let folder = PaddleOCRCorpus.fixturesRoot.appendingPathComponent(cls)
@@ -32,8 +32,12 @@ struct PaddleOCRTests {
             let file = try CorpusScorer.loadABResultFile(
                 PaddleOCRCorpus.abRoot.appendingPathComponent("paddleocr-a-\(cls).json")
             )
-            for image in images {
+            let declared = PostSweepCorpusAdditions.forClass(cls)
+            for image in images where !declared.contains(image) {
                 #expect(file.recordsByFilename[image] != nil, "\(cls)/\(image) has no Arm A record")
+            }
+            for recorded in file.recordsByFilename.keys {
+                #expect(images.contains(recorded), "\(cls)/\(recorded) has an Arm A record but no image")
             }
         }
     }
@@ -109,10 +113,12 @@ struct PaddleOCRTests {
     private static func scoreClass(_ name: String, engine: String) throws -> ScoredClass {
         let folder = PaddleOCRCorpus.fixturesRoot.appendingPathComponent(name)
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
-        let images = try CorpusScorer.imageFilenames(in: folder)
         let file = try CorpusScorer.loadABResultFile(
             PaddleOCRCorpus.abRoot.appendingPathComponent("\(engine)-\(name).json")
         )
+        // Scored over the sweep's own snapshot, not the live folder - the same
+        // frozen-artefact rule as the DeepSeek arm (`CorpusScorer.sweptImages`).
+        let images = try CorpusScorer.sweptImages(in: folder, coveredBy: file)
         return CorpusScorer.score(
             name: name, images: images, records: file.recordsByFilename, expected: expected
         )

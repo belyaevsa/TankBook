@@ -26,10 +26,13 @@ struct CorpusABTests {
     private static func scoreClass(_ name: String, engine: String) throws -> ScoredClass {
         let folder = fixturesRoot.appendingPathComponent(name)
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
-        let images = try CorpusScorer.imageFilenames(in: folder)
         let file = try CorpusScorer.loadABResultFile(
             abRoot.appendingPathComponent("\(engine)-\(name).json")
         )
+        // Scored over the sweep's own snapshot, not the live folder - see
+        // `CorpusScorer.sweptImages`. The pinned totals below are what keeps a
+        // missing record visible.
+        let images = try CorpusScorer.sweptImages(in: folder, coveredBy: file)
         return CorpusScorer.score(
             name: name, images: images, records: file.recordsByFilename, expected: expected
         )
@@ -66,9 +69,10 @@ struct CorpusABTests {
         )
     }
 
-    /// A silently skipped image inflates the score; the sweep must have a record
-    /// for every image the class folder holds.
-    @Test("the LLM sweep has a record for every image in every class")
+    /// A silently skipped image inflates the score. Every live image must be
+    /// either covered by the sweep or **declared** as a post-sweep addition -
+    /// an image that is neither is the silent skip this test exists to catch.
+    @Test("every image is either swept by the LLM arm or a declared post-sweep addition")
     func llmSweepCoveredEveryImage() throws {
         for cls in Self.classes {
             let folder = Self.fixturesRoot.appendingPathComponent(cls)
@@ -76,8 +80,14 @@ struct CorpusABTests {
             let file = try CorpusScorer.loadABResultFile(
                 Self.abRoot.appendingPathComponent("llm-\(cls).json")
             )
-            for image in images {
+            let declared = PostSweepCorpusAdditions.forClass(cls)
+            for image in images where !declared.contains(image) {
                 #expect(file.recordsByFilename[image] != nil, "\(cls)/\(image) has no LLM record")
+            }
+            // The other direction: a record for an image that no longer exists
+            // means a fixture was renamed or deleted under the frozen sweep.
+            for recorded in file.recordsByFilename.keys {
+                #expect(images.contains(recorded), "\(cls)/\(recorded) has an LLM record but no image")
             }
         }
     }

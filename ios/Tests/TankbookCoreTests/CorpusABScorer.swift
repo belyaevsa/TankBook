@@ -136,4 +136,46 @@ enum CorpusScorer {
             .map(\.lastPathComponent)
             .sorted()
     }
+
+    /// The images a committed sweep actually covered: the live folder narrowed
+    /// to the filenames the result file holds a record for.
+    ///
+    /// **Why the A/B is scored over this and not over the live folder.** The
+    /// P4.12/P4.13 sweeps are a FROZEN measurement of one corpus snapshot
+    /// (2026-08-26), and their whole value is that three arms scored the *same*
+    /// images. The corpus keeps growing, and re-sweeping is not a way back:
+    /// the cloud arm is stochastic (`vision-ab/README.md` - a re-sweep does not
+    /// reproduce these values, which is itself a P4.12 finding), and the
+    /// PaddleOCR arm needs a container P4.13 concluded is not worth running.
+    /// So a fixture added after the sweep is **outside** the snapshot, not a
+    /// hole in it.
+    ///
+    /// This does not weaken the "no image silently skipped" guarantee, because
+    /// the per-class totals stay pinned as literals (96 / 46 / 3 / 24): a
+    /// record missing from the sweep lowers the total and fails that pin. What
+    /// the callers add on top is the other direction - every live image must be
+    /// either swept or listed as a known post-sweep addition, so growth is
+    /// declared rather than absorbed.
+    static func sweptImages(in folder: URL, coveredBy file: ABResultFile) throws -> [String] {
+        try imageFilenames(in: folder).filter { file.recordsByFilename[$0] != nil }
+    }
+}
+
+/// Images added to the corpus **after** the 2026-08-26 A/B sweep, per class.
+/// Adding a fixture means adding it here, which is the deliberate act that keeps
+/// corpus growth from silently shrinking the A/B's coverage.
+enum PostSweepCorpusAdditions {
+    /// 2026-08-27, the Татнефть АЗС-172 triplet (one 25 L / 99.99 RUB fill shot
+    /// three ways). See `Spike/ReceiptSpike/fixtures/receipts/README.md`.
+    static let byClass: [String: Set<String>] = [
+        "receipts": [
+            "receipt-036-tatneft-azs172-98-terminal-slip-ru.jpeg",
+            "receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg",
+        ],
+        "pump": [
+            "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
+        ],
+    ]
+
+    static func forClass(_ name: String) -> Set<String> { byClass[name] ?? [] }
 }
