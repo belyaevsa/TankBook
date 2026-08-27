@@ -275,15 +275,34 @@ public struct FuelExtractor: Sendable {
         return NumberScanner.value(in: line.text)
     }
 
+    /// The total-finder's mode, with a deterministic, deliberate tie-break.
+    ///
+    /// Two candidates can tie on how often they appear AND on how often the
+    /// primary labels (ИТОГ/ИТОГО/...) named each. That is precisely "the parser
+    /// does not know which total is the receipt's", and the rest of this file
+    /// already refuses rather than guesses at exactly that point (a printed
+    /// `0.00` becomes nil, an unmarked operand pair returns nil - `SCHEMA.md`
+    /// -> Fuel price bands, step 5: "Undecided. Leave the fields empty"). So
+    /// the tie-break is **nil on an unbreakable tie**, not "sort for stability":
+    /// a confident wrong total is worse than an empty field the user fills
+    /// (hard rule 13), and the previous rule - `modes.max(by:)` over equal
+    /// `primaryCounts`, with `?? modes.first` behind it - returned whichever
+    /// value Swift's `Dictionary` hash seed had left last. That made the score
+    /// move between identical runs (P4.13 saw receipt-021/-026/-029 flip
+    /// 29/96 <-> 30/96). Only a tie that the primary labels genuinely break
+    /// still resolves; an unbreakable tie abstains.
     private func modal(_ candidates: [Double], preferring primary: [Double]) -> Double? {
         guard !candidates.isEmpty else { return nil }
         let counts = Dictionary(grouping: candidates, by: { $0 }).mapValues(\.count)
         let maxCount = counts.values.max() ?? 0
         let modes = counts.filter { $0.value == maxCount }.map(\.key)
         if modes.count == 1 { return modes[0] }
-        // Tie: prefer the value that the primary labels (ИТОГ/ИТОГО/...) named.
+        // Tie on count: prefer the value the primary labels named most often.
+        // That preference is itself allowed to tie; when it does, abstain.
         let primaryCounts = Dictionary(grouping: primary, by: { $0 }).mapValues(\.count)
-        return modes.max(by: { (primaryCounts[$0] ?? 0) < (primaryCounts[$1] ?? 0) }) ?? modes.first
+        let topPrimary = modes.map { primaryCounts[$0] ?? 0 }.max() ?? 0
+        let winners = modes.filter { (primaryCounts[$0] ?? 0) == topPrimary }
+        return winners.count == 1 ? winners[0] : nil
     }
 
     // MARK: - Currency / date / fuel kind
