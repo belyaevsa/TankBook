@@ -30,12 +30,22 @@ import Foundation
 ///     while reading as correct code. Adding this call site to the scan found
 ///     two live defects (`%d items on this receipt` on Home, and a product
 ///     name being sent through the catalogue as if it were copy).
+///   - A literal inside a call's non-literal first argument (`Text(x ??
+///     "literal")`, `Text(cond ? someString : "literal")`, `"a" + "b"`) - the
+///     P5.3 pass. The expression is `String`-typed, so `Text(_: String)`
+///     renders the literal in English even when the catalogue holds a
+///     translation: the key IS present, so key membership cannot catch it.
+///     A pure-literal ternary branch (`cond ? "A" : "B"`) is the exception -
+///     SwiftUI builds a `LocalizedStringKey` from it and the branch literal is
+///     a runtime key, so it gets a membership check like any other key.
 ///
 /// WHAT IT DOES NOT CATCH (deliberately - documented so the gate's blind spots
 /// are known rather than guessed at):
-///   - `Text(someVariable)` / `Text(computedKey)` - a dynamic key cannot be
-///     checked without type information; the call site is skipped when the
-///     first argument is not a literal.
+///   - `Text(someVariable)` / `Text(computedKey)` with NO literal inside - a
+///     dynamic value cannot be checked without type information or value-flow
+///     analysis. The variable may hold user data (correct - it must not be
+///     localised) or an unlocalised key (a bug). Only a human reading the
+///     rendered Russian can tell; the rule lives at the top of `L10n.swift`.
 ///   - Literals passed to custom wrappers whose parameter type is `String`
 ///     (`Text(_: StringProtocol)` does not localise at all). Such wrappers are
 ///     a real defect class but are invisible to a key-membership check - the
@@ -85,6 +95,27 @@ public enum LocalizationGate {
                                                             kind: .ruMissing))
                 }
             }
+            for literal in SourceScanner.compoundStringLiterals(inFile: url.path, text: text) {
+                if literal.localizes {
+                    // A pure-literal ternary branch is a runtime key: check it
+                    // against the catalogue like any other key.
+                    let template = normalizeKey(literal.literal)
+                    if catalogue.keyTemplates[template] == nil {
+                        violations.append(LocalizationViolation(file: literal.file,
+                                                                line: literal.line,
+                                                                keyTemplate: template,
+                                                                kind: .noEntry))
+                    }
+                } else {
+                    // A literal inside a String-typed expression renders
+                    // English through `Text(_: String)` whatever the catalogue
+                    // holds (P5.3 - the shape behind the P1.4/P4.7 defects).
+                    violations.append(LocalizationViolation(file: literal.file,
+                                                            line: literal.line,
+                                                            keyTemplate: literal.literal,
+                                                            kind: .stringExpressionLiteral))
+                }
+            }
         }
         return violations.sorted { $0.file == $1.file ? $0.line < $1.line : $0.file < $1.file }
     }
@@ -118,11 +149,17 @@ public enum LocalizationViolationKind: Equatable, Sendable, CustomStringConverti
     case noEntry
     /// The entry exists but carries no non-empty Russian value.
     case ruMissing
+    /// A literal inside a `String`-typed expression (`Text(x ?? "…")`). The
+    /// `String` overload does not localise, so it renders English in Russian
+    /// even though its key may exist in the catalogue (P5.3).
+    case stringExpressionLiteral
 
     public var description: String {
         switch self {
         case .noEntry: return "no catalogue entry"
         case .ruMissing: return "entry has no Russian value"
+        case .stringExpressionLiteral:
+            return "literal inside a String-typed expression - Text(_: String) will not localise it"
         }
     }
 }

@@ -84,7 +84,7 @@ Verified by running it, not by assertion:
 | **P2** | **Effectively complete.** P2.1, P2.1b, P2.2, P2.3, P2.5 done; P2.4, P2.6, P2.7 are `[~]` for honest reasons below; **P2.8 is `[cut]`** - the on-device model has no Russian (below) |
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
-| **P5** | **Started.** `[x]` P5.1 rates service (ECB + CIS, carry-forward, two public endpoints). P5.2 money end-to-end is unblocked by it |
+| **P5** | **RU localization pass complete.** `[x]` P5.1 rates service (ECB + CIS, carry-forward, two public endpoints), P5.2 money end-to-end, P5.3 the RU pass (case governance + plural edges + the `Text(_: String)` gate) |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -294,6 +294,13 @@ This is the **second** time a Russian agreement error has shipped through a `%@`
 language, never concatenation - did **not** prevent it, because this *was* a full phrase. The
 sharper rule now: **if a `%@` receives runtime data, the surrounding phrase must not govern its
 case.** Caught only by reading the rendered Russian; no test can see it.
+
+**P5.3 (2026-08-27) made this systematic**: `docs/LOCALIZATION.md` is now the single authority for
+RU phrasing, holding a 51-key case-governance audit, the 11/21 plural edges, the `Text(_: String)`
+blind spot (now partly a gate - it caught the Provider/Vendor placeholders), and the `литр` fixture
+correction. Four sentence shapes were fixed in the catalogue (the archived-returned banner, the
+install-part offer, the wrong-provider question, the removed-on-device attribution), and a
+regression test asserts no governing preposition sits before a runtime slot.
 
 ### The screenshot set churns on the clock, so it is not a regression baseline
 
