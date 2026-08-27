@@ -5,6 +5,11 @@ import Foundation
 /// row - no `Vehicle` ever references a catalog id, so a catalog correction
 /// never mutates a user's garage.
 public struct VehicleCatalogEntry: Codable, Equatable, Sendable {
+    /// The server-assigned row id (docs/API.md -> Vehicle catalog). The bundled
+    /// seed entries carry none; a fetched pack's entries carry the server's
+    /// uuid. Not used for overlap resolution - that is `identityKey`, because
+    /// the seed has no ids - but preserved so the cache round-trips the wire.
+    public let id: String?
     public let make: String
     public let model: String
     /// Short generation descriptor, e.g. "Mk7/Mk8" or "SPA".
@@ -19,10 +24,11 @@ public struct VehicleCatalogEntry: Codable, Equatable, Sendable {
     public let batteryCapacityKWh: Double?
     public let packVersion: Int
 
-    public init(make: String, model: String, generation: String, years: [Int?],
+    public init(id: String? = nil, make: String, model: String, generation: String, years: [Int?],
                 powertrain: Powertrain, fuelKinds: [FuelKind],
                 tankCapacityL: Double?, batteryCapacityKWh: Double?,
                 packVersion: Int) {
+        self.id = id
         self.make = make
         self.model = model
         self.generation = generation
@@ -40,6 +46,16 @@ public struct VehicleCatalogEntry: Codable, Equatable, Sendable {
     public var yearsEnd: Int? {
         guard years.count > 1, let end = years[1], end > 0 else { return nil }
         return end
+    }
+
+    /// The model line's identity, used by the three-layer resolution to decide
+    /// which entries overlap (docs/SYNC.md -> the master rule): a fetched pack
+    /// entry with the same make/model/generation/powertrain **replaces** the
+    /// cached or bundled one. The seed entries carry no server id, so overlap
+    /// cannot be defined on the server-assigned uuid; it is defined on the
+    /// model line itself.
+    public var identityKey: String {
+        "\(make)|\(model)|\(generation)|\(powertrain.rawValue)"
     }
 
     /// Human label, e.g. "Volvo V60".
