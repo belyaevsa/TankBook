@@ -62,6 +62,36 @@ private func double(_ value: Decimal) -> Double {
     #expect(later.rate == decimal("4.2706"))
 }
 
+/// The fill-blanks-only guard must hold for **every** incoming source, not just
+/// the feed ones. Found by mutation: relaxing the guard to
+/// `homeAmount == nil || snapshot.source == .manual` left all 661 tests green,
+/// because `snapshotIsImmutable` and `backfillFillsBlanksOnly` only ever offer
+/// `.ecb` / `.cis`. That relaxation is reachable - `ExchangeRateRow` decodes an
+/// unknown source string through `RateSource(rawValue:)`, so a `manual` row in
+/// the rate cache would let the FEED path overwrite a user's snapshot, which is
+/// exactly what hard rule 3 and docs/SYNC.md S8 forbid.
+///
+/// The user's own override is a different, explicitly-named entry point
+/// (`applyingManualRate`), and it is the only thing allowed to replace a written
+/// snapshot (hard rule 13).
+@Test func convertedNeverOverwritesAWrittenSnapshotWhateverTheSourceClaims() {
+    let money = Money(amount: decimal("289.50"), currency: .pln, homeCurrency: .eur)
+    let filled = money.converted(using: RateSnapshot(rate: decimal("4.2706"), rateDate: entryDate, source: .ecb))
+
+    for source in RateSource.allCases {
+        let later = filled.converted(
+            using: RateSnapshot(rate: decimal("3.0"), rateDate: entryDate, source: source)
+        )
+        #expect(later == filled, "a \(source.rawValue) snapshot must not recompute a written one")
+    }
+
+    // And the user's own path still can - the guard is about the feed, not about
+    // freezing the value against its owner.
+    let overridden = filled.applyingManualRate(decimal("3.0"), on: entryDate)
+    #expect(overridden.rate == decimal("3.0"))
+    #expect(overridden.rateSource == .manual)
+}
+
 @Test func sameCurrencySnapshotsAtRateOne() {
     let money = Money(amount: decimal("67.80"), currency: .eur, homeCurrency: .eur)
 
