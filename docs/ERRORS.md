@@ -62,6 +62,17 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Nothing detected for ~4s | Hint: "Fill the frame with the receipt – or type it instead." | Keep trying · Type it |
 | Storage full (can't save photo) | Warn sheet: "No space to keep the photo. The entry can still be saved without it." | Save without photo · manage storage (deep link) |
 
+#### The alpha-testing disclosure (P6.10)
+
+Recognition is honest about itself: the corpus measures **receipts 88/175** and **pump 21/84** today, and Vision returned a **wrong digit at confidence 1.00** on `pump-004` (`docs/EXTRACTION.md`) - which is why pump mode ships off (`PumpPhotoGate`). So the capture surface carries a passive disclosure:
+
+> "Recognition is in alpha testing – it can't get every field right yet. Your captures improve it, so keep them coming and bear with mistakes."
+
+- **It is a disclosure, not an error.** Never `warn` amber, never a next-step action bar (rule 5: no action bar on a non-error). It renders as an `inkSoft` footnote, the same weight as `PendingRatesFootnote`, directly above the shutter - the last thing read before pressing it. It lives **only on the live camera surface**: never on a Confirm sheet, never on the manual form, never between shutter and result (it is a static part of the surface, so mid-capture is structurally impossible).
+- **Placement, persistence and dismissal (decided P6.10):** it appears on every capture-surface open while active. A tap on the × hides it for the rest of the **calendar day**, persisted in UserDefaults (a same-day relaunch stays dismissed). It **retires permanently** once the device has logged **3 captures** (any entry, all live vehicles - the app's own floor-3 experience threshold) **or** the notice has been dismissed on **3 separate days**, whichever comes first: after three captures the user judges recognition from their own scans; after three dismissals the notice has been read three times and further repetition is a nag, not teaching. It is a feature to cut wholesale when recognition exits alpha (the gate data says so), not a flag.
+- **The "send us this case" path is deliberately not wired into the notice.** Rule 5 forbids an action bar on a non-error, and the one place feedback lives already exists: About & feedback (`POST /feedback`, `docs/API.md`), reachable from Settings. The notice's ask is to keep captures coming - a scan that goes wrong is a case for that screen, exactly as the import wizard's "send us the file" routes there (line below).
+- It must never steer a user toward typing instead of capturing (hard rule 15): scanning and typing are peers, and the whole point of the disclosure is to keep captures flowing, not to retire them.
+
 ### Confirm (all variants: standard / foreign / mixed / manual)
 | Condition | Shows | Next step |
 |---|---|---|

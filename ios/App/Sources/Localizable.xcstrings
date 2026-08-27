@@ -2627,6 +2627,23 @@
         }
       }
     },
+    "Got it": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Понятно"
+          }
+        }
+      }
+    },
     "Has attachment": {
       "extractionState": "manual",
       "localizations": {
@@ -4306,6 +4323,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Чеки, дисплеи заправок и фискальные QR-коды определяются автоматически"
+          }
+        }
+      }
+    },
+    "Recognition is in alpha testing – it can't get every field right yet. Your captures improve it, so keep them coming and bear with mistakes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recognition is in alpha testing – it can't get every field right yet. Your captures improve it, so keep them coming and bear with mistakes."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознавание в альфа-тестировании – оно пока не может прочитать все поля верно. Ваши снимки помогают его улучшить, поэтому продолжайте снимать и отнеситесь с пониманием к ошибкам."
           }
         }
       }

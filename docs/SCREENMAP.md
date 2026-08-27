@@ -136,6 +136,18 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
 | About & feedback | Settings | Send feedback (stays, toast) · rate/privacy links | back → Settings |
 
+### The Capture surface's alpha notice (P6.10)
+
+Capture carries one non-navigational element: the alpha-testing disclosure
+(`docs/ERRORS.md` -> Capture -> The alpha-testing disclosure). It is a **passive
+part of the capture surface, not a screen and not a destination** - it has no
+forward exit and changes no path. It renders on the live camera layout only,
+directly above the shutter, is dismissable per day (persisted in UserDefaults),
+and **retires permanently at 3 captures or 3 dismissals** - so it does not
+appear in the graph because it cannot trap anyone and eventually stops rendering
+altogether. It is never present on any Confirm sheet and never appears between
+the shutter and a result.
+
 ## Screens referenced but not yet drawn
 
 The map names three screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Garage tab root** (vehicle grid; today Car switcher covers quick switching, but the tab needs a real screen), **Account & devices** (Settings' signed-in account target; device list + revoke + delete account), **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Import wizard** left this list on 2026-08-27: it is drawn as three artboards - `ImportSource.dc.html` (which app is this file from, with the **server-driven** supported list), `ImportPreview.dc.html` (the F6a gate: figures the user can check from memory, target car, duplicate count, and nothing written until confirm) and `ImportReview.dc.html` (the F6 rows that need a look). The flow is **Settings -> Import -> source -> file -> preview -> [rows to fix] -> commit**, and every step backs out to the one before it; **Cancel** from the preview returns to Settings having written nothing and deleted the stored parse.) (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines. **Tire sets** was added in **P3.3** – no artboard, so the list and its name form follow the Reminder list/form's card metrics, eyebrows and underlines.)
