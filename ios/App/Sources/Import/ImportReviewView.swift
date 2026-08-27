@@ -187,6 +187,7 @@ private struct ImportReviewRowView: View {
                 ImportTotalEditorCell(text: $totalText, onSubmit: commitTotal)
             }
             ImportOdometerCell(fill: fill, sourceRow: row.sourceRow,
+                               distanceUnit: model.distanceUnit,
                                isEditing: showingOdometerEditor,
                                text: $odometerText, onSubmit: commitOdometer)
             if row.kind == .noFuel, let note = fill.note, !note.isEmpty {

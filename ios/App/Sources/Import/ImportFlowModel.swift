@@ -56,6 +56,15 @@ final class ImportFlowModel {
     private(set) var liveVehicles: [Vehicle] = []
     private(set) var targetCar: TargetCar?
 
+    /// The unit every odometer in the review list renders in. Taken from the
+    /// target car when there is one; a brand-new car has not chosen yet, so it
+    /// falls back to the app default. Never a hardcoded "km" - hard rule 10, and
+    /// the `Text(_: String)` blind spot that let one ship (see L10n.swift).
+    var distanceUnit: DistanceUnit {
+        if case .existing(let vehicle) = targetCar { return vehicle.units.distance }
+        return liveVehicles.first?.units.distance ?? .km
+    }
+
     private(set) var readyFills: [FillUp] = []
     private(set) var reviewRows: [ImportReviewRow] = []
     /// Review rows the user left out, keyed by `sourceRow` (stable across

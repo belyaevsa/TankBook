@@ -42,6 +42,7 @@ struct ImportFieldCell: View {
 struct ImportOdometerCell: View {
     let fill: FillUp
     let sourceRow: Int
+    let distanceUnit: DistanceUnit
     let isEditing: Bool
     @Binding var text: String
     var onSubmit: () -> Void
@@ -63,12 +64,12 @@ struct ImportOdometerCell: View {
                     .submitLabel(.done)
                     .onSubmit(onSubmit)
             } else if let odo = fill.odometer {
-                Text("\(ImportFormatting.odometer(odo)) km")
+                Text("\(ImportFormatting.odometer(odo)) \(L10n.distanceUnit(distanceUnit))")
                     .font(.system(size: 15, weight: .bold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.Palette.ink)
             } else {
-                Text("– km")
+                Text(verbatim: "– \(L10n.distanceUnit(distanceUnit))")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
                     .accessibilityIdentifier("importReviewMissingOdometer-\(sourceRow)")
