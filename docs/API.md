@@ -70,7 +70,7 @@ minted for a blob this account does not own, and never appears in a log (`LOGGIN
 | `GET /config` | public | Remote configuration document + Ed25519 signature, `ETag`/`If-None-Match` (`304` when unchanged). No auth – guests need it too. Full client contract, guardrails and failure behaviour: `CONFIG.md`. |
 | `GET /rates?date=&base=` | public | All quotes for one date. Past dates: `Cache-Control: immutable`. |
 | `GET /rates/pack?from=&to=&base=` | public | Bulk range for device cache / seed refresh. |
-| `GET /catalog?since_version=` | public | Vehicle catalog delta or full pack + `packVersion`. ETag'd. |
+| `GET /catalog?since_version=` | public | Vehicle catalog delta or full pack + `packVersion` + `kind` (`"full"`/`"delta"`). ETag'd. |
 
 ### Exchange rates (`GET /rates`, `GET /rates/pack`)
 
@@ -129,7 +129,7 @@ conflict state.
 
 ```
 GET /catalog[?since_version=<n>]
-→ 200 { packVersion: <current>, entries: [ <entry> ] }
+→ 200 { packVersion: <current>, kind: "full" | "delta", entries: [ <entry> ] }
 → 304 when If-None-Match matches the current representation
 
 <entry> = { id, make, model, generation?, years?, powertrain, fuelKinds, tankCapacityL?, batteryCapacityKwh? }
@@ -137,6 +137,14 @@ GET /catalog[?since_version=<n>]
   fuelKinds  = the model line's OFFER SET (petrol95/diesel/lpg/...), never one car's fuel (docs/SCHEMA.md)
 ```
 
+- **`kind` is present on every response** and is how a client tells "here is
+  everything" from "here is what changed" - never inferred from an entry count
+  or from the absence of `since_version`. **`kind: "full"`** means `entries`
+  ARE the whole catalog: the client **replaces** its held set with them, so an
+  entry absent from the pack is withdrawn by curation and stops being offered.
+  **`kind: "delta"`** means `entries` are only what changed since the client's
+  version and are **overlaid**, never removing an entry the server did not
+  mention (docs/SYNC.md "Applying an update").
 - **`since_version`**: the `packVersion` the client holds. **Missing** = full pack (the
   documented default: a fresh client or a seed refresh asks for the whole catalog, and
   400-ing first contact would make the simplest client call fail). Malformed (not a
@@ -146,24 +154,38 @@ GET /catalog[?since_version=<n>]
 - **Delta vs full pack** (a stated rule, not an accident): the server answers with the
   entries changed since `since_version`, **unless** more than `Catalog:MaxDeltaEntries`
   (**default 50**) entries changed - then the client is too far behind and the full pack
-  is served instead. Either way the body is the same `{ packVersion, entries }` envelope;
-  the client applies the entries and holds `packVersion` from then on.
+  is served instead. Either way the body is the same `{ packVersion, kind, entries }`
+  envelope; the client applies the entries per `kind` and holds `packVersion` from then on.
 - **`packVersion` is monotonic** (docs/SYNC.md rollback protection): a response is always
   at the current version, and the publish path refuses to go backwards.
 - **ETag / If-None-Match**: a strong ETag over the exact body; an unchanged catalog costs
   a `304`. `Cache-Control: public, max-age=300, must-revalidate` (curation is rare but
   does happen, so the full pack is revalidatable, never immutable).
 
+> **Breaking change (P6.12):** the response shape grew a `kind` field -
+> `{ packVersion, entries }` → `{ packVersion, kind, entries }`. The only
+> consumer is this repo's own iOS client, changed in the same commit. A client
+> built before this change ignores the unknown field and keeps overlaying every
+> pack - exactly the behaviour that preceded the marker, which is the current
+> bug (a withdrawn entry can survive a full pack) and not something worse.
+> Backward tolerance is therefore deliberate: an older client degrades to the
+> status quo, never to data loss.
+
 `POST /catalog/publish` is an **operator surface**, not a public one - **never** a user
 endpoint. It is gated on the `Catalog:AdminToken` server-side secret (docs/SECURITY.md),
 sent as `X-Admin-Token`; a server with no token configured answers `503` (curation
 disabled). The body is a pack of the same entry shape wrapped in
-`{ packVersion, entries }`. A pack is validated against its schema **at publish time,
-whole or not at all**: a pack that fails its schema (`400`) or whose `packVersion` is not
-greater than the current one (`409` - `<=` is a rollback and is refused) is never served,
-and the previously published pack keeps serving untouched. Success is `200`
-`{ packVersion, entriesPublished }`. This is server-owned reference data that the server
-itself curates, so validating it is required - it is not a hard-rule-9 violation.
+`{ packVersion, entries, removedIds? }` (schema: `catalog.schema.json`). A pack is
+validated against its schema **at publish time, whole or not at all**: a pack that fails
+its schema (`400`) or whose `packVersion` is not greater than the current one (`409` -
+`<=` is a rollback and is refused) is never served, and the previously published pack
+keeps serving untouched. **`removedIds`** (optional) withdraws catalog rows: those ids
+are **deleted**, so the subsequent full pack lacks them - this is how a removal becomes
+expressible on the wire (docs/SYNC.md "Applying an update"). A withdrawal is a physical
+delete, never a tombstone, so the server never remembers what it withdrew; an id in both
+`removedIds` and `entries` is a contradiction resolved in the removal's favour. Success is
+`200` `{ packVersion, entriesPublished }`. This is server-owned reference data that the
+server itself curates, so validating it is required - it is not a hard-rule-9 violation.
 
 ## Feedback
 

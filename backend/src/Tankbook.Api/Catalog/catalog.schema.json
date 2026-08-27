@@ -21,6 +21,15 @@
       "items": {
         "$ref": "#/$defs/entry"
       }
+    },
+    "removedIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "uniqueItems": true,
+      "description": "Optional. Catalog row ids this pack WITHDRAWS - the entry is deleted, not merely unpublished (docs/API.md 'Vehicle catalog', docs/SYNC.md 'Applying an update'). A withdrawal is a physical delete, never a tombstone, so the full pack reads back exactly what is published and the server never remembers what it withdrew. An id in both removedIds and entries is a contradiction resolved in the removal's favour."
     }
   },
   "$defs": {
