@@ -41,6 +41,24 @@ struct ManualFillUpFormState: Equatable {
     var odometer = ""
     var date = Date()
 
+    /// The user's typed manual rate (F9, hard rule 13): the ORIGINAL per HOME
+    /// rate for this entry, as the user typed it. Empty string = none entered;
+    /// a valid positive parse (`manualRateDecimal`) makes the conversion state
+    /// `.converted(.manual)` at the ENTRY's date and writes through
+    /// `Money.applyingManualRate` on save. The raw string is kept so the field
+    /// shows exactly what the user's keypad produced (a Russian locale types
+    /// `4,2706`; reformatting it would fight the user's own digits).
+    var manualRate = ""
+
+    /// Whether the manual-rate editor has been engaged, so it stays open even
+    /// if the field is cleared mid-edit (the same state-in-the-form rule as
+    /// `isCurrencyExpanded`: a local `@State` in the card does not survive the
+    /// parent's re-renders). Without it, clearing the field on a feed-converted
+    /// card flips it back to the feed and the input vanishes while the user is
+    /// typing in it - a hard-rule-13 "edit it once" bug in the opposite
+    /// direction.
+    var isManualRateEditorOpen = false
+
     /// P2.3: which pump-card fields the extraction RESOLVED (never nil fields,
     /// never a QR-authoritative total - that is exact, not OCR-derived). Feeds
     /// the dimming gate: a resolved-but-unconfirmed field renders dimmed, and
@@ -63,6 +81,7 @@ struct ManualFillUpFormState: Equatable {
     var initialTotal = ""
     var initialLiters = ""
     var initialPricePerL = ""
+    var initialManualRate = ""
 
     // MARK: Parsing
 
@@ -74,6 +93,14 @@ struct ManualFillUpFormState: Equatable {
 
     var totalDecimal: Decimal? { Self.decimal(total) }
     var pricePerLDecimal: Decimal? { Self.decimal(pricePerL) }
+
+    /// The typed manual rate, parsed. Accepts the device's own decimal
+    /// separator (a Russian keypad produces `4,2706`); refuses 0, negative and
+    /// unparseable text (returns nil - the entry stays rate-pending, F9).
+    var manualRateDecimal: Decimal? {
+        ManualRate.parse(manualRate)
+    }
+
     var odometerValue: Int? {
         let trimmed = odometer.trimmingCharacters(in: .whitespaces)
         // Format-on-blur puts a thin-space grouped string back into the field
@@ -154,6 +181,7 @@ struct ManualFillUpFormState: Equatable {
         if !isFull { return true }
         if fuelKind != (vehicle.fuelKinds.first ?? .petrol95) { return true }
         if currency != vehicle.homeCurrency { return true }
+        if manualRate != initialManualRate { return true }
         return false
     }
 }

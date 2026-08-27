@@ -48,6 +48,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) | Edit the entry → the conversion card offers a manual rate · wait (it converts when a rate arrives) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
@@ -68,7 +69,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Low-confidence fields (F1 partial) | Fields dimmed at 60% | Tap to confirm or edit each; save enabled once required fields exist |
 | OCR read nothing (F1) | The Manual variant IS the answer: photo kept, caption "Couldn't read this one – type it in." | Type 3 fields · Rescan · photo stays attached regardless |
 | Currency low-confidence (schema rule) | Currency chip amber: "Which currency is this?" – never silently converts | One tap on the chip row |
-| No exchange rate for that date (F9) | Hint on conversion card: "≈ – · converts when online" | Save anyway (converts later) · enter rate manually |
+| No exchange rate for that date (F9) | Hint on conversion card: "≈ – · converts when online", with the manual-rate entry offered on the card itself (hard rule 7: the hint names its next step) | Save anyway (converts later) · enter rate manually (on the card) |
 | Cloud-fallback unavailable/quota spent (F4) | Hint: "check these – enhanced reading unavailable right now"; **never an upsell here** | Confirm/fix by hand · save |
 | Cloud fallback still working after **3 s** (F4, timeout branch) | Hint replaces the spinner: "Still reading in the background – carry on with what we read here." The sheet was never blocked; the message exists so the wait does not read as a hang | Carry on with the local values · a late answer fills **blank untouched fields only**, as a suggestion, and never after save |
 | On-device model unavailable (hardware lacks Apple Intelligence, the device language is unsupported – **Russian always is**, it is switched off, or the model is still downloading). **Since the tier 2 cut (2026-08-25) this is the state on every device**, so the row documents behaviour that is now universal rather than conditional | **Nothing at all.** Rules-only extraction is the normal path for most devices, not a degraded one – announcing its absence would invent a problem the user does not have | Confirm/fix as usual; the capability is checked at runtime and simply not used |
@@ -94,6 +95,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Edit entry
 | Condition | Shows | Next step |
 |---|---|---|
+| Foreign-currency entry | The conversion card, resolved honestly from the rate store (P5.2): converted from the feed (with "Edit rate"), converted from a manual rate (shown as Manual, editable - hard rule 13's "and again afterwards"), or rate-pending (with the manual-rate entry offered on the card) | Enter/change the rate on the card · leave it (saves as-is, pending converts later) |
 | Edit re-breaks cross-check or timeline | Same amber mechanics as Confirm | Same fixes; save-anyway keeps flag |
 | Entry was changed by sync (S1) | Quiet row: "Changed by sync · iPad, Aug 21" | Restore my version · keep |
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |
@@ -112,6 +114,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) – a hint, never amber: nothing is wrong, the home amount is simply not known yet | Edit the entry → the conversion card offers a manual rate · wait (it converts when a rate arrives) |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

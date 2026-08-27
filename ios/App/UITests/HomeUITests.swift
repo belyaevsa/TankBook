@@ -306,6 +306,73 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(textContaining(app, "entry excluded").exists)
     }
 
+    // MARK: - P5.2b the F9 pending-rates footnote
+
+    /// The footnote appears at N > 0: three foreign fills stored rate-pending
+    /// render "3 entries pending rates" - the REAL derived count (P5.2a), never
+    /// a hard-coded string.
+    func testPendingRatesFootnoteAppearsAtNOverZero() {
+        let app = launch(args: ["-seedHomePendingRates"])
+
+        let footnote = app.staticTexts["homePendingRatesFootnote"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 10),
+                      "the F9 footnote must render while entries are rate-pending")
+        XCTAssertTrue(footnote.label.contains("3 entries pending rates"),
+                      "the footnote must show the derived count, got '\(footnote.label)'")
+    }
+
+    /// The footnote disappears at zero: an all-converted history renders no
+    /// pending-rates line at all - nothing is wrong, so there is nothing to say.
+    func testPendingRatesFootnoteIsGoneAtZero() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.staticTexts["homePendingRatesFootnote"].exists,
+                       "at zero the footnote must disappear, not render '0 entries'")
+    }
+
+    /// The pending -> filled transition (docs/SYNC.md S8) is SILENT: the same
+    /// screen renders pending before and filled after a real backfill, with no
+    /// toast, no alert, no banner - the home amounts simply appear.
+    func testPendingToFilledTransitionShowsNoToastBannerOrAlert() {
+        // Phase 1: pending renders - the footnote is up and only the converted
+        // EUR rows carry amounts (the three PLN rows have none yet).
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomePendingRates"]
+        app.launch()
+
+        let footnote = app.staticTexts["homePendingRatesFootnote"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 10))
+        XCTAssertEqual(app.staticTexts.matching(identifier: "homeEntryAmount").count, 3,
+                       "before backfill only the three EUR rows show amounts")
+        XCTAssertFalse(app.buttons["deltaToast"].exists)
+        XCTAssertTrue(app.alerts.allElementsBoundByIndex.isEmpty,
+                      "pending is not an error: no alert")
+
+        // Phase 2: relaunch with the backfill hook. The pending state renders
+        // FIRST (the hook fires a wide beat later), so the test genuinely
+        // observes the same screen flip from pending to filled - never a
+        // vacuous "it was already gone".
+        app.terminate()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomePendingRates", "-runRateBackfill"]
+        app.launch()
+
+        let after = app.staticTexts["homePendingRatesFootnote"]
+        XCTAssertTrue(after.waitForExistence(timeout: 10),
+                      "the pending state must render before the backfill fills it")
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: after)
+        waitForExpectations(timeout: 15)
+        XCTAssertEqual(app.staticTexts.matching(identifier: "homeEntryAmount").count, 6,
+                       "after backfill all six rows show their home amount")
+        XCTAssertFalse(app.buttons["deltaToast"].exists,
+                       "a backfill must never show a toast (S8)")
+        XCTAssertTrue(app.alerts.allElementsBoundByIndex.isEmpty,
+                      "a backfill must never show an alert (S8)")
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].exists,
+                      "nothing covered Home - no banner, no modal (S8)")
+    }
+
     // MARK: - Helpers
 
     private func textContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {

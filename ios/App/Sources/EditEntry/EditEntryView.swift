@@ -98,12 +98,17 @@ struct EditEntryView: View {
         AddVehicleSupport.currencySymbol(for: fillForm.currency)
     }
 
-    /// The edit screen shows no conversion card (P5.2 owns money editing incl.
-    /// the manual rate); the currency section just needs to stay silent for a
-    /// foreign amount rather than showing the neutral same-currency caption.
+    /// The foreign-currency decision for the edited fill, resolved honestly
+    /// from the rate store exactly as the Confirm sheet does (P5.2). A manual
+    /// rate set on this entry - or loaded from its stored money - overrides the
+    /// feed (hard rule 13: the user's number wins and stays editable), so the
+    /// same card renders here as on Confirm, including the F9 next step.
     private var editConversionState: ForeignCurrencyState {
-        let home = vehicle?.homeCurrency ?? .eur
-        return fillForm.currency == home ? .notForeign : .ratePending
+        fillForm.conversionState(vehicle: vehicle, lowConfidence: false)
+    }
+
+    private var editConvertedAmount: Decimal? {
+        fillForm.convertedAmount(vehicle: vehicle, volumeUnit: volumeUnit, lowConfidence: false)
     }
 
     // MARK: - FillUp content
@@ -128,6 +133,15 @@ struct EditEntryView: View {
                                         volumeUnit: volumeUnit, currencySymbol: currencySymbol,
                                         reduceMotion: accessibilityReduceMotion)
                 if !editCurrencyNeedsAttention { editCurrencySection }
+                if editConversionState.showsConversionCard, let vehicle {
+                    ForeignCurrencyCard(
+                        currency: fillForm.currency,
+                        homeCurrency: vehicle.homeCurrency,
+                        state: editConversionState,
+                        convertedAmount: editConvertedAmount,
+                        manualRate: $fillForm.manualRate,
+                        isManualRateEditorOpen: $fillForm.isManualRateEditorOpen)
+                }
                 TankLevelRow(isFull: fillForm.isFull,
                              tankLevelAfterPct: fillForm.tankLevelAfterPct,
                              action: { showTankLevel = true })
@@ -295,6 +309,15 @@ struct EditEntryView: View {
                                                     otherEntries: otherEntries,
                                                     stationID: selectedStation?.id)
             updated.note = note.isEmpty ? nil : note
+            // Re-apply the conversion on save: editing amount/currency clears
+            // the snapshot (hard rule 3), and the money must come back with a
+            // rate - a manual rate if the user set one, the store's for the
+            // entry's date otherwise, rate-pending only when neither exists
+            // (F9). Without this an edited foreign fill-up silently lost its
+            // conversion and saved rate-pending.
+            if let money = updated.money {
+                updated.money = fillForm.convertForSave(money, vehicle: vehicle, lowConfidence: false)
+            }
             try repository.upsertFillUp(updated)
             let after = headline(repository: repository, vehicle: vehicle)
             notify(before: before, after: after, vehicle: vehicle)

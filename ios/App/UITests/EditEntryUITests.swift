@@ -151,4 +151,52 @@ final class EditEntryUITests: XCTestCase {
                       "save-anyway must keep the conflict flag visible on Home")
         XCTAssertTrue(app.staticTexts["1 entry excluded"].exists)
     }
+
+    // MARK: - P5.2b the manual rate is editable "again afterwards" (rule 13)
+
+    /// A rate the user set before loads back into the edit screen's conversion
+    /// card as Manual and stays changeable - the clause the task exists for: a
+    /// rate settable only once, at Confirm, is the bug hard rule 13 names.
+    func testEditCanChangeAManualRateThatWasAlreadySet() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntryManualRate",
+                               "-presentScreen", "editEntry"]
+        app.launch()
+
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10))
+        let card = app.otherElements["manualFillUpConversionCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5),
+                      "a foreign entry on Edit must render the conversion card")
+        XCTAssertTrue(app.staticTexts["manualFillUpConvertedValue"].exists)
+        let rateLine = app.staticTexts["manualFillUpRateLine"]
+        XCTAssertTrue(rateLine.exists)
+        XCTAssertTrue(rateLine.label.contains("Manual"),
+                      "a manually-rated entry must render its own source, got '\(rateLine.label)'")
+
+        // The stored manual rate loads into the editable field - 289.50 PLN at
+        // 4.0 -> 72.38 EUR.
+        let field = app.textFields["manualFillUpManualRateField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        XCTAssertEqual(field.value as? String, "4.0000",
+                       "the stored manual rate must load into the field, got '\(field.value ?? "")'")
+
+        // Change it: 289.50 / 4.5 = 64.33, and the card updates in place.
+        replaceText(in: field, with: "4.5", app: app)
+        let value = app.staticTexts["manualFillUpConvertedValue"]
+        XCTAssertTrue(value.waitForExistence(timeout: 5))
+        XCTAssertTrue(value.label.contains("64.33"),
+                      "changing the rate must re-convert, got '\(value.label)'")
+
+        // Save and reopen: the new manual rate persists.
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+
+        openNewestFill(app)
+        let reopened = app.textFields["manualFillUpManualRateField"]
+        XCTAssertTrue(reopened.waitForExistence(timeout: 5))
+        XCTAssertEqual(reopened.value as? String, "4.5000",
+                       "the changed manual rate must persist, got '\(reopened.value ?? "")'")
+    }
 }

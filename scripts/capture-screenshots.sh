@@ -177,6 +177,20 @@ capture P2.5-confirm-foreign-ru     ru -seedVehicleForUITests -presentScreen con
 capture P2.5-confirm-foreign-pending    en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 capture P2.5-confirm-foreign-pending-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 
+# P5.2b: the rate-pending card's missing next step (the manual-rate row on the
+# card itself, hard rule 7), the same card flipped to converted from a manual
+# rate (source "Manual"), and the F9 "N entries pending rates" footnote on
+# Trends and Home. RU is where "Изменить курс" and "N записей ждут курс" are
+# tightest.
+capture P5.2b-confirm-pending-next-step     en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
+capture P5.2b-confirm-pending-next-step-ru  ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
+capture P5.2b-confirm-manual-rate           en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending -manualRate 4.2706
+capture P5.2b-confirm-manual-rate-ru        ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending -manualRate 4.2706
+capture P5.2b-trends-pending-footnote       en -seedHomePendingRates -selectTrendsTab
+capture P5.2b-trends-pending-footnote-ru    ru -seedHomePendingRates -selectTrendsTab
+capture P5.2b-home-pending-footnote         en -seedHomePendingRates
+capture P5.2b-home-pending-footnote-ru      ru -seedHomePendingRates
+
 # P3.1a: the typed ServiceEntry screen - the artboard state (two line items),
 # and the lump-sum variant (one uncategorized item carrying the whole total).
 capture P3.1a-service-entry            en -seedServiceEntry -presentScreen serviceEntry

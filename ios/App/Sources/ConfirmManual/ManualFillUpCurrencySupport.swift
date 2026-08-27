@@ -7,9 +7,10 @@ import TankbookCore
 // The rate store is a shared, thread-safe instance over the bundled seed pack
 // plus the persisted cache, refreshed from the backend's public `/rates/pack`
 // feed (never launch-blocking - a miss is never an error, F9). The foreign-
-// currency decision and its money pair live in `RateStore.resolve` (core); this
-// extension holds the three thin view-side conveniences so the sheet and the
-// save path read one source of truth.
+// currency decision and its money pair live in `RateStore.resolve` (core); the
+// form-state extension below holds the thin view-side conveniences so the
+// Confirm sheet and the Edit screen read one source of truth (P5.2b), including
+// the manual-rate override (hard rule 13).
 
 /// The app-wide rate store. Built lazily on first use from the bundled seed
 /// pack and the persisted cache, with the real fetcher behind the configured
@@ -65,37 +66,85 @@ private struct PublicTokenProvider: AuthorizationTokenProvider {
     func token() -> String? { nil }
 }
 
-extension ManualFillUpView {
-    /// The single foreign-currency decision for the current form, shared by the
-    /// conversion card and the save path. Detection comes from the extraction's
-    /// currency when present and the user's chip choice otherwise - never the
-    /// device locale alone.
-    var conversionState: ForeignCurrencyState {
+@MainActor
+extension ManualFillUpFormState {
+    /// The effective foreign-currency state for this form. A typed manual rate
+    /// is the user's decision and WINS over the feed's snapshot (hard rule 13):
+    /// it renders as `.converted(.manual)` at the entry's OWN date - never
+    /// today (F9) - and the feed never rewrites it afterwards. Never on a
+    /// low-confidence currency: an uncertain currency asks, never converts.
+    func conversionState(vehicle: Vehicle?, lowConfidence: Bool) -> ForeignCurrencyState {
         guard let vehicle else { return .notForeign }
-        let snapshot = AppRates.store.snapshot(original: form.currency,
+        guard currency != vehicle.homeCurrency else { return .notForeign }
+        if !lowConfidence, let manual = manualRateDecimal {
+            return .converted(RateSnapshot(rate: manual, rateDate: date, source: .manual))
+        }
+        let snapshot = AppRates.store.snapshot(original: currency,
                                                home: vehicle.homeCurrency,
-                                               on: form.date)
-        return ForeignCurrencyDetector.state(currency: form.currency,
+                                               on: date)
+        return ForeignCurrencyDetector.state(currency: currency,
                                              homeCurrency: vehicle.homeCurrency,
-                                             lowConfidence: currencyLowConfidence,
+                                             lowConfidence: lowConfidence,
                                              snapshot: snapshot)
     }
 
     /// The converted home amount for the card, for the total Save will write -
-    /// the exact same snapshot, never a separately-rounded figure.
+    /// the exact same decision, never a separately-rounded figure. A manual
+    /// rate writes through `Money.applyingManualRate` (the documented pair:
+    /// the entry's date, `rateSource == .manual`) - never a hand-built snapshot
+    /// fed to `converted(using:)`, which is fill-blanks-only (P5.2a pins this).
+    func convertedAmount(vehicle: Vehicle?, volumeUnit: VolumeUnit,
+                         lowConfidence: Bool) -> Decimal? {
+        guard let vehicle, let total = effectiveTotal(volumeUnit: volumeUnit) else { return nil }
+        switch conversionState(vehicle: vehicle, lowConfidence: lowConfidence) {
+        case .converted(let snapshot):
+            let base = Money(amount: total, currency: currency, homeCurrency: vehicle.homeCurrency)
+            if snapshot.source == .manual {
+                return base.applyingManualRate(snapshot.rate, on: snapshot.rateDate).homeAmount
+            }
+            return base.converted(using: snapshot).homeAmount
+        case .ratePending, .notForeign, .lowConfidence:
+            return nil
+        }
+    }
+
+    /// Applies the current conversion to a money pair for saving. A manual rate
+    /// is the user's number and replaces whatever the feed wrote via
+    /// `Money.applyingManualRate`; otherwise the store's snapshot applies
+    /// fill-blanks-only; when the state is not `.converted` the pair saves
+    /// rate-pending (F9) - conversion is metadata, never a save-blocker.
+    func convertForSave(_ money: Money, vehicle: Vehicle?, lowConfidence: Bool) -> Money {
+        switch conversionState(vehicle: vehicle, lowConfidence: lowConfidence) {
+        case .converted(let snapshot):
+            if snapshot.source == .manual {
+                return money.applyingManualRate(snapshot.rate, on: snapshot.rateDate)
+            }
+            return money.converted(using: snapshot)
+        case .ratePending, .notForeign, .lowConfidence:
+            return money
+        }
+    }
+}
+
+extension ManualFillUpView {
+    /// The single foreign-currency decision for the current form, shared by the
+    /// conversion card and the save path. Detection comes from the extraction's
+    /// currency when present and the user's chip choice otherwise - never the
+    /// device locale alone. A typed manual rate overrides the feed (rule 13).
+    var conversionState: ForeignCurrencyState {
+        form.conversionState(vehicle: vehicle, lowConfidence: currencyLowConfidence)
+    }
+
+    /// The converted home amount for the card, for the total Save will write.
     var convertedAmount: Decimal? {
-        guard case .converted(let snapshot) = conversionState,
-              let vehicle, let total = form.effectiveTotal(volumeUnit: volumeUnit) else { return nil }
-        let base = Money(amount: total, currency: form.currency,
-                         homeCurrency: vehicle.homeCurrency)
-        return base.converted(using: snapshot).homeAmount
+        form.convertedAmount(vehicle: vehicle, volumeUnit: volumeUnit,
+                             lowConfidence: currencyLowConfidence)
     }
 
     /// Applies the current conversion to a money pair for saving. When the
     /// state is not `.converted` the pair saves rate-pending (F9).
     func convertForSave(_ money: Money) -> Money {
-        guard case .converted(let snapshot) = conversionState else { return money }
-        return money.converted(using: snapshot)
+        form.convertForSave(money, vehicle: vehicle, lowConfidence: currencyLowConfidence)
     }
 }
 

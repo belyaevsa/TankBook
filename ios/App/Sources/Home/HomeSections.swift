@@ -259,6 +259,10 @@ struct HomeRecentEntries: View {
     let stations: [Station]
     let vehicle: Vehicle
     let excludedEntryCount: Int
+    /// The F9 pending-rates footnote count (docs/JOURNEYS.md F9) - how many
+    /// entries are still waiting on a rate. Derived by `HomeStats` (P5.2a);
+    /// the footnote renders beside the excluded one and disappears at zero.
+    let pendingRateCount: Int
     /// S2 pairs the user already resolved as "keep both" - the stream renders
     /// them as two normal rows, never as a duplicate card again
     /// (docs/SYNC.md S2).
@@ -292,6 +296,10 @@ struct HomeRecentEntries: View {
         VStack(alignment: .leading, spacing: 10) {
             if excludedEntryCount > 0 {
                 excludedFootnote
+            }
+            if pendingRateCount > 0 {
+                PendingRatesFootnote(count: pendingRateCount,
+                                     identifier: "homePendingRatesFootnote")
             }
             ForEach(stream.sections) { section in
                 monthSection(section)

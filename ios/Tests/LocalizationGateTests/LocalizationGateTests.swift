@@ -168,6 +168,55 @@ struct LocalizationGateTests {
         #expect(en["other"] == "%lld items on this receipt")
     }
 
+    // MARK: - P5.2b the F9 pending-rates footnote plural
+
+    /// The F9 footnote's real plural rules, asserted on the RENDERED strings -
+    /// a test that only checks the count is present would pass on
+    /// "5 entries pending rates" in Russian. The catalogue holds the three
+    /// Russian forms; rendering 1, 2 and 5 must produce three DISTINCT strings
+    /// (1 запись ждёт курс / 2 записи ждут курс / 5 записей ждут курс), and
+    /// English must distinguish one from other.
+    @Test("the pending-rates footnote renders distinct forms for 1, 2 and 5")
+    func pendingRatesFootnotePlurals() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let key = "%lld entries pending rates"
+
+        let ru = catalogue.pluralForms(for: key, language: "ru")
+        let en = catalogue.pluralForms(for: key, language: "en")
+        #expect(!ru.isEmpty, "RU plural forms must exist for \(key)")
+        #expect(!en.isEmpty, "EN plural forms must exist for \(key)")
+
+        func render(_ forms: [String: String], _ count: Int) -> String {
+            let form = ruPluralForm(for: count)
+            guard let template = forms[form] else { return "MISSING-\(form)" }
+            return template.replacingOccurrences(of: "%lld", with: "\(count)")
+        }
+
+        let ru1 = render(ru, 1)
+        let ru2 = render(ru, 2)
+        let ru5 = render(ru, 5)
+        let en1 = render(en, 1)
+        let en2 = render(en, 2)
+
+        #expect(ru1 != ru2 && ru2 != ru5 && ru1 != ru5,
+                "Russian needs three distinct forms, got '\(ru1)' | '\(ru2)' | '\(ru5)'")
+        #expect(en1 != en2, "English must distinguish one from other, got '\(en1)' | '\(en2)'")
+        // The count genuinely lands in the phrase (RU word order is not EN's).
+        #expect(ru1.contains("1"))
+        #expect(ru2.contains("2"))
+        #expect(ru5.contains("5"))
+    }
+
+    /// The CLDR Russian plural rule (one / few / many), matching what
+    /// `String(localized:)` applies against the catalogue's variations.
+    private func ruPluralForm(for count: Int) -> String {
+        let mod10 = count % 10
+        let mod100 = count % 100
+        if mod10 == 1 && mod100 != 11 { return "one" }
+        if mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14) { return "few" }
+        return "many"
+    }
+
     // MARK: - False-positive guard (the reason gates get deleted)
 
     @Test("accessibility identifiers, launch args, logs and system images are not flagged")

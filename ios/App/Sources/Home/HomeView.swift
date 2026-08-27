@@ -124,6 +124,7 @@ struct HomeView: View {
             HomeRecentEntries(entries: entries, stations: stations,
                               vehicle: stats.vehicle,
                               excludedEntryCount: stats.excludedEntryCount,
+                              pendingRateCount: stats.pendingRateCount,
                               duplicateResolutions: resolvedDuplicateKeys,
                               onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
                               onMerge: { group in mergeDuplicate(group) })
@@ -253,6 +254,13 @@ struct HomeView: View {
         if !didSeed {
             didSeed = true
             HomeTestSeed.seedIfRequested()
+            RateBackfillDebugHook.runIfRequested {
+                // A backfill filled rate-pending entries: reload so the F9
+                // footnote disappears and the home amounts appear - silently
+                // (docs/SYNC.md S8). `noteEntryChanged` bumps the revision
+                // without a toast; this is exactly the edit-save reload path.
+                toastCenter.noteEntryChanged()
+            }
         }
         do {
             let repository = try AppStore.repository()

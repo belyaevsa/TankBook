@@ -127,7 +127,9 @@ struct ManualFillUpView: View {
                             currency: form.currency,
                             homeCurrency: vehicle!.homeCurrency,
                             state: conversionState,
-                            convertedAmount: convertedAmount)
+                            convertedAmount: convertedAmount,
+                            manualRate: $form.manualRate,
+                            isManualRateEditorOpen: $form.isManualRateEditorOpen)
                     }
                     if case .mixed(let lines, let fuelLine, let grandTotal) = detection {
                         MixedReceiptSection(
@@ -220,6 +222,7 @@ struct ManualFillUpView: View {
             form.initialTotal = form.total
             form.initialLiters = form.liters
             form.initialPricePerL = form.pricePerL
+            form.initialManualRate = form.manualRate
             currencyLowConfidence = currencyLowConfidence
                 || ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
             if ProcessInfo.processInfo.arguments.contains("-screenshotPrefill") {
@@ -227,6 +230,13 @@ struct ManualFillUpView: View {
                 // state (total + liters typed, price fills in) without typing.
                 form.total = "71.02"
                 form.liters = "42.30"
+            }
+            if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-manualRate"),
+               ProcessInfo.processInfo.arguments.indices.contains(index + 1) {
+                // Screenshot hook: pre-fill the manual-rate field so the card
+                // renders as converted-from-Manual without typing (the P5.2b
+                // screenshot state). Same default-input rules as any pre-fill.
+                form.manualRate = ProcessInfo.processInfo.arguments[index + 1]
             }
         } catch {
             Self.log.error("Manual fill-up load failed: \(error.localizedDescription, privacy: .public)")

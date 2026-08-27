@@ -11,7 +11,12 @@ import TankbookCore
 enum EditEntryTestSeed {
     @MainActor
     static func seedIfRequested() {
-        guard ProcessInfo.processInfo.arguments.contains("-seedEditEntry") else { return }
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-seedEditEntryManualRate") {
+            seedManualRate()
+            return
+        }
+        guard arguments.contains("-seedEditEntry") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
@@ -63,5 +68,49 @@ enum EditEntryTestSeed {
             volumeL: 42.30, unitPrice: Decimal(string: "1.679")!,
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: shell.id, crossCheck: .verified, extraction: nil))
+    }
+
+    /// The hard-rule-13 "and again afterwards" state: a foreign fill-up whose
+    /// rate was set by the USER (rateSource == .manual) on an earlier visit.
+    /// The Edit screen must load that rate back into its conversion card, show
+    /// it as Manual, and let the user change it - the screen where "set it
+    /// once, at Confirm" would have been the bug. The fill is dated inside the
+    /// bundled rate seed pack, so a feed rate exists for its day too: the
+    /// manual rate must still win (the user's number is theirs permanently).
+    @MainActor
+    private static func seedManualRate() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-seedEditEntryManualRate") else { return }
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_579)
+        try? repository.upsertVehicle(vehicle)
+
+        // 289.50 PLN at the user's rate 4.0 -> 72.38 EUR. The feed holds
+        // 4.25659243 for the same day; only the manual value must show.
+        let entryDay = Calendar.current.date(from: DateComponents(year: 2026, month: 8, day: 1)) ?? now
+        let money = Money(amount: Decimal(string: "289.50")!, currency: .pln, homeCurrency: .eur)
+            .applyingManualRate(Decimal(string: "4.0")!, on: entryDay)
+        try? repository.upsertFillUp(FillUp(
+            id: UUID.v7(), createdAt: entryDay, updatedAt: entryDay, deletedAt: nil,
+            vehicleId: vehicle.id, date: entryDay, odometer: 120_000,
+            money: money, note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            volumeL: 42.3, unitPrice: Decimal(string: "6.844")!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: nil, crossCheck: .notApplicable, extraction: nil))
     }
 }
