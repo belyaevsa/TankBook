@@ -98,7 +98,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ вернулся с 1 новой записью – остаётся в архиве."
+            "value": "«%@» вернулся с 1 новой записью – остаётся в архиве."
           }
         }
       }
@@ -2809,7 +2809,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Установить %1$@ от %2$@?"
+            "value": "Установить «%1$@» от %2$@?"
           }
         }
       }
@@ -6389,7 +6389,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "удалено на %@"
+            "value": "устройство: %@"
           }
         }
       }
@@ -7188,7 +7188,7 @@
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Под этим %1$@ ничего не сохранено. В прошлый раз вы входили через %2$@?"
+            "value": "Под этой учётной записью «%1$@» ничего не сохранено. В прошлый раз вы входили через %2$@?"
           }
         }
       }
@@ -7906,25 +7906,25 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld час назад"
+                  "value": "Синхронизировано %lld час назад"
                 }
               },
               "few": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld часа назад"
+                  "value": "Синхронизировано %lld часа назад"
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld часов назад"
+                  "value": "Синхронизировано %lld часов назад"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld часов назад"
+                  "value": "Синхронизировано %lld часов назад"
                 }
               }
             }
@@ -7959,25 +7959,25 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld день назад"
+                  "value": "Синхронизировано %lld день назад"
                 }
               },
               "few": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld дня назад"
+                  "value": "Синхронизировано %lld дня назад"
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld дней назад"
+                  "value": "Синхронизировано %lld дней назад"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld дней назад"
+                  "value": "Синхронизировано %lld дней назад"
                 }
               }
             }

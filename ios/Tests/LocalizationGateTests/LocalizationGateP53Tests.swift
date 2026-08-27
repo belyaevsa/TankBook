@@ -1,0 +1,344 @@
+import Foundation
+import Testing
+@testable import LocalizationGate
+
+/// P5.3 - the RU localization pass (docs/TASKS.md P5.3). Two suites cover it:
+/// this one owns the NEW gate passes (the `Text(_: String)` blind spot) and
+/// the Russian plural selection at 11/21; `LocalizationGateTests` keeps the
+/// P0.3 gate. Split so no test type trips the type_body_length lint rule.
+@Suite("Localization gate (P5.3)")
+struct LocalizationGateP53Tests {
+
+    /// ios/Tests/LocalizationGateTests/<this file> -> ios/App/Sources
+    private static var catalogueURL: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // ios/Tests/LocalizationGateTests
+            .deletingLastPathComponent() // ios/Tests
+            .deletingLastPathComponent() // ios
+            .appendingPathComponent("App/Sources/Localizable.xcstrings")
+    }
+
+    private static func makeTempDir() throws -> URL {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("gate-p53-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir
+    }
+
+    // MARK: - P5.3 the Text(_: String) blind spot
+
+    /// `Text(x ?? "literal")` is a `String`, so the literal renders English
+    /// whatever the catalogue holds - the recorded blind spot. The pass must
+    /// flag it, and the recorded fix (split the expression so the literal
+    /// reaches `Text(_: LocalizedStringKey)`) must clear it.
+    @Test("a coalesced fallback literal is flagged and the split fix clears it")
+    func coalescedFallbackIsFlagged() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let dir = try Self.makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("CoalescedView.swift")
+
+        try """
+        import SwiftUI
+        struct CoalescedView: View {
+            let quote: String?
+            var body: some View { Text(quote ?? "Odometer breaks the timeline – check it.") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let violations = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(violations.count == 1, "got \(violations)")
+        #expect(violations.first?.kind == .stringExpressionLiteral)
+        #expect(violations.first?.keyTemplate == "Odometer breaks the timeline – check it.")
+
+        // The recorded fix: split so the literal is its own LocalizedStringKey.
+        try """
+        import SwiftUI
+        struct CoalescedView: View {
+            let quote: String?
+            var body: some View {
+                if let quote { Text(quote) } else { Text("Odometer breaks the timeline – check it.") }
+            }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let clean = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(clean.isEmpty, "split fix must clear the violation; got \(clean)")
+    }
+
+    /// `Text(cond ? variable : "literal")` is pinned to String by the
+    /// non-literal branch, so the literal branch renders English.
+    @Test("a mixed ternary's literal branch is flagged")
+    func mixedTernaryLiteralIsFlagged() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let dir = try Self.makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("TernaryView.swift")
+
+        try """
+        import SwiftUI
+        struct TernaryView: View {
+            let name: String
+            var body: some View { Text(name.isEmpty ? name : "Nearby suggestion") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let violations = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(violations.count == 1, "got \(violations)")
+        #expect(violations.first?.kind == .stringExpressionLiteral)
+    }
+
+    /// `"a" + "b"` and `variable + "km"` are always `String`, so their literals
+    /// can never reach the catalogue. A variable-led concatenation is the
+    /// compound-pass shape (the trailing literal is a direct `+` operand); an
+    /// all-literal concatenation already fails the normal pass, because the
+    /// leading literal is recorded as the key `"Save "` - trailing space and
+    /// all - which no catalogue entry can match.
+    @Test("a concatenated literal is flagged")
+    func concatenatedLiteralIsFlagged() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let dir = try Self.makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("ConcatView.swift")
+
+        try """
+        import SwiftUI
+        struct ConcatView: View {
+            let amount: String
+            var body: some View { Text(amount + " km") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let violations = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(violations.count == 1, "got \(violations)")
+        #expect(violations.first?.kind == .stringExpressionLiteral)
+        #expect(violations.first?.keyTemplate == " km")
+
+        try """
+        import SwiftUI
+        struct ConcatView: View {
+            var body: some View { Text("Save " + "fill-up") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let allLiteral = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(!allLiteral.isEmpty, "all-literal concatenation must fail the gate")
+    }
+
+    /// `Text(cond ? "A" : "B")` with both branches literal is a
+    /// `LocalizedStringKey` (a runtime key), so the branches need catalogue
+    /// membership - and a branch missing from the catalogue must fail the gate.
+    /// The same shape already ships in the app (VehicleFormControls, SignInView,
+    /// ServiceEntryView) and was previously invisible to key scanning.
+    @Test("an all-literal ternary's branches are checked for catalogue membership")
+    func allLiteralTernaryBranchesAreKeys() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let dir = try Self.makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("TernaryKeysView.swift")
+
+        // Both branches are real catalogue keys - clean.
+        try """
+        import SwiftUI
+        struct TernaryKeysView: View {
+            let hasPhoto: Bool
+            var body: some View { Text(hasPhoto ? "Replace photo" : "Add a photo") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        #expect(try LocalizationGate.violations(sources: dir, catalogue: catalogue).isEmpty)
+
+        // A branch that is not a catalogue key is a key-membership failure.
+        let marker = "N0T_A_KEY_\(UInt64.random(in: UInt64.min ... UInt64.max))"
+        try """
+        import SwiftUI
+        struct TernaryBadView: View {
+            let on: Bool
+            var body: some View { Text(on ? "Replace photo" : "\(marker)") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let violations = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(violations.count == 1, "got \(violations)")
+        #expect(violations.first?.kind == .noEntry)
+        #expect(violations.first?.keyTemplate == marker)
+    }
+
+    /// An interpolated literal passed straight to `Text` is NOT the blind
+    /// spot: the compiler routes it through `Text(_: LocalizedStringKey)` with
+    /// a `%@` key (verified against the SwiftUI interface - the `String` init
+    /// is `@_disfavoredOverload`), so it localises exactly like a bare literal
+    /// and must not be flagged. The blind spot is a `String`-typed *value*
+    /// sharing an expression with copy, never an interpolated literal.
+    @Test("an interpolated literal is not the blind spot and is not flagged")
+    func interpolatedLiteralIsNotFlagged() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let dir = try Self.makeTempDir()
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let file = dir.appendingPathComponent("InterpolatedView.swift")
+
+        try """
+        import SwiftUI
+        struct InterpolatedView: View {
+            let name: String
+            var body: some View { Text("\\(name) came back with 1 new entry – stays archived.") }
+        }
+        """.write(to: file, atomically: true, encoding: .utf8)
+
+        let violations = try LocalizationGate.violations(sources: dir, catalogue: catalogue)
+        #expect(violations.isEmpty, "interpolated literals localise via LocalizedStringKey; got \(violations)")
+    }
+
+    // MARK: - P5.3 Russian plural selection at 11 and 21
+
+    /// The expected RENDERED RU strings at 1/2/5/11/21, keyed by catalogue
+    /// key. A data table rather than a shape check: the assertion that matters
+    /// is the exact string, so a future regression cannot hide behind "the
+    /// number appears". 11 must take `many`, 21 `one`.
+    private static let pluralCases: [(String, [Int: String])] = [
+            ("%lld cars", [1: "1 автомобиль", 2: "2 автомобиля", 5: "5 автомобилей",
+                           11: "11 автомобилей", 21: "21 автомобиль"]),
+            ("%lld days", [1: "1 день", 2: "2 дня", 5: "5 дней",
+                           11: "11 дней", 21: "21 день"]),
+            ("%lld days ago", [1: "1 день назад", 2: "2 дня назад", 5: "5 дней назад",
+                               11: "11 дней назад", 21: "21 день назад"]),
+            ("%lld days left", [1: "Остался 1 день", 2: "Осталось 2 дня", 5: "Осталось 5 дней",
+                                11: "Осталось 11 дней", 21: "Остался 21 день"]),
+            ("%lld entries", [1: "1 запись", 2: "2 записи", 5: "5 записей",
+                              11: "11 записей", 21: "21 запись"]),
+            ("%lld entries excluded", [1: "1 запись исключена", 2: "2 записи исключены",
+                                       5: "5 записей исключено", 11: "11 записей исключено",
+                                       21: "21 запись исключена"]),
+            ("%lld entries need a look", [1: "1 запись требует внимания", 2: "2 записи требуют внимания",
+                                          5: "5 записей требуют внимания", 11: "11 записей требуют внимания",
+                                          21: "21 запись требует внимания"]),
+            ("%lld entries pending rates", [1: "1 запись ждёт курс", 2: "2 записи ждут курс",
+                                            5: "5 записей ждут курс", 11: "11 записей ждут курс",
+                                            21: "21 запись ждёт курс"]),
+            ("%lld items on this receipt", [1: "1 позиция в этом чеке", 2: "2 позиции в этом чеке",
+                                            5: "5 позиций в этом чеке", 11: "11 позиций в этом чеке",
+                                            21: "21 позиция в этом чеке"]),
+            ("Save fill-up + %lld expenses", [1: "Сохранить заправку + 1 расход",
+                                              2: "Сохранить заправку + 2 расхода",
+                                              5: "Сохранить заправку + 5 расходов",
+                                              11: "Сохранить заправку + 11 расходов",
+                                              21: "Сохранить заправку + 21 расход"]),
+            ("Synced %lld days ago", [1: "Синхронизировано 1 день назад", 2: "Синхронизировано 2 дня назад",
+                                      5: "Синхронизировано 5 дней назад", 11: "Синхронизировано 11 дней назад",
+                                      21: "Синхронизировано 21 день назад"]),
+            ("Synced %lld hours ago", [1: "Синхронизировано 1 час назад", 2: "Синхронизировано 2 часа назад",
+                                       5: "Синхронизировано 5 часов назад", 11: "Синхронизировано 11 часов назад",
+                                       21: "Синхронизировано 21 час назад"]),
+            ("Waiting to sync · %lld changes", [1: "Ожидает синхронизации · 1 изменение",
+                                                2: "Ожидает синхронизации · 2 изменения",
+                                                5: "Ожидает синхронизации · 5 изменений",
+                                                11: "Ожидает синхронизации · 11 изменений",
+                                                21: "Ожидает синхронизации · 21 изменение"]),
+            ("first estimate · %lld fill cycles", [1: "предварительная оценка · 1 цикл заправки",
+                                                   2: "предварительная оценка · 2 цикла заправки",
+                                                   5: "предварительная оценка · 5 циклов заправки",
+                                                   11: "предварительная оценка · 11 циклов заправки",
+                                                   21: "предварительная оценка · 21 цикл заправки"]),
+            ("in %lld days", [1: "через 1 день", 2: "через 2 дня", 5: "через 5 дней",
+                              11: "через 11 дней", 21: "через 21 день"]),
+            ("in %lld months", [1: "через 1 месяц", 2: "через 2 месяца", 5: "через 5 месяцев",
+                                11: "через 11 месяцев", 21: "через 21 месяц"]),
+            ("last %lld months", [1: "за 1 месяц", 2: "за 2 месяца", 5: "за 5 месяцев",
+                                  11: "за 11 месяцев", 21: "за 21 месяц"]),
+            ("%lld cars – %@", [1: "1 автомобиль – Volvo V60", 2: "2 автомобиля – Volvo V60",
+                                5: "5 автомобилей – Volvo V60", 11: "11 автомобилей – Volvo V60",
+                                21: "21 автомобиль – Volvo V60"])
+        ]
+
+    /// Russian plural selection is not 1/2/5: 11 ends in 1 but takes `many`,
+    /// 21 ends in 1 and takes `one`. Every plural key the app renders is
+    /// asserted on its RENDERED string - each expected string is written out
+    /// in full in `pluralCases`.
+    @Test("RU plural strings render the right form at 1, 2, 5, 11 and 21")
+    func russianPluralsSelectTheRightFormAtTheEdges() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let category: [Int: String] = [1: "one", 2: "few", 5: "many", 11: "many", 21: "one"]
+
+        func render(_ key: String, _ count: Int) -> String {
+            let ruForms = catalogue.pluralForms(for: key, language: "ru")
+            guard let form = category[count], let template = ruForms[form] else {
+                return "MISSING-\(String(describing: category[count]))"
+            }
+            return template
+                .replacingOccurrences(of: "%lld", with: "\(count)")
+                .replacingOccurrences(of: "%@", with: "Volvo V60")
+        }
+
+        for (key, expected) in Self.pluralCases {
+            for count in [1, 2, 5, 11, 21] {
+                #expect(render(key, count) == expected[count],
+                        "\(key) at \(count): rendered '\(render(key, count))', expected '\(expected[count])'")
+            }
+        }
+    }
+
+    /// The P1.4 lesson made load-bearing: "Synced 3 hours ago" must not lose
+    /// the verb in Russian. The status line renders reassurance, and a bare
+    /// "3 часа назад" reads as a fact, not a sync state.
+    @Test("Synced hours/days ago keep the verb in Russian")
+    func syncedAgoKeepsItsVerb() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        for key in ["Synced %lld hours ago", "Synced %lld days ago"] {
+            let ruForms = catalogue.pluralForms(for: key, language: "ru")
+            #expect(ruForms.values.allSatisfy { $0.contains("Синхронизировано") },
+                    "\(key) RU forms must keep the verb: \(ruForms)")
+            #expect(!ruForms.values.contains { $0.hasPrefix("%lld") },
+                    "\(key) must not start with the bare count: \(ruForms)")
+        }
+    }
+
+    /// The P5.3 shape changes, pinned. Each key's RU puts the runtime slot in
+    /// a position no preposition reaches: a quoted nominative, an apposition,
+    /// or a slot after a separator. The assertion is the sharper rule itself:
+    /// no governing preposition may sit IMMEDIATELY before the slot, because
+    /// the slot receives text (a car name, a part title, an account name, a
+    /// device name) that cannot be declined - the P4.7 lesson is that no
+    /// translation fixes a wrong sentence shape.
+    @Test("reshaped RU keys do not place a governing preposition before the runtime slot")
+    func reshapedKeysDoNotGovernTheSlot() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+
+        // A struct, not a tuple - the gate's own lint rule (large_tuple)
+        // must not be tripped by the tests that guard the gate.
+        struct ReshapedKey {
+            let key: String
+            let slot: String
+            let expectedRU: String
+        }
+        let reshaped: [ReshapedKey] = [
+            ReshapedKey(key: "%@ came back with 1 new entry – stays archived.",
+                        slot: "%@", expectedRU: "«%@» вернулся с 1 новой записью – остаётся в архиве."),
+            ReshapedKey(key: "Install %1$@ from %2$@?",
+                        slot: "%1$@", expectedRU: "Установить «%1$@» от %2$@?"),
+            ReshapedKey(key: "Nothing is stored under this %1$@. Last time, did you sign in with %2$@?",
+                        slot: "%1$@",
+                        expectedRU: "Под этой учётной записью «%1$@» ничего не сохранено. "
+                            + "В прошлый раз вы входили через %2$@?"),
+            ReshapedKey(key: "removed on %@",
+                        slot: "%@", expectedRU: "устройство: %@")
+        ]
+
+        // с, на, в, от, до, у, под, за, для, про, о - the prepositions that
+        // govern a following noun. Any of them directly before the slot means
+        // the sentence shape is wrong.
+        let prepositionPattern = #"\b(?:с|на|в|от|до|у|под|за|для|про|о)\s+"#
+
+        for item in reshaped {
+            guard let russian = catalogue.value(for: item.key, language: "ru") else {
+                Issue.record("\(item.key) has no RU value")
+                continue
+            }
+            #expect(russian == item.expectedRU, "\(item.key) RU drifted: '\(russian)'")
+            let slotPattern = NSRegularExpression.escapedPattern(for: item.slot)
+            let full = try NSRegularExpression(pattern: prepositionPattern + slotPattern)
+            let range = NSRange(russian.startIndex..., in: russian)
+            #expect(full.firstMatch(in: russian, options: [], range: range) == nil,
+                    "\(item.key) RU '\(russian)' governs \(item.slot) with a preposition")
+        }
+    }
+}

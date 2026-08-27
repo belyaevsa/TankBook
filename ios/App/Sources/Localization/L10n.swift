@@ -21,6 +21,16 @@ import TankbookCore
 /// Split them - `if let x { Text(x) } else { Text("literal") }` - so the literal
 /// reaches the `LocalizedStringKey` overload. When a wrapper must take text, type
 /// its parameter `LocalizedStringKey`, not `String`.
+///
+/// P5.3 made the provable half of this a gate: `LocalizationGate` now flags a
+/// literal sitting inside a `String`-typed argument (`x ?? "…"`, a mixed
+/// ternary, a concatenation), and it found two live instances (the Provider /
+/// Vendor placeholders on Edit entry, both fixed). An interpolated literal
+/// (`Text("\(value) literal")`) is NOT the trap - the compiler routes it through
+/// `Text(_: LocalizedStringKey)` with a `%@` key (the `String` init is
+/// `@_disfavoredOverload`). `Text(someVariable)` with no literal at all needs
+/// value-flow analysis, so only a human reading the rendered Russian can judge
+/// it. Full audit and reasoning: `docs/LOCALIZATION.md`.
 enum L10n {
     static func localize(_ key: String) -> String {
         Bundle.main.localizedString(forKey: key, value: key, table: nil)
@@ -248,7 +258,10 @@ enum L10n {
 
     /// "from your Android phone, yesterday" - the last-odometer provenance. One
     /// full localised phrase: the device name and the relative day are runtime
-    /// data sharing the sentence, never concatenated.
+    /// data sharing the sentence, never concatenated. RU reads "%1$@, %2$@" -
+    /// the device name in the nominative head, then the day - because a
+    /// server-supplied device name cannot be declined (the P4.7 lesson: no
+    /// translation of "с вашего %1$@" is correct, only a different shape).
     static func lastOdometerSource(deviceName: String, daysAgo: Int) -> String {
         String(format: localize("from your %1$@, %2$@"), deviceName, relativeDay(daysAgo))
     }

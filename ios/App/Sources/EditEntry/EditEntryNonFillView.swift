@@ -62,7 +62,7 @@ struct EditEntryNonFillView: View {
                 }
                 CardDivider()
                 FieldRow("Provider") {
-                    TextField(charge.provider ?? "Provider", text: $form.provider)
+                    TextField(charge.provider ?? L10n.localize("Provider"), text: $form.provider)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.ink)
@@ -72,7 +72,7 @@ struct EditEntryNonFillView: View {
             .formCard()
         case let service as ServiceRecord:
             FieldRow("Vendor") {
-                TextField(service.vendor ?? "Vendor", text: $form.vendor)
+                TextField(service.vendor ?? L10n.localize("Vendor"), text: $form.vendor)
                     .multilineTextAlignment(.trailing)
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.ink)

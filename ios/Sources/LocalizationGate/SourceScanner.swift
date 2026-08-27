@@ -3,20 +3,20 @@ import Foundation
 /// One string literal's span in the source text, plus its raw inner content.
 /// A struct (not a tuple) so the gate itself does not trip the `large_tuple`
 /// lint rule - a gate that fails lint gates nothing.
-private struct GateSlice {
+struct GateSlice {
     let start: Int
     let end: Int
     let inner: String
 }
 
-private enum GateTokenKind {
+enum GateTokenKind {
     case code
     case lineComment
     case blockComment
     case string
 }
 
-private struct GateToken {
+struct GateToken {
     let start: Int
     let end: Int
     let kind: GateTokenKind
@@ -25,7 +25,7 @@ private struct GateToken {
 
 /// Everything the scanning passes share, bundled so no pass needs more than a
 /// handful of parameters.
-private struct ScanContext {
+struct ScanContext {
     let file: String
     let text: String
     let code: [Character]
@@ -36,7 +36,7 @@ private struct ScanContext {
 /// The lexer half of the gate: comment stripping, string-literal reading and
 /// template building. Split from the scanning passes so each type stays under
 /// the lint body-length budget.
-private enum SourceTokenizer {
+enum SourceTokenizer {
 
     /// Splits a source file into tokens, tracking comment and string state so
     /// `//` inside a literal and `"` inside a comment are handled correctly.
@@ -205,6 +205,15 @@ enum SourceScanner {
 
     /// Extracts every user-facing key reference from one source file.
     static func references(inFile file: String, text: String) -> [LocalizedKeyReference] {
+        let context = scanContext(for: file, text: text)
+        var refs = callSiteReferences(context: context)
+        refs += propertyReferences(context: context)
+        return refs
+    }
+
+    /// Builds the comment-blanked code and string-literal slices both passes
+    /// share, so the lexer runs exactly once per file.
+    static func scanContext(for file: String, text: String) -> ScanContext {
         let chars = Array(text)
         var code = chars
         var slices: [GateSlice] = []
@@ -224,18 +233,26 @@ enum SourceScanner {
                 break
             }
         }
-        let context = ScanContext(file: file, text: text, code: code,
-                                  slices: slices, innerByStart: innerByStart)
-        var refs = callSiteReferences(context: context)
-        refs += propertyReferences(context: context)
-        return refs
+        return ScanContext(file: file, text: text, code: code,
+                           slices: slices, innerByStart: innerByStart)
+    }
+
+    /// String literals inside a call's non-literal first argument (P5.3).
+    /// `Text("literal")` is a key by construction, but `Text(x ?? "literal")`
+    /// is a `String` value whose literal renders English even when the
+    /// catalogue holds a translation - the shape behind the P1.4 and P4.7
+    /// defects. A pure-literal ternary branch (`cond ? "A" : "B"`) is the one
+    /// exception: SwiftUI builds a `LocalizedStringKey` from it, so the branch
+    /// literal is a runtime key and merely needs a catalogue entry.
+    static func compoundStringLiterals(inFile file: String, text: String) -> [CompoundStringLiteral] {
+        compoundStringLiterals(file: file, context: scanContext(for: file, text: text))
     }
 
     /// The `Text("literal")`-style pass: a prefix followed by a string literal
     /// that is the call's first argument. Positions inside string ranges are
     /// skipped so a user-facing literal containing e.g. `.alert("x")` is not
     /// re-scanned as a call site.
-    private static func callSiteReferences(context: ScanContext) -> [LocalizedKeyReference] {
+    static func callSiteReferences(context: ScanContext) -> [LocalizedKeyReference] {
         var refs: [LocalizedKeyReference] = []
         var scan = 0
         while scan < context.code.count {
@@ -257,7 +274,7 @@ enum SourceScanner {
     /// (`var caption: LocalizedStringKey? = "…"`) and computed bodies
     /// (`var title: LocalizedStringKey { … }`), whose literals are keys by
     /// construction.
-    private static func propertyReferences(context: ScanContext) -> [LocalizedKeyReference] {
+    static func propertyReferences(context: ScanContext) -> [LocalizedKeyReference] {
         var refs: [LocalizedKeyReference] = []
         var scan = 0
         while scan < context.code.count {
@@ -350,10 +367,10 @@ enum SourceScanner {
 
     /// Records one reference when a call-site prefix is immediately followed
     /// by a string literal.
-    private static func appendReference(prefixAt prefix: Int,
-                                        after: Int,
-                                        context: ScanContext,
-                                        refs: inout [LocalizedKeyReference]) {
+    static func appendReference(prefixAt prefix: Int,
+                                after: Int,
+                                context: ScanContext,
+                                refs: inout [LocalizedKeyReference]) {
         var cursor = after
         while cursor < context.code.count
             && (context.code[cursor] == " " || context.code[cursor] == "\t") {
@@ -373,7 +390,7 @@ enum SourceScanner {
 
     /// Returns the index just past a matching call-site prefix at `index`, or
     /// nil when no prefix starts there.
-    private static func matchCallSitePrefix(_ code: [Character], at index: Int) -> Int? {
+    static func matchCallSitePrefix(_ code: [Character], at index: Int) -> Int? {
         if isIdentifierChar(code, at: index - 1) == false {
             for prefix in barePrefixes where matches(code, prefix, at: index) {
                 return index + prefix.count
@@ -409,11 +426,11 @@ enum SourceScanner {
         return keyword == "var" || keyword == "let"
     }
 
-    private static func slice(at index: Int, in slices: [GateSlice]) -> GateSlice? {
+    static func slice(at index: Int, in slices: [GateSlice]) -> GateSlice? {
         slices.first { $0.start == index }
     }
 
-    private static func matches(_ code: [Character], _ prefix: String, at index: Int) -> Bool {
+    static func matches(_ code: [Character], _ prefix: String, at index: Int) -> Bool {
         let prefixChars = Array(prefix)
         guard index + prefixChars.count <= code.count else { return false }
         for (offset, expected) in prefixChars.enumerated() where code[index + offset] != expected {
@@ -422,13 +439,13 @@ enum SourceScanner {
         return true
     }
 
-    private static func isIdentifierChar(_ chars: [Character], at index: Int) -> Bool {
+    static func isIdentifierChar(_ chars: [Character], at index: Int) -> Bool {
         guard index >= 0, index < chars.count else { return false }
         let current = chars[index]
         return current.isLetter || current.isNumber || current == "_"
     }
 
-    private static func lineNumber(in text: String, at index: Int) -> Int {
+    static func lineNumber(in text: String, at index: Int) -> Int {
         var line = 1
         var seen = 0
         for current in text where seen < index {
