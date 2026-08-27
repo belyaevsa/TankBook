@@ -32,7 +32,11 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 
 ## Hard rules (violations are bugs, not style)
 
-1. **Local-first**: no feature may require the network except cloud-LLM fallback and cross-device sync/restore. No screen is ever sync-gated. (`docs/SYNC.md`)
+1. **Local-first**: no feature may require the network except cloud-LLM fallback, cross-device
+   sync/restore, and **third-party import parsing** (amended 2026-08-27, see rule 9). No screen is
+   ever sync-gated. The exception is bounded to the parse: **everything else about import is
+   local** - the review list, the edits, the commit, and every entry it writes. An offline user
+   cannot import a foreign file; they lose nothing else. (`docs/SYNC.md`)
 2. **Stats are derived, never stored**: full-vehicle recompute on any FillUp change. (`docs/SCHEMA.md` – Recalculation on edit)
 3. **Money is a pair**: original + home currency with rate snapshot; `rateDate` = entry date, never "today"; snapshots immutable, backfill fill-blanks-only. (`docs/SCHEMA.md`)
 4. **Fuel amount ≠ receipt grand total** on mixed receipts. (`docs/SCHEMA.md` CHECK 3)
@@ -40,7 +44,31 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 6. **Numbers in DIN, UI text in SF Pro**; units typographically subordinate; `tabular-nums` wherever digits align. (`docs/DESIGN.md`)
 7. **Every error names its next step** and survives being ignored; monetization appears in no error surface except the car-limit sheet, and never mid-capture. (`docs/ERRORS.md`)
 8. **Nothing lost silently**: tombstones + 30-day undo; sync conflicts surface as badges where data lives, never modals at sync time. (`docs/SYNC.md` S1–S8)
-9. **Server validates payload *structure*, never domain *meaning***: envelope, size, and the registered JSON Schema are enforced; no endpoint reads what a field means, and there are no domain queries/search/stats endpoints – such needs are client-side computations. Schema evolution is a data change (registry + declarative transforms), not a backend deploy. (`docs/API.md`, `docs/SYNC.md` → Payload contract)
+9. **Server validates payload *structure*, never domain *meaning*** – with **one named exception**:
+   envelope, size, and the registered JSON Schema are enforced; no endpoint reads what a field
+   means, and there are no domain queries/search/stats endpoints – such needs are client-side
+   computations. Schema evolution is a data change (registry + declarative transforms), not a
+   backend deploy. (`docs/API.md`, `docs/SYNC.md` → Payload contract)
+   **The exception (amended 2026-08-27, product owner): third-party import parsing.** `POST
+   /import/parse` reads a foreign file - an MFM CSV, later others - and *interprets* it, because
+   one parser serving every client and fixable without an App Store release was judged worth the
+   cost. It is deliberately the **narrowest possible** shape, and these five properties are what
+   keep it from becoming a general domain server:
+   - **Pure function.** It returns *candidate* records and commits nothing. The device reviews,
+     edits and writes; the server owns no user data and no account state changes.
+   - **Stored, deliberately, and unlike the LLM gateway.** The uploaded file and its parse result
+     live in blob storage so the row-by-row review can be resumed and a bad parse can be
+     re-examined (product owner, 2026-08-27). This is a **deliberate asymmetry**: `/extract` never
+     stores an image, `/import/parse` does store a file. Both are signed off; neither licenses the
+     other. **Retention is 30 days**, matching the tombstone/undo window so one number governs "how long
+     can I get it back" - a written commitment in `docs/SECURITY.md`, not an implementation detail.
+   - **Commits nothing, account or not.** No sign-in required: import must work for a user with no
+     account, or the exception would quietly drag rule 1 further than agreed. Stored under the
+     device identity when there is no account.
+   - **Nothing is logged but shape.** Format name, row counts, error counts. Never a station, a
+     note, an amount or a coordinate (hard rule 12).
+   - **It does not spread.** This exception licenses import parsing and nothing else. A second
+     endpoint that reads domain meaning needs its own decision, written here.
 10. **All user-facing strings** go through String Catalogs (EN + RU from day one), traced to the copy glossary once it exists; no hardcoded text. (`docs/VISION.md` localization)
 11. **No secrets in the app bundle, ever** – an IPA is a zip. Tokens and `deviceId` live in the Keychain as `AfterFirstUnlockThisDeviceOnly`; the database and attachments use `completeUntilFirstUserAuthentication` file protection (including `-wal`/`-shm`). API keys stay server-side, which is why the LLM gateway exists. (`docs/SECURITY.md`)
 12. **Never log domain values.** Ids, counts, codes, durations and field *names* are loggable; amounts, stations, notes, coordinates, payloads, tokens and images are not – at any level, in any build. (`docs/LOGGING.md`)

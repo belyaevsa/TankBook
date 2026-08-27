@@ -197,6 +197,33 @@ server itself curates, so validating it is required - it is not a hard-rule-9 vi
 ```
 Account id attached when a bearer token is present; rate-limited per device/IP; `text` ≤ 4 KB. No log content, ever.
 
+## Import parsing (hard rule 9's named exception)
+
+`POST /import/parse` - **the one endpoint that reads what a field means**, amended into hard rule 9
+on 2026-08-27. It exists so a single parser serves every client and a mapping bug is fixed by a
+deploy rather than an App Store release.
+
+`multipart` upload of a third-party export (`format: "mfm" | ...`, file <= 8 MB) ->
+`{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
+   ambiguities: [ { kind: "units" | "currency", options, rowCount } ] }`
+
+- **It commits nothing.** `candidates` are *proposals*; the device reviews, edits and writes them
+  (hard rule 13). The server holds no user data beyond the stored file and its parse result, and
+  changes no account state.
+- **Works signed out.** No bearer required; stored under the device identity when there is no
+  account. Import must not require an account (hard rule 1's exception covers the network, not a
+  sign-in).
+- **`GET /import/{importId}`** re-reads a stored parse so a review can be resumed on another device
+  or after a crash. `DELETE /import/{importId}` drops it early; otherwise it is **purged after 30
+  days** (`docs/SECURITY.md` -> Import files at rest).
+- **Ambiguity is returned, never guessed** - units and currency are asked **once per file** (F6),
+  and the answer is applied client-side.
+- **Unparseable rows do not fail the file**: they come back in `unparsed` with a reason and land on
+  the review list, so a partial import is the normal outcome rather than an error (F6, hard rule 8).
+- `413` oversize, `415` unrecognised format, `422` a file whose shape matches no known mapping.
+- **Logs carry shape only**: format, row counts, error counts. Never a station, note, amount or
+  coordinate (hard rule 12).
+
 ## LLM gateway (Pro)
 
 ### `POST /extract` – bearer

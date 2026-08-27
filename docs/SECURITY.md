@@ -71,3 +71,35 @@ TLS 1.2+ everywhere, ATS enforced with no per-domain exceptions. **Certificate p
 - **No-secrets-committed check (CI):** the appsettings/scripts grep above.
 - **Sign-out test:** signing out removes every Keychain item and leaves the local database intact (the user keeps their log; only sync stops – `JOURNEYS.md` J11a).
 - **Revocation test:** a device revoked server-side gets `410`, discards its tokens, and stops syncing without destroying local data.
+
+
+## Import files at rest (added 2026-08-27)
+
+Hard rule 9's named exception, `POST /import/parse`, is the one endpoint that reads domain
+meaning - and unlike the LLM gateway it **stores what it is given**. That asymmetry is deliberate
+and signed off, so the terms are written here rather than left to the implementation.
+
+| | `/extract` (LLM gateway) | `/import/parse` |
+|---|---|---|
+| Uploaded artifact | image | third-party export file (CSV etc.) |
+| Written to storage | **never** | **yes** - blob storage, so a review can be resumed |
+| Retention | none (transient) | **30 days**, then purged |
+
+**Why 30 days and not less.** It matches the tombstone and undo window already in the product, so
+a user has one number to remember for "how long can I get it back", and a broken import reported
+days later can still be diagnosed against the real input.
+
+**What that file contains, stated plainly, because it is the reason this needs a rule at all**: an
+export from a fuel-tracking app holds dates, odometer readings, amounts, stations and sometimes
+coordinates - the same class of data as the entries themselves, in one document. It is stored under
+the account's at-rest encryption exactly as attachments are, and under the **device identity** when
+the user has no account (import must work signed out - hard rule 1's exception does not extend to
+requiring a sign-in).
+
+**Purge is a job, not a hope.** It runs on the same hosted-service pattern as the account purge
+(`AccountPurgeHostedService`), and the deletion is asserted by a test the same way: a file past the
+cutoff is gone, and a file inside it survives. A retention promise with no test is a promise that
+quietly stops being true.
+
+**Deleting the account deletes these too.** They are the account's data and fall under the
+signed-off delete-account-deletes-everything stance.
