@@ -164,6 +164,12 @@ public struct LogStream: Equatable, Sendable {
     /// Month sections, newest first.
     public let sections: [Section]
 
+    /// The number of entries still waiting on a rate among the counting rows -
+    /// the F9 "N entries pending rates" footnote count (docs/JOURNEYS.md F9).
+    /// S2-excluded members never count; `money == nil` (free events) is not
+    /// pending. Derived, never stored (hard rule 2).
+    public let pendingRateCount: Int
+
     /// The calendar the sections were grouped with, retained so a preview
     /// re-sectioning uses the same month boundaries.
     private let calendar: Calendar
@@ -187,6 +193,9 @@ public struct LogStream: Equatable, Sendable {
             in: sorted.compactMap { $0 as? FillUp },
             resolved: duplicateResolutions)
         let excludedIDs = Set(pairs.map(\.excludedID))
+        self.pendingRateCount = sorted
+            .filter { !excludedIDs.contains($0.id) && ($0.money?.isRatePending ?? false) }
+            .count
         let pairByCountedID = Dictionary(pairs.map { ($0.countedID, $0) },
                                          uniquingKeysWith: { $1 })
         let logEntryByID = Dictionary(sorted.map { ($0.id, LogEntry(vehicle: vehicle, entry: $0)) },
@@ -266,14 +275,15 @@ public struct LogStream: Equatable, Sendable {
             rows.append(contentsOf: missing)
         }
         return LogStream(sections: Self.buildSections(rows: rows, calendar: calendar),
-                         calendar: calendar)
+                         calendar: calendar, pendingRateCount: pendingRateCount)
     }
 
     // MARK: - Construction
 
-    private init(sections: [Section], calendar: Calendar) {
+    private init(sections: [Section], calendar: Calendar, pendingRateCount: Int) {
         self.sections = sections
         self.calendar = calendar
+        self.pendingRateCount = pendingRateCount
     }
 
     private static func buildSections(rows: [Row], calendar: Calendar) -> [Section] {

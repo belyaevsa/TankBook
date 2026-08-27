@@ -42,6 +42,10 @@ public struct TrendsStats: Equatable, Sendable {
     /// actually covers, never the full window when the data is younger
     /// (the same honesty rule as the headline's label).
     public let costPerKmSpanMonths: Int?
+    /// Entries still waiting on a rate - the F9 "N entries pending rates"
+    /// footnote count. Delegated to `HomeStats`, which computes it from the
+    /// same counting entries (docs/JOURNEYS.md F9).
+    public let pendingRateCount: Int
 
     public init(vehicle: Vehicle, entries: [any Entry],
                 asOf: Date = Date(), calendar: Calendar = .current,
@@ -49,6 +53,7 @@ public struct TrendsStats: Equatable, Sendable {
         self.vehicle = vehicle
         self.home = HomeStats(vehicle: vehicle, entries: entries, asOf: asOf,
                               calendar: calendar, duplicateResolutions: duplicateResolutions)
+        self.pendingRateCount = home.pendingRateCount
 
         // The S2 single-count invariant, exactly as HomeStats applies it: only
         // the counting member of an unresolved duplicate pair feeds the series,

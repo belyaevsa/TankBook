@@ -133,6 +133,24 @@ public struct Money: Codable, Hashable, Sendable {
         return copy
     }
 
+    /// Applies a USER-supplied rate for the entry's date (hard rule 13, F9).
+    /// This is the manual override path and is deliberately separate from
+    /// `converted(using:)`: the feed path fills a blank and never touches a
+    /// written snapshot, but a manual rate is the user's decision and must
+    /// REPLACE whatever the feed wrote - it sets `rateSource = .manual`. The
+    /// resulting snapshot then survives later feed backfill, because
+    /// `converted(using:)` never rewrites a written `homeAmount`.
+    public func applyingManualRate(_ rate: Decimal, on date: Date) -> Money {
+        guard currency != homeCurrency else { return self }
+        guard rate > 0 else { return self }
+        var copy = self
+        copy.homeAmount = (amount / rate).rounded(decimalPlaces: homeCurrency.minorUnits)
+        copy.rate = rate
+        copy.rateDate = date
+        copy.rateSource = .manual
+        return copy
+    }
+
     /// A copy with `amount` replaced. Editing the amount clears any existing
     /// snapshot for re-conversion; same-currency money stays snapshotted at
     /// rate 1 with `homeAmount` following `amount`.

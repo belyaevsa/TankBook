@@ -5,14 +5,64 @@ import TankbookCore
 // MARK: - P2.5 foreign-currency support for the Confirm sheet
 //
 // The rate store is a shared, thread-safe instance over the bundled seed pack
-// (no network - a miss is never an error, F9). The foreign-currency decision
-// and its money pair live in `RateStore.resolve` (core); this extension holds
-// the three thin view-side conveniences so the sheet and the save path read one
-// source of truth.
+// plus the persisted cache, refreshed from the backend's public `/rates/pack`
+// feed (never launch-blocking - a miss is never an error, F9). The foreign-
+// currency decision and its money pair live in `RateStore.resolve` (core); this
+// extension holds the three thin view-side conveniences so the sheet and the
+// save path read one source of truth.
 
-/// The app-wide rate store. Bundled seed pack now; the fetcher lands with sync.
+/// The app-wide rate store. Built lazily on first use from the bundled seed
+/// pack and the persisted cache, with the real fetcher behind the configured
+/// base URL; the refresh is kicked off in the background, never blocking launch
+/// (hard rule 1).
+@MainActor
 enum AppRates {
-    static let store = RateStore(seed: (try? RateSeedStore.bundledSeed()) ?? [])
+    static let store: RateStore = {
+        let persisted = loadPersisted()
+        let seed = (try? RateSeedStore.bundledSeed()) ?? []
+        let store = RateStore(seed: seed, fetcher: makeFetcher())
+        // Fetched rows already persisted (and the seed written back on a prior
+        // launch) replace seed rows for the same key - `merge` is keyed.
+        store.merge(persisted)
+        Task { await refresh() }
+        return store
+    }()
+
+    /// Refreshes the cache from the feed and persists what it merged. A failed
+    /// fetch leaves the cache (and any pending entries) exactly as they were.
+    static func refresh() async {
+        await store.refresh()
+        persist(store.allRates())
+    }
+
+    private static func loadPersisted() -> [ExchangeRate] {
+        guard let repository = try? AppStore.repository() else { return [] }
+        return (try? repository.exchangeRates()) ?? []
+    }
+
+    private static func persist(_ rates: [ExchangeRate]) {
+        guard let repository = try? AppStore.repository() else { return }
+        try? repository.upsertExchangeRates(rates)
+        // Keep ~2 years rolling (docs/SCHEMA.md -> Exchange rates).
+        let calendar = Calendar.current
+        let cutoff = calendar.date(byAdding: .year, value: -2, to: Date()) ?? Date()
+        try? repository.pruneExchangeRates(olderThan: cutoff)
+    }
+
+    private static func makeFetcher() -> RemoteRateFetcher {
+        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
+            ?? URL(string: "https://api.tankbook.app")!
+        return RemoteRateFetcher(baseURL: baseURL,
+                                 transport: URLSessionTransport(),
+                                 tokenProvider: PublicTokenProvider())
+    }
+}
+
+/// The rates endpoint is public - no auth (docs/API.md -> Exchange rates) - so
+/// the fetcher's client never attaches a bearer token for it. The allowlist is
+/// still enforced by `TankbookHTTPClient` before any I/O.
+private struct PublicTokenProvider: AuthorizationTokenProvider {
+    func token() -> String? { nil }
 }
 
 extension ManualFillUpView {
