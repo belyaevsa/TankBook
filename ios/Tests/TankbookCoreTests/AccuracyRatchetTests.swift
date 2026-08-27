@@ -186,7 +186,12 @@ struct CorpusAccuracyGateTests {
         for image in images {
             guard expected[image.lastPathComponent] != nil else { continue }
             let ocrLines = try VisionTextRecognizer.recognizeText(in: image, languages: Self.languages)
-            let result = extractor.extract(lines: ocrLines)
+            // The pump class is scored as a pump (source .pump) - the pump
+            // parser paths (no fuel kind, P2.13 digit repair) are pump-source
+            // behaviour, and scoring them as receipts would measure a parser
+            // the app does not run for this class.
+            let source: ExtractionSource = name == "pump" ? .pump : .receipt
+            let result = extractor.extract(lines: ocrLines, source: source)
             records[image.lastPathComponent] = ExtractionRecord(
                 filename: image.lastPathComponent,
                 liters: result.liters,

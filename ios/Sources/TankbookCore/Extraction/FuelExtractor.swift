@@ -46,6 +46,31 @@ public struct FuelExtractor: Sendable {
         result.crossCheck = ExtractionCrossCheck.evaluate(
             liters: result.liters, unitPrice: result.unitPrice, total: result.total, lines: lines
         )
+
+        // P2.13 digit repair, after the cross-check and never replacing its
+        // four outcomes: on a PUMP display a single misread seven-segment bar
+        // can make `liters x unitPrice` miss `total` by one digit step of one
+        // operand (docs/EXTRACTION.md -> "Cross-multiplication as digit
+        // repair"). The repair is a SUGGESTION, not a lock (hard rule 13): the
+        // corrected value pre-fills the field, but `crossCheck` is kept a
+        // `mismatch` carrying the read residual, so the confirm screen never
+        // confirms the repaired triple.
+        if source == .pump,
+           let repair = DigitRepair.apply(liters: result.liters, unitPrice: result.unitPrice,
+                                          total: result.total, source: source) {
+            let residual = (ConfirmFormat.decimal(fromExtraction: result.liters,
+                                                  fractionDigits: ConfirmFormat.fractionDigits(for: .volume)) ?? 0)
+                * (ConfirmFormat.decimal(fromExtraction: result.unitPrice,
+                                         fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice)) ?? 0)
+                - (ConfirmFormat.decimal(fromExtraction: result.total,
+                                         fractionDigits: ConfirmFormat.fractionDigits(for: .total)) ?? 0)
+            result.crossCheck = .mismatch(residual: ExtractionCrossCheck.rounded(residual))
+            switch repair.operand {
+            case .liters: result.liters = repair.repaired
+            case .unitPrice: result.unitPrice = repair.repaired
+            }
+            result.digitRepair = repair
+        }
         return result
     }
 

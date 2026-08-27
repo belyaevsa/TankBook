@@ -18,6 +18,13 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
     /// document lines are available.
     public var crossCheck: ExtractionCrossCheck = .notApplicable
 
+    /// A P2.13 seven-segment digit repair, when one fired. The presence of a
+    /// repair is the marker that the affected field is a **suggestion** the
+    /// user must confirm (hard rule 13): `FuelExtractor` keeps `crossCheck` a
+    /// `mismatch` so the confirm screen never locks a repaired triple. nil when
+    /// no single-digit substitution uniquely closed the arithmetic.
+    public var digitRepair: DigitRepair.Result?
+
     public init(
         liters: Double? = nil,
         unitPrice: Double? = nil,
@@ -25,7 +32,8 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         currency: CurrencyCode? = nil,
         fuelKind: FuelKind? = nil,
         date: String? = nil,
-        crossCheck: ExtractionCrossCheck = .notApplicable
+        crossCheck: ExtractionCrossCheck = .notApplicable,
+        digitRepair: DigitRepair.Result? = nil
     ) {
         self.liters = liters
         self.unitPrice = unitPrice
@@ -34,6 +42,7 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         self.fuelKind = fuelKind
         self.date = date
         self.crossCheck = crossCheck
+        self.digitRepair = digitRepair
     }
 
     /// The fuel-line amount when volume and price are both known, else nil.

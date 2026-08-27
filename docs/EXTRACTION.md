@@ -203,6 +203,18 @@ Two constraints on using it:
   as a pre-fill on a field the user can see and change. A parser that quietly rewrites a digit it
   believes it misread is exactly the confident-wrong-value failure the whole design avoids.
 
+And the acceptance standard that keeps it honest (P2.13, 2026-08-27): a substitution "closes" only
+when the repaired product **reproduces the total exactly at the display's two-decimal money
+precision** - `15.89 x 1.889` rounds to `30.02`, the naive `15.89 x 1.884` does not. That standard,
+not the shared cross-check tolerance, is the repair's boundary, and the shared tolerance is
+unchanged: the four-outcome cross-check still runs first, and a repair is wired **after** it without
+replacing any outcome. Where a repair fires, `FuelExtractor` keeps `crossCheck` a `mismatch`
+carrying the read residual (never `.lock`), so the confirm screen cannot treat the corrected triple
+as confirmed - the repaired field is a pre-fill the user confirms, and the arithmetic alone is never
+enough to lock a repaired digit. The `preset-amount` case (`pump-010`) is protected by the same
+exactly-one rule: its rounded volume makes several single-digit substitutions *almost* reproduce
+the total but none exact, so the engine abstains and the honest `13.17 / 1000.00` stands.
+
 The same reasoning does **not** transfer to receipts. Thermal print has no segment topology, so
 its confusions are different (and `0`/`О`, `3`/`З`, `6`/`б` are language confusions, not optical
 ones).
