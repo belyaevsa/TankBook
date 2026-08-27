@@ -1,0 +1,554 @@
+{
+  "$defs" : {
+    "conflictState" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "detectedAt" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "kind" : {
+          "enum" : [
+            "order",
+            "pace"
+          ],
+          "type" : "string"
+        },
+        "tag" : {
+          "enum" : [
+            "none",
+            "flagged"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "crossCheckState" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "field" : {
+          "$ref" : "#/$defs/fieldRef"
+        },
+        "tag" : {
+          "enum" : [
+            "verified",
+            "notApplicable",
+            "mismatch"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "expenseCategory" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "tag" : {
+          "enum" : [
+            "insurance",
+            "tax",
+            "parking",
+            "toll",
+            "fine",
+            "accessory",
+            "parts",
+            "other"
+          ],
+          "type" : "string"
+        },
+        "value" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "extractionMeta" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "fields" : {
+          "additionalProperties" : {
+            "$ref" : "#/$defs/fieldExtraction"
+          },
+          "propertyNames" : {
+            "$ref" : "#/$defs/fieldRef"
+          },
+          "type" : "object"
+        },
+        "pipeline" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "fields",
+        "pipeline"
+      ],
+      "type" : "object"
+    },
+    "fieldExtraction" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "confidence" : {
+          "type" : "number"
+        },
+        "cropRect" : {
+          "additionalProperties" : true,
+          "properties" : {
+            "height" : {
+              "type" : "number"
+            },
+            "width" : {
+              "type" : "number"
+            },
+            "x" : {
+              "type" : "number"
+            },
+            "y" : {
+              "type" : "number"
+            }
+          },
+          "required" : [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "type" : "object"
+        },
+        "userCorrected" : {
+          "type" : "boolean"
+        }
+      },
+      "required" : [
+        "confidence",
+        "userCorrected"
+      ],
+      "type" : "object"
+    },
+    "fieldRef" : {
+      "anyOf" : [
+        {
+          "enum" : [
+            "total",
+            "volume",
+            "unitPrice",
+            "date",
+            "station",
+            "fuelKind",
+            "energy",
+            "currency",
+            "vendor"
+          ],
+          "type" : "string"
+        },
+        {
+          "pattern" : "^lineItem\\(\\d+\\)$",
+          "type" : "string"
+        }
+      ],
+      "type" : "string"
+    },
+    "fiscalDocumentIdentity" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "documentNumber" : {
+          "type" : "string"
+        },
+        "fiscalDriveNumber" : {
+          "type" : "string"
+        },
+        "fiscalSign" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "fiscalDriveNumber",
+        "documentNumber",
+        "fiscalSign"
+      ],
+      "type" : "object"
+    },
+    "geoCoordinate" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "latitude" : {
+          "type" : "number"
+        },
+        "longitude" : {
+          "type" : "number"
+        }
+      },
+      "required" : [
+        "latitude",
+        "longitude"
+      ],
+      "type" : "object"
+    },
+    "lifetime" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "km" : {
+          "type" : "integer"
+        },
+        "months" : {
+          "type" : "integer"
+        }
+      },
+      "type" : "object"
+    },
+    "localFileRef" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "relativePath" : {
+          "type" : "string"
+        },
+        "sha256" : {
+          "pattern" : "^[a-f0-9]{64}$",
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "sha256",
+        "relativePath"
+      ],
+      "type" : "object"
+    },
+    "money" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "amount" : {
+          "type" : "string"
+        },
+        "currency" : {
+          "pattern" : "^[A-Z]{3}$",
+          "type" : "string"
+        },
+        "homeAmount" : {
+          "type" : "string"
+        },
+        "homeCurrency" : {
+          "pattern" : "^[A-Z]{3}$",
+          "type" : "string"
+        },
+        "rate" : {
+          "type" : "string"
+        },
+        "rateDate" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "rateSource" : {
+          "enum" : [
+            "ecb",
+            "cis",
+            "manual"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "amount",
+        "currency",
+        "homeCurrency",
+        "rateSource"
+      ],
+      "type" : "object"
+    },
+    "notifications" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "anomalies" : {
+          "type" : "boolean"
+        },
+        "monthlySummary" : {
+          "type" : "boolean"
+        },
+        "reminders" : {
+          "type" : "boolean"
+        }
+      },
+      "required" : [
+        "reminders",
+        "anomalies",
+        "monthlySummary"
+      ],
+      "type" : "object"
+    },
+    "provenance" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "source" : {
+          "type" : "string"
+        },
+        "tag" : {
+          "enum" : [
+            "receiptScan",
+            "pumpPhoto",
+            "fiscalQR",
+            "screenshot",
+            "manual",
+            "import"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "recurrenceRule" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "anchorDate" : {
+          "format" : "date-time",
+          "type" : "string"
+        },
+        "everyMonths" : {
+          "type" : "integer"
+        }
+      },
+      "required" : [
+        "everyMonths"
+      ],
+      "type" : "object"
+    },
+    "reminderCategory" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "tag" : {
+          "enum" : [
+            "oil",
+            "brakes",
+            "tires",
+            "battery",
+            "filters",
+            "inspection",
+            "repair",
+            "parts",
+            "wash",
+            "other",
+            "insurance",
+            "custom"
+          ],
+          "type" : "string"
+        },
+        "value" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "reminderRecurrence" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "everyKm" : {
+          "type" : "integer"
+        },
+        "everyMonths" : {
+          "type" : "integer"
+        }
+      },
+      "type" : "object"
+    },
+    "reminderStatus" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "entryId" : {
+          "format" : "uuid",
+          "type" : "string"
+        },
+        "reason" : {
+          "type" : "string"
+        },
+        "tag" : {
+          "enum" : [
+            "scheduled",
+            "attention",
+            "done",
+            "dismissed"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "serviceCategory" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "tag" : {
+          "enum" : [
+            "oil",
+            "brakes",
+            "tires",
+            "battery",
+            "filters",
+            "inspection",
+            "repair",
+            "parts",
+            "wash",
+            "other"
+          ],
+          "type" : "string"
+        },
+        "value" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
+    },
+    "serviceItem" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "category" : {
+          "$ref" : "#/$defs/serviceCategory"
+        },
+        "cost" : {
+          "$ref" : "#/$defs/money"
+        },
+        "lifetime" : {
+          "$ref" : "#/$defs/lifetime"
+        },
+        "partNumber" : {
+          "type" : "string"
+        },
+        "title" : {
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "title",
+        "category"
+      ],
+      "type" : "object"
+    },
+    "stationDefaults" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "fuelGrade" : {
+          "type" : "string"
+        },
+        "fuelKind" : {
+          "enum" : [
+            "diesel",
+            "petrol92",
+            "petrol95",
+            "petrol98",
+            "petrol100",
+            "lpg",
+            "cng",
+            "e85",
+            "electricity"
+          ],
+          "type" : "string"
+        }
+      },
+      "type" : "object"
+    },
+    "units" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "consumption" : {
+          "enum" : [
+            "lPer100",
+            "mpgUS",
+            "mpgUK",
+            "kmPerL"
+          ],
+          "type" : "string"
+        },
+        "distance" : {
+          "enum" : [
+            "km",
+            "mi"
+          ],
+          "type" : "string"
+        },
+        "energy" : {
+          "enum" : [
+            "kWhPer100",
+            "miPerKWh"
+          ],
+          "type" : "string"
+        },
+        "volume" : {
+          "enum" : [
+            "l",
+            "galUS",
+            "galUK"
+          ],
+          "type" : "string"
+        }
+      },
+      "required" : [
+        "distance",
+        "volume",
+        "consumption",
+        "energy"
+      ],
+      "type" : "object"
+    }
+  },
+  "$id" : "https://tankbook.app/schemas/v1/preferences.schema.json",
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties" : true,
+  "properties" : {
+    "createdAt" : {
+      "format" : "date-time",
+      "type" : "string"
+    },
+    "defaultVehicleId" : {
+      "format" : "uuid",
+      "type" : "string"
+    },
+    "deletedAt" : {
+      "format" : "date-time",
+      "type" : "string"
+    },
+    "eagerMediaOnWiFi" : {
+      "type" : "boolean"
+    },
+    "id" : {
+      "format" : "uuid",
+      "type" : "string"
+    },
+    "notifications" : {
+      "$ref" : "#/$defs/notifications"
+    },
+    "proFeedbackDiagnostics" : {
+      "type" : "boolean"
+    },
+    "updatedAt" : {
+      "format" : "date-time",
+      "type" : "string"
+    }
+  },
+  "required" : [
+    "id",
+    "createdAt",
+    "updatedAt",
+    "notifications",
+    "eagerMediaOnWiFi",
+    "proFeedbackDiagnostics"
+  ],
+  "title" : "preferences",
+  "type" : "object"
+}

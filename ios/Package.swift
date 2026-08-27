@@ -36,7 +36,12 @@ let package = Package(
                 .copy("Catalog/VehicleCatalog.seed.json"),
                 // Bundled exchange-rate seed pack (docs/SCHEMA.md -> Exchange
                 // rates): a first launch offline still converts common pairs.
-                .copy("Rates/Rates.seed.json")
+                .copy("Rates/Rates.seed.json"),
+                // Bundled payload JSON Schemas (docs/SCHEMA.md -> Payload
+                // schemas). The per-car archive reader validates every payload
+                // against the registered contract before it imports anything;
+                // the schemas travel with the app so that check works offline.
+                .copy("Schemas")
             ]
         ),
         .target(

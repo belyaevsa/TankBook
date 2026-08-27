@@ -10,6 +10,18 @@ public protocol BlobStore: Sendable {
     func data(for sha256: String) throws -> Data?
     /// Caches `data` under its `sha256` content address.
     func save(_ data: Data, for sha256: String) throws
+    /// Removes the cached bytes for `sha256`, if present. The archive import
+    /// uses it to roll the filesystem back when a transaction fails (a whole
+    /// import that fails must leave nothing behind, docs/SCHEMA.md -> "Rejection
+    /// is whole"). Content addressing makes removal safe: a byte-addressed cache
+    /// is repopulated by re-fetch, never referenced by pointer.
+    func remove(sha256: String) throws
+}
+
+extension BlobStore {
+    /// Default no-op so existing conformers keep working; production and test
+    /// stores override it.
+    public func remove(sha256: String) throws {}
 }
 
 /// The production `BlobStore`: one file per blob, named by its sha256, under a
@@ -34,6 +46,12 @@ public struct FileBackedBlobStore: BlobStore, Sendable {
     public func save(_ data: Data, for sha256: String) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: url(for: sha256), options: .atomic)
+    }
+
+    public func remove(sha256: String) throws {
+        let url = url(for: sha256)
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try FileManager.default.removeItem(at: url)
     }
 }
 

@@ -103,3 +103,25 @@ quietly stops being true.
 
 **Deleting the account deletes these too.** They are the account's data and fall under the
 signed-off delete-account-deletes-everything stance.
+
+## Passphrase-protected exports (added 2026-08-27)
+
+A user-held per-car archive (`docs/SCHEMA.md` -> Backup format) can be passphrase-protected at
+export time - **never required** (a mandatory user-held key is a way to lose your own data). The
+terms, written here because the choice of KDF is a security decision:
+
+- **`manifest.json` is never sealed.** It must open for the restore UI before the passphrase is
+  known; `passphraseProtected: true` in the manifest is what tells the reader data.json is sealed.
+- **AES-GCM (CryptoKit)** seals `data.json` as one box and each attachment blob as its own box.
+  Every box embeds its own random 16-byte salt, so the same passphrase can seal any number of files
+  without reusing a nonce, and each file is self-contained.
+- **Key derivation is PBKDF2-SHA256, 100 000 iterations, 32-byte key** (CommonCrypto's
+  `CCKeyDerivationPBKDF`). PBKDF2 over HKDF because the input is a human passphrase - a KDF with
+  an iteration count is the right tool, not a key-expansion shortcut. A wrong passphrase (or a
+  tampered box) fails GCM authentication and is reported as `wrong_passphrase` - the app cannot
+  and should not distinguish the two.
+- **The passphrase never leaves the device.** Sealing and opening happen in `ArchiveCrypto` in
+  TankbookCore; there is no server round-trip and no passphrase is ever logged (hard rule 12).
+  The passphrase itself is never stored - forgetting it is losing the archive, which is the trade
+  an optional passphrase exists to make.
+

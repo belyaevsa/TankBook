@@ -391,11 +391,44 @@ One archive; inner structure:
 
 ```
 manifest.json   { schemaVersion: 1, scope: "vehicle" | "account", vehicleIds: [...],
-                  exportedAt, appVersion, vehicleCount, entryCount }   // always readable (restore UI)
-data.json       { vehicles: [...], entries: [...], reminders: [...], stations: [...], tariffs: [...] }
+                  exportedAt, appVersion, vehicleCount, entryCount,
+                  passphraseProtected? }              // always readable (restore UI)
+data.json       { vehicles: [...], entries: [...], reminders: [...], stations: [...],
+                  tariffs: [...], attachments: [...] }
                 // exact shapes above, tombstones included; enums as strings; dates ISO-8601 UTC
 attachments/    content-addressed blobs (sha256 filename) referenced by Attachment.file
 ```
+
+Field notes (clarifications that implementations must match, decided 2026-08-27, P5.5a):
+
+- **`manifest.json` is always plain JSON**, even when `data.json` and the blobs are
+  passphrase-protected - the restore UI opens it first, before it knows whether
+  the archive is sealed. `passphraseProtected` (optional, absent = false) is the
+  flag the reader branches on; it never lives anywhere but the manifest.
+- **`entries` is the one mixed-type array**, so each element carries the sync
+  envelope's discriminator - `{ entityType, schemaVersion, payload }` with the
+  four entry types. The other arrays hold raw entity payloads (their type is the
+  array name). Every payload is exactly the sync payload shape (`PayloadCodec`),
+  decimals as strings, dates ISO-8601 UTC - **there is one encoder for wire and
+  archive**, never a second spelling.
+- **`attachments` carries the attachment RECORDS** (references, tombstones
+  included); the blob *bytes* live under `attachments/<sha256>` in the archive
+  directory. An attachment whose bytes the exporting device no longer holds is
+  exported as a reference without a blob file - it lazy-fetches on import,
+  exactly like a synced attachment.
+- **Reader validation, whole or nothing.** Every payload is checked against the
+  registered JSON Schema (the files bundled with the app under
+  `Schemas/v<N>/`, kept byte-identical to `docs/schemas/v<N>/`) and then
+  typed-decoded through `PayloadCodec`; every blob present must hash to its
+  content address. Only after ALL of that passes do the rows commit, in one
+  transaction, so a truncated/corrupt/schema-failing archive imports nothing and
+  leaves the repository as it was.
+- **Atomic writes.** Every archive file is written temp-file-then-rename (the
+  `ConfigCache` discipline) and the app-owned files carry the same
+  `isExcludedFromBackup` + Data Protection class.
+- **Blob files when protected** are individually AES-GCM sealed (each self-
+  contained with its salt); `manifest.json` is never sealed. Key derivation:
+  PBKDF2-SHA256, 100 000 iterations, 16-byte salt, 32-byte key (docs/SECURITY.md).
 
 ### Payload schemas (the machine-checkable contract)
 
