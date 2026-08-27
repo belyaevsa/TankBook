@@ -43,6 +43,9 @@ public struct FuelExtractor: Sendable {
         // and only the cost figures abstain.
         if result.total == 0 { result.total = nil }
         if result.unitPrice == 0 { result.unitPrice = nil }
+        result.crossCheck = ExtractionCrossCheck.evaluate(
+            liters: result.liters, unitPrice: result.unitPrice, total: result.total, lines: lines
+        )
         return result
     }
 
@@ -63,8 +66,18 @@ public struct FuelExtractor: Sendable {
             return column
         }
         let context = BandContext(currency: currency, fuelKind: fuelKind, date: date)
-        // Step 2: the unit marker's position names the volume. Steps 3/4
-        // disambiguate the unmarked rest via the injected provider.
+        // Step 2: the unit marker's position names the volume. The FUEL line is
+        // the operand pair carrying the volume marker - on a mixed receipt
+        // there are many operand lines (Latvian `Gab.` items on
+        // screenshot-008) and the fuel line is the only one with `L`, so
+        // neither "first priced line" nor "line nearest the total" finds it
+        // (docs/EXTRACTION.md failure mode 2). Steps 3/4 disambiguate the
+        // unmarked rest via the injected provider.
+        if let fuel = OperandPair.fuelLine(in: lines) {
+            let discounted = lines[fuel.index].text.uppercased().contains("СКИДК")
+            return resolveOperands(fuel.pair, at: fuel.index, in: lines,
+                                   discounted: discounted, context: context)
+        }
         if let (pair, index) = OperandPair.first(in: lines) {
             let discounted = lines[index].text.uppercased().contains("СКИДК")
             return resolveOperands(pair, at: index, in: lines, discounted: discounted, context: context)
@@ -216,12 +229,16 @@ public struct FuelExtractor: Sendable {
         let total = grandTotal(lines)
         // Hard rule 4: on a mixed receipt the fill-up amount is the fuel line,
         // never the grand total. Detection is the cross-check itself
-        // (docs/SCHEMA.md CHECK 3).
-        if let liters, let unitPrice, let total {
-            let fuel = liters * unitPrice
-            if abs(fuel - total) > max(0.02, total * 0.005) {
-                return fuel
-            }
+        // (docs/SCHEMA.md CHECK 3). The fuel line's own printed amount wins
+        // over the arithmetic product when the document prints one (a fuel
+        // discount makes the charged line differ from liters x unitPrice -
+        // screenshot-008 returns 112.63, never 115.02 or the grand total
+        // 122.99).
+        guard let liters, let unitPrice, let total else { return total }
+        let fuelLine = ExtractionCrossCheck.printedFuelLineAmount(lines, liters: liters, unitPrice: unitPrice)
+            ?? liters * unitPrice
+        if abs(fuelLine - total) > max(0.02, total * 0.005) {
+            return fuelLine
         }
         return total
     }
@@ -370,11 +387,33 @@ struct OperandPair {
         return nil
     }
 
+    /// The FUEL line: the operand pair carrying a volume marker on either
+    /// operand. On a mixed receipt there are many operand lines (Latvian
+    /// `Gab.` items on screenshot-008) and the fuel line is the only one whose
+    /// volume is marked `L`/`л` - so this is what separates the diesel from a
+    /// chocolate bar when the fuel line is neither first nor nearest the total
+    /// (docs/EXTRACTION.md failure mode 2). Nil when no operand carries a
+    /// marker; callers then fall back to `first(in:)`.
+    static func fuelLine(in lines: [OCRLine]) -> (pair: OperandPair, index: Int)? {
+        for (index, line) in lines.enumerated() {
+            guard let pair = OperandPair(line: line.text) else { continue }
+            if pair.leftText.hasVolumeMarker || pair.rightText.hasVolumeMarker {
+                return (pair, index)
+            }
+        }
+        return nil
+    }
+
     init?(line: String) {
         // num (marker?) op (marker?) num - the marker is an optional trailing
-        // л/L on either operand.
+        // л/L on either operand. A currency word may sit between an operand and
+        // the operator (`1.884 EUR x 67 L` on the Circle K screenshots): the
+        // confirm-screen lines print it and the thermal receipts omit it, so
+        // the currency tokens are stripped before the shared pattern runs.
+        let currencyPattern = #"\s*(?:EUR|€|RUB|₽|USD|\$|ТЕНГЕ|KZT|PLN|ZŁ|CZK|KČ|GBP|£|CHF|грн)\s*"#
+        let normalized = line.replacingOccurrences(of: currencyPattern, with: " ", options: .regularExpression)
         let pattern = /(\d+(?:[.,]\d+)?)\s*([лL]?)\s*([xXхХ*·×])\s*(\d+(?:[.,]\d+)?)\s*([лL]?)/
-        guard let match = line.firstMatch(of: pattern) else { return nil }
+        guard let match = normalized.firstMatch(of: pattern) else { return nil }
         guard let left = Self.parse(match.1), let right = Self.parse(match.4) else { return nil }
         self.left = left
         self.right = right
@@ -391,7 +430,7 @@ struct OperandPair {
 
 enum MarkerSide { case left, right }
 
-private extension String {
+extension String {
     /// A unit marker attached to a number: "67,00L", "40 л", "66.810л". A bare
     /// "L" inside a word (Tallinn, ЛУКОЙЛ) is not a volume marker.
     var hasVolumeMarker: Bool {

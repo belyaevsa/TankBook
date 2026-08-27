@@ -170,8 +170,10 @@ public enum MixedReceiptDetector {
     /// abbreviate between the quantity and the operator ("1 т. X 129.00" - т. =
     /// pieces). The unit abbreviations are stripped, then the shared operand
     /// parser does the rest, so this and the fuel extractor never disagree
-    /// about what counts as an operand pair.
-    private static func quantityPricePair(_ line: String) -> (quantity: Double, price: Double)? {
+    /// about what counts as an operand pair. Internal so the cross-check's
+    /// non-fuel line sum and the mixed detector share one definition of "a
+    /// priced line".
+    static func quantityPricePair(_ line: String) -> (quantity: Double, price: Double)? {
         let cleaned = line
             .replacingOccurrences(of: "т.", with: " ")
             .replacingOccurrences(of: "Т.", with: " ")

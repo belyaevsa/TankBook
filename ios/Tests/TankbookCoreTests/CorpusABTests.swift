@@ -114,8 +114,9 @@ struct CorpusABTests {
         #expect(abs(liters - 39.000) >= 0.005)
         #expect(abs(unitPrice - 70.44) >= 0.005)
 
-        let extraction = FuelExtraction(liters: liters, unitPrice: unitPrice, total: total)
-        #expect(extraction.crossCheckPassed, "the swap must pass the cross-check - that is the trap")
+        let outcome = ExtractionCrossCheck.evaluate(liters: liters, unitPrice: unitPrice,
+                                                    total: total, lines: [])
+        #expect(outcome == .lock, "the swap must pass the cross-check - that is the trap")
     }
 
     /// The decimal-separator loss (a clean factor-of-ten shift) did not land on
@@ -138,8 +139,9 @@ struct CorpusABTests {
         #expect(abs(liters - 40.00 * 10) < 0.005)
         #expect(abs(total - 2038.00 * 10) < 0.005)
 
-        let extraction = FuelExtraction(liters: liters, unitPrice: unitPrice, total: total)
-        #expect(extraction.crossCheckPassed, "the shift must pass the cross-check - scale-invariant")
+        let outcome = ExtractionCrossCheck.evaluate(liters: liters, unitPrice: unitPrice,
+                                                    total: total, lines: [])
+        #expect(outcome == .lock, "the shift must pass the cross-check - scale-invariant")
     }
 
     /// The probe of 2026-08-26 recorded the decimal shift on `pump-005`. In this

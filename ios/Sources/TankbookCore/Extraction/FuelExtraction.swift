@@ -11,6 +11,12 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
     public var currency: CurrencyCode?
     public var fuelKind: FuelKind?
     public var date: String?
+    /// The four-outcome cross-check of `liters x unitPrice` vs `total`
+    /// (docs/EXTRACTION.md -> "Cross-check: four outcomes, not two"). Computed
+    /// by `FuelExtractor.extract`; a manually-built extraction carries the
+    /// default `.notApplicable` - run `ExtractionCrossCheck.evaluate` when the
+    /// document lines are available.
+    public var crossCheck: ExtractionCrossCheck = .notApplicable
 
     public init(
         liters: Double? = nil,
@@ -18,7 +24,8 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         total: Double? = nil,
         currency: CurrencyCode? = nil,
         fuelKind: FuelKind? = nil,
-        date: String? = nil
+        date: String? = nil,
+        crossCheck: ExtractionCrossCheck = .notApplicable
     ) {
         self.liters = liters
         self.unitPrice = unitPrice
@@ -26,14 +33,7 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         self.currency = currency
         self.fuelKind = fuelKind
         self.date = date
-    }
-
-    /// liters × unitPrice ≈ total under the CHECK 3 tolerance
-    /// (docs/SCHEMA.md: max(0.02, amount × 0.005)). A green check validates the
-    /// product, never the assignment - the multiplication is commutative.
-    public var crossCheckPassed: Bool {
-        guard let liters, let unitPrice, let total else { return false }
-        return abs(liters * unitPrice - total) <= max(0.02, total * 0.005)
+        self.crossCheck = crossCheck
     }
 
     /// The fuel-line amount when volume and price are both known, else nil.
