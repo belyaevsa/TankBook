@@ -105,6 +105,14 @@ public final class RateStore: @unchecked Sendable {
         }
     }
 
+    /// Every row currently cached, normalized to the start of its day. Used to
+    /// persist the cache so a relaunch can rebuild the store from disk - the
+    /// cache itself is never synced (docs/SCHEMA.md -> Exchange rates); only
+    /// the `Money` snapshots inside entries travel (S8).
+    public func allRates() -> [ExchangeRate] {
+        lock.withLock { $0.rates }
+    }
+
     /// Fetches a ~2-year rolling pack (base EUR) when a fetcher is present;
     /// otherwise a no-op. A fetch failure is silent - a miss is not an error
     /// (docs/SCHEMA.md -> Exchange rates, F9).
@@ -191,7 +199,7 @@ public enum RateSeedStore {
                   rate > 0 else {
                 throw RateError.invalidRate(row.rate)
             }
-            let source: RateSource = row.source == "cis" ? .cis : .ecb
+            let source = RateSource.wire(row.source)
             return ExchangeRate(base: base, quote: quote, date: date, rate: rate, source: source)
         }
     }

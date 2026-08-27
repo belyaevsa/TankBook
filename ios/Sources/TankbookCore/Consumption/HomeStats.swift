@@ -39,6 +39,10 @@ public struct HomeStats: Equatable, Sendable {
     /// The excluded entries' IDs, most recent first - the footnote's "tap -> the
     /// flagged entry" next step needs a concrete target (hard rule 7).
     public let excludedEntryIDs: [UUID]
+    /// Entries still waiting on a rate among the counting entries - the F9
+    /// "N entries pending rates" footnote count (docs/JOURNEYS.md F9). Derived,
+    /// never stored (hard rule 2); `money == nil` (a free event) is not pending.
+    public let pendingRateCount: Int
     /// True once a headline exists but is a first estimate (fewer segments than
     /// the floor, nothing older to extend into).
     public let isFirstEstimate: Bool
@@ -89,6 +93,9 @@ public struct HomeStats: Equatable, Sendable {
             .filter { excluded.contains($0.id) }
             .sorted { $0.date > $1.date }
             .map(\.id)
+        self.pendingRateCount = countingEntries
+            .filter { $0.money?.isRatePending == true }
+            .count
         if case .firstEstimate = headline?.label {
             self.isFirstEstimate = true
         } else {

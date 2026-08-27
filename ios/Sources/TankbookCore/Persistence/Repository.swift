@@ -440,6 +440,18 @@ extension TankbookRepository {
         }
     }
 
+    /// Bulk-upserts cache rows (a fetched pack, or the persisted cache being
+    /// written back) in one transaction. Same-key rows replace: a fetched row
+    /// for `(base, quote, date)` replaces a seed row for the same key
+    /// (docs/SCHEMA.md -> Exchange rates).
+    public func upsertExchangeRates(_ rates: [ExchangeRate]) throws {
+        try database.write { db in
+            for rate in rates {
+                try ExchangeRateRow(rate: rate).save(db)
+            }
+        }
+    }
+
     public func exchangeRate(base: CurrencyCode, quote: CurrencyCode, on date: Date) throws -> ExchangeRate? {
         try database.read { db in
             try ExchangeRateRow
@@ -448,6 +460,34 @@ extension TankbookRepository {
                     && Column("date") == date.timeIntervalSinceReferenceDate)
                 .fetchOne(db)?
                 .rate
+        }
+    }
+
+    /// Every cached row, oldest first.
+    public func exchangeRates() throws -> [ExchangeRate] {
+        try database.read { db in
+            try ExchangeRateRow.order(Column("date")).fetchAll(db).map(\.rate)
+        }
+    }
+
+    /// Cached rows whose day falls inside `from...to`.
+    public func exchangeRates(from: Date, to: Date) throws -> [ExchangeRate] {
+        try database.read { db in
+            try ExchangeRateRow
+                .filter(Column("date") >= from.timeIntervalSinceReferenceDate
+                    && Column("date") <= to.timeIntervalSinceReferenceDate)
+                .order(Column("date"))
+                .fetchAll(db)
+                .map(\.rate)
+        }
+    }
+
+    /// Drops cache rows older than `cutoff` - the ~2-year rolling window
+    /// (docs/SCHEMA.md -> Exchange rates: "keep ~2 years rolling").
+    public func pruneExchangeRates(olderThan cutoff: Date) throws {
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM \(TankbookSchema.exchangeRate) WHERE date < ?",
+                           arguments: [cutoff.timeIntervalSinceReferenceDate])
         }
     }
 }
