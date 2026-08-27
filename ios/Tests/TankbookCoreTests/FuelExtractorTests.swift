@@ -250,8 +250,10 @@ struct FuelKindNormalizerTests {
         #expect(result.fuelKind == .petrol95)
 
         // The degenerate cross-check: 30.61 x 0.00 == 0.00 is arithmetically
-        // perfect and carries no information. It must not read as verified.
-        #expect(!result.crossCheckPassed)
+        // perfect and carries no information. It must not read as verified -
+        // and with no unit price and no total there is no triple to check at
+        // all, so the outcome is `.notApplicable`, never a lock.
+        #expect(result.crossCheck == .notApplicable)
     }
 }
 

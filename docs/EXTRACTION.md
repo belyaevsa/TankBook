@@ -26,12 +26,14 @@ value this pipeline produces is a suggestion the user can overwrite forever (har
 
 Scored by `AccuracyRatchetTests` over `Spike/ReceiptSpike/fixtures/`, field-by-field against
 hand-checked ground truth. These are the recorded high-water marks; the live score is at or
-above each.
+above each. The screenshots mark was raised 7/24 -> 18/24 on 2026-08-27 by P2.12 (the
+four-outcome cross-check and the `L`/`Gab.` discriminator); receipts, pump and fiscal are
+unchanged by that task.
 
 | Class | Fixtures | Fields resolved | Where it fails |
 |---|---|---|---|
 | `receipts` | 35 | 45/93 (48%) | Interpretation. Vision reads the glyphs at confidence 1.00 |
-| `screenshots` | 8 | 7/24 (29%) | Interpretation. The source is rendered text - there is nothing to misread |
+| `screenshots` | 8 | 18/24 (75%) | Interpretation. The source is rendered text - there is nothing to misread |
 | `pump` | 17 | 1/46 (2%) | **Recognition.** Seven-segment glyphs, glare, and forecourt adverts in frame |
 | `fiscal` | 2 | 1/3 | Text layer where there is one |
 
@@ -53,7 +55,7 @@ same solution.
     |
  4. resolve      per-field role assignment  (the bulk of the logic)
     |
- 5. cross-check  liters x unitPrice vs total -> lock | reconciled | mismatch | undecided
+ 5. cross-check  liters x unitPrice vs total -> lock | reconciled | mixed | mismatch
     |
  6. hand off     ExtractionMeta + per-field confidence -> Confirm screen pre-fill
 ```
@@ -146,6 +148,16 @@ the printed discount, while every field was read correctly:
 
 A gate that refuses to lock here is refusing five perfect scans.
 
+`reconciled` is decided **by the residual, not by the existence of a discount line** - and on a
+mixed receipt the residual is the fuel's *share* of the printed discount, so the check is the
+whole document accounting: `product + shopList == grandTotal + discount`. `screenshot-008`
+passes it completely (115.02 + 11.14 == 122.99 + 3.17, where the residual 2.39 is the fuel
+share and 0.78 the shop share). The counter-example is `receipt-038`: it prints
+`EXTRA SOODUS -0,23 EUR` beneath the item while `K O K K U` still reads 79,32 - the discount is
+printed but **not subtracted from the total**, which already equals `45,22 x 1,754`. A rule
+that reconciled because a discount line exists would call that a reconciled; the residual-driven
+rule locks it, because the residual is ~0 and the total is already the product.
+
 It follows that **a document can carry two truthful unit prices**. `screenshot-004`,
 `receipt-001` and `pump-001` are the same fill: the app prints the list price 1.884, the receipt
 prints the effective 1.869, and the 1.01 discount is the difference. Neither is wrong. Which one
@@ -207,10 +219,11 @@ their evidence, not described in the abstract.
    factor.
 2. **The grand total.** On a mixed receipt the fuel amount is the fuel line, never the receipt
    total (hard rule 4). `screenshot-008` reconciles completely - fuel 112.63 plus shop 10.36
-   equals the 122.99 total, and the fuel discount 2.39 plus shop 0.78 equals the printed 3.17 -
-   and the parser currently returns 122.99 for it. Note the fuel line is the **third** of eight,
-   so "first priced line" and "line nearest the total" both fetch a chocolate bar. The
-   discriminator is the unit token: `L` against Latvian `Gab.`
+   equals the 122.99 total, and the fuel discount 2.39 plus shop 0.78 equals the printed 3.17.
+   **Fixed in P2.12** (2026-08-27): the parser once returned 122.99 for it; it now resolves
+   `59.78 L x 1.924` and takes the fuel line's own printed amount 112.63, never the grand total.
+   The fuel line is the **third** of eight, so "first priced line" and "line nearest the total"
+   both fetch a chocolate bar. The discriminator is the unit token: `L` against Latvian `Gab.`
 3. **Surrounding text read as data.** A pump forecourt is covered in advertising. The parser
    returned `0.700` litres from `Wrapper ja jook 0,5-0,7l`, a sandwich promo printed beside the
    display. Receipts have no equivalent, which is why a receipt-tuned parser scores far worse on
