@@ -1,0 +1,3 @@
+[
+  { "id": "mfm", "displayName": "My Fuel Manager", "fileKinds": ["csv", "backup"], "addedInPackVersion": 1 }
+]

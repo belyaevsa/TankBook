@@ -1,0 +1,59 @@
+{
+  "importId": "00000000-0000-4000-8000-000000000302",
+  "format": "mfm",
+  "scope": "vehicle",
+  "candidates": [
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-24T00:00:00Z",
+      "odometer": 121727,
+      "volumeL": 67,
+      "unitPrice": "1.868955",
+      "money": { "amount": "125.22", "currency": "USD" },
+      "fuelKind": "diesel",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Neste",
+      "vehicleName": "Volvo",
+      "provenance": { "tag": "import", "source": "mfm" },
+      "sourceRow": 1
+    },
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-10T00:00:00Z",
+      "odometer": null,
+      "volumeL": 42.31,
+      "unitPrice": "1.749",
+      "money": { "amount": "74.00", "currency": "USD" },
+      "fuelKind": "diesel",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Neste",
+      "vehicleName": "Volvo",
+      "provenance": { "tag": "import", "source": "mfm" },
+      "sourceRow": 2
+    },
+    {
+      "entityType": "fillUp",
+      "date": "2026-07-18T00:00:00Z",
+      "odometer": 120559,
+      "volumeL": 38,
+      "unitPrice": "1.812",
+      "money": { "amount": "64.66", "currency": "USD" },
+      "fuelKind": "diesel",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Circle K",
+      "vehicleName": "Volvo",
+      "provenance": { "tag": "import", "source": "mfm" },
+      "sourceRow": 3
+    }
+  ],
+  "unparsed": [
+    { "row": 6, "reason": "invalid_date" }
+  ],
+  "ambiguities": [
+    { "kind": "dateFormat", "options": ["M/D/YYYY", "D/M/YYYY"], "rowCount": 3 },
+    { "kind": "currency", "options": ["USD"], "rowCount": 3 }
+  ]
+}

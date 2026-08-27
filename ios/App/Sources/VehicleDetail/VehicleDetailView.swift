@@ -115,6 +115,9 @@ struct VehicleDetailView: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("vehicleDetailTireSetsLink")
                 }
+                section("Your data") {
+                    VehicleExportRow(vehicle: vehicle)
+                }
                 section("Improves accuracy") {
                     VehicleDetailAccuracyCard(form: $form, focus: $focus)
                 }

@@ -287,6 +287,20 @@ capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
 capture P4.6-photo-syncing        en -seedPhotoSyncing -presentScreen editEntry
 capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 
+# P5.5b: the import wizard's three screens (source picker, preview gate, review
+# list) plus the per-car export row on Vehicle detail. The picker renders the
+# stub transport's list; the preview/review install a stub parse (no file
+# picker, no server). RU is where the longest copy overflows - the review intro
+# is a two-count sentence and the duplicate warning is a paragraph.
+capture P5.5b-import-source     en -presentScreen importWizard -importStubFormats one
+capture P5.5b-import-source-ru  ru -presentScreen importWizard -importStubFormats one
+capture P5.5b-import-preview    en -presentScreen importWizard -importStubParse mfm -seedImportPreview
+capture P5.5b-import-preview-ru ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
+capture P5.5b-import-review     en -presentScreen importWizard -importStubParse review -seedImportReview
+capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse review -seedImportReview
+capture P5.5b-export            en -seedHomeCarSwitcher -presentScreen vehicleDetail
+capture P5.5b-export-ru         ru -seedHomeCarSwitcher -presentScreen vehicleDetail
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

@@ -367,4 +367,106 @@ enum L10n {
             + "It will go up automatically when the service is back."
         return localize(key)
     }
+
+    // MARK: - Import wizard (P5.5b)
+
+    /// "from MyFuelManager_2026-08.csv · nothing is saved yet" - the preview's
+    /// source line. One full localised phrase per language (RU word order
+    /// differs); the file name is runtime data sharing the sentence.
+    static func fromFileNothingSaved(fileName: String) -> String {
+        String(format: localize("from %1$@ · nothing is saved yet"), fileName)
+    }
+
+    /// "3 look like fill-ups you already have. They'll be flagged, not merged –
+    /// you decide after." - the S2 duplicate count when merging (hard rule 8),
+    /// real plural rules per language.
+    static func lookLikeDuplicates(_ count: Int) -> String {
+        String(localized: "\(count) look like fill-ups you already have. They'll be flagged, not merged – you decide after.")
+    }
+
+    /// "6 rows need a look" - the review-list count (F6), plural.
+    static func rowsNeedALook(_ count: Int) -> String {
+        String(localized: "\(count) rows need a look")
+    }
+
+    /// "The other 214 are ready" - the preview's partial-parse footnote.
+    static func otherRowsReady(_ review: Int, total: Int) -> String {
+        String(localized: "The other \(total - review) are ready")
+    }
+
+    /// "Import 214 fill-ups" - the preview's confirm button, plural.
+    static func importFillUps(_ count: Int) -> String {
+        String(localized: "Import \(count) fill-ups")
+    }
+
+    /// "Imported 214 fill-ups" - the confirmation toast after the commit.
+    static func importedFillUps(_ count: Int) -> String {
+        String(localized: "Imported \(count) fill-ups")
+    }
+
+    /// "214 rows are ready. These six are missing something – fix one, or leave
+    /// it out." - the review screen's intro, two runtime counts sharing one
+    /// sentence (never concatenated).
+    static func rowsReadyIntro(ready: Int, review: Int) -> String {
+        String(localized: "\(ready) rows are ready. These \(review) are missing something – fix one, or leave it out.")
+    }
+
+    /// "38.00 × 1.812 is 68.86, but the file says 64.66. A discount, or a
+    /// typo." - the cross-check mismatch's evidence line. The four numbers are
+    /// runtime data sharing one sentence.
+    static func crossCheckDetail(volume: String, price: String,
+                                 computed: String, fileTotal: String) -> String {
+        String(format: localize("%1$@ × %2$@ is %3$@, but the file says %4$@. A discount, or a typo."),
+               volume, price, computed, fileTotal)
+    }
+
+    /// "This doesn't look like a My Fuel Manager export." - the 422 message,
+    /// naming the DECLARED source specifically (F7, docs/ERRORS.md).
+    static func doesNotLookLike(displayName: String) -> String {
+        String(format: localize("This doesn't look like a %@ export."), displayName)
+    }
+
+    /// "We read: My Fuel Manager. Send us the file and we'll add it." - the
+    /// not-supported sheet names what IS supported rather than dead-ending.
+    static func weReadThese(supportedNames: String) -> String {
+        String(format: localize("We read: %@. Send us the file and we'll add it."), supportedNames)
+    }
+
+    /// The "send us the file" share-sheet body - a consent affordance, not a
+    /// silent upload.
+    static var sendUsTheFileMessage: String {
+        localize("I'd like Tankbook to import from my fuel app – here's my export file.")
+    }
+
+    /// "Off by 4.20 €" - a cross-check-mismatch row's badge (F6b). The amount
+    /// is already formatted with its symbol.
+    static func offBy(amount: String) -> String {
+        String(format: localize("Off by %@"), amount)
+    }
+
+    /// "Row 6" - an unparsed review row's label (the 1-based data-row number).
+    static func rowLabel(sourceRow: Int) -> String {
+        String(format: localize("Row %@"), "\(sourceRow)")
+    }
+
+    /// "Imported car" - the fallback name when a file names no vehicle.
+    static var importedCarName: String {
+        localize("Imported car")
+    }
+
+    /// A format row's file kinds ("CSV or backup file"), localized per kind.
+    static func fileKindsLabel(_ kinds: [String]) -> String {
+        let normalized = kinds.map { $0.lowercased() }
+        if normalized.contains("csv") && normalized.contains("backup") {
+            return localize("CSV or backup file")
+        }
+        let mapped = kinds.map { kind -> String in
+            switch kind.lowercased() {
+            case "csv": return localize("CSV")
+            case "backup": return localize("backup file")
+            default: return kind.capitalized
+            }
+        }
+        return mapped.joined(separator: localize(" or "))
+    }
 }
