@@ -79,8 +79,13 @@ final class CarSwitcherUITests: XCTestCase {
                       "the petrol car's log rows must be on screen")
 
         openSwitcher(app)
-        let id4 = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@", "ID.4")).firstMatch
+        // Scoped to the sheet's own rows: the Garage tab root renders the same
+        // cars, and an inactive tab's content is visible to XCUITest (opacity +
+        // accessibilityHidden do not remove it from element queries), so an
+        // unscoped label query would match the hidden Garage row first and tap
+        // the wrong element.
+        let id4 = app.buttons.matching(identifier: "carSwitcherRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "ID.4")).firstMatch
         XCTAssertTrue(id4.waitForExistence(timeout: 5))
         id4.tap()
 

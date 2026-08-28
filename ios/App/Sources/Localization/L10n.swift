@@ -602,3 +602,45 @@ extension L10n {
         localize("Low Power Mode is on – background sync and photo uploads wait, then resume automatically.")
     }
 }
+
+// MARK: - Account & devices (P6.4)
+
+extension L10n {
+    /// The revoke confirmation's message: revoke stops syncing, it erases
+    /// nothing (docs/API.md -> "Delete /account/devices/{id}: its next pull
+    /// gets 410"; the device's local data stays on it). A device name is never
+    /// woven into this sentence - the phrase is standalone, so no server text
+    /// can be governed by a case (docs/LOCALIZATION.md).
+    static var revokeConfirmationMessage: String {
+        localize("It stops syncing with your account. Everything on it stays.")
+    }
+
+    /// The delete-account confirmation's message: deletion is a tombstone
+    /// (docs/SYNC.md). The account is marked deleted now, the server purges its
+    /// copy after the 30-day grace period, the other devices get 410, and the
+    /// log on this phone is never touched - the sentence the screen must never
+    /// stop saying (site/delete-account.md).
+    static var deleteAccountConfirmationMessage: String {
+        localize("Your account is deleted now. Our server copy is removed after 30 days. "
+            + "Your other devices stop syncing. The log on this phone is not touched.")
+    }
+
+    /// The footnote under Delete account: the tombstone truth stated plainly.
+    static var deleteAccountFootnote: String {
+        localize("Deleting the account doesn't touch the log on this phone.")
+    }
+
+    /// "Seen today" / "Seen 2 days ago" - a device's last-seen line. The slot
+    /// receives an app-formatted relative day (safe: dates do not decline in
+    /// Russian, docs/LOCALIZATION.md); the device name never shares this
+    /// sentence.
+    static func seenAgo(relativeDay: String) -> String {
+        String(format: localize("Seen %@"), relativeDay)
+    }
+
+    /// "Couldn't revoke – try again." - a failed revoke's row (hard rule 7: it
+    /// names its next step; the retry button sits on the same row).
+    static var revokeFailedMessage: String {
+        localize("Couldn't revoke – try again.")
+    }
+}

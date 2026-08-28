@@ -75,6 +75,8 @@ struct AppRootView: View {
         // tap). DEBUG/test-only.
         if ProcessInfo.processInfo.arguments.contains("-selectTrendsTab") {
             _tabSelection = State(initialValue: .trends)
+        } else if ProcessInfo.processInfo.arguments.contains("-selectGarageTab") {
+            _tabSelection = State(initialValue: .garage)
         } else {
             _tabSelection = State(initialValue: .log)
         }
@@ -302,7 +304,7 @@ struct GarageTabView: View {
 
     var body: some View {
         RootedNavigationStack(path: $path) {
-            GarageRootView()
+            GarageRootView(onNavigate: { path = [$0] })
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
         .fullScreenCover(item: $modal) {

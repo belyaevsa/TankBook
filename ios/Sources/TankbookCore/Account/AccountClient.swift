@@ -1,0 +1,168 @@
+import Foundation
+
+// The account & devices API client (docs/API.md -> "Account & devices"). Like
+// sync and import, everything goes through `TankbookHTTPClient`, so the host
+// allowlist and the host-bound Authorization apply here exactly as they do to
+// the sync transport. The transport is injectable, so the client is testable in
+// a plain `swift test` process with no sockets (docs/TESTING.md).
+
+/// One registered device as served by `GET /account/devices` (docs/API.md).
+/// `revoked` marks a device whose next pull will get 410; `lastSeenAt` is the
+/// server's view of when the device last pulled. The name is server-supplied
+/// runtime data - the UI must never place it where a preposition governs its
+/// case in Russian (docs/LOCALIZATION.md - the P4.7 lesson).
+public struct AccountDevice: Sendable, Equatable, Decodable {
+    public let id: UUID
+    public let name: String
+    public let platform: String
+    public let lastSeenAt: Date
+    public let revoked: Bool
+
+    public init(id: UUID, name: String, platform: String, lastSeenAt: Date, revoked: Bool) {
+        self.id = id
+        self.name = name
+        self.platform = platform
+        self.lastSeenAt = lastSeenAt
+        self.revoked = revoked
+    }
+}
+
+/// Errors the account client surfaces, each mapped from a specific wire status
+/// (docs/API.md -> Account & devices, docs/ERRORS.md -> the screen's rows).
+public enum AccountClientError: Error, Sendable, Equatable {
+    /// The request could not reach the server (offline, DNS, timeout). Never an
+    /// error a user can fix by doing anything other than being online again.
+    case transportUnreachable
+    /// The transport or host allowlist refused the request outright - a bug or
+    /// a security violation, never the user's offline state.
+    case client
+    /// `401` - the bearer token is no longer accepted. The session is gone; the
+    /// user signs in again. Local data is untouched (hard rule 1).
+    case unauthorized
+    /// `404` - the device (or account) does not belong to this session's
+    /// account. Shown as the device having already been removed.
+    case notFound
+    /// Any other non-2xx.
+    case server(status: Int)
+    /// The response body was not the expected JSON.
+    case invalidResponse
+}
+
+/// The host-bound client for `GET /account/devices`, `DELETE
+/// /account/devices/{id}` and `DELETE /account`. Public so the app target can
+/// build it over its own transport and session store; the methods are the three
+/// the Account & devices screen needs and nothing else.
+public struct AccountClient: Sendable {
+    public let httpClient: TankbookHTTPClient
+    public let baseURL: URL
+    /// ISO-8601 decoder that accepts the server's `DateTimeOffset` serialization
+    /// (round-trip `O` format, offset and fractional seconds) and the plain UTC
+    /// forms. A device list must decode on any server version.
+    private let decoder: JSONDecoder
+
+    public init(httpClient: TankbookHTTPClient, baseURL: URL) {
+        self.httpClient = httpClient
+        self.baseURL = baseURL
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .custom(Self.decodeISO8601WithOffset)
+        self.decoder = decoder
+    }
+
+    /// `GET /account/devices` - the manage-devices list. Revoked devices are
+    /// returned marked, never omitted, so the screen can show what happened.
+    public func devices() async throws -> [AccountDevice] {
+        let url = endpoint("account/devices")
+        let response = try await send(TankbookHTTPRequest(url: url))
+        guard (200...299).contains(response.status) else {
+            throw Self.error(for: response.status)
+        }
+        guard let body = response.body else { throw AccountClientError.invalidResponse }
+        do {
+            let payload = try decoder.decode(DevicesPayload.self, from: body)
+            return payload.devices
+        } catch {
+            throw AccountClientError.invalidResponse
+        }
+    }
+
+    /// `DELETE /account/devices/{id}` - revokes one device. Its next pull gets
+    /// 410; its local data stays on it (the tombstone rule applies to devices
+    /// too - revoke stops syncing, it erases nothing).
+    public func revoke(deviceID: UUID) async throws {
+        let url = endpoint("account/devices/\(deviceID.uuidString.lowercased())")
+        let response = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
+        guard response.status == 204 || (200...299).contains(response.status) else {
+            throw Self.error(for: response.status)
+        }
+    }
+
+    /// `DELETE /account` - tombstones the account. The server purges its copy
+    /// after the grace period; every device's pull gets 410; **the local log on
+    /// this phone is untouched** (docs/SYNC.md, site/delete-account.md).
+    public func deleteAccount() async throws {
+        let url = endpoint("account")
+        let response = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
+        guard response.status == 204 || (200...299).contains(response.status) else {
+            throw Self.error(for: response.status)
+        }
+    }
+
+    // MARK: - Plumbing
+
+    /// All account endpoints live under `/v1` (docs/API.md -> "Account &
+    /// devices"; backend `Program.cs`: `app.MapGroup("/v1")`).
+    private func endpoint(_ path: String) -> URL {
+        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+    }
+
+    private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        do {
+            return try await httpClient.send(request)
+        } catch is TankbookHTTPClientError {
+            // Host-not-allowlisted / redirect loop: a real client bug or a
+            // security violation, never an offline state.
+            throw AccountClientError.client
+        } catch {
+            throw AccountClientError.transportUnreachable
+        }
+    }
+
+    static func error(for status: Int) -> AccountClientError {
+        switch status {
+        case 401: return .unauthorized
+        case 404: return .notFound
+        default: return .server(status: status)
+        }
+    }
+
+    private struct DevicesPayload: Decodable {
+        let devices: [AccountDevice]
+    }
+
+    /// Decodes the server's ISO-8601 timestamps. System.Text.Json serializes a
+    /// `DateTimeOffset` round-trip: `2026-08-28T10:30:00.0000000+02:00`; other
+    /// paths may produce `...Z` with 0 or 3 fractional digits. Normalises a
+    /// fraction longer than three digits down to three (the formatters accept
+    /// only three), then tries the fractional-second and plain internet-date
+    /// forms, so a schema evolution cannot blank a `lastSeenAt`.
+    private static func decodeISO8601WithOffset(_ decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        let normalized = raw.replacingOccurrences(
+            of: #"\.([0-9]{3})[0-9]+"#, with: ".$1",
+            options: .regularExpression)
+        let fractional: ISO8601DateFormatter = {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            return formatter
+        }()
+        let plain = ISO8601DateFormatter()
+        plain.formatOptions = [.withInternetDateTime]
+        for formatter in [fractional, plain] {
+            if let date = formatter.date(from: normalized) { return date }
+        }
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "cannot decode ISO-8601 date: \(raw)")
+    }
+}

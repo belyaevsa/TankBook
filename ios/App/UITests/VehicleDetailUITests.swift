@@ -26,8 +26,8 @@ final class VehicleDetailUITests: XCTestCase {
     private func openDetail(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
         app.buttons["tabbar.garage"].tap()
-        XCTAssertTrue(app.buttons["vehicleDetailButton"].waitForExistence(timeout: 5))
-        app.buttons["vehicleDetailButton"].tap()
+        XCTAssertTrue(app.buttons["garageCarRow"].firstMatch.waitForExistence(timeout: 5))
+        app.buttons["garageCarRow"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
     }
 

@@ -28,16 +28,11 @@ struct TrendsRootView: View {
 }
 
 struct GarageRootView: View {
-    var body: some View {
-        List {
-            NavigationLink("Vehicle", value: Route.vehicleDetail(nil))
-                .accessibilityIdentifier("vehicleDetailButton")
+    /// Pushes a route onto the Garage tab's own NavigationStack path (the
+    /// "Add car" tile and the limit sheet's exits - Button-driven pushes).
+    let onNavigate: (Route) -> Void
 
-            NavigationLink("Add car", value: Route.addVehicle)
-                .accessibilityIdentifier("addVehicleButton")
-        }
-        .scrollContentBackground(.hidden)
-        .background(Theme.Palette.midnight)
-        .navigationTitle("Garage")
+    var body: some View {
+        GarageView(onNavigate: onNavigate)
     }
 }

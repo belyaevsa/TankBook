@@ -160,13 +160,20 @@ enum SettingsTestSeed {
     }
 
     /// The signed-in session the seeded states read back. The email matches the
-    /// artboard's account card ("driver@icloud.com").
+    /// artboard's account card ("driver@icloud.com"). With
+    /// `-accountStubCurrentDevice` the device id is the Account & devices
+    /// fixture's "this device" row (account-devices-full.json), so the marker
+    /// and the session agree; otherwise it is a fresh random id.
     static func stubSession() -> AuthSession {
-        AuthSession(
+        let arguments = ProcessInfo.processInfo.arguments
+        let deviceID = arguments.contains("-accountStubCurrentDevice")
+            ? "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+            : UUID().uuidString
+        return AuthSession(
             accessToken: "stub-access-token",
             refreshToken: "stub-refresh-token",
             accountId: "settings-seed-account",
-            deviceId: UUID().uuidString,
+            deviceId: deviceID,
             provider: .apple,
             email: "driver@icloud.com"
         )

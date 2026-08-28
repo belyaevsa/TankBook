@@ -24,6 +24,7 @@ struct PaletteAccentGuardTests {
     /// file (relative to App/Sources) + the exact trimmed source line.
     private static let electricUses: Set<String> = [
         "CarSwitcher/CarSwitcherView.swift: vehicle.powertrain == .ev ? Theme.Palette.headlight : Theme.Palette.taillight",
+        "Garage/GarageView.swift: vehicle.powertrain == .ev ? Theme.Palette.headlight : Theme.Palette.taillight",
         "Home/HomeSections.swift: case .charge: return Theme.Palette.headlight",
         "RecentlyDeleted/RecentlyDeletedView.swift: case is ChargeSession: return Theme.Palette.headlight",
         "Trends/TrendsView.swift: vehicle.powertrain == .ev ? Theme.Palette.headlight : Theme.Palette.taillight",
