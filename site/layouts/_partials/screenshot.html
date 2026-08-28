@@ -1,7 +1,15 @@
 {{- /* The only path to an <img> on this site.
       Params: name (explicit filename in assets/screenshots, never a glob),
       alt (a real description), eager (optional bool, above-the-fold only).
-      A missing resource, an empty alt, or alt="screenshot" fails the build. */ -}}
+      A missing resource, an empty alt, or alt="screenshot" fails the build.
+
+      W12: screenshots are 1206 px phone captures rendering into slots that top
+      out at 336 CSS px (layout.css .hero__shot; every other slot is 260-300).
+      Serving the source was 1600 KB on the landing page alone. Everything now
+      ships resized - 336/672 (1x/2x) WebP with the same-size PNG as the
+      <picture> fallback, per docs/SITE.md (responsive images, WebP + PNG
+      fallback, srcset). Narrower slots reuse the same files; 336 px into a
+      260-300 px slot is single-digit waste next to 1206 px into it. */ -}}
 {{- $name := .name -}}
 {{- $alt := .alt -}}
 {{- if not $name -}}
@@ -17,4 +25,11 @@
 {{- if not $res -}}
   {{- errorf (printf "screenshot %s: not found in assets/screenshots - check the explicit filename" $name) -}}
 {{- end -}}
-<img src="{{ $res.RelPermalink }}" alt="{{ $alt }}" width="{{ $res.Width }}" height="{{ $res.Height }}"{{ if .eager }} fetchpriority="high"{{ else }} loading="lazy"{{ end }} decoding="async">
+{{- $png1x := $res.Resize "336x" -}}
+{{- $png2x := $res.Resize "672x" -}}
+{{- $webp1x := $res.Resize "336x webp q85" -}}
+{{- $webp2x := $res.Resize "672x webp q85" -}}
+<picture>
+  <source type="image/webp" srcset="{{ $webp1x.RelPermalink }} 1x, {{ $webp2x.RelPermalink }} 2x">
+  <img src="{{ $png1x.RelPermalink }}" srcset="{{ $png1x.RelPermalink }} 1x, {{ $png2x.RelPermalink }} 2x" alt="{{ $alt }}" width="{{ $png1x.Width }}" height="{{ $png1x.Height }}"{{ if .eager }} fetchpriority="high"{{ else }} loading="lazy"{{ end }} decoding="async">
+</picture>

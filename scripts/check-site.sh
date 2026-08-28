@@ -4,6 +4,27 @@
 # Exits non-zero if any check fails. Every check prints PASS/FAIL with its evidence.
 
 set -u
+
+# --- portable image dimensions ----------------------------------------------
+# `sips` is macOS-only. This gate also runs on the deploy runner (Ubuntu), where
+# it does not exist - the width came back empty and the comparison failed, so the
+# checks reported bad images when they simply could not measure. Reading the PNG
+# IHDR header in python3 works on both, needs no ImageMagick or PIL, and was
+# cross-checked against sips on the same files.
+png_size() {  # $1 = path -> "WIDTH HEIGHT", or nothing if unreadable
+  python3 - "$1" <<'PYEOF' 2>/dev/null
+import struct, sys
+try:
+    d = open(sys.argv[1], 'rb').read(24)
+    if d[:8] != b'\x89PNG\r\n\x1a\n':
+        raise ValueError('not a PNG')
+    w, h = struct.unpack('>II', d[16:24])
+    print(w, h)
+except Exception:
+    pass
+PYEOF
+}
+
 root="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$root"
 
@@ -102,14 +123,41 @@ else
 fi
 
 # ── hard rule 15: both doors ship the same screenshot files by treatment ──
+# W12: Hugo's processed variants keep the base name (`P1.4-home_hu_<hash>_...`),
+# so the match is on `screenshots/<base>` - it catches the WebP source variants
+# and the PNG fallbacks alike, without hard-coding Hugo's hash naming.
 
-for f in P1.4-home.png P2.1-capture.png P2.3-confirm.png P2.5-confirm-foreign.png P1.3-confirm-manual.png; do
-  if grep -q "$f" site/public/index.html; then
+for f in P1.4-home P2.1-capture P2.3-confirm P2.5-confirm-foreign P1.3-confirm-manual; do
+  if grep -q "screenshots/$f" site/public/index.html; then
     pass "EN landing references real screenshot $f by explicit name"
   else
     fail "EN landing references real screenshot $f by explicit name"
   fi
 done
+
+# W12: the responsive pipeline actually engaged. A revert of the partial to a
+# bare <img> with .RelPermalink would ship the raw 1206 px sources again - the
+# name greps above would still pass. So: the landing carries a webp <source>,
+# and every screenshots/ URL any built page references resolves to a file on
+# disk (a srcset naming a file Hugo never generated must fail here).
+if grep -q '<source type="image/webp"' site/public/index.html; then
+  pass "W12 landing carries a webp <source> (picture + fallback engaged)"
+else
+  fail "W12 landing carries a webp <source> (picture + fallback engaged)"
+fi
+
+missing_variants=0
+variant_count=0
+for url in $(grep -rhoE '[^" ]*screenshots/[^" ]*' site/public --include='*.html' | sort -u); do
+  variant_count=$((variant_count + 1))
+  if [ ! -f "site/public${url}" ]; then
+    missing_variants=$((missing_variants + 1))
+    fail "W12 screenshot variant exists on disk: $url"
+  fi
+done
+if [ "$missing_variants" -eq 0 ]; then
+  pass "W12 all $variant_count referenced screenshot variants exist on disk"
+fi
 
 if find site/public -name '*.html' -exec grep -l 'rejected' {} + 2>/dev/null | grep -q .; then
   fail "no screenshot whose name contains 'rejected' is ever referenced (pages below)"
@@ -322,7 +370,7 @@ og_ru="$(sed -n 's/.*<meta property="og:image" content="\([^"]*\)".*/\1/p' site/
 check_og() {
   lang="$1"; og="$2"
   file="site/public/${og#"$baseurl"}"
-  w="$(sips -g pixelWidth "$file" 2>/dev/null | awk '/pixelWidth/{print $2}')"
+  w="$(png_size "$file" | awk '{print $1}')"
   if [ -f "$file" ] && [ "$w" = "1200" ]; then
     pass "S4 OG image $lang exists on disk and is 1200 px wide ($og)"
   else
@@ -357,8 +405,9 @@ if grep -q 'rel="icon"' site/public/index.html && [ -f site/public/icon.svg ]; t
 else
   fail "S4 favicon linked and built (icon.svg)"
 fi
-touch_w="$(sips -g pixelWidth site/public/apple-touch-icon.png 2>/dev/null | awk '/pixelWidth/{print $2}')"
-touch_h="$(sips -g pixelHeight site/public/apple-touch-icon.png 2>/dev/null | awk '/pixelHeight/{print $2}')"
+touch_dim="$(png_size site/public/apple-touch-icon.png)"
+touch_w="$(printf '%s' "$touch_dim" | awk '{print $1}')"
+touch_h="$(printf '%s' "$touch_dim" | awk '{print $2}')"
 if grep -q 'rel="apple-touch-icon"' site/public/index.html && [ -f site/public/apple-touch-icon.png ] \
    && [ "$touch_w" = "180" ] && [ "$touch_h" = "180" ]; then
   pass "S4 apple-touch-icon linked and built (measured ${touch_w}x${touch_h})"
@@ -464,14 +513,37 @@ fi
 # This gate exists because 147 checks passed while the site shipped a 2.1 MB and
 # a 1.2 MB PNG: the generated grounds were referenced with .RelPermalink, so
 # Hugo served the originals untouched. Correct content, ruinous delivery, and
-# nothing here could see it. A cap is the cheapest thing that would have.
-ASSET_CAP_KB=800
-too_big=$(find site/public -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) -size +$((ASSET_CAP_KB))k 2>/dev/null || true)
+# nothing here could see it. A cap is the cheapest thing that would have caught
+# it.
+#
+# W12 split the cap, because one number can no longer govern both jobs. The
+# screenshots now ship resized - 336/672 px WebP with same-size PNG fallbacks -
+# so the largest legitimate screenshot asset is a 672 px 2x PNG at ~135 KB,
+# while the smallest raw 1206 px source starts at ~228 KB. The screenshot cap
+# sits between those two measured values, so the original regression (someone
+# calling .RelPermalink on a source again) fails the gate again; 800 KB could
+# not, once the real screenshots shrank. The OG card is deliberately PNG - the
+# social crawlers have patchy WebP support (docs/SITE.md) - and composes to
+# ~710 KB, so it carries its own cap instead of forcing the screenshot cap high
+# enough to be vacuous. Both caps are mutation-tested: set either below its
+# largest shipped asset and this script must exit non-zero.
+SHOT_CAP_KB=180
+OG_CAP_KB=750
+too_big=$(find site/public -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) -not -path 'site/public/og/*' -size +$((SHOT_CAP_KB))k 2>/dev/null || true)
 if [ -z "$too_big" ]; then
-  pass "W3 asset weight: no image over ${ASSET_CAP_KB} KB"
+  pass "W3 asset weight: no image outside og/ over ${SHOT_CAP_KB} KB"
 else
-  fail "W3 asset weight: image(s) over ${ASSET_CAP_KB} KB"
+  fail "W3 asset weight: image(s) outside og/ over ${SHOT_CAP_KB} KB"
   printf '%s\n' "$too_big" | while IFS= read -r f; do
+    [ -n "$f" ] && printf '        %6s KB  %s\n' "$(( $(wc -c < "$f") / 1024 ))" "$f"
+  done
+fi
+too_big_og=$(find site/public/og -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) -size +$((OG_CAP_KB))k 2>/dev/null || true)
+if [ -z "$too_big_og" ]; then
+  pass "W3 asset weight: no OG image over ${OG_CAP_KB} KB"
+else
+  fail "W3 asset weight: OG image(s) over ${OG_CAP_KB} KB"
+  printf '%s\n' "$too_big_og" | while IFS= read -r f; do
     [ -n "$f" ] && printf '        %6s KB  %s\n' "$(( $(wc -c < "$f") / 1024 ))" "$f"
   done
 fi
