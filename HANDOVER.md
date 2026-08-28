@@ -80,6 +80,31 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > auto-dispatch" would degrade into reading agent reports and believing them, which is the failure
 > mode this whole process exists to prevent.
 
+## The marketing site is LIVE (2026-08-28)
+
+**https://tankbook.live** serves the landing page, the legal pages and the SEO surface, in EN and RU,
+from a self-hosted runner deploying on every push under `site/`. Authority: `docs/SITE.md`. Backlog:
+the `W` section of `docs/TASKS.md`.
+
+Registering the domain also **closed `CONFIG.md`'s standing release blocker** - `HostAllowlist` and
+`Config.default.json` had named `tankbook.app`, a domain nobody owned, and an allowlist naming an
+unowned domain is worse than none.
+
+**`api.tankbook.live` returns 502 and that is deliberate** - the backend is postponed, not broken.
+Local-first means an unreachable API costs sync, cloud extract and import parse and nothing else.
+
+Three things the site cost that are worth carrying into any deployment work:
+
+- **A gate that cannot measure reports a failure, not a skip.** `check-site.sh` used `sips` (macOS
+  only) and a Swift generator; on the Linux runner both simply were not there, and the checks
+  reported bad images and token drift when they had measured nothing at all. Both now read what they
+  need in `python3`.
+- **nginx `add_header` does not inherit** into a location that sets one of its own. Six locations set
+  `Cache-Control`, so the live site served **no HSTS and no CSP at all** while the config plainly
+  contained them. Found only by curling the running site.
+- **A validator found seven checks that could not fail**, including privacy claims that passed when
+  inverted. 149 green checks coexisted with all of them.
+
 ## What this project is
 
 A capture-first car cost log: iOS native (SwiftUI, min iOS 18, reference device iPhone 12) plus
