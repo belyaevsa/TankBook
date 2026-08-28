@@ -3,8 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ .Title }}</title>
-  <meta name="description" content="{{ .Description }}">
+  {{- /* Hugo's 404 has no content file, so .Title was empty and fell back to
+       an English default - the RU 404 shipped `404 Page not found` beside a
+       Russian h1. Hard rule 10 breaks on the half people skip. */ -}}
+  {{- $title := .Title -}}
+  {{- if eq .Kind "404" }}{{ $title = i18n "notFoundTitle" }}{{ end -}}
+  {{- if not $title }}{{ $title = site.Title }}{{ end -}}
+  <title>{{ $title }}</title>
+  {{- $desc := .Description -}}
+  {{- if eq .Kind "404" }}{{ $desc = i18n "notFoundText" }}{{ end -}}
+  {{ with $desc }}<meta name="description" content="{{ . }}">{{ end }}
   {{ partial "head/css.html" . }}
   {{ partial "head/seo.html" . }}
   {{ partial "head/jsonld.html" . }}

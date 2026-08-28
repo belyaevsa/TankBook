@@ -88,7 +88,7 @@ ul {
   padding: 10px 18px;
   border-radius: 0 0 var(--radius-card) 0;
   background: var(--taillight);
-  color: var(--midnight);
+  color: var(--dash);            /* same AA reason as .btn--primary */
   font-weight: 700;
 }
 

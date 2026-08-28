@@ -56,16 +56,16 @@ fi
 
 # ── hygiene: no literal hex in hand-written CSS ──────────────────────────
 
-if grep -rnE '#[0-9A-Fa-f]{3,8}' site/assets/css/base.css site/assets/css/layout.css site/assets/css/sections.css >/dev/null 2>&1; then
+if grep -rnE '#[0-9A-Fa-f]{3,8}|(rgba?|hsla?)\(' site/assets/css/base.css site/assets/css/layout.css site/assets/css/sections.css >/dev/null 2>&1; then
   fail "no literal hex in base.css/layout.css/sections.css (violations below)"
-  grep -rnE '#[0-9A-Fa-f]{3,8}' site/assets/css/base.css site/assets/css/layout.css site/assets/css/sections.css
+  grep -rnE '#[0-9A-Fa-f]{3,8}|(rgba?|hsla?)\(' site/assets/css/base.css site/assets/css/layout.css site/assets/css/sections.css
 else
   pass "no literal hex in base.css/layout.css/sections.css"
 fi
 
 # Positive control: the hex pattern itself must match where hex legitimately
 # lives, proving the grep above is not silently broken.
-if grep -qE '#[0-9A-Fa-f]{3,8}' site/assets/css/tokens.generated.css; then
+if grep -qE '#[0-9A-Fa-f]{3,8}|(rgba?|hsla?)\(' site/assets/css/tokens.generated.css; then
   pass "hex-regex sanity: matches tokens.generated.css (the file allowed to hold hex)"
 else
   fail "hex-regex sanity: matches tokens.generated.css (the file allowed to hold hex)"
@@ -80,9 +80,9 @@ else
   pass "no em-dash in site sources or rendered landing pages"
 fi
 
-if grep -riEn 'zero typing|just snap|scans any|reads.{0,20}perfectly' site/content/ >/dev/null 2>&1; then
+if grep -riEn 'zero typing|just snap|scans any|reads.{0,20}perfectly|\\bautomatic' site/content/ site/i18n/ >/dev/null 2>&1; then
   fail "copy rule: forbidden over-promises found (violations below)"
-  grep -riEn 'zero typing|just snap|scans any|reads.{0,20}perfectly' site/content/
+  grep -riEn 'zero typing|just snap|scans any|reads.{0,20}perfectly|\\bautomatic' site/content/ site/i18n/
 else
   pass "copy rule: no over-promises in content"
 fi
@@ -111,10 +111,11 @@ for f in P1.4-home.png P2.1-capture.png P2.3-confirm.png P2.5-confirm-foreign.pn
   fi
 done
 
-if grep -q 'rejected' site/public/index.html site/public/ru/index.html; then
-  fail "no screenshot whose name contains 'rejected' is ever referenced"
+if find site/public -name '*.html' -exec grep -l 'rejected' {} + 2>/dev/null | grep -q .; then
+  fail "no screenshot whose name contains 'rejected' is ever referenced (pages below)"
+  find site/public -name '*.html' -exec grep -l 'rejected' {} + 2>/dev/null
 else
-  pass "no screenshot whose name contains 'rejected' is ever referenced"
+  pass "no screenshot whose name contains 'rejected' is ever referenced (all built pages)"
 fi
 
 # ── S3: the legal pages exist, and the privacy table is all there ─────────
@@ -184,9 +185,9 @@ if grep -in 'subscription' site/public/terms/index.html >/dev/null 2>&1; then
 else
   pass "S3 terms: 'subscription' appears nowhere (case-insensitive)"
 fi
-if grep -n 'подписк' site/public/ru/terms/index.html >/dev/null 2>&1; then
+if grep -in 'подписк' site/public/ru/terms/index.html >/dev/null 2>&1; then
   fail "S3 terms RU: no subscription clauses while Pro is deferred (matches below)"
-  grep -n 'подписк' site/public/ru/terms/index.html
+  grep -in 'подписк' site/public/ru/terms/index.html
 else
   pass "S3 terms RU: 'подписк' appears nowhere"
 fi
@@ -242,6 +243,20 @@ for f in $(find site/public -name '*.html' | sort); do
   else
     fail "S4 x-default points at the EN page: $label (x-default: $xd, en: $enhref)"
   fi
+  # V4: presence is not correctness. A wrong hreflang href on every page tells
+  # search engines the translation lives at a 404, and the presence check above
+  # cannot see it - a validator proved exactly that by pointing ru at /ru-wrong/
+  # and watching 149 checks stay green.
+  for lang in en ru; do
+    href="$(grep -o "<link rel=\"alternate\" hreflang=\"$lang\" href=\"[^\"]*\"" "$f" | sed 's/.*href="//;s/"$//')"
+    rel="$(printf '%s' "$href" | sed 's|https\{0,1\}://[^/]*||; s|/$||')"
+    target="site/public${rel}"
+    if [ -f "${target}/index.html" ] || [ -f "$target" ] || { [ -z "$rel" ] && [ -f site/public/index.html ]; }; then
+      pass "S4 hreflang $lang resolves to a built page: $label"
+    else
+      fail "S4 hreflang $lang resolves to a built page: $label (href $href -> $target)"
+    fi
+  done
 done
 if [ "$page_count" -ge 16 ] && [ "$alias_pages" -ge 1 ]; then
   pass "S4 hreflang loop covered $page_count pages ($alias_pages redirect alias(es) skipped)"
@@ -342,8 +357,11 @@ if grep -q 'rel="icon"' site/public/index.html && [ -f site/public/icon.svg ]; t
 else
   fail "S4 favicon linked and built (icon.svg)"
 fi
-if grep -q 'rel="apple-touch-icon"' site/public/index.html && [ -f site/public/apple-touch-icon.png ]; then
-  pass "S4 apple-touch-icon linked and built (180x180 png)"
+touch_w="$(sips -g pixelWidth site/public/apple-touch-icon.png 2>/dev/null | awk '/pixelWidth/{print $2}')"
+touch_h="$(sips -g pixelHeight site/public/apple-touch-icon.png 2>/dev/null | awk '/pixelHeight/{print $2}')"
+if grep -q 'rel="apple-touch-icon"' site/public/index.html && [ -f site/public/apple-touch-icon.png ] \
+   && [ "$touch_w" = "180" ] && [ "$touch_h" = "180" ]; then
+  pass "S4 apple-touch-icon linked and built (measured ${touch_w}x${touch_h})"
 else
   fail "S4 apple-touch-icon linked and built (180x180 png)"
 fi
@@ -390,6 +408,41 @@ if [ -z "$img_bad" ] && printf '%s' "$img_files" | grep -q '_partials/screenshot
 else
   fail "W2 hygiene: <img outside _partials/screenshot.html (violations below)"
   printf '%s\n' "$img_bad"
+fi
+
+# --- V1: the privacy page's STANCE, not just its topics --------------------
+# The claim checks above grep for topics ("end-to-end encryption", "TLS", "410").
+# A validator proved they pass when the sentence is INVERTED: rewriting the page
+# to say "We use end-to-end encryption" or "plain HTTP with no TLS" kept all 149
+# checks green. Those are the two directions an App Store reviewer and a user
+# would care about most, so the stance is asserted negatively here: these
+# sentences must NOT appear, in either language.
+stance_bad_en='we use end-to-end|is end-to-end|end-to-end encrypted|fully encrypted end|plain http|without tls|no tls|we do not use tls'
+stance_bad_ru='мы используем сквозное|сквозное шифрование применяется|без tls|обычный http'
+stance_hits=""
+for pg in site/public/privacy/index.html site/public/ru/privacy/index.html; do
+  [ -f "$pg" ] || continue
+  case "$pg" in
+    *ru*) pat="$stance_bad_ru" ;;
+    *)    pat="$stance_bad_en" ;;
+  esac
+  h="$(grep -inE "$pat" "$pg" || true)"
+  [ -n "$h" ] && stance_hits="${stance_hits}${pg}: ${h}"$'\n'
+done
+if [ -z "$stance_hits" ]; then
+  pass "V1 privacy stance: no inverted E2E or TLS claim in either language"
+else
+  fail "V1 privacy stance: the page claims the OPPOSITE of the docs"
+  printf '%s' "$stance_hits"
+fi
+
+# Positive control: the negative patterns must be capable of matching. If this
+# fails, the stance check above is passing because its regex is broken, not
+# because the page is honest.
+if printf 'We use end-to-end encryption.\n' | grep -qiE "$stance_bad_en"; then
+  pass "V1 stance-pattern sanity: the EN inversion pattern matches a known-bad line"
+else
+  fail "V1 stance-pattern sanity: pattern cannot match its own example - the check above is vacuous"
 fi
 
 # --- W3: asset weight -------------------------------------------------------

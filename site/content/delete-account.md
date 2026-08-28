@@ -9,7 +9,7 @@ exactly what happens, with nothing softened.
 ## How to delete
 
 In the app, sign in and open account settings, then choose **Delete account**. The app asks you to
-confirm – this is the one place the app shows you red.
+confirm – destructive confirmations are the only place the app shows you red.
 
 If you cannot reach the app – a lost phone, a lost password – write to
 [to@belyaev.live](mailto:to@belyaev.live) from the email your account uses, and we will delete it.

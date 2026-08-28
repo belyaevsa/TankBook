@@ -5,7 +5,7 @@ description = "Tankbook facts for press and reviewers: name, one-paragraph descr
 
 ## The name
 
-**Tankbook** – one word, capital T. The site is tankbook.app.
+**Tankbook** – one word, capital T. The site is tankbook.live.
 
 ## One-paragraph description
 

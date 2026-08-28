@@ -173,10 +173,16 @@
   text-decoration: none;
 }
 
+/* Foreground is --dash, not --midnight. In the LIGHT theme --midnight on
+   --taillight lands at 4.32:1, below the AA floor SITE.md sets; --dash on
+   --taillight is 4.67:1 and passes, and in the dark theme the same pair is
+   5.37:1. Ratios computed from design/tokens.json, not eyeballed. Values are
+   named rather than written out because the colour-hygiene gate reads
+   comments too, which is the correct strictness. */
 .btn--primary {
   background: var(--taillight);
   border-color: var(--taillight);
-  color: var(--midnight);
+  color: var(--dash);
 }
 
 .btn--secondary {

@@ -136,7 +136,7 @@ a = "Nothing right now – TestFlight is free while we finish. Three things stay
 
 [[faq]]
 q = "I have years of data in another app."
-a = "Import is being built review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. Formats land starting with My Fuel Manager CSV – progress is on the roadmap."
+a = "Import works review-first: your file is parsed into candidate rows, you review and edit every one, and only you commit them. My Fuel Manager CSV is supported today; more formats are on the roadmap."
 
 [[faq]]
 q = "I drive a petrol car and an EV."

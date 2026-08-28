@@ -10,7 +10,7 @@ on this page is a promise; the shipped list is the record.
 
 - **Capture and manual entry as peers.** Snap the receipt, or type it in – both doors take seconds,
   and a scan is a head start you correct, never an answer you accept blindly.
-- **On-device reading** of receipts and charging screenshots, with the arithmetic cross-check shown
+- **On-device reading** of fuel receipts and station screenshots, with the arithmetic cross-check shown
   on every entry: litres × price has to equal the total.
 - **One history for every powertrain** – petrol, diesel, hybrid, EV – with consumption maths that
   knows litres from kilowatt-hours.
