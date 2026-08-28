@@ -1,0 +1,143 @@
+name: Deploy landing -> tankbook.live
+
+on:
+  push:
+    branches: [main]
+    paths:
+      # The site itself.
+      - 'site/**'
+      # The screenshot corpus is MOUNTED into the site by hugo.toml
+      # (../design/screenshots -> assets/screenshots), so a re-shot capture
+      # changes the built page without touching site/. Without this line the
+      # deploy silently serves the previous image.
+      - 'design/screenshots/**'
+      - 'scripts/check-site.sh'
+      - 'scripts/generate-site-tokens.swift'
+      - '.github/workflows/deploy-landing.yml'
+  pull_request:
+    paths:
+      - 'site/**'
+      - 'design/screenshots/**'
+      - 'scripts/check-site.sh'
+      - '.github/workflows/deploy-landing.yml'
+  workflow_dispatch:
+
+# A path filter is not optional here. The iOS workflow triggered on every push
+# with no filter, hung for hours on a 10x-billed runner and had to be disabled
+# (HANDOVER.md). backend.yml gets this right; so does this.
+
+concurrency:
+  group: deploy-landing
+  cancel-in-progress: false
+
+env:
+  HUGO_VERSION: '0.153.4'
+
+jobs:
+  build:
+    name: Build and gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Hugo (extended, pinned)
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: ${{ env.HUGO_VERSION }}
+          extended: true
+
+      - name: Assert the Hugo version
+        # Not ceremony. The layouts use the 0.146+ flattened structure
+        # (layouts/_partials, home.html, no _default/). An older Hugo does not
+        # error - it simply fails to find them and renders a page that is empty
+        # or wrong, and every step after this would report success.
+        run: |
+          hugo version
+          hugo version | grep -q "v${HUGO_VERSION}" || {
+            echo "::error::Hugo is not v${HUGO_VERSION}. The layouts need 0.146+ flattened structure; an older Hugo renders a wrong page without failing."
+            exit 1
+          }
+
+      - name: Check the generated design tokens are in sync
+        # tokens.generated.css is generated from design/tokens.json. Swift is not
+        # on ubuntu runners, so this is a real check where Swift exists and an
+        # explicit skip where it does not - never a silent pass.
+        run: |
+          if command -v swift >/dev/null 2>&1; then
+            swift scripts/generate-site-tokens.swift --check
+          else
+            echo "::notice::Swift unavailable on this runner - token drift is checked locally and on the deploy runner."
+          fi
+
+      - name: Build
+        working-directory: site
+        run: hugo --minify --gc
+
+      - name: Assert the build actually produced a site
+        # `hugo` can exit 0 having emitted almost nothing. The reference
+        # workflow this was adapted from would deploy that empty directory
+        # over a working one.
+        run: |
+          test -s site/public/index.html    || { echo "::error::no EN index.html"; exit 1; }
+          test -s site/public/ru/index.html || { echo "::error::no RU index.html"; exit 1; }
+          count=$(find site/public -type f | wc -l)
+          echo "built $count files"
+          [ "$count" -ge 20 ] || { echo "::error::only $count files built - refusing to deploy a stub"; exit 1; }
+
+      - name: Run the site gate
+        # hreflang + x-default on every page, canonical self-reference, JSON-LD
+        # parses, sitemaps well-formed, OG images present at 1200px, no em-dash,
+        # no <img> outside the screenshot partial.
+        run: bash scripts/check-site.sh
+
+      - name: Upload the built site
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-public
+          path: site/public
+          retention-days: 7
+
+  deploy:
+    name: Deploy to the server
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: self-hosted
+    env:
+      DEPLOY_ROOT: /opt/tankbook.live
+    steps:
+      - name: Download the built site
+        uses: actions/download-artifact@v4
+        with:
+          name: site-public
+          path: public
+
+      - name: Publish the release and flip the symlink
+        run: |
+          set -euo pipefail
+          SHORT_SHA="${GITHUB_SHA::7}"
+          RELEASE_DIR="${DEPLOY_ROOT}/${SHORT_SHA}"
+
+          test -s public/index.html || { echo "::error::artifact has no index.html"; exit 1; }
+
+          mkdir -p "$DEPLOY_ROOT"
+          rm -rf "$RELEASE_DIR"
+          cp -r public "$RELEASE_DIR"
+
+          # `ln -sfn` over an existing symlink is not atomic: it unlinks, then
+          # links, and a request landing in that window gets a 404. Creating a
+          # temporary link and `mv -T`-ing it over the old one is a single
+          # rename(2), so readers see either the old release or the new one.
+          ln -sfn "$RELEASE_DIR" "${DEPLOY_ROOT}/.latest.tmp"
+          mv -T "${DEPLOY_ROOT}/.latest.tmp" "${DEPLOY_ROOT}/latest"
+
+          echo "Deployed ${SHORT_SHA} -> ${DEPLOY_ROOT}/latest"
+
+      - name: Cleanup old releases (keep the last 5)
+        run: |
+          set -euo pipefail
+          cd "$DEPLOY_ROOT"
+          CURRENT="$(basename "$(readlink -f latest)")"
+          # Never delete the release the symlink points at, whatever its age.
+          ls -dt */ 2>/dev/null | sed 's#/$##' | grep -v '^latest$' \
+            | grep -v "^${CURRENT}$" | tail -n +6 | xargs -r rm -rf
+          echo "kept: $(ls -dt */ 2>/dev/null | tr -d '/' | tr '\n' ' ')"

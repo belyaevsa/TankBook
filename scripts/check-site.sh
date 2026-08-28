@@ -348,6 +348,27 @@ else
   fail "S4 apple-touch-icon linked and built (180x180 png)"
 fi
 
+# W3: favicon.ico is linked, present, and a real multi-size ICO - parsed from
+# the ICONDIR header, not trusted from the filename.
+if grep -q 'favicon.ico' site/public/index.html && [ -f site/public/favicon.ico ]; then
+  if python3 -c "
+import struct, sys
+d = open(sys.argv[1], 'rb').read()
+assert d[:4] == b'\x00\x00\x01\x00', 'not an ICO file'
+n = struct.unpack('<H', d[4:6])[0]
+assert n >= 1, 'empty ICO directory'
+sizes = sorted({(d[6 + 16 * i] or 256, d[7 + 16 * i] or 256) for i in range(n)})
+assert (16, 16) in sizes and (32, 32) in sizes, 'missing 16/32 entries: %s' % (sizes,)
+print('ICO entries: %s' % (sizes,))
+" site/public/favicon.ico; then
+    pass "S4 favicon.ico linked, present and a valid multi-size ICO"
+  else
+    fail "S4 favicon.ico linked, present and a valid multi-size ICO"
+  fi
+else
+  fail "S4 favicon.ico linked, present and a valid multi-size ICO"
+fi
+
 # ── W2 hygiene: no em-dash anywhere under site/, no raw <img> in layouts ──
 
 # Every text file under site/, built output included. Binary artefacts (png)
@@ -369,6 +390,32 @@ if [ -z "$img_bad" ] && printf '%s' "$img_files" | grep -q '_partials/screenshot
 else
   fail "W2 hygiene: <img outside _partials/screenshot.html (violations below)"
   printf '%s\n' "$img_bad"
+fi
+
+# --- W3: asset weight -------------------------------------------------------
+# This gate exists because 147 checks passed while the site shipped a 2.1 MB and
+# a 1.2 MB PNG: the generated grounds were referenced with .RelPermalink, so
+# Hugo served the originals untouched. Correct content, ruinous delivery, and
+# nothing here could see it. A cap is the cheapest thing that would have.
+ASSET_CAP_KB=800
+too_big=$(find site/public -type f \( -name '*.png' -o -name '*.jpg' -o -name '*.jpeg' -o -name '*.webp' \) -size +$((ASSET_CAP_KB))k 2>/dev/null || true)
+if [ -z "$too_big" ]; then
+  pass "W3 asset weight: no image over ${ASSET_CAP_KB} KB"
+else
+  fail "W3 asset weight: image(s) over ${ASSET_CAP_KB} KB"
+  printf '%s\n' "$too_big" | while IFS= read -r f; do
+    [ -n "$f" ] && printf '        %6s KB  %s\n' "$(( $(wc -c < "$f") / 1024 ))" "$f"
+  done
+fi
+
+# Generated ambience must always go through the image pipeline. A raw .png under
+# generated/ means someone used .RelPermalink on the source again.
+raw_generated=$(find site/public/generated -type f ! -name '*.webp' 2>/dev/null || true)
+if [ -z "$raw_generated" ]; then
+  pass "W3 generated ambience is processed (webp only, never the source PNG)"
+else
+  fail "W3 generated ambience served raw - use .Resize/.Process, not .RelPermalink"
+  printf '%s\n' "$raw_generated"
 fi
 
 printf '\n'

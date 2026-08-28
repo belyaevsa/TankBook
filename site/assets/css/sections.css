@@ -16,6 +16,15 @@
   padding-bottom: 0;
 }
 
+/* W3: generated night-grounds, wired per-section in the partials. The images
+   are opaque and palette-exact, so text contrast over them is measured, not
+   eyeballed - see site/assets/generated/MANIFEST.md for the numbers. */
+.section--ambience {
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: cover;
+}
+
 .section--roadmap {
   padding-top: 64px;
   padding-bottom: 64px;
@@ -91,8 +100,13 @@
 
 .hero-title {
   margin-top: 22px;
-  font-size: 64px;
-  line-height: 1.03;
+  /* Fluid rather than a fixed 64px: at 1440 the fixed size overflowed the copy
+     column and wrapped "Log the fill-up your way:" onto two lines, orphaning
+     "way:". The artboard sets it on one line, and only rendering the built page
+     showed the difference. */
+  font-size: clamp(36px, 4vw, 60px);
+  line-height: 1.04;
+  text-wrap: balance;
 }
 
 .hero-title__line {

@@ -1,5 +1,13 @@
 {{- with .Params -}}
-<section class="section" id="check">
+{{- /* W3: dimmest generated ground, behind the arithmetic card and live text. */ -}}
+{{- /* Processed, never served raw: the source is a 1920px PNG of a smooth
+      gradient, which PNG encodes terribly (2.1 MB). WebP at q55 carries a
+      gradient with no visible loss for a fraction of the bytes, and
+      scripts/check-site.sh fails the build if any asset creeps back over
+      the cap. */ -}}
+{{- $ambience := resources.Get "generated/check-ground.png" -}}
+{{- with $ambience }}{{ $ambience = .Resize "1920x webp q55" }}{{ end -}}
+<section class="section section--ambience" id="check"{{ with $ambience }} style="background-image: url('{{ .RelPermalink }}')"{{ end }}>
   <div class="container check-grid">
     <div>
       <p class="eyebrow">{{ .check_eyebrow }}</p>

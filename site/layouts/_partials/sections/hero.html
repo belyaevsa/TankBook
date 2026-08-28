@@ -1,5 +1,14 @@
 {{- with .Params -}}
-<section class="section section--hero" id="hero">
+{{- /* W3: generated night-ground sits behind the live copy; the image itself
+      carries no text and no claim (site/assets/generated/MANIFEST.md). */ -}}
+{{- /* Processed, never served raw: the source is a 1920px PNG of a smooth
+      gradient, which PNG encodes terribly (2.1 MB). WebP at q55 carries a
+      gradient with no visible loss for a fraction of the bytes, and
+      scripts/check-site.sh fails the build if any asset creeps back over
+      the cap. */ -}}
+{{- $ambience := resources.Get "generated/hero-ground.png" -}}
+{{- with $ambience }}{{ $ambience = .Resize "1920x webp q55" }}{{ end -}}
+<section class="section section--hero section--ambience" id="hero"{{ with $ambience }} style="background-image: url('{{ .RelPermalink }}')"{{ end }}>
   <div class="container hero">
     <div class="hero__copy">
       <p class="eyebrow">{{ .hero_eyebrow }}</p>
