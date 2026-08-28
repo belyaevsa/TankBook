@@ -191,4 +191,30 @@ struct SyncCoordinatorTests {
         #expect(!SyncSurface.status(SyncSurfaceState(isSignedIn: true, transportUnavailable: true)).isAttention,
                 "a service outage is reassurance, not attention")
     }
+
+    // MARK: - 5. The Low Power reason (P6.8, docs/SYNC.md -> Low Power Mode)
+
+    @Test func lowPowerReasonShowsOnlyWhenTheModeIsOnAndAQueueIsWaiting() {
+        // The reason belongs on S7's passive row: the mode is on and a queue is
+        // waiting for exactly the background cycle the mode postpones.
+        #expect(SyncSurface.lowPowerReason(SyncSurfaceState(
+            isSignedIn: true, dirtyCount: 5, lowPowerModeDeferring: true)))
+        #expect(!SyncSurface.lowPowerReason(SyncSurfaceState(
+            isSignedIn: true, dirtyCount: 5, lowPowerModeDeferring: false)),
+            "no reason when the mode is off - a plain S7 queue has no Low Power cause")
+        #expect(!SyncSurface.lowPowerReason(SyncSurfaceState(
+            isSignedIn: true, dirtyCount: 0, lowPowerModeDeferring: true)),
+            "nothing waiting means nothing is deferred - no reason")
+    }
+
+    @Test func lowPowerReasonIsReassuranceNeverAttention() {
+        // Low Power Mode is a state the OS put the device in, not an error
+        // (docs/SYNC.md -> Low Power Mode: "reassurance, never a warning"). The
+        // reason must not turn the row amber.
+        let state = SyncSurfaceState(isSignedIn: true, dirtyCount: 5,
+                                     lowPowerModeDeferring: true)
+        #expect(SyncSurface.status(state) == .waitingToSync)
+        #expect(SyncSurface.status(state).isAttention == false,
+                "the Low Power reason is never amber")
+    }
 }
