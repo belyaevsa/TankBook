@@ -509,4 +509,60 @@ enum L10n {
         }
         return mapped.joined(separator: localize(" or "))
     }
+
+    // MARK: - Anomaly insight card (P6.1b, docs/JOURNEYS.md J9)
+
+    /// "Consumption is up 21% vs a year ago" - the card's headline. The percent
+    /// is runtime data (the engine's magnitude); the phrase is one full
+    /// localised key per language, never concatenation (RU word order differs:
+    /// "Расход вырос на 21% по сравнению с прошлым годом"). The comparison is
+    /// the trailing-12-month baseline, never last month (docs/SCHEMA.md ->
+    /// ANOMALY).
+    static func anomalyTitle(percent: String) -> String {
+        String(format: localize("Consumption is up %1$@ vs a year ago"), percent)
+    }
+
+    /// "Last 90 days: 6.5 L/100km · a year earlier: 5.4 L/100km" - the card's
+    /// caption naming BOTH windows the engine compared (the trailing 90 days vs
+    /// the same 90 days one year earlier), so the figure is falsifiable to the
+    /// reader. The value+unit strings are runtime data; the phrase is one key.
+    static func anomalyCaption(rolling: String, baseline: String) -> String {
+        String(format: localize("Last 90 days: %1$@ · a year earlier: %2$@"),
+               rolling, baseline)
+    }
+
+    /// The possible-causes line (J9): "Likely causes: tire pressure, air
+    /// filter, winter".
+    static var anomalyCauses: String {
+        localize("Likely causes: tire pressure, air filter, winter")
+    }
+
+    /// "Last 90 days" - the rolling window's label on the evidence chart.
+    static var anomalyRollingLabel: String {
+        localize("Last 90 days")
+    }
+
+    /// "A year earlier" - the baseline window's label on the evidence chart.
+    static var anomalyBaselineLabel: String {
+        localize("A year earlier")
+    }
+
+    /// "21%" - the engine's magnitude as a whole percent (J9's "+12%"), rounded
+    /// so the card never overstates the drift the engine actually measured.
+    static func anomalyPercent(_ magnitude: Double) -> String {
+        "\(Int((magnitude * 100).rounded()))%"
+    }
+
+    /// "Why is consumption higher?" - the dismissal sheet's header, asking for
+    /// the reason that teaches the model (J9).
+    static var anomalyDismissTitle: String {
+        localize("Why is consumption higher?")
+    }
+
+    /// The dismissal sheet's subtitle: the reason is what keeps the card quiet
+    /// for this cause (the engine suppresses only its own cause, never "mute
+    /// everything", docs/SCHEMA.md -> ANOMALY).
+    static var anomalyDismissSubtitle: String {
+        localize("Dismissing with a reason keeps it quiet for this period.")
+    }
 }

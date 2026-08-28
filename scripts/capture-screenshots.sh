@@ -303,6 +303,19 @@ capture P6.11b-settings-upgrade-ru     ru -presentScreen settings -seedSettingsU
 capture P6.11b-settings-ratelimited    en -presentScreen settings -seedSettingsRateLimited
 capture P6.11b-settings-ratelimited-ru ru -presentScreen settings -seedSettingsRateLimited
 
+# P6.1b: the J9 anomaly insight card in the Log (docs/JOURNEYS.md J9). The
+# collapsed card states the drift and the compared window; `-presentAnomalyEvidence`
+# expands it (the chart + causes + the two actions); `-presentAnomalyDismissal`
+# puts the dismiss-reason sheet on top - simctl cannot tap, so the hooks drive
+# the state a screenshot needs. RU is where the composed phrases run longest
+# ("Расход вырос на 21% по сравнению с прошлым годом" and the two-value caption).
+capture P6.1b-insight-card              en -seedHomeAnomaly
+capture P6.1b-insight-card-ru           ru -seedHomeAnomaly
+capture P6.1b-insight-evidence          en -seedHomeAnomaly -presentAnomalyEvidence
+capture P6.1b-insight-evidence-ru       ru -seedHomeAnomaly -presentAnomalyEvidence
+capture P6.1b-insight-dismiss           en -seedHomeAnomaly -presentAnomalyDismissal
+capture P6.1b-insight-dismiss-ru        ru -seedHomeAnomaly -presentAnomalyDismissal
+
 # P4.6: the "photo syncing" shimmer - an entry whose inline thumbnail has
 # arrived (in the payload) but whose full rendition blob is still pending. The
 # chip shimmers and the entry is openable and editable throughout.

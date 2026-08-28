@@ -117,7 +117,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Sign in | Welcome, Settings | provider → Restoring (existing) or Home (new, uploads local log) | "Not now" / swipe → opener |
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
-| Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture | tab root – no back |
+| Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
 | Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
@@ -132,6 +132,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Reminders | Home banner, VehicleDetail, push notification | complete → ReminderComplete · New reminder → form | back → opener |
 | Reminder form (P3.4) | Reminders (New reminder / row edit, incl. reschedule) | Save → Reminders | back → Reminders |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
+| Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
 | About & feedback | Settings | Send feedback (stays, toast) · rate/privacy links | back → Settings |

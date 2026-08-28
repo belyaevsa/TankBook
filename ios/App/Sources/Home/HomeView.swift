@@ -39,6 +39,19 @@ struct HomeView: View {
                          duplicateResolutions: resolvedDuplicateKeys)
     }
 
+    /// The J9 anomaly, derived the same way as `stats` - the engine's verdict,
+    /// never a stored value (hard rule 2), filtered by the recorded dismissals.
+    /// `nil` is the engine abstaining: insufficient history, a seasonal rise
+    /// that last year matched, or a dismissed cause (docs/SCHEMA.md -> ANOMALY).
+    /// Silence is the common case, so the card renders only on a real verdict.
+    private var anomaly: ConsumptionAnomaly? {
+        guard let vehicle else { return nil }
+        return AnomalyInsight.detect(
+            vehicle: vehicle, entries: entries,
+            duplicateResolutions: resolvedDuplicateKeys,
+            dismissals: AnomalyInsightStore.dismissals(for: vehicle.id))
+    }
+
     /// Title and settings gear on ONE row (docs/DESIGN.md: "The Home header is
     /// ONE row"). Not `.navigationTitle` + `.toolbar`: SwiftUI's large-title
     /// layout puts toolbar items on the bar ABOVE the title by construction, so
@@ -120,6 +133,12 @@ struct HomeView: View {
         HomeHeadlineBlock(stats: stats, vehicle: stats.vehicle,
                           onTypeIt: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)
+        if let anomaly {
+            AnomalyInsightCard(anomaly: anomaly,
+                               unitLabel: L10n.headlineUnit(stats.vehicle.headlineUnit),
+                               onAct: { actOnAnomaly(anomaly) },
+                               onDismiss: { dismissal in recordAnomalyDismissal(dismissal) })
+        }
         if stats.hasEntries {
             HomeRecentEntries(entries: entries, stations: stations,
                               vehicle: stats.vehicle,
@@ -131,6 +150,42 @@ struct HomeView: View {
         } else {
             HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }
+    }
+
+    // MARK: - J9 anomaly actions (docs/JOURNEYS.md J9, hard rule 7)
+
+    /// "Act": creates a service reminder to check the car. One tap - the
+    /// reminder exists immediately and is editable from the Reminders list
+    /// (hard rule 13). Acting also records a dismissal for this cause so the
+    /// card is not a nag (a card with only "act" is the failure mode J9 names);
+    /// the reminder itself is the record of the action. No notification is
+    /// scheduled - J9's "never a push alarm" (docs/NOTIFICATIONS.md).
+    private func actOnAnomaly(_ anomaly: ConsumptionAnomaly) {
+        guard let vehicle else { return }
+        do {
+            let repository = try AppStore.repository()
+            let reminder = ReminderLifecycle.makeReminder(
+                vehicleId: vehicle.id,
+                title: L10n.localize("Check fuel consumption"),
+                category: .custom,
+                dueDate: Date(),
+                dueOdometer: nil)
+            try repository.upsertReminder(reminder)
+            recordAnomalyDismissal(
+                AnomalyDismissal(cause: anomaly.cause, reason: nil, dismissedAt: Date()))
+        } catch {
+            Self.log.error("Anomaly act failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    /// "Dismiss with reason": remembers what the user said (the dismissal, never
+    /// the verdict - hard rule 2). The engine re-derives; the store only
+    /// records. `noteEntryChanged` reloads so the card disappears for this
+    /// cause without a toast (the data itself did not change).
+    private func recordAnomalyDismissal(_ dismissal: AnomalyDismissal) {
+        guard let vehicle else { return }
+        AnomalyInsightStore.record(dismissal, for: vehicle.id)
+        toastCenter.noteEntryChanged()
     }
 
     // MARK: - S2 resolution actions (docs/SYNC.md S2)
