@@ -36,7 +36,15 @@ A layer is used only if it validates. An invalid layer falls back to the one ben
 ## Guardrails on `apiBaseUrl` – the dangerous one
 
 1. **HTTPS only**, and the host must match a **compiled-in allowlist** of domain suffixes. A config naming any other host is rejected outright and the previous value stands.
-   - **Open, and a release blocker: the domain is not registered.** `HostAllowlist.allowedDomain` and `Config.default.json`'s `apiBaseUrl` both carry `tankbook.app` as a **placeholder**, because no public domain has been bought yet. An allowlist naming a domain we do not control is worse than no allowlist - anyone can register it and inherit every guardrail's trust. Both values must be set before any real deployment. The matching rule is domain-agnostic and fully tested, so this is a one-line change in each file, not a redesign.
+   - **CLOSED 2026-08-28: the domain is registered.** `tankbook.live` was purchased, and
+     `HostAllowlist.allowedDomain` and `Config.default.json`'s `apiBaseUrl` now name it
+     (`https://api.tankbook.live`). This was a real hole while it was open, not a formality: both
+     files previously carried `tankbook.app` as a placeholder for a domain **nobody owned**, and an
+     allowlist naming an unowned domain is worse than no allowlist, because anyone could register it
+     and inherit every guardrail's trust. Mutation-checked - reverting `allowedDomain` to the old
+     value fails 8 of the 15 allowlist assertions. **DNS does not resolve yet**, which is fine: the
+     allowlist is a string-matching guard and does not require resolution, and a base URL that fails
+     to answer falls back through the layers above exactly as designed.
 2. **Health gate before adoption:** a newly received base URL is *candidate* only. The client probes `GET /health` against it; the value is promoted to active only after a success. A candidate that fails is discarded and logged.
 3. **Auto-revert on sustained failure:** if the active URL produces N consecutive transport failures (default 5, across at least two app sessions), the client reverts to the **bundled default** and re-probes. This is what makes a bad push survivable without user action.
 4. **Signed payload:** the config document is signed (Ed25519) with a key whose public half is bundled; an unsigned or badly-signed document is rejected even over valid TLS. TLS authenticates the *connection*; the signature authenticates the *document*, so a compromised CDN or a misissued certificate still cannot redirect our clients. Because config can move the API, this is proportionate rather than paranoid.

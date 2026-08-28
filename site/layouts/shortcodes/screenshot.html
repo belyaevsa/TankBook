@@ -1,0 +1,3 @@
+{{- /* Content may never write an img tag directly - the partial is the only
+      path. Params: name, alt, eager (optional). Validated in the partial. */ -}}
+{{- partial "screenshot.html" (dict "name" (.Get "name") "alt" (.Get "alt") "eager" (.Get "eager")) -}}

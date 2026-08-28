@@ -1,0 +1,61 @@
+{{- /* Canonical, hreflang (incl. x-default -> the English page), OpenGraph,
+      Twitter card, favicon links, and the App Store smart banner.
+      Lives in the shared head: no page can be built without it. */ -}}
+
+{{- /* Every translation of this page, keyed by language code. */ -}}
+{{- $alt := dict -}}
+{{- range .AllTranslations -}}
+  {{- $alt = merge $alt (dict .Language.Lang .Permalink) -}}
+{{- end -}}
+<link rel="canonical" href="{{ .Permalink }}">
+{{- range $lang, $href := $alt }}
+<link rel="alternate" hreflang="{{ $lang }}" href="{{ $href }}">
+{{- end -}}
+{{- with index $alt "en" }}
+<link rel="alternate" hreflang="x-default" href="{{ . }}">
+{{- end }}
+
+{{- /* One composed OG image per language: a real screenshot centred on the
+      Night Drive midnight base. No text is drawn onto the image. */ -}}
+{{- $shotName := "P1.4-home.png" -}}
+{{- if eq site.Language.Lang "ru" -}}{{- $shotName = "P1.4-home-ru.png" -}}{{- end -}}
+{{- $og := "" -}}
+{{- with resources.Get "og/og-base.png" -}}
+  {{- $base := . -}}
+  {{- with resources.Get (printf "screenshots/%s" $shotName) -}}
+    {{- $shot := .Resize "x580" -}}
+    {{- $x := div (sub 1200 $shot.Width) 2 -}}
+    {{- $y := div (sub 630 $shot.Height) 2 -}}
+    {{- $og = $base.Filter (images.Overlay $shot $x $y) -}}
+  {{- else -}}
+    {{- errorf (printf "head/seo: OG screenshot %s not found in assets/screenshots" $shotName) -}}
+  {{- end -}}
+{{- else -}}
+  {{- errorf "head/seo: assets/og/og-base.png not found - the 1200x630 OG canvas" -}}
+{{- end -}}
+<meta property="og:title" content="{{ .Title }}">
+<meta property="og:description" content="{{ .Description }}">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ .Permalink }}">
+<meta property="og:site_name" content="Tankbook">
+<meta property="og:image" content="{{ $og.Permalink }}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+{{- $ogAlt := "A real Tankbook screen: the log with a fill-up checked by the arithmetic cross-check" -}}
+{{- if eq site.Language.Lang "ru" -}}{{- $ogAlt = "Настоящий экран Tankbook: журнал с заправкой, проверенной арифметикой" -}}{{- end }}
+<meta property="og:image:alt" content="{{ $ogAlt }}">
+<meta property="og:locale" content="{{ site.Language.LanguageCode | default site.Language.Lang }}">
+{{- range .Translations }}
+<meta property="og:locale:alternate" content="{{ .Language.LanguageCode | default .Language.Lang }}">
+{{- end }}
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ .Title }}">
+<meta name="twitter:description" content="{{ .Description }}">
+<meta name="twitter:image" content="{{ $og.Permalink }}">
+
+{{- /* Smart banner only once a listing exists; params.appStoreId is empty today. */ -}}
+{{- with site.Params.appStoreId }}
+<meta name="apple-itunes-app" content="app-id={{ . }}">
+{{- end }}
+<link rel="icon" href="{{ "icon.svg" | relURL }}" type="image/svg+xml">
+<link rel="apple-touch-icon" href="{{ "apple-touch-icon.png" | relURL }}">

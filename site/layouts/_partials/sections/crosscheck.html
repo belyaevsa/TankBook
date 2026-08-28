@@ -1,0 +1,34 @@
+{{- with .Params -}}
+<section class="section" id="check">
+  <div class="container check-grid">
+    <div>
+      <p class="eyebrow">{{ .check_eyebrow }}</p>
+      <h2 class="section-title">{{ .check_title }}</h2>
+      <p class="check-text">{{ .check_text }}</p>
+      <div class="check-card">
+        <p class="check-line">
+          <span class="check-line__value">{{ .check_lhs_value }}<span class="check-line__unit">&nbsp;{{ .check_lhs_unit }}</span></span>
+          <span class="check-line__op" aria-hidden="true">×</span>
+          <span class="check-line__value">{{ .check_rhs_value }}<span class="check-line__unit">&nbsp;{{ .check_rhs_unit }}</span></span>
+        </p>
+        <div class="check-rule">
+          <span class="check-rule__bar" aria-hidden="true"></span>
+          {{ partial "icons/tick-circle.html" . }}
+          <span class="check-rule__bar" aria-hidden="true"></span>
+        </div>
+        <p class="check-total">= {{ .check_total }}<span class="check-line__unit">&nbsp;{{ .check_total_unit }}</span></p>
+        <p class="check-warn">
+          {{ partial "icons/warn-triangle.html" . }}
+          <span>{{ .check_warn_before }} <span class="amber-underline">{{ .check_warn_styled }}</span> {{ .check_warn_after }}</span>
+        </p>
+      </div>
+    </div>
+    <div>
+      <div class="shot shot--crop check-shot" style="--crop: {{ .check_shot_crop }}px;">
+        {{ partial "screenshot.html" (dict "name" .check_shot "alt" .check_shot_alt) }}
+      </div>
+      <p class="shot-caption">{{ .check_shot_caption }}</p>
+    </div>
+  </div>
+</section>
+{{- end -}}

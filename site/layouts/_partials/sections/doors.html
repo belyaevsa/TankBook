@@ -1,0 +1,27 @@
+{{- /* Hard rule 15 in pixels: both doors share every class but the icon.
+      Same card, same accent, same title size, same image treatment. */ -}}
+{{- with .Params -}}
+<section class="section" id="doors">
+  <div class="container">
+    <p class="eyebrow">{{ .doors_eyebrow }}</p>
+    <h2 class="section-title">{{ .doors_title }}</h2>
+    <div class="doors-grid">
+      {{- range .doors }}
+      <article class="door-card">
+        <div class="door-card__head">
+          <span class="door-card__icon">{{ partial (printf "icons/%s.html" .icon) . }}</span>
+          <h3 class="door-card__title">{{ .title }}</h3>
+        </div>
+        <p class="door-card__text">{{ .text }}</p>
+        <figure class="door-card__shot">
+          <div class="shot shot--crop" style="--crop: 0px;">
+            {{ partial "screenshot.html" (dict "name" .shot "alt" .shot_alt) }}
+          </div>
+        </figure>
+      </article>
+      {{- end }}
+    </div>
+    <p class="section-note">{{ .doors_note }}</p>
+  </div>
+</section>
+{{- end -}}

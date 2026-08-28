@@ -1,0 +1,20 @@
+{{- /* The only path to an <img> on this site.
+      Params: name (explicit filename in assets/screenshots, never a glob),
+      alt (a real description), eager (optional bool, above-the-fold only).
+      A missing resource, an empty alt, or alt="screenshot" fails the build. */ -}}
+{{- $name := .name -}}
+{{- $alt := .alt -}}
+{{- if not $name -}}
+  {{- errorf "screenshot partial: no filename given" -}}
+{{- end -}}
+{{- if not $alt -}}
+  {{- errorf (printf "screenshot %s: alt is empty - every screenshot carries a description" $name) -}}
+{{- end -}}
+{{- if eq $alt "screenshot" -}}
+  {{- errorf (printf "screenshot %s: alt is the literal word \"screenshot\" - describe what the image shows" $name) -}}
+{{- end -}}
+{{- $res := resources.Get (printf "screenshots/%s" $name) -}}
+{{- if not $res -}}
+  {{- errorf (printf "screenshot %s: not found in assets/screenshots - check the explicit filename" $name) -}}
+{{- end -}}
+<img src="{{ $res.RelPermalink }}" alt="{{ $alt }}" width="{{ $res.Width }}" height="{{ $res.Height }}"{{ if .eager }} fetchpriority="high"{{ else }} loading="lazy"{{ end }} decoding="async">

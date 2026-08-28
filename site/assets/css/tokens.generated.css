@@ -1,0 +1,42 @@
+/* GENERATED FILE – do not edit. Source: design/tokens.json */
+/* Regenerate with: swift scripts/generate-site-tokens.swift */
+
+/* The Tankbook design system (Night Drive palette) for the web.
+   Dark values on :root, light values under prefers-color-scheme: light.
+   All values derive from design/tokens.json; do not hand-edit. */
+:root {
+  color-scheme: dark light;
+  --dash: #1A1F27;
+  --headlight: #4FC3E8;
+  --ink: #EAEDF2;
+  --ink-soft: #98A2B3;
+  --midnight: #101318;
+  --tab-bar: #0D1015;
+  --tab-bar-border: #1C222C;
+  --taillight: #F4503A;
+  --warn: #F0A030;
+  --border-hairline: rgba(234, 237, 242, 0.08);
+  --radius-card: 12px;
+  --spacing-base: 4px;
+  --spacing-card-padding: 16px;
+  --spacing-screen-margin: 20px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+  --dash: #FFFFFF;
+  --headlight: #0E7FA6;
+  --ink: #1A2028;
+  --ink-soft: #55606E;
+  --midnight: #F5F6F8;
+  --tab-bar: #EFF1F4;
+  --tab-bar-border: #E1E4EA;
+  --taillight: #D63A26;
+  --warn: #B06E10;
+  --border-hairline: rgba(26, 32, 40, 0.08);
+  --radius-card: 12px;
+  --spacing-base: 4px;
+  --spacing-card-padding: 16px;
+  --spacing-screen-margin: 20px;
+  }
+}

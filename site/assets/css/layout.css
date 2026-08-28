@@ -1,0 +1,256 @@
+/* Tankbook site – layout: page shell, nav, hero grid, footer, breakpoints. */
+
+.container {
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: var(--spacing-screen-margin);
+}
+
+/* ── nav ─────────────────────────────────────────────────────────────── */
+
+.site-nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 30px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--ink);
+  font-weight: 800;
+  font-size: 22px;
+  letter-spacing: 0.01em;
+}
+
+.brand:hover {
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  font-size: 14px;
+}
+
+.nav-links a {
+  color: var(--ink-soft);
+}
+
+.nav-links a:hover {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.lang-chip {
+  padding: 6px 13px;
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.lang-chip:hover {
+  text-decoration: none;
+  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
+}
+
+/* ── hero ────────────────────────────────────────────────────────────── */
+
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 336px;
+  gap: 84px;
+  align-items: start;
+  padding-top: 86px;
+  padding-bottom: 100px;
+}
+
+.hero__copy {
+  padding-top: 34px;
+}
+
+.hero__shot {
+  width: 336px;
+  max-width: 100%;
+}
+
+/* ── two-panel sections (cross-check, powertrains) ──────────────────── */
+
+.check-grid,
+.power-grid {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 84px;
+  align-items: center;
+}
+
+/* ── footer ──────────────────────────────────────────────────────────── */
+
+.site-footer {
+  margin-top: 96px;
+  background: var(--tab-bar);
+  border-top: 1px solid var(--tab-bar-border);
+}
+
+.site-footer__inner {
+  padding-top: 56px;
+  padding-bottom: 26px;
+}
+
+.site-footer__grid {
+  display: flex;
+  gap: 80px;
+  align-items: flex-start;
+}
+
+.site-footer__brand {
+  flex: 1;
+  max-width: 420px;
+}
+
+.brand--footer {
+  font-size: 18px;
+  gap: 10px;
+}
+
+.site-footer__tagline {
+  margin-top: 12px;
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.site-footer__prelaunch {
+  margin-top: 14px;
+  max-width: 340px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.site-footer__cols {
+  display: flex;
+  gap: 72px;
+  font-size: 14px;
+}
+
+.site-footer__col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.site-footer__col h2 {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.site-footer__col a {
+  color: var(--ink);
+}
+
+.site-footer__col span {
+  font-weight: 700;
+}
+
+.site-footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 44px;
+  padding-top: 20px;
+  border-top: 1px solid var(--tab-bar-border);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ── generic page (W2) ──────────────────────────────────────────────── */
+
+.page {
+  padding-top: 64px;
+  padding-bottom: 32px;
+}
+
+.page h1 {
+  font-size: 42px;
+}
+
+.page__body {
+  margin-top: 24px;
+  max-width: 640px;
+}
+
+/* ── breakpoints ─────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .nav-links a:not(.lang-chip) {
+    display: none;
+  }
+
+  .site-nav__inner {
+    padding-top: 18px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 48px;
+    padding-top: 40px;
+    padding-bottom: 56px;
+  }
+
+  .hero__copy {
+    padding-top: 0;
+  }
+
+  .hero__shot {
+    margin-inline: auto;
+  }
+
+  .check-grid,
+  .power-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+
+  .site-footer {
+    margin-top: 56px;
+  }
+
+  .site-footer__grid {
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .site-footer__inner {
+    padding-top: 36px;
+  }
+
+  .site-footer__cols {
+    gap: 48px;
+  }
+
+  .site-footer__bottom {
+    margin-top: 32px;
+  }
+}
+
+@media (max-width: 600px) {
+  .site-footer__cols {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .site-footer__bottom {
+    flex-direction: column;
+  }
+}

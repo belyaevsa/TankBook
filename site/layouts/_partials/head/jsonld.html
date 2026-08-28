@@ -1,0 +1,31 @@
+{{- /* JSON-LD, built from Go dicts piped through jsonify - never hand-written
+      JSON strings, which the first Russian quotation mark would break.
+      SoftwareApplication + FAQPage + Organization on the home page only;
+      no Article markup on legal pages. */ -}}
+{{- if .IsHome -}}
+{{- $offer := dict "@type" "Offer" "price" "0" "priceCurrency" "USD" -}}
+{{- $app := dict
+    "@context" "https://schema.org"
+    "@type" "SoftwareApplication"
+    "name" "Tankbook"
+    "operatingSystem" "iOS"
+    "applicationCategory" "UtilitiesApplication"
+    "inLanguage" site.Language.Lang
+    "description" .Description
+    "url" .Permalink
+    "offers" $offer -}}
+{{- $org := dict
+    "@context" "https://schema.org"
+    "@type" "Organization"
+    "name" "Tankbook"
+    "url" .Permalink
+    "email" site.Params.email -}}
+{{- $qa := slice -}}
+{{- range .Params.faq -}}
+  {{- $qa = $qa | append (dict "@type" "Question" "name" .q "acceptedAnswer" (dict "@type" "Answer" "text" .a)) -}}
+{{- end -}}
+{{- $faq := dict "@context" "https://schema.org" "@type" "FAQPage" "inLanguage" site.Language.Lang "mainEntity" $qa -}}
+<script type="application/ld+json">{{ $app | jsonify | safeJS }}</script>
+<script type="application/ld+json">{{ $org | jsonify | safeJS }}</script>
+<script type="application/ld+json">{{ $faq | jsonify | safeJS }}</script>
+{{- end -}}

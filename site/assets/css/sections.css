@@ -1,0 +1,620 @@
+/* Tankbook site – landing sections, in SITE.md's order.
+   The two-door section is the reason this file exists: both doors share every
+   class except the icon, so neither can drift into the other's fallback. */
+
+/* ── shared section chrome ───────────────────────────────────────────── */
+
+.section {
+  padding-top: 92px;
+  padding-bottom: 96px;
+  border-top: 1px solid var(--border-hairline);
+}
+
+.section--hero {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.section--roadmap {
+  padding-top: 64px;
+  padding-bottom: 64px;
+}
+
+.section--footer-gap {
+  padding-bottom: 0;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 26px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--taillight);
+}
+
+.section-title {
+  margin-top: 16px;
+  font-size: 42px;
+}
+
+.section-note {
+  margin-top: 28px;
+  font-size: 15px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ── screenshots: the frame, and the crop offset passed per instance ── */
+
+.shot {
+  overflow: hidden;
+  border: 1px solid var(--border-hairline);
+  border-radius: 18px;
+  background: var(--dash);
+}
+
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.shot--crop img {
+  margin-top: var(--crop, 0px);
+}
+
+.shot--device {
+  border-radius: 34px;
+}
+
+.shot-caption {
+  max-width: 300px;
+  margin: 12px auto 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ── 1 · hero ────────────────────────────────────────────────────────── */
+
+.hero-title {
+  margin-top: 22px;
+  font-size: 64px;
+  line-height: 1.03;
+}
+
+.hero-title__line {
+  display: block;
+}
+
+.hero-title__line--accent {
+  color: var(--taillight);
+}
+
+.hero-sub {
+  max-width: 520px;
+  margin-top: 26px;
+  font-size: 18px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.hero-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hero-facts .sep {
+  color: color-mix(in srgb, var(--ink) 25%, transparent);
+}
+
+.hero-ctas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+}
+
+.hero-note {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ── buttons: the two CTAs of equal weight ───────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 54px;
+  padding: 0 28px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.btn:hover {
+  text-decoration: none;
+}
+
+.btn--primary {
+  background: var(--taillight);
+  border-color: var(--taillight);
+  color: var(--midnight);
+}
+
+.btn--secondary {
+  background: var(--dash);
+  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  color: var(--ink);
+}
+
+.btn--ghost {
+  height: 48px;
+  padding: 0 26px;
+  flex: none;
+  font-size: 15px;
+  background: var(--midnight);
+  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
+  color: var(--ink);
+}
+
+/* ── 2 · the two doors ───────────────────────────────────────────────── */
+
+.doors-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.door-card {
+  display: flex;
+  flex-direction: column;
+  padding: 32px 32px 0;
+  background: var(--dash);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.door-card__head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.door-card__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--taillight) 12%, transparent);
+}
+
+.door-card__title {
+  font-size: 26px;
+}
+
+.door-card__text {
+  margin-top: 14px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.door-card__shot {
+  width: 300px;
+  max-width: 100%;
+  height: 430px;
+  margin: 22px auto 0;
+  border: 1px solid var(--border-hairline);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  background: var(--midnight);
+  overflow: hidden;
+}
+
+/* ── 3 · the cross-check, shown ──────────────────────────────────────── */
+
+.check-text {
+  max-width: 460px;
+  margin-top: 18px;
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.check-card {
+  max-width: 480px;
+  margin-top: 32px;
+  padding: 36px 40px 32px;
+  background: var(--dash);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.check-line {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.check-line__value {
+  font-size: 44px;
+}
+
+.check-line__unit {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+
+.check-line__op {
+  font-size: 26px;
+  color: var(--ink-soft);
+}
+
+.check-rule {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 14px;
+}
+
+.check-rule__bar {
+  flex: 1;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--taillight);
+}
+
+.check-total {
+  font-size: 58px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--taillight);
+  font-variant-numeric: tabular-nums;
+}
+
+.check-total .check-line__unit {
+  font-size: 18px;
+  letter-spacing: 0.08em;
+}
+
+.check-warn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border-hairline);
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.check-warn .icon {
+  flex: none;
+}
+
+.amber-underline {
+  color: var(--ink);
+  border-bottom: 2px solid var(--warn);
+}
+
+.check-shot {
+  width: 300px;
+  height: 400px;
+  margin-inline: auto;
+}
+
+/* ── 4 · your data, yours ────────────────────────────────────────────── */
+
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-top: 40px;
+}
+
+.data-card {
+  padding: 26px 24px;
+  background: var(--dash);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.data-card h3 {
+  margin-top: 14px;
+  font-size: 17px;
+}
+
+.data-card p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.data-link {
+  margin-top: 26px;
+  font-size: 15px;
+}
+
+/* ── 5 · every powertrain, every currency ────────────────────────────── */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: var(--dash);
+  border: 1px solid var(--border-hairline);
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.dot--taillight {
+  background: var(--taillight);
+}
+
+.dot--headlight {
+  background: var(--headlight);
+}
+
+.dot--overlap {
+  margin-left: -4px;
+}
+
+.power-text {
+  max-width: 480px;
+  margin-top: 18px;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.power-border {
+  max-width: 480px;
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border-hairline);
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.power-border strong,
+.data-card strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.power-shot {
+  width: 300px;
+  height: 280px;
+  margin-inline: auto;
+}
+
+/* ── 6 · roadmap teaser ──────────────────────────────────────────────── */
+
+.roadmap-card {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  padding: 34px 40px;
+  background: var(--dash);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-card);
+}
+
+.roadmap-card__eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--taillight);
+}
+
+.roadmap-card__title {
+  margin-top: 10px;
+  font-size: 26px;
+}
+
+.roadmap-card__text {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+/* ── 7 · FAQ ─────────────────────────────────────────────────────────── */
+
+.faq-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 64px;
+  margin-top: 28px;
+}
+
+.faq-item {
+  padding: 26px 0;
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.faq-item h3 {
+  font-size: 17px;
+}
+
+.faq-item p {
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+/* ── breakpoints: 900 tablet, 600 phone (the 390 artboard) ──────────── */
+
+@media (max-width: 900px) {
+  .section {
+    padding-top: 52px;
+    padding-bottom: 56px;
+  }
+
+  .hero-title {
+    font-size: 44px;
+    line-height: 1.06;
+  }
+
+  .hero-title__line {
+    display: inline;
+  }
+
+  .section-title {
+    font-size: 32px;
+  }
+
+  .doors-grid,
+  .data-grid,
+  .faq-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .faq-grid {
+    gap: 0;
+  }
+
+  .check-card {
+    padding: 26px 24px 24px;
+  }
+
+  .check-line__value {
+    font-size: 32px;
+  }
+
+  .check-line__op {
+    font-size: 20px;
+  }
+
+  .check-total {
+    font-size: 42px;
+  }
+
+  .check-total .check-line__unit {
+    font-size: 15px;
+  }
+
+  .check-shot {
+    height: 340px;
+    width: 260px;
+  }
+
+  .check-shot.shot--crop img {
+    margin-top: calc(var(--crop, 0px) * 0.87);
+  }
+
+  .power-shot {
+    height: 243px;
+    width: 260px;
+  }
+
+  .power-shot.shot--crop img {
+    margin-top: calc(var(--crop, 0px) * 0.87);
+  }
+
+  .roadmap-card {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    padding: 24px 22px;
+  }
+
+  .roadmap-card .btn--ghost {
+    width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .hero-title {
+    font-size: 38px;
+    line-height: 1.06;
+  }
+
+  .section-title {
+    font-size: 28px;
+    line-height: 1.12;
+  }
+
+  .btn {
+    width: 100%;
+  }
+
+  .hero-ctas {
+    flex-direction: column;
+  }
+
+  .hero__shot {
+    width: 280px;
+  }
+
+  .door-card {
+    padding: 24px 20px 0;
+  }
+
+  .door-card__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+  }
+
+  .door-card__title {
+    font-size: 22px;
+  }
+
+  .door-card__shot {
+    width: 260px;
+    height: 380px;
+  }
+}

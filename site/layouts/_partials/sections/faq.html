@@ -1,0 +1,16 @@
+{{- with .Params -}}
+<section class="section" id="faq">
+  <div class="container">
+    <p class="eyebrow">{{ .faq_eyebrow }}</p>
+    <h2 class="section-title">{{ .faq_title }}</h2>
+    <div class="faq-grid">
+      {{- range .faq }}
+      <div class="faq-item">
+        <h3>{{ .q }}</h3>
+        <p>{{ .a }}</p>
+      </div>
+      {{- end }}
+    </div>
+  </div>
+</section>
+{{- end -}}

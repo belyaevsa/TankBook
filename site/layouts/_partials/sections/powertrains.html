@@ -1,0 +1,27 @@
+{{- with .Params -}}
+<section class="section" id="powertrains">
+  <div class="container power-grid">
+    <div>
+      <p class="eyebrow">{{ .power_eyebrow }}</p>
+      <h2 class="section-title">{{ .power_title }}</h2>
+      <ul class="chips">
+        {{- range .power_chips }}
+        <li class="chip">
+          {{- if .fuel }}<span class="dot dot--taillight" aria-hidden="true"></span>{{ end -}}
+          {{- if .electric }}<span class="dot dot--headlight{{ if .fuel }} dot--overlap{{ end }}" aria-hidden="true"></span>{{ end -}}
+          {{ .label }}
+        </li>
+        {{- end }}
+      </ul>
+      <p class="power-text">{{ .power_text }}</p>
+      <p class="power-border">{{ .power_border_before }} <strong>{{ .power_border_strong_1 }}</strong> {{ .power_border_mid }} <strong>{{ .power_border_strong_2 }}</strong>{{ .power_border_after }}</p>
+    </div>
+    <div>
+      <div class="shot shot--crop power-shot" style="--crop: {{ .power_shot_crop }}px;">
+        {{ partial "screenshot.html" (dict "name" .power_shot "alt" .power_shot_alt) }}
+      </div>
+      <p class="shot-caption num">{{ .power_shot_caption }}</p>
+    </div>
+  </div>
+</section>
+{{- end -}}

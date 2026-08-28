@@ -1,0 +1,106 @@
+# Tankbook marketing site (W1: S1 skeleton + S2 landing). Authority: docs/SITE.md.
+baseURL = "https://tankbook.live/"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+enableRobotsTXT = true
+disableKinds = ["taxonomy", "term", "rss"]
+
+[params]
+email = "to@belyaev.live"
+
+# A typed --- must never render as an em-dash (repo rule: en-dashes only).
+[markup.goldmark.extensions.typographer]
+emDash = "–"
+endash = "–"
+
+# Keep attribute quotes in the minified HTML (lang="ru" must stay greppable).
+[minify.tdewolff.html]
+keepQuotes = true
+
+[languages.en]
+languageCode = "en"
+languageName = "English"
+weight = 1
+
+[[languages.en.menus.main]]
+name = "How it works"
+url = "/#doors"
+weight = 1
+
+[[languages.en.menus.main]]
+name = "The check"
+url = "/#check"
+weight = 2
+
+[[languages.en.menus.main]]
+name = "Your data"
+url = "/#data"
+weight = 3
+
+[[languages.en.menus.main]]
+name = "Roadmap"
+url = "/#roadmap"
+weight = 4
+
+[[languages.en.menus.main]]
+name = "FAQ"
+url = "/#faq"
+weight = 5
+
+[languages.ru]
+languageCode = "ru"
+languageName = "Русский"
+weight = 2
+
+[[languages.ru.menus.main]]
+name = "Как это работает"
+url = "/ru/#doors"
+weight = 1
+
+[[languages.ru.menus.main]]
+name = "Проверка"
+url = "/ru/#check"
+weight = 2
+
+[[languages.ru.menus.main]]
+name = "Ваши данные"
+url = "/ru/#data"
+weight = 3
+
+[[languages.ru.menus.main]]
+name = "Планы"
+url = "/ru/#roadmap"
+weight = 4
+
+[[languages.ru.menus.main]]
+name = "Вопросы"
+url = "/ru/#faq"
+weight = 5
+
+# Restating every default mount because one custom mount is declared:
+# dropping the defaults would drop content, layouts and assets with them.
+[module]
+[[module.mounts]]
+source = "archetypes"
+target = "archetypes"
+[[module.mounts]]
+source = "assets"
+target = "assets"
+[[module.mounts]]
+source = "content"
+target = "content"
+[[module.mounts]]
+source = "data"
+target = "data"
+[[module.mounts]]
+source = "i18n"
+target = "i18n"
+[[module.mounts]]
+source = "layouts"
+target = "layouts"
+[[module.mounts]]
+source = "static"
+target = "static"
+[[module.mounts]]
+source = "../design/screenshots"
+target = "assets/screenshots"

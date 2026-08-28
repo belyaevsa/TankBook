@@ -37,3 +37,8 @@ Spike/ReceiptSpike/fixtures/vision-ab/.raw/
 # design/screenshots/ is deliberately NOT ignored: one screenshot per UI task is
 # committed as the visual record of what that task actually produced
 # (CLAUDE.md -> Conventions). They are evidence, not build output.
+
+# Hugo site (site/): build output and resource cache
+site/public/
+site/resources/_gen/
+

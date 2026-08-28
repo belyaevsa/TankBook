@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="{{ site.Language.LanguageCode | default site.Language.Lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ .Title }}</title>
+  <meta name="description" content="{{ .Description }}">
+  {{ partial "head/css.html" . }}
+  {{ partial "head/seo.html" . }}
+  {{ partial "head/jsonld.html" . }}
+</head>
+<body>
+  <a class="skip-link" href="#main">{{ i18n "skipToContent" }}</a>
+
+  <header class="site-nav">
+    <div class="container site-nav__inner">
+      <a class="brand" href="{{ site.Home.RelPermalink }}">
+        <svg width="26" height="26" viewBox="0 0 52 52" class="icon icon--logo" role="img" aria-label="{{ i18n "logoAlt" }}">
+          <path d="M14 42V14a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v28M10 42h26" stroke-width="3" stroke-linecap="round"/>
+          <path d="M18 16h10v8H18z" stroke-width="2.4" stroke-linejoin="round"/>
+          <path d="M32 20h4a3 3 0 0 1 3 3v10a2.5 2.5 0 0 0 5 0v-9" stroke-width="2.6" stroke-linecap="round"/>
+          <path d="M41 17l3 3 6-7" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--headlight);"/>
+        </svg>
+        <span>Tankbook</span>
+      </a>
+      <nav class="nav-links" aria-label="{{ i18n "navLabel" }}">
+        {{ range site.Menus.main }}
+        <a href="{{ .URL }}">{{ .Name }}</a>
+        {{ end }}
+        {{- $translation := "" -}}
+        {{- range .Translations -}}{{- $translation = . -}}{{- end -}}
+        {{- with $translation }}
+        <a class="lang-chip" href="{{ .RelPermalink }}" lang="{{ .Language.Lang }}" hreflang="{{ .Language.Lang }}" aria-label="{{ printf "%s: %s" (i18n "langSwitchAria") .Language.LanguageName }}">{{ .Language.Lang | upper }}</a>
+        {{ end -}}
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    {{ block "main" . }}{{ end }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container site-footer__inner">
+      <div class="site-footer__grid">
+        <div class="site-footer__brand">
+          <div class="brand brand--footer">
+            <svg width="22" height="22" viewBox="0 0 52 52" class="icon icon--logo" aria-hidden="true">
+              <path d="M14 42V14a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v28M10 42h26" stroke-width="3" stroke-linecap="round"/>
+              <path d="M18 16h10v8H18z" stroke-width="2.4" stroke-linejoin="round"/>
+              <path d="M32 20h4a3 3 0 0 1 3 3v10a2.5 2.5 0 0 0 5 0v-9" stroke-width="2.6" stroke-linecap="round"/>
+              <path d="M41 17l3 3 6-7" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--headlight);"/>
+            </svg>
+            <span>Tankbook</span>
+          </div>
+          <p class="site-footer__tagline">{{ i18n "footerTagline" }}</p>
+          <p class="site-footer__prelaunch">{{ i18n "footerPreLaunchPre" }}<a href="mailto:{{ site.Params.email }}">{{ site.Params.email }}</a>{{ i18n "footerPreLaunchPost" }}</p>
+        </div>
+        <div class="site-footer__cols">
+          <div class="site-footer__col">
+            <h2>{{ i18n "footerProduct" }}</h2>
+            <a href="{{ i18n "footerRoadmapURL" }}">{{ i18n "footerRoadmap" }}</a>
+            <a href="{{ i18n "footerPressURL" }}">{{ i18n "footerPress" }}</a>
+            <a href="{{ i18n "footerSupportURL" }}">{{ i18n "footerSupport" }}</a>
+          </div>
+          <div class="site-footer__col">
+            <h2>{{ i18n "footerLegal" }}</h2>
+            <a href="{{ i18n "footerPrivacyURL" }}">{{ i18n "footerPrivacy" }}</a>
+            <a href="{{ i18n "footerTermsURL" }}">{{ i18n "footerTerms" }}</a>
+            <a href="{{ i18n "footerDeleteURL" }}">{{ i18n "footerDeleteAccount" }}</a>
+          </div>
+          <div class="site-footer__col">
+            <h2>{{ i18n "footerLanguage" }}</h2>
+            <span lang="{{ site.Language.Lang }}">{{ site.Language.LanguageName }}</span>
+            {{- range .Translations }}
+            <a href="{{ .RelPermalink }}" lang="{{ .Language.Lang }}" hreflang="{{ .Language.Lang }}">{{ .Language.LanguageName }}</a>
+            {{- end }}
+          </div>
+        </div>
+      </div>
+      <div class="site-footer__bottom">
+        <span>{{ i18n "footerCopyright" }}</span>
+        <span class="num">{{ i18n "footerDomain" }}</span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

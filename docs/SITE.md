@@ -1,20 +1,20 @@
 # Tankbook – The Marketing Site
 
-*Single authority for `tankbook.app`: the public landing page, the legal pages, and the SEO
+*Single authority for `tankbook.live`: the public landing page, the legal pages, and the SEO
 surface. Companion to `VISION.md` (what may be claimed), `DESIGN.md` (how it looks),
 `SECURITY.md`/`LOGGING.md`/`SYNC.md`/`API.md` (what the privacy policy must say), and `TASKS.md`
 (the build rows). Written 2026-08-28.*
 
 ## Why this exists now, and the blocker it closes
 
-The site is not only marketing. `CONFIG.md` records an **open release blocker**: `HostAllowlist.allowedDomain`
-and `Config.default.json` both carry `tankbook.app` as a **placeholder for a domain nobody owns**, and
-an allowlist naming a domain we do not control is worse than no allowlist - anyone may register it and
-inherit every guardrail's trust. Registering the apex for this site is what closes that hole, so the
-first task here is a purchase, not a page.
+The site was not only marketing. `CONFIG.md` recorded an **open release blocker**: the allowlist and the
+bundled config both named a domain **nobody owned**, which is worse than no allowlist at all - anyone
+could have registered it and inherited every guardrail's trust. **Closed 2026-08-28**: `tankbook.live`
+is registered and both files now name it. DNS does not resolve yet, which blocks deployment (W4) but
+nothing else - the allowlist is a string guard, not a lookup.
 
-Once registered: **apex `tankbook.app` serves this site**, `api.tankbook.app` stays the backend. The
-allowlist matches domain suffixes, so both live under one registration.
+**Apex `tankbook.live` serves this site; `api.tankbook.live` is the backend** (product owner,
+2026-08-28). The allowlist matches domain suffixes, so both live under one registration.
 
 ## The copy rule, and it is the important part of this document
 
@@ -150,6 +150,49 @@ Layout follows `DESIGN.md`'s rules where they apply: 20 px screen margin scaled 
 lower: **AA contrast minimum**, visible focus rings, real landmarks, `prefers-reduced-motion`
 respected, and every screenshot carrying a description rather than `alt="screenshot"`.
 
+## Imagery: what may be generated, and what may never be
+
+Image generation is allowed for this site, under one structural rule: **generated pixels are base
+layers only, and everything that carries meaning is composited on top.**
+
+**May be generated** - abstract and atmospheric ground: a night forecourt's light falling on wet
+tarmac, a dark road gradient, grain and texture fields, the ambient wash behind a section. Things
+with no claim in them.
+
+**May never be generated:**
+
+- **Any product UI.** A generated "app screen" is a fabricated mockup, which this document already
+  forbids, and it is worse than a stock photo: it asserts the product looks like something it does
+  not. Product imagery comes from `design/screenshots/`, which holds real committed captures.
+- **Any text.** Not headlines, not the wordmark, not UI labels, not a receipt's contents. Generative
+  models garble glyphs, and they garble **Cyrillic** far worse than Latin, so the RU page would carry
+  the damage invisibly to an English reader. Text is HTML, or it is composited from a real render.
+- **People presented as users**, testimonials, review stars, press logos, or App Store badges. The
+  pre-launch honesty rule already forbids inventing social proof; generating it is the same lie with
+  better production values.
+- **Watermarks.** Generate without them. If one appears, the image is discarded rather than cropped -
+  a cropped watermark is still someone else's mark, moved.
+
+**The composite discipline.** Generate the ground, then place the real assets over it: screenshots
+through the `screenshot.html` partial, text as live HTML so it stays selectable, translatable and
+accessible. This keeps every claim traceable to something real, and it keeps the RU page correct by
+construction rather than by inspection.
+
+**Colour is constrained, then verified.** Prompts name the Night Drive values - `midnight #101318`,
+`dash #1A1F27`, `taillight #F4503A`, `headlight #4FC3E8` - but a prompt is a request, not a
+guarantee. Sample the output's dominant colours and compare against the tokens; an image that drifts
+off-palette is regenerated, never colour-graded into place, because grading a wrong image tends to
+produce a muddy right one.
+
+**Every generated image is opened by a human before it ships**, at full size. This is the same rule
+as the screenshots, for the same reason: no test asserts appearance, and an agent that produced the
+image cannot see it. Look for stray glyph fragments, sixth fingers, repeated texture tiles, and
+watermark remnants.
+
+**Provenance is recorded.** `site/assets/generated/MANIFEST.md` lists every generated file with its
+prompt and date, so nobody later mistakes an illustration for a photograph, or re-uses one under an
+assumption about where it came from.
+
 ## SEO
 
 **Technical, all of it cheap and all of it required:**
@@ -214,11 +257,11 @@ Russian users' data is processed, alongside GDPR. That is a legal decision, not 
 
 | Phase | Contents | Exit gate |
 |---|---|---|
-| **S0** | Register `tankbook.app`; set the real domain in `HostAllowlist.allowedDomain` and `Config.default.json` | The `CONFIG.md` release blocker is struck out and the allowlist test passes against the real domain. **No mail setup blocks launch**: the support address is an existing mailbox (below), so S0 is a purchase and a two-line code change, nothing more |
+| **S0** | Register `tankbook.live`; set the real domain in `HostAllowlist.allowedDomain` and `Config.default.json` | The `CONFIG.md` release blocker is struck out and the allowlist test passes against the real domain. **No mail setup blocks launch**: the support address is an existing mailbox (below), so S0 is a purchase and a two-line code change, nothing more |
 | **S1** | `site/` skeleton: Hugo config, EN+RU trees, the token generator, base layout, dark/light | `hugo --minify` exits 0; `tokens.generated.css` matches `tokens.json`; a mutation - change a token, rebuild - moves the CSS |
 | **S2** | The landing page, both languages, real screenshots | Every claim on the page traces to a row in the copy rule table; **RU read for grammar by a human**, not just for overflow |
 | **S3** | `/privacy/`, `/terms/`, `/support/`, `/delete-account/` | Each row of the legal table appears, and contradicts nothing in `SECURITY.md`, `LOGGING.md`, `SYNC.md` or `API.md` |
 | **S4** | SEO surface: hreflang, canonicals, sitemap, structured data, OG images | Structured data validates; **every page has an hreflang pair including `x-default`**; Lighthouse 100 across the four categories, measured locally |
-| **S5** | Deploy, both search consoles, the analytics decision | The apex serves over HTTPS, `api.tankbook.app` still resolves for the app, both sitemaps submitted - and **Lighthouse re-run against the live apex**, because headers, redirects, compression and HSTS belong to the host, so an S4 pass on localhost can still ship a page that fails its own target |
+| **S5** | Deploy, both search consoles, the analytics decision | The apex serves over HTTPS, `api.tankbook.live` still resolves for the app, both sitemaps submitted - and **Lighthouse re-run against the live apex**, because headers, redirects, compression and HSTS belong to the host, so an S4 pass on localhost can still ship a page that fails its own target |
 
 **S0 gates everything**, and it is a purchase rather than a task an agent can do.

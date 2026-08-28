@@ -1,0 +1,13 @@
+{{- /* Concatenate and minify all site CSS, inline it as one <style>.
+      No <link rel="stylesheet"> may ever appear in the output. */ -}}
+{{- $files := slice "tokens.generated.css" "base.css" "layout.css" "sections.css" -}}
+{{- $parts := slice -}}
+{{- range $files -}}
+  {{- with resources.Get (printf "css/%s" .) -}}
+    {{- $parts = $parts | append . -}}
+  {{- else -}}
+    {{- errorf (printf "head/css: missing asset css/%s - run swift scripts/generate-site-tokens.swift or check the filename" .) -}}
+  {{- end -}}
+{{- end -}}
+{{- $bundle := $parts | resources.Concat "css/site.css" | minify -}}
+<style>{{ $bundle.Content | safeCSS }}</style>

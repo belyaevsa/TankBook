@@ -1,0 +1,31 @@
+{{- with .Params -}}
+<section class="section section--hero" id="hero">
+  <div class="container hero">
+    <div class="hero__copy">
+      <p class="eyebrow">{{ .hero_eyebrow }}</p>
+      <h1 class="hero-title">
+        <span class="hero-title__line">{{ .hero_title_1 }}</span>
+        <span class="hero-title__line">{{ .hero_title_2 }}</span>
+        <span class="hero-title__line hero-title__line--accent">{{ .hero_title_3 }}</span>
+      </h1>
+      <p class="hero-sub">{{ .hero_sub }}</p>
+      <p class="hero-facts">
+        {{- range $i, $fact := .hero_facts -}}
+        {{- if $i }}<span class="sep" aria-hidden="true">·</span>{{ end }}<span>{{ $fact }}</span>
+        {{- end -}}
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn--primary" href="mailto:{{ site.Params.email }}">{{ .hero_cta_primary }}</a>
+        <a class="btn btn--secondary" href="{{ .hero_cta_secondary_url }}">{{ .hero_cta_secondary }}</a>
+      </div>
+      <p class="hero-note">{{ .hero_note }}</p>
+    </div>
+    <div class="hero__shot">
+      <div class="shot shot--device">
+        {{ partial "screenshot.html" (dict "name" .hero_shot "alt" .hero_shot_alt "eager" true) }}
+      </div>
+      <p class="shot-caption">{{ .hero_shot_caption }}</p>
+    </div>
+  </div>
+</section>
+{{- end -}}

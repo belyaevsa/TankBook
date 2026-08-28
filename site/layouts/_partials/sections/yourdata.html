@@ -1,0 +1,18 @@
+{{- with .Params -}}
+<section class="section" id="data">
+  <div class="container">
+    <p class="eyebrow">{{ .data_eyebrow }}</p>
+    <h2 class="section-title">{{ .data_title }}</h2>
+    <div class="data-grid">
+      {{- range .data_cards }}
+      <div class="data-card">
+        {{ partial (printf "icons/%s.html" .icon) . }}
+        <h3>{{ .title }}</h3>
+        <p>{{ .text }}</p>
+      </div>
+      {{- end }}
+    </div>
+    <p class="data-link"><a href="{{ .data_link_url }}">{{ .data_link }}</a></p>
+  </div>
+</section>
+{{- end -}}
