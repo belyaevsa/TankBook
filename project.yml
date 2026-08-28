@@ -47,6 +47,12 @@ targets:
     settings:
       base:
         SWIFT_VERSION: "6.0"
+        # Pinned rather than inherited. Xcode's Release default is already
+        # dwarf-with-dsym, but a silent flip to plain "dwarf" produces
+        # unsymbolicated addresses in Organizer months later, with nothing
+        # reporting the change. Crash reports are the ONLY production signal
+        # this app has - there is no crash SDK - so the dSYM is load bearing.
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         TARGETED_DEVICE_FAMILY: "1"
 
   TankbookUITests:
