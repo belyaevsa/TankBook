@@ -78,6 +78,40 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 6. **Importer per format**: round-trips + known-value assertions.
 7. **Backup format**: round-trip + schema-version migrator test (v1→v2 fixture from day one, so additive evolution stays honest).
 
+## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
+
+**Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE
+completion.** Measured on 2026-08-28, which is why this rule exists: five full runs, 27-29 minutes
+each, **about two and a quarter hours**. They found **one** genuine defect and produced **two** false
+reds, both from machine contention, each costing another run to disprove.
+
+| Level | When | Cost |
+|---|---|---|
+| `swift build` + `swiftlint lint` | **continuously, during implementation** | seconds |
+| `swift test` (all 873) | **every task** - it is 30 seconds, there is no reason to subset it | ~30 s |
+| `xcodebuild test -only-testing:<the suites the task touched>` | **every task** | seconds to ~2 min |
+| `xcodebuild test` (the whole suite) | **phase completion, and before any release** | ~28 min |
+
+The reasoning, so nobody "restores rigour" by reverting this:
+
+- **The suite is a gate, not a search tool.** Its unique value is a narrow class - a control that
+  renders correctly, reports `isHittable = true`, and does nothing. Nothing else finds those. But it
+  finds them in the suite that covers that screen, not in the other 180 tests.
+- **Unit tests are not subsetted.** 873 tests in 30 seconds is free; a filtered unit run is how a
+  corpus change once shipped red to `main`.
+- **A filter that matches nothing reports success.** `--filter` with a bad pattern prints
+  "Test run with 0 tests ... passed". Always check the count is non-zero - a subset you cannot see
+  running is worse than no subset.
+- **Run it alone.** Every false red measured came from a full suite competing with `swift test`,
+  lint, or a capture for the machine.
+
+A task brief must therefore **name the suites it expects to run**, e.g.
+`-only-testing:TankbookUITests/ConfirmManualUITests`. "Run the UI tests" is not a check.
+
+**The trade, stated honestly:** a subset can miss a regression on a screen the task did not touch.
+That is what the phase-completion full run is for, and it is the reason this rule sets a floor
+rather than removing the suite.
+
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 
 **Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects.

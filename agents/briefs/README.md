@@ -45,6 +45,16 @@ The pattern these converged on, in order:
 - A brief that turns out to be wrong is **edited and re-dispatched**, keeping the same file. Only a brief
   replaced by a different decomposition gets a `-superseded` suffix, kept for the record.
 
+## Name the UI suites; do not ask for the whole thing
+
+Since 2026-08-29 the full UI suite belongs to **phase completion**, not to every task. A brief asks
+for `swift build`, `swiftlint`, all 873 unit tests, and `-only-testing:` the suites that task
+touched - **named explicitly**. "Run the UI tests" is not a check, and a `--filter` that matches
+nothing prints "0 tests ... passed", so the brief should also ask for the observed count.
+
+The cost of the old wording, measured: five full runs in one day, about two and a quarter hours,
+one genuine defect, two false reds from machine contention.
+
 ## Never `pgrep -f` for a build or test process
 
 **An agent's brief is part of its command line.** `opencode run ... "$(cat brief.md)"` puts the
