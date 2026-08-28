@@ -26,6 +26,8 @@ struct ManualFillUpView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
+    @Environment(AppConfigService.self) private var config
+    @Environment(AppToastCenter.self) private var toastCenter
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     /// The scanned-path input (P2.3). `nil` is the manual form with nothing
@@ -111,6 +113,9 @@ struct ManualFillUpView: View {
                     // behind the pinned Save bar. One order across both screens
                     // also means muscle memory transfers between them.
                     ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
+                    if cloudExtractSurface && !config.allowsServerBacked {
+                        UpdateRequiredNotice()
+                    }
                     if gatewaySession.phase == .budgetExpired {
                         gatewayTimeoutBanner
                     }
@@ -207,6 +212,14 @@ struct ManualFillUpView: View {
 
     private var prefill: ConfirmPrefill? {
         injectedPrefill ?? ConfirmPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments)
+    }
+
+    /// Whether this sheet is a cloud-extract surface (P6.18b): a scan carried a
+    /// photo the gateway would have read. Under `.required` the reading is
+    /// withheld and the update notice renders in its place - the on-device
+    /// result still stands, nothing is lost.
+    private var cloudExtractSurface: Bool {
+        prefill?.sourceImage != nil
     }
 
     private var currencySymbol: String {
@@ -365,6 +378,11 @@ struct ManualFillUpView: View {
     /// on screen is the on-device result - the app never waits on the gateway
     /// to show it (F4).
     private func startGatewayReading(prefill: ConfirmPrefill) {
+        // P6.18b: under `.required` the `/extract` request is withheld - the
+        // server has stopped supporting this build (the same set 426 already
+        // withholds, docs/CONFIG.md). The on-device result is already on
+        // screen; the update notice explains the pause.
+        guard config.allowsServerBacked else { return }
         guard let sourceImage = prefill.sourceImage,
               let cgImage = sourceImage.cgImage,
               let transport = GatewayScanStarter.makeTransport() else { return }
@@ -515,6 +533,13 @@ struct ManualFillUpView: View {
             }
             try repository.upsertFillUp(toSave)
             hasUnsavedChanges = false
+            // A new entry was written with no delta toast - tell Home to
+            // reload anyway (docs/ERRORS.md -> Edit entry, row 4; hard rule 2),
+            // exactly as Edit entry, Vehicle detail and Recently deleted do on
+            // their saves. Without this, Home keeps showing the pre-save state
+            // after the sheet dismisses (a `.sheet` never re-triggers the
+            // presenter's `.task` on iOS 26).
+            toastCenter.noteEntryChanged()
             // P6.3 (F4): a saved entry is corrected by its owner alone -
             // nothing arrives after save, whatever the background request does.
             gatewaySession.markSaved()

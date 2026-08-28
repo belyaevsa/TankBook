@@ -41,6 +41,11 @@ final class ImportFlowModel {
 
     let client: ImportClient
     let repository: TankbookRepository
+    /// P6.18b: the config service behind the import gate. Import's server read
+    /// (parse) is the one named exception to local-first (hard rule 9), and it
+    /// is the one part withheld under `.required` - the review list, the edits
+    /// and the commit stay fully local (docs/CONFIG.md -> "The exception").
+    let configService: AppConfigService
 
     private(set) var step: Step = .source
     private(set) var formats: [ImportFormat] = []
@@ -80,11 +85,19 @@ final class ImportFlowModel {
     /// carries (P5.4: `provenance = { tag: "import", source: <format> }`).
     private var source: String { pickedFormat?.id ?? parse?.format ?? "unknown" }
 
-    init(client: ImportClient, repository: TankbookRepository) {
+    init(client: ImportClient, repository: TankbookRepository, configService: AppConfigService) {
         self.client = client
         self.repository = repository
+        self.configService = configService
         self.liveVehicles = (try? repository.liveVehicles()) ?? []
     }
+
+    /// True when the update requirement is `.required` (P6.18b): the server
+    /// has stopped supporting this build, so the parse is withheld client-side
+    /// and the source screen renders the non-dismissible update notice in place
+    /// of the picker. Everything else about import - the review list, the
+    /// edits, the commit - stays local and reachable.
+    var serverBackedPaused: Bool { !configService.allowsServerBacked }
 
     /// Re-reads the garage (a test seed may have added a car after init).
     func reloadVehicles() {
@@ -122,8 +135,10 @@ final class ImportFlowModel {
     // MARK: - Source step
 
     /// Loads `GET /import/formats` - the picker renders this response and
-    /// nothing else. Offline is a distinct, named state.
+    /// nothing else. Offline is a distinct, named state. Withheld under
+    /// `.required` (P6.18b) - the source screen shows the update notice instead.
     func loadFormats() async {
+        guard !serverBackedPaused else { return }
         guard formatsState == .idle || formatsState == .failed
             || formatsState == .offline else { return }
         formatsState = .loading
@@ -147,6 +162,9 @@ final class ImportFlowModel {
     /// neither does this.
     func parse(fileURL: URL, preferredVehicleID: UUID? = nil) async {
         guard let format = pickedFormat else { return }
+        // P6.18b: withheld under `.required` - the server has stopped
+        // supporting this build.
+        guard !serverBackedPaused else { return }
         guard let data = try? Data(contentsOf: fileURL) else {
             parseFailure = .unknown
             return

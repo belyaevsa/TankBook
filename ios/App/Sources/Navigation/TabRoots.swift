@@ -28,9 +28,12 @@ struct AppRootView: View {
     @State private var reminderCompletionSession = ReminderCompletionSession()
     /// Owns local-notification arming, cancellation and permission (P3.6).
     @State private var notificationCoordinator = ReminderNotificationCoordinator()
+    /// The app's one config surface (P6.18b): the update requirement derived
+    /// from the held config snapshot at launch, refreshed on foreground.
+    @State private var configService: AppConfigService
     /// The app's single sync surface (P4.9b): the Settings status, "Sync now"
     /// trigger and the derived flagged count all read from here.
-    @State private var sync = AppSync()
+    @State private var sync: AppSync
     @State private var tabSelection: AppTab
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
@@ -47,6 +50,9 @@ struct AppRootView: View {
     @State private var didRunStartupPurge = false
 
     init() {
+        let configService = AppConfigService.make()
+        _configService = State(initialValue: configService)
+        _sync = State(initialValue: AppSync(configService: configService))
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
@@ -138,10 +144,20 @@ struct AppRootView: View {
         .environment(expenseEntrySession)
         .environment(reminderCompletionSession)
         .environment(notificationCoordinator)
+        .environment(configService)
         .environment(sync)
-        .task { runPurgeIfNeeded() }
+        .task {
+            runPurgeIfNeeded()
+            // Launch counts as a foreground event (docs/CONFIG.md -> Delivery):
+            // the requirement is re-evaluated, but the UI already drew from the
+            // held snapshot - nothing waits on this (P6.18b).
+            await configService.refresh()
+        }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { runPurgeIfNeeded() }
+            if phase == .active {
+                runPurgeIfNeeded()
+                Task { await configService.refresh() }
+            }
         }
     }
 

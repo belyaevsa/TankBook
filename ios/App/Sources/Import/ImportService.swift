@@ -79,7 +79,8 @@ enum ImportRawLines {
 @MainActor
 enum ImportService {
 
-    static func makeModel(repository: TankbookRepository) -> ImportFlowModel {
+    static func makeModel(repository: TankbookRepository,
+                          configService: AppConfigService) -> ImportFlowModel {
         let arguments = ProcessInfo.processInfo.arguments
         let transport: any TankbookHTTPTransport
         if arguments.contains("-importTransportOffline") {
@@ -97,7 +98,8 @@ enum ImportService {
                                            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
             baseURL: baseURL,
             deviceID: Self.deviceID(sessionStore: sessionStore))
-        return ImportFlowModel(client: client, repository: repository)
+        return ImportFlowModel(client: client, repository: repository,
+                               configService: configService)
     }
 
     /// The `X-Device-Id` for parse attribution (docs/API.md): the signed-in

@@ -97,6 +97,36 @@ that outcome is never acceptable.
 `appUpdate` is **optional**, and `Config.default.json` never carries one: absent means `.none`, so a
 device that has never reached the network is never told it is out of date.
 
+### The surface (P6.18b)
+
+The app derives the requirement once, at launch and on foreground, from the **held snapshot**
+(`ConfigStore.current` - live, else cache, else bundled) - never from a fetch in flight, and no
+screen ever waits on a response to decide what to draw. The three shapes:
+
+- `.recommended`: a **dismissible** row in Settings -> About ("A newer version of Tankbook is
+  available."). Quiet information; nothing is withheld.
+- `.required`: a **non-dismissible** notice on the server-backed surfaces only - sync (Settings),
+  cloud extract (the Confirm sheet when a scan carries a photo), import parse (the source screen).
+  The server call is withheld client-side (the same set `426` already withholds, shared with P6.11);
+  logging, editing, recompute and export are untouched, offline and indefinitely (hard rule 1).
+- Both carry the "Update in the App Store" button **only when a compiled-in app id exists** - none
+  today, so the notice is text-only: no dead affordance, mirroring the site's `apple-itunes-app`
+  gate. The copy is local (String Catalog, EN + RU) and constant; the server still sends no text.
+
+**Two things that did not survive implementation as this section assumes:**
+
+- **The shipped bundle version must be three dotted numerics.** `CFBundleShortVersionString` is
+  `"1.0"` today (Info.plist), and `AppVersion` deliberately parses exactly three components - so
+  every real install currently resolves `.none` no matter what the document says. The surface is
+  correct (and fail-open, per the rule above); the version just has to become `1.0.0` before the
+  notice can ever fire. UI tests pin the three-component running version via a DEBUG launch
+  argument (`-configRunningVersion`), never by weakening the parser.
+- **The live layer is not wired yet.** `AppConfigService` constructs the store with no fetcher, so
+  today the held snapshot is cache-else-bundled; the update requirement arrives the moment a
+  cached document holds it. The real `GET /config` fetch (and the bundled signing key, currently
+  empty) lands with the transport work; the surface reads whatever snapshot the store holds and
+  needs no further change.
+
 ## Delivery
 
 **Pull is the mechanism; push is only a hint.**

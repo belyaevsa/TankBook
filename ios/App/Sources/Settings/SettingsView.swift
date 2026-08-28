@@ -327,12 +327,22 @@ struct SettingsView: View {
 /// stays within the lint body-length budget.
 private struct SettingsSyncSurface: View {
     @Environment(AppSync.self) private var sync
+    @Environment(AppConfigService.self) private var config
     @Binding var showsSignIn: Bool
 
     var body: some View {
         VStack(spacing: 12) {
-            syncNowRow
-            issueCards
+            if config.allowsServerBacked {
+                syncNowRow
+                issueCards
+            } else {
+                // P6.18b: the `.required` notice replaces the sync affordance -
+                // the server has stopped supporting this build, so "Sync now"
+                // would be refused anyway (the same set 426 withholds,
+                // docs/CONFIG.md). Non-dismissible, names its next step. The
+                // queue stays dirty; nothing is lost.
+                UpdateRequiredNotice()
+            }
             if sync.flaggedCount > 0 {
                 flaggedRow
             }

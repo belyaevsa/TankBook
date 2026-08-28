@@ -304,6 +304,15 @@ enum PostSweepCorpusAdditions {
             "pump-021-wayne-circlek-sun-glare-ee.jpg",
             "pump-022-wayne-circlek-pump1-glare-ee.jpg",
             "pump-023-wayne-circlek-glare-ee.jpg",
+            // 2026-08-28: five Estonian additions (Neste Wayne x2, Circle K
+            // Gilbarco x3). Declared, not swept: the A/B result files are
+            // frozen at their pinned numbers and re-running the arms would
+            // rebaseline P4.12/P4.13, which is a separate decision.
+            "pump-024-wayne-neste-ee-three-grade-prices.jpg",
+            "pump-025-wayne-neste-ee-glare-obscured-total.jpg",
+            "pump-026-gilbarco-circlek-ee-comma-decimal.jpg",
+            "pump-027-gilbarco-circlek-ee-comma-glare.jpg",
+            "pump-028-gilbarco-circlek-ee-comma-decimal-b.jpg",
         ],
     ]
 

@@ -32,6 +32,12 @@ targets:
       path: ios/App/Info.plist
       properties:
         CFBundleDisplayName: Tankbook
+        # Three components on purpose. AppVersion parses dotted numerics with
+        # exactly three parts, and P6.18's update requirement FAILS OPEN on
+        # anything it cannot parse - so a two-component "1.0" makes every real
+        # install resolve .none and the notice can never fire. The behaviour is
+        # correct; the version string was the thing making it inert.
+        CFBundleShortVersionString: "1.0.0"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

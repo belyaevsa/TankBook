@@ -18,16 +18,27 @@ struct ImportSourceView: View {
         VStack(spacing: 0) {
             header
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    titleBlock
-                    formatList
-                    notYetBlock
-                    notSupportedCard
+                if model.serverBackedPaused {
+                    // P6.18b: under `.required` the parse is withheld (the
+                    // server has stopped supporting this build, docs/CONFIG.md)
+                    // and the non-dismissible update notice replaces the
+                    // picker. Everything else about import stays local.
+                    UpdateRequiredNotice()
+                        .padding(.top, 16)
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        titleBlock
+                        formatList
+                        notYetBlock
+                        notSupportedCard
+                    }
+                    .padding(.horizontal, Theme.Spacing.screenMargin)
                 }
-                .padding(.horizontal, Theme.Spacing.screenMargin)
             }
-            offlineNotice
-            bottomBar
+            if !model.serverBackedPaused {
+                offlineNotice
+                bottomBar
+            }
         }
     }
 

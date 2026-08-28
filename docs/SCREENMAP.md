@@ -135,7 +135,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
-| About & feedback | Settings | Send feedback (stays, toast) · rate/privacy links | back → Settings |
+| About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) | back → Settings |
 
 ### The Capture surface's alpha notice (P6.10)
 

@@ -3477,6 +3477,23 @@
         }
       }
     },
+    "Made for drivers who'd rather drive than type.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Made for drivers who'd rather drive than type."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сделано для водителей, которым проще ехать, чем печатать."
+          }
+        }
+      }
+    },
     "Make · model · year": {
       "extractionState": "manual",
       "localizations": {
@@ -5485,6 +5502,23 @@
         }
       }
     },
+    "Tankbook": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tankbook"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tankbook"
+          }
+        }
+      }
+    },
     "Tankbook Pro": {
       "extractionState": "manual",
       "localizations": {
@@ -5842,6 +5876,23 @@
         }
       }
     },
+    "Update in the App Store": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update in the App Store"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить в App Store"
+          }
+        }
+      }
+    },
     "Updated %@": {
       "extractionState": "manual",
       "localizations": {
@@ -5923,6 +5974,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть полку"
+          }
+        }
+      }
+    },
+    "Version %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Version %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Версия %@"
           }
         }
       }
@@ -10234,6 +10302,23 @@
         }
       }
     },
+    "A newer version of Tankbook is available.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A newer version of Tankbook is available."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Доступна новая версия Tankbook."
+          }
+        }
+      }
+    },
     "A newer version of Tankbook is needed for this account": {
       "extractionState": "manual",
       "localizations": {
@@ -10404,6 +10489,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Нужна новая версия Tankbook – обновите приложение"
+          }
+        }
+      }
+    },
+    "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта версия Tankbook устарела – синхронизация, облачное распознавание и импорт приостановлены. Обновите приложение, чтобы использовать их снова."
           }
         }
       }

@@ -79,6 +79,11 @@ struct KeychainTokenProvider: AuthorizationTokenProvider {
 @Observable
 final class AppSync {
     let sessionStore: any SessionStore
+    /// The config service the sync gate reads (P6.18b): under `.required` a
+    /// push is withheld client-side - the server has stopped supporting this
+    /// build, the same set 426 already withholds (docs/CONFIG.md). Everything
+    /// local is untouched; a paused push leaves the queue exactly as S7 does.
+    private let configService: AppConfigService
     private var core: SyncCoordinator?
 
     private(set) var session: AuthSession?
@@ -102,8 +107,10 @@ final class AppSync {
     var forcedRefused: SyncServerError?
     var forcedRetryAfterSeconds: Int?
 
-    init(sessionStore: any SessionStore = KeychainSessionStore()) {
+    init(sessionStore: any SessionStore = KeychainSessionStore(),
+         configService: AppConfigService) {
         self.sessionStore = sessionStore
+        self.configService = configService
     }
 
     var signedIn: Bool { session != nil }
@@ -176,8 +183,14 @@ final class AppSync {
 
     /// The manual trigger. Idempotency is the coordinator's guarantee (the push
     /// count, not this flag); `isSyncing` only drives the spinner.
+    ///
+    /// Under `.required` (P6.18b) the trigger is a no-op: the server has
+    /// stopped supporting this build, so the push would be refused anyway
+    /// (426), and the sync surface renders the non-dismissible update notice
+    /// instead of this affordance. The queue stays dirty (S7) - nothing is
+    /// lost, nothing is claimed.
     func syncNow() async {
-        guard !isSyncing, let coordinator = coordinator() else { return }
+        guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else { return }
         isSyncing = true
         defer { isSyncing = false }
         _ = await coordinator.syncNow()

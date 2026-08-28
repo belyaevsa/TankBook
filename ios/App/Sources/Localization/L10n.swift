@@ -401,6 +401,21 @@ enum L10n {
         return String(localized: "Retrying in \(max(1, (seconds + 59) / 60)) minutes")
     }
 
+    // MARK: - Update requirement (P6.18b)
+
+    /// "This version of Tankbook is out of date – sync, cloud reading and
+    /// import are paused. Update the app to use them again." - the
+    /// non-dismissible `.required` notice on the server-backed surfaces
+    /// (docs/CONFIG.md -> "App version and the update notice"). It names its
+    /// next step (hard rule 7) and embeds no version number - the version is
+    /// runtime data and must not sit inside a phrase that governs its case in
+    /// Russian (docs/LOCALIZATION.md). The App Store button is gated on a
+    /// compiled-in app id, so with no listing (today) the notice is text-only -
+    /// no dead affordance, mirroring the site's `apple-itunes-app` gate.
+    static var updateRequiredMessage: String {
+        localize("This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again.")
+    }
+
     // MARK: - Import wizard (P5.5b)
 
     /// "from MyFuelManager_2026-08.csv · nothing is saved yet" - the preview's

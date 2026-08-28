@@ -26,7 +26,7 @@ struct DestinationView: View {
     private var content: some View {
         switch route {
         case .settings: SettingsView()
-        case .about: LeafContent()
+        case .about: AboutView()
         case .reminders: RemindersView()
         case .reminderForm(let reminderID): ReminderFormView(reminderID: reminderID)
         case .recentlyDeleted: RecentlyDeletedView()

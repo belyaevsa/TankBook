@@ -11,6 +11,7 @@ struct ImportWizardView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppConfigService.self) private var configService
 
     @State private var model: ImportFlowModel?
     @State private var showingFilePicker = false
@@ -37,7 +38,8 @@ struct ImportWizardView: View {
             didLoad = true
             ImportTestSeed.seedDatabaseIfRequested()
             if model == nil, let repository = try? AppStore.repository() {
-                model = ImportService.makeModel(repository: repository)
+                model = ImportService.makeModel(repository: repository,
+                                                configService: configService)
             }
             if let model {
                 await model.loadFormats()
