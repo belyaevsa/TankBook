@@ -439,3 +439,39 @@ because no other fixture in the corpus shows it.
 The class is now **2/61 across 23 devices, 3.3%** - the first movement in
 `PumpPhotoGate.measuredHits` since it was written. Two hits in sixty-one fields
 is still noise against a **95%** gate, which is why P2.7 ships off.
+
+## 2026-08-28: five Estonian additions, and the corpus is now EXIF-free
+
+`pump-024` .. `pump-028`. Two Wayne displays at a Neste forecourt, three Gilbarco
+Veeder-Root at Circle K. Expected values were read off the photographs and every
+row was checked as `liters x unitPrice = total` before it was committed.
+
+What they add that the corpus did not already have:
+
+- **A comma decimal separator on a zero-padded readout** (`0103,53` / `0053,81`).
+  The corpus had zero-padding and it had comma separators, but not together on a
+  Gilbarco.
+- **A total whose last digit is destroyed by sun glare** (`pump-025`). Only the
+  arithmetic recovers it: `40.99 / 22.91 = 1.789`, and 1.789 is the Futura 95
+  price printed on the same panel. This is the cross-check earning its keep on a
+  real photograph rather than a constructed case.
+- **Three grade prices on one panel** (`pump-024`), so choosing the operand is a
+  decision rather than the only candidate.
+
+`fuelKind` is left empty on the three Gilbarco rows on purpose: those panels show
+a price but never name the grade, and guessing would put fiction in the ground
+truth. On the two Wayne rows the price matches a labelled grade exactly, so
+`petrol95` is evidence rather than inference.
+
+**Metadata:** every JPEG and PNG fixture in the corpus has been stripped of EXIF
+(device make, lens, capture timestamps). No fixture ever carried GPS - that was
+checked, not assumed. Stripping was **lossless and verified**: JPEGs via
+`jpegtran -copy none`, PNGs via a re-encode of a lossless format, and each file
+compared pixel-for-pixel afterwards (`magick compare -metric AE` = 0). That
+matters because the accuracy ratchet is pinned to OCR results on these exact
+images; a re-compression would have moved the marks silently.
+
+**Nine `.heic` fixtures still carry EXIF.** They cannot be stripped without
+re-encoding, which is lossy and would perturb the very scores the ratchet
+guards. Converting them to JPEG is a deliberate corpus change with a ratchet
+re-baseline attached, not a cleanup - it needs its own decision.

@@ -27,14 +27,14 @@ public enum PumpPhotoGate {
     /// fields are still 2/61 - pump extraction remains the hard problem, and
     /// 25.0% is still noise against a 95% gate, which is why the mode still
     /// ships off.
-    public static let measuredHits: Int = 21
+    public static let measuredHits: Int = 25
 
     /// Pump fields scored at build time. Not 23 x 3: the blank numeric cells
     /// stay skipped (glare on a total, the two idle pumps have no meaningful
     /// unit price, and pump-021/022/023 show a grade price BOARD rather than
     /// the transaction's unit price), and `fuelKind` is never asserted for a
     /// pump at all. The 23 currency cells are what raised 61 -> 84.
-    public static let measuredTotal: Int = 84
+    public static let measuredTotal: Int = 106
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95
