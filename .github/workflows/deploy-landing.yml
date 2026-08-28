@@ -92,7 +92,7 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: self-hosted
     env:
-      DEPLOY_ROOT: /opt/tankbook.live
+      DEPLOY_ROOT: /opt/tankbook
     steps:
       - uses: actions/checkout@v4
 
@@ -145,9 +145,9 @@ jobs:
         run: |
           set -euo pipefail
           SHORT_SHA="${GITHUB_SHA::7}"
-          RELEASE_DIR="${DEPLOY_ROOT}/${SHORT_SHA}"
+          RELEASE_DIR="${DEPLOY_ROOT}/releases/${SHORT_SHA}"
 
-          mkdir -p "$DEPLOY_ROOT"
+          mkdir -p "${DEPLOY_ROOT}/releases"
           rm -rf "$RELEASE_DIR"
           cp -r site/public "$RELEASE_DIR"
 
@@ -163,9 +163,11 @@ jobs:
       - name: Cleanup old releases (keep the last 5)
         run: |
           set -euo pipefail
-          cd "$DEPLOY_ROOT"
-          CURRENT="$(basename "$(readlink -f latest)")"
-          # Never delete the release the symlink points at, whatever its age.
-          ls -dt */ 2>/dev/null | sed 's#/$##' | grep -v '^latest$' \
+          cd "${DEPLOY_ROOT}/releases"
+          # Releases live in their own directory, so this no longer has to filter
+          # the `latest` symlink out of the listing - a filter that would have
+          # deleted the live release the day someone renamed the link.
+          CURRENT="$(basename "$(readlink -f "${DEPLOY_ROOT}/latest")")"
+          ls -dt */ 2>/dev/null | sed 's#/$##' \
             | grep -v "^${CURRENT}$" | tail -n +6 | xargs -r rm -rf
           echo "kept: $(ls -dt */ 2>/dev/null | tr -d '/' | tr '\n' ' ')"
