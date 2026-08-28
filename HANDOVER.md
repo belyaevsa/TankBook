@@ -111,6 +111,26 @@ Three things the site cost that are worth carrying into any deployment work:
 - **A validator found seven checks that could not fail**, including privacy claims that passed when
   inverted. 149 green checks coexisted with all of them.
 
+## The contrast guard has been too narrow TWICE, in different directions
+
+Worth writing down because the same mistake was made twice in one day, each time while fixing the
+previous version of it.
+
+1. **W8** fixed light `headlight` (4.22:1) and declared the theme AA-clean. The guard I wrote looped
+   over `action` and `headlight` **only** - the two that task touched - while `DESIGN.md` promises AA
+   for every accent. `warn` was failing at **3.82:1** the whole time, in ~15 files.
+2. **Widening it to all four accents still missed a whole dimension.** The guard checks
+   accent-on-BACKGROUND. It never checks **text on an accent FILL** - and white on `warn` in the dark
+   theme is **2.15:1**, under even the 3:1 large-text floor, on a shipped button. Filed as P6.19.
+
+The pattern is the lesson: **a guard written while fixing a defect tends to cover exactly the defect
+in front of you.** Both times the fix looked complete, passed, and left a worse case untouched. When
+adding a check, ask what *class* the defect belongs to and enumerate the class - here, "every pair of
+colours that actually renders together", not "the pair I just changed".
+
+Both were found by an independent validator, not by the person who wrote the guard. That is the
+argument for the validation pass surviving as a habit.
+
 ## What the UI suite actually costs, and what it is for (2026-08-29)
 
 Measured across one day rather than assumed, because the habit of running all 193 UI tests after
