@@ -111,6 +111,23 @@ Three things the site cost that are worth carrying into any deployment work:
 - **A validator found seven checks that could not fail**, including privacy claims that passed when
   inverted. 149 green checks coexisted with all of them.
 
+## An enum can imply coverage the app does not have
+
+`PowerWorkKind` has six cases and `LowPowerPolicy` handles all six correctly. A test iterates all six
+and passes. It reads as a complete feature - and **three of the six are never produced by the app**:
+there is no timer cycle, `LazyBlobFetcher` consults the policy nowhere, and `VehicleCatalogUpdater`
+is never instantiated in `ios/App`.
+
+Nothing here is wrong, exactly. The policy is right, the test is right about the policy, and only
+wired work can defer. But "opportunistic work defers" is asserted over a universe that mostly does
+not exist, and **my own commit message claimed a timer cycle that has never existed.** Filed as
+P6.20.
+
+The general shape, worth watching for: **a complete-looking switch over an enum is not evidence that
+the enum's cases occur.** Ask what produces each case, not just what handles it. The same question
+catches `RateStore` taking a default `ProcessInfoPowerState()` while a comment two files away claims
+the app hands it one - identical in production, and the reason the debug hook cannot force that path.
+
 ## The contrast guard has been too narrow TWICE, in different directions
 
 Worth writing down because the same mistake was made twice in one day, each time while fixing the
