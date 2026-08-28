@@ -50,6 +50,13 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > and that lane is nearly empty too: `P2.9` (needs its row rewritten first, below) and `P5.4b`
 > (deferred by the product owner).
 >
+> **CI: the iOS workflow is DISABLED on GitHub** (`gh workflow disable "iOS Core"`, 2026-08-28) and
+> `backend` is active and green. Not one iOS run had ever completed - they hung for hours on
+> `macos-latest` (billed at 10x) and were cancelled. Two causes to fix before re-enabling: `ios.yml`
+> triggers on **every** push with no path filter, unlike `backend.yml`; and the 141 XCUITests need a
+> booted simulator on a shared runner. Splitting `swift test` (fast, Linux-class) from the UI suite
+> is the obvious shape. Re-enable with `gh workflow enable "iOS Core"`.
+>
 > **`docs/TASKS.md` is the file concurrent agents conflict in.** Tell every agent NOT to tick it;
 > the orchestrator ticks at merge. Resolving that file by side silently un-ticks somebody else's
 > task.
@@ -87,7 +94,7 @@ Verified by running it, not by assertion:
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
 - **iOS: 815 unit tests, 141 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
-  from the repo root, localization gate exit **0** at **533 keys / 100% RU**. **Backend: 253 tests,
+  from the repo root, localization gate exit **0** at **554 keys / 100% RU**. **Backend: 253 tests,
   `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
@@ -110,7 +117,7 @@ explicit decision on what that publishes - see Open decisions).
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
 | **P5** | **COMPLETE (2026-08-28).** Rates service; money end-to-end; the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21); the MFM importer parsed **server-side**; the per-car backup archive; vehicle catalog server **and** client. P5.4b (five more importers) is **deferred by the product owner**, not blocked |
-| **P6** | **Under way.** `[x]` P6.12 catalog wire `kind` marker, P6.14 the L5 gate scores `fuelKind`/`currency`, P6.15 import-UI defects. `[~]` P6.1 (engine done, card is P6.1b), P6.8 (core done, app wiring open), P6.11 (core done, surface open). Open: P6.3, P6.4, P6.7, P6.9, P6.10, P6.13, P6.5, P6.6 |
+| **P6** | **Under way.** `[x]` P6.1 (anomaly engine + insight card), P6.10 (alpha-capture notice), P6.11 (tier/version responses, core + surface), P6.12, P6.14, P6.15. `[~]` P5.5b, P6.8 (core done, app wiring open). `[cut]` P6.16 (Pro tier is **deferred**, so the existing Pro rows stay). Open: P6.2, P6.3, P6.4, P6.5, P6.6, P6.7, P6.9, P6.13, P6.17 |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -130,20 +137,18 @@ explicit decision on what that publishes - see Open decisions).
 Everything left is **iOS UI**, and two UI agents collide in `Localizable.xcstrings`. So the queue is
 sequential, and the ordering below is by "unblocks something else" rather than by size:
 
-1. **P6.11's surface.** `426 upgrade_required` is handled in core and **read by nothing in
-   `App/`** - `SyncEngine` sets `outcome.upgradeRequired` and no screen consults it. The copy is
-   **version-first, never an upsell** ("this needs a newer version"), which is both hard rule 7 and
-   simply true: there is no Pro tier.
-2. **P6.1b**, the insight card for the engine merged in P6.1a. The engine is real and pinned;
-   nothing renders it.
+1. **P6.3**, the gateway client - now unblocked (see Open decisions).
+2. **P6.17**: two Russian defects in the anomaly dismiss sheet, found by reading the rendered
+   screen. «Поменял шины» is masculine past tense, and «Отклонение» collides with the domain word
+   for *deviation*. Both rules are now in `docs/LOCALIZATION.md`.
 3. **P6.8's app wiring.** Nothing constructs `ProcessInfoPowerState`/`LowPowerResumer` or passes
    `.background` at the launch/foreground/timer triggers, so the policy exists and is never
    consulted.
 4. **P6.13** (RU clips at Dynamic Type XL), **P6.9** (the ConfirmManual capture blind spot),
    **P6.7** (the `action` token sweep - mechanical, ~66 sites, unblocks nothing, ideal filler).
-5. **P6.4**: Garage tab root and Account & devices. The row was rewritten 2026-08-27 - the Import
-   wizard is drawn and the Paywall is cancelled.
-6. **P6.3** is blocked on a decision, not on effort. See Open decisions.
+5. **P6.4**: Garage tab root and Account & devices.
+6. **P6.2** monthly summary, then **P6.5** accessibility audit and **P6.6** store assets, which
+   want the screens finished first.
 
 **Two rows must be rewritten before they are dispatched:**
 
@@ -179,7 +184,7 @@ Fourteen merged in one sitting, at most three agents at once. iOS **642 -> 815**
 | **P6.1a** anomaly engine | baseline lag `365 -> 90` fires **seven** winter false positives |
 | **P6.14** scorer | letting the frozen A/B arms see the new columns breaks every pinned number |
 
-### Three documents lied, and each cost real work
+### Four documents lied, and each cost real work
 
 This is the session's sharpest lesson, and it is not about code.
 
@@ -192,9 +197,16 @@ This is the session's sharpest lesson, and it is not about code.
    **engine** produces. The acceptance test therefore has to run the engine, not arithmetic.
 3. **`docs/SCHEMA.md` said the MFM schema was "TBD from real export"** while the row demanded a
    number only the real file could produce. P5.4 sat blocked until the file arrived - correctly.
+4. **This handover filed a RESOLVED question as open, and blocked a task on it.** It carried "the
+   3 s gateway budget - a product decision is owed" for three days, while `docs/API.md` had answered
+   it on 2026-08-25 in the same paragraph that states the rule: the budget is about the user's next
+   step, not about aborting the work. I copied the stale note into P6.3's row and marked a
+   dispatchable task blocked.
 
 **A stale sentence in a doc everyone reads first is more expensive than a bug.** A bug fails a test;
-a wrong premise gets faithfully implemented. Fix the source, not just the brief.
+a wrong premise gets faithfully implemented, and a resolved question filed as open stops work
+entirely. Fix the source, not just the brief - and when a doc and this file disagree, **the doc
+wins**, which is `CLAUDE.md`'s conflict rule already.
 
 ### Agents refused three times and were right every time
 
