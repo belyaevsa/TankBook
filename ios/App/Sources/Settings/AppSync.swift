@@ -94,6 +94,13 @@ final class AppSync {
     var forcedRevoked = false
     var forcedQuotaPercent: Int?
     var forcedTransportUnavailable = false
+    /// P6.11 fixtures for a server that has moved ahead of this client (426,
+    /// 402, unknown 4xx, 429): outcomes this app version can never provoke from
+    /// a real server, so the only way to render them is to force them. Nil/
+    /// absent = not forced; production never sets them.
+    var forcedUpgradeRequired = false
+    var forcedRefused: SyncServerError?
+    var forcedRetryAfterSeconds: Int?
 
     init(sessionStore: any SessionStore = KeychainSessionStore()) {
         self.sessionStore = sessionStore
@@ -116,6 +123,29 @@ final class AppSync {
     }
 
     var status: SyncStatus { SyncSurface.status(surfaceState) }
+
+    /// The server-ahead notice the Settings account card surfaces: the forced
+    /// fixture when a seed set one, else the coordinator's last outcome. It is
+    /// the one place `SyncOutcome.upgradeRequired` / `refusedByServer` /
+    /// `retryAfterSeconds` become visible - the P6.11 defect was that nothing
+    /// read them.
+    var serverNotice: SyncServerNotice {
+        if forcedUpgradeRequired { return .upgradeRequired }
+        if let forcedRefused {
+            switch forcedRefused {
+            case .tierRefused:
+                return .tierRefused
+            case .rateLimited(let retryAfter):
+                return .rateLimited(retryAfterSeconds: forcedRetryAfterSeconds ?? retryAfter)
+            case .refused(let status):
+                return .refused(status: status)
+            default:
+                break
+            }
+        }
+        guard let outcome = lastOutcome else { return .none }
+        return SyncServerNotice.classify(outcome)
+    }
 
     private func coordinator() -> SyncCoordinator? {
         if let core { return core }

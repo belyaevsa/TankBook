@@ -66,10 +66,7 @@ struct SettingsView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.Palette.ink)
                             .accessibilityIdentifier("settingsAccountTitle")
-                        Text(statusLine)
-                            .font(.caption)
-                            .foregroundStyle(Theme.Palette.inkSoft)
-                            .accessibilityIdentifier("settingsSyncStatus")
+                        accountStatusLines
                     }
                     Spacer(minLength: 8)
                     chevron
@@ -123,9 +120,34 @@ struct SettingsView: View {
             .foregroundStyle(Theme.Palette.inkSoft)
     }
 
-    /// The account card's status line: reassurance, never amber (docs/SYNC.md).
-    /// `inkSoft` is the ordinary status colour - age and queue length never
-    /// move it to `warn`.
+    /// The account card's status lines. Line one is the reassurance text
+    /// (docs/SYNC.md: never amber with age, a long queue is not an error).
+    /// Line two is the P6.11 server-ahead notice when a server newer than this
+    /// app refused or paced the sync: version-first copy on the update cases,
+    /// and `.rateLimited` as a wait in the ordinary status colour - never
+    /// amber, never an update prompt. A refused push always leaves a queue
+    /// (S7), so line one hides only when there is nothing waiting and a notice
+    /// is showing.
+    @ViewBuilder
+    private var accountStatusLines: some View {
+        let notice = sync.serverNotice
+        if notice == .none || sync.dirtyCount > 0 {
+            Text(statusLine)
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("settingsSyncStatus")
+        }
+        if notice != .none {
+            Text(notice.text)
+                .font(.caption)
+                .foregroundStyle(notice.isAttention ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                .accessibilityIdentifier(notice.accessibilityIdentifier)
+        }
+    }
+
+    /// The account card's reassurance status line: reassurance, never amber
+    /// (docs/SYNC.md). `inkSoft` is the ordinary status colour - age and queue
+    /// length never move it to `warn`.
     private var statusLine: String {
         switch sync.status {
         case .synced:
