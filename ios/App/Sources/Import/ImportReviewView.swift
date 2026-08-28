@@ -294,7 +294,7 @@ private struct ImportReviewRowView: View {
     private var leaveOut: some View {
         Text("Leave out")
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(isSkipped ? Theme.Palette.headlight : Theme.Palette.inkSoft)
+            .foregroundStyle(isSkipped ? Theme.Palette.action : Theme.Palette.inkSoft)
             .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
     }
 
@@ -305,12 +305,12 @@ private struct ImportReviewRowView: View {
             if showingOdometerEditor {
                 Text("Save")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .onTapGesture { commitOdometer() }
             } else {
                 Text("Add odometer")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .onTapGesture {
                         odometerText = row.fill?.odometer.map(String.init) ?? ""
                         showingOdometerEditor = true
@@ -320,12 +320,12 @@ private struct ImportReviewRowView: View {
             if showingTotalEditor {
                 Text("Save")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .onTapGesture { commitTotal() }
             } else {
                 Text("Fix")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .onTapGesture {
                         totalText = row.fill?.money.map { ImportFormatting.decimal($0.amount, fractionDigits: 2) } ?? ""
                         showingTotalEditor = true

@@ -310,7 +310,7 @@ struct ServiceEntryDateOdometerCard: View {
             Button("Fill") { onFillOdometer() }
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("serviceEntryOdometerFillButton")
         }
         .padding(.top, 2)
@@ -445,10 +445,10 @@ struct ServiceEntryAddItemButton: View {
             HStack(spacing: 7) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Text("Add line item")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)

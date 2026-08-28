@@ -19,7 +19,7 @@ struct VehicleExportRow: View {
             HStack(spacing: 10) {
                 Image(systemName: "square.and.arrow.up")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Export this car's data")
                         .font(.subheadline.weight(.semibold))

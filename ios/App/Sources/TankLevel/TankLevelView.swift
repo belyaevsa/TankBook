@@ -92,7 +92,7 @@ struct TankLevelRow: View {
                 HStack(spacing: 5) {
                     Text(value)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(isSet ? Theme.Palette.ink : Theme.Palette.headlight)
+                        .foregroundStyle(isSet ? Theme.Palette.ink : Theme.Palette.action)
                     Image(systemName: "chevron.right")
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(Theme.Palette.inkSoft)

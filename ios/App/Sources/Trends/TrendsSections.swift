@@ -91,7 +91,7 @@ struct TrendsEmptyEntriesCard: View {
             Button("Type it", action: onTypeIt)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("trendsEmptyEntriesButton")
         }
         .frame(maxWidth: .infinity)

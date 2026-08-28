@@ -161,7 +161,7 @@ struct ImportPreviewView: View {
                 Button(action: onChangeCar) {
                     Text("Change")
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("importChangeCarButton")
@@ -217,10 +217,10 @@ struct ImportPreviewView: View {
                 Spacer(minLength: 8)
                 Text("Review")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .padding(14)
             .formCard()

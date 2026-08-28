@@ -195,7 +195,7 @@ struct AnomalyInsightCard: View {
             } label: {
                 Text("Dismiss with reason")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
             }

@@ -168,10 +168,10 @@ struct CarSwitcherView: View {
             HStack(spacing: 8) {
                 Image(systemName: "plus")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Text("Add car")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .frame(maxWidth: .infinity)
             .contentShape(Rectangle())

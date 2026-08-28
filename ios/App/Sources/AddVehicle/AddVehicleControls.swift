@@ -52,13 +52,13 @@ struct AddVehicleOdometerCard: View {
                         focus = .odometer
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("addVehicleOdometerFixButton")
                     Button("It's right") {
                         form.odometerConfirmed = true
                     }
                     .buttonStyle(.plain)
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("addVehicleOdometerConfirmButton")
                 }
                 .font(.caption.weight(.semibold))

@@ -71,10 +71,10 @@ struct ServiceEntryPageStrip: View {
             HStack(spacing: 4) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Text("Add page")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)

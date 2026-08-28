@@ -147,7 +147,7 @@ struct ReminderFormDueCard: View {
                         Text("Add date")
                             .font(.caption.weight(.semibold))
                     }
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("reminderFormAddDateButton")

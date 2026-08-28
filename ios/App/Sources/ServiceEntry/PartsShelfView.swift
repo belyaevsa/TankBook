@@ -114,11 +114,11 @@ struct PartsShelfRow: View {
             Text("On shelf")
                 .font(.caption.weight(.semibold))
         }
-        .foregroundStyle(Theme.Palette.headlight)
+        .foregroundStyle(Theme.Palette.inkSoft)
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
-        .background(Capsule().fill(Theme.Palette.headlight.opacity(0.12)))
-        .overlay(Capsule().stroke(Theme.Palette.headlight.opacity(0.4), lineWidth: 1))
+        .background(Capsule().fill(Theme.Palette.inkSoft.opacity(0.12)))
+        .overlay(Capsule().stroke(Theme.Palette.inkSoft.opacity(0.4), lineWidth: 1))
         .accessibilityIdentifier("partsShelfOnShelfBadge")
     }
 }

@@ -202,7 +202,7 @@ struct ManualFillUpNumbersCard: View {
         } label: {
             Image(systemName: "magnifyingglass")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(verifyLabel(field))
@@ -475,11 +475,11 @@ struct ManualFillUpOdometerCard: View {
                 HStack(spacing: 14) {
                     Button("Fix") { focus = .odometer }
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("manualFillUpOdometerFixButton")
                     Button("Fix date") { onFixDate() }
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("manualFillUpOdometerFixDateButton")
                 }
                 .font(.caption.weight(.semibold))
@@ -518,7 +518,7 @@ struct ManualFillUpStationRow: View {
             if stations.isEmpty {
                 Text("Nearby suggestion")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("manualFillUpStationRow")
             } else {
                 Menu {
@@ -538,7 +538,7 @@ struct ManualFillUpStationRow: View {
                         // the LocalizedStringKey overload.
                         stationLabel(selection)
                             .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Theme.Palette.headlight)
+                            .foregroundStyle(Theme.Palette.action)
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.caption2)
                             .foregroundStyle(Theme.Palette.inkSoft)

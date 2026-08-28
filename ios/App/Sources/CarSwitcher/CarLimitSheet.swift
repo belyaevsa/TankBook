@@ -64,7 +64,7 @@ struct CarLimitSheet: View {
 
                 Button("Cancel", action: onCancel)
                     .font(.body.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("carLimitCancelButton")
             }
             .padding(.horizontal, 20)

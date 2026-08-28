@@ -354,7 +354,7 @@ private struct SettingsSyncSurface: View {
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath")
                         .font(.subheadline)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                 }
                 Text("Sync now")
                     .font(.subheadline.weight(.semibold))
@@ -384,7 +384,7 @@ private struct SettingsSyncSurface: View {
                 Button("Sign in") { showsSignIn = true }
                     .buttonStyle(.plain)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("settingsRevokedSignInButton")
             }
         case .quotaFull:
@@ -397,7 +397,7 @@ private struct SettingsSyncSurface: View {
                 NavigationLink("Tankbook Pro", value: Route.paywall)
                     .buttonStyle(.plain)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("settingsQuotaProButton")
             }
         case .serverUnreachable:
@@ -412,7 +412,7 @@ private struct SettingsSyncSurface: View {
                 }
                 .buttonStyle(.plain)
                 .font(.subheadline.weight(.bold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("settingsServerRetryButton")
             }
         case .synced, .waitingToSync:

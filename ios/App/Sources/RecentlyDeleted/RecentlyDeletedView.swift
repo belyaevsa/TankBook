@@ -108,7 +108,7 @@ struct RecentlyDeletedView: View {
             } label: {
                 Text("Restore")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 6)
                     .background(Capsule().fill(.clear))
@@ -162,7 +162,7 @@ struct RecentlyDeletedView: View {
             Button("Compare") {}
                 .buttonStyle(.plain)
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))

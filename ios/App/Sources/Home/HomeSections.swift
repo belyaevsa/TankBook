@@ -112,7 +112,7 @@ struct HomeGarageCard: View {
                     RoundedRectangle(cornerRadius: 10).fill(Theme.Palette.midnight)
                     Image(systemName: "camera")
                         .font(.system(size: 16))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.inkSoft)
                 }
             }
         }
@@ -198,7 +198,7 @@ struct HomeHeadlineBlock: View {
             Button("Type it", action: onTypeIt)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("homeD4CaptureButton")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -386,11 +386,11 @@ struct HomeRecentEntries: View {
                 HStack(spacing: 14) {
                     Button("Merge") { onMerge(group) }
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("homeMergeButton")
                     Button("Keep both") { onKeepBoth(group) }
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("homeKeepBothButton")
                 }
                 .font(.caption.weight(.semibold))

@@ -313,6 +313,25 @@ doubted it**, having just watched that suite pass 19/19 - on a different simulat
 was device-specific evidence. When an agent's claim conflicts with yours, check you ran the same
 device before concluding it is wrong.
 
+### A SIXTH way a dispatch dies: the provider's usage limit
+
+P6.7 (2026-08-28) stopped mid-task with:
+
+```
+Error: Usage limit reached for 5 hour. Your limit will reset at 2026-08-28 22:55:22
+```
+
+Distinctive and easy to misread as a bad agent. The log is **large** (170 KB, not the ~166 bytes of a
+provider error), the work is **real and mostly complete**, and it dies at an arbitrary point - here,
+seconds after `swiftlint` printed 9 errors it was clearly about to fix, and before the screenshot
+step it had been told to run. Reading only the tree, it looks like an agent that left lint broken and
+skipped its evidence. Reading the log's last line, it is a killed process.
+
+**Check the tail of the log before judging the work.** And note the practical consequence: the
+provider is unavailable to *every* further dispatch until the reset time, so the queue is blocked
+rather than the task being at fault. Re-dispatch after the reset, or finish it by hand - the finished
+portion is committable if its gates pass in your own run.
+
 ### Four ways an agent dispatch dies, all reporting EXITED
 
 `agent-health.sh` says `EXITED` for every one; **log size is the first discriminator**.

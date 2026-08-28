@@ -111,7 +111,7 @@ struct ImportSourceView: View {
             HStack(spacing: 13) {
                 Image(systemName: "doc")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .frame(width: 34, height: 34)
                     .background(Theme.Palette.dash.opacity(0.6))
                     .clipShape(RoundedRectangle(cornerRadius: 9))
@@ -126,13 +126,13 @@ struct ImportSourceView: View {
                 Spacer(minLength: 8)
                 Image(systemName: selected ? "largecircle.fill.circle" : "circle")
                     .font(.body)
-                    .foregroundStyle(selected ? Theme.Palette.headlight : Theme.Palette.inkSoft)
+                    .foregroundStyle(selected ? Theme.Palette.action : Theme.Palette.inkSoft)
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 13)
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.Radius.card)
-                    .stroke(selected ? Theme.Palette.headlight : Theme.Palette.hairline,
+                    .stroke(selected ? Theme.Palette.action : Theme.Palette.hairline,
                             lineWidth: selected ? 1.5 : 1)
             )
             .background(Theme.Palette.dash)
@@ -185,7 +185,7 @@ struct ImportSourceView: View {
                     .lineSpacing(1.4)
                 Text("Send us the file")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .padding(.top, 8)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -222,7 +222,7 @@ struct ImportSourceView: View {
             }
             .buttonStyle(.plain)
             .font(.subheadline.weight(.semibold))
-            .foregroundStyle(Theme.Palette.headlight)
+            .foregroundStyle(Theme.Palette.action)
             .padding(.top, 6)
         }
         .frame(maxWidth: .infinity, alignment: .leading)

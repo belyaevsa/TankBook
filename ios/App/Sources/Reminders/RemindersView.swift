@@ -266,10 +266,10 @@ struct RemindersView: View {
             HStack(spacing: 7) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Text("New reminder")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)

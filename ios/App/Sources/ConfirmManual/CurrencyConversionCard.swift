@@ -45,7 +45,7 @@ struct ForeignCurrencyCard: View {
                 HStack(spacing: 7) {
                     Image(systemName: "arrow.left.arrow.right")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.inkSoft)
                     Text(labelText)
                         .font(.caption)
                         .textCase(.uppercase)

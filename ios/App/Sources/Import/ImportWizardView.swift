@@ -133,7 +133,7 @@ struct ImportHeader: View {
                 Button(action: onTrailing) {
                     Text(trailingLabel)
                         .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("importHeaderTrailing")
@@ -224,7 +224,7 @@ struct ImportTargetCarSheet: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                 }
             }
             .padding(.horizontal, Theme.Spacing.cardPadding)
@@ -242,7 +242,7 @@ struct ImportTargetCarSheet: View {
             HStack {
                 Text("New car")
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Spacer(minLength: 8)
             }
             .padding(.horizontal, Theme.Spacing.cardPadding)

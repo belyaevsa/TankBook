@@ -42,7 +42,7 @@ struct ServiceEntryPartsSection: View {
             Button("View shelf", action: onViewShelf)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("serviceEntryViewShelfButton")
         }
         .padding(.horizontal, 2)
@@ -72,7 +72,7 @@ struct ServiceEntryPartsSection: View {
             Button("Link") { onLink(part) }
                 .buttonStyle(.plain)
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("serviceEntryLinkPartButton")
         }
         .padding(.horizontal, 13)

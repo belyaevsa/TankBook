@@ -100,10 +100,10 @@ struct TireSetsView: View {
             HStack(spacing: 7) {
                 Image(systemName: "plus")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                 Text("New tire set")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 15)

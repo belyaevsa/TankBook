@@ -91,7 +91,7 @@ struct SignInView: View {
             gaugeBox
             Image(systemName: "arrow.left.arrow.right")
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.inkSoft)
             gaugeBox
                 .frame(width: 70, height: 52)
         }
@@ -194,7 +194,7 @@ struct SignInView: View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "checkmark")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.inkSoft)
                 .padding(.top, 2)
             Text(text)
                 .font(.caption)

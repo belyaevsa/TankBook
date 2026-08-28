@@ -26,7 +26,7 @@ struct VehiclePhotoTile: View {
                         } else {
                             Image(systemName: "camera")
                                 .font(.system(size: 18))
-                                .foregroundStyle(Theme.Palette.headlight)
+                                .foregroundStyle(Theme.Palette.action)
                         }
                     }
                     .frame(width: 44, height: 44)
@@ -36,7 +36,7 @@ struct VehiclePhotoTile: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(hasPhoto ? "Replace photo" : "Add a photo")
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(Theme.Palette.headlight)
+                            .foregroundStyle(Theme.Palette.action)
                         Text("Shown on the garage card")
                             .font(.caption2)
                             .foregroundStyle(Theme.Palette.inkSoft)

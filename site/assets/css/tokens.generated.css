@@ -6,6 +6,7 @@
    All values derive from design/tokens.json; do not hand-edit. */
 :root {
   color-scheme: dark light;
+  --action: #8FB4D9;
   --dash: #1A1F27;
   --headlight: #4FC3E8;
   --ink: #EAEDF2;
@@ -24,8 +25,9 @@
 
 @media (prefers-color-scheme: light) {
   :root {
+  --action: #2F6690;
   --dash: #FFFFFF;
-  --headlight: #0E7FA6;
+  --headlight: #0A6A8C;
   --ink: #1A2028;
   --ink-soft: #55606E;
   --midnight: #F5F6F8;

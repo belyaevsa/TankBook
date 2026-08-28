@@ -39,11 +39,11 @@ struct HomeBanners: View {
                 HStack(spacing: 14) {
                     Button("Delete again") {}
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("homeDeleteAgainButton")
                     Button("Keep") {}
                         .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                         .accessibilityIdentifier("homeKeepButton")
                 }
                 .font(.caption.weight(.semibold))
@@ -66,7 +66,7 @@ struct HomeBanners: View {
             NavigationLink(value: Route.reminders) {
                 Text("View")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .accessibilityIdentifier("homeReminderViewButton")
         }

@@ -25,12 +25,12 @@ struct HomeEmptyEntriesCard: View {
                 Button("Type it", action: onTypeIt)
                     .buttonStyle(.plain)
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("homeEmptyEntriesButton")
                 NavigationLink(value: Route.editEntry(nil)) {
                     Text("Edit entry")
                         .font(.caption.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.action)
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("editEntryButton")

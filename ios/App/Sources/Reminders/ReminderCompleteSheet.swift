@@ -166,7 +166,7 @@ struct ReminderCompleteSheet: View {
         HStack(alignment: .center, spacing: 10) {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
             Text(nextCycleLine(next))
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.ink)
@@ -175,18 +175,18 @@ struct ReminderCompleteSheet: View {
             Button(action: onEdit) {
                 Text("Edit")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("reminderCompleteEditNextCycle")
         }
         .padding(.horizontal, 15)
         .padding(.vertical, 12)
-        .background(Theme.Palette.headlight.opacity(0.07))
+        .background(Theme.Palette.action.opacity(0.07))
         .clipShape(RoundedRectangle(cornerRadius: 15))
         .overlay(
             RoundedRectangle(cornerRadius: 15)
-                .stroke(Theme.Palette.headlight.opacity(0.3), lineWidth: 1)
+                .stroke(Theme.Palette.action.opacity(0.3), lineWidth: 1)
         )
         .padding(.top, 12)
         .accessibilityIdentifier("reminderCompleteNextCycle")

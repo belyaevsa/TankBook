@@ -10,7 +10,7 @@ One sentence to test every decision against: **the app should feel like a precis
 
 ## Color
 
-Semantic first: the two accents are not decoration, they encode powertrain. Everything that burns fuel is taillight red-orange; everything electric is headlight cyan. The EV-vs-petrol household comparison inherits its color coding from this rule for free.
+Semantic first: `taillight` and `headlight` are not decoration, they encode powertrain. Everything that burns fuel is taillight red-orange; everything electric is headlight cyan. The EV-vs-petrol household comparison inherits its color coding from this rule for free.
 
 | Token | Dark (home) | Light | Role |
 |---|---|---|---|
@@ -19,11 +19,13 @@ Semantic first: the two accents are not decoration, they encode powertrain. Ever
 | `ink` | `#EAEDF2` | `#1A2028` | Primary text |
 | `inkSoft` | `#98A2B3` | `#55606E` | Secondary text, captions |
 | `taillight` | `#F4503A` | `#D63A26` | Primary accent: fuel entries, hero numbers, main CTA |
-| `headlight` | `#4FC3E8` | `#0E7FA6` | Electric: charging entries, kWh metrics |
+| `headlight` | `#4FC3E8` | `#0A6A8C` | Electric: charging entries, kWh metrics |
 | `warn` | `#F0A030` | `#B06E10` | Anomalies, failed cross-checks, overdue reminders |
+| `action` | `#8FB4D9` | `#2F6690` | Interactive: buttons, links, selection, focus, progress |
 
 Rules:
 - One accent per screen region. A fuel card never shows cyan, a charge card never shows taillight.
+- **`action` is the interactive colour, not a third accent (P6.7, 2026-08-27).** Both accents encode powertrain, so for most of the UI there was nothing legal to reach for - buttons, links and selected states borrowed `headlight` until this rule existed. `action` marks things the user can act on (button labels, text links, selected/active states, focused-field underlines) and app-initiated activity the user is watching (progress bars, the restore badge). Inert decoration - placeholder glyphs, informational icons, status badges, chevrons - is `inkSoft`, never `action`: `action` is an affordance, not "a blue". `headlight` survives **only** on genuinely electric things (charging entries, kWh metrics, EV powertrain); the app's electric uses are enumerated by an escape-guard test (`PaletteAccentGuardTests`), so every future `headlight` use is a deliberate act, not a habit.
 - Because the primary accent is a red-orange, **warnings can never be red**: everything "attention needed" (failed cross-check, consumption anomaly, overdue reminder) is `warn` amber, and destructive confirmations use the system's native alert red inside system dialogs only. This is the discipline that separates us from My Fuel Manager, which paints its chrome red and leaves errors nowhere to go.
 - `taillight` is meaning, not chrome: navigation bars, backgrounds, and tab bars stay neutral – the accent appears on numbers, entry markers, the capture button, and the cross-check lock, nowhere else.
 - No gradients, no glassmorphism on content. Depth comes from elevation and the taillight glow reserved for the signature card.
@@ -132,4 +134,4 @@ All three degrade to crossfades under Reduce Motion.
 
 ## Accessibility floor
 
-Non-negotiable: full Dynamic Type support (DIN metrics scale with it), WCAG AA contrast in both themes (each accent uses its darker light-theme value on white; large DIN numerals qualify for the 3:1 large-text threshold, body-size accent text does not sit on accent grounds), VoiceOver labels that read metric + unit + trend ("consumption 6.8 liters per 100 kilometers, improving"), Reduce Motion and Increase Contrast respected, tap targets ≥ 44pt. Color is never the only channel: fuel vs electric entries also differ by glyph, and warnings also carry an icon.
+Non-negotiable: full Dynamic Type support (DIN metrics scale with it), WCAG AA contrast in both themes (each accent uses its darker light-theme value on white; large DIN numerals qualify for the 3:1 large-text threshold, body-size accent text does not sit on accent grounds), VoiceOver labels that read metric + unit + trend ("consumption 6.8 liters per 100 kilometers, improving"), Reduce Motion and Increase Contrast respected, tap targets ≥ 44pt. Color is never the only channel: fuel vs electric entries also differ by glyph, and warnings also carry an icon. Accent contrast is not eyeballed: `PaletteAccentGuardTests` computes the WCAG ratios for every accent on `midnight` and `dash` in both themes and fails under 4.5:1 (W8 - light `headlight` at `#0E7FA6` measured 4.22:1 on light `midnight`, so the token moved to `#0A6A8C`, 5.62:1 and 6.08:1).

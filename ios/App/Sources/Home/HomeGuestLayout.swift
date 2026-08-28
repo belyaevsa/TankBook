@@ -54,7 +54,7 @@ struct HomeGuestLayout: View {
                 } else {
                     Image(systemName: "camera")
                         .font(.system(size: 20))
-                        .foregroundStyle(Theme.Palette.headlight)
+                        .foregroundStyle(Theme.Palette.inkSoft)
                 }
             }
             .frame(width: 60, height: 60)
@@ -186,7 +186,7 @@ struct HomeGuestLayout: View {
             NavigationLink(value: Route.importWizard) {
                 Text("Import")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("homeGuestImportButton")

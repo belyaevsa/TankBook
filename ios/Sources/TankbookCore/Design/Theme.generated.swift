@@ -8,8 +8,9 @@ import SwiftUI
 public enum Theme {
     /// Semantic colours, resolved per system colour scheme.
     public enum Palette {
+        public static let action = Color(themeHexLight: "#2F6690", themeHexDark: "#8FB4D9")
         public static let dash = Color(themeHexLight: "#FFFFFF", themeHexDark: "#1A1F27")
-        public static let headlight = Color(themeHexLight: "#0E7FA6", themeHexDark: "#4FC3E8")
+        public static let headlight = Color(themeHexLight: "#0A6A8C", themeHexDark: "#4FC3E8")
         public static let ink = Color(themeHexLight: "#1A2028", themeHexDark: "#EAEDF2")
         public static let inkSoft = Color(themeHexLight: "#55606E", themeHexDark: "#98A2B3")
         public static let midnight = Color(themeHexLight: "#F5F6F8", themeHexDark: "#101318")
@@ -23,6 +24,7 @@ public enum Theme {
 
         /// Every palette colour keyed by token name.
         public static let all: [String: Color] = [
+            "action": action,
             "dash": dash,
             "headlight": headlight,
             "ink": ink,

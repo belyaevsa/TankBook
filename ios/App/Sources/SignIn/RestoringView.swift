@@ -60,14 +60,14 @@ struct RestoringView: View {
         VStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Theme.Palette.headlight.opacity(0.1))
+                    .fill(Theme.Palette.action.opacity(0.1))
                     .frame(width: 62, height: 62)
                 Circle()
-                    .stroke(Theme.Palette.headlight, lineWidth: 1.5)
+                    .stroke(Theme.Palette.action, lineWidth: 1.5)
                     .frame(width: 62, height: 62)
                 Image(systemName: "arrow.triangle.2.circlepath")
                     .font(.system(size: 26))
-                    .foregroundStyle(Theme.Palette.headlight)
+                    .foregroundStyle(Theme.Palette.action)
             }
             VStack(spacing: 4) {
                 Text("Welcome back")
@@ -134,7 +134,7 @@ struct RestoringView: View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Image(systemName: "checkmark")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.inkSoft)
             text
                 .font(.footnote)
                 .foregroundStyle(Theme.Palette.ink)
@@ -164,7 +164,7 @@ struct RestoringView: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(Theme.Palette.hairline)
                     Capsule()
-                        .fill(Theme.Palette.headlight)
+                        .fill(Theme.Palette.action)
                         .frame(width: geometry.size.width * flow.restoreProgress.fraction)
                 }
             }

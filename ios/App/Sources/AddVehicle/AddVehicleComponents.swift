@@ -95,14 +95,15 @@ struct CardDivider: View {
 }
 
 /// Amber underline shown under a field in its warn state
-/// (docs/ERRORS.md: "Warn amber underline"); cyan while focused (artboard).
+/// (docs/ERRORS.md: "Warn amber underline"); `action` while focused
+/// (P6.7: the focus indicator is interactive, never an accent).
 extension View {
     func fieldUnderline(isFocused: Bool, warn: Bool) -> some View {
         overlay(alignment: .bottom) {
             if warn {
                 Rectangle().fill(Theme.Palette.warn).frame(height: 2)
             } else if isFocused {
-                Rectangle().fill(Theme.Palette.headlight).frame(height: 2)
+                Rectangle().fill(Theme.Palette.action).frame(height: 2)
             }
         }
     }

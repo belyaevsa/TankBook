@@ -49,7 +49,7 @@ struct EmptyRestoreView: View {
         VStack(spacing: 14) {
             Image(systemName: "questionmark.circle")
                 .font(.system(size: 44))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.inkSoft)
             VStack(spacing: 6) {
                 Text("No data found")
                     .font(.title2.bold())
@@ -92,7 +92,7 @@ struct EmptyRestoreView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
@@ -213,7 +213,7 @@ struct RestoreUnreachableView: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.subheadline)
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)

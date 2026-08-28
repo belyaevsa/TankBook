@@ -80,7 +80,7 @@ enum EditEntryRows {
             Button("Restore my version") {}
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.headlight)
+                .foregroundStyle(Theme.Palette.action)
                 .accessibilityIdentifier("editSyncRestoreButton")
         }
         .padding(12)
