@@ -12,30 +12,30 @@ struct HostAllowlistTests {
     // MARK: Accept list (the negative control)
 
     @Test func acceptsTheApexDomain() {
-        #expect(HostAllowlist.allows(url: URL(string: "https://tankbook.app")!))
+        #expect(HostAllowlist.allows(url: URL(string: "https://tankbook.live")!))
     }
 
     @Test func acceptsASubdomain() {
-        #expect(HostAllowlist.allows(url: URL(string: "https://api.tankbook.app")!))
+        #expect(HostAllowlist.allows(url: URL(string: "https://api.tankbook.live")!))
     }
 
     @Test func acceptsANestedSubdomain() {
-        #expect(HostAllowlist.allows(url: URL(string: "https://eu.api.tankbook.app")!))
+        #expect(HostAllowlist.allows(url: URL(string: "https://eu.api.tankbook.live")!))
     }
 
     @Test func acceptsCaseInsensitively() {
-        #expect(HostAllowlist.allows(url: URL(string: "https://API.Tankbook.APP")!))
-        #expect(HostAllowlist.allows(url: URL(string: "https://Api.Tankbook.App/")!))
+        #expect(HostAllowlist.allows(url: URL(string: "https://API.Tankbook.LIVE")!))
+        #expect(HostAllowlist.allows(url: URL(string: "https://Api.Tankbook.Live/")!))
     }
 
     // MARK: Reject list (each asserted individually)
 
     @Test func rejectsSuffixWithoutALabelBoundary() {
-        #expect(!HostAllowlist.allows(url: URL(string: "https://evil-tankbook.app")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "https://evil-tankbook.live")!))
     }
 
     @Test func rejectsOurDomainAsAPrefixOfTheirs() {
-        #expect(!HostAllowlist.allows(url: URL(string: "https://tankbook.app.evil.com")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "https://tankbook.live.evil.com")!))
     }
 
     @Test func rejectsAHyphenatedLookalike() {
@@ -43,22 +43,22 @@ struct HostAllowlistTests {
     }
 
     @Test func rejectsATrailingDotFQDN() {
-        #expect(!HostAllowlist.allows(url: URL(string: "https://api.tankbook.app.")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "https://api.tankbook.live.")!))
     }
 
     @Test func rejectsCaseInsensitivePrefixAttack() {
-        #expect(!HostAllowlist.allows(url: URL(string: "https://API.TANKBOOK.APP.EVIL.COM")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "https://API.TANKBOOK.LIVE.EVIL.COM")!))
     }
 
     @Test func rejectsTheRightHostOnTheWrongScheme() {
         // Right host, wrong scheme: HTTPS only.
-        #expect(!HostAllowlist.allows(url: URL(string: "http://api.tankbook.app")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "http://api.tankbook.live")!))
     }
 
     @Test func rejectsAUserinfoAuthorityHidingAnEvilHost() {
-        // The `api.tankbook.app` before the @ is userinfo, not the host; the
+        // The `api.tankbook.live` before the @ is userinfo, not the host; the
         // real host is evil.com and must be rejected.
-        #expect(!HostAllowlist.allows(url: URL(string: "https://api.tankbook.app@evil.com/")!))
+        #expect(!HostAllowlist.allows(url: URL(string: "https://api.tankbook.live@evil.com/")!))
     }
 
     @Test func rejectsAnUnrelatedDomain() {
@@ -76,11 +76,11 @@ struct HostAllowlistTests {
     // MARK: Host-string form
 
     @Test func hostStringFormMatchesLabelBoundaries() {
-        #expect(HostAllowlist.allows(host: "tankbook.app"))
-        #expect(HostAllowlist.allows(host: "api.tankbook.app"))
-        #expect(HostAllowlist.allows(host: "API.TANKBOOK.APP"))
-        #expect(!HostAllowlist.allows(host: "evil-tankbook.app"))
-        #expect(!HostAllowlist.allows(host: "tankbook.app.evil.com"))
+        #expect(HostAllowlist.allows(host: "tankbook.live"))
+        #expect(HostAllowlist.allows(host: "api.tankbook.live"))
+        #expect(HostAllowlist.allows(host: "API.TANKBOOK.LIVE"))
+        #expect(!HostAllowlist.allows(host: "evil-tankbook.live"))
+        #expect(!HostAllowlist.allows(host: "tankbook.live.evil.com"))
         #expect(!HostAllowlist.allows(host: "tankbook-app.com"))
         #expect(!HostAllowlist.allows(host: nil))
         #expect(!HostAllowlist.allows(host: ""))

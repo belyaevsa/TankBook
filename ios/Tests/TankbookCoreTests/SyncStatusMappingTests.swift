@@ -35,7 +35,7 @@ private struct NoToken: AuthorizationTokenProvider {
 
 private func transport(status: Int, headers: [String: String] = [:]) -> RemoteSyncTransport {
     RemoteSyncTransport(
-        baseURL: URL(string: "https://api.tankbook.app")!,
+        baseURL: URL(string: "https://api.tankbook.live")!,
         transport: StatusTransport(
             TankbookHTTPResponse(status: status, headers: headers, body: Data("{}".utf8))
         ),

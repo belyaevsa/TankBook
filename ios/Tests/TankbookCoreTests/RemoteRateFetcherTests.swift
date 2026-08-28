@@ -136,7 +136,7 @@ private struct RecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
 @Test func fetchPackBuildsFromToBaseQuery() async throws {
     let transport = RecordingTransport()
     transport.script([TankbookHTTPResponse(status: 200, body: Data(#"{"base":"EUR","rates":[]}"#.utf8))])
-    let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.app")!,
+    let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
                                     transport: transport, tokenProvider: NoAuthTokenProvider())
 
     _ = try await fetcher.fetchPack(from: day(2026, 8, 1), to: day(2026, 8, 27), base: .eur)
@@ -183,7 +183,7 @@ private struct FetchFailure: Error {}
     ]
 
     for (_, transport) in failures {
-        let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.app")!,
+        let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
                                         transport: transport, tokenProvider: NoAuthTokenProvider())
         let store = RateStore(seed: [seed], fetcher: fetcher, calendar: utcCalendar)
 

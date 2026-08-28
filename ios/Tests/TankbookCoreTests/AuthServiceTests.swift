@@ -9,7 +9,7 @@ import Testing
 @Suite("RemoteAuthService (P4.4)")
 struct AuthServiceTests {
 
-    private static let baseURL = URL(string: "https://api.tankbook.app")!
+    private static let baseURL = URL(string: "https://api.tankbook.live")!
 
     private func makeService(transport: AuthRecordingTransport,
                              store: InMemorySessionStore) -> RemoteAuthService {

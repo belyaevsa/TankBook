@@ -10,7 +10,7 @@ enum SyncService {
     static func makeCoordinator(repository: TankbookRepository,
                                 sessionStore: any SessionStore) -> SyncCoordinator {
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.app")!
+            ?? URL(string: "https://api.tankbook.live")!
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let transport = RemoteSyncTransport(
             baseURL: baseURL,
@@ -42,7 +42,7 @@ enum SyncService {
     static func makeBlobFetcher(sessionStore: any SessionStore) -> LazyBlobFetcher? {
         guard (try? sessionStore.load()) != nil else { return nil }
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.app")!
+            ?? URL(string: "https://api.tankbook.live")!
         let transport = RemoteBlobTransport(
             baseURL: baseURL,
             transport: URLSessionTransport(),

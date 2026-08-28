@@ -52,7 +52,7 @@ enum AppRates {
 
     private static func makeFetcher() -> RemoteRateFetcher {
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.app")!
+            ?? URL(string: "https://api.tankbook.live")!
         return RemoteRateFetcher(baseURL: baseURL,
                                  transport: URLSessionTransport(),
                                  tokenProvider: PublicTokenProvider())

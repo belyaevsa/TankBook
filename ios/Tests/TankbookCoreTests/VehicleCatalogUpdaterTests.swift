@@ -630,7 +630,7 @@ private func deterministicEncode(_ value: some Encodable) throws -> Data {
 @Test func fetcherBuildsThePublicSinceVersionQueryAndReadsA304() async throws {
     let transport = RecordingTransport()
     transport.script(TankbookHTTPResponse(status: 304, body: nil))
-    let fetcher = RemoteVehicleCatalogFetcher(baseURL: URL(string: "https://api.tankbook.app")!,
+    let fetcher = RemoteVehicleCatalogFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
                                               transport: transport, tokenProvider: NoAuthTokenProvider())
 
     let pack = try await fetcher.fetchPack(sinceVersion: 7)

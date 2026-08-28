@@ -53,7 +53,7 @@ private func makeDocument(
 
 /// A bundled layer with `tier3CloudFallback == true` and the real bundled base URL.
 private func makeBundled() -> AppConfig {
-    let data = makeDocument(apiBaseURL: "https://api.tankbook.app")
+    let data = makeDocument(apiBaseURL: "https://api.tankbook.live")
     let document = try! ConfigDocument.parse(data)
     return AppConfig(document: document, apiBaseURL: document.apiBaseURL!)
 }
@@ -162,7 +162,7 @@ struct ConfigBaseURLGuardrailTests {
 
         let bundled = makeBundled()
         let prober = StubHealthProber(defaultResult: true)
-        let dead = "https://dead.tankbook.app"
+        let dead = "https://dead.tankbook.live"
         let document = makeDocument(apiBaseURL: dead)
         let store = makeStore(
             bundled: bundled,
@@ -204,7 +204,7 @@ struct ConfigBaseURLGuardrailTests {
 
         let bundled = makeBundled()
         let prober = StubHealthProber(defaultResult: false)
-        let document = makeDocument(apiBaseURL: "https://new.tankbook.app")
+        let document = makeDocument(apiBaseURL: "https://new.tankbook.live")
         let store = makeStore(
             bundled: bundled,
             directory: directory,
@@ -225,7 +225,7 @@ struct ConfigBaseURLGuardrailTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let bundled = makeBundled()
-        let document = makeDocument(apiBaseURL: "https://new.tankbook.app")
+        let document = makeDocument(apiBaseURL: "https://new.tankbook.live")
         let store = makeStore(
             bundled: bundled,
             directory: directory,
@@ -235,11 +235,11 @@ struct ConfigBaseURLGuardrailTests {
 
         await store.refresh()
 
-        #expect(store.current.apiBaseURL == URL(string: "https://new.tankbook.app")!)
-        #expect(store.activeBaseURLValue == "https://new.tankbook.app")
+        #expect(store.current.apiBaseURL == URL(string: "https://new.tankbook.live")!)
+        #expect(store.activeBaseURLValue == "https://new.tankbook.live")
 
         let record = try #require(ConfigCacheFile.read(directory: directory))
-        #expect(record.activeBaseURL == "https://new.tankbook.app", "the promoted value is persisted")
+        #expect(record.activeBaseURL == "https://new.tankbook.live", "the promoted value is persisted")
     }
 
     // MARK: 6. Failure count survives a restart
@@ -249,7 +249,7 @@ struct ConfigBaseURLGuardrailTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let bundled = makeBundled()
-        let document = makeDocument(apiBaseURL: "https://new.tankbook.app")
+        let document = makeDocument(apiBaseURL: "https://new.tankbook.live")
         let first = makeStore(
             bundled: bundled,
             directory: directory,
@@ -267,7 +267,7 @@ struct ConfigBaseURLGuardrailTests {
         // is what makes "across at least two app sessions" true.
         let second = makeStore(bundled: bundled, directory: directory, maxConsecutiveFailures: 10)
         #expect(second.consecutiveFailureCount == 3, "the failure count must survive a restart")
-        #expect(second.current.apiBaseURL == URL(string: "https://new.tankbook.app")!,
+        #expect(second.current.apiBaseURL == URL(string: "https://new.tankbook.live")!,
                 "the promoted URL also survives the restart")
     }
 
@@ -278,7 +278,7 @@ struct ConfigBaseURLGuardrailTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let bundled = makeBundled()
-        let document = makeDocument(apiBaseURL: "https://new.tankbook.app")
+        let document = makeDocument(apiBaseURL: "https://new.tankbook.live")
         let store = makeStore(
             bundled: bundled,
             directory: directory,
@@ -304,7 +304,7 @@ struct ConfigBaseURLGuardrailTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let bundled = makeBundled()
-        let document = makeDocument(apiBaseURL: "https://new.tankbook.app")
+        let document = makeDocument(apiBaseURL: "https://new.tankbook.live")
         let store = makeStore(
             bundled: bundled,
             directory: directory,
@@ -328,7 +328,7 @@ struct ConfigBaseURLGuardrailTests {
 
         await store.recordRequestOutcome(.response(status: 500))
         await store.recordRequestOutcome(.response(status: 503))
-        #expect(store.current.apiBaseURL == URL(string: "https://new.tankbook.app")!,
+        #expect(store.current.apiBaseURL == URL(string: "https://new.tankbook.live")!,
                 "any number of 5xx responses must not revert the base URL")
     }
 

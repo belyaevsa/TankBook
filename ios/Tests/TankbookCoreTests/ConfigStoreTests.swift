@@ -86,7 +86,7 @@ private func makeBundled() -> AppConfig {
     let flags = "{\"pumpPhoto\":{\"enabled\":false,\"rolloutPercent\":0},"
         + "\"extraFlag\":{\"enabled\":true,\"rolloutPercent\":100}}"
     let data = makeDocument(
-        apiBaseURL: "https://api.tankbook.app",
+        apiBaseURL: "https://api.tankbook.live",
         maintenance: "{\"text\":\"Bundled maintenance\",\"severity\":\"info\",\"until\":\"2099-01-02T00:00:00Z\"}",
         flags: flags,
         rolloutSalt: "bundled-salt"
@@ -183,7 +183,7 @@ private func cacheFileURL(directory: URL) -> URL {
     let store = makeStore(bundled: bundled, directory: directory)
 
     #expect(store.current == bundled)
-    #expect(store.current.apiBaseURL == URL(string: "https://api.tankbook.app")!)
+    #expect(store.current.apiBaseURL == URL(string: "https://api.tankbook.live")!)
     #expect(store.current.tier2OnDeviceLLM)
     #expect(store.current.tier3CloudFallback)
     #expect(store.current.minSchemaVersion == 1)
@@ -433,13 +433,13 @@ private func cacheFileURL(directory: URL) -> URL {
 @Test func cacheCodecRoundTripsDocumentBytesVerbatim() throws {
     let document = makeDocument(extra: ["unknownFutureKey": "{\"nested\": 9007199254740993}", "zExp": "1e3"])
     let record = ConfigCacheRecord(document: document, signature: "abc", etag: nil,
-                                   fetchedAt: referenceNow, activeBaseURL: "https://api.tankbook.app", consecutiveFailures: 3)
+                                   fetchedAt: referenceNow, activeBaseURL: "https://api.tankbook.live", consecutiveFailures: 3)
 
     let decoded = try ConfigCacheCodec.decode(ConfigCacheCodec.encode(record))
 
     #expect(decoded.document == document, "the document must round-trip byte-for-byte")
     #expect(decoded.signature == "abc")
-    #expect(decoded.activeBaseURL == "https://api.tankbook.app")
+    #expect(decoded.activeBaseURL == "https://api.tankbook.live")
     #expect(decoded.consecutiveFailures == 3)
 }
 
@@ -517,7 +517,7 @@ private func cacheFileURL(directory: URL) -> URL {
     // (PumpPhotoGate, measured 0/30 below the 95% threshold) must keep the flag
     // off regardless - a remote document cannot flip an accuracy gate into
     // truth (docs/CONFIG.md -> "Config can never disable a security control").
-    let onData = makeDocument(apiBaseURL: "https://api.tankbook.app",
+    let onData = makeDocument(apiBaseURL: "https://api.tankbook.live",
                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}")
     let onDoc = try ConfigDocument.parse(onData)
     let onBundled = AppConfig(document: onDoc, apiBaseURL: onDoc.apiBaseURL!)
@@ -538,7 +538,7 @@ private func cacheFileURL(directory: URL) -> URL {
         version: 7,
         tier2: false,
         tier3: true,
-        apiBaseURL: "https://other.tankbook.app",
+        apiBaseURL: "https://other.tankbook.live",
         maintenance: "{\"text\":\"Scheduled\",\"severity\":\"warning\",\"until\":\"2099-01-02T00:00:00Z\"}",
         flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":33}}",
         rolloutSalt: "salt-remote"
@@ -548,7 +548,7 @@ private func cacheFileURL(directory: URL) -> URL {
     await store.refresh()
 
     let config = store.current
-    #expect(config.apiBaseURL == URL(string: "https://other.tankbook.app")!)
+    #expect(config.apiBaseURL == URL(string: "https://other.tankbook.live")!)
     #expect(config.tier2OnDeviceLLM == false)
     #expect(config.tier3CloudFallback == true)
     #expect(config.llmQuota.onDeviceLLM == 200)

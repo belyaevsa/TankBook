@@ -10,10 +10,10 @@ import Foundation
 /// still cannot reach an attacker's host.
 ///
 /// The rule is deliberately a **suffix over a label boundary**, not a naive
-/// `hasSuffix`: a host is allowed when it equals `tankbook.app` or ends with
-/// `.tankbook.app`. That accepts `api.tankbook.app` and `eu.api.tankbook.app`
+/// `hasSuffix`: a host is allowed when it equals `tankbook.live` or ends with
+/// `.tankbook.live`. That accepts `api.tankbook.live` and `eu.api.tankbook.live`
 /// while rejecting every near-miss that shares bytes without sharing the label:
-/// `evil-tankbook.app` (suffix, no boundary), `tankbook.app.evil.com` (our
+/// `evil-tankbook.live` (suffix, no boundary), `tankbook.live.evil.com` (our
 /// domain as a prefix of theirs), `tankbook-app.com`.
 ///
 /// The allowlist is **compiled in by design** (docs/CONFIG.md -> "Config can
@@ -39,11 +39,11 @@ public enum HostAllowlist {
     /// label-boundary rule, HTTPS enforcement and the userinfo handling do not
     /// depend on which domain this is, so replacing the value does not weaken
     /// or re-open any of it.
-    public static let allowedDomain = "tankbook.app"
+    public static let allowedDomain = "tankbook.live"
 
     /// Whether a host string is inside the allowlist. Case-insensitive, matched
     /// on label boundaries: equal to the domain, or a subdomain ending in
-    /// `.tankbook.app`. A nil or empty host is rejected.
+    /// `.tankbook.live`. A nil or empty host is rejected.
     public static func allows(host: String?) -> Bool {
         guard let host, !host.isEmpty else { return false }
         let lower = host.lowercased()
@@ -56,8 +56,8 @@ public enum HostAllowlist {
     ///
     /// The host is read via `URLComponents.host`, never by string-parsing the
     /// URL. That is the property that makes an embedded-userinfo authority such
-    /// as `https://api.tankbook.app@evil.com/` resolve to `evil.com` (the real
-    /// host), which is then rejected: the `api.tankbook.app` before the `@` is
+    /// as `https://api.tankbook.live@evil.com/` resolve to `evil.com` (the real
+    /// host), which is then rejected: the `api.tankbook.live` before the `@` is
     /// userinfo, not the host.
     public static func allows(url: URL) -> Bool {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false),

@@ -80,7 +80,7 @@ struct TankbookHTTPClientTests {
         let provider = RecordingTokenProvider(token: "test-token")
         let client = TankbookHTTPClient(transport: transport, tokenProvider: provider)
 
-        let url = URL(string: "https://api.tankbook.app/health")!
+        let url = URL(string: "https://api.tankbook.live/health")!
         _ = try await client.send(TankbookHTTPRequest(url: url))
 
         let sent = transport.receivedRequests()
@@ -96,16 +96,16 @@ struct TankbookHTTPClientTests {
         let client = TankbookHTTPClient(transport: transport, tokenProvider: provider)
 
         transport.script([
-            TankbookHTTPResponse(status: 302, headers: ["Location": "https://eu.api.tankbook.app/x"]),
+            TankbookHTTPResponse(status: 302, headers: ["Location": "https://eu.api.tankbook.live/x"]),
             TankbookHTTPResponse(status: 200),
         ])
 
-        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app/")!))
+        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/")!))
 
         let sent = transport.receivedRequests()
         #expect(sent.count == 2)
         #expect(sent[0].headers["Authorization"] == "Bearer test-token")
-        #expect(sent[1].url.absoluteString == "https://eu.api.tankbook.app/x")
+        #expect(sent[1].url.absoluteString == "https://eu.api.tankbook.live/x")
         #expect(sent[1].headers["Authorization"] == "Bearer test-token", "an allowlisted hop re-attaches the token")
     }
 
@@ -119,7 +119,7 @@ struct TankbookHTTPClientTests {
             TankbookHTTPResponse(status: 200),
         ])
 
-        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app/")!))
+        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/")!))
 
         let sent = transport.receivedRequests()
         #expect(sent.count == 2, "the redirect is followed, just unauthenticated")
@@ -139,7 +139,7 @@ struct TankbookHTTPClientTests {
             TankbookHTTPResponse(status: 200),
         ])
 
-        var request = TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app/")!)
+        var request = TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/")!)
         request.headers["X-Custom"] = "kept"
         _ = try await client.send(request)
 
@@ -156,11 +156,11 @@ struct TankbookHTTPClientTests {
             maxRedirects: 3
         )
         transport.script(Array(repeating: TankbookHTTPResponse(
-            status: 302, headers: ["Location": "https://api.tankbook.app/again"]
+            status: 302, headers: ["Location": "https://api.tankbook.live/again"]
         ), count: 10))
 
         await #expect(throws: TankbookHTTPClientError.tooManyRedirects) {
-            _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app/")!))
+            _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/")!))
         }
     }
 
@@ -170,7 +170,7 @@ struct TankbookHTTPClientTests {
         let client = TankbookHTTPClient(transport: transport, tokenProvider: provider)
 
         await #expect(throws: TankbookHTTPClientError.hostNotAllowlisted) {
-            _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app@evil.com/")!))
+            _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live@evil.com/")!))
         }
         #expect(provider.callCount() == 0)
         #expect(transport.receivedRequests().isEmpty)
@@ -181,7 +181,7 @@ struct TankbookHTTPClientTests {
         let provider = RecordingTokenProvider(token: nil)
         let client = TankbookHTTPClient(transport: transport, tokenProvider: provider)
 
-        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.app/")!))
+        _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/")!))
 
         let sent = transport.receivedRequests()
         #expect(sent.count == 1)

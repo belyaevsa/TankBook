@@ -100,7 +100,7 @@ struct GatewayExtractClientTests {
 
     private static func makeClient(_ stub: StubTransport) -> RemoteGatewayExtractTransport {
         RemoteGatewayExtractTransport(
-            baseURL: URL(string: "https://api.tankbook.app")!,
+            baseURL: URL(string: "https://api.tankbook.live")!,
             transport: stub,
             tokenProvider: StaticTokenProvider())
     }

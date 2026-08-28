@@ -90,7 +90,7 @@ enum ImportService {
             transport = URLSessionTransport()
         }
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.app")!
+            ?? URL(string: "https://api.tankbook.live")!
         let sessionStore = KeychainSessionStore()
         let client = ImportClient(
             httpClient: TankbookHTTPClient(transport: transport,
