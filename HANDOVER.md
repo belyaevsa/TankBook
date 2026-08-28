@@ -17,6 +17,12 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > well-diagnosed one-line fix; `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
 > A bare model name silently resolves to another provider that returns an instant error.
 >
+> **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
+> `swift build` and `swiftlint` continuously, **all 873 unit tests** (30 s, never subsetted), and
+> `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
+> not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
+> genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
+>
 > **Verification is the job, and it is not delegable to the agent's own report.** Re-run
 > `swift build`, `swift test`, `xcodebuild test`, `swiftlint` (from the **repo root**) and, for
 > backend work, `dotnet build/test/format` - judged by **exit code**, naming the **simulator**.
@@ -104,6 +110,42 @@ Three things the site cost that are worth carrying into any deployment work:
   contained them. Found only by curling the running site.
 - **A validator found seven checks that could not fail**, including privacy claims that passed when
   inverted. 149 green checks coexisted with all of them.
+
+## What the UI suite actually costs, and what it is for (2026-08-29)
+
+Measured across one day rather than assumed, because the habit of running all 193 UI tests after
+every task was costing more than it returned.
+
+| | |
+|---|---|
+| Full runs driven in one day | **5**, at 27-29 min each - about **2h15m** |
+| Genuine defects found | **1** |
+| False reds | **2**, both machine contention, each costing another run to disprove |
+
+The one genuine catch was real and unique to the suite: P6.18b's journey test surfaced that
+`ManualFillUpView.save()` never bumped `toastCenter.revision`, so **Home showed stale data after a
+manual save** - a `.sheet` does not re-trigger the presenter's `.task` on iOS 26. Invisible to a
+diff and to a screenshot.
+
+That is the suite's monopoly and its whole value: **a control that renders correctly, reports
+`isHittable = true`, and does nothing.** The historical record has the same shape - a currency fold
+whose `isExpanded` reset on every parent re-render, and a row with no `.contentShape` so its middle,
+exactly where a tap lands, was dead.
+
+But it finds those in **the suite covering that screen**, not in the other 180 tests. So the rule is
+now: subset per task, full run per phase. Mutations and rendered screenshots do the actual finding -
+this session alone, mutations caught a vacuous contrast guard, an unpinned hard-rule-1 guarantee and
+a lexicographic-comparison risk, in minutes each.
+
+**Two traps that cost time today, both recorded in `docs/TESTING.md`:**
+
+- **A `--filter` matching nothing prints "Test run with 0 tests ... passed".** I read that as green
+  for a moment. Always check the observed count, not just the exit code.
+- **A filtered UNIT run is not a gate.** Running only `--filter AccuracyRatchet` after a corpus
+  change missed 11 failures and shipped `main` red. Unit tests are 30 seconds; never subset them.
+
+**Run the suite alone.** Every false red measured came from it competing with `swift test`, lint or
+a screenshot capture for the machine.
 
 ## What this project is
 
