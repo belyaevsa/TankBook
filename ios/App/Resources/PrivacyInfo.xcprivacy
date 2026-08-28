@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Apple's privacy manifest. REQUIRED for App Store submission; its absence is a
+  rejection, not a warning.
+
+  Every declaration here is traced to what the app actually does, not to a
+  template: docs/SECURITY.md, docs/LOGGING.md (hard rule 12), docs/SYNC.md and
+  docs/API.md. It must also agree with https://tankbook.live/privacy/ and with
+  the App Store privacy labels - a mismatch between the three is what review
+  catches.
+-->
+<plist version="1.0">
+<dict>
+    <!-- No tracking, and no tracking domains. The app contains no ad SDK, no
+         analytics SDK, and no third-party network calls at all. -->
+    <key>NSPrivacyTracking</key>
+    <false/>
+    <key>NSPrivacyTrackingDomains</key>
+    <array/>
+
+    <key>NSPrivacyCollectedDataTypes</key>
+    <array>
+        <!-- Collected ONLY when the user signs in, which is optional: the app is
+             fully usable with no account and everything stays on the device
+             (hard rule 1). Nothing below is collected for a signed-out user. -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeEmailAddress</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+        <!-- The synced record stream: vehicles, fill-ups, services, expenses.
+             Sent only to sync and restore across the user's own devices. Never
+             analysed, never sold, never used to build a profile. -->
+        <dict>
+            <key>NSPrivacyCollectedDataType</key>
+            <string>NSPrivacyCollectedDataTypeOtherUserContent</string>
+            <key>NSPrivacyCollectedDataTypeLinked</key>
+            <true/>
+            <key>NSPrivacyCollectedDataTypeTracking</key>
+            <false/>
+            <key>NSPrivacyCollectedDataTypePurposes</key>
+            <array>
+                <string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+            </array>
+        </dict>
+    </array>
+
+    <key>NSPrivacyAccessedAPITypes</key>
+    <array>
+        <!-- UserDefaults, used in 9 files for this app's own preferences. CA92.1
+             is the "access info from the app itself" reason - nothing is read
+             from or written to another app or an app group. -->
+        <dict>
+            <key>NSPrivacyAccessedAPIType</key>
+            <string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+            <key>NSPrivacyAccessedAPITypeReasons</key>
+            <array>
+                <string>CA92.1</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>
