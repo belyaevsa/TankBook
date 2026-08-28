@@ -10936,6 +10936,57 @@
           }
         }
       }
+    },
+    "%1$@: %2$@ on the %3$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ on the %3$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@: %2$@ на %3$@"
+          }
+        }
+      }
+    },
+    "Monthly summary": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Monthly summary"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Итоги месяца"
+          }
+        }
+      }
+    },
+    "August: 212 € on the Volvo, on the 1st.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "August: 212 € on the Volvo, on the 1st."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Август: 212 € на Volvo – 1-го числа."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

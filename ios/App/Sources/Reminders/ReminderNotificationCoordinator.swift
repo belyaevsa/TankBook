@@ -32,6 +32,27 @@ struct UNNotificationScheduler: LocalNotificationScheduling {
         center.removePendingNotificationRequests(withIdentifiers: identifiers)
     }
 
+    func scheduleMonthlySummary(_ notifications: [MonthlySummaryNotification]) async {
+        let center = UNUserNotificationCenter.current()
+        for notification in MonthlySummaryPlanner.pending(notifications, at: Date()) {
+            let content = UNMutableNotificationContent()
+            content.body = MonthlySummaryNotificationText.body(for: notification)
+            content.sound = .default
+            let components = Calendar.current.dateComponents(
+                [.year, .month, .day, .hour, .minute, .second], from: notification.fireDate)
+            let request = UNNotificationRequest(
+                identifier: notification.identifier,
+                content: content,
+                trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false))
+            try? await center.add(request)
+        }
+    }
+
+    func cancelMonthlySummary(identifiers: [String]) async {
+        let center = UNUserNotificationCenter.current()
+        center.removePendingNotificationRequests(withIdentifiers: identifiers)
+    }
+
     func authorization() async -> LocalNotificationAuthorization {
         Self.ensureDelegate()
         if let forced = ProcessInfo.processInfo.arguments.notificationStatusOverride {
@@ -123,6 +144,41 @@ enum ReminderNotificationText {
 
     private static func kmPhrase(_ km: Int) -> String {
         String(format: L10n.localize("%lld km"), km)
+    }
+}
+
+/// Renders a monthly-summary notification body (P6.2, docs/NOTIFICATIONS.md:
+/// "August: 212 € on the Volvo."). One full localised phrase per language,
+/// never concatenation - the month name, the amount and the car name are three
+/// slots of a single catalogue key (the P1.4 lesson: "%@ spend" composed as
+/// "%@ расходы" rendered word-order nonsense in Russian). The amount follows
+/// the app's money convention - "212 €" with the symbol after, no-break spaced -
+/// through the same `HomeFormat.spend` every other figure uses, so the
+/// notification and the Trends tile can never disagree about a number.
+enum MonthlySummaryNotificationText {
+    static func body(for notification: MonthlySummaryNotification) -> String {
+        let month = monthName(year: notification.body.summaryYear,
+                              month: notification.body.summaryMonth)
+        let amount = HomeFormat.spend(notification.body.amount,
+                                      symbol: AddVehicleSupport.currencySymbol(
+                                          for: notification.body.homeCurrency))
+        return String(format: L10n.localize("%1$@: %2$@ on the %3$@"),
+                      month, amount, notification.body.vehicleName)
+    }
+
+    /// "August" - the summarized month's name in the current locale
+    /// (nominative: the name never declines in either supported language).
+    private static func monthName(year: Int, month: Int) -> String {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "MMMM",
+                                                        options: 0,
+                                                        locale: Locale.current)
+        guard let date = Calendar.current.date(from: components) else { return "" }
+        return formatter.string(from: date)
     }
 }
 
@@ -231,6 +287,74 @@ final class ReminderNotificationCoordinator {
 
     func refreshAuthorization() async {
         authorization = await scheduling.authorization()
+    }
+
+    // MARK: - Monthly summary (P6.2, docs/NOTIFICATIONS.md)
+
+    /// Recomputes and applies the monthly-summary plan over the whole garage.
+    /// Runs at launch/foreground and on every toggle change, so the armed
+    /// notification is always the NEXT first-of-month 10:00 with the freshest
+    /// data the device has - a re-arm replaces by identifier, never stacks. With
+    /// the preference OFF this is also the cancellation path: the plan cancels
+    /// every vehicle's pending identifier, which is what makes "turning the
+    /// toggle OFF cancels the pending request" provable (mutation 2).
+    func reconcileMonthlySummary() async {
+        guard let repository = try? AppStore.repository() else { return }
+        let vehicles = (try? repository.liveVehicles()) ?? []
+        var entriesByVehicle: [UUID: [any Entry]] = [:]
+        for vehicle in vehicles {
+            entriesByVehicle[vehicle.id] = (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
+        }
+        let resolutions = (try? repository.resolvedDuplicateKeys()) ?? []
+        let enabled = (try? repository.livePreferences())?.notifications.monthlySummary ?? false
+        let plan = MonthlySummaryPlanner.plan(
+            vehicles: vehicles,
+            entriesByVehicle: entriesByVehicle,
+            duplicateResolutions: resolutions,
+            now: Date(),
+            enabled: enabled)
+        await applyMonthly(plan)
+    }
+
+    /// The opt-in toggle (Trends, `notifications.monthlySummary`, default OFF).
+    /// Persists the preference, then - only when turning ON - requests system
+    /// permission at this, the summary's first moment of need (never at launch,
+    /// never a repeat once decided - docs/NOTIFICATIONS.md). Turning OFF skips
+    /// the permission path and goes straight to the reconcile, which cancels.
+    func setMonthlySummaryEnabled(_ enabled: Bool) async {
+        guard let repository = try? AppStore.repository() else { return }
+        var preferences = (try? repository.livePreferences())
+            ?? Preferences(createdAt: Date(), updatedAt: Date())
+        preferences.notifications.monthlySummary = enabled
+        preferences.updatedAt = Date()
+        try? repository.upsertPreferences(preferences)
+
+        if enabled {
+            await refreshAuthorization()
+            if NotificationPermissionGate.shouldRequestForMonthlySummary(
+                authorization: authorization, didRequestThisLaunch: didRequestThisLaunch) {
+                didRequestThisLaunch = true
+                authorization = await scheduling.requestAuthorization()
+            }
+        }
+        await reconcileMonthlySummary()
+    }
+
+    /// Cancels a vehicle's pending monthly-summary notifications. Called from
+    /// the archive and delete sites (J13): a car that is no longer active has
+    /// no summary reason, and its notification must not linger. The identifier
+    /// carries the vehicle id, so the plan - which only sees live vehicles -
+    /// cannot reach a deleted row; the site that removed it can.
+    func cancelMonthlySummary(forVehicle vehicleID: UUID) async {
+        guard let repository = try? AppStore.repository(),
+              let vehicle = try? repository.vehicle(id: vehicleID) else { return }
+        let identifiers = MonthlySummaryPlanner.cancelledIdentifiers(for: [vehicle], at: Date())
+        await scheduling.cancelMonthlySummary(identifiers: Array(identifiers))
+    }
+
+    private func applyMonthly(_ plan: MonthlySummaryNotificationPlan) async {
+        await scheduling.scheduleMonthlySummary(plan.scheduled)
+        await scheduling.cancelMonthlySummary(identifiers: Array(plan.cancelled))
     }
 
     // MARK: - Internals

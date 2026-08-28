@@ -20,13 +20,47 @@ Device tokens register via `PUT /account/devices/{id}/push-token` (API.md); toke
 | Reminder due (odometer: oil change) | Local, armed at write time | Scheduled the evening after the save that crossed the threshold: "Oil change within 500 km." | Reminders screen | same |
 | Overdue follow-up | Local | Exactly one, 7 days after due: "Still pending: insurance renewal." Never a nag loop | Reminders screen | same |
 | Anomaly insight (J9) | **In-app card only** by default – "never a push alarm" | Amber card in the Log; optional local notification is opt-in | The evidence view | `notifications.anomalies` (in-app on; push opt-in) |
-| Monthly summary (J8) | Local | 1st of month, 10:00: "August: €212 on the Volvo." Opt-in | Trends | `notifications.monthlySummary` (default off) |
+| Monthly summary (J8) | Local | 1st of month, 10:00: "August: 212 € on the Volvo." Opt-in, **one notification per car** (see below) | Trends | `notifications.monthlySummary` (default off) |
 | Sync nudge | Silent APNs | Invisible, throttled server-side (max ~1/15 min per device) | – (background pull) | none – it's invisible |
 | Config nudge | Silent APNs (`config: true` hint on the same payload) | Invisible; used to propagate an urgent change such as a kill switch in minutes rather than the normal 6-hour poll | – (background config fetch, `CONFIG.md`) | none – it's invisible |
 | Post-outage batch result (S7) | In-app toast, not a notification | "Synced. 2 entries need a look" on next open | Log filtered to flagged | – |
 | Shared-vehicle activity (v2) | Silent nudge only | Partner's fill-up just appears via sync; no "X logged a fill-up" alert unless v2 research says otherwise | – | (v2) |
 
 Explicit non-scenarios: no "you haven't logged in a while" re-engagement, no feature announcements, no rating prompts via push, nothing from the LLM/quota system. The notification channel spends trust; only the user's own deadlines may draw on it.
+
+## Monthly summary (J8) – the decisions (P6.2)
+
+The catalog row names the shape; these are the decisions implementation forced, so they are
+written down rather than implied by code:
+
+- **One notification PER CAR, not one aggregate and not just the selected car.** Money is a pair
+  whose `homeCurrency` is the vehicle's own (SCHEMA.md), so a household's cars can carry
+  different currencies and an aggregate would silently mix them; and Trends – where the toggle
+  lives and where the tap lands – is per-car. The doc's own format is per-car ("…on the Volvo.").
+  Each car that spent that month gets its own notification, in its own currency; a car that
+  spent nothing gets none.
+- **A month with nothing to say produces NO notification** – a push that tells the user nothing
+  happened is a nag. No entries in the month, only rate-pending entries (F9, no `homeAmount`
+  snapshot yet), or a zero total all mean silence.
+- **The amount is the sum of the month's stored `homeAmount` snapshots** (hard rule 3) – each
+  entry's conversion written when its rate was known, at `rateDate` = the entry's date. The
+  summary never re-converts at a later rate. Rate-pending entries contribute nothing until
+  their snapshot exists.
+- **The fire date is the 1st of the month FOLLOWING the summarized month, at 10:00 local** – a
+  reconcile on 20 August arms "August" to fire 1 September. The plan is recomputed on every
+  launch, foreground and toggle change, and re-arms by a stable per-(car, month) identifier, so
+  a later launch with fresher data replaces rather than stacks. On the 1st itself, the
+  about-to-fire previous-month summary coexists with the newly armed one.
+- **Turning the toggle OFF cancels the pending request**, not merely stopping new ones – the
+  toggle-off plan cancels every car's pending identifier. An archived (J13) or deleted car stops
+  summarizing: its reason is gone, so its pending notification is cancelled.
+- **Copy uses the app's money convention** – "August: 212 € on the Volvo." (amount then symbol,
+  the same `HomeFormat.spend` the Trends tiles use) – so the notification and the tile it lands
+  on can never disagree about a figure.
+- **Permission follows the one rule, applied to this feature's own moment of need:** requested
+  when the toggle is first flipped ON (never at launch, never a repeat once decided). A denial
+  is only answered from Settings, exactly like the reminders; the summary is simply not
+  delivered until then.
 
 ## Multi-device behavior
 

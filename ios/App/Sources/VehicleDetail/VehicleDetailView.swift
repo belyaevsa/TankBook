@@ -33,6 +33,7 @@ struct VehicleDetailView: View {
 
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(\.dismiss) private var dismiss
 
     @State private var form = VehicleDetailFormState()
@@ -270,6 +271,9 @@ struct VehicleDetailView: View {
                 try repository.unarchiveVehicle(id: vehicle.id)
             } else {
                 try repository.archiveVehicle(id: vehicle.id)
+                // An archived car's monthly summary has no reason to exist
+                // (docs/NOTIFICATIONS.md -> Multi-device cleanup).
+                Task { await notificationCoordinator.cancelMonthlySummary(forVehicle: vehicle.id) }
             }
             toastCenter.noteEntryChanged()
             reload()
@@ -285,6 +289,9 @@ struct VehicleDetailView: View {
         do {
             let repository = try AppStore.repository()
             try repository.softDeleteVehicle(id: vehicle.id)
+            // A deleted car's pending monthly summary must not fire on the 1st
+            // (the plan only sees live vehicles, so the delete site cancels).
+            Task { await notificationCoordinator.cancelMonthlySummary(forVehicle: vehicle.id) }
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {

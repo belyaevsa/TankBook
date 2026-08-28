@@ -130,6 +130,50 @@ final class TrendsUITests: XCTestCase {
                        "no km span yet - no cost/km to show")
     }
 
+    // MARK: - P6.2 the J8 monthly-summary opt-in toggle
+
+    /// The opt-in lives on Trends (docs/NOTIFICATIONS.md, "surfaced in
+    /// Trends"), is OFF by default, and flips on with a tap. Permission is
+    /// forced authorized so no dialog appears (the same `-notificationStatus`
+    /// hook the Reminders tests use); the toggle's real decision - schedule vs
+    /// cancel - is the core planner's job and is unit-tested there.
+    func testMonthlySummaryToggleDefaultsOffAndFlipsOn() {
+        let app = launch(args: ["-seedHomeFullHistory", "-notificationStatus", "authorized"])
+
+        let toggle = app.switches["trendsMonthlySummaryToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10),
+                      "the monthly-summary opt-in must surface on Trends")
+        XCTAssertEqual(toggle.value as? String, "0",
+                       "the J8 opt-in defaults OFF, got \(String(describing: toggle.value))")
+
+        toggle.tap()
+        let on = app.switches["trendsMonthlySummaryToggle"]
+        XCTAssertEqual(on.value as? String, "1", "the toggle must flip on")
+    }
+
+    /// The preference persists across relaunches (it is the synced
+    /// `Preferences.notifications.monthlySummary`). The second launch keeps the
+    /// database (no `-homeResetDatabase`), so a toggle that only flipped
+    /// in-memory would read back as OFF here.
+    func testMonthlySummaryTogglePersistsAcrossRelaunch() {
+        let app = launch(args: ["-seedHomeFullHistory", "-notificationStatus", "authorized"])
+        let toggle = app.switches["trendsMonthlySummaryToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 10))
+        toggle.tap()
+        XCTAssertEqual(app.switches["trendsMonthlySummaryToggle"].value as? String, "1")
+
+        // Relaunch WITHOUT the database reset: the preference must read back ON.
+        app.terminate()
+        let relaunched = XCUIApplication()
+        relaunched.launchArguments = ["-selectTrendsTab", "-notificationStatus", "authorized"]
+        relaunched.launch()
+
+        let persisted = relaunched.switches["trendsMonthlySummaryToggle"]
+        XCTAssertTrue(persisted.waitForExistence(timeout: 10))
+        XCTAssertEqual(persisted.value as? String, "1",
+                       "the monthly-summary preference must survive a relaunch")
+    }
+
     // MARK: - Helpers
 
     private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {

@@ -19,10 +19,16 @@ struct TrendsView: View {
 
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @State private var vehicle: Vehicle?
     @State private var entries: [any Entry] = []
     @State private var didSeed = false
     @State private var resolvedDuplicateKeys: Set<DuplicateDetector.PairKey> = []
+    /// `notifications.monthlySummary` (default OFF, docs/SCHEMA.md) - the J8
+    /// opt-in toggle that lives on Trends (docs/NOTIFICATIONS.md, "surfaced in
+    /// Trends"). Loaded from the synced preference on every `load`, flipped
+    /// through the notification coordinator, which persists and reschedules.
+    @State private var monthlySummaryEnabled = false
 
     private static let log = Logger(subsystem: "app.tankbook", category: "trends")
 
@@ -39,6 +45,9 @@ struct TrendsView: View {
         ScrollView {
             VStack(spacing: 9) {
                 content
+                if vehicle != nil {
+                    MonthlySummaryToggle(isOn: $monthlySummaryEnabled)
+                }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
             // Same as Home: the raised capture circle sits above the
@@ -57,6 +66,9 @@ struct TrendsView: View {
             // An edit saved (with or without a delta toast) changed the data:
             // reload so the derived tiles reflect it immediately.
             Task { await load() }
+        }
+        .onChange(of: monthlySummaryEnabled) { _, enabled in
+            Task { await notificationCoordinator.setMonthlySummaryEnabled(enabled) }
         }
     }
 
@@ -161,8 +173,36 @@ struct TrendsView: View {
             self.vehicle = selected
             entries = try repository.liveEntries(forVehicle: selected.id)
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
+            monthlySummaryEnabled = (try? repository.livePreferences())?
+                .notifications.monthlySummary ?? false
         } catch {
             Self.log.error("Trends load failed: \(error.localizedDescription, privacy: .public)")
         }
+    }
+}
+
+/// The J8 opt-in toggle (docs/NOTIFICATIONS.md: `notifications.monthlySummary`,
+/// default off, surfaced in Trends). "Monthly summary" with a one-line caption
+/// naming the format and the humane fire time; the figure inside the caption is
+/// the doc's own copy, so the promise is visible before the first push arrives.
+private struct MonthlySummaryToggle: View {
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Toggle(isOn: $isOn) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Monthly summary")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Text("August: 212 € on the Volvo, on the 1st.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+        }
+        .tint(Theme.Palette.action)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .formCard()
+        .accessibilityIdentifier("trendsMonthlySummaryToggle")
     }
 }

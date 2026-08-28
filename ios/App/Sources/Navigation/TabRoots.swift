@@ -171,6 +171,10 @@ struct AppRootView: View {
             // the requirement is re-evaluated, but the UI already drew from the
             // held snapshot - nothing waits on this (P6.18b).
             await configService.refresh()
+            // P6.2: the monthly summary (if enabled) is re-armed with whatever
+            // data exists now - the fire date is the next 1st at 10:00, so a
+            // launch after more entries refreshes the figure by identifier.
+            await notificationCoordinator.reconcileMonthlySummary()
             // P6.8: launch is an OPPORTUNISTIC sync cycle (docs/SYNC.md ->
             // Low Power Mode table). It passes `.background`, so it defers while
             // Low Power Mode is on and is registered with the resumer, which
@@ -183,6 +187,9 @@ struct AppRootView: View {
             if phase == .active {
                 runPurgeIfNeeded()
                 Task { await configService.refresh() }
+                // P6.2: foreground re-arms the monthly summary too - same
+                // replace-by-identifier discipline as the launch reconcile.
+                Task { await notificationCoordinator.reconcileMonthlySummary() }
                 // P6.8: foreground is the other opportunistic cycle; same
                 // `.background` trigger, same deferral-and-drain contract.
                 Task { await sync.runOpportunisticSync() }

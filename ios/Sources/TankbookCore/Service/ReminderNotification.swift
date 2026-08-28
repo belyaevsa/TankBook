@@ -261,6 +261,18 @@ public enum NotificationPermissionGate {
                                             cardAlreadyHandled: Bool) -> Bool {
         authorization == .denied && hasActiveReminders && !cardAlreadyHandled
     }
+
+    /// Whether to request system permission when the user turns the monthly
+    /// summary ON (P6.2, docs/NOTIFICATIONS.md). The doc's rule - "requested at
+    /// the first moment it's needed, never at onboarding" - generalizes to the
+    /// summary's own moment of need, which is flipping the opt-in toggle on:
+    /// never at launch, never a repeat once the state is decided. A denial is
+    /// only ever answered from Settings (the doc's denied-state rule), so a
+    /// `denied` state never re-asks.
+    public static func shouldRequestForMonthlySummary(authorization: LocalNotificationAuthorization,
+                                                      didRequestThisLaunch: Bool) -> Bool {
+        authorization == .notDetermined && !didRequestThisLaunch
+    }
 }
 
 // MARK: - Scheduling seam
@@ -270,9 +282,16 @@ public enum NotificationPermissionGate {
 /// a recording double in a test, and so the plan logic never touches a platform
 /// framework (docs/TESTING.md -> L1). The adapter stays dumb: schedule the
 /// pending subset, cancel the identifiers, and report/request authorization.
+///
+/// P6.2 adds the monthly-summary pair: the same two operations over the
+/// `MonthlySummaryNotification` type, through the same center. One seam, one
+/// adapter, two notification families - the coordinator never learns what a
+/// `UNUserNotificationCenter` is.
 public protocol LocalNotificationScheduling: Sendable {
     func schedule(_ notifications: [ReminderNotification]) async
     func cancel(identifiers: [String]) async
+    func scheduleMonthlySummary(_ notifications: [MonthlySummaryNotification]) async
+    func cancelMonthlySummary(identifiers: [String]) async
     func authorization() async -> LocalNotificationAuthorization
     func requestAuthorization() async -> LocalNotificationAuthorization
 }
