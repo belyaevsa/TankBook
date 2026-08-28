@@ -35,6 +35,22 @@ a {
   text-decoration: none;
 }
 
+/* An inline link inside running text must not be distinguishable by COLOUR
+   ALONE - docs/DESIGN.md says colour is never the only channel, and Lighthouse
+   measured this one at 1.26:1 against the text around it, well under the 3:1
+   a non-underlined link needs. Underline every link that sits in a paragraph,
+   list or table cell; standalone links (nav, buttons, cards) are structurally
+   obvious and keep the clean treatment. */
+p a,
+li a,
+td a,
+dd a,
+.page__body a {
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: 0.06em;
+}
+
 a:hover {
   text-decoration: underline;
 }

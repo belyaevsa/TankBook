@@ -38,7 +38,7 @@
         {{- $translation := "" -}}
         {{- range .Translations -}}{{- $translation = . -}}{{- end -}}
         {{- with $translation }}
-        <a class="lang-chip" href="{{ .RelPermalink }}" lang="{{ .Language.Lang }}" hreflang="{{ .Language.Lang }}" aria-label="{{ printf "%s: %s" (i18n "langSwitchAria") .Language.LanguageName }}">{{ .Language.Lang | upper }}</a>
+        <a class="lang-chip" href="{{ .RelPermalink }}" lang="{{ .Language.Lang }}" hreflang="{{ .Language.Lang }}" aria-label="{{ printf "%s - %s: %s" (.Language.Lang | upper) (i18n "langSwitchAria") .Language.LanguageName }}">{{ .Language.Lang | upper }}</a>
         {{ end -}}
       </nav>
     </div>
