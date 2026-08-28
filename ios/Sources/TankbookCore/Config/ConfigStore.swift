@@ -544,6 +544,7 @@ public struct DebugConfigOverride: Sendable, Equatable {
     public var minSchemaVersion: Int?
     public var referencePacks: ConfigDocument.ReferencePacks?
     public var maintenance: ConfigDocument.MaintenanceNotice?
+    public var appUpdate: ConfigDocument.AppUpdateNotice?
     public var rolloutSalt: String?
     public var flags: [String: ConfigDocument.FeatureFlag]?
 
@@ -559,6 +560,7 @@ public struct DebugConfigOverride: Sendable, Equatable {
             minSchemaVersion: minSchemaVersion ?? base.minSchemaVersion,
             referencePacks: referencePacks ?? base.referencePacks,
             maintenance: maintenance ?? base.maintenance,
+            appUpdate: appUpdate ?? base.appUpdate,
             rolloutSalt: rolloutSalt ?? base.rolloutSalt,
             flags: flags ?? base.flags,
             version: base.version

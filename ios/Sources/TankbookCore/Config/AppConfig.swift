@@ -22,12 +22,30 @@ public struct AppConfig: Sendable, Equatable {
     public let minSchemaVersion: Int
     public let referencePacks: ConfigDocument.ReferencePacks
     public let maintenance: ConfigDocument.MaintenanceNotice?
+    public let appUpdate: ConfigDocument.AppUpdateNotice?
     public let rolloutSalt: String
     public let flags: [String: ConfigDocument.FeatureFlag]
 
     /// The version of the applied document, for logging (`config.apply`). The
     /// bundled layer's own version when no remote document applied.
     public let version: Int
+
+    /// The derived update requirement (docs/CONFIG.md -> "App version and the
+    /// update notice"). One sign computed from the two thresholds - there is
+    /// deliberately no `severity` field in the document, because it could
+    /// contradict its own thresholds.
+    public enum UpdateRequirement: Sendable, Equatable {
+        /// Running `>= latestVersion`. Nothing is shown, nothing is withheld.
+        case none
+        /// Running `>= minSupportedVersion` and `< latestVersion` (**soft**).
+        /// A dismissible row in Settings -> About; nothing is withheld.
+        case recommended
+        /// Running `< minSupportedVersion` (**hard**). Server-backed surfaces
+        /// are withheld - never the whole app (hard rule 1: a build that
+        /// cannot record a fill-up is broken; one that cannot sync is merely
+        /// degraded).
+        case required
+    }
 
     public init(
         apiBaseURL: URL,
@@ -38,6 +56,7 @@ public struct AppConfig: Sendable, Equatable {
         minSchemaVersion: Int,
         referencePacks: ConfigDocument.ReferencePacks,
         maintenance: ConfigDocument.MaintenanceNotice?,
+        appUpdate: ConfigDocument.AppUpdateNotice? = nil,
         rolloutSalt: String,
         flags: [String: ConfigDocument.FeatureFlag],
         version: Int
@@ -50,6 +69,7 @@ public struct AppConfig: Sendable, Equatable {
         self.minSchemaVersion = minSchemaVersion
         self.referencePacks = referencePacks
         self.maintenance = maintenance
+        self.appUpdate = appUpdate
         self.rolloutSalt = rolloutSalt
         self.flags = flags
         self.version = version
@@ -69,10 +89,36 @@ public struct AppConfig: Sendable, Equatable {
             minSchemaVersion: document.minSchemaVersion,
             referencePacks: document.referencePacks,
             maintenance: document.maintenance,
+            appUpdate: document.appUpdate,
             rolloutSalt: document.rolloutSalt,
             flags: document.flags,
             version: document.version
         )
+    }
+
+    /// The derived update requirement for a running build, per the
+    /// docs/CONFIG.md table: `>= latestVersion` -> `.none`; `>= minSupportedVersion`
+    /// -> `.recommended`; `< minSupportedVersion` -> `.required`. Comparison is
+    /// numeric per component (`AppVersion`), never lexicographic.
+    ///
+    /// **Fails open, never closed**: an absent `appUpdate` key, a threshold in
+    /// the document that would not parse, or a running version that will not
+    /// parse each resolve `.none`. Failing closed would let one malformed
+    /// string withdraw sync from every install at once - the config equivalent
+    /// of bricking.
+    ///
+    /// The running version is **injected** as the raw `CFBundleShortVersionString`;
+    /// core never reads `Bundle.main`, so tests construct any version without a
+    /// bundle. It arrives unparsed on purpose: parsing it here keeps the
+    /// fail-open rule inside the same function as the decision, where the
+    /// caller cannot lose it between the bundle and the call.
+    public func updateRequirement(runningVersion: String) -> UpdateRequirement {
+        guard let appUpdate, let running = AppVersion(runningVersion) else {
+            return .none
+        }
+        if running >= appUpdate.latestVersion { return .none }
+        if running >= appUpdate.minSupportedVersion { return .recommended }
+        return .required
     }
 
     /// A copy with a different `apiBaseURL` and every other field unchanged.
@@ -90,6 +136,7 @@ public struct AppConfig: Sendable, Equatable {
             minSchemaVersion: minSchemaVersion,
             referencePacks: referencePacks,
             maintenance: maintenance,
+            appUpdate: appUpdate,
             rolloutSalt: rolloutSalt,
             flags: flags,
             version: version
@@ -119,6 +166,7 @@ public struct AppConfig: Sendable, Equatable {
             minSchemaVersion: value("minSchemaVersion", remote.minSchemaVersion, minSchemaVersion),
             referencePacks: value("referencePacks", remote.referencePacks, referencePacks),
             maintenance: value("maintenance", remote.maintenance, maintenance),
+            appUpdate: value("appUpdate", remote.appUpdate, appUpdate),
             rolloutSalt: value("rolloutSalt", remote.rolloutSalt, rolloutSalt),
             flags: value("flags", remote.flags, flags),
             version: remote.version

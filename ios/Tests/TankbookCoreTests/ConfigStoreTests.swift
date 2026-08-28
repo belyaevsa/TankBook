@@ -57,6 +57,7 @@ private func makeDocument(
     tier3: Bool = true,
     apiBaseURL: String? = nil,
     maintenance: String? = nil,
+    appUpdate: String? = nil,
     flags: String? = nil,
     rolloutSalt: String = "test-salt",
     extra: [String: String] = [:]
@@ -75,6 +76,7 @@ private func makeDocument(
     ]
     if let apiBaseURL { fields.append("\"apiBaseUrl\": \"\(apiBaseURL)\"") }
     if let maintenance { fields.append("\"maintenance\": \(maintenance)") }
+    if let appUpdate { fields.append("\"appUpdate\": \(appUpdate)") }
     if let flags { fields.append("\"flags\": \(flags)") }
     for (key, value) in extra { fields.append("\"\(key)\": \(value)") }
     return Data(("{ " + fields.joined(separator: ", ") + " }").utf8)
@@ -540,6 +542,7 @@ private func cacheFileURL(directory: URL) -> URL {
         tier3: true,
         apiBaseURL: "https://other.tankbook.live",
         maintenance: "{\"text\":\"Scheduled\",\"severity\":\"warning\",\"until\":\"2099-01-02T00:00:00Z\"}",
+        appUpdate: "{\"minSupportedVersion\": \"1.2.0\", \"latestVersion\": \"1.4.0\"}",
         flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":33}}",
         rolloutSalt: "salt-remote"
     )
@@ -558,6 +561,11 @@ private func cacheFileURL(directory: URL) -> URL {
     #expect(config.referencePacks.rates == 1)
     #expect(config.referencePacks.catalog == 1)
     #expect(config.maintenance?.severity == .warning)
+    #expect(config.appUpdate == ConfigDocument.AppUpdateNotice(
+        minSupportedVersion: AppVersion("1.2.0")!,
+        latestVersion: AppVersion("1.4.0")!))
+    #expect(config.updateRequirement(runningVersion: "1.3.0") == .recommended,
+            "the store-level snapshot must carry a decidable requirement (P6.18a)")
     #expect(config.rolloutSalt == "salt-remote")
     #expect(config.flags["pumpPhoto"]?.rolloutPercent == 33)
     #expect(config.version == 7)

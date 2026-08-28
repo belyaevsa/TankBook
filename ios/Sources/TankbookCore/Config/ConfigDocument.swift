@@ -26,6 +26,7 @@ public struct ConfigDocument: Sendable, Equatable {
     public let minSchemaVersion: Int
     public let referencePacks: ReferencePacks
     public let maintenance: MaintenanceNotice?
+    public let appUpdate: AppUpdateNotice?
     public let rolloutSalt: String
     public let flags: [String: FeatureFlag]
 
@@ -78,6 +79,27 @@ public struct ConfigDocument: Sendable, Equatable {
         }
     }
 
+    /// The update-notice key of the config document (docs/CONFIG.md -> "App
+    /// version and the update notice"). The server states two facts - the two
+    /// thresholds - and the client derives one requirement; there is
+    /// deliberately no `severity` string, because a document could declare
+    /// `"required"` while naming a `minSupportedVersion` the running build
+    /// already satisfies, and there is no correct way to resolve that
+    /// contradiction.
+    ///
+    /// Optional, exactly like `maintenance`: absent is legal and common, and
+    /// `Config.default.json` never carries one, so a device that has never
+    /// reached the network is never told it is out of date.
+    public struct AppUpdateNotice: Sendable, Equatable {
+        public let minSupportedVersion: AppVersion
+        public let latestVersion: AppVersion
+
+        public init(minSupportedVersion: AppVersion, latestVersion: AppVersion) {
+            self.minSupportedVersion = minSupportedVersion
+            self.latestVersion = latestVersion
+        }
+    }
+
     public struct FeatureFlag: Sendable, Equatable, Decodable {
         public let enabled: Bool
         public let rolloutPercent: Int
@@ -113,6 +135,7 @@ public struct ConfigDocument: Sendable, Equatable {
             minSchemaVersion: decoded.minSchemaVersion,
             referencePacks: decoded.referencePacks,
             maintenance: decoded.maintenance,
+            appUpdate: decoded.appUpdate,
             rolloutSalt: decoded.rolloutSalt,
             flags: decoded.flags ?? [:]
         )
@@ -133,6 +156,7 @@ public struct ConfigDocument: Sendable, Equatable {
         let minSchemaVersion: Int
         let referencePacks: ReferencePacks
         let maintenance: MaintenanceNotice?
+        let appUpdate: AppUpdateNotice?
         let rolloutSalt: String
         let flags: [String: FeatureFlag]?
 
@@ -164,12 +188,34 @@ public struct ConfigDocument: Sendable, Equatable {
             } else {
                 maintenance = nil
             }
+
+            // An unparseable threshold fails OPEN: the key degrades to nil -
+            // so the requirement resolves `.none` - rather than rejecting the
+            // document or, worse, withholding sync (docs/CONFIG.md -> "An
+            // unparseable version fails open"). Failing closed would let one
+            // malformed string withdraw sync from every install at once.
+            if let update = try? container.decodeIfPresent(AppUpdateFields.self, forKey: .appUpdate),
+               let minSupportedVersion = AppVersion(update.minSupportedVersion),
+               let latestVersion = AppVersion(update.latestVersion) {
+                appUpdate = AppUpdateNotice(minSupportedVersion: minSupportedVersion, latestVersion: latestVersion)
+            } else {
+                appUpdate = nil
+            }
         }
 
         enum CodingKeys: String, CodingKey {
             case version, issuedAt, notAfter, apiBaseUrl, tier2OnDeviceLLM, tier3CloudFallback
             case llmQuota, ocrConfidenceThreshold, minSchemaVersion, referencePacks
-            case maintenance, rolloutSalt, flags
+            case maintenance, appUpdate, rolloutSalt, flags
+        }
+    }
+
+    private struct AppUpdateFields: Decodable {
+        let minSupportedVersion: String
+        let latestVersion: String
+
+        enum CodingKeys: String, CodingKey {
+            case minSupportedVersion, latestVersion
         }
     }
 
