@@ -570,6 +570,23 @@
         }
       }
     },
+    "A year earlier": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A year earlier"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Год назад"
+          }
+        }
+      }
+    },
     "AC": {
       "extractionState": "manual",
       "localizations": {
@@ -1301,6 +1318,23 @@
         }
       }
     },
+    "Changed tyres": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changed tyres"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поменял шины"
+          }
+        }
+      }
+    },
     "Charge": {
       "extractionState": "manual",
       "localizations": {
@@ -1314,6 +1348,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Зарядка"
+          }
+        }
+      }
+    },
+    "Check fuel consumption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check fuel consumption"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте расход топлива"
           }
         }
       }
@@ -1539,6 +1590,23 @@
         }
       }
     },
+    "Consumption is up %1$@ vs a year ago": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consumption is up %1$@ vs a year ago"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расход вырос на %1$@ по сравнению с прошлым годом"
+          }
+        }
+      }
+    },
     "Consumption updated: %1$@ → %2$@ %3$@": {
       "extractionState": "manual",
       "localizations": {
@@ -1569,6 +1637,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Стоимость / км"
+          }
+        }
+      }
+    },
+    "Create reminder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Create reminder"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Создать напоминание"
           }
         }
       }
@@ -1977,6 +2062,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отклонить напоминание?"
+          }
+        }
+      }
+    },
+    "Dismissing with a reason keeps it quiet for this period.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismissing with a reason keeps it quiet for this period."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отклонение с причиной скроет подсказку на этот период."
+          }
+        }
+      }
+    },
+    "Dismiss with reason": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dismiss with reason"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отклонить с причиной"
           }
         }
       }
@@ -2950,6 +3069,23 @@
         }
       }
     },
+    "It's winter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's winter"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зима"
+          }
+        }
+      }
+    },
     "Item name": {
       "extractionState": "manual",
       "localizations": {
@@ -3103,6 +3239,40 @@
         }
       }
     },
+    "Last 90 days: %1$@ · a year earlier: %2$@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last 90 days: %1$@ · a year earlier: %2$@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последние 90 дней: %1$@ · год назад: %2$@"
+          }
+        }
+      }
+    },
+    "Last 90 days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Last 90 days"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Последние 90 дней"
+          }
+        }
+      }
+    },
     "Last price/L": {
       "extractionState": "manual",
       "localizations": {
@@ -3116,6 +3286,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Цена за литр"
+          }
+        }
+      }
+    },
+    "Likely causes: tire pressure, air filter, winter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Likely causes: tire pressure, air filter, winter"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вероятные причины: давление в шинах, воздушный фильтр, зима"
           }
         }
       }
@@ -5519,6 +5706,23 @@
         }
       }
     },
+    "Towing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Towing"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Буксировка"
+          }
+        }
+      }
+    },
     "Trends": {
       "extractionState": "manual",
       "localizations": {
@@ -5770,6 +5974,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Какая это валюта?"
+          }
+        }
+      }
+    },
+    "Why is consumption higher?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Why is consumption higher?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Почему расход выше?"
           }
         }
       }

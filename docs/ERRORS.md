@@ -52,6 +52,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
+| Consumption drift detected (J9) | Amber insight card in the Log, in the car's own unit, naming BOTH windows compared ("Consumption is up 21% vs a year ago" + "Last 90 days: 6.5 L/100km · a year earlier: 5.4 L/100km"); tap → evidence (chart of the drift + possible causes: tire pressure, air filter, winter) | Act → creates a service reminder · dismiss with reason (teaches the model) – both always present (a card with only dismiss teaches nothing; only act is a nag) |
 | First fill logged, no segment yet (D4) | Hint on vitals: "One more full tank and your consumption appears" | Capture (the card links it) |
 
 ### Capture (camera)

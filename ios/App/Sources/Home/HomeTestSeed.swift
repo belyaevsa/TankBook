@@ -20,6 +20,10 @@ enum HomeTestSeed {
         if arguments.contains("-homeResetDatabase") {
             AppStore.resetForTestsOncePerLaunch()
         }
+        // The J9 anomaly dismissal store is UserDefaults-backed (UserDefaults
+        // survive `-homeResetDatabase`, which only wipes the database), so a
+        // test that needs the card back resets it explicitly.
+        AnomalyInsightStore.resetForTestsIfRequested(arguments)
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent: a seed that has already run (or another test's seed) does
         // not add a second vehicle, so app data survives across launches within
@@ -45,7 +49,8 @@ enum HomeTestSeed {
             ("-seedHomePendingRates", seedPendingRates),
             ("-seedHomeDuplicate", seedDuplicate),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
-            ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit)
+            ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
+            ("-seedHomeAnomaly", AnomalyTestSeed.seed)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
