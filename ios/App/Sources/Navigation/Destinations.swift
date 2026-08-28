@@ -35,7 +35,7 @@ struct DestinationView: View {
         case .tireSets: TireSetsView()
         case .tireSetForm(let tireSetID): TireSetFormView(tireSetID: tireSetID)
         case .addVehicle: AddVehicleView()
-        case .accountDevices: LeafContent()
+        case .accountDevices: AccountDevicesView()
         case .paywall: LeafContent()
         case .importWizard: ImportWizardView()
         case .flaggedEntries: FlaggedEntriesView()

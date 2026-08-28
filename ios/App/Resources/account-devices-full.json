@@ -1,0 +1,13 @@
+{
+  "devices": [
+    { "id": "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA",
+      "name": "Alex's iPhone", "platform": "iOS",
+      "lastSeenAt": "2026-08-28T08:15:00.0000000+02:00", "revoked": false },
+    { "id": "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB",
+      "name": "Home iPad", "platform": "iPadOS",
+      "lastSeenAt": "2026-08-25T18:40:00.0000000+02:00", "revoked": false },
+    { "id": "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC",
+      "name": "Work MacBook", "platform": "macOS",
+      "lastSeenAt": "2026-07-30T12:00:00Z", "revoked": true }
+  ]
+}

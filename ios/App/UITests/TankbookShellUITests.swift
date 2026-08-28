@@ -103,12 +103,12 @@ final class TankbookShellUITests: XCTestCase {
         app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
 
-        app.buttons["vehicleDetailButton"].tap()
+        app.buttons["garageCarRow"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
 
-        app.buttons["addVehicleButton"].tap()
+        app.buttons["garageAddCar"].tap()
         XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
