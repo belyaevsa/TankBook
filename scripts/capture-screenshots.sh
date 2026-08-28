@@ -316,6 +316,23 @@ capture P6.1b-insight-evidence-ru       ru -seedHomeAnomaly -presentAnomalyEvide
 capture P6.1b-insight-dismiss           en -seedHomeAnomaly -presentAnomalyDismissal
 capture P6.1b-insight-dismiss-ru        ru -seedHomeAnomaly -presentAnomalyDismissal
 
+# P6.3: the gateway on the Confirm sheet (docs/API.md -> "The device's side of
+# /extract"). The timeout shot is the 3 s budget-expired state - the message
+# names the next step (carry on with what was read locally) and carries no
+# upsell (hard rule 7). `-seedGatewayDelay 30` keeps the request in flight past
+# the 6 s capture window so the banner is the stable state. The late-answer shot
+# shows the gateway's fields landed as SUGGESTIONS: the sparse prefill resolved
+# liters on-device, the cloud reading fills the blank total and price (the
+# `-seedGatewayConsistent` triple locks cleanly). The filled fields render
+# BRIGHT here, not dimmed: they land dimmed like any extraction suggestion, and
+# `ConfirmConfidenceGate` un-dims them the moment the cross-check locks (P2.3).
+# The timeout shot above is where the dim is visible, on the one sparse value.
+# Editable throughout either way, which is what hard rule 13 actually requires.
+capture P6.3-gateway-timeout          en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillSparse -seedGateway -seedGatewayDelay 30
+capture P6.3-gateway-timeout-ru       ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillSparse -seedGateway -seedGatewayDelay 30
+capture P6.3-gateway-late-answer      en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillSparse -seedGateway -seedGatewayConsistent -seedGatewayDelay 4
+capture P6.3-gateway-late-answer-ru   ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillSparse -seedGateway -seedGatewayConsistent -seedGatewayDelay 4
+
 # P4.6: the "photo syncing" shimmer - an entry whose inline thumbnail has
 # arrived (in the payload) but whose full rendition blob is still pending. The
 # chip shimmers and the entry is openable and editable throughout.

@@ -1471,6 +1471,23 @@
         }
       }
     },
+    "Cloud reading continues in the background – keep going with what was read here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud reading continues in the background – keep going with what was read here."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Облачное распознавание продолжается в фоне – продолжайте с тем, что распознано здесь."
+          }
+        }
+      }
+    },
     "Coming from Fuelio, Drivvo or My Fuel Manager? Bring your history along.": {
       "extractionState": "manual",
       "localizations": {

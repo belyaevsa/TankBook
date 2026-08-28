@@ -371,4 +371,40 @@ struct LocalizationGateP53Tests {
                     "\(item.key) RU '\(russian)' governs \(item.slot) with a preposition")
         }
     }
+
+    // MARK: - P6.3 the gateway timeout message (hard rule 7: it names its next
+    // step, EN and RU; docs/API.md rule 2)
+
+    /// The 3 s budget message is pinned verbatim in both languages. It must
+    /// name the next step - carry on with what was read on-device - and the RU
+    /// must obey docs/LOCALIZATION.md: no past-tense verb aimed at the user
+    /// (Russian has no genderless past), no `%@` slot at all (nothing to
+    /// decline), and no upsell (the Pro tier is deferred).
+    @Test("the gateway timeout message names its next step in EN and RU")
+    func gatewayTimeoutMessageNamesItsNextStep() throws {
+        let key = "Cloud reading continues in the background – keep going with what was read here."
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+
+        #expect(catalogue.value(for: key, language: "en") == key)
+
+        let expectedRU = "Облачное распознавание продолжается в фоне – продолжайте с тем, что распознано здесь."
+        let russian = try #require(catalogue.value(for: key, language: "ru"), "\(key) has no RU value")
+        #expect(russian == expectedRU, "RU drifted: '\(russian)'")
+
+        // No runtime slot: there is nothing for a phrase to decline, and the
+        // P4.7/P5.3 slot-governance rules have nothing to trip over.
+        #expect(!russian.contains("%"))
+
+        // The user is addressed in the imperative, never a past-tense verb
+        // (docs/LOCALIZATION.md: Russian has no genderless past tense). The
+        // one past participle - "распознано" - describes the reading, not the
+        // user, so it is legal.
+        #expect(russian.contains("продолжайте"))
+
+        // No monetization: hard rule 7 forbids an upsell in this surface and
+        // API.md forbids one mid-capture, which is exactly where this runs.
+        #expect(!russian.lowercased().contains("pro"))
+        #expect(!russian.lowercased().contains("подписк"))
+        #expect(!key.lowercased().contains("pro"))
+    }
 }

@@ -30,6 +30,11 @@ struct ConfirmPrefill {
     var crops: [ManualFillUpMath.Field: CropEvidence] = [:]
     var qrAnchor: FiscalQRAnchor?
     var ocrLines: [OCRLine] = []
+    /// P6.3: the scanned photo itself, when a capture has one. This is what the
+    /// gateway rendition (`GatewayRendition`) is made from for `POST /extract` -
+    /// the P2.2 capture pipeline hands it across with the prefill, and nil is
+    /// the manual form with no cloud reading (never an error, hard rule 15).
+    var sourceImage: UIImage?
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
@@ -59,6 +64,17 @@ struct ConfirmPrefill {
 ///   low-confidence (asks, never converts).
 enum ConfirmPrefillSeed {
     static func from(arguments: [String]) -> ConfirmPrefill? {
+        guard var prefill = rawPrefill(from: arguments) else { return nil }
+        // P6.3: a gateway seed arms the cloud-reading path, which needs the
+        // scanned photo to build the rendition. The seeded transport ignores
+        // the bytes, so a synthetic frame is enough to drive the flow.
+        if arguments.contains("-seedGateway") {
+            prefill.sourceImage = syntheticSourceImage()
+        }
+        return prefill
+    }
+
+    private static func rawPrefill(from arguments: [String]) -> ConfirmPrefill? {
         if let foreign = foreignPrefill(from: arguments) { return foreign }
         if let pump = pumpPrefill(from: arguments) { return pump }
         if arguments.contains("-seedConfirmPrefillEmpty") {
@@ -194,6 +210,16 @@ enum ConfirmPrefillSeed {
         return Dictionary(uniqueKeysWithValues: fields.map {
             ($0, CropEvidence(image: image, rect: CGRect(x: 250, y: 280, width: 100, height: 40)))
         })
+    }
+
+    /// The gateway seed's source photo: a full-resolution stand-in capture the
+    /// rendition step can actually downscale (a 3024 px frame).
+    private static func syntheticSourceImage() -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 3024, height: 4032))
+        return renderer.image { context in
+            Theme.Palette.taillight.uiColor().setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 3024, height: 4032))
+        }
     }
 }
 

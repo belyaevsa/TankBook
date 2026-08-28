@@ -278,14 +278,21 @@ cannot enforce either and the user experience depends on both.
 **1 · The image is downscaled and compressed before upload.** A full-resolution iPhone capture is
 several megabytes; uploading one over a forecourt's cell signal is the slowest step in the whole
 flow by an order of magnitude, and the 4 MB envelope cap is a ceiling, not a target. The device
-therefore sends a **long-edge-bounded, JPEG-compressed** rendition (start at long edge 1600 px,
-quality 0.7, and tune down only against the corpus, below).
+therefore sends a **long-edge-bounded, JPEG-compressed** rendition.
 
 **Compression is a measurable trade, not a free one.** Fuel receipts are thermal print: the
 digits that matter are small, and over-compression eats exactly them. So the compression settings
 are **gated on the corpus** - re-score the receipt fixtures through the compression step with the
-existing scorer (`AccuracyRatchetTests`), and if hits fall, the settings are too aggressive. This
+existing scorer (`CorpusCompressionTests`), and if hits fall, the settings are too aggressive. This
 is what stops "make the upload faster" from quietly becoming "read the receipt worse".
+
+**The corpus answered, and it changed the starting point.** The 1600 px / quality 0.7 start from
+this section was measured against the receipt corpus and scored **82/175** - six hits below the
+recorded 88/175, so those settings were too aggressive (the exact miss class the gate exists for).
+The shipped values are now **long edge 1800 px, quality 0.9**, which re-scores **89/175** at a
+median ~360 KB base64 rendition (max ~830 KB across the receipt corpus) - comfortably under the
+4 MB ceiling and with accuracy intact. Tune again the same way: re-score, and any setting that
+drops hits below the recorded mark is rejected.
 
 **2 · The device waits 3 seconds per attempt, then stops making the user wait.** The on-device
 result is already on screen (F4: the app never waits on the gateway to show the card). When the

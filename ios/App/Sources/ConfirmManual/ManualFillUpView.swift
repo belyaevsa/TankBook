@@ -45,6 +45,17 @@ struct ManualFillUpView: View {
     @State private var verifyCrop: VerifyCrop?
     @State private var detection: MixedReceiptDetection = .notMixed
     @State private var acceptedLineIDs: Set<UUID> = []
+    /// P6.3: the cloud-reading session (docs/API.md -> "The device's side of
+    /// /extract"). Idle for the typed path; started when a scan carries a photo
+    /// and a gateway is available. Drives the 3 s budget banner and the
+    /// fill-blanks-only late answer.
+    @State private var gatewaySession = GatewayScanSession()
+    /// The fields the ON-DEVICE extraction resolved (the pre-fill already on
+    /// screen). A late gateway answer never refills one of these (F4).
+    @State private var gatewayOnDeviceResolved: Set<FieldRef> = []
+    /// Arming guard for the currency/fuelKind/date touch hooks: the form's own
+    /// load-time assignment must not count as a user touch.
+    @State private var gatewayTouchTrackingArmed = false
 
     init(prefill: ConfirmPrefill? = nil, hasUnsavedChanges: Binding<Bool>) {
         self.injectedPrefill = prefill
@@ -100,6 +111,9 @@ struct ManualFillUpView: View {
                     // behind the pinned Save bar. One order across both screens
                     // also means muscle memory transfers between them.
                     ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
+                    if gatewaySession.phase == .budgetExpired {
+                        gatewayTimeoutBanner
+                    }
                     ManualFillUpOdometerCard(
                         form: $form, focus: $focus,
                         distanceUnit: distanceUnit,
@@ -166,12 +180,28 @@ struct ManualFillUpView: View {
             // card figure, so it is not part of the confidence set.
             if let field = newValue?.mathField {
                 form.userConfirmedFields.insert(field)
+                // P6.3: engagement is permanent - a tapped field is the user's
+                // own, and no late gateway answer may overwrite it (hard rule
+                // 13).
+                gatewaySession.markTouched(field.fieldRef)
             }
         }
         .onChange(of: form, initial: true) { _, newValue in
             if let vehicle {
                 hasUnsavedChanges = newValue.hasEdits(vehicle: vehicle)
             }
+        }
+        // P6.3: touching the non-math fields is engagement too. Guarded so the
+        // load-time pre-fills (currency = home, fuel kind default, date =
+        // extraction/today) never count as touches.
+        .onChange(of: form.currency) { _, _ in
+            if gatewayTouchTrackingArmed { gatewaySession.markTouched(.currency) }
+        }
+        .onChange(of: form.fuelKind) { _, _ in
+            if gatewayTouchTrackingArmed { gatewaySession.markTouched(.fuelKind) }
+        }
+        .onChange(of: form.date) { _, _ in
+            if gatewayTouchTrackingArmed { gatewaySession.markTouched(.date) }
         }
     }
 
@@ -214,6 +244,7 @@ struct ManualFillUpView: View {
             if let prefill {
                 apply(prefill, vehicle: vehicle)
                 detectMixedReceipt(prefill)
+                startGatewayReading(prefill: prefill)
             }
             // The pre-fill snapshots are taken AFTER the convenience pre-fills
             // (odometer, date, extraction): none of them count as an edit.
@@ -223,6 +254,9 @@ struct ManualFillUpView: View {
             form.initialLiters = form.liters
             form.initialPricePerL = form.pricePerL
             form.initialManualRate = form.manualRate
+            // P6.3: touch tracking is armed only after the load-time pre-fills
+            // have been written - from now on, a change is a user touch.
+            gatewayTouchTrackingArmed = true
             currencyLowConfidence = currencyLowConfidence
                 || ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
             if ProcessInfo.processInfo.arguments.contains("-screenshotPrefill") {
@@ -251,6 +285,11 @@ struct ManualFillUpView: View {
         guard let extraction = prefill.extraction else { return }
         currencyLowConfidence = prefill.currencyLowConfidence
         form.resolvedByExtraction.removeAll()
+        // P6.3: the fields the ON-DEVICE pipeline resolved are the late-answer
+        // boundary (F4) - the on-device result has first claim, and a gateway
+        // answer never refills one of them. Recorded before the pre-fill is
+        // applied below, because it is about the extraction, not the form.
+        gatewayOnDeviceResolved = Self.onDeviceResolvedFields(extraction)
         switch ConfirmQRTotal.resolve(extraction: extraction, qrAnchor: prefill.qrAnchor) {
         case .noAnchor(let ocrTotal):
             applyTotal(ocrTotal)
@@ -304,6 +343,129 @@ struct ManualFillUpView: View {
         }
     }
 
+    // MARK: - P6.3 the gateway reading (docs/API.md rules 2 & 3)
+
+    /// The fields the on-device extraction resolved - the late answer's
+    /// "not blank" boundary. The QR-anchored total is NOT one of these: a QR
+    /// total is exact, and treating it as on-device-resolved would be fine too
+    /// (it is never blank), but the extraction's own fields are the honest set.
+    private static func onDeviceResolvedFields(_ extraction: FuelExtraction) -> Set<FieldRef> {
+        var resolved = Set<FieldRef>()
+        if extraction.total != nil { resolved.insert(.total) }
+        if extraction.liters != nil { resolved.insert(.volume) }
+        if extraction.unitPrice != nil { resolved.insert(.unitPrice) }
+        if extraction.date != nil { resolved.insert(.date) }
+        if extraction.currency != nil { resolved.insert(.currency) }
+        if extraction.fuelKind != nil { resolved.insert(.fuelKind) }
+        return resolved
+    }
+
+    /// Fires the background `/extract` request when this scan has a photo and a
+    /// gateway is available (signed in, or a seeded test transport). The card
+    /// on screen is the on-device result - the app never waits on the gateway
+    /// to show it (F4).
+    private func startGatewayReading(prefill: ConfirmPrefill) {
+        guard let sourceImage = prefill.sourceImage,
+              let cgImage = sourceImage.cgImage,
+              let transport = GatewayScanStarter.makeTransport() else { return }
+        guard let jpeg = GatewayRendition.jpegData(from: cgImage) else { return }
+        let request = GatewayExtractRequest(
+            kind: "receipt",
+            imageJPEG: jpeg,
+            hints: gatewayHints())
+        gatewaySession.start(transport: transport, request: request) { extraction in
+            // A value-captured view struct: `@State` wraps shared storage, so
+            // mutating `form` through the copy lands in the box the live view
+            // reads. The session's `deliver` already guards the saved state.
+            self.applyGatewayAnswer(extraction)
+        }
+    }
+
+    private func gatewayHints() -> GatewayExtractHints {
+        let current = Locale.current
+        let language = current.language.languageCode?.identifier ?? "en"
+        return GatewayExtractHints(
+            currency: form.currency.rawValue,
+            locale: language,
+            vehicleFuelKinds: vehicle?.fuelKinds.map(\.rawValue) ?? [])
+    }
+
+    /// Applies a gateway answer - within budget or late - as a SUGGESTION,
+    /// bound by hard rule 13 and F4: only fields that are still blank AND
+    /// untouched, on an unsaved entry. Applied fields are marked as resolved
+    /// but unconfirmed, so they render dimmed exactly like any other extraction
+    /// suggestion until the user confirms them.
+    private func applyGatewayAnswer(_ extraction: GatewayExtraction) {
+        guard let vehicle else { return }
+        let snapshot = GatewaySuggestionSnapshot(
+            touched: gatewaySession.touched,
+            onDeviceResolved: gatewayOnDeviceResolved,
+            saved: gatewaySession.phase == .saved)
+        let fillable = GatewaySuggestionPolicy.fillableFields(answer: extraction, snapshot: snapshot)
+
+        for ref in fillable {
+            switch ref {
+            case .total:
+                if let total = extraction.total?.value {
+                    form.total = ConfirmFormat.string(decimal: total, fractionDigits: 2)
+                    form.resolvedByExtraction.insert(.total)
+                }
+            case .volume:
+                if let volume = extraction.volume?.value {
+                    form.liters = ConfirmFormat.string(fromExtraction: volume, fractionDigits: 2)
+                    form.resolvedByExtraction.insert(.volume)
+                }
+            case .unitPrice:
+                if let price = extraction.unitPrice?.value {
+                    form.pricePerL = ConfirmFormat.string(decimal: price, fractionDigits: 3)
+                    form.resolvedByExtraction.insert(.unitPrice)
+                }
+            case .currency:
+                // The form's own currency chip rule: a suggested currency stays
+                // a default input, never silently converted.
+                if let currency = extraction.currency?.value {
+                    form.currency = currency
+                }
+            case .fuelKind:
+                // Only a kind this vehicle actually accepts (docs/EXTRACTION.md:
+                // a visible grade is evidence the station sells it, never that
+                // this fill used it).
+                if let kind = extraction.fuelKind?.value, vehicle.fuelKinds.contains(kind) {
+                    form.fuelKind = kind
+                }
+            case .date:
+                if let raw = extraction.date?.value, let date = ConfirmDate.parse(raw) {
+                    form.date = date
+                }
+            default:
+                break
+            }
+        }
+    }
+
+    /// The 3 s budget message (docs/API.md rule 2, hard rule 7): it names the
+    /// next step - carry on with what was read on-device - and it carries no
+    /// upsell (the Pro tier is deferred; monetization appears in no error
+    /// surface here, and an upsell mid-capture is explicitly forbidden).
+    private var gatewayTimeoutBanner: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "hourglass.bottomhalf.filled")
+                .font(.footnote)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Text("Cloud reading continues in the background – keep going with what was read here.")
+                .font(.footnote)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Theme.Palette.dash)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("gatewayTimeoutMessage")
+    }
+
     // MARK: - Save
 
     private var saveEnabled: Bool {
@@ -353,6 +515,9 @@ struct ManualFillUpView: View {
             }
             try repository.upsertFillUp(toSave)
             hasUnsavedChanges = false
+            // P6.3 (F4): a saved entry is corrected by its owner alone -
+            // nothing arrives after save, whatever the background request does.
+            gatewaySession.markSaved()
             // Odometer arming (P3.6): a save can cross a reminder's dueOdometer
             // window; reconcile arms the notification at write time.
             Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
