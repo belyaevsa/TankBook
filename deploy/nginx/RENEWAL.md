@@ -1,8 +1,13 @@
 # Certificate renewal for tankbook.live
 
-The certificate issued on 2026-08-28 came from `certbot --manual` (DNS-01 by
-hand) and **does not renew itself**. It expires **2026-11-26**. This file is how
-to make renewal automatic, and how to prove it worked.
+**Status: renewal is automatic as of 2026-08-28** (W11). The certificate was
+first issued with `certbot --manual` (DNS-01 by hand), which certbot said would
+never renew, and was then re-issued over `--webroot` with `--cert-name` and a
+reload `--deploy-hook`.
+
+This file stays because the reasoning is needed again: at the next provider
+change, the next server rebuild, or the first time a renewal quietly stops. The
+verification section is the part to re-run, not the prose.
 
 ## The one thing to understand first
 
