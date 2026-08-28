@@ -104,3 +104,8 @@ target = "static"
 [[module.mounts]]
 source = "../design/screenshots"
 target = "assets/screenshots"
+# The corpus keeps P1.1-shell-dark-rejected-accent-tabbar.png as the record of a
+# hard-rule-5 violation, and SITE.md says it must never ship. Excluding it at the
+# mount means it cannot be published even by accident - a page referencing it by
+# name simply fails to resolve the resource rather than shipping the file.
+excludeFiles = "*rejected*"

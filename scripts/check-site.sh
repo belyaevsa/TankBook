@@ -410,6 +410,21 @@ else
   printf '%s\n' "$img_bad"
 fi
 
+# --- V6b: 'rejected' must not be PUBLISHED, not merely unreferenced ----------
+# Referenced and published are different questions. Hugo NEVER cleans public/,
+# so anything a build ever emitted stays there until the directory is removed -
+# and the deploy copies public/ wholesale. A file referenced once by a branch, a
+# draft, or a mutation test would ship forever afterwards, fetchable by anyone
+# who guessed the name. This gate asks the published question; the build asks the
+# other one by cleaning first.
+published_rejected="$(find site/public -iname '*rejected*' 2>/dev/null || true)"
+if [ -z "$published_rejected" ]; then
+  pass "V6b no file whose name contains 'rejected' is published at all"
+else
+  fail "V6b a 'rejected' file is PUBLISHED (referenced or not)"
+  printf '%s\n' "$published_rejected"
+fi
+
 # --- V1: the privacy page's STANCE, not just its topics --------------------
 # The claim checks above grep for topics ("end-to-end encryption", "TLS", "410").
 # A validator proved they pass when the sentence is INVERTED: rewriting the page

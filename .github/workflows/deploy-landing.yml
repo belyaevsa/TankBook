@@ -68,7 +68,7 @@ jobs:
 
       - name: Build
         working-directory: site
-        run: hugo --minify --gc
+        run: hugo --minify --gc --cleanDestinationDir
 
       - name: Assert the build produced a site
         run: |
@@ -123,7 +123,7 @@ jobs:
 
       - name: Build
         working-directory: site
-        run: hugo --minify --gc
+        run: hugo --minify --gc --cleanDestinationDir
 
       - name: Assert the build produced a site
         # `hugo` can exit 0 having emitted almost nothing. Without this, an empty
