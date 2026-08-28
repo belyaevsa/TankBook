@@ -34,7 +34,7 @@ public enum PumpPhotoGate {
     /// unit price, and pump-021/022/023 show a grade price BOARD rather than
     /// the transaction's unit price), and `fuelKind` is never asserted for a
     /// pump at all. The 23 currency cells are what raised 61 -> 84.
-    public static let measuredTotal: Int = 106
+    public static let measuredTotal: Int = 111
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95

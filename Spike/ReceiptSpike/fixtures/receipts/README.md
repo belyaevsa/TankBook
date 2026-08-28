@@ -653,3 +653,29 @@ should not diverge silently, and whichever way it is settled belongs in
 `docs/SCHEMA.md` rather than in two `expected.csv` files that disagree.
 
 Scored: the two receipts added 4 fields and 1 hit (47/102 -> 48/106).
+
+## 2026-08-28: receipt-040, and the corpus's second matched pair
+
+`receipt-040-gpn-okulovka-gdrive95-fuelcard-ru.jpg` is the **same fill** as
+`pump/pump-029-dresser-wayne-gpn-okulovka-ru-glare-total.jpg`: a Gazprom Neft
+G-Drive 95 purchase at Okulovka, 57.000 L at 71.18 RUB = 4057.26, photographed
+at the pump and on the corporate fuel-card slip within the same minute.
+
+The corpus had one matched pair before (Circle K Sikupilli, `pump-019` /
+`receipt-038`). This is the second and the first in Russian, and a pair is worth
+more than two separate fixtures: **the receipt is ground truth for the pump
+photo**, whose total's last digit is destroyed by sun flare and is recoverable
+only by arithmetic. Any parser change that reads the two differently has a bug,
+and nothing else in the corpus can state that.
+
+Two properties worth naming:
+
+- **Operands are printed PRICE FIRST**: `71.18 X 57.000`, two decimals on the
+  price and three on the volume. That is evidence for the decimal-count reading
+  of operand order - but `receipt-037` falsified it as a **rule** (it prints
+  `99.99 X 25 Л`, two decimals on the price and none on the volume). So this is
+  recorded as evidence, not promoted to a rule, and P2.9 still needs the unit
+  marker rather than decimal counting.
+- **A corporate fuel-card slip with no VAT line**, like `receipt-035`. It carries
+  «Бескарточное завершение операции» and an unavailable limit, so the total is
+  the only money figure that can be trusted.

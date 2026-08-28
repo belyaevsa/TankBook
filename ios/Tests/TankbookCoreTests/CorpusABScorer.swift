@@ -296,6 +296,9 @@ enum PostSweepCorpusAdditions {
             "receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg",
             "receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg",
             "receipt-039-circlek-sikupilli-zero-volume-pump7-ee.jpg",
+            // The matched half of pump-029: same fill, same forecourt, same
+            // minute. Declared, not swept - the A/B arms are frozen.
+            "receipt-040-gpn-okulovka-gdrive95-fuelcard-ru.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -313,6 +316,7 @@ enum PostSweepCorpusAdditions {
             "pump-026-gilbarco-circlek-ee-comma-decimal.jpg",
             "pump-027-gilbarco-circlek-ee-comma-glare.jpg",
             "pump-028-gilbarco-circlek-ee-comma-decimal-b.jpg",
+            "pump-029-dresser-wayne-gpn-okulovka-ru-glare-total.jpg",
         ],
     ]
 
