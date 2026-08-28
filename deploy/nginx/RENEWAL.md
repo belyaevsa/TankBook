@@ -39,7 +39,7 @@ curl -s http://127.0.0.1/.well-known/acme-challenge/probe -H 'Host: tankbook.liv
 
 # From the public internet - proves DNS points here AND port 80 is open.
 # Run it for each name; every one must print "ok".
-for d in tankbook.live www.tankbook.live api.tankbook.live; do
+for d in tankbook.live api.tankbook.live; do
   printf '%s -> ' "$d"
   curl -s --max-time 10 "http://$d/.well-known/acme-challenge/probe" || echo FAILED
 done
@@ -53,7 +53,7 @@ because each failed attempt counts against Let's Encrypt rate limits.
 
 ```sh
 sudo certbot certonly --webroot -w /var/www/certbot \
-     -d tankbook.live -d www.tankbook.live -d api.tankbook.live \
+     -d tankbook.live -d api.tankbook.live \
      --cert-name tankbook.live \
      --deploy-hook "systemctl reload nginx" \
      --force-renewal
@@ -85,7 +85,7 @@ supply hooks:
 
 ```sh
 sudo certbot certonly --manual --preferred-challenges dns \
-     -d tankbook.live -d www.tankbook.live -d api.tankbook.live \
+     -d tankbook.live -d api.tankbook.live \
      --cert-name tankbook.live \
      --manual-auth-hook /usr/local/bin/certbot-dns-auth.sh \
      --manual-cleanup-hook /usr/local/bin/certbot-dns-cleanup.sh \
