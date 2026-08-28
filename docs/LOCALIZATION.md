@@ -191,3 +191,30 @@ a human reading rendered Russian can judge it. The pass is mutation-checked in
 `LocalizationGateP53Tests`: it flags `Text(x ?? "…")`, a mixed ternary, and a
 concatenation; the recorded split fix clears it; an interpolated literal does
 not trip it; and the current tree passes with zero violations.
+
+
+## Two shapes that are legal Russian and still wrong (added 2026-08-28, from P6.1b)
+
+Both were found by reading a rendered screen, not by any test, and both are the same family as
+P4.7's «с вашего телефон Android» - the grammar is fine and the meaning is not.
+
+### A past-tense verb assumes the user's gender
+
+`Changed tyres` was translated **«Поменял шины»** - masculine past. A woman dismissing the card
+reads a form that misgenders her, and **Russian has no genderless past tense**, so no better
+translation exists. The fix is to change the part of speech: a **noun phrase** (**«Замена шин»**)
+carries the same meaning and has no gender.
+
+**Rule: user-facing Russian never puts the user in a past-tense verb.** Prefer a noun phrase, an
+infinitive, or an imperative. This applies to every option list, every log entry the user authors,
+and every confirmation that echoes what they just did.
+
+### A word that collides with the domain vocabulary
+
+`Dismissing with a reason keeps it quiet for this period.` was translated **«Отклонение с
+причиной…»**. «Отклонение» is a correct translation of *dismissal* in the formal sense - and in a
+fuel app it is also the ordinary word for **deviation**, sitting directly under a card about a
+consumption deviation. The sentence reads as "a deviation with a cause".
+
+**Rule: check a translated term against the app's own domain vocabulary, not only against the
+dictionary.** The words that break this way are exactly the ones that look most correct.
