@@ -157,11 +157,17 @@ struct PaletteAccentGuardTests {
         return (lighter + 0.05) / (darker + 0.05)
     }
 
-    @Test("action and headlight clear 4.5:1 on both grounds in both themes (W8)")
+    /// EVERY accent, not a chosen two. The first version of this test looped
+    /// over `action` and `headlight` only - the two W8 happened to touch - while
+    /// `docs/DESIGN.md` promises AA for every accent in both themes. It passed,
+    /// and `warn` was failing at 3.82:1 on light `midnight` the whole time, used
+    /// as caption text in ~15 files. A guard narrower than the rule it enforces
+    /// reports success for the part nobody changed.
+    @Test("every accent clears 4.5:1 on both grounds in both themes (W8)")
     func accentContrastClearsAA() throws {
         let tokens = try Self.loadTokens()
 
-        for accent in ["action", "headlight"] {
+        for accent in ["action", "headlight", "warn", "taillight"] {
             let token = try #require(tokens.color[accent],
                                      "tokens.json has no '\(accent)' colour")
             for ground in ["midnight", "dash"] {
