@@ -34,16 +34,84 @@ fail() { printf 'FAIL  %s\n' "$1"; failures=$((failures + 1)); }
 
 # ── S1: the token generator and its hand-edit guard ──────────────────────
 
-if swift scripts/generate-site-tokens.swift >/dev/null 2>&1; then
-  pass "generator runs clean (swift scripts/generate-site-tokens.swift)"
+# The generator is a Swift script and Swift is NOT installed on the deploy
+# runner, so shelling out to it failed there - reporting token drift when it
+# could not run the generator at all. Same shape as the sips bug above.
+#
+# So drift is verified INDEPENDENTLY in python3: parse design/tokens.json and
+# parse the committed CSS, and compare. That is stronger than re-running the
+# generator, which can only ever agree with itself - two implementations
+# disagreeing is exactly the signal wanted here. The Swift --check still runs
+# as an extra wherever Swift exists.
+token_drift="$(python3 - <<'PYEOF' 2>&1
+import json, re, sys
+
+def kebab(name):
+    return re.sub(r'(?<!^)(?=[A-Z])', '-', name).lower()
+
+tokens = json.load(open('design/tokens.json'))
+css = open('site/assets/css/tokens.generated.css').read()
+
+# :root { ... } is the dark set; the prefers-color-scheme: light block is light.
+dark_txt = css.split('@media', 1)[0]
+light_txt = css.split('@media', 1)[1] if '@media' in css else ''
+
+def declared(block):
+    return {m.group(1): m.group(2).strip()
+            for m in re.finditer(r'--([a-z0-9-]+)\s*:\s*([^;]+);', block)}
+
+dark, light = declared(dark_txt), declared(light_txt)
+problems = []
+
+for name, pair in tokens.get('color', {}).items():
+    var = kebab(name)
+    for theme, table in (('dark', dark), ('light', light)):
+        want = pair.get(theme)
+        if want is None:
+            continue
+        got = table.get(var)
+        if got is None:
+            problems.append('%s: --%s missing' % (theme, var))
+        elif got.upper() != want.upper():
+            problems.append('%s: --%s is %s, tokens.json says %s' % (theme, var, got, want))
+
+for key, want in (tokens.get('spacing') or {}).items():
+    var = 'spacing-' + kebab(key)
+    got = dark.get(var)
+    if got is None:
+        problems.append('--%s missing' % var)
+    elif got != '%spx' % want:
+        problems.append('--%s is %s, tokens.json says %spx' % (var, got, want))
+
+for key, want in (tokens.get('radius') or {}).items():
+    var = 'radius-' + kebab(key)
+    got = dark.get(var)
+    if got is None:
+        problems.append('--%s missing' % var)
+    elif got != '%spx' % want:
+        problems.append('--%s is %s, tokens.json says %spx' % (var, got, want))
+
+if not dark:
+    problems.append('parsed no custom properties at all - the parser, not the CSS, is broken')
+
+print('\n'.join(problems))
+PYEOF
+)"
+if [ -z "$token_drift" ]; then
+  pass "tokens.generated.css matches design/tokens.json (verified independently in python3)"
 else
-  fail "generator runs clean (swift scripts/generate-site-tokens.swift)"
+  fail "tokens.generated.css has drifted from design/tokens.json"
+  printf '%s\n' "$token_drift"
 fi
 
-if swift scripts/generate-site-tokens.swift --check >/dev/null 2>&1; then
-  pass "--check: tokens.generated.css matches design/tokens.json"
+if command -v swift >/dev/null 2>&1; then
+  if swift scripts/generate-site-tokens.swift --check >/dev/null 2>&1; then
+    pass "generator --check agrees (Swift available)"
+  else
+    fail "generator --check disagrees with the committed CSS"
+  fi
 else
-  fail "--check: tokens.generated.css matches design/tokens.json"
+  pass "generator --check skipped: Swift absent on this host (the python check above covers drift)"
 fi
 
 # ── S1/S2: hugo builds, output exists, both languages ────────────────────
