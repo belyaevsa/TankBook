@@ -20,9 +20,33 @@ the internet. The nginx config already serves the challenge: the port-80 block
 has `location ^~ /.well-known/acme-challenge/` with `root /var/www/certbot`, and
 `^~` makes it win over the HTTPS redirect, so the challenge is never 301'd away.
 
-```sh
-sudo mkdir -p /var/www/certbot
+First create the webroot and **prove nginx actually serves it**. Doing this
+before certbot separates two failures that produce similar-looking errors: a
+webroot nginx does not serve, and a domain whose DNS does not point at this
+host. Certbot cannot tell you which it hit; this can.
 
+```sh
+sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+echo ok | sudo tee /var/www/certbot/.well-known/acme-challenge/probe >/dev/null
+
+# From this host - proves nginx serves the webroot at all:
+curl -s http://127.0.0.1/.well-known/acme-challenge/probe -H 'Host: tankbook.live'
+
+# From the public internet - proves DNS points here AND port 80 is open.
+# Run it for each name; every one must print "ok".
+for d in tankbook.live www.tankbook.live api.tankbook.live; do
+  printf '%s -> ' "$d"
+  curl -s --max-time 10 "http://$d/.well-known/acme-challenge/probe" || echo FAILED
+done
+
+sudo rm -f /var/www/certbot/.well-known/acme-challenge/probe
+```
+
+If the local curl prints `ok` but a public one does not, the webroot is fine and
+DNS or the firewall is the problem - do not re-run certbot until that is fixed,
+because each failed attempt counts against Let's Encrypt rate limits.
+
+```sh
 sudo certbot certonly --webroot -w /var/www/certbot \
      -d tankbook.live -d www.tankbook.live -d api.tankbook.live \
      --cert-name tankbook.live \
