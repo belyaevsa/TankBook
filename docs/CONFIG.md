@@ -28,6 +28,7 @@ A layer is used only if it validates. An invalid layer falls back to the one ben
 | OCR confidence thresholds | Retune the dimming/fallback boundary as the corpus grows |
 | `minSchemaVersion`, reference-pack versions (rates, catalog) | Coordinate rollouts; also echoed by `/sync/pull` |
 | Maintenance notice (text + severity + optional link) | Tell users about planned downtime honestly |
+| `appUpdate` (`minSupportedVersion`, `latestVersion`) | Tell a build it is out of date, and withdraw the server-backed features from one the server no longer supports, without an App Store release. Its own section below |
 | `rolloutSalt` + per-flag rollout percentage | Stage a flag to 10% before everyone |
 
 **Never remote-configurable:** anything security-critical (Keychain accessibility classes, TLS policy, the config signing key itself), UI layout, business rules, or consumption math. If a change alters what a number *means*, it ships through the App Store where it can be reviewed and tested.
@@ -41,13 +42,61 @@ A layer is used only if it validates. An invalid layer falls back to the one ben
 4. **Signed payload:** the config document is signed (Ed25519) with a key whose public half is bundled; an unsigned or badly-signed document is rejected even over valid TLS. TLS authenticates the *connection*; the signature authenticates the *document*, so a compromised CDN or a misissued certificate still cannot redirect our clients. Because config can move the API, this is proportionate rather than paranoid.
 5. **Version monotonicity:** each document carries an increasing `version`; a client never applies a document older than the one it holds (rollback protection).
 
+## App version and the update notice
+
+The second user-visible config surface, and the answer to "this build is too old". It is delivered as
+a key in the signed document rather than as its own endpoint, so it inherits the signature, the
+version monotonicity, the `ETag`/`304`, the offline cache and the bundled fallback without a single
+one of them being specified twice.
+
+```json
+"appUpdate": { "minSupportedVersion": "1.2.0", "latestVersion": "1.4.0" }
+```
+
+**The server states facts; the client derives the requirement.** Two thresholds and one derived
+value - deliberately *not* a `severity` string, because a document could then declare `"required"`
+while naming a `minSupportedVersion` the running build already satisfies, and there is no correct
+way to resolve that contradiction. With thresholds the hard/soft sign is computed, and cannot
+disagree with itself:
+
+| The running build | Requirement | What the user sees | What is withheld |
+|---|---|---|---|
+| `>= latestVersion` | `.none` | nothing | nothing |
+| `>= minSupportedVersion`, `< latestVersion` | `.recommended` (**soft**) | a dismissible row in Settings -> About | nothing |
+| `< minSupportedVersion` | `.required` (**hard**) | a non-dismissible notice on the server-backed surfaces, naming its next step | sync, cloud extract, import parse |
+
+**A hard requirement never blocks the app** (hard rule 1). Below `minSupportedVersion` the user can
+still log, edit, view, compute and export every entry, offline and indefinitely; what stops is the
+set of things that talk to a server which has stopped supporting this build - the same set that
+`426 upgrade_required` already withholds on `/sync/push` (`API.md`), which is why the surface is
+shared with P6.11 rather than invented twice. A build that cannot sync is degraded; a build that
+cannot record a fill-up at a filling station is broken, and no version policy is worth that.
+
+**The notice is inert, like the maintenance notice, and for a sharper reason.** The server supplies
+**no text and no URL** - only the two version strings. The copy comes from the String Catalog (hard
+rule 10, so it is localised, and hard rule 7, so it names its next step) and the destination is the
+App Store page built from a compiled-in app id. *"Your app is out of date, tap here to update"* is
+close to the most obeyed sentence anyone could put on a screen, so it is not a sentence the server
+is given the ability to write.
+
+**An unparseable version fails open.** A `minSupportedVersion`, a `latestVersion` or a running
+`CFBundleShortVersionString` that does not parse as dotted numerics yields `.none`, logged at WARN.
+Comparison is numeric per component, never lexicographic - `1.10.0` is newer than `1.9.0`, and a
+string compare says the opposite. Failing *closed* here would let one malformed string withdraw sync
+from every install at once, which is the config equivalent of bricking, and the bootstrap rule says
+that outcome is never acceptable.
+
+`appUpdate` is **optional**, and `Config.default.json` never carries one: absent means `.none`, so a
+device that has never reached the network is never told it is out of date.
+
 ## Delivery
 
 **Pull is the mechanism; push is only a hint.**
 
-- `GET /v1/config` — **public, no auth** (guests and signed-out users need it too), `ETag`/`If-None-Match`, so an unchanged config costs a `304`. Checked on app foreground, throttled to **once per 6 hours** unless a nudge or a failure forces it. Config changes are rare; polling is nearly free and needs no infrastructure.
+- `GET /v1/config` – **public, no auth** (guests and signed-out users need it too), `ETag`/`If-None-Match`, so an unchanged config costs a `304`. Checked on app foreground, throttled to **once per 6 hours** unless a nudge or a failure forces it. Config changes are rare; polling is nearly free and needs no infrastructure.
 - **Push nudge (optional accelerator):** the existing silent APNs channel (`NOTIFICATIONS.md`) gains a `config: true` hint so an urgent change – a kill switch during an incident – propagates in minutes rather than hours. Silent pushes need no user permission, but they are unreliable and only reach registered devices, so **the system must be correct with push disabled entirely**. Never make a nudge the only path.
 - **Never at launch-blocking time.** Config fetch is background and asynchronous; the UI never waits on it. A cold start with no cached config uses bundled defaults immediately.
+- **Launch counts as a foreground event**, so the update requirement is evaluated on every cold start - but it is evaluated **against the resolved snapshot the app already holds** (live, else cache, else bundled), not against the fetch in flight. The notice therefore appears instantly on a launch with a cached document and never at all on a first launch offline, and no screen has ever waited for a response to decide what to draw.
 
 ## Failure behaviour (extends `ERRORS.md`)
 
@@ -60,7 +109,8 @@ Config problems are invisible to the user, because there is nothing they can do 
 | One unknown key in an otherwise valid document | Ignore that key, apply the rest – forward compatibility, same principle as payload records |
 | Candidate `apiBaseUrl` fails its health probe | Discard candidate, keep current, log |
 | Active `apiBaseUrl` fails repeatedly | Auto-revert to bundled default, log at WARN |
-| Maintenance notice present | The one user-visible case: a quiet informational banner, dismissible, never blocking |
+| Maintenance notice present | A user-visible case: a quiet informational banner, dismissible, never blocking |
+| `appUpdate` absent, or any version string malformed | `.none` - no requirement and no notice; the malformed case logged at WARN. The gate fails open by design |
 
 ## Client implementation
 
@@ -108,6 +158,7 @@ public struct AppConfig: Sendable, Equatable {
     public let ocrConfidenceThreshold: Double
     public let minSchemaVersion: Int
     public let maintenance: MaintenanceNotice?
+    public let appUpdate: AppUpdateThresholds?      // nil - and any malformed version - means .none
     public let version: Int              // the applied document's version, for logging
 }
 
@@ -152,6 +203,10 @@ Signature verification is the wall; these are the checks behind it, each indepen
 - **Rollback floor in the Keychain.** Version monotonicity alone fails if the attacker *deletes* the cache, since a fresh client accepts any version. Store the highest-seen config version as a Keychain item (`…ThisDeviceOnly`, therefore absent from backups and unaffected by container tampering) and refuse any document below it. A fresh install has no floor, which is correct.
 - **Documents expire.** Each carries `issuedAt` and a validity window (default 90 days). An expired cached document is discarded in favour of bundled defaults, so an attacker cannot pin a device to a stale-but-validly-signed config forever.
 - **The maintenance notice is inert.** Plain text only – no HTML, no markup, no arbitrary URLs, and it may never prompt for credentials or re-authentication. A signed-but-attacker-authored notice would otherwise be an in-app phishing surface, and "tap here to sign in again" is exactly the kind of message users obey.
+- **The update notice is inert too, and for the same reason at higher stakes.** The server sends two
+  version strings and nothing else - no text, no link. An "update now" prompt is a more obeyed
+  phishing surface than a maintenance banner, so the copy is local and the destination is a
+  compiled-in App Store id.
 - **Config can never disable a security control** (TLS policy, Keychain classes, signature verification, the allowlist itself). Those live in the binary by design.
 
 ### Tests for this specifically
@@ -175,4 +230,10 @@ Config is our data, not the user's, so it is Safe class: log `config.fetch` (sta
 - **Signature test:** a valid document with a broken signature is rejected even over a trusted connection.
 - **Rollback test:** a document with a lower `version` than cached is ignored.
 - **Partial-unknown test:** an unknown key does not prevent the rest of the document applying.
+- **Update-gate tests:** a build below `minSupportedVersion` resolves `.required`, the server-backed
+  surfaces refuse while naming their next step, and logging, editing, recompute and export all stay
+  reachable offline (hard rule 1); a build between the thresholds resolves `.recommended` and
+  withholds nothing; `1.10.0` against `minSupportedVersion` `1.9.0` resolves as newer (the
+  lexicographic mutation); a malformed or absent version resolves `.none` rather than locking the
+  device out.
 - **Kill-switch test:** flipping `tier3CloudFallback` off makes the capture pipeline stop attempting cloud extraction, with no user-visible error (it degrades exactly as F4).

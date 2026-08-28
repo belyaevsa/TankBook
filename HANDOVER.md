@@ -38,6 +38,10 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
+> **P6.3 is DONE** (merged `7d72f99`, 2026-08-28): the gateway client ships with the budget as a UI
+> wait that never cancels the request, and suggestions that fill only blank, untouched fields on an
+> unsaved entry. Both mutation-checked.
+>
 > **Next: the UI queue, one at a time.** `P6.7` (the `action` token sweep, ~66 sites - mechanical
 > and unblocks nothing, so it is the safest filler), `P6.13` (RU clips at Dynamic Type XL),
 > `P6.11`'s surface (426 is handled in core and read by nothing in `App/`), `P6.1b` (the insight
@@ -93,7 +97,7 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 815 unit tests, 141 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
+- **iOS: 845 unit tests, 173 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
   from the repo root, localization gate exit **0** at **554 keys / 100% RU**. **Backend: 253 tests,
   `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
@@ -647,6 +651,31 @@ is dispatched.
    reproduce on `iPhone 17 Pro` from clean `main`. The shared shape is `typeText` after a
    successful tap, with the field leaving the accessibility tree. **Do not fix it with sleeps**,
    and do not call a suite red or green without naming the device it ran on.
+
+### A THIRD flaky family member, and I caused the failure myself
+
+`RecentlyDeletedUITests.testDeleteAllConfirmsAndEmptiesTheScreen` failed once in a full suite and
+passed 2/2 in isolation, then 173/0 in a full run on an idle machine. It joins the `AddVehicle` and
+`ConfirmManual` pairs - but the cause here was **mine**: I ran `swift test`, `swiftlint` and the
+localization gate in the foreground *while* the UI suite ran in the background. That is the exact
+contention this file already warns about, and it cost a re-run of a 27-minute suite to disprove.
+**Run the UI suite alone.** Nothing else touches the machine while it is up.
+
+### A background task's "exit code 0" is not the command's exit code
+
+The completion notification for the backgrounded suite said **exit code 0** while the log said
+`app test exit: 65`, `** TEST FAILED **`, 173 tests with 1 failure. The 0 was the wrapper's trailing
+`echo`, not `xcodebuild`. Same class as the merge that reports "Already up to date": **read the
+captured exit code out of the log, never the harness's summary line.** Append `REAL_EXIT=$?` to the
+log and grep for it.
+
+### A stale test count sent me chasing a phantom
+
+This file said **141 UI tests**; the suite reported 173, and I spent a round wondering whether the
+selection had changed. It had not: `git grep -c "func test"` at the pre-P6.3 commit gives **167**,
+plus P6.3's **6** = 173. The 141 simply predated P6.1b and P6.15 and nobody updated it. Sixth
+instance of a number in a document read at session start being wrong - **when a count surprises you,
+count it at two commits before theorising.**
 
 ## Working with agents (opencode)
 
