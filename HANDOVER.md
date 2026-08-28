@@ -42,7 +42,7 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > and unblocks nothing, so it is the safest filler), `P6.13` (RU clips at Dynamic Type XL),
 > `P6.11`'s surface (426 is handled in core and read by nothing in `App/`), `P6.1b` (the insight
 > card for the engine merged in P6.1a), `P6.8`'s app wiring, `P6.4` (Garage root + Account &
-> devices). **`P6.3` needs a product decision first** - see Open decisions.
+> devices). **`P6.3` is unblocked** - the "3 s budget needs a decision" note was itself the stale thing; `API.md` resolved it on 2026-08-25.
 >
 > **They are all iOS-UI, so run them one at a time** - two UI tasks collide in
 > `Localizable.xcstrings`, which is not line-mergeable and where resolving by hunk silently drops
@@ -608,12 +608,20 @@ is dispatched.
 
 ## Open decisions (product, not implementation)
 
-1. **The 3 s gateway budget, owed before P6.3 can be dispatched.** `docs/API.md` calls it
-   **normative**; measurement contradicts it in every class - P4.12 measured median **6.5-8.3 s**,
-   max **40 s**, and P4.13's self-hosted arm was **4.5-8.4 s on CPU**. A hard 3 s abort cancels
-   almost every request on a mobile link. Raise it to something measured, make it adaptive, or keep
-   3 s and accept the gateway is a rare-success path. **P6.3's row says do not implement 3 s as
-   written without this decision.**
+1. ~~The 3 s gateway budget.~~ **NOT A DECISION - it was already answered, and the handover was
+   the thing that was wrong.** `docs/API.md` → "The device's side of `/extract`" has said since
+   **2026-08-25** (commit `72eed4f`, P4.10): *"The budget is about the user's next step, not about
+   aborting the work ... at 3 s the UI moves on; the request itself may finish in the background."*
+   The measured latency (median 6.5-8.3 s, max 40 s) is not a contradiction of the rule - it is the
+   **reason the rule is written that way**, and `API.md` says so in the same paragraph.
+
+   This handover carried "a product decision is owed" for three days, and on 2026-08-27 I copied it
+   into P6.3's row and blocked a dispatchable task on it. **A resolved question still filed as open
+   costs the same as a wrong fact** - it is the fourth instance this week of a document misleading
+   the work, and the only one where the doc was right and the summary was wrong. When a doc and the
+   handover disagree, the doc wins: `CLAUDE.md`'s conflict rule already says the more specific
+   document is the authority.
+
 2. **iOS 18 validation.** Everything is built and screenshotted on **iOS 26.5**; the deployment
    target is 18.0. This session found the concrete cost: the tab bar we had been reviewing in
    every screenshot was **iOS 26's system rendering**, which iOS 18 would never produce. P2.1b
