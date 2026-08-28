@@ -335,8 +335,17 @@ enum L10n {
     /// "Waiting to sync · %lld changes" - plural (RU изменение / изменения /
     /// изменений). The status is reassurance, never a warning: a long queue is
     /// not an error state (docs/SYNC.md S7).
-    static func waitingToSync(_ count: Int) -> String {
-        String(localized: "Waiting to sync · \(count) changes")
+    ///
+    /// P6.8: with `lowPowerReason` the S7 row gains the Low Power reason -
+    /// "Waiting to sync · 5 changes · Low Power Mode is on" (docs/SYNC.md ->
+    /// Low Power Mode). A full localised phrase per language: the count is the
+    /// only slot, and `%lld` never governs a case (docs/LOCALIZATION.md). Two
+    /// direct literal calls so the localization gate can resolve both keys.
+    static func waitingToSync(_ count: Int, lowPowerReason: Bool = false) -> String {
+        if lowPowerReason {
+            return String(localized: "Waiting to sync · \(count) changes · Low Power Mode is on")
+        }
+        return String(localized: "Waiting to sync · \(count) changes")
     }
 
     /// "N entries need a look" - the flagged-entries count and link only, plural
@@ -579,5 +588,17 @@ enum L10n {
     /// everything", docs/SCHEMA.md -> ANOMALY).
     static var anomalyDismissSubtitle: String {
         localize("Dismissing with a reason keeps it quiet for this period.")
+    }
+}
+
+extension L10n {
+    /// "Low Power Mode is on – background sync and photo uploads wait, then
+    /// resume automatically." - the P6.8 explanation row under the status
+    /// (docs/SYNC.md -> Low Power Mode). Reassurance, never a warning: the OS
+    /// put the device in this state, the app agrees with it, nothing is lost
+    /// (hard rule 8), and it ends itself. No upsell (hard rule 7). In its own
+    /// extension so the enum body stays within the lint budget.
+    static var lowPowerDeferredMessage: String {
+        localize("Low Power Mode is on – background sync and photo uploads wait, then resume automatically.")
     }
 }

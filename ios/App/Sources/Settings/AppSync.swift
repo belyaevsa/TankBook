@@ -8,7 +8,8 @@ import TankbookCore
 @MainActor
 enum SyncService {
     static func makeCoordinator(repository: TankbookRepository,
-                                sessionStore: any SessionStore) -> SyncCoordinator {
+                                sessionStore: any SessionStore,
+                                powerState: any PowerStateProvider) -> SyncCoordinator {
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
             ?? URL(string: "https://api.tankbook.live")!
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
@@ -30,9 +31,10 @@ enum SyncService {
             transport: transport,
             cursorStore: UserDefaultsSyncCursorStore(),
             payloadMemory: InMemorySyncPayloadMemory(),
-            blobGate: blobGate
+            blobGate: blobGate,
+            powerState: powerState
         )
-        return SyncCoordinator(engine: engine)
+        return SyncCoordinator(engine: engine, powerState: powerState)
     }
 
     /// The lazy-download fetcher for opening an entry (docs/SYNC.md -> Delivery):
@@ -86,6 +88,19 @@ final class AppSync {
     private let configService: AppConfigService
     private var core: SyncCoordinator?
 
+    /// The injected Low Power Mode state (P6.8, docs/SYNC.md -> Low Power
+    /// Mode). Never `ProcessInfo` read at a call site - the app's one seam is
+    /// `AppPower`, and the deferral decision is the injected boolean's alone.
+    private let powerState: any PowerStateProvider
+    /// Drains the work a background cycle deferred, the moment the mode ends -
+    /// resume on the state change, not at next launch. The same resumer the
+    /// rate refresh registers its deferred fetch on.
+    private let resumer: LowPowerResumer
+    private var powerChangeObserver: NSObjectProtocol?
+    /// One stable id for the deferred-sync work, so a second deferral replaces
+    /// the first registration instead of stacking a duplicate drain.
+    private static let deferredSyncID = UUID()
+
     private(set) var session: AuthSession?
     private(set) var dirtyCount = 0
     private(set) var flaggedCount = 0
@@ -108,9 +123,25 @@ final class AppSync {
     var forcedRetryAfterSeconds: Int?
 
     init(sessionStore: any SessionStore = KeychainSessionStore(),
-         configService: AppConfigService) {
+         configService: AppConfigService,
+         powerState: any PowerStateProvider = ProcessInfoPowerState(),
+         resumer: LowPowerResumer? = nil) {
         self.sessionStore = sessionStore
         self.configService = configService
+        self.powerState = powerState
+        let resumer = resumer ?? LowPowerResumer(powerState: powerState)
+        self.resumer = resumer
+        Task { await resumer.start() }
+        // The surface must re-render the instant the mode changes: when Low
+        // Power turns on the row gains the reason, when it ends the reason
+        // vanishes (and the resumer drains what was deferred). The resumer and
+        // this observer listen to the same change - one drains, one re-draws.
+        powerChangeObserver = NotificationCenter.default.addObserver(
+            forName: .NSProcessInfoPowerStateDidChange,
+            object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in await self?.refresh() }
+        }
     }
 
     var signedIn: Bool { session != nil }
@@ -125,7 +156,10 @@ final class AppSync {
             deviceRevoked: forcedRevoked || (lastOutcome?.deviceRevoked ?? false),
             quotaUsedPercent: forcedQuotaPercent,
             flaggedCount: flaggedCount,
-            isSyncing: isSyncing
+            isSyncing: isSyncing,
+            // P6.8: the reason is on whenever the mode is; the S7 row names it
+            // only when a queue is actually waiting (SyncSurface.lowPowerReason).
+            lowPowerModeDeferring: powerState.isLowPowerModeEnabled
         )
     }
 
@@ -158,7 +192,8 @@ final class AppSync {
         if let core { return core }
         guard let repository = try? AppStore.repository() else { return nil }
         let coordinator = SyncService.makeCoordinator(repository: repository,
-                                                      sessionStore: sessionStore)
+                                                      sessionStore: sessionStore,
+                                                      powerState: powerState)
         core = coordinator
         return coordinator
     }
@@ -190,10 +225,47 @@ final class AppSync {
     /// instead of this affordance. The queue stays dirty (S7) - nothing is
     /// lost, nothing is claimed.
     func syncNow() async {
+        await runSync(trigger: .userInitiated)
+    }
+
+    /// The launch / foreground / timer cycle (docs/SYNC.md -> Low Power Mode:
+    /// "opportunistic sync cycles (launch, foreground, timer)"). Passes
+    /// `.background`, so the cycle defers while the mode is on - the queue is
+    /// exactly as it was (hard rule 8) - and the deferred cycle is registered
+    /// with the resumer, which drains it the moment the mode ends. The ONLY
+    /// callers are app-scheduled events; a sync the user tapped goes through
+    /// `syncNow()`. A guest has nothing to sync, so the cycle is a no-op until
+    /// there is an account.
+    func runOpportunisticSync() async {
+        session = try? sessionStore.load()
+        guard signedIn else { return }
+        await runSync(trigger: .background)
+    }
+
+    private func runSync(trigger: PowerWorkTrigger) async {
         guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else { return }
         isSyncing = true
         defer { isSyncing = false }
-        _ = await coordinator.syncNow()
+        let outcome = await coordinator.syncNow(trigger: trigger)
+        if outcome.deferred {
+            registerDeferredSync()
+        }
         await refresh()
+    }
+
+    /// P6.8: records the deferred cycle with the resumer so it drains on the
+    /// power-state change, not at next launch (docs/SYNC.md). The id is stable,
+    /// so a second deferral replaces the first registration - the queue drains
+    /// once. The drain re-runs the SAME background trigger, so a mode that
+    /// merely toggles re-defers cleanly.
+    private func registerDeferredSync() {
+        let work = LowPowerResumer.PendingWork(id: Self.deferredSyncID, kind: .syncCycle) {
+            await self.runDeferredSync()
+        }
+        Task { await resumer.register(work) }
+    }
+
+    private func runDeferredSync() async {
+        await runSync(trigger: .background)
     }
 }

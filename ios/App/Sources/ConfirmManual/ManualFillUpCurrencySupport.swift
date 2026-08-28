@@ -29,11 +29,37 @@ enum AppRates {
         return store
     }()
 
+    /// The shared `LowPowerResumer` (P6.8, set at app launch): a deferred pack
+    /// refresh registers here so it drains with the deferred sync the moment the
+    /// mode ends, instead of waiting for the next process launch. Nil until the
+    /// app root wires it, so the store still works alone in tests.
+    static var resumer: LowPowerResumer?
+
     /// Refreshes the cache from the feed and persists what it merged. A failed
     /// fetch leaves the cache (and any pending entries) exactly as they were.
     static func refresh() async {
-        await store.refresh()
+        let refreshed = await store.refresh()
+        // `RateStore.refresh` returns false only for a Low Power deferral (the
+        // store always has a fetcher here): the fetch is opportunistic work
+        // (docs/SYNC.md -> Low Power Mode table), so it waits for power and
+        // drains when the mode ends.
+        if !refreshed {
+            await registerDeferredRefresh()
+        }
         persist(store.allRates())
+    }
+
+    /// One stable id per refresh deferral, so re-registering replaces rather
+    /// than stacking a second drain closure.
+    private static let deferredRefreshID = UUID()
+
+    private static func registerDeferredRefresh() async {
+        guard let resumer else { return }
+        let work = LowPowerResumer.PendingWork(id: Self.deferredRefreshID,
+                                               kind: .ratePackRefresh) {
+            await AppRates.refresh()
+        }
+        await resumer.register(work)
     }
 
     private static func loadPersisted() -> [ExchangeRate] {

@@ -388,7 +388,12 @@ sync the user asked for runs; the heaviest network work still waits for power.
 severity – "Waiting to sync · 5 changes · Low Power Mode is on". It is **reassurance, never a
 warning**: no amber, no badge, no toast, no modal (hard rule 8 – conflicts and waits surface where
 the data lives, never as a modal at sync time), and it disappears when the mode ends. A user who
-turned Low Power Mode on chose this; the app agreeing with them is not an error state.
+turned Low Power Mode on chose this; the app agreeing with them is not an error state. When the
+reason shows, one companion line rides under the row, shaped exactly like the offline hint (P6.8):
+"Low Power Mode is on – background sync and photo uploads wait, then resume automatically." It names
+what is deferred and that the app resumes it by itself – the same reassurance the offline hint gives,
+in the same `inkSoft`, never amber. It shows only while the mode is on AND a queue is waiting (the
+reason, never the mode alone), and it vanishes with the reason the moment the mode ends.
 
 **The power state is an injected value, never `ProcessInfo` read inline.** Same reason
 `TabBarMetrics` and `PumpPhotoGate` are values in core: a policy that reads the device directly

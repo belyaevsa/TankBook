@@ -153,7 +153,11 @@ struct SettingsView: View {
         case .synced:
             return L10n.syncedAgo(lastSyncDate: sync.lastSyncDate)
         case .waitingToSync:
-            return L10n.waitingToSync(sync.dirtyCount)
+            // P6.8: the Low Power reason rides on S7's existing row
+            // (docs/SYNC.md -> Low Power Mode: "Waiting to sync · 5 changes ·
+            // Low Power Mode is on") - a reason, never a severity.
+            return L10n.waitingToSync(sync.dirtyCount,
+                                      lowPowerReason: SyncSurface.lowPowerReason(sync.surfaceState))
         case .serverUnreachable, .quotaFull:
             return L10n.syncedAgo(lastSyncDate: sync.lastSyncDate)
         case .deviceRevoked:
@@ -428,6 +432,10 @@ private struct SettingsSyncSurface: View {
         case .synced, .waitingToSync:
             if SyncSurface.isOfflineWithQueue(sync.surfaceState) {
                 offlineHint
+            } else if SyncSurface.lowPowerReason(sync.surfaceState) {
+                // P6.8: a Low Power queue is the offline-queue's sibling - the
+                // background cycle that would drain it is postponed, not lost.
+                lowPowerHint
             } else {
                 EmptyView()
             }
@@ -449,6 +457,29 @@ private struct SettingsSyncSurface: View {
         .padding(.vertical, 10)
         .formCard()
         .accessibilityIdentifier("settingsOfflineHint")
+    }
+
+    /// P6.8: the Low Power explanation row (docs/SYNC.md -> Low Power Mode).
+    /// Reassurance, never a warning - `inkSoft` like the offline hint, never
+    /// amber, no badge, no toast (hard rule 8). It names what is deferred and
+    /// that it resumes automatically; a user who turned the mode on chose this,
+    /// so the app agreeing with them is not an error state.
+    private var lowPowerHint: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "bolt")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Text(L10n.lowPowerDeferredMessage)
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.5)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .formCard()
+        .accessibilityIdentifier("settingsLowPowerHint")
     }
 
     /// A transport-issue card (revoked / quota / server): the account-level

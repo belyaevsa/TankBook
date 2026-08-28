@@ -21,30 +21,55 @@ enum SettingsTestSeed {
         case tierRefused
         case refused
         case rateLimited
+        case lowPower
     }
 
     static func state(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> State {
-        if arguments.contains("-seedSettingsGuest") { return .guest }
-        if arguments.contains("-seedSettingsSynced") { return .synced }
-        if arguments.contains("-seedSettingsPending") { return .pending }
-        if arguments.contains("-seedSettingsFlagged") { return .flagged }
-        if arguments.contains("-seedSettingsRevoked") { return .revoked }
-        if arguments.contains("-seedSettingsQuota") { return .quota }
-        if arguments.contains("-seedSettingsUpgradeRequired") { return .upgradeRequired }
-        if arguments.contains("-seedSettingsTierRefused") { return .tierRefused }
-        if arguments.contains("-seedSettingsRefused") { return .refused }
-        if arguments.contains("-seedSettingsRateLimited") { return .rateLimited }
+        // The argument-to-state map is data, not an if/else ladder - swiftlint
+        // cyclomatic_complexity (HomeTestSeed's seedAction uses the same shape).
+        let seeds: [String: State] = [
+            "-seedSettingsGuest": .guest,
+            "-seedSettingsSynced": .synced,
+            "-seedSettingsPending": .pending,
+            "-seedSettingsFlagged": .flagged,
+            "-seedSettingsRevoked": .revoked,
+            "-seedSettingsQuota": .quota,
+            "-seedSettingsUpgradeRequired": .upgradeRequired,
+            "-seedSettingsTierRefused": .tierRefused,
+            "-seedSettingsRefused": .refused,
+            "-seedSettingsRateLimited": .rateLimited,
+            "-seedSettingsLowPower": .lowPower
+        ]
+        for argument in arguments {
+            if let state = seeds[argument] { return state }
+        }
         return .none
     }
 
     /// Whether the state renders with the five-fill dirty queue behind it: the
-    /// pending state and every server-ahead state, because a refused or paced
-    /// push leaves the queue exactly as S7 does (nothing is lost).
+    /// pending state, the Low Power state (the queue the mode's postponement
+    /// holds) and every server-ahead state, because a refused or paced push
+    /// leaves the queue exactly as S7 does (nothing is lost).
     fileprivate static func seedsQueue(_ state: State) -> Bool {
         switch state {
-        case .pending, .upgradeRequired, .tierRefused, .refused, .rateLimited: return true
+        case .pending, .lowPower, .upgradeRequired, .tierRefused, .refused, .rateLimited: return true
         default: return false
         }
+    }
+
+    /// Writes the signed-in session at LAUNCH time - before any view appears -
+    /// so the launch opportunistic sync (P6.8, `AppSync.runOpportunisticSync`)
+    /// already sees a session and actually consults the Low Power policy at
+    /// launch. The normal `seedIfRequested(sync:)` runs at Settings appear and
+    /// re-writes the same session (idempotent) plus the forced fixtures and the
+    /// queue. Call from the app root init, DEBUG/test only.
+    static func seedSessionAtLaunchIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        let state = Self.state(arguments)
+        guard state != .none, state != .guest else { return }
+        let store = KeychainSessionStore()
+        try? store.clear()
+        try? store.save(stubSession())
     }
 
     @MainActor

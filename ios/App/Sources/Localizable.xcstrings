@@ -8049,6 +8049,23 @@
         }
       }
     },
+    "Low Power Mode is on – background sync and photo uploads wait, then resume automatically.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Low Power Mode is on – background sync and photo uploads wait, then resume automatically."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включён режим энергосбережения – фоновая синхронизация и загрузка фото подождут и возобновятся автоматически."
+          }
+        }
+      }
+    },
     "Sync service unreachable – your data is safe on this phone. It will go up automatically when the service is back.": {
       "extractionState": "manual",
       "localizations": {
@@ -8371,6 +8388,59 @@
                 "stringUnit": {
                   "state": "translated",
                   "value": "Ожидает синхронизации · %lld изменений"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Waiting to sync · %lld changes · Low Power Mode is on": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Waiting to sync · %lld change · Low Power Mode is on"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Waiting to sync · %lld changes · Low Power Mode is on"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ожидает синхронизации · %lld изменение · включён режим энергосбережения"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ожидает синхронизации · %lld изменения · включён режим энергосбережения"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ожидает синхронизации · %lld изменений · включён режим энергосбережения"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Ожидает синхронизации · %lld изменений · включён режим энергосбережения"
                 }
               }
             }

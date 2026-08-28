@@ -48,11 +48,28 @@ struct AppRootView: View {
     @State private var trendsModal: ModalRoute?
     @State private var garageModal: ModalRoute?
     @State private var didRunStartupPurge = false
+    /// The app's one Low Power Mode seam (P6.8): the injected power state the
+    /// sync surface, the coordinator and the rate store all consult, plus the
+    /// resumer that drains deferred work when the mode ends.
+    @State private var power: AppPower
 
     init() {
         let configService = AppConfigService.make()
+        let power = AppPower()
+        // DEBUG/test: write the seeded session before the launch opportunistic
+        // sync runs, so the launch trigger really consults the Low Power policy
+        // instead of being skipped for a still-empty Keychain (see
+        // `SettingsTestSeed.seedSessionAtLaunchIfRequested`). Inert in release.
+        SettingsTestSeed.seedSessionAtLaunchIfRequested()
         _configService = State(initialValue: configService)
-        _sync = State(initialValue: AppSync(configService: configService))
+        _sync = State(initialValue: AppSync(configService: configService,
+                                            powerState: power.powerState,
+                                            resumer: power.resumer))
+        // The rate pack refresh is the other registered piece of deferred work
+        // (docs/SYNC.md): it shares the same resumer, so its deferred fetch
+        // drains with the deferred sync when the mode ends.
+        AppRates.resumer = power.resumer
+        _power = State(initialValue: power)
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
@@ -152,11 +169,21 @@ struct AppRootView: View {
             // the requirement is re-evaluated, but the UI already drew from the
             // held snapshot - nothing waits on this (P6.18b).
             await configService.refresh()
+            // P6.8: launch is an OPPORTUNISTIC sync cycle (docs/SYNC.md ->
+            // Low Power Mode table). It passes `.background`, so it defers while
+            // Low Power Mode is on and is registered with the resumer, which
+            // drains it when the mode ends - never gated on anything a user
+            // tapped, never a second door into sync (hard rule 1: the automatic
+            // cycle and the Settings button both go through `syncNow`).
+            await sync.runOpportunisticSync()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 runPurgeIfNeeded()
                 Task { await configService.refresh() }
+                // P6.8: foreground is the other opportunistic cycle; same
+                // `.background` trigger, same deferral-and-drain contract.
+                Task { await sync.runOpportunisticSync() }
             }
         }
     }

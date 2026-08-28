@@ -20,6 +20,12 @@ public struct SyncSurfaceState: Equatable, Sendable {
     public var flaggedCount: Int
     /// A cycle is currently in flight (drives the "Sync now" spinner).
     public var isSyncing: Bool
+    /// Low Power Mode is on (docs/SYNC.md -> Low Power Mode), so the background
+    /// and opportunistic cycles that would drain the queue are being postponed.
+    /// The app fills this from the injected power state - never `ProcessInfo`
+    /// read at a call site - so the surface's "the reason is on" decision is
+    /// testable exactly like `dirtyCount` and `transportUnavailable`.
+    public var lowPowerModeDeferring: Bool
 
     public init(
         isSignedIn: Bool,
@@ -29,7 +35,8 @@ public struct SyncSurfaceState: Equatable, Sendable {
         deviceRevoked: Bool = false,
         quotaUsedPercent: Int? = nil,
         flaggedCount: Int = 0,
-        isSyncing: Bool = false
+        isSyncing: Bool = false,
+        lowPowerModeDeferring: Bool = false
     ) {
         self.isSignedIn = isSignedIn
         self.lastSyncDate = lastSyncDate
@@ -39,6 +46,7 @@ public struct SyncSurfaceState: Equatable, Sendable {
         self.quotaUsedPercent = quotaUsedPercent
         self.flaggedCount = flaggedCount
         self.isSyncing = isSyncing
+        self.lowPowerModeDeferring = lowPowerModeDeferring
     }
 }
 
@@ -97,5 +105,16 @@ public enum SyncSurface {
     /// reassurance instead.
     public static func isOfflineWithQueue(_ state: SyncSurfaceState) -> Bool {
         state.transportUnavailable && state.dirtyCount > 0
+    }
+
+    /// True when the status row should carry the Low Power reason (docs/SYNC.md
+    /// -> Low Power Mode: "Waiting to sync · 5 changes · Low Power Mode is on"):
+    /// the mode is on **and** a queue is waiting for exactly the background
+    /// cycle the mode postpones. Nothing waiting means nothing deferred, so no
+    /// reason is shown; the moment the mode ends the flag falls and the row
+    /// returns to the plain S7 copy. Reassurance, never a warning - this never
+    /// turns `isAttention`.
+    public static func lowPowerReason(_ state: SyncSurfaceState) -> Bool {
+        state.lowPowerModeDeferring && state.dirtyCount > 0
     }
 }
