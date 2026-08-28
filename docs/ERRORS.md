@@ -153,6 +153,10 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Entries flagged by a merge (S1-S5) | Summary row: "2 entries need a look" | **Tap -> Log filtered to flagged entries.** Settings never resolves a conflict - the badge lives where the data lives (hard rule 8) |
 | Sync auth expired / device revoked (410) | Card: "This device was signed out – sign in to reconnect. Your data on this phone is untouched." | Sign in · stay local |
 | Storage quota near/full (blob 429) | Row: "Photo storage 95% full – older photos stay on this phone only." | Manage · Pro |
+| **Server ahead: app below the server's minimum schema (426)** | Account card, attention (amber): "This needs a newer version of Tankbook – update to sync" | **Update the app.** Version-first, never an upsell (hard rule 7 - there is no Pro tier). The pull still works, so nothing local is lost |
+| **Server gated this client (402)** | Account card, attention (amber): "A newer version of Tankbook is needed for this account" | **Update the app.** No tier exists, so the honest reading is an out-of-date client, never "buy something" |
+| **Unknown gate from a newer server (any other 4xx)** | Account card, attention (amber): "Tankbook needs an update – the server has moved ahead" | **Update the app.** No invented reason (F7) |
+| **Sync paused by the server (429)** | Account card, reassurance (`inkSoft`, never amber): "Retrying in 2 minutes" / "Retrying in a moment" | **None; it retries itself.** A wait, not a failure - no update prompt (the distinction is the point of the P6.11 core half) |
 | Export fails (disk) | "Not enough space to build the export." | Free space · try smaller (no photos) export |
 
 ### Import wizard (planned screen; F6 rules)

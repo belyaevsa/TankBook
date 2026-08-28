@@ -295,6 +295,14 @@ capture P4.9b-settings-revoked-ru ru -presentScreen settings -seedSettingsRevoke
 capture P4.9b-settings-quota      en -presentScreen settings -seedSettingsQuota
 capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
 
+# P6.11: a server ahead of the app surfaces on the Settings account card -
+# version-first copy (update, never an upsell). The upgrade shot is the amber
+# attention notice; the rate-limited shot is the reassurance wait.
+capture P6.11b-settings-upgrade        en -presentScreen settings -seedSettingsUpgradeRequired
+capture P6.11b-settings-upgrade-ru     ru -presentScreen settings -seedSettingsUpgradeRequired
+capture P6.11b-settings-ratelimited    en -presentScreen settings -seedSettingsRateLimited
+capture P6.11b-settings-ratelimited-ru ru -presentScreen settings -seedSettingsRateLimited
+
 # P4.6: the "photo syncing" shimmer - an entry whose inline thumbnail has
 # arrived (in the payload) but whose full rendition blob is still pending. The
 # chip shimmers and the entry is openable and editable throughout.

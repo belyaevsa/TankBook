@@ -1,11 +1,12 @@
 import Foundation
 import TankbookCore
 
-/// DEBUG/test seeding for the Settings screen (P4.9b) - the same launch-argument
-/// hook pattern as `HomeTestSeed`. Each `-seedSettings*` argument produces one of
-/// the six artboard states the UI tests and screenshots render. The signed-in vs
-/// guest distinction is never invented: the seed writes a real session to the
-/// Keychain (or clears it) and the screen reads it back through `SessionStore`.
+/// DEBUG/test seeding for the Settings screen (P4.9b/P6.11) - the same
+/// launch-argument hook pattern as `HomeTestSeed`. Each `-seedSettings*`
+/// argument produces one of the artboard states the UI tests and screenshots
+/// render. The signed-in vs guest distinction is never invented: the seed writes
+/// a real session to the Keychain (or clears it) and the screen reads it back
+/// through `SessionStore`.
 enum SettingsTestSeed {
 
     enum State {
@@ -16,6 +17,10 @@ enum SettingsTestSeed {
         case flagged
         case revoked
         case quota
+        case upgradeRequired
+        case tierRefused
+        case refused
+        case rateLimited
     }
 
     static func state(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> State {
@@ -25,7 +30,21 @@ enum SettingsTestSeed {
         if arguments.contains("-seedSettingsFlagged") { return .flagged }
         if arguments.contains("-seedSettingsRevoked") { return .revoked }
         if arguments.contains("-seedSettingsQuota") { return .quota }
+        if arguments.contains("-seedSettingsUpgradeRequired") { return .upgradeRequired }
+        if arguments.contains("-seedSettingsTierRefused") { return .tierRefused }
+        if arguments.contains("-seedSettingsRefused") { return .refused }
+        if arguments.contains("-seedSettingsRateLimited") { return .rateLimited }
         return .none
+    }
+
+    /// Whether the state renders with the five-fill dirty queue behind it: the
+    /// pending state and every server-ahead state, because a refused or paced
+    /// push leaves the queue exactly as S7 does (nothing is lost).
+    fileprivate static func seedsQueue(_ state: State) -> Bool {
+        switch state {
+        case .pending, .upgradeRequired, .tierRefused, .refused, .rateLimited: return true
+        default: return false
+        }
     }
 
     @MainActor
@@ -55,8 +74,28 @@ enum SettingsTestSeed {
         sync.forcedQuotaPercent = (state == .quota) ? 95 : nil
         sync.forcedTransportUnavailable = (state == .pending)
 
-        if state == .pending || state == .flagged {
+        // P6.11 server-ahead fixtures (426 / 402 / unknown 4xx / 429): outcomes
+        // this app version cannot provoke from a real server, forced so the
+        // account card's notice is screenshot-able. Every one leaves a dirty
+        // queue, exactly as a refused push does (S7).
+        sync.forcedUpgradeRequired = (state == .upgradeRequired)
+        sync.forcedRefused = refusedError(for: state)
+        sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
+
+        if seedsQueue(state) || state == .flagged {
             seed(repository: try? AppStore.repository(), state: state)
+        }
+    }
+
+    /// The four server-ahead states refuse the push with a dirty queue still
+    /// waiting (docs/SYNC.md S7) - the row says what is waiting, not that
+    /// something failed.
+    private static func refusedError(for state: State) -> SyncServerError? {
+        switch state {
+        case .tierRefused: return .tierRefused
+        case .refused: return .refused(status: 418)
+        case .rateLimited: return .rateLimited(retryAfterSeconds: 120)
+        default: return nil
         }
     }
 
@@ -69,7 +108,7 @@ enum SettingsTestSeed {
         let vehicle = HomeTestSeed.makeVehicle()
         try? repository.upsertVehicle(vehicle, syncState: .synced(scn: 1))
 
-        if state == .pending {
+        if seedsQueue(state) {
             for daysAgo in 1...5 {
                 let fill = HomeTestSeed.makeFill(
                     vehicleID: vehicle.id,

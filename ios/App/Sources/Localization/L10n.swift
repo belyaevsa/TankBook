@@ -368,6 +368,39 @@ enum L10n {
         return localize(key)
     }
 
+    // MARK: - Server-ahead notices (P6.11)
+
+    /// "This needs a newer version of Tankbook – update to sync" - the 426
+    /// notice (docs/ERRORS.md -> Settings). This client's schema version is
+    /// below the server's minimum; the pull still works, so nothing is lost.
+    /// Version-first, never an upsell (hard rule 7): there is no Pro tier.
+    static var syncNoticeUpgradeRequired: String {
+        localize("This needs a newer version of Tankbook – update to sync")
+    }
+
+    /// "A newer version of Tankbook is needed for this account" - the 402
+    /// notice. The server gated something this client cannot do; with no tier
+    /// to buy, the only honest reading is an out-of-date app.
+    static var syncNoticeTierRefused: String {
+        localize("A newer version of Tankbook is needed for this account")
+    }
+
+    /// "Tankbook needs an update – the server has moved ahead" - an unknown 4xx
+    /// gate from a newer server. No invented reason; the next step is the update.
+    static var syncNoticeRefused: String {
+        localize("Tankbook needs an update – the server has moved ahead")
+    }
+
+    /// The 429 notice: a wait, not a failure (docs/SYNC.md - never amber, never
+    /// an update prompt). "Retrying in a moment" when the server sent no hint;
+    /// otherwise the server's own `Retry-After` rounded up to the nearest
+    /// minute (real plural rules per language - the String Catalog variations).
+    static func syncNoticeRateLimited(_ seconds: Int?) -> String {
+        guard let seconds else { return localize("Retrying in a moment") }
+        if seconds < 60 { return String(localized: "Retrying in \(seconds) seconds") }
+        return String(localized: "Retrying in \(max(1, (seconds + 59) / 60)) minutes")
+    }
+
     // MARK: - Import wizard (P5.5b)
 
     /// "from MyFuelManager_2026-08.csv · nothing is saved yet" - the preview's
