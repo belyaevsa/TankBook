@@ -1,7 +1,8 @@
 # Tankbook – Session Handover
 
-*Rewritten 2026-08-28, with Phase 4 COMPLETE, Phase 5 COMPLETE, and Phase 6 under way. Read this
-first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Updated 2026-08-29. Phases 4 and 5 COMPLETE; Phase 6 mostly done; the marketing site is LIVE.
+Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status
+marks.*
 
 ## Start here (paste this to open a new session)
 
@@ -18,7 +19,7 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > A bare model name silently resolves to another provider that returns an instant error.
 >
 > **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
-> `swift build` and `swiftlint` continuously, **all 873 unit tests** (30 s, never subsetted), and
+> `swift build` and `swiftlint` continuously, **all 900 unit tests** (30 s, never subsetted), and
 > `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
 > not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
 > genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
@@ -44,21 +45,15 @@ first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with l
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
-> **P6.3 is DONE** (merged `7d72f99`, 2026-08-28): the gateway client ships with the budget as a UI
-> wait that never cancels the request, and suggestions that fill only blank, untouched fields on an
-> unsaved entry. Both mutation-checked.
+> **Phase 6 is nearly done.** Closed 2026-08-29: P6.2, P6.3, P6.4, P6.7, P6.8, P6.18, P6.19, P6.21,
+> plus W8. **Still open:** `P6.20` (the Low Power enum claims coverage the app does not have),
+> `P6.13` (RU clips at Dynamic Type XL), `P6.9` (the ConfirmManual capture blind spot), `P6.5`
+> (accessibility audit), and the site rows `W6`, `W7`, `W10`. Held on the product owner: `P6.17` and
+> `W9` (Russian copy - "leave texts as they are"), `P6.6`'s export-compliance declaration, `W0`/`W4`
+> (search-console tokens), and the analytics choice.
 >
-> **Next: the UI queue, one at a time.** `P6.7` (the `action` token sweep, ~66 sites - mechanical
-> and unblocks nothing, so it is the safest filler), `P6.13` (RU clips at Dynamic Type XL),
-> `P6.11`'s surface (426 is handled in core and read by nothing in `App/`), `P6.1b` (the insight
-> card for the engine merged in P6.1a), `P6.8`'s app wiring, `P6.4` (Garage root + Account &
-> devices). **`P6.3` is unblocked** - the "3 s budget needs a decision" note was itself the stale thing; `API.md` resolved it on 2026-08-25.
->
-> **They are all iOS-UI, so run them one at a time** - two UI tasks collide in
-> `Localizable.xcstrings`, which is not line-mergeable and where resolving by hunk silently drops
-> keys. **There is no open backend row left**, so parallelism now comes only from non-UI iOS work,
-> and that lane is nearly empty too: `P2.9` (needs its row rewritten first, below) and `P5.4b`
-> (deferred by the product owner).
+> **P2.9 must be rewritten before dispatch** - its premise was falsified by `receipt-037`, and
+> `receipt-040` is further evidence rather than a rule. See the corpus section.
 >
 > **CI: the iOS workflow is DISABLED on GitHub** (`gh workflow disable "iOS Core"`, 2026-08-28) and
 > `backend` is active and green. Not one iOS run had ever completed - they hung for hours on
@@ -148,6 +143,32 @@ colours that actually renders together", not "the pair I just changed".
 Both were found by an independent validator, not by the person who wrote the guard. That is the
 argument for the validation pass surviving as a habit.
 
+## Five captures to get one (2026-08-29)
+
+The screenshot step cost five full runs in a day and discarded three of them. Each discard found a
+distinct defect, and none was visible to a green suite or to a diff.
+
+| Run | What it caught |
+|---|---|
+| #1 | **Contention wrote the wrong screen into a named file.** `P4.9b-settings-guest.png` showed *Account & devices*, signed in, 936,383 differing pixels. The app was fine - a capture was racing an agent's `xcodebuild` |
+| #2 | **Seeded launches reached the live API.** Since P6.8b/P6.18b wired the launch sync, a seeded signed-in launch made a REAL request with the stub token; the API returned 502, and every Settings capture gained a "Sync service unreachable" banner. `settings-synced` showed "Synced just now" AND that banner in one frame |
+| #4 | **P6.19 made disabled labels unreadable.** Moving button text off `Color.white` was right for the enabled state; the disabled state dims the fill, and `midnight` on dimmed dark red is harder to read than the white it replaced |
+| #5 | Committed. Both canaries reproduced **exactly** across two independent runs - 843 and 1,504 pixels - so determinism was demonstrated rather than assumed |
+
+Three things worth carrying:
+
+- **A capture is only evidence if it is reproducible.** The canary pair is the cheap proof: pick two
+  screens, record their masked diff, and require the same numbers from a second run. Without that,
+  "the files were written" is all you know.
+- **No contrast test could catch #4**, and correctly so - WCAG exempts disabled controls. A user
+  still has to read what a disabled button *would* do. Some defects are legibility, not compliance.
+- **P6.21's fix needed two parts, and the first one alone broke a test.** An offline transport under
+  seeds is not enough, because `SyncEngine` maps any transport failure to `transportUnavailable`. But
+  skipping the opportunistic cycle for *any* seeded launch broke
+  `testLowPowerReasonVanishesWhenTheModeEnds`, since the resumer drains **through** that cycle. UI
+  tests want the real behaviour made deterministic; only screenshots want the state frozen, so only
+  `-freezeSyncState` (passed by the capture script alone) skips it.
+
 ## What the UI suite actually costs, and what it is for (2026-08-29)
 
 Measured across one day rather than assumed, because the habit of running all 193 UI tests after
@@ -201,16 +222,16 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 845 unit tests, 173 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
-  from the repo root, localization gate exit **0** at **554 keys / 100% RU**. **Backend: 253 tests,
-  `dotnet format` 0.**
+- **iOS: 900 unit tests, 206 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
+  from the repo root. **Backend: 253 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
 
-**116 screenshots**, EN and RU, in `design/screenshots/` - every one opened by a human before it
-was committed. Four were **deleted rather than committed** in P5.2b because they missed their
-subject (P6.9): a capture that does not show its feature is evidence for the wrong code.
+**137 screenshots**, EN and RU, in `design/screenshots/`. Four were **deleted rather than
+committed** in P5.2b because they missed their subject (P6.9), and three whole capture runs were
+discarded on 2026-08-29 - see "Five captures to get one" below. A capture that does not show its
+feature is evidence for the wrong code.
 
 The repo is public at `github.com/belyaevsa/TankBook` (pushed 2026-08-27, with the product owner's
 explicit decision on what that publishes - see Open decisions).
@@ -225,7 +246,8 @@ explicit decision on what that publishes - see Open decisions).
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
 | **P5** | **COMPLETE (2026-08-28).** Rates service; money end-to-end; the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21); the MFM importer parsed **server-side**; the per-car backup archive; vehicle catalog server **and** client. P5.4b (five more importers) is **deferred by the product owner**, not blocked |
-| **P6** | **Under way.** `[x]` P6.1 (anomaly engine + insight card), P6.10 (alpha-capture notice), P6.11 (tier/version responses, core + surface), P6.12, P6.14, P6.15. `[~]` P5.5b, P6.8 (core done, app wiring open). `[cut]` P6.16 (Pro tier is **deferred**, so the existing Pro rows stay). Open: P6.2, P6.3, P6.4, P6.5, P6.6, P6.7, P6.9, P6.13, P6.17 |
+| **P6** | **Nearly complete (2026-08-29).** Closed: P6.1, P6.2, P6.3, P6.4, P6.7, P6.8, P6.10, P6.11, P6.12, P6.14, P6.15, P6.18, P6.19, P6.21. `[~]` P5.5b, P6.6. `[cut]` P6.16 (Pro tier deferred). **Open: P6.5, P6.9, P6.13, P6.17, P6.20** |
+| **W** | **The site is LIVE.** W1-W3, W5, W21 done; W0/W4 need the domain's search-console tokens; W6, W7, W10 are small doc/asset rows; W8 fixed; W9 held on the product owner |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -242,34 +264,26 @@ explicit decision on what that publishes - see Open decisions).
 
 ## What to do next
 
-Everything left is **iOS UI**, and two UI agents collide in `Localizable.xcstrings`. So the queue is
-sequential, and the ordering below is by "unblocks something else" rather than by size:
+**P6.20** first - it is the only open row where the code *claims* more than it does: a six-case
+`PowerWorkKind` enum where three cases are never produced, and two `ConfigUpdateSurfaceTests` that
+guard a state they never create. Everything else is visible work or waiting on the product owner.
 
-1. **P6.3**, the gateway client - now unblocked (see Open decisions).
-2. **P6.17**: two Russian defects in the anomaly dismiss sheet, found by reading the rendered
-   screen. «Поменял шины» is masculine past tense, and «Отклонение» collides with the domain word
-   for *deviation*. Both rules are now in `docs/LOCALIZATION.md`.
-3. **P6.8's app wiring.** Nothing constructs `ProcessInfoPowerState`/`LowPowerResumer` or passes
-   `.background` at the launch/foreground/timer triggers, so the policy exists and is never
-   consulted.
-4. **P6.13** (RU clips at Dynamic Type XL), **P6.9** (the ConfirmManual capture blind spot),
-   **P6.7** (the `action` token sweep - mechanical, ~66 sites, unblocks nothing, ideal filler).
-5. **P6.4**: Garage tab root and Account & devices.
-6. **P6.2** monthly summary, then **P6.5** accessibility audit and **P6.6** store assets, which
-   want the screens finished first.
+Then **P6.13** (RU clips at Dynamic Type XL), **P6.9** (the ConfirmManual capture blind spot -
+it fixes *evidence*, which four discarded screenshots argue is worth doing), **P6.5** (the
+accessibility audit, no longer theoretical after `warn` was found at 3.82:1 and white-on-`warn` at
+2.15:1), and the three small site rows **W6** (`VISION.md` §2 contradicts hard rule 15), **W7**
+(`design/screens/support.js` is missing while every artboard references it) and **W10**.
 
 **Two rows must be rewritten before they are dispatched:**
 
 - **P2.9** ("resolve an unmarked operand pair by decimal places"). Its premise was that the decimal
-  count identifies the operand - three on the volume, two on the price. **`receipt-037` breaks
-  that**: it prints `99.99 X 25 Л`, two decimals on the price and **none** on the volume, so "more
-  decimals means price" is right there by luck and wrong on `receipt-033`. What actually resolves
-  both is the **unit marker** (`Л`, `лит`, `РУБ`), which is `loneMarkers` territory. Dispatching the
-  row as written would build a rule the corpus has already falsified.
-- **P6.14's follow-up**: `fuelKind` and `currency` are now scored, but a **sixth** `Text(_: String)`
-  instance shipped this week (two in the import feature alone). The gate cannot see an interpolated
-  `String`, only a missing key. That deserves its own gate extension rather than a seventh
-  discovery.
+  count identifies the operand. **`receipt-037` breaks that**: it prints `99.99 X 25 Л`, two decimals
+  on the price and **none** on the volume. `receipt-040` (2026-08-29) prints `71.18 X 57.000` and
+  supports the decimal reading - which is exactly why it is recorded as **evidence, not a rule**. The
+  **unit marker** is what resolves both, which is `loneMarkers` territory.
+- **P6.14's follow-up**: a **sixth** `Text(_: String)` instance shipped this week. The gate cannot see
+  an interpolated `String`, only a missing key. That deserves its own gate extension rather than a
+  seventh discovery.
 
 ## The P5-completion session (2026-08-27/28) - fourteen tasks, and three documents that lied
 
@@ -669,7 +683,7 @@ P3.3 both rewrote one view); two agents across tiers do not.
 
 ## The corpus – the most valuable artefact in the repo
 
-`Spike/ReceiptSpike/fixtures/`: **39 receipts, 23 pump photos, 8 e-receipt/app screenshots, 2
+`Spike/ReceiptSpike/fixtures/`: **40 receipts, 29 pump photos, 8 e-receipt/app screenshots, 2
 fiscal PDFs**, plus P4.12/P4.13's committed A/B result files under `vision-ab/` and 22 decoded QR
 payloads. 2013-2026, RU/KZ/EE, RUB/KZT/EUR, VAT at 16/20/22%, petrol 92/95/98/100, diesel, LPG.
 Four classes scored separately so none flatters another.
@@ -690,7 +704,7 @@ catch.
 | class | score | note |
 |---|---|---|
 | receipts | **88/175** | every miss is a parsing bug, not an OCR one |
-| pump | **21/84** | twenty-three devices, six makes. Still why P2.7 ships off - the gate is 95% |
+| pump | **25/111** | twenty-nine devices. Still why P2.7 ships off - the gate is 95% |
 | fiscal | 2/5 | only one of the rows is an OCR-scorable image |
 | screenshots | **27/40** | app screenshots are the easiest input that exists |
 
