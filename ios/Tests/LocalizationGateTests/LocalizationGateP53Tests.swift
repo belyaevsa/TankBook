@@ -277,7 +277,14 @@ struct LocalizationGateP53Tests {
               2: "2 строки готовы. Эти 2 неполные – исправьте или пропустите.",
               5: "5 строк готовы. Эти 5 неполные – исправьте или пропустите.",
               11: "11 строк готовы. Эти 11 неполные – исправьте или пропустите.",
-              21: "21 строка готова. Эта 21 неполная – исправьте или пропустите."])
+              21: "21 строка готова. Эта 21 неполная – исправьте или пропустите."]),
+            // PJ.13: "Synced just now · 1 device" - the account card's
+            // device-count suffix (docs/JOURNEYS.md J11a -> First push). The
+            // `%@` slot is the app-composed ago text and never governs a case.
+            ("%@ · %lld devices",
+             [1: "Volvo V60 · 1 устройство", 2: "Volvo V60 · 2 устройства",
+              5: "Volvo V60 · 5 устройств", 11: "Volvo V60 · 11 устройств",
+              21: "Volvo V60 · 21 устройство"])
         ]
 
     /// Russian plural selection is not 1/2/5: 11 ends in 1 but takes `many`,
@@ -406,5 +413,82 @@ struct LocalizationGateP53Tests {
         #expect(!russian.lowercased().contains("pro"))
         #expect(!russian.lowercased().contains("подписк"))
         #expect(!key.lowercased().contains("pro"))
+    }
+}
+
+/// PJ.13 (docs/JOURNEYS.md J11a -> First push): the account card's
+/// "Synced just now · 1 device" line. Owned by its own suite so no test type
+/// trips the type_body_length lint rule - the same split rationale the file's
+/// header names for the two gate suites.
+@Suite("Device-count plural (PJ.13)")
+struct DeviceCountPluralTests {
+
+    /// ios/Tests/LocalizationGateTests/<this file> -> ios/App/Sources
+    private static var catalogueURL: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // ios/Tests/LocalizationGateTests
+            .deletingLastPathComponent() // ios/Tests
+            .deletingLastPathComponent() // ios
+            .appendingPathComponent("App/Sources/Localizable.xcstrings")
+    }
+
+    /// The RU plural is the same 11/21 trap the whole gate exists for - 11 and
+    /// 21 both end in 1 but take `many` and `one` respectively (устройство /
+    /// устройства / устройств) - and a swap of the `many`/`few` forms is
+    /// invisible at every number except the edges. Asserted at L1 on the
+    /// RENDERED string in BOTH languages: EN is one/other ("1 device" vs "N
+    /// devices"), RU is one/few/many.
+    @Test("the device-count plural renders at 1, 2, 5, 11 and 21 in EN and RU")
+    func deviceCountPluralRendersInBothLanguages() throws {
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+        let key = "%@ · %lld devices"
+        let counts = [1, 2, 5, 11, 21]
+
+        let expectedEN: [Int: String] = [
+            1: "· 1 device", 2: "· 2 devices", 5: "· 5 devices",
+            11: "· 11 devices", 21: "· 21 devices"
+        ]
+        let expectedRU: [Int: String] = [
+            1: "· 1 устройство", 2: "· 2 устройства", 5: "· 5 устройств",
+            11: "· 11 устройств", 21: "· 21 устройство"
+        ]
+
+        func render(language: String, _ count: Int) -> String {
+            // EN selects on "one"; RU on "one"/"few"/"many". `other` is the
+            // fallback neither branch reaches at these counts, so it is
+            // asserted separately as a non-empty form.
+            let form: String
+            switch language {
+            case "ru":
+                form = count == 1 || count == 21 ? "one"
+                    : (count == 2 ? "few" : "many")
+            default:
+                form = count == 1 ? "one" : "other"
+            }
+            guard let template = catalogue.pluralForms(for: key, language: language)[form] else {
+                return "MISSING-\(form)"
+            }
+            return template
+                .replacingOccurrences(of: "%@", with: "")
+                .replacingOccurrences(of: "%lld", with: "\(count)")
+                .trimmingCharacters(in: .whitespaces)
+        }
+
+        for count in counts {
+            let en = render(language: "en", count)
+            #expect(en == expectedEN[count],
+                    "EN device count at \(count): rendered '\(en)', expected '\(expectedEN[count]!)'")
+            let ru = render(language: "ru", count)
+            #expect(ru == expectedRU[count],
+                    "RU device count at \(count): rendered '\(ru)', expected '\(expectedRU[count]!)'")
+        }
+
+        // The `other` fallback must exist (English uses it for every count but
+        // 1) and must not be empty.
+        for language in ["en", "ru"] {
+            let forms = catalogue.pluralForms(for: key, language: language)
+            #expect(!(forms["other"]?.isEmpty ?? true),
+                    "\(language) must carry a non-empty `other` form for \(key)")
+        }
     }
 }

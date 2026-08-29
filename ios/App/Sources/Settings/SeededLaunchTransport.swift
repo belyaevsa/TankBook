@@ -38,6 +38,53 @@ struct AuthExpiredTransport: TankbookHTTPTransport {
     }
 }
 
+/// PJ.13's UI-test seam (`-signInSyncStub`): a transport that ANSWERS the sync
+/// and account-devices endpoints, so the L4 "sign in pushes" test runs a real
+/// sync cycle end-to-end under a seeded launch (which would otherwise be
+/// offline, and a real server is out of the question). The pull is empty, the
+/// push accepts every change, and `GET /account/devices` serves exactly this
+/// device - the account the local log is being pushed into has one device.
+struct SignInSyncStubTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        let path = request.url.path
+        if path.hasPrefix("/v1/sync/pull") {
+            return Self.json([
+                "records": [],
+                "nextSince": 0,
+                "more": false,
+                "schemaPolicy": ["minSupported": 1, "current": 1]
+            ])
+        }
+        if path.hasPrefix("/v1/sync/push"), let body = request.body {
+            let object = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+            let changes = object?["changes"] as? [[String: Any]] ?? []
+            var scn = 0
+            let results: [[String: Any]] = changes.compactMap { change in
+                guard let id = change["id"] else { return nil }
+                scn += 1
+                return ["id": id, "status": "accepted", "newScn": scn, "clamped": false]
+            }
+            return Self.json(["results": results])
+        }
+        if path.hasPrefix("/v1/account/devices") {
+            let deviceID = (try? KeychainSessionStore().load())?.deviceId ?? UUID().uuidString
+            return Self.json(["devices": [[
+                "id": deviceID,
+                "name": "This iPhone",
+                "platform": "iOS",
+                "lastSeenAt": "2026-08-29T10:00:00Z",
+                "revoked": false
+            ]]])
+        }
+        return TankbookHTTPResponse(status: 404)
+    }
+
+    private static func json(_ object: [String: Any]) -> TankbookHTTPResponse {
+        let data = try? JSONSerialization.data(withJSONObject: object)
+        return TankbookHTTPResponse(status: 200, body: data)
+    }
+}
+
 enum SeededLaunch {
     /// True when the process was launched by a UI test or the screenshot script.
     ///
@@ -64,9 +111,11 @@ enum SeededLaunch {
 
     /// The transport to use for this launch: offline under a seed, real otherwise.
     /// The auth-expired seed is the one exception to "offline": it answers 401 so
-    /// the real refresh path runs and fails (PR.1).
+    /// the real refresh path runs and fails (PR.1). PJ.13's sign-in stub answers
+    /// success so the L4 sign-in flow can push for real.
     static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
         -> any TankbookHTTPTransport {
+        if arguments.contains("-signInSyncStub") { return SignInSyncStubTransport() }
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
         if isSeeded(arguments) { return SeededLaunchTransport() }
         return URLSessionTransport()

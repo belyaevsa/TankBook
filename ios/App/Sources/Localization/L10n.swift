@@ -611,6 +611,30 @@ extension L10n {
     }
 }
 
+// MARK: - J11a the first push after sign-in (PJ.13)
+
+extension L10n {
+    /// "Synced just now · 1 device" - the account card's reassurance line with
+    /// the device count (docs/JOURNEYS.md J11a -> First push: "Synced just now
+    /// · 1 device"). One full localised phrase per language - the count uses the
+    /// String Catalog's real RU plural rules (устройство / устройства /
+    /// устройств, the 11/21 edge) and the `%@` slot receives the app-composed
+    /// `syncedAgo` text, which never governs a case (docs/LOCALIZATION.md).
+    /// `deviceCount` nil hides the count - the plain "Synced just now".
+    static func syncedStatus(lastSyncDate: Date?, deviceCount: Int?, now: Date = Date()) -> String {
+        let ago = syncedAgo(lastSyncDate: lastSyncDate, now: now)
+        guard let deviceCount else { return ago }
+        return String(localized: "\(ago) · \(deviceCount) devices")
+    }
+
+    /// "Your garage now follows your account." - the J11a Confirm line
+    /// (docs/JOURNEYS.md J11a -> Confirm): shown on the account card right
+    /// after the first sign-in, one line, no ceremony.
+    static var garageFollowsAccountMessage: String {
+        localize("Your garage now follows your account.")
+    }
+}
+
 // MARK: - Account & devices (P6.4)
 
 extension L10n {

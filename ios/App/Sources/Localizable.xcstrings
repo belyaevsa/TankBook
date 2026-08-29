@@ -154,6 +154,59 @@
         }
       }
     },
+    "%@ · %lld devices": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld device"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld devices"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld устройство"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld устройства"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld устройств"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ · %lld устройств"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%d on this receipt": {
       "extractionState": "manual",
       "localizations": {
@@ -8028,6 +8081,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Синхронизировано только что"
+          }
+        }
+      }
+    },
+    "Your garage now follows your account.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your garage now follows your account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Теперь ваш гараж синхронизируется с вашей учётной записью."
           }
         }
       }

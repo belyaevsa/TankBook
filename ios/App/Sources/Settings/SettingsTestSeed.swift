@@ -22,6 +22,13 @@ enum SettingsTestSeed {
         case rateLimited
         case lowPower
         case authExpired
+        /// PJ.13: a populated local log with NO session - the guest card offers
+        /// sign-in and the sign-in flow uploads the log (docs/JOURNEYS.md J11a).
+        case localLog
+        /// PJ.13: the just-signed-in card - session, device count and the
+        /// "Your garage now follows your account" confirmation, rendered by a
+        /// frozen-sync screenshot (no real push or device fetch runs).
+        case signedIn
     }
 
     static func state(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> State {
@@ -39,7 +46,9 @@ enum SettingsTestSeed {
             "-seedSettingsRefused": .refused,
             "-seedSettingsRateLimited": .rateLimited,
             "-seedSettingsLowPower": .lowPower,
-            "-seedSettingsAuthExpired": .authExpired
+            "-seedSettingsAuthExpired": .authExpired,
+            "-seedSettingsLocalLog": .localLog,
+            "-seedSettingsSignedIn": .signedIn
         ]
         for argument in arguments {
             if let state = seeds[argument] { return state }
@@ -72,7 +81,9 @@ enum SettingsTestSeed {
         // re-sign-in card is produced deterministically by the "Sync now" tap
         // after `seedIfRequested` writes the session - never by racing the
         // launch sync's 401 -> refresh -> fail path against the seed.
-        guard state != .none, state != .guest, state != .authExpired else { return }
+        // The local-log seed is guest: the L4 sign-in flow must START from the
+        // guest card, so no session may exist at launch.
+        guard state != .none, state != .guest, state != .authExpired, state != .localLog else { return }
         let store = KeychainSessionStore()
         try? store.clear()
         try? store.save(stubSession())
@@ -95,9 +106,15 @@ enum SettingsTestSeed {
         // cannot leak into a "guest" shot, then write the seeded session.
         let store = KeychainSessionStore()
         try? store.clear()
-        if state != .guest {
+        if state != .guest, state != .localLog {
             try? store.save(stubSession())
         }
+
+        // PJ.13 fixtures: the just-signed-in card renders a device count and
+        // the confirmation even though the screenshot freezes the sync (no push
+        // and no device fetch runs under `-freezeSyncState`).
+        sync.forcedDeviceCount = (state == .signedIn) ? 1 : nil
+        sync.forcedJustSignedIn = (state == .signedIn)
 
         // Transport-issue fixtures (410 revoked, blob-quota 429, offline with a
         // queue): real states the transport never produces in a screenshot.
@@ -113,7 +130,7 @@ enum SettingsTestSeed {
         sync.forcedRefused = refusedError(for: state)
         sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
 
-        if seedsQueue(state) || state == .flagged {
+        if seedsQueue(state) || state == .flagged || state == .localLog {
             seed(repository: try? AppStore.repository(), state: state)
         }
     }
@@ -149,6 +166,15 @@ enum SettingsTestSeed {
                                           price: "1.62", stationID: nil))
                 try? repository.upsertFillUp(fill, syncState: .dirty)
             }
+        } else if state == .localLog {
+            // PJ.13: the smallest populated local log - one live vehicle with a
+            // dirty fill, so the sign-in flow's `localHasData()` flips to the
+            // upload branch and the push has a row to send.
+            let fill = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
+                                      amount: "71.02", price: "1.679", stationID: nil))
+            try? repository.upsertFillUp(fill, syncState: .dirty)
         } else if state == .flagged {
             let flagged1 = HomeTestSeed.makeFill(
                 vehicleID: vehicle.id,

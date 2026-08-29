@@ -109,11 +109,28 @@ final class AppSync {
     private(set) var lastOutcome: SyncOutcome?
     private(set) var isSyncing = false
 
+    /// PJ.13 (docs/JOURNEYS.md J11a -> First push): whether the user just
+    /// signed in and the first push ran, so the account card shows the one-line
+    /// "Your garage now follows your account" confirmation. Set by the sign-in
+    /// flow's first push, cleared on sign-out or relaunch; in-memory only.
+    private var didJustSignIn = false
+    /// The account's device count from `GET /account/devices` (docs/JOURNEYS.md
+    /// J11a -> First push: "Synced just now · 1 device"). Refreshed on every
+    /// surface refresh; nil while unknown (guest, offline, a fetch failure) -
+    /// the card then shows the ordinary status line without the count.
+    private var fetchedDeviceCount: Int?
+
     /// DEBUG/test fixtures for states a real transport never produces in a
     /// screenshot (410 device revoked, blob-quota 429, offline with a queue).
     /// Nil/absent = not forced; production never sets them.
     var forcedRevoked = false
     var forcedQuotaPercent: Int?
+    /// PJ.13 fixtures for the just-signed-in card (the J11a screenshot): a
+    /// device count and the confirmation line, which a frozen sync cannot
+    /// produce (the sync is frozen, so no push and no device fetch runs).
+    /// Absent = not forced; production never sets them.
+    var forcedDeviceCount: Int?
+    var forcedJustSignedIn = false
     var forcedTransportUnavailable = false
     /// P6.11 fixtures for a server that has moved ahead of this client (426,
     /// 402, unknown 4xx, 429): outcomes this app version can never provoke from
@@ -146,6 +163,17 @@ final class AppSync {
     }
 
     var signedIn: Bool { session != nil }
+
+    /// Whether the account card should show the J11a confirmation line
+    /// ("Your garage now follows your account"). The real flag comes from the
+    /// sign-in flow's first push; the fixture lets a frozen-sync screenshot
+    /// render the just-signed-in card.
+    var justSignedIn: Bool { didJustSignIn || forcedJustSignedIn }
+
+    /// The device count for the account card's "· N device(s)" suffix, or nil
+    /// while unknown (guest, offline, or the fetch failed). The fixture lets a
+    /// frozen-sync screenshot render the count.
+    var deviceCount: Int? { forcedDeviceCount ?? fetchedDeviceCount }
 
     var surfaceState: SyncSurfaceState {
         SyncSurfaceState(
@@ -209,9 +237,21 @@ final class AppSync {
     /// Cheap and pure - called on appear and after every sync.
     func refresh() async {
         session = try? sessionStore.load()
+        if session == nil {
+            // The account is gone; the just-signed-in confirmation must not
+            // outlive the session it confirmed.
+            didJustSignIn = false
+        }
         if let core {
             lastSyncDate = core.lastSyncDate()
             lastOutcome = core.lastOutcome()
+        }
+        // The "· N device(s)" suffix on the reassurance line (docs/JOURNEYS.md
+        // J11a). Best-effort: a guest, an offline device or a fetch failure
+        // leaves the count nil and the card shows the plain status line.
+        fetchedDeviceCount = nil
+        if session != nil {
+            fetchedDeviceCount = try? await accountDevicesClient().devices().count
         }
         do {
             let repository = try AppStore.repository()
@@ -221,6 +261,46 @@ final class AppSync {
             dirtyCount = 0
             flaggedCount = 0
         }
+    }
+
+    /// PJ.13 (docs/JOURNEYS.md J11a -> First push): the user-initiated cycle
+    /// the sign-in flow runs before finishing. Marks the account as just
+    /// signed in, then runs the ONE coordinator with a `.userInitiated`
+    /// trigger - never `.background`, which LowPowerPolicy defers while Low
+    /// Power Mode is on.
+    ///
+    /// Deliberately does NOT update this surface's state. The Settings card
+    /// must learn about the new session from its own refresh on sheet
+    /// dismissal - a `.sheet` does not re-trigger the presenter's `.task` on
+    /// iOS 26 (the P6.18b finding, pinned by a UI test), so the dismissal
+    /// refresh is what makes the card reflect the sign-in. The coordinator
+    /// instance is the same one Settings reads, so that refresh sees this
+    /// push's outcome.
+    @discardableResult
+    func firstPushNow() async -> SyncOutcome {
+        didJustSignIn = true
+        guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else {
+            return SyncOutcome()
+        }
+        return await coordinator.syncNow(trigger: .userInitiated)
+    }
+
+    /// The host-bound account client for the card's device count - the same
+    /// endpoint the Account & devices screen uses, over the app's transport
+    /// selection (offline under a seeded launch, the sign-in stub under a UI
+    /// test that must see the count).
+    ///
+    /// Built WITHOUT the session refresher on purpose: the count is a secondary
+    /// display detail, so a stale token must read as "count unknown", never as
+    /// a refresh attempt that clears the session out from under the sync's own
+    /// auth path (a 401 here maps straight to `.unauthorized` and the card
+    /// shows the plain status line).
+    private func accountDevicesClient() -> AccountClient {
+        AccountClient(
+            httpClient: TankbookHTTPClient(
+                transport: SeededLaunch.transport(),
+                tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
+            director: AppConfigStore.shared.director)
     }
 
     /// The manual trigger. Idempotency is the coordinator's guarantee (the push

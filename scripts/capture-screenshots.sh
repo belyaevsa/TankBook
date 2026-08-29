@@ -295,6 +295,14 @@ capture P4.9b-settings-revoked-ru ru -presentScreen settings -seedSettingsRevoke
 capture P4.9b-settings-quota      en -presentScreen settings -seedSettingsQuota
 capture P4.9b-settings-quota-ru   ru -presentScreen settings -seedSettingsQuota
 
+# PJ.13: the J11a just-signed-in card - "Synced just now · 1 device" and the
+# "Your garage now follows your account" confirmation (docs/JOURNEYS.md J11a ->
+# First push / Confirm). The seed renders the post-first-push state under a
+# frozen sync; RU is where the confirmation and the device-count line are the
+# overflow check.
+capture PJ.13-settings-signed-in      en -presentScreen settings -seedSettingsSignedIn
+capture PJ.13-settings-signed-in-ru   ru -presentScreen settings -seedSettingsSignedIn
+
 # P6.11: a server ahead of the app surfaces on the Settings account card -
 # version-first copy (update, never an upsell). The upgrade shot is the amber
 # attention notice; the rate-limited shot is the reassurance wait.

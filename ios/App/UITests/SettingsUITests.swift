@@ -130,4 +130,43 @@ final class SettingsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["homeMergeButton"].exists)
         XCTAssertFalse(app.buttons["homeKeepBothButton"].exists)
     }
+
+    // MARK: - PJ.13 the first push after sign-in (docs/JOURNEYS.md J11a)
+
+    /// A seeded local log, sign in, and the account card reads the synced line
+    /// and the confirmation WITHOUT leaving Settings. The flow runs a real
+    /// push through the sign-in stub transport, and the card learns about it
+    /// from the onDismiss refresh - a `.sheet` does not re-trigger the
+    /// presenter's `.task` on iOS 26 (the P6.18b finding), so without that
+    /// refresh the card stays on its pre-sign-in guest state and this test
+    /// fails. That is the regression pin for mutation 3.
+    func testSignInWithLocalLogShowsSyncedLineWithoutLeavingSettings() {
+        // Each flag its own launch argument (a concatenated seed string would
+        // arrive as ONE argument containing spaces and match nothing).
+        let app = launch(["-presentScreen", "settings", "-seedSettingsLocalLog",
+                          "-signInStubAuth", "-signInSyncStub"])
+
+        // Guest card -> sign in.
+        let signIn = app.buttons["settingsSignInButton"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        signIn.tap()
+
+        // The stub provider flow: one tap, no Apple ID UI.
+        let apple = app.buttons["signInAppleButton"]
+        XCTAssertTrue(apple.waitForExistence(timeout: 10))
+        apple.tap()
+
+        // The flow uploads the local log (one user-initiated cycle) and closes;
+        // the card, refreshed on dismissal, reads the signed-in state - the
+        // device count and the J11a confirmation line.
+        let status = syncStatus(app)
+        XCTAssertTrue(status.waitForExistence(timeout: 15),
+                      "after sign-in the card must read the synced line without leaving Settings")
+        XCTAssertEqual(status.label, "Synced just now · 1 device",
+                       "the reassurance line carries the device count (docs/JOURNEYS.md J11a)")
+        XCTAssertTrue(app.staticTexts["settingsSignedInConfirmation"].waitForExistence(timeout: 5),
+                      "the just-signed-in card shows 'Your garage now follows your account.'")
+        XCTAssertFalse(app.buttons["settingsSignInButton"].exists,
+                       "the guest card is gone once signed in")
+    }
 }

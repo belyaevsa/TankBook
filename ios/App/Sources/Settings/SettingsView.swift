@@ -47,9 +47,17 @@ struct SettingsView: View {
             }
             await sync.refresh()
         }
-        .sheet(isPresented: $showsSignIn) {
-            SignInFlowHost()
-        }
+        .sheet(isPresented: $showsSignIn,
+               onDismiss: {
+                   // PJ.13: a `.sheet` does not re-trigger the presenter's
+                   // `.task` on iOS 26 (the P6.18b finding, pinned by a UI
+                   // test), so the card would otherwise stay on its pre-sign-in
+                   // state. The sign-in flow's first push leaves the session in
+                   // the Keychain and the outcome on the coordinator; this
+                   // refresh is what the card reads them from.
+                   Task { await sync.refresh() }
+               },
+               content: { SignInFlowHost() })
     }
 
     // MARK: - Account card
@@ -154,7 +162,8 @@ struct SettingsView: View {
     /// and `.rateLimited` as a wait in the ordinary status colour - never
     /// amber, never an update prompt. A refused push always leaves a queue
     /// (S7), so line one hides only when there is nothing waiting and a notice
-    /// is showing.
+    /// is showing. Line three is the J11a just-signed-in confirmation
+    /// (docs/JOURNEYS.md J11a -> Confirm), shown until the next sign-out.
     @ViewBuilder
     private var accountStatusLines: some View {
         let notice = sync.serverNotice
@@ -170,6 +179,12 @@ struct SettingsView: View {
                 .foregroundStyle(notice.isAttention ? Theme.Palette.warn : Theme.Palette.inkSoft)
                 .accessibilityIdentifier(notice.accessibilityIdentifier)
         }
+        if sync.justSignedIn {
+            Text(L10n.garageFollowsAccountMessage)
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("settingsSignedInConfirmation")
+        }
     }
 
     /// The account card's reassurance status line: reassurance, never amber
@@ -178,7 +193,10 @@ struct SettingsView: View {
     private var statusLine: String {
         switch sync.status {
         case .synced:
-            return L10n.syncedAgo(lastSyncDate: sync.lastSyncDate)
+            // PJ.13: the reassurance gains the device count when it is known
+            // ("Synced just now · 1 device", docs/JOURNEYS.md J11a).
+            return L10n.syncedStatus(lastSyncDate: sync.lastSyncDate,
+                                     deviceCount: sync.deviceCount)
         case .waitingToSync:
             // P6.8: the Low Power reason rides on S7's existing row
             // (docs/SYNC.md -> Low Power Mode: "Waiting to sync · 5 changes ·

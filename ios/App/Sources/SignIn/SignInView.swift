@@ -5,25 +5,37 @@ import TankbookCore
 /// choose-provider, wrong-provider and restoring phases within the one sheet
 /// presentation (no nested presentations, no dead ends - SCREENMAP rule zero).
 struct SignInFlowHost: View {
-    @State private var flow = SignInFlow.makeDefault()
+    @Environment(AppSync.self) private var sync
     @Environment(\.dismiss) private var dismiss
+    /// Created on appear so the flow's first-push seam can capture the app's
+    /// one `AppSync` from the environment (the environment is unavailable at
+    /// `@State` initial-value time). PJ.13: the seam runs the user-initiated
+    /// cycle that uploads a local log before the sheet closes.
+    @State private var flow: SignInFlow?
 
     var body: some View {
         Group {
-            switch flow.phase {
-            case .choosing, .signingIn:
-                SignInView(flow: flow)
-            case .wrongProvider(let provider):
-                WrongProviderView(flow: flow, provider: provider)
-            case .restoring(let snapshot):
-                RestoringView(flow: flow, snapshot: snapshot)
-            case .emptyRestore:
-                EmptyRestoreView(flow: flow)
-            case .restoreUnreachable:
-                RestoreUnreachableView(flow: flow)
-            case .uploading:
-                // Transient - `onFinished` dismisses immediately (the push itself
-                // is P4.5; nothing blocks the user here, hard rule 1).
+            if let flow {
+                switch flow.phase {
+                case .choosing, .signingIn:
+                    SignInView(flow: flow)
+                case .wrongProvider(let provider):
+                    WrongProviderView(flow: flow, provider: provider)
+                case .restoring(let snapshot):
+                    RestoringView(flow: flow, snapshot: snapshot)
+                case .emptyRestore:
+                    EmptyRestoreView(flow: flow)
+                case .restoreUnreachable:
+                    RestoreUnreachableView(flow: flow)
+                case .uploading:
+                    // Transient - `onFinished` dismisses immediately (the push itself
+                    // is P4.5; nothing blocks the user here, hard rule 1).
+                    Color.clear
+                }
+            } else {
+                // A non-empty placeholder so the sheet mounts its content before
+                // the flow is built on appear (an empty Group never completes a
+                // sheet presentation - the P6.18b class of silent no-ops).
                 Color.clear
             }
         }
@@ -34,8 +46,11 @@ struct SignInFlowHost: View {
         // and swipe-down are the dismiss paths, exactly as the artboard shows.
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
-            flow.onFinished = { dismiss() }
-            flow.applyScenarioIfRequested()
+            if flow == nil {
+                flow = SignInFlow.makeDefault(sync: sync)
+            }
+            flow?.onFinished = { dismiss() }
+            flow?.applyScenarioIfRequested()
         }
     }
 }

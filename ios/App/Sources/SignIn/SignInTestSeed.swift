@@ -11,6 +11,11 @@ enum SignInTestSeed {
 
     enum Scenario {
         case none
+        /// PJ.13: stub provider + auth + restore so a UI test can run a REAL
+        /// sign-in end-to-end (tap the provider, the flow runs, the first push
+        /// fires) without an Apple ID, a Google SDK or a reachable backend.
+        /// Unlike the other scenarios it forces no phase - the flow runs.
+        case stubAuth
         case wrongProvider
         case restore
         case restoreEmpty
@@ -18,6 +23,7 @@ enum SignInTestSeed {
     }
 
     static func scenario(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Scenario {
+        if arguments.contains("-signInStubAuth") { return .stubAuth }
         // The specific flags before the general one: "-signInRestore" is a
         // prefix of "-signInRestoreEmpty"/"-signInRestoreUnreachable".
         if arguments.contains("-signInWrongProvider") { return .wrongProvider }
@@ -108,7 +114,7 @@ enum SignInTestSeed {
             outcome = .empty
         case .restoreUnreachable:
             outcome = .unreachable
-        case .none, .wrongProvider:
+        case .none, .wrongProvider, .stubAuth:
             outcome = .empty
         }
         return StubRestoreProvider(outcome: outcome)

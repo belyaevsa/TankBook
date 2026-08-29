@@ -111,6 +111,10 @@ final class SignInFlow {
     private let sessionStore: any SessionStore
     private let restoreProvider: any RestoreProviding
     private let localHasData: () -> Bool
+    /// The J11a first push (docs/JOURNEYS.md J11a -> First push): the one
+    /// `.userInitiated` cycle that uploads the local log before the flow
+    /// finishes - and the guarantee that the wrong-provider path never pushes.
+    private let firstPush: SignInFirstPush
 
     /// The signed-in identity, kept so a retry can re-run the restore without
     /// re-authenticating.
@@ -128,7 +132,8 @@ final class SignInFlow {
         authService: any AuthService,
         sessionStore: any SessionStore,
         restoreProvider: any RestoreProviding,
-        localHasData: @escaping () -> Bool
+        localHasData: @escaping () -> Bool,
+        firstPush: SignInFirstPush
     ) {
         self.arrivedViaRestore = arrivedViaRestore
         self.idTokenProvider = idTokenProvider
@@ -136,6 +141,7 @@ final class SignInFlow {
         self.sessionStore = sessionStore
         self.restoreProvider = restoreProvider
         self.localHasData = localHasData
+        self.firstPush = firstPush
     }
 
     /// Applies a launch-argument scenario (screenshots, UI tests): the wrong
@@ -190,9 +196,19 @@ final class SignInFlow {
         Task { await runRestore(accountId: accountId) }
     }
 
-    /// The user accepts the empty account ("Start fresh") - the sheet closes to
-    /// the ordinary empty garage.
+    /// The user accepts the empty account ("Start fresh") - the account is
+    /// accepted, so it receives the local log: one user-initiated cycle, then
+    /// the sheet closes to the ordinary empty garage (docs/JOURNEYS.md J11a).
     func acceptEmpty() {
+        Task { await finish(path: .acceptEmpty) }
+    }
+
+    /// Completes a sign-in path through the first-push coordinator. The
+    /// upload/accept paths run exactly one `.userInitiated` cycle before the
+    /// sheet closes; the wrong-provider path pushes nothing (its caller shows
+    /// the question instead of finishing).
+    private func finish(path: SignInFirstPush.Path) async {
+        guard await firstPush.complete(path) else { return }
         onFinished()
     }
 
@@ -208,9 +224,10 @@ final class SignInFlow {
             signedInProvider = provider
 
             // J11a: a local log uploads, never overwritten - it is never pulled
-            // over (docs/JOURNEYS.md J11a).
+            // over (docs/JOURNEYS.md J11a). The upload is a user-initiated sync
+            // that runs BEFORE the sheet closes.
             if localHasData() {
-                onFinished()
+                await finish(path: .uploadLocalLog)
                 return
             }
 
@@ -230,7 +247,15 @@ final class SignInFlow {
                 stats: stats, email: signedInEmail, provider: signedInProvider ?? .apple))
         case .empty:
             if arrivedViaRestore {
-                phase = .wrongProvider(signedInProvider ?? .apple)
+                // The account is empty and the user expected their data: the
+                // honest question - never the first push, because this account
+                // has not been accepted. `complete(.wrongProvider)` pins that
+                // it pushes nothing (PJ.13, L1).
+                if await firstPush.complete(.wrongProvider) {
+                    onFinished()
+                } else {
+                    phase = .wrongProvider(signedInProvider ?? .apple)
+                }
             } else {
                 phase = .emptyRestore
             }
@@ -249,12 +274,16 @@ final class SignInFlow {
 /// sync pull from cursor 0 (P4.7).
 extension SignInFlow {
     @MainActor
-    static func makeDefault(arrivedViaRestore: Bool = false) -> SignInFlow {
+    static func makeDefault(sync: AppSync, arrivedViaRestore: Bool = false) -> SignInFlow {
         let sessionStore = KeychainSessionStore()
 
         #if DEBUG
         let scenario = SignInTestSeed.scenario()
-        let restoreIntent = arrivedViaRestore || scenario != .none
+        // Every scenario except `.stubAuth` simulates the "Already use
+        // Tankbook?" restore intent (the wrong-provider question needs it to
+        // re-enter after a provider switch). `.stubAuth` is a real run - the
+        // UI-test sign-in flow - so it keeps the caller's intent.
+        let restoreIntent = arrivedViaRestore || (scenario != .none && scenario != .stubAuth)
         let idTokenProvider: any IDTokenProvider = scenario == .none
             ? AppIDTokenProvider()
             : SignInTestSeed.StubIDTokenProvider()
@@ -271,13 +300,22 @@ extension SignInFlow {
         let restoreProvider: any RestoreProviding = makeRestoreProvider(sessionStore: sessionStore)
         #endif
 
+        // The first push goes through the app's ONE coordinator (AppSync -
+        // docs/SYNC.md: nothing else constructs a second SyncEngine), running
+        // the user-initiated cycle the flow's completion paths must run. The
+        // trigger choice lives in core (`SignInFirstPush`), asserted at L1.
+        let firstPush = SignInFirstPush { _ in
+            await sync.firstPushNow()
+        }
+
         return SignInFlow(
             arrivedViaRestore: restoreIntent,
             idTokenProvider: idTokenProvider,
             authService: authService,
             sessionStore: sessionStore,
             restoreProvider: restoreProvider,
-            localHasData: { (try? AppStore.repository().hasLocalData()) ?? false }
+            localHasData: { (try? AppStore.repository().hasLocalData()) ?? false },
+            firstPush: firstPush
         )
     }
 

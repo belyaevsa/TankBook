@@ -50,6 +50,7 @@ rows like `%@ %@`) were found the same way and cost nothing to include.
 | `%1$@ in %2$@` | `%1$@` reminder title (user text, nominative head); `%2$@` app-formatted "in N days/months" | No | `«Заправка» через 5 дней` - title is the subject, `через` reaches only the formatted phrase. No change |
 | `%1$@ within %2$@` | `%1$@` title; `%2$@` "N km" | No | `в пределах 1 500 км` reaches a number. No change |
 | `%1$@ · signed in with %2$@` | `%1$@` email (after separator); `%2$@` provider name | No | `вход через Apple` is the standard undeclinable-brand construction. No change |
+| `%@ · %lld devices` | `%@` app-composed `syncedAgo` text; `%lld` a count | No | PJ.13: `Синхронизировано только что · 1 устройство` - the `%@` slot receives the app's own composed age string (never server text), the `%lld` a number, and the phrase after the separator governs nothing. Plural key: RU устройство/устройства/устройств at 1/2/5/11/21, pinned in `deviceCountPluralRendersInBothLanguages` |
 | `%1$@ – done` | title, nominative head | No | `Замена масла – выполнено`. No change |
 | `%@ %@` | formatted number + localized unit (`42,3 л`) | No | interpolated-literal row; numbers/units. No change |
 | `%@ %@ · %@` | number + unit + relative-day | No | same. No change |

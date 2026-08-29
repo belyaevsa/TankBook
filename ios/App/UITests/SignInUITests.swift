@@ -120,6 +120,38 @@ final class SignInUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
     }
 
+    // MARK: - PJ.13 the first push after sign-in (docs/JOURNEYS.md J11a)
+
+    /// Signing in with a populated local log uploads it and finishes the flow:
+    /// the sheet closes to a signed-in Settings card, and the wrong-provider
+    /// question never appears - a local log is never routed there (J11a's
+    /// reverse guard) and the upload branch must never push into an unaccepted
+    /// account. The push runs through the sign-in stub transport.
+    func testSignInWithLocalLogUploadsAndCompletesTheFlow() {
+        let app = launch(["-presentScreen", "settings", "-seedSettingsLocalLog",
+                          "-signInStubAuth", "-signInSyncStub"])
+
+        let signIn = app.buttons["settingsSignInButton"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 10))
+        signIn.tap()
+
+        let apple = app.buttons["signInAppleButton"]
+        XCTAssertTrue(apple.waitForExistence(timeout: 10))
+        apple.tap()
+
+        // The upload branch completes the flow - the wrong-provider question
+        // must not appear (a populated local log always uploads), and the card
+        // is back signed in.
+        let wrongProviderQuestion = app.staticTexts[
+            "Nothing is stored under this Apple ID. Last time, did you sign in with Google?"]
+        XCTAssertFalse(wrongProviderQuestion.waitForExistence(timeout: 5),
+                       "a populated local log must never reach the wrong-provider question")
+        XCTAssertTrue(app.staticTexts["settingsSyncStatus"].waitForExistence(timeout: 15),
+                      "the flow must finish with a signed-in Settings card")
+        XCTAssertTrue(app.staticTexts["settingsSignedInConfirmation"].waitForExistence(timeout: 5),
+                      "the J11a confirmation line follows the first push")
+    }
+
     // MARK: - The restoring screen's verification stats (docs/JOURNEYS.md J11)
 
     /// The Restoring screen shows the verification stats - numbers, not a
