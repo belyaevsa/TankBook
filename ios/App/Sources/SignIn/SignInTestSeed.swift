@@ -16,7 +16,10 @@ enum SignInTestSeed {
         /// fires) without an Apple ID, a Google SDK or a reachable backend.
         /// Unlike the other scenarios it forces no phase - the flow runs.
         case stubAuth
-        case wrongProvider
+        /// The J11a wrong-provider question (docs/JOURNEYS.md J11a) is NOT a
+        /// scenario since PJ.3: it is reachable for real - the Welcome root's
+        /// third path over an empty stub account - so the flag that faked it
+        /// was retired and the tests drive the real path.
         case restore
         case restoreEmpty
         case restoreUnreachable
@@ -26,7 +29,6 @@ enum SignInTestSeed {
         if arguments.contains("-signInStubAuth") { return .stubAuth }
         // The specific flags before the general one: "-signInRestore" is a
         // prefix of "-signInRestoreEmpty"/"-signInRestoreUnreachable".
-        if arguments.contains("-signInWrongProvider") { return .wrongProvider }
         if arguments.contains("-signInRestoreEmpty") { return .restoreEmpty }
         if arguments.contains("-signInRestoreUnreachable") { return .restoreUnreachable }
         if arguments.contains("-signInRestore") { return .restore }
@@ -114,7 +116,7 @@ enum SignInTestSeed {
             outcome = .empty
         case .restoreUnreachable:
             outcome = .unreachable
-        case .none, .wrongProvider, .stubAuth:
+        case .none, .stubAuth:
             outcome = .empty
         }
         return StubRestoreProvider(outcome: outcome)

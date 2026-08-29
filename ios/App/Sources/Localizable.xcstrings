@@ -861,6 +861,40 @@
         }
       }
     },
+    "Add your car": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your car"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить автомобиль"
+          }
+        }
+      }
+    },
+    "Already use Tankbook? ": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Already use Tankbook? "
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уже пользуетесь Tankbook? "
+          }
+        }
+      }
+    },
     "Add date": {
       "extractionState": "manual",
       "localizations": {
@@ -4427,6 +4461,91 @@
           "stringUnit": {
             "state": "translated",
             "value": "Наведите камеру на чек – даже старый из бардачка. Расход появится после второго полного бака."
+          }
+        }
+      }
+    },
+    "Point. Scan. Done.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Point. Scan. Done."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Наведи. Сканируй. Готово."
+          }
+        }
+      }
+    },
+    "Fuel, charging and service in one history": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fuel, charging and service in one history"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Топливо, зарядка и сервис в одной истории"
+          }
+        }
+      }
+    },
+    "No account needed – your data stays yours": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No account needed – your data stays yours"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Аккаунт не нужен – данные остаются вашими"
+          }
+        }
+      }
+    },
+    "Scan receipts, pump displays and QR codes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan receipts, pump displays and QR codes"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканируйте чеки, экраны заправок и QR-коды"
+          }
+        }
+      }
+    },
+    " – your garage follows you.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " – your garage follows you."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": " – гараж поедет за вами."
           }
         }
       }

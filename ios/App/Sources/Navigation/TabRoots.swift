@@ -52,6 +52,11 @@ struct AppRootView: View {
     /// sync surface, the coordinator and the rate store all consult, plus the
     /// resumer that drains deferred work when the mode ends.
     @State private var power: AppPower
+    /// Whether the Welcome root owns the screen: no vehicle AND no session
+    /// (docs/SCREENMAP.md -> Welcome). Decided at launch before the first
+    /// frame so the tabs never flash behind onboarding; hidden for good the
+    /// moment a car exists or a session lands (WelcomeRootView reports it).
+    @State private var showWelcome: Bool
 
     init() {
         let configService = AppConfigService.make()
@@ -61,6 +66,14 @@ struct AppRootView: View {
         // instead of being skipped for a still-empty Keychain (see
         // `SettingsTestSeed.seedSessionAtLaunchIfRequested`). Inert in release.
         SettingsTestSeed.seedSessionAtLaunchIfRequested()
+        // DEBUG/test: `-clearSessionAtLaunch` makes a launch deterministically
+        // guest. The Keychain outlives `-homeResetDatabase` (which wipes only
+        // the database), so without it a test that wants the guest Home could
+        // inherit a session a previous test in the run left behind - which
+        // flipped the Home layout under PJ.3 (guest chrome is real state now).
+        if ProcessInfo.processInfo.arguments.contains("-clearSessionAtLaunch") {
+            try? KeychainSessionStore().clear()
+        }
         _configService = State(initialValue: configService)
         _sync = State(initialValue: AppSync(configService: configService,
                                             powerState: power.powerState,
@@ -74,6 +87,10 @@ struct AppRootView: View {
         // drains with the deferred sync when the mode ends.
         AppRates.resumer = power.resumer
         _power = State(initialValue: power)
+        // The Welcome decision runs after the seeded-session write above, so a
+        // signed-in screenshot/test launch never shows onboarding. Read here,
+        // in init, so the first frame is already correct.
+        _showWelcome = State(initialValue: WelcomeGate.shouldShowWelcome())
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
@@ -86,19 +103,10 @@ struct AppRootView: View {
         }
     }
 
-    /// One tab's root, always present in the hierarchy so its NavigationStack
-    /// survives a switch. The inactive ones are fully transparent, take no
-    /// touches, and are hidden from VoiceOver so it does not read three screens.
+    /// The tabbed app: the three roots plus the owned bar. `showWelcome` swaps
+    /// this out wholesale, so onboarding never shares a frame with the tabs.
     @ViewBuilder
-    private func tabRoot(_ tab: AppTab, @ViewBuilder content: () -> some View) -> some View {
-        let isActive = tabSelection == tab
-        content()
-            .opacity(isActive ? 1 : 0)
-            .allowsHitTesting(isActive)
-            .accessibilityHidden(!isActive)
-    }
-
-    var body: some View {
+    private var tabbedContent: some View {
         VStack(spacing: 0) {
             // NO `TabView`. Three attempts to suppress its bar failed: on iOS 26
             // the tab bar is not a `UITabBar` - which is why a UIKit probe could
@@ -141,6 +149,31 @@ struct AppRootView: View {
                     openCapture()
                 }
                 .transition(.move(edge: .bottom))
+            }
+        }
+    }
+
+    /// One tab's root, always present in the hierarchy so its NavigationStack
+    /// survives a switch. The inactive ones are fully transparent, take no
+    /// touches, and are hidden from VoiceOver so it does not read three screens.
+    @ViewBuilder
+    private func tabRoot(_ tab: AppTab, @ViewBuilder content: () -> some View) -> some View {
+        let isActive = tabSelection == tab
+        content()
+            .opacity(isActive ? 1 : 0)
+            .allowsHitTesting(isActive)
+            .accessibilityHidden(!isActive)
+    }
+
+    var body: some View {
+        Group {
+            if showWelcome {
+                // Onboarding owns the screen until a car exists or a session
+                // lands (docs/SCREENMAP.md -> Welcome). The tab bar is not part
+                // of it - the artboard is a full standalone screen.
+                WelcomeRootView { showWelcome = false }
+            } else {
+                tabbedContent
             }
         }
         .onPreferenceChange(ConfirmableFormPreference.self) { isForm in

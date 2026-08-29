@@ -10,13 +10,15 @@ import UIKit
 ///
 /// All figures come from `HomeStats`, which derives them from the Consumption
 /// engine - Home does no arithmetic of its own (hard rule 2). The sync-shaped
-/// states (S2/S5/S7, reminder banner, guest chrome) are presentation fixtures
-/// driven by launch arguments until P4 (HomePresentables).
+/// states (S2/S5/S7, reminder banner) are presentation fixtures driven by
+/// launch arguments until P4 (HomePresentables); the guest chrome is REAL data
+/// since PJ.3 - it renders whenever there is no session (docs/SYNC.md).
 struct HomeView: View {
     let presentSheet: (SheetRoute) -> Void
 
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
+    @Environment(AppSync.self) private var sync
     @State private var vehicle: Vehicle?
     @State private var vehicles: [Vehicle] = []
     @State private var entries: [any Entry] = []
@@ -108,9 +110,24 @@ struct HomeView: View {
         }
     }
 
+    /// The guest Home (design/screens/GuestHome.dc.html) is the no-account
+    /// state: no session in the Keychain - the app's source of truth for
+    /// signed-in vs guest (docs/SYNC.md). It is real since PJ.3: the Welcome
+    /// root's "Add your car" path lands here, and signing out from Settings
+    /// returns a car-owning user to it. A guest with a car sees the garage
+    /// card; a guest with none sees the no-car card - both inside the guest
+    /// chrome, which is what makes the account state visible.
+    private var isGuest: Bool {
+        // `sync.signedIn` is observed so a sign-in/sign-out re-renders Home;
+        // the store read is the Keychain itself, so a signed-in launch's first
+        // frame is already the full layout, never a guest flash.
+        _ = sync.signedIn
+        return (try? sync.sessionStore.load()) == nil
+    }
+
     @ViewBuilder
     private var content: some View {
-        if presentables.guest {
+        if isGuest {
             HomeGuestLayout(vehicle: vehicle, stats: stats, photoData: photoData,
                             onTypeIt: { presentSheet(.confirmManual) })
         } else if vehicle == nil {

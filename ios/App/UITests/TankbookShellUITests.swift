@@ -82,6 +82,39 @@ final class TankbookShellUITests: XCTestCase {
 
     // MARK: - Edge walk (back paths)
 
+    /// PJ.3: the Welcome root's three paths are edges too, and each has a back
+    /// path (SCREENMAP rule zero - no dead ends). A fresh install shows Welcome
+    /// (`-presentWelcome` runs the real onboarding decision under the seed
+    /// harness's reset); every path returns to it.
+    func testWelcomePathsHaveBackPaths() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-presentWelcome"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["welcomeAddCarButton"].waitForExistence(timeout: 10))
+
+        // Welcome -> Add car -> back -> Welcome
+        app.buttons["welcomeAddCarButton"].tap()
+        XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["welcomeAddCarButton"].waitForExistence(timeout: 5))
+
+        // Welcome -> Import -> back -> Welcome
+        app.buttons["welcomeImportButton"].tap()
+        // The wizard draws its own header (no system nav bar), so its own
+        // title is the landing marker and its own close is the back path.
+        XCTAssertTrue(app.staticTexts["importSourceTitle"].waitForExistence(timeout: 5))
+        app.buttons["importSourceClose"].tap()
+        XCTAssertTrue(app.buttons["welcomeAddCarButton"].waitForExistence(timeout: 5))
+
+        // Welcome -> Sign in -> Not now -> Welcome
+        app.buttons["welcomeSignInButton"].tap()
+        XCTAssertTrue(app.buttons["signInAppleButton"].waitForExistence(timeout: 5))
+        app.buttons["signInNotNowButton"].tap()
+        XCTAssertTrue(app.buttons["welcomeAddCarButton"].waitForExistence(timeout: 5),
+                      "declining sign-in must return to Welcome")
+    }
+
     func testHomeTabEdgesHaveBackPaths() {
         let app = launch()
 

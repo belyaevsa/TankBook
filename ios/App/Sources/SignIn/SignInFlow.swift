@@ -149,16 +149,16 @@ final class SignInFlow {
         self.firstPush = firstPush
     }
 
-    /// Applies a launch-argument scenario (screenshots, UI tests): the wrong
-    /// provider question, a seeded restore, an empty restore, or a down backend.
-    /// DEBUG/test-only.
+    /// Applies a launch-argument scenario (screenshots, UI tests): a seeded
+    /// restore, an empty restore, or a down backend. DEBUG/test-only. The
+    /// wrong-provider question is NOT a scenario here since PJ.3: it is
+    /// reachable for real through the Welcome root's third path (an empty
+    /// account arrived via restore), so the flag that faked it was retired.
     func applyScenarioIfRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
         #if DEBUG
         // The specific flags before the general one: "-signInRestore" is a
         // prefix of "-signInRestoreEmpty"/"-signInRestoreUnreachable".
-        if arguments.contains("-signInWrongProvider") {
-            phase = .wrongProvider(.apple)
-        } else if arguments.contains("-signInRestoreEmpty") {
+        if arguments.contains("-signInRestoreEmpty") {
             phase = .emptyRestore
         } else if arguments.contains("-signInRestoreUnreachable") {
             phase = .restoreUnreachable

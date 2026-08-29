@@ -4,11 +4,20 @@ import XCTest
 /// is the empty and partial states: guest, no car yet, car with zero entries
 /// (the "no N/A tiles" assertion), one fill-up with no segment yet (the D4
 /// hint), and the full state. The sync-shaped states (S2/S5/S7, reminder
-/// banner, guest chrome) are presentation fixtures driven by launch arguments
-/// (HomePresentables) because their real data arrives with P4.
+/// banner) are presentation fixtures driven by launch arguments
+/// (HomePresentables) because their real data arrives with P4; the guest
+/// chrome is real data since PJ.3 - it renders whenever there is no session.
 ///
 /// Every Home test resets the database first (`-homeResetDatabase`) so the five
 /// states are isolated from each other and from the other suites' seeds.
+///
+/// PJ.3: the Home states under test are the SIGNED-IN layouts (the guest chrome
+/// is a real state now, so a session is what renders the full/empty layouts;
+/// a no-session launch shows the guest Home instead). Every launch is
+/// deterministically signed in via `-seedSettingsSignedIn`; the guest test
+/// clears it back (`-clearSessionAtLaunch`), and the Keychain survives
+/// `-homeResetDatabase`, so without these the suite would be order-dependent
+/// on whatever session a previous test left behind.
 @MainActor
 final class HomeUITests: XCTestCase {
 
@@ -18,18 +27,21 @@ final class HomeUITests: XCTestCase {
 
     private func launch(args: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase"] + args
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + args
         app.launch()
         return app
     }
 
     // MARK: - The five states
 
+    /// The guest chrome is REAL since PJ.3: a car with no session is the guest
+    /// Home (reached for real from the Welcome root's "Add your car" path) -
+    /// no `-forceGuestHome` fixture remains. GuestHome.dc.html: the capture
+    /// CTA, the import card and the privacy line are the guest's signature
+    /// surfaces.
     func testGuestStateRendersGuestChrome() {
-        let app = launch(args: ["-forceGuestHome", "-seedHomeEmptyVehicle"])
+        let app = launch(args: ["-clearSessionAtLaunch", "-seedHomeEmptyVehicle"])
 
-        // GuestHome.dc.html: the capture CTA, the import card and the privacy
-        // line are the guest's signature surfaces.
         XCTAssertTrue(app.staticTexts["Scan your first fill-up"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["homeGuestCaptureButton"].exists)
         XCTAssertTrue(app.buttons["homeGuestImportButton"].exists)
@@ -37,7 +49,14 @@ final class HomeUITests: XCTestCase {
             "Everything stays on this phone. Sign in later only if you want a second device."].exists)
     }
 
+    /// The no-car Home is the signed-in empty garage (the Welcome root only
+    /// shows while there is no session, so a no-session no-car launch lands on
+    /// Welcome - docs/SCREENMAP.md). A signed-in user with an empty garage gets
+    /// the Add-car path, not an empty dashboard (docs/SCHEMA.md / J1).
     func testNoCarYetRoutesToAddCar() {
+        // The helper signs the launch in, so this is the signed-in empty
+        // garage: the Welcome root only shows while there is no session
+        // (docs/SCREENMAP.md), and the Add-car path is the no-car Home's job.
         let app = launch(args: [])
 
         // The Add-car path, not an empty dashboard (docs/SCHEMA.md / J1).
@@ -336,9 +355,11 @@ final class HomeUITests: XCTestCase {
     /// toast, no alert, no banner - the home amounts simply appear.
     func testPendingToFilledTransitionShowsNoToastBannerOrAlert() {
         // Phase 1: pending renders - the footnote is up and only the converted
-        // EUR rows carry amounts (the three PLN rows have none yet).
+        // EUR rows carry amounts (the three PLN rows have none yet). Signed in
+        // like the rest of the suite, so the log stream (not the guest Home)
+        // is the layout under test.
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-seedHomePendingRates"]
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn", "-seedHomePendingRates"]
         app.launch()
 
         let footnote = app.staticTexts["homePendingRatesFootnote"]
@@ -354,7 +375,8 @@ final class HomeUITests: XCTestCase {
         // observes the same screen flip from pending to filled - never a
         // vacuous "it was already gone".
         app.terminate()
-        app.launchArguments = ["-homeResetDatabase", "-seedHomePendingRates", "-runRateBackfill"]
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomePendingRates", "-runRateBackfill"]
         app.launch()
 
         let after = app.staticTexts["homePendingRatesFootnote"]

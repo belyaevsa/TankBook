@@ -267,11 +267,14 @@ capture P3.3-tire-mount-ru        ru -seedTireSets -presentScreen serviceEntry -
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the
-# shape that overflows.
+# shape that overflows. The wrong-provider shot is the REAL path since PJ.3: the
+# Welcome root's third path carries the restore intent, `-signInStubAuth` runs a
+# real sign-in through the stubs, and `-signInAutoStart` drives the tap `simctl`
+# cannot make.
 capture P4.4-sign-in              en -presentScreen signIn
 capture P4.4-sign-in-ru           ru -presentScreen signIn
-capture P4.4-wrong-provider       en -presentScreen signIn -signInWrongProvider
-capture P4.4-wrong-provider-ru    ru -presentScreen signIn -signInWrongProvider
+capture P4.4-wrong-provider       en -presentWelcome -presentScreen signIn -signInStubAuth -signInAutoStart
+capture P4.4-wrong-provider-ru    ru -presentWelcome -presentScreen signIn -signInStubAuth -signInAutoStart
 
 # P4.7: restore end-to-end - the Restoring screen (verification stats before
 # finishing), the empty-restore recovery entry point (F7's merge-conflict
@@ -404,6 +407,19 @@ capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRest
 # it, present for the test and not for the user.
 capture PR.6b-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 capture PR.6b-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
+
+# PJ.3: the Welcome root (design/screens/Welcome.dc.html) - the fresh-install
+# screen a reinstall or an Android migrant meets, with its three equal paths.
+# `-presentWelcome` runs the REAL onboarding decision under the seed harness's
+# reset. The light pair uses the light artboard (LightWelcome.dc.html) - this
+# row has a light artboard, so light is not optional here. RU is where the
+# feature lines and the third path's sentence run longest.
+capture PJ.3-welcome         en -presentWelcome
+capture PJ.3-welcome-ru      ru -presentWelcome
+xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
+capture PJ.3-welcome-light      en -presentWelcome
+capture PJ.3-welcome-light-ru   ru -presentWelcome
+xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1

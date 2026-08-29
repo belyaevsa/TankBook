@@ -21,14 +21,23 @@ struct AddVehicleFormState {
     var model: String?
     var year: Int?
     var powertrain: Powertrain = .ice
-    var selectedFuelKinds: Set<FuelKind> = [.petrol95]
+    var selectedFuelKinds: Set<FuelKind>
     var odometer = ""
     var odometerTouched = false
     var odometerConfirmed = false
     var saveAttempted = false
-    var homeCurrency: CurrencyCode = LocaleCurrency.defaultCurrency(for: .current)
+    var homeCurrency: CurrencyCode
     var capacity = ""
     var photo: Data?
+
+    /// The locale-driven defaults (docs/JOURNEYS.md J1): home currency from
+    /// the device locale, and the RU locale's two common petrol grades beside
+    /// the RUB guess (PJ.3). Both are default inputs the user edits (hard rule
+    /// 13) - never facts.
+    init(locale: Locale = .current) {
+        homeCurrency = LocaleCurrency.defaultCurrency(for: locale)
+        selectedFuelKinds = Set(VehicleDefaults.defaultFuelKinds(for: locale))
+    }
 
     // MARK: Error-state 1: name empty on save (warn, never blocks forever)
 

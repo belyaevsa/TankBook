@@ -7,6 +7,13 @@ import TankbookCore
 struct SignInFlowHost: View {
     @Environment(AppSync.self) private var sync
     @Environment(\.dismiss) private var dismiss
+    /// Whether the user came through "Already use Tankbook?" (the Welcome
+    /// root's third path - docs/JOURNEYS.md J11a). Defaults to false: Settings'
+    /// "Sign in to sync" is a running app asking, so an empty account there
+    /// offers the empty-restore "Start fresh", never the wrong-provider
+    /// question. The Welcome path passes true, which is what makes an empty
+    /// account under a restore intent ask the honest J11a question.
+    var arrivedViaRestore = false
     /// Created on appear so the flow's first-push seam can capture the app's
     /// one `AppSync` from the environment (the environment is unavailable at
     /// `@State` initial-value time). PJ.13: the seam runs the user-initiated
@@ -47,10 +54,22 @@ struct SignInFlowHost: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             if flow == nil {
-                flow = SignInFlow.makeDefault(sync: sync)
+                flow = SignInFlow.makeDefault(sync: sync, arrivedViaRestore: arrivedViaRestore)
             }
             flow?.onFinished = { dismiss() }
             flow?.applyScenarioIfRequested()
+            // PJ.3: screenshot harness - `-signInAutoStart` runs the real flow
+            // (through the stub under `-signInStubAuth`) without a tap, because
+            // `simctl` cannot tap. It is the same `startSignIn` the provider
+            // buttons call; production never passes the flag. It fires only
+            // from the provider-choice phase, so a seeded restore scenario is
+            // never overridden.
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-signInAutoStart"),
+               case .choosing = flow?.phase {
+                flow?.startSignIn(provider: .apple)
+            }
+            #endif
         }
     }
 }

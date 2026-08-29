@@ -43,8 +43,21 @@ final class SignInUITests: XCTestCase {
 
     // MARK: - The wrong-provider trap (docs/JOURNEYS.md J11a)
 
+    /// The REAL path (PJ.3): the Welcome root's third path carries the restore
+    /// intent (`arrivedViaRestore: true`), so an empty stub account under it
+    /// asks the honest question - no `-signInWrongProvider` fixture remains.
     func testWrongProviderShowsHonestQuestionAndProviderSwitchIsOneTap() {
-        let app = launch(["-presentScreen", "signIn", "-signInWrongProvider"])
+        let app = launch(["-presentWelcome", "-signInStubAuth"])
+
+        // A fresh install shows Welcome; the third path is the restore door.
+        XCTAssertTrue(app.staticTexts["Tankbook"].waitForExistence(timeout: 10))
+        let signIn = app.buttons["welcomeSignInButton"]
+        XCTAssertTrue(signIn.isHittable)
+        signIn.tap()
+
+        let apple = app.buttons["signInAppleButton"]
+        XCTAssertTrue(apple.waitForExistence(timeout: 10))
+        apple.tap()
 
         // The honest question renders, and the app did not skip straight to an
         // empty restore ("Open my garage") - never an empty garage presented as
@@ -71,16 +84,21 @@ final class SignInUITests: XCTestCase {
 
     // MARK: - The sign-out escape
 
+    /// A local car plus a restore in progress: signing out of the account must
+    /// clear only the session, never the local log (J11a's reverse guard, hard
+    /// rule 1). The guest Home renders because the session is gone (PJ.3) and
+    /// the local garage card survives.
     func testSignOutEscapeLeavesTheLocalAppIntact() {
-        let app = launch(["-seedVehicleForUITests", "-presentScreen", "signIn", "-signInWrongProvider"])
+        let app = launch(["-seedHomeEmptyVehicle", "-presentScreen", "signIn", "-signInRestore"])
 
-        XCTAssertTrue(app.buttons["wrongProviderSignOutButton"].waitForExistence(timeout: 10))
-        app.buttons["wrongProviderSignOutButton"].tap()
+        XCTAssertTrue(app.buttons["restoringSignOutButton"].waitForExistence(timeout: 10))
+        app.buttons["restoringSignOutButton"].tap()
 
         // Back on the working app, and the seeded local car is still there -
-        // signing out cleared only the session, never the local log.
+        // signing out cleared only the session, never the local log. The guest
+        // garage card names the car.
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["carSwitcherButton"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["Volvo V60"].waitForExistence(timeout: 5),
                       "the local garage must survive the sign-out escape")
         XCTAssertFalse(app.staticTexts["Nothing is stored under this Apple ID. Last time, did you sign in with Google?"].exists)
     }
@@ -88,7 +106,10 @@ final class SignInUITests: XCTestCase {
     // MARK: - Nothing is sync-gated (hard rule 1)
 
     func testSignInDeclinedLeavesLogTrendsGarageWorkingAndAnEntrySaves() {
-        let app = launch(["-seedVehicleForUITests", "-presentScreen", "signIn"])
+        // A deterministic guest launch: a leftover session from an earlier
+        // test would flip Home into the signed-in layout and hide the guest
+        // door this test must use (guest chrome is real state since PJ.3).
+        let app = launch(["-clearSessionAtLaunch", "-seedVehicleForUITests", "-presentScreen", "signIn"])
 
         // Decline sign-in at the decision moment.
         let notNow = app.buttons["signInNotNowButton"]
@@ -106,10 +127,12 @@ final class SignInUITests: XCTestCase {
         app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
 
-        // An entry saves: back to Log, type a fill-up, save.
+        // An entry saves: back to Log, type a fill-up, save. The declined
+        // sign-in leaves the app a guest, so the guest Home's own "Type it"
+        // door is the peer entry path (hard rule 15).
         app.buttons["tabbar.log"].tap()
-        XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
-        app.buttons["typeItButton"].tap()
+        XCTAssertTrue(app.buttons["homeGuestCaptureButton"].waitForExistence(timeout: 10))
+        app.buttons["homeGuestCaptureButton"].tap()
 
         focusField(app, "manualFillUpTotalField").typeText("71.02")
         focusField(app, "manualFillUpLitersField").typeText("42.30")
@@ -180,10 +203,16 @@ final class SignInUITests: XCTestCase {
     /// An empty restore must reach the recovery entry point BEFORE any "add a
     /// car" affordance is usable - the whole point is preventing the user from
     /// typing first and creating a merge conflict when the backup reappears.
+    /// Driven through the REAL flow (a stub sign-in from Settings, which
+    /// carries no restore intent): the empty account is accepted, the session
+    /// sticks, and only then does add-a-car become reachable.
     func testEmptyRestoreShowsRecoveryBeforeAddCarIsUsable() {
-        let app = launch(["-presentScreen", "signIn", "-signInRestoreEmpty"])
+        let app = launch(["-presentScreen", "signIn", "-signInStubAuth"])
 
-        // The recovery entry point is shown...
+        // Sign in: an empty account with no restore intent lands on the
+        // recovery entry point (F7), never on a bare empty garage.
+        XCTAssertTrue(app.buttons["signInAppleButton"].waitForExistence(timeout: 10))
+        app.buttons["signInAppleButton"].tap()
         XCTAssertTrue(app.staticTexts["emptyRestoreRecoveryPrompt"].waitForExistence(timeout: 10),
                       "an empty restore must show the 'Expecting your data?' recovery entry point")
         XCTAssertTrue(app.staticTexts["Expecting your data?"].exists)
@@ -195,7 +224,9 @@ final class SignInUITests: XCTestCase {
                        "the add-a-car affordance must not be usable before the empty-restore decision")
 
         // "Start fresh" is the explicit acceptance of the empty garage - only
-        // then does add-a-car become reachable.
+        // then does add-a-car become reachable (and only because the accepted
+        // account left a session: a no-session user is the guest Home, not the
+        // signed-in empty garage, since PJ.3).
         app.buttons["emptyRestoreStartFreshButton"].tap()
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["homeAddFirstCarButton"].waitForExistence(timeout: 5))
