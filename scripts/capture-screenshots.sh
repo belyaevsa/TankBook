@@ -395,10 +395,15 @@ capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTi
 # is still true at the 6 s capture - and the restore progress's Cancel - the
 # Restoring screen's photo download under `-seedRestoreProgress`. RU is the
 # overflow check on both affordances.
-capture PR.6-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
-capture PR.6-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 capture PR.6-restore-cancel    en -presentScreen signIn -signInRestore -seedRestoreProgress
 capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRestoreProgress
+
+# PR.6b: the import parse Cancel made VISIBLE (not merely present) and the bar
+# naming the reading state while parsing. The Cancel must render above the owned
+# tab bar - the row exists because the PR.6 captures showed the affordance under
+# it, present for the test and not for the user.
+capture PR.6b-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
+capture PR.6b-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1

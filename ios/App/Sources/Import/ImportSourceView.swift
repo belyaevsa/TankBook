@@ -37,6 +37,16 @@ struct ImportSourceView: View {
             }
             if !model.serverBackedPaused {
                 offlineNotice
+            }
+        }
+        // PR.6b: the bottom bar is anchored, not grown into. As the last child
+        // of a plain VStack its lower content (the parsing Cancel) laid out
+        // where the tab bar is once the phantom bottom safe area appears - the
+        // affordance existed for the test and not for the user (hard rule 7).
+        // `safeAreaInset(edge: .bottom)` reserves the space instead of growing
+        // into it - the anchoring ConfirmManual's save bar has always used.
+        .safeAreaInset(edge: .bottom) {
+            if !model.serverBackedPaused {
                 bottomBar
             }
         }
@@ -269,7 +279,13 @@ struct ImportSourceView: View {
             ImportPrimaryBar(action: onChooseFile,
                              enabled: model.pickedFormat != nil && !model.isParsing) {
                 if model.isParsing {
-                    ProgressView().tint(Theme.Palette.midnight)
+                    // PR.6b: a spinner with no text tells the user nothing
+                    // about what is happening - the parse state is legible on
+                    // the bar itself, never only through the Cancel.
+                    HStack(spacing: 10) {
+                        ProgressView().tint(Theme.Palette.inkSoft)
+                        Text("Reading file…")
+                    }
                 } else {
                     Text("Choose file")
                 }
@@ -282,6 +298,8 @@ struct ImportSourceView: View {
                 // connection (hard rule 9's exception), and it can sit on a
                 // half-connected radio for the upload budget. The user must be
                 // able to stop it (hard rule 7 - the next step exists).
+                // PR.6b: the Cancel's visibility is asserted by frame, not by
+                // existence - `isHittable` does not model occlusion.
                 Button {
                     model.cancelParse()
                 } label: {

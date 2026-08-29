@@ -9257,6 +9257,23 @@
         }
       }
     },
+    "Reading file…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading file…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читаем файл…"
+          }
+        }
+      }
+    },
     "Choose file": {
       "extractionState": "manual",
       "localizations": {

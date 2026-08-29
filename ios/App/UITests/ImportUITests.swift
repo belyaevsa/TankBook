@@ -302,26 +302,72 @@ final class ImportUITests: XCTestCase {
                       "Fix is localised in Russian")
     }
 
-    // MARK: - Cancel while parsing (PR.6)
+    // MARK: - Cancel while parsing (PR.6, PR.6b)
 
     /// The parse is the one part of import that needs the connection, and on a
     /// half-connected radio it can sit for the full upload budget. Cancel must be
-    /// visible while the parse is in flight, and cancelling must leave the garage
-    /// untouched - the wizard returns to the source picker, never to a preview
-    /// that would imply anything was read or written (F6a).
-    func testCancelAppearsWhileParsingAndCancellingLeavesTheGarageUntouched() {
+    /// VISIBLE while the parse is in flight - not merely present - and cancelling
+    /// must leave the garage untouched: the wizard returns to the source picker,
+    /// never to a preview that would imply anything was read or written (F6a).
+    ///
+    /// PR.6b: the assertion is about visibility, not existence. `waitForExistence`
+    /// asserts presence in the accessibility tree and XCUITest's `isHittable`
+    /// does not model occlusion - an element under the owned tab bar reports
+    /// itself hittable and a coordinate tap hits whatever is drawn on top. The
+    /// Cancel's frame is therefore compared against the tab bar's: it must render
+    /// entirely ABOVE it, inside the window, or the affordance exists for the
+    /// test and not for the user.
+    func testCancelIsVisibleWhileParsingAndCancellingLeavesTheGarageUntouched() {
         let app = launch(["-presentScreen", "importWizard",
                           "-importStubFormats", "one", "-importStubParseSlow",
                           "-seedImportParsing"])
         let cancel = app.buttons["importCancelButton"]
         XCTAssertTrue(cancel.waitForExistence(timeout: 10),
-                      "Cancel must be visible while the parse is in flight")
-        cancel.tap()
+                      "Cancel must be present while the parse is in flight")
 
+        // PR.6b L4: visible, not present. The owned tab bar is drawn below the
+        // content region; a Cancel whose frame reaches into the tab bar's region
+        // is occluded no matter what the accessibility tree reports.
+        let tabbar = app.otherElements["tabbar"]
+        XCTAssertTrue(tabbar.waitForExistence(timeout: 10),
+                      "the owned tab bar is on screen")
+        let window = app.windows.firstMatch
+        XCTAssertLessThanOrEqual(cancel.frame.maxY, tabbar.frame.minY + 1,
+            "the parse Cancel must render above the tab bar, never under it")
+        XCTAssertGreaterThanOrEqual(cancel.frame.minY, 0,
+            "the parse Cancel must not render above the window's top")
+        XCTAssertLessThanOrEqual(cancel.frame.maxY, window.frame.maxY,
+            "the parse Cancel must not render below the window's bottom")
+
+        // PR.6b: the primary bar names the state while parsing - a bare spinner
+        // tells the user nothing about what is happening.
+        XCTAssertTrue(app.staticTexts["Reading file…"].waitForExistence(timeout: 5),
+                      "the primary bar names the reading state while the parse is in flight")
+
+        cancel.tap()
         XCTAssertTrue(app.buttons["importChooseFileButton"].waitForExistence(timeout: 10),
                       "cancelling returns the wizard to the source picker")
         XCTAssertFalse(app.otherElements["importPreviewScreen"].exists,
                        "cancelling must never advance to the preview (the garage is untouched)")
+    }
+
+    func testCancelIsVisibleWhileParsingInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-importStubParseSlow",
+                          "-seedImportParsing"])
+        let cancel = app.buttons["importCancelButton"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10),
+                      "Cancel must be present while the parse is in flight")
+        let tabbar = app.otherElements["tabbar"]
+        XCTAssertTrue(tabbar.waitForExistence(timeout: 10))
+        XCTAssertLessThanOrEqual(cancel.frame.maxY, tabbar.frame.minY + 1,
+            "the RU parse Cancel must render above the tab bar, never under it")
+        XCTAssertTrue(app.staticTexts["Читаем файл…"].waitForExistence(timeout: 5),
+                      "the RU primary bar names the reading state")
+        cancel.tap()
+        XCTAssertTrue(app.buttons["importChooseFileButton"].waitForExistence(timeout: 10),
+                      "cancelling returns the wizard to the source picker in Russian")
     }
 
     // MARK: - Per-car export (P5.5b export lane)
