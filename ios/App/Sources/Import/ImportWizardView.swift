@@ -166,7 +166,13 @@ struct ImportPrimaryBar<Label: View>: View {
         Button(action: action) {
             label
                 .font(.body.weight(.bold))
-                .foregroundStyle(Theme.Palette.midnight)
+                // P6.19 moved this off Color.white for AA on the taillight fill.
+                // But the DISABLED state dims the fill, and midnight on a dimmed
+                // dark red is nearly unreadable - the label became harder to read
+                // than the white it replaced, which a screenshot caught and no
+                // contrast test would, since WCAG exempts disabled controls.
+                // ConfirmableFormScreen already had this right; this bar did not.
+                .foregroundStyle(enabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(Theme.Palette.taillight)
