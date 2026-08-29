@@ -45,6 +45,13 @@ marks.*
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
+> **Launching: read `docs/TASKS.md` -> "Launch triage" first (2026-08-29).** Every open row is
+> sorted into blocker / required / deferred against a v1 submission, with two assumed decisions
+> (backend ships with v1; v1 ships what is built). The blockers in order: PJ.1 capture pipeline,
+> SH.1 backend deployment (after PR.17/18/34), PR.3 config live, PR.1/2 + PJ.13 auth, PJ.9/10/11
+> import integrity, PR.6 timeouts, PR.5 logging, P6.6 store, SH.2 release build. The two reviews
+> behind it are in `docs/PRACTICES.md` §7 and the PR/PJ sections of the backlog.
+>
 > **Phase 6 is nearly done.** Closed 2026-08-29: P6.2, P6.3, P6.4, P6.7, P6.8, P6.18, P6.19, P6.21,
 > plus W8. **Still open:** `P6.20` (the Low Power enum claims coverage the app does not have),
 > `P6.13` (RU clips at Dynamic Type XL), `P6.9` (the ConfirmManual capture blind spot), `P6.5`

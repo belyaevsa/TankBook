@@ -10,6 +10,82 @@ The per-task checks below are **in addition to** the baseline gate, which is nev
 
 `[x]` done and independently verified – its own checks **and** the baseline gate re-run outside the implementing agent · `[~]` partially landed, gap named · `[ ]` not started · `[!]` **blocked on an action only the product owner can take** (a purchase, a legal decision, an account) - not work an agent can pick up · `[cut]` **decided against, with the reason recorded in the row and in the owning doc** – a cut task is not work waiting to be picked up, and re-proposing it needs the recorded reason to have changed. Status is recorded here so a fresh session knows what to pick up without re-deriving it.
 
+## Launch triage (2026-08-29) – what v1 needs, what waits
+
+*Every open row (P-, W-, PR-, PJ-) sorted against one question: **can the app be submitted and
+used by a stranger without this?** Three tiers. **Blocker** – submission is impossible or the
+first session breaks a hard rule visibly. **Required** – a v1 promise (`VISION.md` MVP row, a
+journey "always/never", or a written security/privacy commitment) that the code does not keep;
+ship without it only with a written product-owner exception. **Deferred** – real, tracked, and
+not a v1 condition; target named. Sizes are relative (S under a day of agent work, M a few days,
+L a week-plus). Ordering inside a tier is the recommended sequence.*
+
+**Two decisions this triage assumes, each reversible by the product owner:**
+
+1. **The backend ships with v1.** `api.tankbook.live` is deliberately 502 today. Without it the
+   app loses not only sync and cloud extract but **import parsing** (server-side by rule 9),
+   **fresh exchange rates** (the seed pack ages from day one), remote config and the `appUpdate`
+   notice – three MVP rows and the only way to retire a bad build. The backend is built and
+   L2/L3-tested (P4, P5 complete); what is missing is the deployment itself, which no row tracks.
+2. **v1 ships what is built, not only VISION's MVP column.** Service, reminders and sync are
+   "v1.x" in `VISION.md` but P3 and P4 are complete; they ship, so their unreachable or
+   half-wired parts count as required. EV charging (J6) and the Pro tier stay out.
+
+### Tier 1 · Blockers (nothing ships without these)
+
+| Order | Task | Why it blocks | Size |
+|---|---|---|---|
+| 1 | **PJ.1** capture pipeline + **PJ.2** keep the photo | The hero feature: no camera or Photos image ever becomes a `ConfirmPrefill`. A "scan, don't type" app whose scan door is painted on is not this product, and P2's own exit gate (5 live fill-ups < 15 s) cannot be measured until it exists | L |
+| 2 | **SH.1** deploy the backend (new row below) | Decision 1. Import, rates, config, gateway, sync all route through it | M |
+| 3 | **PR.17** rate limiting + body caps · **PR.18** presign constraints + orphan sweep · **PR.34** refuse to start with dev secrets | Must land *before* SH.1 is public: unauthenticated `/import/parse` can fill blob storage at line rate today, and a presigned PUT accepts any bytes of any size | S+S+S |
+| 4 | **PR.3** config layer live (closes P0.12) | With the fetcher `nil` and nine inline base-URL fallbacks, no kill switch, quota or `appUpdate` can reach a device – there is no way to retire a broken build without a store release | M |
+| 5 | **PR.1** token refresh · **PR.2** sign-out revokes · **PJ.13** first push after sign-in | Sign-in ships (decision 2) and every account stops syncing ~60 min after sign-in with a false "update the app"; the second device restores an empty account. Alternative if time is short: hide Sign in for v1 and defer all three – say so in `VISION.md` | M+S+S |
+| 6 | **PJ.10** import date-format question · **PJ.9** non-fill rows commit · **PJ.11** validation on every write | Import is MVP; today an ambiguous D/M file silently imports every row as M/D – the exact stats-poisoning misread J2 warns about – and service/import rows bypass the timeline check | S+S+S |
+| 7 | **PR.6** transport timeouts | 60 s frozen Sign in / Sync now / Import on a half-connected radio, with no cancel | S |
+| 8 | **PR.5** app logging through the redactor | Forty `.public` error-description log sites outside the redactor; the privacy promise (hard rule 12) is upheld by a GRDB default, not by our code | S |
+| 9 | **P6.6** store assets EN/RU, privacy labels, TestFlight ring; the ERRORS.md coverage walk it carries | Submission itself. Two declarations still need the owner (`ITSAppUsesNonExemptEncryption`, and `UIBackgroundModes` only with PJ-level push wiring – which is deferred, so it stays absent) | M |
+| 10 | **SH.2** release build path (new row below) | iOS CI is disabled and never completed a run; a TestFlight build needs a reproducible archive from a clean checkout | S |
+
+### Tier 2 · Required for v1 (promised, cheap relative to the promise)
+
+| Order | Task | Promise it keeps | Size |
+|---|---|---|---|
+| 11 | **PJ.3** Welcome root with three paths | `SCREENMAP.md` root; J1/J11: a reinstall or migrant is funnelled into "Add your first car"; the wrong-provider detection can never fire | M |
+| 12 | **PJ.14** live "+N km since last" | Named in the `VISION.md` MVP fill-up row and `DESIGN.md:67` | S |
+| 13 | **PJ.17** empty-but-alive Confirm (with PJ.1) | F1: the failure state *is* the manual form, keyboard on Total, photo kept | S |
+| 14 | **PJ.8** rate backfill trigger | F9 / multi-currency MVP: pending rates stay pending forever today | S |
+| 15 | **PJ.4** + **PJ.5** Reminders reachable, notification tap routed | P3 is "COMPLETE" and the screen has no production entry point; a fired notification lands nowhere | S+S |
+| 16 | **PJ.6** Type-it is mode-aware · **PJ.12** hide the dead Charge chip · **P2.3b** fuel row offers only the car's fuels | Hard rules 15 and 13 on the Confirm/Capture surfaces | S+S+S |
+| 17 | **PJ.36** "Export everything" works (or the row goes) · **PJ.38** CSV export | `VISION.md:42` "one-tap CSV/JSON export – always free"; a dead row is a dead end | S+S |
+| 18 | **PR.14** real "Changed by sync" + batch toast · **PR.13** offline vs server-down · **PR.4** persist `SyncPayloadMemory` | Hard rule 8 and hard rule 13 once sync ships; overwrites are stored but invisible, and a stale device can revert an edit | M+S+S |
+| 19 | **PR.8** trace + client version on the wire | The only way a support report maps to a server line; without it every field bug is a guess | S |
+| 20 | **PR.7** retry with backoff | The 429 notice promises "Retrying in N minutes" and nothing retries | S |
+| 21 | **PJ.20** About & feedback (feedback row + improve-scanning consent) | `ERRORS.md` About; P6.10 and the import wizard both route "send us this case" to a screen that does not exist | S |
+| 22 | **PJ.33** per-source export guide (MFM at minimum) | With only one importer shipping (see deferred P5.4b), the guide is what tells a switcher what works | S |
+| 23 | **P6.13** RU clips at Dynamic Type XL · **P6.5** accessibility audit | `DESIGN.md` accessibility floor; P6's exit gate | S+M |
+| 24 | **PJ.7** reminders in Recently deleted + honest alert copy · **P1.13** grouped odometer · **PJ.47** doc reconciliation | Hard rule 8 copy that currently lies; a formatter bypass; the ledger's own honesty | S+S+S |
+| 25 | **PR.16** explicit file protection + the promised test | `SECURITY.md` names it as enforcement; met by platform default today, so last in this tier | S |
+
+### Tier 3 · Deferred (tracked, not a v1 condition)
+
+| Target | Tasks | Reason |
+|---|---|---|
+| **v1.0.x** (first patch) | PR.9 error codes · PR.10 log events + async edges · PR.11 diagnostics export · PR.12 persist last sync/error · PR.19 CI secret scans · PR.21–24 constants consolidation · PR.25 idempotency keys · PR.26 frozen clock + load archive · PR.32/33 stale prose and literal naming · P6.9 screenshot blind spot · W6, W7, W10 doc drift | Debuggability and maintenance; none changes what a user sees on day one. PR.10/11 together are the first thing to do *after* launch, because the first field bug will need them |
+| **Before the first schema migration ships** | PR.15 device migration safety | Irrelevant until a v1.1 migration exists; mandatory before it does |
+| **v1.1** | P5.4b the other five importers (each needs a real export fixture that does not exist) · PJ.21 share-to-Tankbook · PJ.16 torch/hints/auto-shutter · PJ.15 after-save insight toast · PJ.19 station suggestion · PJ.30/31 trend arrow, per-brand price · PJ.34 F9a suggestions + receipt priority · PJ.35 photo prefetch · PJ.37 PDF dossier · PJ.39 interrupted-restore row · PJ.40 S5 notice · PJ.44 delete parse on every exit · PJ.45 pace limit editable · PR.20 debounced sync + APNs (with `UIBackgroundModes`) · PR.27/28 slow-query log, screenshot manifest · PR.29/30/31 · P2.9 (rewrite first) | Journey opportunities (→) and polish; the journey completes without them |
+| **v1.x with the feature it belongs to** | Service/parts/reminder depth: PJ.22 lifetime proposal · PJ.23 line-item edit · PJ.24 scan door on ReminderComplete · PJ.25–28 shelf, tire set link, swap reminder, expense scan · PJ.29 invoice gateway · PJ.41–43 · PJ.32 anomaly dismissal sync | `VISION.md` places service/reminders at v1.x; v1 ships the built core, the loop-closing parts land with the feature's own release |
+| **Pro tier** (deferred by the owner, P6.16) | PJ.18 F4 unreachable hint · PR.22's quota reconciliation | Only meaningful once the gateway is metered for paying users |
+| **Held on the owner** | P6.17, W9 (Russian copy, "leave texts as they are") · PJ.46 snapshot decide-or-drop · W0/W4 search-console tokens · the analytics choice | Decisions, not work |
+| **Stays off by its own gate** | P2.7 pump photo (0/30 → 25/111, gate at 95 %) · P2.4's L5 mixed-receipt gate · P2.6 enrichment (permanently deferred) | Facts, not effort; the alpha notice (P6.10) tells the user so |
+
+### SH · Ship tasks (no row covered these)
+
+| ID | Task | Checks (done when...) |
+|---|---|---|
+| **[ ]** SH.1 | **Deploy the backend to `api.tankbook.live`**: Postgres + S3-compatible blob store, secrets in the platform store (JWT signing key with `kid`, config Ed25519 key, account-hash salt, S3 creds, LLM key, APNs key), TLS, Apple and Google OAuth client ids registered and the Sign in with Apple capability in `project.yml`; migrations run on boot; the signed config document published with the real `apiBaseUrl`, `minSupportedVersion` and `appUpdate`; `Config.default.json` and `AppConfigService.bundledConfigPublicKey` carry the production key. **Ordered after PR.17/18/34** | `GET /health` 200 over TLS from a phone on cellular; `GET /v1/config` verifies against the bundled key on a device; a real Apple sign-in creates an account and a push/pull round-trips; `/rates` serves yesterday's date; `/import/parse` round-trips the MFM fixture; secrets absent from every committed file (PR.19's grep, run by hand) |
+| **[ ]** SH.2 | **Release build path**: `xcodebuild archive` + export from a clean checkout on one documented machine, bundle version `1.0.0`+build; iOS CI re-enabled with `swift test` split from the UI suite and a path filter (HANDOVER names both causes); the release checklist in `docs/STORE.md` lists the two owner declarations from P6.6 | A TestFlight build installs on the iPhone 12 / iOS 18 floor device and the M-checklist passes; `gh workflow enable "iOS Core"` and one green run |
+| **[ ]** SH.3 | **Launch-readiness walk** on the TestFlight build, by a human, on the floor device: J1 (fresh install to first logged entry under 3 min, typed and scanned), J3 five live fill-ups (P2's M-check), J2 with the real MFM export, J10 one foreign receipt, J11a sign-in on a second device, F3 airplane mode through a full capture, F8 camera denied. Every screenshot EN and RU | Each journey's success metric recorded in `docs/STORE.md` with the build number; any failure files a task before submission |
+
 ## P0 · Foundations
 
 | ID | Task | Checks (done when…) |
