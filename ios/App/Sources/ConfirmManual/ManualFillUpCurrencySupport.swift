@@ -18,10 +18,37 @@ import TankbookCore
 /// (hard rule 1).
 @MainActor
 enum AppRates {
+    /// The injected Low Power Mode state (P6.8), handed to `RateStore` so its
+    /// refresh defers through the app's single seam. Set by
+    /// `configure(powerState:)` from the app root before the store is first
+    /// touched; the default is the real `ProcessInfoPowerState`, so the store
+    /// still works alone in tests.
+    private static var powerState: any PowerStateProvider = ProcessInfoPowerState()
+
+    /// Set once at launch, before `store` is first touched.
+    ///
+    /// The chosen guarantee is **fail loudly**: `store` is a lazy `static let`,
+    /// so a power state set after it was built would be silently ignored (the
+    /// store captured whatever was there). Rather than let that happen, this
+    /// traps if the store is already built - the injection is early by
+    /// construction (the app root calls it in `init`, before any screen can
+    /// touch the store), and a regression fails the `precondition` instead of
+    /// quietly taking a default no test can force.
+    static func configure(powerState: any PowerStateProvider) {
+        precondition(!storeBuilt,
+                     "AppRates.configure(powerState:) must run before the rate store is first touched")
+        self.powerState = powerState
+    }
+
+    /// Set by `store`'s initializer the first time it is accessed, so
+    /// `configure` can tell "not built yet" from "too late".
+    private static var storeBuilt = false
+
     static let store: RateStore = {
+        storeBuilt = true
         let persisted = loadPersisted()
         let seed = (try? RateSeedStore.bundledSeed()) ?? []
-        let store = RateStore(seed: seed, fetcher: makeFetcher())
+        let store = RateStore(seed: seed, fetcher: makeFetcher(), powerState: powerState)
         // Fetched rows already persisted (and the seed written back on a prior
         // launch) replace seed rows for the same key - `merge` is keyed.
         store.merge(persisted)

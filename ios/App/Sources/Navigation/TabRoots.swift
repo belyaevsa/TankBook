@@ -65,6 +65,10 @@ struct AppRootView: View {
         _sync = State(initialValue: AppSync(configService: configService,
                                             powerState: power.powerState,
                                             resumer: power.resumer))
+        // The rate store's refresh consults the same injected power state
+        // (P6.8): configure it BEFORE the store is first touched (it is a lazy
+        // static), so a -forceLowPower launch can reach the deferral.
+        AppRates.configure(powerState: power.powerState)
         // The rate pack refresh is the other registered piece of deferred work
         // (docs/SYNC.md): it shares the same resumer, so its deferred fetch
         // drains with the deferred sync when the mode ends.

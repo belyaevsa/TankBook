@@ -292,28 +292,31 @@ private func makeStore(
 
     let bundled = try ConfigDefaults.bundledAppConfig()
     // The fetch WILL deliver a document that makes a 1.1.0 build `.required` -
-    // but only once its gate opens. While it is in flight, the held snapshot
-    // must keep governing.
-    let gate = FetchGate()
-    let document = makeDocument(appUpdate: canonicalAppUpdateJSON())
-    let fetcher = GatedConfigFetcher(gate: gate, result: .success(
-        ConfigFetchResult(document: document, signature: sign(document), etag: nil)))
-    let store = makeStore(bundled: bundled, directory: directory, fetcher: fetcher)
+    // on a different allowlisted host so the health gate is reached and stalls
+    // the COMMIT (not the fetch). While that fetched-but-uncommitted document
+    // sits in flight, the held snapshot must keep governing.
+    let document = makeDocument(appUpdate: canonicalAppUpdateJSON(),
+                                apiBaseURL: "https://cdn.tankbook.live")
+    let probeGate = ProbeGate()
+    let fetcher = GatedConfigFetcher(
+        gate: FetchGate(openingImmediately: true),
+        result: .success(ConfigFetchResult(document: document, signature: sign(document), etag: nil)))
+    let prober = GatedHealthProber(gate: probeGate, result: true)
+    let store = makeStore(bundled: bundled, directory: directory, fetcher: fetcher, healthProber: prober)
 
     let before = store.snapshot().updateRequirement(runningVersion: "1.1.0")
     #expect(before == .none, "a fresh store with no cache holds the bundled snapshot")
 
     let refresh = Task { await store.refresh() }
-    // Give the fetch a moment to enter `fetch()` and block on the gate. The
-    // assertion holds even if it has not: either way, `snapshot()` returns the
-    // held value.
-    try await Task.sleep(for: .milliseconds(100))
+    // Give refresh time to fetch + validate, so it is now stalled on the probe
+    // with the new document fetched but NOT committed.
+    try await Task.sleep(for: .milliseconds(150))
 
     let during = store.snapshot().updateRequirement(runningVersion: "1.1.0")
     #expect(during == before,
             "an in-flight fetch must not change the requirement the surface derives from the held snapshot")
 
-    await gate.open()
+    await probeGate.open()
     await refresh.value
 
     let after = store.snapshot().updateRequirement(runningVersion: "1.1.0")
@@ -325,22 +328,27 @@ private func makeStore(
     defer { try? FileManager.default.removeItem(at: directory) }
 
     let bundled = try ConfigDefaults.bundledAppConfig()
-    let gate = FetchGate()
-    let document = makeDocument(appUpdate: canonicalAppUpdateJSON())
-    let fetcher = GatedConfigFetcher(gate: gate, result: .success(
-        ConfigFetchResult(document: document, signature: sign(document), etag: nil)))
-    let store = makeStore(bundled: bundled, directory: directory, fetcher: fetcher)
+    let document = makeDocument(appUpdate: canonicalAppUpdateJSON(),
+                                apiBaseURL: "https://cdn.tankbook.live")
+    let probeGate = ProbeGate()
+    let fetcher = GatedConfigFetcher(
+        gate: FetchGate(openingImmediately: true),
+        result: .success(ConfigFetchResult(document: document, signature: sign(document), etag: nil)))
+    let prober = GatedHealthProber(gate: probeGate, result: true)
+    let store = makeStore(bundled: bundled, directory: directory, fetcher: fetcher, healthProber: prober)
 
     // A snapshot taken before a refresh is taken at the start of an operation
     // and used throughout (docs/CONFIG.md -> "How code consumes it", rule 1):
     // the sync/capture code that checks `allowsServerBacked` must not observe
-    // the requirement flipping mid-flight.
+    // the requirement flipping mid-flight. The health gate stalls the COMMIT
+    // (not the fetch), so this genuinely holds a fetched-but-uncommitted
+    // document while it asserts.
     let before = store.snapshot()
     let refresh = Task { await store.refresh() }
-    try await Task.sleep(for: .milliseconds(100))
+    try await Task.sleep(for: .milliseconds(150))
     let during = store.snapshot()
     #expect(before.updateRequirement(runningVersion: "1.1.0")
             == during.updateRequirement(runningVersion: "1.1.0"))
-    await gate.open()
+    await probeGate.open()
     await refresh.value
 }

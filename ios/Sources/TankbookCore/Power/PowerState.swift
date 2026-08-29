@@ -25,7 +25,11 @@ public struct ProcessInfoPowerState: PowerStateProvider {
 /// Which opportunistic work is asking (docs/SYNC.md -> Low Power Mode table).
 /// Distinct from the trigger: a background sync cycle and a "Sync now" tap are
 /// the same work through different doors.
-public enum PowerWorkKind: Sendable, Equatable {
+///
+/// `Hashable` + `CaseIterable` exist for the P6.20 source-scan guard, which
+/// pins exactly which cases have a production call site - a case that appears
+/// here but is never asked is the defect that guard catches.
+public enum PowerWorkKind: Sendable, Equatable, Hashable, CaseIterable {
     case syncCycle
     case blobUpload
     case blobPrefetch

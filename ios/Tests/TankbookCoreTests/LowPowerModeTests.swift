@@ -105,6 +105,36 @@ private func makeBundledSeed() -> [VehicleCatalogEntry] {
 
 private let pullPolicy = SyncSchemaPolicy(minSupported: 1, current: 1)
 
+// P6.20 - the wired/unwired split (docs/SYNC.md -> Low Power Mode). The policy
+// covers all six kinds; the split below is *which of them the app actually asks
+// about*, pinned against the source by
+// `productionCallSitesMatchTheWiredAndUnwiredSplit`.
+
+/// Kinds a production call site consults today: sync cycles (`SyncCoordinator`),
+/// blob upload (`SyncEngine`) and the rate pack refresh (`RateStore`).
+private let wiredWorkKinds: [PowerWorkKind] = [.syncCycle, .blobUpload, .ratePackRefresh]
+
+/// Kinds the policy covers but no production call site consults yet - the three
+/// docs/SYNC.md marks "policy present, call site not wired": blob prefetch (no
+/// prefetch path exists), the catalog pack fetch (`VehicleCatalogUpdater` is
+/// never instantiated in the app) and any repeating timer job (no timer cycle
+/// exists).
+private let unwiredWorkKinds: [PowerWorkKind] = [.blobPrefetch, .catalogPackFetch, .timerJob]
+
+private extension PowerWorkKind {
+    /// The source identifier, for the P6.20 source-scan guard.
+    var sourceName: String {
+        switch self {
+        case .syncCycle: "syncCycle"
+        case .blobUpload: "blobUpload"
+        case .blobPrefetch: "blobPrefetch"
+        case .ratePackRefresh: "ratePackRefresh"
+        case .catalogPackFetch: "catalogPackFetch"
+        case .timerJob: "timerJob"
+        }
+    }
+}
+
 // MARK: - The policy value
 
 @Suite("Low Power Mode (P6.8)")
@@ -112,9 +142,15 @@ struct LowPowerModeTests {
 
     // MARK: The policy is a pure function of the injected boolean
 
-    @Test func policyDefersEveryOpportunisticWorkKindWhileTheModeIsOn() {
-        for kind in [PowerWorkKind.syncCycle, .blobUpload, .blobPrefetch,
-                     .ratePackRefresh, .catalogPackFetch, .timerJob] {
+    @Test func policyDefersEveryWiredOpportunisticWorkKindWhileTheModeIsOn() {
+        for kind in wiredWorkKinds {
+            #expect(LowPowerPolicy.defers(work: kind, trigger: .background, lowPowerMode: true),
+                    "\(kind) must defer on a background trigger while the mode is on")
+        }
+    }
+
+    @Test func policyDefersEveryUnwiredOpportunisticWorkKindWhileTheModeIsOn() {
+        for kind in unwiredWorkKinds {
             #expect(LowPowerPolicy.defers(work: kind, trigger: .background, lowPowerMode: true),
                     "\(kind) must defer on a background trigger while the mode is on")
         }
@@ -417,5 +453,138 @@ struct LowPowerModeTests {
         power.isLowPowerModeEnabled = false
         #expect(await updater.refresh(), "the same fetch must run when the mode is off")
         #expect(fetcher.fetchCount == 1)
+    }
+
+    // MARK: - P6.20 the wired/unwired split, pinned against the source
+
+    @Test func productionCallSitesMatchTheWiredAndUnwiredSplit() throws {
+        // 1. The two named sets partition every case - a seventh case must land
+        // in one of them, never silently in neither (enumerate the class, not
+        // the case in front of you).
+        let allKinds = Set(PowerWorkKind.allCases)
+        #expect(Set(wiredWorkKinds).union(Set(unwiredWorkKinds)) == allKinds,
+                "a PowerWorkKind is in neither wiredWorkKinds nor unwiredWorkKinds - enumerate the class")
+        #expect(Set(wiredWorkKinds).isDisjoint(with: Set(unwiredWorkKinds)),
+                "a PowerWorkKind is in both wiredWorkKinds and unwiredWorkKinds")
+
+        let callSites = try Self.defersCallSiteKinds()
+
+        // 2. A defers(work: .kind) call site must exist exactly for the wired
+        // kinds plus catalogPackFetch. catalogPackFetch has a call site in
+        // VehicleCatalogUpdater, which is written and tested but never
+        // instantiated by the app - that is why the kind is unwired despite the
+        // call site, and the instantiation check below keeps it honest.
+        let expectedCallSites = Set(wiredWorkKinds).union([.catalogPackFetch])
+        let found = callSites.map(\.sourceName).sorted()
+        let expected = expectedCallSites.map(\.sourceName).sorted()
+        // A mismatch means a wired kind lost its call site or an unwired kind
+        // gained one; update the split and docs/SYNC.md together, never one alone.
+        #expect(callSites == expectedCallSites,
+                "defers call sites disagree with the split: found \(found), expected \(expected)")
+
+        // 3. catalogPackFetch stays unwired only while the app does not build
+        // the updater. The moment VehicleCatalogUpdater is instantiated, this
+        // must fail so the split (and docs/SYNC.md) move the kind to wired.
+        #expect(!(try Self.appInstantiatesVehicleCatalogUpdater()),
+                "VehicleCatalogUpdater is instantiated in the app - catalogPackFetch is now wired")
+    }
+
+    @Test func appRateStoreReceivesTheInjectedPowerState() throws {
+        // (b) The app's single RateStore is built lazily by AppRates.store; the
+        // injected power state must be passed at that construction, never left
+        // to the default (which -forceLowPower cannot reach). swift build does
+        // not compile ios/App, so this pins the wiring by reading the source.
+        let rates = try String(contentsOf: Self.appRatesSource(), encoding: .utf8)
+        let construction = rates.components(separatedBy: "\n")
+            .first { $0.contains("RateStore(seed:") } ?? ""
+        #expect(construction.contains("powerState:"),
+                "AppRates must pass powerState: to RateStore - wire the injected state, do not take the default")
+    }
+
+    @Test func appRatesPowerStateIsConfiguredBeforeFirstUse() throws {
+        // (b) The chosen guarantee is fail-loudly: configure(powerState:) traps
+        // if the store was already built, so a late injection cannot silently
+        // keep the default. Pin both halves of the contract in the source.
+        let rates = try String(contentsOf: Self.appRatesSource(), encoding: .utf8)
+        #expect(rates.contains("func configure(powerState:"),
+                "AppRates must expose configure(powerState:)")
+        #expect(rates.contains("precondition"),
+                "AppRates.configure must fail loudly if the store was already built")
+
+        let roots = try String(contentsOf: Self.tabRootsSource(), encoding: .utf8)
+        guard let configure = roots.range(of: "AppRates.configure(powerState:"),
+              let resumer = roots.range(of: "AppRates.resumer") else {
+            Issue.record("TabRoots must set AppRates.configure(powerState:) and AppRates.resumer")
+            return
+        }
+        #expect(configure.lowerBound < resumer.lowerBound,
+                "configure(powerState:) must run before resumer is set (the store is untouched during init)")
+    }
+
+    // MARK: - Source-scan helpers (P6.20)
+
+    private static let iosRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()  // TankbookCoreTests
+        .deletingLastPathComponent()  // Tests
+        .deletingLastPathComponent()  // ios
+
+    private static func appRatesSource() -> URL {
+        iosRoot.appendingPathComponent("App/Sources/ConfirmManual/ManualFillUpCurrencySupport.swift")
+    }
+
+    private static func tabRootsSource() -> URL {
+        iosRoot.appendingPathComponent("App/Sources/Navigation/TabRoots.swift")
+    }
+
+    private static func swiftFiles(under directory: URL) throws -> [URL] {
+        let manager = FileManager.default
+        guard let enumerator = manager.enumerator(
+            at: directory,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else {
+            Issue.record("cannot enumerate \(directory.path)")
+            return []
+        }
+        return enumerator.compactMap { element -> URL? in
+            guard let url = element as? URL, url.pathExtension == "swift" else { return nil }
+            return url
+        }
+    }
+
+    private static func productionSources() throws -> [URL] {
+        let core = iosRoot.appendingPathComponent("Sources/TankbookCore", isDirectory: true)
+        let app = iosRoot.appendingPathComponent("App/Sources", isDirectory: true)
+        return try swiftFiles(under: core) + swiftFiles(under: app)
+    }
+
+    /// Which `PowerWorkKind`s have a `defers(work: .<kind>)` call site somewhere
+    /// in the production sources. The policy's own switch in `PowerState.swift`
+    /// lists every case, so it is not a call site and is excluded by matching
+    /// the `work:` argument label (`defers(work: .`).
+    ///
+    /// What this cannot see, said plainly: it matches the literal text
+    /// `defers(work: .<kind>)`. A call site that routes the kind through a
+    /// variable (`let k = PowerWorkKind.blobPrefetch; ... defers(work: k, ...)`)
+    /// is invisible to a text scan and would read as "no call site". None of
+    /// today's call sites do that; if one ever does, extend the scan rather than
+    /// trusting it.
+    private static func defersCallSiteKinds() throws -> Set<PowerWorkKind> {
+        var found = Set<PowerWorkKind>()
+        for file in try productionSources() {
+            let contents = try String(contentsOf: file, encoding: .utf8)
+            for kind in PowerWorkKind.allCases
+            where contents.contains("defers(work: .\(kind.sourceName)") {
+                found.insert(kind)
+            }
+        }
+        return found
+    }
+
+    private static func appInstantiatesVehicleCatalogUpdater() throws -> Bool {
+        let app = iosRoot.appendingPathComponent("App/Sources", isDirectory: true)
+        return try swiftFiles(under: app).contains { file in
+            try String(contentsOf: file, encoding: .utf8).contains("VehicleCatalogUpdater(")
+        }
     }
 }

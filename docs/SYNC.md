@@ -361,11 +361,22 @@ was silently cancelled has no next step (hard rule 7) and reads as a hang.
 
 | Defers while Low Power Mode is on | Never defers |
 |---|---|
-| Opportunistic sync cycles (launch, foreground, timer) | Any **save** – always local, always immediate (hard rule 1) |
-| Attachment/blob **upload** and **prefetch** – the heaviest work there is | A sync, restore, export or retry the **user asked for** |
+| Opportunistic sync cycles (launch, foreground) | Any **save** – always local, always immediate (hard rule 1) |
+| Attachment/blob **upload** – the heaviest work there is; **prefetch** *(policy present, call site not wired)* | A sync, restore, export or retry the **user asked for** |
 | Rate pack refresh (`RateStore.refresh`) | Capture, OCR and the confirm sheet the user is standing in |
-| Vehicle catalog pack fetch | An already-scheduled local notification |
-| Any repeating timer job | Reading, editing and deleting – the whole local app |
+| Vehicle catalog pack fetch *(policy present, call site not wired)* | An already-scheduled local notification |
+| Any repeating timer job *(policy present, call site not wired)* | Reading, editing and deleting – the whole local app |
+
+**Wired vs policy-only (P6.20).** Three of the rules above are *policy present, call site
+not wired*: the `PowerWorkKind` case exists and `LowPowerPolicy.defers` covers it, but no
+production code consults it today, so nothing enforces the deferral yet. They are **blob
+prefetch** (there is no prefetch path), the **vehicle catalog pack fetch**
+(`VehicleCatalogUpdater` consults the policy but is never instantiated in the app), and any
+**repeating timer job** (no timer cycle exists - the same fiction the "launch, foreground and
+timer cycles" phrasing once hid). The rules stay - they are what a future call site must obey -
+but the enum and this table must not claim coverage they do not have. `LowPowerModeTests` pins
+the split with a source-scan guard that fails when a case moves between the wired and unwired
+sets without this doc moving with it.
 
 **What the OS already does, and what it does not.** iOS disables Background App Refresh in Low
 Power Mode and deprioritises discretionary `URLSession` work, so the app must neither duplicate
