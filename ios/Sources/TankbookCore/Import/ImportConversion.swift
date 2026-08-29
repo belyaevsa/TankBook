@@ -79,6 +79,104 @@ public enum ImportConverter {
         }
         return (makeFill(from: candidate, vehicle: vehicle, source: source, now: now), nil)
     }
+
+    /// Maps a `serviceRecord` candidate to a `ServiceRecord` targeted at
+    /// `vehicle`, or nil when it cannot be mapped honestly (no money, no item).
+    /// The candidate's money becomes the record's; its first line item becomes
+    /// the note when the candidate carries none (PJ.9: a non-fuel row is
+    /// offered as what it is, never dropped - hard rule 8).
+    public static func makeService(from candidate: ImportCandidate,
+                                   vehicle: Vehicle,
+                                   source: String,
+                                   now: Date = Date()) -> ServiceRecord? {
+        guard candidate.entityType == "serviceRecord" else { return nil }
+        guard let money = money(from: candidate, homeCurrency: vehicle.homeCurrency) else { return nil }
+        let items = (candidate.items ?? []).compactMap(makeItem)
+        guard !items.isEmpty else { return nil }
+        let note = candidate.note ?? items.first?.title
+        return ServiceRecord(
+            id: UUID.v7(), createdAt: candidate.date, updatedAt: candidate.date,
+            deletedAt: nil, vehicleId: vehicle.id, date: candidate.date,
+            odometer: candidate.odometer, money: money, note: note, attachments: [],
+            provenance: .import(source: source), conflict: .none, purchaseGroupId: nil,
+            vendor: nil, items: items, usedParts: [], tireSetId: nil, proposedReminderId: nil)
+    }
+
+    /// Maps an `expense` candidate to an `Expense`, or nil when it cannot be
+    /// mapped honestly (no money). The candidate's title feeds the expense's
+    /// title, with its note as the fallback (PJ.9).
+    public static func makeExpense(from candidate: ImportCandidate,
+                                   vehicle: Vehicle,
+                                   source: String,
+                                   now: Date = Date()) -> Expense? {
+        guard candidate.entityType == "expense" else { return nil }
+        guard let money = money(from: candidate, homeCurrency: vehicle.homeCurrency) else { return nil }
+        let category = candidate.category.flatMap { ExpenseCategory(tag: $0.tag) } ?? .other("")
+        let title = candidate.title ?? candidate.note ?? ""
+        return Expense(
+            id: UUID.v7(), createdAt: candidate.date, updatedAt: candidate.date,
+            deletedAt: nil, vehicleId: vehicle.id, date: candidate.date,
+            odometer: candidate.odometer, money: money, note: candidate.note,
+            attachments: [], provenance: .import(source: source), conflict: .none,
+            purchaseGroupId: nil, category: category, title: title)
+    }
+
+    private static func money(from candidate: ImportCandidate,
+                              homeCurrency: CurrencyCode) -> Money? {
+        guard let wire = candidate.money,
+              let amount = wire.amountDecimal,
+              let currency = wire.currencyCode else { return nil }
+        return Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
+    }
+
+    private static func makeItem(_ item: ImportServiceItem) -> ServiceItem? {
+        guard let title = item.title, !title.isEmpty else { return nil }
+        let category = item.category.flatMap { ServiceCategory(tag: $0.tag) } ?? .other("")
+        let cost = item.cost.flatMap { wire -> Money? in
+            guard let amount = wire.amountDecimal, let currency = wire.currencyCode else { return nil }
+            return Money(amount: amount, currency: currency, homeCurrency: .eur)
+        }
+        return ServiceItem(title: title, category: category, cost: cost, partNumber: nil,
+                           lifetime: nil)
+    }
+}
+
+extension ServiceCategory {
+    /// Maps the wire's stable category tag (`MfmParser.cs`: "repair",
+    /// "inspection", "oil", "wash", "parts") to the domain category. An unknown
+    /// tag lands in `.other` rather than failing the row (hard rule 13: never
+    /// guess, never drop).
+    init(tag: String) {
+        switch tag {
+        case "oil": self = .oil
+        case "brakes": self = .brakes
+        case "tires": self = .tires
+        case "battery": self = .battery
+        case "filters": self = .filters
+        case "inspection": self = .inspection
+        case "repair": self = .repair
+        case "parts": self = .parts
+        case "wash": self = .wash
+        default: self = .other(tag)
+        }
+    }
+}
+
+extension ExpenseCategory {
+    /// Maps the wire's stable category tag to the domain category; unknown tags
+    /// land in `.other` (hard rule 13).
+    init(tag: String) {
+        switch tag {
+        case "insurance": self = .insurance
+        case "tax": self = .tax
+        case "parking": self = .parking
+        case "toll": self = .toll
+        case "fine": self = .fine
+        case "accessory": self = .accessory
+        case "parts": self = .parts
+        default: self = .other(tag)
+        }
+    }
 }
 
 /// The review list's rows (F6b): candidates that parsed but need a human look
@@ -93,6 +191,10 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
     /// The parsed fields when the server mapped most of the row. Mutable so the
     /// review list can fix a value (e.g. "Add odometer") before the commit.
     public var fill: FillUp?
+    /// The record a `.noFuel` row becomes when the user imports it as what it
+    /// is (PJ.9) - a service or an expense. nil on every other kind, and nil on
+    /// a `.noFuel` row that could not be mapped honestly.
+    public let nonFuel: NonFuel?
     /// The original line in the file, shown behind "Original row".
     public let rawLine: String?
 
@@ -109,12 +211,20 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
         case unparsed(reason: String)
     }
 
+    /// What a `.noFuel` row is (PJ.9): the concrete record the "Import as
+    /// service / expense" action would write.
+    public enum NonFuel: Equatable, Sendable {
+        case service(ServiceRecord)
+        case expense(Expense)
+    }
+
     public init(id: UUID = UUID.v7(), sourceRow: Int, kind: Kind,
-                fill: FillUp?, rawLine: String?) {
+                fill: FillUp?, nonFuel: NonFuel? = nil, rawLine: String?) {
         self.id = id
         self.sourceRow = sourceRow
         self.kind = kind
         self.fill = fill
+        self.nonFuel = nonFuel
         self.rawLine = rawLine
     }
 }
@@ -138,9 +248,26 @@ public enum ImportReviewClassifier {
             if candidate.entityType != "fillUp" {
                 // A row that parsed cleanly but is not a fill-up (a service, an
                 // expense). Offered as the right kind of entry rather than
-                // discarded (hard rule 8) - the "Import as service" path.
+                // discarded (hard rule 8, F6b) - the "Import as service /
+                // expense" path (PJ.9). A row that cannot be mapped honestly
+                // needs a look instead of being silently typed.
+                let nonFuel: ImportReviewRow.NonFuel?
+                switch candidate.entityType {
+                case "serviceRecord":
+                    nonFuel = ImportConverter.makeService(from: candidate, vehicle: vehicle,
+                                                          source: source)
+                        .map(ImportReviewRow.NonFuel.service)
+                case "expense":
+                    nonFuel = ImportConverter.makeExpense(from: candidate, vehicle: vehicle,
+                                                          source: source)
+                        .map(ImportReviewRow.NonFuel.expense)
+                default:
+                    nonFuel = nil
+                }
                 review.append(ImportReviewRow(
-                    sourceRow: candidate.sourceRow, kind: .noFuel, fill: nil,
+                    sourceRow: candidate.sourceRow,
+                    kind: nonFuel == nil ? .unmappable(reason: "missing_required") : .noFuel,
+                    fill: nil, nonFuel: nonFuel,
                     rawLine: rawLinesByRow[candidate.sourceRow]))
                 continue
             }

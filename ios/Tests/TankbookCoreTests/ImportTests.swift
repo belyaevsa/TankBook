@@ -408,6 +408,179 @@ struct ImportReviewListTests {
     }
 }
 
+// MARK: - PJ.10 the date-format question (docs/JOURNEYS.md F6, docs/API.md)
+
+@Suite("Import date-format question (PJ.10)")
+struct ImportDateFormatQuestionTests {
+
+    private static func parse(dates: [String],
+                              options: [String] = ["M/D/YYYY", "D/M/YYYY"],
+                              rowCount: Int? = nil) -> ImportParseResponse {
+        let iso = ISO8601DateFormatter()
+        let candidates = dates.enumerated().map { index, dateText in
+            ImportCandidate(
+                entityType: "fillUp",
+                date: iso.date(from: dateText)!,
+                odometer: 100_000 + index, volumeL: 45, unitPrice: "1.7",
+                money: ImportMoney(amount: "76.50", currency: "USD"),
+                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100,
+                note: nil, vehicleName: "Volvo",
+                provenance: ImportProvenance(tag: "import", source: "mfm"),
+                sourceRow: index + 1)
+        }
+        return ImportParseResponse(
+            importId: "test-import", format: "mfm", scope: "vehicle",
+            candidates: candidates, unparsed: [],
+            ambiguities: [ImportAmbiguity(kind: "dateFormat", options: options,
+                                          rowCount: rowCount ?? candidates.count)])
+    }
+
+    private static func utcComponents(_ date: Date) -> (year: Int, month: Int, day: Int) {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC")!
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return (c.year!, c.month!, c.day!)
+    }
+
+    @Test func anUnansweredDateFormatQuestionBlocksTheCommit() {
+        // The parser's M/D guess must not stand silently: an unanswered
+        // `dateFormat` question blocks the commit (PJ.10) - the exact
+        // stats-poisoning misread docs/JOURNEYS.md J2 warns about.
+        let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
+        #expect(parse.canCommit(dateFormatAnswer: nil) == false,
+                "an unanswered dateFormat question must block the commit")
+        #expect(parse.canCommit(dateFormatAnswer: "M/D/YYYY") == true)
+        #expect(parse.canCommit(dateFormatAnswer: "D/M/YYYY") == true,
+                "either answer unblocks the commit once chosen")
+    }
+
+    @Test func aParseWithoutADateQuestionNeverBlocks() {
+        let parse = ImportParseResponse(importId: "id", format: "mfm", scope: "vehicle",
+                                        candidates: [], unparsed: [],
+                                        ambiguities: [])
+        #expect(parse.canCommit(dateFormatAnswer: nil) == true)
+    }
+
+    @Test func answeringDMYFlipsTheAmbiguousDatesAndLeavesUnambiguousOnes() {
+        // 2026-08-09: day 9 <= 12, genuinely ambiguous - under D/M it is
+        // 2026-09-08. 2026-08-24: day 24 > 12, unambiguous, must not move.
+        // The test asserts the DATES, never the flag (a flag-only test is the
+        // whole defect PJ.10 exists to close).
+        let parse = Self.parse(dates: ["2026-08-09T00:00:00Z", "2026-08-24T00:00:00Z"])
+        let resolved = ImportDateFormat.candidates(for: parse, answer: "D/M/YYYY")
+        #expect(resolved.count == 2)
+        #expect(Self.utcComponents(resolved[0].date) == (2026, 9, 8),
+                "2026-08-09 under M/D reads 2026-09-08 under D/M; got \(resolved[0].date)")
+        #expect(Self.utcComponents(resolved[1].date) == (2026, 8, 24),
+                "an unambiguous row (day > 12) parses the same either way and must not change")
+    }
+
+    @Test func answeringMDYKeepsTheWireReading() {
+        let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
+        let resolved = ImportDateFormat.candidates(for: parse, answer: "M/D/YYYY")
+        #expect(resolved[0].date == parse.candidates[0].date,
+                "the M/D reading is what the wire already carries")
+    }
+
+    @Test func anUnansweredQuestionLeavesTheCandidatesUntouched() {
+        let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
+        let resolved = ImportDateFormat.candidates(for: parse, answer: nil)
+        #expect(resolved[0].date == parse.candidates[0].date)
+    }
+}
+
+// MARK: - PJ.9 non-fuel rows commit as what they are (hard rule 8, F6b)
+
+@Suite("Import non-fuel rows commit as what they are (PJ.9)")
+struct ImportNonFuelCommitTests {
+
+    private static func serviceCandidate(row: Int = 4) -> ImportCandidate {
+        let money = ImportMoney(amount: "125.50", currency: "USD")
+        return ImportCandidate(
+            entityType: "serviceRecord",
+            date: Date(timeIntervalSinceReferenceDate: 0),
+            odometer: 100_500, volumeL: nil, unitPrice: nil, money: money,
+            fuelKind: nil, isFull: nil, tankLevelAfterPct: nil, note: "Oil change",
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
+            sourceRow: row,
+            items: [ImportServiceItem(title: "Oil change",
+                                      category: ImportCategoryTag(tag: "oil"), cost: money)])
+    }
+
+    @Test func aServiceCandidateIsOfferedAsTheServiceItIs() throws {
+        let (ready, review) = ImportReviewClassifier.partition(
+            candidates: [Self.serviceCandidate()], unparsed: [], rawLinesByRow: [:],
+            vehicle: ImportFixture.vehicle, source: "mfm")
+
+        #expect(ready.isEmpty)
+        #expect(review.count == 1)
+        #expect(review[0].kind == .noFuel)
+        guard case .service(let service)? = review[0].nonFuel else {
+            Issue.record("expected a ServiceRecord on the noFuel row")
+            return
+        }
+        #expect(service.provenance == .import(source: "mfm"))
+        #expect(service.money?.amount == Decimal(string: "125.50"))
+        #expect(service.items.first?.category == .oil,
+                "the wire's oil tag maps to the domain's oil category")
+    }
+
+    @Test func aServiceCandidateCommitsAsAServiceRecordNeverAFillUp() throws {
+        // The hole this closes (docs/TASKS.md PJ.9): a commit happened is not
+        // the guarantee - a `serviceRecord` candidate must land as a
+        // `ServiceRecord` with provenance = .import, never as a FillUp.
+        let repo = try TankbookRepository(database: TankbookDatabase.inMemory())
+        try repo.upsertVehicle(ImportFixture.vehicle)
+
+        let (_, review) = ImportReviewClassifier.partition(
+            candidates: [Self.serviceCandidate()], unparsed: [], rawLinesByRow: [:],
+            vehicle: ImportFixture.vehicle, source: "mfm")
+        guard case .service(let service)? = review[0].nonFuel else {
+            Issue.record("expected a ServiceRecord on the noFuel row")
+            return
+        }
+
+        try repo.commitImport([.serviceRecord(service)], source: "mfm")
+
+        let services = try repo.liveServiceRecords(forVehicle: ImportFixture.vehicle.id)
+        #expect(services.count == 1,
+                "a serviceRecord candidate commits as a ServiceRecord (PJ.9)")
+        #expect(services[0].provenance == .import(source: "mfm"),
+                "the imported service carries provenance = .import(source)")
+        #expect(try repo.liveFillUps(forVehicle: ImportFixture.vehicle.id).isEmpty,
+                "a serviceRecord candidate must never be written as a FillUp")
+        #expect(try repo.fetchDirtyRows().count >= 1,
+                "a user-held import is local data that must sync (rows land dirty)")
+    }
+
+    @Test func anExpenseCandidateCommitsAsAnExpense() throws {
+        let money = ImportMoney(amount: "9.00", currency: "USD")
+        let candidate = ImportCandidate(
+            entityType: "expense", date: Date(timeIntervalSinceReferenceDate: 0),
+            odometer: nil, volumeL: nil, unitPrice: nil, money: money,
+            fuelKind: nil, isFull: nil, tankLevelAfterPct: nil, note: "Parking",
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
+            sourceRow: 5, category: ImportCategoryTag(tag: "parking"), title: "Parking")
+
+        let (_, review) = ImportReviewClassifier.partition(
+            candidates: [candidate], unparsed: [], rawLinesByRow: [:],
+            vehicle: ImportFixture.vehicle, source: "mfm")
+        #expect(review[0].kind == .noFuel)
+        guard case .expense(let expense)? = review[0].nonFuel else {
+            Issue.record("expected an Expense on the noFuel row")
+            return
+        }
+        #expect(expense.category == .parking)
+
+        let repo = try TankbookRepository(database: TankbookDatabase.inMemory())
+        try repo.upsertVehicle(ImportFixture.vehicle)
+        try repo.commitImport([.expense(expense)], source: "mfm")
+        let expenses = try repo.liveExpenses(forVehicle: ImportFixture.vehicle.id)
+        #expect(expenses.count == 1)
+        #expect(expenses[0].provenance == .import(source: "mfm"))
+    }
+}
+
 // MARK: - Wire fixture
 
 extension ImportFixture {

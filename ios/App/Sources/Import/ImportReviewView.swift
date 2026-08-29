@@ -46,7 +46,7 @@ struct ImportReviewView: View {
     }
 
     private func skipAll() {
-        for row in model.reviewRows where row.fill != nil {
+        for row in model.reviewRows where row.fill != nil || row.nonFuel != nil {
             if !model.isSkipped(sourceRow: row.sourceRow) {
                 model.toggleSkipped(sourceRow: row.sourceRow)
             }
@@ -125,8 +125,18 @@ private struct ImportReviewRowView: View {
             let symbol = AddVehicleSupport.currencySymbol(for: currency ?? .eur)
             let value = ImportFormatting.decimal(abs(offBy), fractionDigits: 2)
             return L10n.offBy(amount: symbol.isEmpty ? value : "\(value) \(symbol)")
-        case .noFuel: return L10n.localize("No fuel on this row")
+        case .noFuel: return nonFuelBadgeText
         case .unmappable, .unparsed: return L10n.localize("Couldn't read this row")
+        }
+    }
+
+    /// "Service" / "Expense" - the `.noFuel` row names what it is, so the
+    /// "import as what it is" action is legible (F6b, PJ.9).
+    private var nonFuelBadgeText: String {
+        switch row.nonFuel {
+        case .service: return L10n.localize("Service")
+        case .expense: return L10n.localize("Expense")
+        case nil: return L10n.localize("No fuel on this row")
         }
     }
 
@@ -173,8 +183,61 @@ private struct ImportReviewRowView: View {
         default:
             if let fill = row.fill {
                 fieldGrid(fill)
+            } else if let nonFuel = row.nonFuel {
+                nonFuelGrid(nonFuel)
             }
         }
+    }
+
+    /// A `.noFuel` row's fields (PJ.9): the service/expense renders as parsed,
+    /// labelled fields - date, total, odometer, note - so "import as what it
+    /// is" is a decision about data the user has seen (F6b), never a raw line.
+    @ViewBuilder
+    private func nonFuelGrid(_ nonFuel: ImportReviewRow.NonFuel) -> some View {
+        let record = nonFuelRecord(nonFuel)
+        HStack(spacing: 8) {
+            ImportFieldCell(label: "Date", value: ImportFormatting.day(record.date), marked: false)
+            if let amount = record.money?.amount {
+                ImportFieldCell(label: "Total",
+                                value: ImportFormatting.decimal(amount, fractionDigits: 2),
+                                marked: false)
+            }
+            if let odometer = record.odometer {
+                ImportFieldCell(label: "Odometer",
+                                value: "\(ImportFormatting.odometer(odometer)) \(L10n.distanceUnit(model.distanceUnit))",
+                                marked: false)
+            } else {
+                // A blank stays a blank - never `0` (F6b).
+                ImportFieldCell(label: "Odometer",
+                                value: "– \(L10n.distanceUnit(model.distanceUnit))",
+                                marked: false)
+            }
+            if let note = record.note, !note.isEmpty {
+                ImportFieldCell(label: "Note", value: note, marked: false)
+            }
+        }
+    }
+
+    /// The service/expense's display fields, extracted outside the `@ViewBuilder`
+    /// so the switch is data, never a builder block.
+    private func nonFuelRecord(_ nonFuel: ImportReviewRow.NonFuel) -> NonFuelFields {
+        switch nonFuel {
+        case .service(let service):
+            return NonFuelFields(date: service.date, money: service.money,
+                                 odometer: service.odometer, note: service.note)
+        case .expense(let expense):
+            return NonFuelFields(date: expense.date, money: expense.money,
+                                 odometer: expense.odometer,
+                                 note: expense.note?.isEmpty == false ? expense.note : expense.title)
+        }
+    }
+
+    /// The display fields one non-fuel row contributes to the review grid.
+    private struct NonFuelFields {
+        let date: Date
+        let money: Money?
+        let odometer: Int?
+        let note: String?
     }
 
     @ViewBuilder
@@ -331,8 +394,26 @@ private struct ImportReviewRowView: View {
                         showingTotalEditor = true
                     }
             }
-        case .noFuel, .unmappable, .unparsed:
+        case .noFuel:
+            if row.nonFuel != nil {
+                Text(nonFuelActionLabel)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(isSkipped ? Theme.Palette.inkSoft : Theme.Palette.action)
+                    .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+            }
+        case .unmappable, .unparsed:
             EmptyView()
+        }
+    }
+
+    /// "Import as service" / "Import as expense" - the `.noFuel` row's deciding
+    /// action (PJ.9): the record commits as what it is, never silently dropped
+    /// (hard rule 8). "Leave out" sits beside it.
+    private var nonFuelActionLabel: String {
+        switch row.nonFuel {
+        case .service: return L10n.importAsService
+        case .expense: return L10n.importAsExpense
+        case nil: return ""
         }
     }
 

@@ -19,7 +19,8 @@ enum ImportTestSeed {
         // The preview/review need a target car (the "imports into" card). Seed
         // the Volvo when none exists so the merge duplicate count is real.
         guard arguments.contains("-seedImportPreview")
-            || arguments.contains("-seedImportReview") else { return }
+            || arguments.contains("-seedImportReview")
+            || arguments.contains("-seedImportService") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
             try? repository.upsertVehicle(HomeTestSeed.makeVehicle())
@@ -39,6 +40,9 @@ enum ImportTestSeed {
             model.installSeededParse(resourceName: "import-parse-review",
                                      fileName: "MyFuelManager_2026-08.csv",
                                      rawFileResource: "import-mfm-review")
+            model.showReview()
+        } else if arguments.contains("-seedImportService") {
+            model.installSeededServiceParse()
             model.showReview()
         } else if arguments.contains("-seedImportParse422") {
             // Drive the real parse path against the stub transport's 422, so

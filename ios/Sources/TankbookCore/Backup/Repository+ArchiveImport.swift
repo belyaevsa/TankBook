@@ -108,10 +108,18 @@ extension TankbookRepository {
     /// the repository (F6a: nothing is written until the user confirms).
     @discardableResult
     public func commitImportFills(_ fills: [FillUp], source: String) throws -> Int {
-        guard !fills.isEmpty else { return 0 }
-        let records = fills.map { ArchiveImportRecord.fillUp($0) }
+        try commitImport(fills.map { ArchiveImportRecord.fillUp($0) }, source: source)
+    }
+
+    /// Commits import-derived records - fills, services and expenses, the
+    /// review list's kept rows (PJ.9: a non-fuel row commits as what it is) -
+    /// in one transaction. Same whole-or-nothing, tombstone-safe path as the
+    /// fills-only form; rows land `.dirty`. Returns the count written.
+    @discardableResult
+    public func commitImport(_ records: [ArchiveImportRecord], source: String) throws -> Int {
+        guard !records.isEmpty else { return 0 }
         try applyArchiveRecords(records, syncState: .dirty)
-        return fills.count
+        return records.count
     }
 
     /// Commits a fully-validated archive in ONE transaction. The reader has

@@ -308,6 +308,14 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
 - **Everything shown is adjustable here** - currency, units, the target car, and the individual
   rows that need a look (hard rule 13: editable at the moment it is offered). The F6 ambiguity
   question is answered in this screen, once per file.
+- ⚠ **The date-format question is asked here, never guessed** (PJ.10): when the server reports
+  genuinely ambiguous dates (the real MFM export has them), the preview asks `M/D/YYYY` vs
+  `D/M/YYYY` **once per file** and **disables confirm until it is answered**. The parser's guess
+  standing silently is how a year of history shifts by up to eleven months (J2's stats poisoning).
+  Answering re-dates the counted rows - the preview figures and the review rows rebuild against
+  the corrected dates, so the number the user approves is the number that lands. An
+  `outOfScope` file (income, reminders) is surfaced here too: "this file has N income rows; income
+  isn't imported in v1" - read-but-not-imported is stated, never silent.
 - **Cancel leaves nothing behind**: no entries, and the stored file is deleted rather than left to
   age out (`DELETE /import/{importId}`).
 - ⚠ **The preview is not a receipt.** If it renders a number the parse did not actually produce -
@@ -339,7 +347,10 @@ fact where a blank is an honest absence.
 - **The raw line stays one tap away** behind "Original row". It is the right answer for the rarer
   failure - the *mapping* is wrong, not the value - and the wrong answer for the common one.
 - **A row that is not a fill-up is offered as what it is** rather than discarded: a tyre change
-  with a total and an odometer imports as a service entry (hard rule 8).
+  with a total and an odometer imports as a service entry (hard rule 8). The row renders its
+  parsed, labelled fields (date, total, odometer, note) beside an **"Import as service" /
+  "Import as expense"** action, and the commit writes it as that kind of record with
+  `provenance = .import` (PJ.9) - shown, never silently dropped at commit.
 
 **Metric:** flagged rows resolved rather than skipped ≥60% - a review list people skip wholesale
 is a review list that failed to explain itself.

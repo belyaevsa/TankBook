@@ -92,7 +92,17 @@ struct GatewayBudgetTests {
             extraction: Self.fixture()
         )
         let task = Task { try await transport.extract(.init(kind: "receipt", imageJPEG: Data())) }
-        let outcome = try await GatewayWaiter.wait(task, timeout: .seconds(3))
+        // A GENEROUS budget on purpose. What this test claims is "an answer that
+        // arrives inside the budget is delivered and the budget never fires" -
+        // the number is incidental, and `budgetIsThreeSeconds` pins the real 3 s
+        // product rule on its own. With `.seconds(3)` here the assertion raced
+        // the scheduler instead: `wait` runs the work and the deadline as two
+        // detached tasks, and under a saturated machine (this suite's corpus
+        // tests peg every core for ~29 s) a 50 ms sleep is not scheduled within
+        // 3 s, so the deadline won and the test reported a budget failure that
+        // was really machine load. It went red five times on 2026-08-29 and
+        // twice consistently once the suite passed 950 tests.
+        let outcome = try await GatewayWaiter.wait(task, timeout: .seconds(60))
         guard case .answered(let extraction) = outcome else {
             Issue.record("a 50 ms answer must arrive within the 3 s budget")
             return
@@ -105,7 +115,9 @@ struct GatewayBudgetTests {
         let failing = FailingGatewayTransport()
         let task = Task { try await failing.extract(.init(kind: "receipt", imageJPEG: Data())) }
         await #expect(throws: SyncServerError.self) {
-            _ = try await GatewayWaiter.wait(task, timeout: .seconds(3))
+            // Generous for the same reason as above: the claim is that the
+            // error propagates rather than being swallowed by the deadline.
+            _ = try await GatewayWaiter.wait(task, timeout: .seconds(60))
         }
     }
 

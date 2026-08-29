@@ -514,6 +514,26 @@ enum L10n {
         String(format: localize("Row %@"), "\(sourceRow)")
     }
 
+    /// "Date format matters – 3 dates read either way." (PJ.10, real RU plurals).
+    static func dateFormatQuestionSubtitle(_ count: Int) -> String {
+        String(localized: "Date format matters – \(count) dates read either way.")
+    }
+    /// "This file has 12 income rows; income isn't imported in v1." (docs/API.md).
+    static func outOfScopeIncome(_ count: Int) -> String {
+        String(localized: "This file has \(count) income rows; income isn't imported in v1.")
+    }
+    /// "This file has 3 reminders; reminders aren't imported in v1."
+    static func outOfScopeReminder(_ count: Int) -> String {
+        String(localized: "This file has \(count) reminders; reminders aren't imported in v1.")
+    }
+    /// "Import as service" / "Import as expense" - the `.noFuel` row's action (PJ.9).
+    static var importAsService: String {
+        localize("Import as service")
+    }
+    static var importAsExpense: String {
+        localize("Import as expense")
+    }
+
     /// "The original line isn't available." - the honest words an unparsed row
     /// shows when its source line is genuinely absent (P6.15c: never a
     /// serialized candidate the user has not seen).

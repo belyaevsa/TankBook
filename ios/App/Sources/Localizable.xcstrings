@@ -11057,6 +11057,216 @@
           }
         }
       }
+    },
+    "Date format matters – %lld dates read either way.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Date format matters – %lld date reads either way."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Date format matters – %lld dates read either way."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Формат дат важен – %lld дата читается двояко."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Формат дат важен – %lld даты читаются двояко."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Формат дат важен – %lld дат читаются двояко."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Формат дат важен – %lld дат читаются двояко."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Import as expense": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import as expense"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Импортировать как расход"
+          }
+        }
+      }
+    },
+    "Import as service": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Import as service"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Импортировать как сервис"
+          }
+        }
+      }
+    },
+    "Some dates could read either way": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some dates could read either way"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Некоторые даты читаются двояко"
+          }
+        }
+      }
+    },
+    "This file has %lld income rows; income isn't imported in v1.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This file has %lld income row; income isn't imported in v1."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This file has %lld income rows; income isn't imported in v1."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld строка доходов; доходы не импортируются в v1."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld строки доходов; доходы не импортируются в v1."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld строк доходов; доходы не импортируются в v1."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld строк доходов; доходы не импортируются в v1."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "This file has %lld reminders; reminders aren't imported in v1.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This file has %lld reminder; reminders aren't imported in v1."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This file has %lld reminders; reminders aren't imported in v1."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld напоминание; напоминания не импортируются в v1."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld напоминания; напоминания не импортируются в v1."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld напоминаний; напоминания не импортируются в v1."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "В этом файле %lld напоминаний; напоминания не импортируются в v1."
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "version": "1.0"

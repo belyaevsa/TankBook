@@ -361,6 +361,15 @@ capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse 
 capture P5.5b-export            en -seedHomeCarSwitcher -presentScreen vehicleDetail
 capture P5.5b-export-ru         ru -seedHomeCarSwitcher -presentScreen vehicleDetail
 
+# PJ.10/PJ.9: the preview's once-per-file date-format question (confirm stays
+# disabled until answered) and the review list's non-fuel row with its
+# "Import as service" action. The service seed's review screen holds exactly
+# one service row, so the action is in frame without scrolling.
+capture PJ.10-import-date-question     en -presentScreen importWizard -importStubParse mfm -seedImportPreview
+capture PJ.10-import-date-question-ru  ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
+capture PJ.9-import-nonfuel-row        en -presentScreen importWizard -importStubFormats one -seedImportService
+capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStubFormats one -seedImportService
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

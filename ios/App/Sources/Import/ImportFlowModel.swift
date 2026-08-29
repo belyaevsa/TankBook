@@ -78,6 +78,13 @@ final class ImportFlowModel {
     /// Odometer values the user typed in the review list, keyed by `sourceRow`.
     private(set) var odometerEdits: [Int: Int] = [:]
 
+    /// The `dateFormat` question's answer - the chosen option ("M/D/YYYY" or
+    /// "D/M/YYYY"), nil until the user answers. Asked ONCE per file, at the
+    /// preview gate (docs/JOURNEYS.md F6, docs/API.md): the wire carries the
+    /// M/D reading, so choosing D/M re-dates the ambiguous candidates before
+    /// anything is committed. nil when the parse reported no ambiguity.
+    private(set) var dateFormatAnswer: String?
+
     private(set) var didConfirm = false
     private(set) var confirmFailed = false
 
@@ -128,6 +135,45 @@ final class ImportFlowModel {
             uploadedFileData = data
         }
         parse = result
+        dateFormatAnswer = nil
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
+    /// Installs a stub parse whose candidates mix fill-ups and a `serviceRecord`
+    /// row (PJ.9), so the UI tests and screenshots drive the non-fuel action and
+    /// the mixed commit against a known fixture without a server. The uploaded
+    /// file data is a real-looking MFM costs fragment so "Original row" renders
+    /// a source line.
+    func installSeededServiceParse() {
+        let money = ImportMoney(amount: "125.50", currency: "USD")
+        let item = ImportServiceItem(title: "Oil change", category: ImportCategoryTag(tag: "oil"),
+                                     cost: money)
+        let serviceCandidate = ImportCandidate(
+            entityType: "serviceRecord",
+            date: Date(timeIntervalSince1970: 1_752_307_200),  // 2026-07-20
+            odometer: 119_486, volumeL: nil, unitPrice: nil, money: money,
+            fuelKind: nil, isFull: nil, tankLevelAfterPct: nil, note: "Oil change",
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
+            sourceRow: 1, items: [item])
+        let fillCandidate = ImportCandidate(
+            entityType: "fillUp",
+            date: Date(timeIntervalSince1970: 1_752_393_600),  // 2026-07-21
+            odometer: 119_486, volumeL: 55, unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
+            fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100, note: "Neste",
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
+            sourceRow: 2)
+        parse = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000303", format: "mfm",
+            scope: "vehicle", candidates: [serviceCandidate, fillCandidate],
+            unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        pickedFileName = "MyFuelManager_costs_2026.csv"
+        uploadedFileData = Data("""
+        My Fuel Manager - Costs
+        Date;Category;Odometer;Total price;Currency;Note;Vehicle name
+        7/20/2026;Oil;119486;125.50;USD;Oil change;"Volvo"
+        """.utf8)
         ensureTargetCar(preferredVehicleID: nil)
         rebuildClassification()
     }
@@ -238,11 +284,71 @@ final class ImportFlowModel {
             ?? L10n.importedCarName
     }
 
+    // MARK: - The date-format question (PJ.10)
+
+    /// The `dateFormat` ambiguity the server reported, if any (F6: ambiguity is
+    /// returned, never guessed - the parser's M/D reading must not stand silent).
+    private var dateFormatAmbiguity: ImportAmbiguity? {
+        parse?.ambiguities.first(where: { $0.kind == "dateFormat" })
+    }
+
+    /// The two readings the server named ("M/D/YYYY" and "D/M/YYYY").
+    var dateFormatOptions: [String]? { dateFormatAmbiguity?.options }
+
+    /// How many rows genuinely read either way (their day is also ≤ 12).
+    var dateFormatRowCount: Int { dateFormatAmbiguity?.rowCount ?? 0 }
+
+    var hasDateFormatQuestion: Bool { dateFormatAmbiguity != nil }
+
+    var dateFormatAnswered: Bool { dateFormatAnswer != nil }
+
+    /// Whether the commit may proceed: every F6 question is answered. A
+    /// `dateFormat` question unanswered would commit the file under the
+    /// parser's guess (docs/JOURNEYS.md J2's stats-poisoning misread), so the
+    /// preview disables confirm and the model refuses the write until it is
+    /// answered (PJ.10).
+    var canConfirm: Bool { parse?.canCommit(dateFormatAnswer: dateFormatAnswer) ?? false }
+
+    /// Answers the `dateFormat` question, once per file. Choosing the flip
+    /// reading re-dates the ambiguous candidates (month and day swap); the
+    /// M/D reading is already what the wire carries. Either way the preview and
+    /// the review list rebuild against the corrected dates, so the number the
+    /// user approves is the number that lands (F6a).
+    func answerDateFormat(_ option: String) {
+        guard let ambiguity = dateFormatAmbiguity,
+              ambiguity.options.contains(option) else { return }
+        dateFormatAnswer = option
+        rebuildClassification()
+    }
+
+    /// The candidates with the chosen date reading applied: the wire's M/D set
+    /// as-is, or the D/M flip when the user answered with `options[1]`. The
+    /// pristine parse is never mutated, so re-answering stays correct.
+    private var effectiveCandidates: [ImportCandidate] {
+        guard let parse else { return [] }
+        return ImportDateFormat.candidates(for: parse, answer: dateFormatAnswer)
+    }
+
+    /// The `outOfScope` message the preview surfaces, if the server reported
+    /// one (a recognised file whose rows are deliberately unmapped - income,
+    /// reminders - docs/API.md). The message names the scope and the count so
+    /// "we read the file but show nothing" never reads as a silent drop.
+    var outOfScopeMessage: String? {
+        guard let ambiguity = parse?.ambiguities.first(where: { $0.kind == "outOfScope" }),
+              let option = ambiguity.options.first else { return nil }
+        switch option {
+        case "income": return L10n.outOfScopeIncome(ambiguity.rowCount)
+        case "reminder": return L10n.outOfScopeReminder(ambiguity.rowCount)
+        default: return nil
+        }
+    }
+
     // MARK: - Review list
 
-    /// "Leave out" / "Import" toggle for a review row. A row with no mapped
-    /// fill (an unparsed row, a non-fill row) cannot be committed and is
-    /// always left out.
+    /// "Leave out" / "Import" toggle for a review row. A row with no record to
+    /// commit (an unparsed row, a non-fill row that could not be mapped) is
+    /// always left out; a `.noFuel` row toggles its "Import as service /
+    /// expense" choice (PJ.9).
     func toggleSkipped(sourceRow: Int) {
         if skippedSourceRows.contains(sourceRow) {
             skippedSourceRows.remove(sourceRow)
@@ -252,8 +358,12 @@ final class ImportFlowModel {
     }
 
     func isSkipped(sourceRow: Int) -> Bool {
-        if let row = reviewRows.first(where: { $0.sourceRow == sourceRow }), row.fill == nil {
-            return true
+        if let row = reviewRows.first(where: { $0.sourceRow == sourceRow }) {
+            // A row with nothing to commit is always left out: an unparsed row
+            // has no record at all, and a `.noFuel` row stays out until the
+            // user chooses to import it as a service/expense (PJ.9) - the
+            // non-fuel action, never a silent commit.
+            if row.fill == nil && row.nonFuel == nil { return true }
         }
         return skippedSourceRows.contains(sourceRow)
     }
@@ -310,6 +420,30 @@ final class ImportFlowModel {
             !isSkipped(sourceRow: row.sourceRow) && row.fill != nil
         }.compactMap(\.fill)
         return readyFills + keptReview
+    }
+
+    /// Every record the commit will write: the ready fills plus the review rows
+    /// the user kept - a kept fill writes a `FillUp`, a kept `.noFuel` row
+    /// writes its `ServiceRecord` or `Expense` (PJ.9: a non-fuel row commits as
+    /// what it is, `provenance = .import`, never silently dropped - hard rule
+    /// 8). The preview's figures are computed over the fills in this set.
+    var importRecords: [ArchiveImportRecord] {
+        var records: [ArchiveImportRecord] = readyFills.map { ArchiveImportRecord.fillUp($0) }
+        let keptReview = reviewRows.filter { row in
+            !isSkipped(sourceRow: row.sourceRow)
+                && (row.fill != nil || row.nonFuel != nil)
+        }
+        for row in keptReview {
+            if let fill = row.fill {
+                records.append(.fillUp(fill))
+            } else if let nonFuel = row.nonFuel {
+                switch nonFuel {
+                case .service(let service): records.append(.serviceRecord(service))
+                case .expense(let expense): records.append(.expense(expense))
+                }
+            }
+        }
+        return records
     }
 
     var commitCount: Int { importFills.count }
@@ -371,19 +505,24 @@ final class ImportFlowModel {
         readyFills = []
         skippedSourceRows = []
         odometerEdits = [:]
+        dateFormatAnswer = nil
         step = .source
     }
 
     // MARK: - Confirm (the ONE write)
 
-    /// Writes the kept fills and drops the stored parse. Returns whether the
+    /// Writes the kept records and drops the stored parse. Returns whether the
     /// repository write succeeded. This is the only mutation the whole flow
     /// performs - hard rule 8 has nothing to lose because nothing was staged.
+    /// The commit is refused until every F6 question is answered (PJ.10): a
+    /// `dateFormat` question unanswered would write the file under the parser's
+    /// M/D guess.
     @discardableResult
     func confirmImport() async -> Bool {
         guard let parse else { return false }
-        let fills = importFills
-        guard !fills.isEmpty else {
+        guard canConfirm else { return false }
+        let records = importRecords
+        guard !records.isEmpty else {
             try? await client.deleteParse(importId: parse.importId)
             didConfirm = true
             return true
@@ -394,7 +533,7 @@ final class ImportFlowModel {
                     try repository.upsertVehicle(newCar)
                 }
             }
-            try repository.commitImportFills(fills, source: source)
+            try repository.commitImport(records, source: source)
             try? await client.deleteParse(importId: parse.importId)
             didConfirm = true
             return true
@@ -408,12 +547,14 @@ final class ImportFlowModel {
 
     /// Splits the parse into ready fills and review rows against the current
     /// target car, keeping the user's skip/odometer decisions by source row.
+    /// Reads the candidates through the date-format answer, so answering the
+    /// question re-dates every derived figure and review row (PJ.10).
     private func rebuildClassification() {
         guard let parse, let targetCar else { return }
         let vehicle = targetCar.vehicleValue
         let lines = ImportRawLines.dataLines(from: uploadedFileData)
         let (ready, review) = ImportReviewClassifier.partition(
-            candidates: parse.candidates,
+            candidates: effectiveCandidates,
             unparsed: parse.unparsed,
             rawLinesByRow: lines,
             vehicle: vehicle,

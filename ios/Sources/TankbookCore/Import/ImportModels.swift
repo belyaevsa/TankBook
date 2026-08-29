@@ -60,11 +60,37 @@ public struct ImportProvenance: Codable, Sendable, Equatable {
     }
 }
 
+/// A non-fuel candidate's invoice line item (docs/API.md; the server's
+/// `serviceRecord` payloads carry `items`). `category.tag` is the wire's stable
+/// code ("repair", "oil", "wash", ...); `cost` the item's money.
+public struct ImportServiceItem: Codable, Sendable, Equatable {
+    public let title: String?
+    public let category: ImportCategoryTag?
+    public let cost: ImportMoney?
+
+    public init(title: String?, category: ImportCategoryTag?, cost: ImportMoney?) {
+        self.title = title
+        self.category = category
+        self.cost = cost
+    }
+}
+
+/// A `{ tag }` category payload on a non-fuel candidate.
+public struct ImportCategoryTag: Codable, Sendable, Equatable {
+    public let tag: String
+
+    public init(tag: String) {
+        self.tag = tag
+    }
+}
+
 /// One parsed row - a proposal the device may commit (docs/API.md). The fields
 /// follow the entity payloads the device writes; `sourceRow` is the 1-based
 /// data-row number in the file, and `vehicleName` the car the row belonged to
 /// in the source app. A missing value stays missing: `odometer` is nil, never
-/// coerced to `0` (F6b - a blank is an honest absence).
+/// coerced to `0` (F6b - a blank is an honest absence). Non-fuel rows
+/// (`entityType` `serviceRecord`/`expense`) carry `items`/`category`/`title`
+/// instead of the fuel fields; the others stay nil for them (PJ.9).
 public struct ImportCandidate: Codable, Sendable, Equatable {
     public let entityType: String
     public let date: Date
@@ -79,11 +105,20 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
     public let vehicleName: String?
     public let provenance: ImportProvenance?
     public let sourceRow: Int
+    /// A `serviceRecord` candidate's invoice line items.
+    public let items: [ImportServiceItem]?
+    /// An `expense` candidate's category.
+    public let category: ImportCategoryTag?
+    /// An `expense` candidate's title.
+    public let title: String?
 
     public init(entityType: String, date: Date, odometer: Int?, volumeL: Double?,
                 unitPrice: String?, money: ImportMoney?, fuelKind: String?,
                 isFull: Bool?, tankLevelAfterPct: Double?, note: String?,
-                vehicleName: String?, provenance: ImportProvenance?, sourceRow: Int) {
+                vehicleName: String?, provenance: ImportProvenance?, sourceRow: Int,
+                items: [ImportServiceItem]? = nil,
+                category: ImportCategoryTag? = nil,
+                title: String? = nil) {
         self.entityType = entityType
         self.date = date
         self.odometer = odometer
@@ -97,6 +132,9 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
         self.vehicleName = vehicleName
         self.provenance = provenance
         self.sourceRow = sourceRow
+        self.items = items
+        self.category = category
+        self.title = title
     }
 
     /// The fuel kind the file declared, if it maps to a kind Tankbook models.
@@ -170,5 +208,72 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
             return CurrencyCode(rawValue: option)
         }
         return candidates.first(where: { $0.money != nil })?.money?.currencyCode
+    }
+
+    /// Whether the import may be confirmed (PJ.10): every F6 question the
+    /// server raised is answered. A `dateFormat` ambiguity unanswered would
+    /// commit the file under the parser's guessed M/D reading (docs/JOURNEYS.md
+    /// F6, docs/API.md) - so it blocks the commit until `dateFormatAnswer` is
+    /// set. No ambiguity is an unconditional pass.
+    public func canCommit(dateFormatAnswer: String?) -> Bool {
+        guard ambiguities.contains(where: { $0.kind == "dateFormat" }) else { return true }
+        return dateFormatAnswer != nil
+    }
+
+    /// A copy whose ambiguous candidates are re-dated to the D/M reading
+    /// (month and day swapped): the answer to the `dateFormat` question when
+    /// the user chooses `options[1]`. The wire carries the M/D reading, so only
+    /// the counted rows change - a candidate whose day is ≤ 12 is genuinely
+    /// ambiguous (the same string parses either way), and one whose day is > 12
+    /// parses the same under both readings and stays untouched. A fixed UTC
+    /// calendar keeps a non-UTC device from shifting the date a day.
+    public func reDatingAsDMY() -> ImportParseResponse {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? calendar.timeZone
+        return ImportParseResponse(
+            importId: importId, format: format, scope: scope,
+            candidates: candidates.map { $0.reDatingToDMY(calendar: calendar) ?? $0 },
+            unparsed: unparsed, ambiguities: ambiguities)
+    }
+}
+
+extension ImportCandidate {
+    /// The D/M flip of this candidate's date, or nil when it is not ambiguous
+    /// (its day is > 12, so both readings agree). Uses `calendar` only for its
+    /// component extraction - the caller fixes a timezone so the device's own
+    /// cannot shift the UTC-midnight date a day.
+    func reDatingToDMY(calendar: Calendar) -> ImportCandidate? {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        guard let year = components.year, let month = components.month,
+              let day = components.day, day <= 12,
+              let flipped = calendar.date(from: DateComponents(year: year, month: day, day: month)) else {
+            return nil
+        }
+        return ImportCandidate(entityType: entityType, date: flipped, odometer: odometer,
+                               volumeL: volumeL, unitPrice: unitPrice, money: money,
+                               fuelKind: fuelKind, isFull: isFull,
+                               tankLevelAfterPct: tankLevelAfterPct, note: note,
+                               vehicleName: vehicleName, provenance: provenance,
+                               sourceRow: sourceRow, items: items, category: category,
+                               title: title)
+    }
+}
+
+/// Resolves the `dateFormat` question's answer to the candidate set the
+/// preview and the commit should read (PJ.10). The wire carries the M/D
+/// reading; choosing the flip reading re-dates the ambiguous rows, anything
+/// else leaves the candidates as the server sent them. One place for the
+/// decision so the preview, the review list and the commit cannot disagree
+/// about which dates a file carries (F6a).
+public enum ImportDateFormat {
+    public static func candidates(for parse: ImportParseResponse,
+                                  answer: String?) -> [ImportCandidate] {
+        guard let answer,
+              let ambiguity = parse.ambiguities.first(where: { $0.kind == "dateFormat" }),
+              ambiguity.options.count == 2,
+              answer == ambiguity.options[1] else {
+            return parse.candidates
+        }
+        return parse.reDatingAsDMY().candidates
     }
 }

@@ -151,6 +151,23 @@ row would satisfy a checklist no screen displays. The row is corrected in the
 same change; if a screen ever renders a spelled-out litre count, it needs its
 own three-form plural key.
 
+### The PJ.10/PJ.9 import plurals (added 2026-08-29)
+
+Three new count strings joined the import wizard, each pinned in
+`LocalizationGateP53Tests.pluralCases` at 1/2/5/11/21:
+
+- `Date format matters – %lld dates read either way.` → RU
+  `Формат дат важен – %lld дата/даты/дат читается двояко.` - 21 takes `one`
+  (дата), 11 takes `many` (дат). This is the `dateFormat` question's subtitle;
+  the count is the number of rows whose day is also ≤ 12.
+- `This file has %lld income rows; income isn't imported in v1.` (RU
+  строка/строки/строк) and `This file has %lld reminders; reminders aren't
+  imported in v1.` (RU напоминание/напоминания/напоминаний) - the `outOfScope`
+  notices.
+
+All three are `%lld`-only slots (counts), so no case governs a `%@`; the
+`%@`-slot rules above do not apply to them.
+
 ## The `Text(_: String)` blind spot
 
 `Text(_: LocalizedStringKey)` localises; `Text(_: String)` does not. Any

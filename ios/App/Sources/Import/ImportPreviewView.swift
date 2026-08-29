@@ -28,8 +28,14 @@ struct ImportPreviewView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     intro
                     headlineCard
+                    if model.hasDateFormatQuestion {
+                        dateFormatCard
+                    }
                     figuresCard
                     targetCarCard
+                    if let message = model.outOfScopeMessage {
+                        outOfScopeCard(message)
+                    }
                     if reviewCount > 0 {
                         reviewRow
                     }
@@ -203,6 +209,82 @@ struct ImportPreviewView: View {
 
     private var reviewCount: Int { model.reviewRows.count }
 
+    // MARK: - The F6 questions (PJ.10)
+
+    /// The `dateFormat` question (docs/JOURNEYS.md F6, docs/API.md): the parser
+    /// guessed M/D; the same rows may genuinely be D/M, and committing the
+    /// guess silently shifts a year of history. Asked once, per file; confirm
+    /// stays disabled until it is answered. Answering re-dates the candidates.
+    private var dateFormatCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "calendar.badge.exclamationmark")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .padding(.top, 1)
+                VStack(alignment: .leading, spacing: 4) {
+                    SectionEyebrow("Some dates could read either way")
+                    Text(L10n.dateFormatQuestionSubtitle(model.dateFormatRowCount))
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineSpacing(1.4)
+                }
+            }
+            HStack(spacing: 8) {
+                if let options = model.dateFormatOptions {
+                    ForEach(options, id: \.self) { option in
+                        dateFormatOption(option)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("importDateFormatQuestion")
+    }
+
+    private func dateFormatOption(_ option: String) -> some View {
+        let selected = model.dateFormatAnswer == option
+        return Button(action: { model.answerDateFormat(option) }) {
+            Text(option)
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(selected ? Theme.Palette.midnight : Theme.Palette.ink)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background(selected ? Theme.Palette.taillight : Theme.Palette.midnight)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(selected ? Color.clear : Theme.Palette.hairline, lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("importDateFormatOption-\(option)")
+    }
+
+    /// A file whose rows are deliberately unmapped (income, reminders) says so
+    /// here instead of silently showing nothing (docs/API.md).
+    private func outOfScopeCard(_ message: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: "info.circle")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .padding(.top, 1)
+            Text(message)
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .formCard()
+        .accessibilityIdentifier("importOutOfScopeNotice")
+    }
+
     private var reviewRow: some View {
         Button(action: onShowReview) {
             HStack(spacing: 10) {
@@ -233,7 +315,8 @@ struct ImportPreviewView: View {
 
     private var bottomBar: some View {
         VStack(spacing: 8) {
-            ImportPrimaryBar(action: onImport, enabled: !model.didConfirm) {
+            ImportPrimaryBar(action: onImport,
+                             enabled: model.canConfirm && !model.didConfirm) {
                 Text(L10n.importFillUps(model.commitCount))
             }
             .accessibilityIdentifier("importConfirmButton")

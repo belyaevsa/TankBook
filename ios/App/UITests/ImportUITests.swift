@@ -185,6 +185,88 @@ final class ImportUITests: XCTestCase {
                       "RU review actions must stack onto separate lines, not share one hyphenating row")
     }
 
+    // MARK: - The date-format question (PJ.10)
+
+    /// The parser's M/D guess must not stand silently: the preview ASKS the
+    /// `dateFormat` question once (docs/JOURNEYS.md F6), confirm stays disabled
+    /// until it is answered, and answering enables it. The seeded mfm parse
+    /// carries an 8-row ambiguity, so the subtitle names the real count.
+    func testDateFormatQuestionShowsOnceAndGatesConfirm() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubParse", "mfm", "-seedImportPreview"])
+        XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
+
+        let question = app.otherElements["importDateFormatQuestion"]
+        XCTAssertTrue(question.waitForExistence(timeout: 5),
+                      "the date-format question renders on the preview")
+        XCTAssertEqual(app.otherElements.matching(identifier: "importDateFormatQuestion").count, 1,
+                       "the question is asked once per file, never per row")
+        XCTAssertEqual(app.staticTexts.matching(
+            NSPredicate(format: "label == %@", "Date format matters – 8 dates read either way.")).count, 1,
+            "the question's subtitle names the counted rows, once")
+
+        XCTAssertFalse(app.buttons["importConfirmButton"].isEnabled,
+                       "confirm stays disabled until the date-format question is answered")
+
+        app.buttons["importDateFormatOption-D/M/YYYY"].tap()
+        XCTAssertTrue(app.buttons["importConfirmButton"].isEnabled,
+                      "answering the question enables confirm")
+    }
+
+    func testDateFormatQuestionGatesConfirmInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubParse", "mfm", "-seedImportPreview"])
+        XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
+
+        let subtitle = app.staticTexts.matching(
+            NSPredicate(format: "label == %@", "Формат дат важен – 8 дат читаются двояко."))
+        XCTAssertEqual(subtitle.count, 1,
+                       "the RU question subtitle renders once, naming the counted rows")
+        XCTAssertFalse(app.buttons["importConfirmButton"].isEnabled,
+                       "RU confirm stays disabled until answered")
+        app.buttons["importDateFormatOption-D/M/YYYY"].tap()
+        XCTAssertTrue(app.buttons["importConfirmButton"].isEnabled,
+                      "answering the question enables confirm in Russian")
+    }
+
+    // MARK: - Non-fuel rows commit as what they are (PJ.9)
+
+    /// A parsed service row gets its own action and commits as a ServiceRecord,
+    /// which then shows in the Log (hard rule 8: shown, not silently dropped).
+    func testNonFuelRowImportsAsAServiceAndShowsInTheLog() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportService"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+
+        XCTAssertTrue(app.staticTexts["Import as service"].waitForExistence(timeout: 5),
+                      "the non-fuel row offers the import-as-service action")
+
+        app.buttons["importReviewDoneButton"].tap()
+        XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
+        app.buttons["importConfirmButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 10),
+                      "the committed service entry renders in the Log")
+    }
+
+    func testNonFuelRowImportsAsAServiceAndShowsInTheLogInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportService"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+
+        XCTAssertTrue(app.staticTexts["Импортировать как сервис"].waitForExistence(timeout: 5),
+                      "the RU non-fuel row offers the import-as-service action")
+
+        app.buttons["importReviewDoneButton"].tap()
+        XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
+        app.buttons["importConfirmButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["Сервис"].waitForExistence(timeout: 10),
+                      "the committed service entry renders in the Russian Log")
+    }
+
     // MARK: - Per-car export (P5.5b export lane)
 
     /// The Garage's car screen offers the per-car export row (the archive
