@@ -17,6 +17,7 @@ import TankbookCore
 struct ServiceEntryView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ServiceInvoiceSession.self) private var invoiceSession
     @Environment(ExpenseEntrySession.self) private var expenseSession
@@ -48,6 +49,11 @@ struct ServiceEntryView: View {
     /// pre-fills this form and, on save, completes the reminder with the
     /// entry's real id. Consumed at load; held locally for the save.
     @State private var pendingCompletion: ReminderCompletionSession.Pending?
+    /// The vehicle's existing entries, for the F9a timeline check (PJ.11): the
+    /// candidate service is validated against these on save AND live on the
+    /// odometer card. Loaded once, refreshed at save (the timeline may have
+    /// moved since the sheet opened).
+    @State private var existingEntries: [any Entry] = []
 
     private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
@@ -85,6 +91,7 @@ struct ServiceEntryView: View {
                         distanceUnit: distanceUnit,
                         showDatePicker: $showDatePicker,
                         odometerRequired: form.requiresOdometer,
+                        conflict: odometerConflict,
                         onFillOdometer: fillOdometer,
                         provenanceCaption: dateProvenanceCaption)
                     if showDatePicker {
@@ -149,6 +156,17 @@ struct ServiceEntryView: View {
 
     private var odometerMissing: Bool {
         form.requiresOdometer && form.odometerValue == nil
+    }
+
+    /// The live F9a verdict for the current form (PJ.11): amber on the odometer
+    /// card as the user types, with the conflicting entry quoted when the order
+    /// check has a neighbour to name. The save STAMPS the same verdict; the
+    /// warning here is the "check it" half of hard rule 7's next step.
+    private var odometerConflict: OdometerConflict? {
+        guard let vehicle else { return nil }
+        return form.odometerConflict(vehicle: vehicle,
+                                     existingEntries: existingEntries,
+                                     distanceUnit: distanceUnit)
     }
 
     /// On-shelf parts, ordered with the ones matching this service's line-item
@@ -229,6 +247,7 @@ struct ServiceEntryView: View {
             guard let vehicle = carSelection.selectedVehicle(vehicles) else { return }
             self.vehicle = vehicle
             let existingEntries = try repository.liveEntries(forVehicle: vehicle.id)
+            self.existingEntries = existingEntries
             let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
             lastKnownOdometer = lastKnown
             form.odometer = lastKnown.map(OdometerFormat.grouped) ?? ""
@@ -344,7 +363,16 @@ struct ServiceEntryView: View {
         do {
             let repository = try AppStore.repository()
             let draft = form.draft(vehicle: vehicle)
-            let service = draft.build(vehicleId: vehicle.id, homeCurrency: vehicle.homeCurrency)
+            var service = draft.build(vehicleId: vehicle.id, homeCurrency: vehicle.homeCurrency)
+            // PJ.11: F9a is checked on every write, not just capture. A service
+            // odometer typo must flag, never silently skew spans and cost/km.
+            // The stamp never blocks the save - a flagged record is a warning
+            // the user decided to keep (hard rules 7 and 13).
+            let existing = try repository.liveEntries(forVehicle: vehicle.id)
+            existingEntries = existing
+            let validations = TimelineValidator.validate(entries: existing + [service],
+                                                         vehicle: vehicle)
+            service.conflict = validations.first { $0.entryID == service.id }?.conflict ?? .none
             // The other half of each link: the linked expenses carry the record's
             // id, and both halves commit in one transaction (P3.2 - a half-written
             // link is a part that is neither on the shelf nor in the service).
@@ -367,6 +395,15 @@ struct ServiceEntryView: View {
                 pendingCompletion = nil
             }
             hasUnsavedChanges = false
+            // A new record was written with no delta toast - tell Home to
+            // reload anyway (docs/ERRORS.md -> Edit entry, row 4; hard rule 2),
+            // exactly as Manual fill-up, Edit entry, Vehicle detail and
+            // Recently deleted do on their saves. Without this, Home keeps
+            // showing the pre-save state after the sheet dismisses (a `.sheet`
+            // never re-triggers the presenter's `.task` on iOS 26) - and a
+            // PJ.11-flagged service would save without its amber badge ever
+            // surfacing.
+            toastCenter.noteEntryChanged()
             dismiss()
         } catch {
             Self.log.error("Service entry save failed: \(error.localizedDescription, privacy: .public)")

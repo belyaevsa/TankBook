@@ -267,6 +267,41 @@ final class ImportUITests: XCTestCase {
                       "the committed service entry renders in the Russian Log")
     }
 
+    // MARK: - The flagged-order row (PJ.11)
+
+    /// F9a is checked on the import path BEFORE anything is written: the seeded
+    /// parse carries a real MFM-style `9` odometer row, and the review list
+    /// must show it badged "Breaks the timeline" with its Fix and "Import
+    /// as-is" affordances - the row is committable as flagged (hard rule 13),
+    /// never silently accepted or repaired.
+    func testFlaggedOrderRowAppearsInTheReviewList() {
+        let app = launch(["-presentScreen", "importWizard", "-seedImportTimeline"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+
+        let row = app.otherElements["importReviewRow-2"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5),
+                      "the 9 row lands in the review list, never silently in the ready set")
+        XCTAssertTrue(app.staticTexts["Breaks the timeline"].exists,
+                      "the timeline-conflict badge names the violation")
+        XCTAssertTrue(app.descendants(matching: .any)["importReviewTimelineDetail"].firstMatch.exists,
+                      "the amber detail renders under the badge (the F9a warning)")
+        XCTAssertTrue(app.staticTexts["Fix"].exists,
+                      "Fix is the next step - the odometer is the field to correct (hard rule 7)")
+        XCTAssertTrue(app.staticTexts["Import as-is"].exists,
+                      "importing the flagged row as-is stays allowed (hard rule 13)")
+    }
+
+    func testFlaggedOrderRowAppearsInTheReviewListInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard", "-seedImportTimeline"])
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+
+        XCTAssertTrue(app.staticTexts["Нарушает хронологию"].waitForExistence(timeout: 5),
+                      "the RU badge names the timeline break")
+        XCTAssertTrue(app.staticTexts["Исправить"].exists,
+                      "Fix is localised in Russian")
+    }
+
     // MARK: - Per-car export (P5.5b export lane)
 
     /// The Garage's car screen offers the per-car export row (the archive

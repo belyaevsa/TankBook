@@ -20,6 +20,7 @@ enum ImportTestSeed {
         // the Volvo when none exists so the merge duplicate count is real.
         guard arguments.contains("-seedImportPreview")
             || arguments.contains("-seedImportReview")
+            || arguments.contains("-seedImportTimeline")
             || arguments.contains("-seedImportService") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
@@ -36,6 +37,9 @@ enum ImportTestSeed {
                                      fileName: "MyFuelManager_2026-08.csv",
                                      rawFileResource: "import-mfm-sample")
             model.showPreview()
+        } else if arguments.contains("-seedImportTimeline") {
+            model.installSeededTimelineParse()
+            model.showReview()
         } else if arguments.contains("-seedImportReview") {
             model.installSeededParse(resourceName: "import-parse-review",
                                      fileName: "MyFuelManager_2026-08.csv",

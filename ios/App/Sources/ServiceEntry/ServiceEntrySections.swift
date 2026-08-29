@@ -189,13 +189,16 @@ struct ServiceEntryHeader: View {
 /// P3.1b, so the scanned path can add it without relayout. The odometer is
 /// pre-filled from the last known value and stays editable (hard rule 13);
 /// when a km lifetime is set and the field is blank, the card warns and names
-/// the next step (hard rule 7).
+/// the next step (hard rule 7). PJ.11: the F9a timeline conflict renders the
+/// same amber "check it" warning the Confirm sheet does - the check is on every
+/// write, and the odometer is the field the user is looking at.
 struct ServiceEntryDateOdometerCard: View {
     @Binding var form: ServiceEntryFormState
     @FocusState.Binding var focus: ServiceEntryFocus?
     let distanceUnit: DistanceUnit
     @Binding var showDatePicker: Bool
     let odometerRequired: Bool
+    var conflict: OdometerConflict?
     let onFillOdometer: () -> Void
     var provenanceCaption: LocalizedStringKey?
 
@@ -285,6 +288,10 @@ struct ServiceEntryDateOdometerCard: View {
                 .foregroundStyle(Theme.Palette.inkSoft)
             if odometerRequired && form.odometerValue == nil {
                 warning
+            }
+            if let conflict {
+                ServiceEntryConflictWarning(conflict: conflict,
+                                           onFix: { focus = .odometer })
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

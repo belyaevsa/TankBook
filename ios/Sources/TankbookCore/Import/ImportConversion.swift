@@ -49,7 +49,6 @@ public enum ImportConverter {
             volumeL: volumeL,
             unitPrice: candidate.unitPriceDecimal,
             amount: candidate.money?.amountDecimal)
-
         return FillUp(
             id: id, createdAt: candidate.date, updatedAt: candidate.date, deletedAt: nil,
             vehicleId: vehicle.id, date: candidate.date, odometer: candidate.odometer,
@@ -197,6 +196,27 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
     public let nonFuel: NonFuel?
     /// The original line in the file, shown behind "Original row".
     public let rawLine: String?
+    /// The PJ.11 timeline flag's context when the row broke the order/pace
+    /// invariant: the kind plus the previous neighbour (odometer and date) the
+    /// order check quoted, so the review list can render "Aug 17 already
+    /// recorded 119 486 km." without re-running the validator. nil on every
+    /// other kind.
+    public let timeline: TimelineFlag?
+
+    /// The flag context a `.timelineConflict` row renders from (F9a: the
+    /// conflicting entry is quoted, never just a badge).
+    public struct TimelineFlag: Equatable, Sendable {
+        public let kind: ConflictState.ConflictKind
+        public let previousOdometer: Int?
+        public let previousDate: Date?
+
+        public init(kind: ConflictState.ConflictKind,
+                    previousOdometer: Int?, previousDate: Date?) {
+            self.kind = kind
+            self.previousOdometer = previousOdometer
+            self.previousDate = previousDate
+        }
+    }
 
     public enum Kind: Equatable, Sendable {
         /// A field the mapping expected is absent (odometer is the common one).
@@ -209,6 +229,9 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
         case unmappable(reason: String)
         /// The server reported it in `unparsed`; `reason` is a stable code.
         case unparsed(reason: String)
+        /// The row's odometer breaks the car's timeline (F9a, PJ.11): order or
+        /// pace. Shown before anything is written; the row stays committable.
+        case timelineConflict(kind: ConflictState.ConflictKind)
     }
 
     /// What a `.noFuel` row is (PJ.9): the concrete record the "Import as
@@ -219,13 +242,15 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
     }
 
     public init(id: UUID = UUID.v7(), sourceRow: Int, kind: Kind,
-                fill: FillUp?, nonFuel: NonFuel? = nil, rawLine: String?) {
+                fill: FillUp?, nonFuel: NonFuel? = nil, rawLine: String?,
+                timeline: TimelineFlag? = nil) {
         self.id = id
         self.sourceRow = sourceRow
         self.kind = kind
         self.fill = fill
         self.nonFuel = nonFuel
         self.rawLine = rawLine
+        self.timeline = timeline
     }
 }
 
@@ -236,13 +261,23 @@ public enum ImportReviewClassifier {
 
     /// Splits the parse's candidates into ready fills and review rows, and adds
     /// the wire's `unparsed` rows (their raw lines come from `rawLinesByRow`).
+    ///
+    /// PJ.11: the timeline check runs over the MERGED set - the target car's
+    /// existing entries plus every converted incoming fill - and stamps each
+    /// fill's `conflict` from `TimelineValidator`. A fill that breaks the
+    /// timeline lands in the review list (`.timelineConflict`), so the flag is
+    /// shown before anything is written (F6a); the commit re-stamps
+    /// authoritatively (`commitImport`), covering the noFuel records too.
     public static func partition(candidates: [ImportCandidate],
                                  unparsed: [ImportUnparsedRow],
                                  rawLinesByRow: [Int: String],
                                  vehicle: Vehicle,
-                                 source: String) -> (ready: [FillUp], review: [ImportReviewRow]) {
+                                 source: String,
+                                 existingEntries: [any Entry] = []) -> (ready: [FillUp], review: [ImportReviewRow]) {
         var ready: [FillUp] = []
         var review: [ImportReviewRow] = []
+        // Every converted fill, in file order, awaiting the merged timeline pass.
+        var convertedFills: [(fill: FillUp, sourceRow: Int)] = []
 
         for candidate in candidates {
             if candidate.entityType != "fillUp" {
@@ -280,13 +315,19 @@ public enum ImportReviewClassifier {
                     rawLine: rawLinesByRow[candidate.sourceRow]))
                 continue
             }
-            if let kind = stillNeedsLook(fill) {
-                review.append(ImportReviewRow(
-                    sourceRow: candidate.sourceRow, kind: kind, fill: fill,
-                    rawLine: rawLinesByRow[candidate.sourceRow]))
-                continue
-            }
-            ready.append(fill)
+            convertedFills.append((fill, candidate.sourceRow))
+        }
+
+        // The merged timeline pass (PJ.11): validate the whole incoming set
+        // against the target car's existing entries at once - two incoming rows
+        // can break each other's order, so a per-fill check is not enough -
+        // stamping `conflict` onto every fill, and the kind falls out of it.
+        if !convertedFills.isEmpty {
+            let (timelineReady, timelineReview) = Self.timelineRows(
+                convertedFills, existingEntries: existingEntries, vehicle: vehicle,
+                rawLinesByRow: rawLinesByRow)
+            ready += timelineReady
+            review += timelineReview
         }
 
         for row in unparsed {
@@ -298,6 +339,48 @@ public enum ImportReviewClassifier {
         }
 
         review.sort { $0.sourceRow < $1.sourceRow }
+        return (ready, review)
+    }
+
+    /// The merged-timeline half of `partition` (PJ.11): validate the converted
+    /// fills against the car's existing entries at once and stamp `conflict`.
+    private static func timelineRows(
+        _ convertedFills: [(fill: FillUp, sourceRow: Int)],
+        existingEntries: [any Entry], vehicle: Vehicle,
+        rawLinesByRow: [Int: String]) -> (ready: [FillUp], review: [ImportReviewRow]) {
+        var ready: [FillUp] = []
+        var review: [ImportReviewRow] = []
+        let validations = TimelineValidator.validate(
+            entries: existingEntries + convertedFills.map(\.fill), vehicle: vehicle)
+        let byID = Dictionary(uniqueKeysWithValues: validations.map { ($0.entryID, $0) })
+        for (fill, sourceRow) in convertedFills {
+            var stamped = fill
+            let validation = byID[stamped.id]
+            stamped.conflict = validation?.conflict ?? .none
+            if let valueKind = stillNeedsLook(stamped) {
+                review.append(ImportReviewRow(
+                    sourceRow: sourceRow, kind: valueKind, fill: stamped,
+                    rawLine: rawLinesByRow[sourceRow]))
+            } else if case .flagged(let kind, _) = stamped.conflict {
+                // The order flag's previous neighbour feeds the quote the
+                // review list renders ("Aug 17 already recorded ... km.").
+                var previousOdometer: Int?
+                var previousDate: Date?
+                if let flag = validation?.flags.first,
+                   case .order(let previousOdometerValue, let previousDateValue, _, _) = flag.detail {
+                    previousOdometer = previousOdometerValue
+                    previousDate = previousDateValue
+                }
+                review.append(ImportReviewRow(
+                    sourceRow: sourceRow, kind: .timelineConflict(kind: kind),
+                    fill: stamped, rawLine: rawLinesByRow[sourceRow],
+                    timeline: ImportReviewRow.TimelineFlag(kind: kind,
+                                                           previousOdometer: previousOdometer,
+                                                           previousDate: previousDate)))
+            } else {
+                ready.append(stamped)
+            }
+        }
         return (ready, review)
     }
 

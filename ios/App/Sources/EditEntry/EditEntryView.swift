@@ -338,16 +338,28 @@ struct EditEntryView: View {
                                                     homeCurrency: vehicle.homeCurrency)
             updated.note = nonFillForm.note.isEmpty ? nil : nonFillForm.note
 
+            // PJ.11: F9a is checked on every write, not just capture. An edit
+            // that moves an odometer or a date can break the timeline exactly
+            // as a new entry can, and the flag must land with the save - never
+            // left to a later read. The stamp never blocks the write (hard rule
+            // 13: the user decided; the amber badge surfaces it later).
+            let validations = TimelineValidator.validate(entries: otherEntries + [updated],
+                                                         vehicle: vehicle)
+            updated.conflict = validations.first { $0.entryID == updated.id }?.conflict ?? .none
+
             switch updated {
             case var charge as ChargeSession:
                 charge.provider = nonFillForm.provider.isEmpty ? nil : nonFillForm.provider
                 if let kWh = Double(nonFillForm.energyKWh) { charge.energyKWh = kWh }
+                charge.conflict = updated.conflict
                 try repository.upsertChargeSession(charge)
             case var service as ServiceRecord:
                 service.vendor = nonFillForm.vendor.isEmpty ? nil : nonFillForm.vendor
+                service.conflict = updated.conflict
                 try repository.upsertServiceRecord(service)
             case var expense as Expense:
                 expense.title = nonFillForm.title
+                expense.conflict = updated.conflict
                 try repository.upsertExpense(expense)
             default:
                 break

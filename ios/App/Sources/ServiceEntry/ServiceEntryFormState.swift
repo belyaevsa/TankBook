@@ -159,3 +159,48 @@ struct ServiceEntryFormState: Equatable {
         return false
     }
 }
+
+// MARK: - F9a timeline support (PJ.11)
+
+extension ServiceEntryFormState {
+    /// The odometer-conflict quote for the F9a warn on the odometer card
+    /// (docs/JOURNEYS.md F9a, docs/ERRORS.md -> Service & expenses). Runs the
+    /// candidate `ServiceRecord` through `TimelineValidator` against the
+    /// vehicle's existing timeline, exactly as the save path will. The quote
+    /// names the conflicting entry when the order check has a previous
+    /// neighbour to quote; a pace-only flag has no quote.
+    func odometerConflict(vehicle: Vehicle, existingEntries: [any Entry],
+                          distanceUnit: DistanceUnit) -> OdometerConflict? {
+        guard let odo = odometerValue else { return nil }
+        let candidate = candidate(vehicle: vehicle)
+        let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
+                                                     vehicle: vehicle)
+        guard let validation = validations.first(where: { $0.entryID == candidate.id }),
+              let flag = validation.flags.first else { return nil }
+        switch flag.detail {
+        case .order(let previousOdometer, let previousDate, _, _):
+            if let previousOdometer, let previousDate, odo <= previousOdometer {
+                let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
+                let quote = String(format: L10n.localize("%@ already recorded %d km."), day, previousOdometer)
+                return OdometerConflict(quote: quote, flagKind: flag.kind)
+            }
+            return OdometerConflict(quote: nil, flagKind: flag.kind)
+        case .pace:
+            return OdometerConflict(quote: nil, flagKind: flag.kind)
+        }
+    }
+
+    /// A best-effort candidate `ServiceRecord` used ONLY to run the timeline
+    /// check; the entry actually saved is built by the save path. Only
+    /// odometer, date and vehicleId influence the check, so the items can be
+    /// empty.
+    func candidate(vehicle: Vehicle) -> ServiceRecord {
+        let now = Date()
+        return ServiceRecord(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: date, odometer: odometerValue,
+            money: nil, note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
+            usedParts: [], tireSetId: tireSetId, proposedReminderId: nil)
+    }
+}

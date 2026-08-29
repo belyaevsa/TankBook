@@ -60,6 +60,7 @@ struct ExpenseEntryFormState: Equatable {
 struct ExpenseEntryView: View {
     @Binding var hasUnsavedChanges: Bool
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
@@ -174,7 +175,7 @@ struct ExpenseEntryView: View {
         do {
             let repository = try AppStore.repository()
             let now = Date()
-            let expense = Expense(
+            var expense = Expense(
                 id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
                 vehicleId: vehicle.id, date: form.date, odometer: nil,
                 money: Money(amount: amount, currency: vehicle.homeCurrency,
@@ -182,6 +183,15 @@ struct ExpenseEntryView: View {
                 note: nil, attachments: [], provenance: .manual, conflict: .none,
                 purchaseGroupId: nil, category: form.category, title: form.title,
                 recurrence: nil, installedInServiceId: nil)
+            // PJ.11: F9a is checked on every write, not just capture. This
+            // screen never collects an odometer, so the verdict is trivially
+            // `.none` - but the stamp is the uniform shape of every write path
+            // (the Edit entry screen can give an Expense an odometer, and that
+            // path must flag exactly like this one does).
+            let existing = try repository.liveEntries(forVehicle: vehicle.id)
+            let validations = TimelineValidator.validate(entries: existing + [expense],
+                                                         vehicle: vehicle)
+            expense.conflict = validations.first { $0.entryID == expense.id }?.conflict ?? .none
             try repository.upsertExpense(expense)
             // The other half of the P3.5 chain: a reminder completion handed
             // off by the ReminderComplete sheet completes with THIS entry's id.
@@ -194,6 +204,10 @@ struct ExpenseEntryView: View {
                 pendingCompletion = nil
             }
             hasUnsavedChanges = false
+            // Tell Home to reload (a `.sheet` never re-triggers the presenter's
+            // `.task` on iOS 26) - the new expense must render, not wait for a
+            // manual refresh (the Manual fill-up / Edit entry convention).
+            toastCenter.noteEntryChanged()
             dismiss()
         } catch {
             Self.log.error("Expense entry save failed: \(error.localizedDescription, privacy: .public)")

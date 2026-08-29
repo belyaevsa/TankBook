@@ -67,10 +67,15 @@ struct GatewayBudgetTests {
         )
         let task = Task { try await transport.extract(.init(kind: "receipt", imageJPEG: Data())) }
 
-        // A 1 s budget against a 5 s transport: the budget must fire...
-        let outcome = try await GatewayWaiter.wait(task, timeout: .seconds(1))
+        // A 50 ms budget against a 5 s transport - a 100x margin, widened from
+        // 1 s. This test must AWAIT the work, so the delay cannot be stretched
+        // the way the anti-pattern test's was; the margin has to come from the
+        // other side. The failure it prevents: under a saturated machine the
+        // deadline task is scheduled only after the work has already finished,
+        // so nothing is still running and the budget looks like it never fired.
+        let outcome = try await GatewayWaiter.wait(task, timeout: .milliseconds(50))
         guard case .stillRunning(let running) = outcome else {
-            Issue.record("the budget must fire before a 5 s answer")
+            Issue.record("the budget must fire before the 5 s answer arrives")
             return
         }
 
@@ -155,8 +160,15 @@ private enum BudgetAsCancellation {
 struct GatewayBudgetAntiPatternTests {
     @Test("a budget implemented as a cancellation must FAIL the no-cancel test")
     func cancellationShapedBudgetIsDetected() async throws {
+        // A wide margin on purpose - the THIRD wall-clock race in this file, and
+        // the one the first fix missed by covering the two failures in front of
+        // it rather than the class. What this test claims is only that the
+        // deadline fires before the work finishes and cancels it; the numbers
+        // are incidental. `Task.sleep` is cancellable, so a 10-minute delay
+        // costs no runtime - it is interrupted at the 1 s deadline - while
+        // making the ordering immune to a saturated machine.
         let transport = SlowGatewayTransport(
-            delay: .seconds(5),
+            delay: .seconds(600),
             extraction: GatewayExtraction(pipeline: "x")
         )
         let task = Task { try await transport.extract(.init(kind: "receipt", imageJPEG: Data())) }

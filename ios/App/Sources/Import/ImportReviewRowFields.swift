@@ -5,6 +5,55 @@ import TankbookCore
 // docs/JOURNEYS.md F6b): parsed values with the one field that is wrong marked,
 // and a missing value rendered as a blank "– km" - an honest absence, never `0`.
 
+/// The PJ.11 timeline-conflict detail cell: the conflicting entry is quoted
+/// when the order check has a neighbour to name ("Aug 17 already recorded
+/// 119 486 km."), the generic pace wording otherwise. Amber - the row stays
+/// committable (hard rule 13: the user decides, the flag is the warning).
+struct ImportTimelineDetail: View {
+    let row: ImportReviewRow
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.warn)
+            timelineText
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.warn)
+                .lineSpacing(1.4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .accessibilityIdentifier("importReviewTimelineDetail")
+    }
+
+    @ViewBuilder
+    private var timelineText: some View {
+        if let quote = timelineQuote {
+            Text(quote)
+        } else {
+            Text("Odometer breaks the timeline – check it.")
+        }
+    }
+
+    /// The F9a order quote when the partition's flag carried a previous
+    /// neighbour ("Aug 17 already recorded 119 486 km." - the same wording the
+    /// Confirm sheet uses). A pace-only flag has no neighbour to quote.
+    private var timelineQuote: String? {
+        guard case .timelineConflict = row.kind,
+              let timeline = row.timeline,
+              timeline.kind == .order,
+              let previousOdometer = timeline.previousOdometer,
+              let previousDate = timeline.previousDate,
+              let fill = row.fill, let odo = fill.odometer, odo <= previousOdometer else {
+            return nil
+        }
+        let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
+        return String(format: L10n.localize("%@ already recorded %d km."), day, previousOdometer)
+    }
+}
+
 /// A generic labelled field cell ("Litres", "Price/L", "Total", "Note").
 struct ImportFieldCell: View {
     let label: LocalizedStringKey
@@ -39,6 +88,9 @@ struct ImportFieldCell: View {
 
 /// The odometer cell. A missing value renders as a blank "– km" with its own
 /// amber underline - never `0` (F6b). "Add odometer" swaps in a number field.
+/// A PJ.11 timeline-conflict row marks the cell amber too (F6b: only the
+/// broken field is marked - for a timeline violation the odometer is the field
+/// that broke the order).
 struct ImportOdometerCell: View {
     let fill: FillUp
     let sourceRow: Int
@@ -46,15 +98,17 @@ struct ImportOdometerCell: View {
     let isEditing: Bool
     @Binding var text: String
     var onSubmit: () -> Void
+    var marked = false
 
     var body: some View {
         let missing = fill.odometer == nil
+        let amber = missing || marked
         VStack(alignment: .leading, spacing: 2) {
             Text("Odometer")
                 .font(.system(size: 9, weight: .semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
-                .foregroundStyle(missing ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                .foregroundStyle(amber ? Theme.Palette.warn : Theme.Palette.inkSoft)
             if isEditing {
                 TextField("Odometer", text: $text)
                     .keyboardType(.numberPad)
@@ -81,7 +135,7 @@ struct ImportOdometerCell: View {
         .clipShape(RoundedRectangle(cornerRadius: 9))
         .overlay(
             RoundedRectangle(cornerRadius: 9)
-                .stroke(missing ? Theme.Palette.warn.opacity(0.7) : Color.clear, lineWidth: 1)
+                .stroke(amber ? Theme.Palette.warn.opacity(0.7) : Color.clear, lineWidth: 1)
         )
     }
 }

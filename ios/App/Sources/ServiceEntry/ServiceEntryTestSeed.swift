@@ -44,6 +44,20 @@ enum ServiceEntryPrefillSeed {
                 ],
                 odometer: OdometerFormat.grouped(118_930))
         }
+        if arguments.contains("-seedServiceEntryConflict") {
+            // PJ.11: the F9a state on the service save. Paired with
+            // `-seedVehicleForUITests` (a prior fill at 119 486), this pre-fills
+            // the odometer with the typo (119 486 -> 11 948) so the amber
+            // conflict warning renders - a service odometer below its neighbour
+            // must flag on the screen, not just in a test.
+            return ServiceEntryPrefill(
+                vendor: "Bosch Service",
+                items: [
+                    ServiceEntryItemDraft(title: "Oil service incl. filter",
+                                          category: .oil, cost: "89.00")
+                ],
+                odometer: OdometerFormat.grouped(11_948))
+        }
         if arguments.contains("-seedReminderCompletionPrefill") {
             return Self.reminderCompletionPrefill()
         }

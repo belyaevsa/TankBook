@@ -119,4 +119,52 @@ final class ServiceEntryUITests: XCTestCase {
         XCTAssertTrue(save.exists)
         XCTAssertTrue(save.isEnabled, "a lump sum with the bill attached is a perfectly good record")
     }
+
+    // MARK: - PJ.11 F9a on every write
+
+    /// F9a is checked on the service save too (docs/JOURNEYS.md F9a): a
+    /// service odometer typed below the timeline flags amber with a Fix
+    /// affordance, and the save STILL succeeds (hard rule 13 - an implausible
+    /// value is a warning, never a refusal; the flag lands with the record).
+    func testOdometerConflictWarnsAmberWithFixAndStillSaves() {
+        let app = launch()  // -seedVehicleForUITests: a prior fill at 119 486 km
+        let add = app.buttons["serviceEntryAddItemButton"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+        let title = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.tap()
+        title.typeText("Oil service")
+
+        // Replace the pre-filled "119 486" with the F9a typo (119 486 -> 11 948).
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        odometer.tap()
+        let digits = (odometer.value as? String) ?? "119486"
+        let deletes = String(repeating: XCUIKeyboardKey.delete.rawValue, count: digits.count)
+        odometer.typeText(deletes)
+        odometer.typeText("11948")
+
+        let warning = app.staticTexts["serviceEntryOdometerConflictWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 5),
+                      "the amber F9a warning must name the conflict on the odometer card")
+        let fix = app.buttons["serviceEntryOdometerConflictFixButton"]
+        XCTAssertTrue(fix.exists, "the Fix affordance is the next step (hard rule 7)")
+        fix.tap()
+
+        let save = app.buttons["serviceEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled,
+                      "a flagged record is saveable - the app suggests, the user decides (hard rule 13)")
+        save.tap()
+
+        // The save succeeds: the sheet dismisses back to Home and the service
+        // appears in the log, flagged - the badge proves the save STAMPED the
+        // conflict (a save that wrote `.none` would render no badge at all).
+        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 10),
+                      "save still succeeds - the sheet dismisses to Home")
+        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 5),
+                      "the saved service renders in the log")
+        XCTAssertTrue(app.buttons["conflictBadgeButton"].firstMatch.waitForExistence(timeout: 5),
+                      "the saved service carries its amber conflict badge - the save stamped it")
+    }
 }

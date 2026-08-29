@@ -226,6 +226,13 @@ capture P3.2-parts-shelf-ru    ru -seedPartsShelf -presentScreen partsShelf
 capture P3.2-service-link      en -seedServiceEntryLink -presentScreen serviceEntry
 capture P3.2-service-link-ru   ru -seedServiceEntryLink -presentScreen serviceEntry
 
+# PJ.11: the F9a conflict on the service save - a service odometer below its
+# date-neighbour (119 486 -> 11 948) shows the amber warning and Fix, and the
+# save is never blocked (hard rule 13). The seed pairs the prior-fill vehicle
+# with a conflicting odometer pre-fill.
+capture PJ.11-service-flagged    en -seedVehicleForUITests -seedServiceEntryConflict -presentScreen serviceEntry
+capture PJ.11-service-flagged-ru ru -seedVehicleForUITests -seedServiceEntryConflict -presentScreen serviceEntry
+
 # P3.4: the Reminders list (attention + scheduled groups), the empty state,
 # and the reminder form. RU is where the trailing chip ("12 дней") and the
 # section labels ("ТРЕБУЕТ ВНИМАНИЯ") are tightest.
@@ -369,6 +376,12 @@ capture PJ.10-import-date-question     en -presentScreen importWizard -importStu
 capture PJ.10-import-date-question-ru  ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
 capture PJ.9-import-nonfuel-row        en -presentScreen importWizard -importStubFormats one -seedImportService
 capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStubFormats one -seedImportService
+
+# PJ.11: the import review list showing a flagged-order row - the real MFM-style
+# `9` odometer badged "Breaks the timeline" with its Fix and "Import as-is",
+# before anything is written (F6a).
+capture PJ.11-import-flagged-row    en -presentScreen importWizard -seedImportTimeline
+capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTimeline
 
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1

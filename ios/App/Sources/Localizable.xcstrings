@@ -11267,6 +11267,23 @@
           }
         }
       }
+    },
+    "Breaks the timeline": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Breaks the timeline"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нарушает хронологию"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

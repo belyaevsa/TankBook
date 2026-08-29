@@ -77,6 +77,10 @@ final class ImportFlowModel {
     private(set) var skippedSourceRows: Set<Int> = []
     /// Odometer values the user typed in the review list, keyed by `sourceRow`.
     private(set) var odometerEdits: [Int: Int] = [:]
+    /// Totals the user fixed in the review list, keyed by `sourceRow` (PJ.11).
+    /// Applied to the candidates before the partition, so a corrected total
+    /// re-derives exactly like an untouched row (F6a: the number approved lands).
+    private(set) var totalEdits: [Int: Decimal] = [:]
 
     /// The `dateFormat` question's answer - the chosen option ("M/D/YYYY" or
     /// "D/M/YYYY"), nil until the user answers. Asked ONCE per file, at the
@@ -173,6 +177,41 @@ final class ImportFlowModel {
         My Fuel Manager - Costs
         Date;Category;Odometer;Total price;Currency;Note;Vehicle name
         7/20/2026;Oil;119486;125.50;USD;Oil change;"Volvo"
+        """.utf8)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
+    /// Installs a stub parse whose fills break the odometer order (PJ.11): row
+    /// 2's `9` mirrors the real MFM defect (`Spike/ImportFixtures/mfm/README.md`)
+    /// and must appear in the review list badged "Breaks the timeline".
+    func installSeededTimelineParse() {
+        func fill(_ row: Int, _ date: Date, _ odo: Int, _ note: String) -> ImportCandidate {
+            ImportCandidate(
+                entityType: "fillUp", date: date, odometer: odo, volumeL: 55,
+                unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
+                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100, note: note,
+                vehicleName: "Volvo",
+                provenance: ImportProvenance(tag: "import", source: "mfm"),
+                sourceRow: row)
+        }
+        let fillCandidates = [
+            fill(1, Date(timeIntervalSince1970: 1_787_529_600), 121_727, "Neste"),
+            fill(2, Date(timeIntervalSince1970: 1_786_320_000), 9, "Shell"),
+            fill(3, Date(timeIntervalSince1970: 1_784_332_800), 120_559, "Circle K")
+        ]
+        parse = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000304", format: "mfm",
+            scope: "vehicle", candidates: fillCandidates,
+            unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        pickedFileName = "MyFuelManager_2026-08.csv"
+        uploadedFileData = Data("""
+        My Fuel Manager - Fuel
+        Date;Odometer;Fillup volume;Total price;Currency;Note;Vehicle name
+        8/24/2026;121727;55;101.75;USD;Neste;"Volvo"
+        8/10/2026;9;55;101.75;USD;Shell;"Volvo"
+        7/18/2026;120559;55;101.75;USD;Circle K;"Volvo"
         """.utf8)
         ensureTargetCar(preferredVehicleID: nil)
         rebuildClassification()
@@ -369,45 +408,28 @@ final class ImportFlowModel {
     }
 
     /// "Add odometer" - sets the review row's fill odometer from a typed value.
-    /// A value that resolves the row promotes it to the ready set; clearing it
-    /// keeps the gap a gap (never `0`).
+    /// The edit is applied at the CANDIDATE level and the whole classification
+    /// rebuilds (PJ.11): a corrected odometer can resolve a `.timelineConflict`
+    /// row exactly as it resolves a `.missingOdometer` one, and a value that
+    /// resolves the row promotes it to the ready set; clearing it keeps the gap
+    /// a gap (never `0`).
     func setOdometer(_ value: Int?, for sourceRow: Int) {
-        guard let index = reviewRows.firstIndex(where: { $0.sourceRow == sourceRow }) else { return }
-        reviewRows[index].fill?.odometer = value
         if let value {
             odometerEdits[sourceRow] = value
             skippedSourceRows.remove(sourceRow)
-            promoteIfResolved(sourceRow: sourceRow)
         } else {
-            reviewRows[index].fill?.odometer = nil
             odometerEdits[sourceRow] = nil
         }
+        rebuildClassification()
     }
 
-    /// "Fix" - corrects the total on a cross-check-mismatch row. If the new
-    /// total reconciles the arithmetic the row becomes ready.
+    /// "Fix" - corrects the total on a cross-check-mismatch row. Recorded and
+    /// rebuilt like an odometer edit, so the corrected arithmetic is what the
+    /// conversion re-derives (and the cross-check recomputes against it).
     func setTotal(_ amount: Decimal, for sourceRow: Int) {
-        guard let index = reviewRows.firstIndex(where: { $0.sourceRow == sourceRow }),
-              var fill = reviewRows[index].fill,
-              let money = fill.money else { return }
-        fill.money = money.replacingAmount(amount)
-        fill.crossCheck = TimelineValidator.crossCheck(volumeL: fill.volumeL,
-                                                       unitPrice: fill.unitPrice,
-                                                       amount: amount)
-        reviewRows[index].fill = fill
+        totalEdits[sourceRow] = amount
         skippedSourceRows.remove(sourceRow)
-        promoteIfResolved(sourceRow: sourceRow)
-    }
-
-    /// Moves a review row to the ready set once its issue is resolved (the same
-    /// predicate the classifier used - the row stays honest, never silently
-    /// dropped).
-    private func promoteIfResolved(sourceRow: Int) {
-        guard let index = reviewRows.firstIndex(where: { $0.sourceRow == sourceRow }),
-              let fill = reviewRows[index].fill,
-              ImportReviewClassifier.stillNeedsLook(fill) == nil else { return }
-        readyFills.append(fill)
-        reviewRows.remove(at: index)
+        rebuildClassification()
     }
 
     // MARK: - Derived
@@ -505,6 +527,7 @@ final class ImportFlowModel {
         readyFills = []
         skippedSourceRows = []
         odometerEdits = [:]
+        totalEdits = [:]
         dateFormatAnswer = nil
         step = .source
     }
@@ -546,41 +569,49 @@ final class ImportFlowModel {
     // MARK: - Classification
 
     /// Splits the parse into ready fills and review rows against the current
-    /// target car, keeping the user's skip/odometer decisions by source row.
-    /// Reads the candidates through the date-format answer, so answering the
-    /// question re-dates every derived figure and review row (PJ.10).
+    /// target car, keeping the user's skip/odometer/total decisions by source
+    /// row. Reads the candidates through the date-format answer (PJ.10) AND the
+    /// user's review-list edits, so answering the question or fixing a value
+    /// re-derives every figure and review row. PJ.11: the timeline is validated
+    /// against the target car's existing entries here, so a `.timelineConflict`
+    /// row appears in the review list before anything is written.
     private func rebuildClassification() {
         guard let parse, let targetCar else { return }
         let vehicle = targetCar.vehicleValue
         let lines = ImportRawLines.dataLines(from: uploadedFileData)
+        var candidates = effectiveCandidates
+        // Fold the user's review-list edits in at the CANDIDATE level: the
+        // partition then applies the SAME conversion and timeline validation to
+        // an edited row as to an untouched one, so a fixed odometer can resolve
+        // a `.timelineConflict` row and a fixed total a `.crossCheckMismatch`
+        // one - each in the same pass.
+        if !odometerEdits.isEmpty || !totalEdits.isEmpty {
+            candidates = candidates.map { candidate in
+                var edited = candidate
+                if let odometer = odometerEdits[candidate.sourceRow] {
+                    edited = edited.applyingOdometer(odometer)
+                }
+                if let total = totalEdits[candidate.sourceRow] { edited = edited.applyingTotal(total) }
+                return edited
+            }
+        }
         let (ready, review) = ImportReviewClassifier.partition(
-            candidates: effectiveCandidates,
+            candidates: candidates,
             unparsed: parse.unparsed,
             rawLinesByRow: lines,
             vehicle: vehicle,
-            source: source)
+            source: source,
+            existingEntries: existingEntries)
 
         self.readyFills = ready
         self.reviewRows = review
-        // The user's decisions survive a target-car change: they are keyed by
-        // sourceRow, which is stable across rebuilds.
-        var resolvedRows: [Int] = []
-        for index in reviewRows.indices {
-            let row = reviewRows[index]
-            if !skippedSourceRows.contains(row.sourceRow), row.fill != nil {
-                if let edited = odometerEdits[row.sourceRow] {
-                    reviewRows[index].fill?.odometer = edited
-                }
-                if let fill = reviewRows[index].fill,
-                   ImportReviewClassifier.stillNeedsLook(fill) == nil {
-                    resolvedRows.append(row.sourceRow)
-                }
-            }
-        }
-        // Promote rows the user's edits resolved (an odometer typed earlier
-        // must not come back as "missing" after a car change).
-        for sourceRow in resolvedRows {
-            promoteIfResolved(sourceRow: sourceRow)
-        }
+    }
+
+    /// The target car's existing entries, against which the incoming fills'
+    /// timeline is validated (PJ.11): a merge must flag an odometer that breaks
+    /// the CAR's order, not just the file's own. A new car has none.
+    private var existingEntries: [any Entry] {
+        guard case .existing(let vehicle) = targetCar else { return [] }
+        return (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
     }
 }

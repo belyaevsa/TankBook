@@ -149,6 +149,38 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
     public var unitPriceDecimal: Decimal? {
         unitPrice.flatMap { Decimal(string: $0, locale: Locale(identifier: "en_US_POSIX")) }
     }
+
+    /// A copy with `odometer` replaced by the user's review-list edit (PJ.11).
+    /// The candidate is the single source the partition reads, so an edit
+    /// applied here flows through the SAME conversion and timeline validation
+    /// as an untouched row - a fixed odometer can resolve a `.timelineConflict`
+    /// row exactly as it resolves a `.missingOdometer` one.
+    public func applyingOdometer(_ value: Int?) -> ImportCandidate {
+        ImportCandidate(entityType: entityType, date: date, odometer: value,
+                        volumeL: volumeL, unitPrice: unitPrice, money: money,
+                        fuelKind: fuelKind, isFull: isFull,
+                        tankLevelAfterPct: tankLevelAfterPct, note: note,
+                        vehicleName: vehicleName, provenance: provenance,
+                        sourceRow: sourceRow, items: items, category: category,
+                        title: title)
+    }
+
+    /// A copy with the total replaced by the user's review-list edit (PJ.11).
+    /// The cross-check is recomputed at conversion from the edited amount, so
+    /// a corrected total resolves a `.crossCheckMismatch` row exactly as the
+    /// partition's own check does - the number the user approves is the number
+    /// that lands (F6a).
+    public func applyingTotal(_ amount: Decimal) -> ImportCandidate {
+        let text = (amount as NSDecimalNumber).stringValue
+        let edited = money.map { ImportMoney(amount: text, currency: $0.currency) }
+        return ImportCandidate(entityType: entityType, date: date, odometer: odometer,
+                               volumeL: volumeL, unitPrice: unitPrice, money: edited,
+                               fuelKind: fuelKind, isFull: isFull,
+                               tankLevelAfterPct: tankLevelAfterPct, note: note,
+                               vehicleName: vehicleName, provenance: provenance,
+                               sourceRow: sourceRow, items: items, category: category,
+                               title: title)
+    }
 }
 
 /// A row the server could not map (docs/API.md): `row` is the same 1-based

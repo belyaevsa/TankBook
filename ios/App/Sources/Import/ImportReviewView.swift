@@ -83,6 +83,9 @@ private struct ImportReviewRowView: View {
             if case .crossCheckMismatch = row.kind {
                 detailLine
             }
+            if case .timelineConflict = row.kind {
+                ImportTimelineDetail(row: row)
+            }
             actions
             if showingRawLine, row.rawLine != nil {
                 rawLineView
@@ -125,6 +128,7 @@ private struct ImportReviewRowView: View {
             let symbol = AddVehicleSupport.currencySymbol(for: currency ?? .eur)
             let value = ImportFormatting.decimal(abs(offBy), fractionDigits: 2)
             return L10n.offBy(amount: symbol.isEmpty ? value : "\(value) \(symbol)")
+        case .timelineConflict: return L10n.localize("Breaks the timeline")
         case .noFuel: return nonFuelBadgeText
         case .unmappable, .unparsed: return L10n.localize("Couldn't read this row")
         }
@@ -142,7 +146,7 @@ private struct ImportReviewRowView: View {
 
     private var badgeColor: Color {
         switch row.kind {
-        case .missingOdometer, .crossCheckMismatch, .unmappable, .unparsed:
+        case .missingOdometer, .crossCheckMismatch, .timelineConflict, .unmappable, .unparsed:
             return Theme.Palette.warn
         case .noFuel:
             return Theme.Palette.inkSoft
@@ -263,7 +267,8 @@ private struct ImportReviewRowView: View {
             ImportOdometerCell(fill: fill, sourceRow: row.sourceRow,
                                distanceUnit: model.distanceUnit,
                                isEditing: showingOdometerEditor,
-                               text: $odometerText, onSubmit: commitOdometer)
+                               text: $odometerText, onSubmit: commitOdometer,
+                               marked: odometerMarked)
             if row.kind == .noFuel, let note = fill.note, !note.isEmpty {
                 ImportFieldCell(label: "Note", value: note, marked: false)
             }
@@ -277,6 +282,13 @@ private struct ImportReviewRowView: View {
 
     private var priceMarked: Bool {
         if case .crossCheckMismatch = row.kind { return true }
+        return false
+    }
+
+    /// The PJ.11 timeline row marks the ODOMETER (the field that broke the
+    /// order) - F6b: only the broken field is marked.
+    private var odometerMarked: Bool {
+        if case .timelineConflict = row.kind { return true }
         return false
     }
 
@@ -331,7 +343,7 @@ private struct ImportReviewRowView: View {
         ViewThatFits(in: .horizontal) {
             HStack(spacing: 16) {
                 primaryAction
-                if case .crossCheckMismatch = row.kind {
+                if showsImportAsIs {
                     importAsIs
                 }
                 leaveOut
@@ -339,12 +351,21 @@ private struct ImportReviewRowView: View {
             .fixedSize(horizontal: true, vertical: false)
             VStack(alignment: .leading, spacing: 8) {
                 primaryAction
-                if case .crossCheckMismatch = row.kind {
+                if showsImportAsIs {
                     importAsIs
                 }
                 leaveOut
             }
         }
+    }
+
+    /// "Import as-is" applies where the row is committable as-is - a
+    /// cross-check mismatch or a PJ.11 timeline conflict the user decides to
+    /// keep (hard rule 13). A missing-odometer row has no "as-is".
+    private var showsImportAsIs: Bool {
+        if case .crossCheckMismatch = row.kind { return true }
+        if case .timelineConflict = row.kind { return true }
+        return false
     }
 
     private var importAsIs: some View {
@@ -364,14 +385,14 @@ private struct ImportReviewRowView: View {
     @ViewBuilder
     private var primaryAction: some View {
         switch row.kind {
-        case .missingOdometer:
+        case .missingOdometer, .timelineConflict:
             if showingOdometerEditor {
                 Text("Save")
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Palette.action)
                     .onTapGesture { commitOdometer() }
             } else {
-                Text("Add odometer")
+                Text(primaryActionLabel)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Palette.action)
                     .onTapGesture {
@@ -404,6 +425,13 @@ private struct ImportReviewRowView: View {
         case .unmappable, .unparsed:
             EmptyView()
         }
+    }
+
+    /// A missing odometer says "Add odometer"; a timeline conflict says "Fix" -
+    /// both open the odometer editor, the one field the row needs a person on.
+    private var primaryActionLabel: String {
+        if case .timelineConflict = row.kind { return L10n.localize("Fix") }
+        return L10n.localize("Add odometer")
     }
 
     /// "Import as service" / "Import as expense" - the `.noFuel` row's deciding
