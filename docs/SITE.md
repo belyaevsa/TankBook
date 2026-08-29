@@ -32,10 +32,11 @@ So:
 | "Scans any receipt" / "AI reads your receipt perfectly" | "A scan fills in what it can read. You correct the rest, and it remembers" |
 | "Automatic" as the headline verb | "Fast" - the honest claim, and the one the design actually delivers |
 
-`VISION.md` §2 ("Camera is the primary input; the form is the fallback") **predates hard rule 15 and
-is stale** - fix it there rather than copying it here. This table exists because a landing page is the
-one artefact where an over-promise reaches a customer directly, and because every competitor's store
-page in `COMPETITORS.md` over-promises exactly here.
+`VISION.md` §2 said "Camera is the primary input; the form is the fallback" and offered a "five seconds
+and zero typing" tagline - both predating hard rule 15. **Fixed in `VISION.md` on 2026-08-29 (W6)**: §2
+now states the two doors as peer paths and cites the corpus numbers that forced the rule. This table
+exists because a landing page is the one artefact where an over-promise reaches a customer directly,
+and because every competitor's store page in `COMPETITORS.md` over-promises exactly here.
 
 ### What we may claim, because it is true and nearly unowned
 
