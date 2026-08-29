@@ -57,6 +57,9 @@ final class ImportFlowModel {
     private(set) var parse: ImportParseResponse?
     private(set) var isParsing = false
     private(set) var parseFailure: ParseFailure?
+    /// The in-flight parse, so the user's Cancel can stop the upload (a wait the
+    /// user cannot escape is the bug hard rule 7 exists to remove - PR.6).
+    private var parseTask: Task<Void, Never>?
 
     private(set) var liveVehicles: [Vehicle] = []
     private(set) var targetCar: TargetCar?
@@ -244,8 +247,10 @@ final class ImportFlowModel {
 
     /// Uploads the picked file to `POST /import/parse` and classifies the
     /// response into ready fills and review rows. The server commits nothing;
-    /// neither does this.
-    func parse(fileURL: URL, preferredVehicleID: UUID? = nil) async {
+    /// neither does this. The parse runs in a tracked task so `cancelParse`
+    /// can stop it (PR.6 - a half-connected radio must not freeze the wizard
+    /// for the full upload budget with no escape).
+    func parse(fileURL: URL, preferredVehicleID: UUID? = nil) {
         guard let format = pickedFormat else { return }
         // P6.18b: withheld under `.required` - the server has stopped
         // supporting this build.
@@ -256,24 +261,23 @@ final class ImportFlowModel {
         }
         isParsing = true
         parseFailure = nil
-        defer { isParsing = false }
-        do {
-            let result = try await client.parseFile(data: data,
-                                                    fileName: fileURL.lastPathComponent,
-                                                    format: format)
-            pickedFileName = fileURL.lastPathComponent
-            uploadedFileData = data
-            parse = result
-            ensureTargetCar(preferredVehicleID: preferredVehicleID)
-            rebuildClassification()
-            step = .preview
-        } catch let error as ImportClientError {
-            parseFailure = Self.failure(for: error, format: format)
-            step = .source
-        } catch {
-            parseFailure = .unknown
-            step = .source
+        parseTask?.cancel()
+        parseTask = Task { [weak self] in
+            await self?.performParse(data: data,
+                                     fileName: fileURL.lastPathComponent,
+                                     format: format,
+                                     preferredVehicleID: preferredVehicleID)
         }
+    }
+
+    /// Stops the in-flight parse and returns the wizard to the source step. The
+    /// garage is untouched: nothing is written until `confirmImport`, so cancel
+    /// has nothing to unwind.
+    func cancelParse() {
+        parseTask?.cancel()
+        parseTask = nil
+        isParsing = false
+        parseFailure = nil
     }
 
     /// The import lands in the selected car when one exists (a merge, whose
@@ -613,5 +617,40 @@ final class ImportFlowModel {
     private var existingEntries: [any Entry] {
         guard case .existing(let vehicle) = targetCar else { return [] }
         return (try? repository.liveEntries(forVehicle: vehicle.id)) ?? []
+    }
+}
+
+// MARK: - Parse (PR.6)
+
+extension ImportFlowModel {
+    /// The in-flight parse's body: reads the server response and advances the
+    /// wizard. Cancellation-aware - a user Cancel leaves `parseFailure` nil and
+    /// the wizard on the source step, with nothing written (F6a).
+    private func performParse(data: Data, fileName: String, format: ImportFormat,
+                              preferredVehicleID: UUID?) async {
+        defer {
+            isParsing = false
+            parseTask = nil
+        }
+        do {
+            let result = try await client.parseFile(data: data,
+                                                    fileName: fileName,
+                                                    format: format)
+            guard !Task.isCancelled else { return }
+            pickedFileName = fileName
+            uploadedFileData = data
+            parse = result
+            ensureTargetCar(preferredVehicleID: preferredVehicleID)
+            rebuildClassification()
+            step = .preview
+        } catch let error as ImportClientError {
+            guard !Task.isCancelled else { return }
+            parseFailure = Self.failure(for: error, format: format)
+            step = .source
+        } catch {
+            guard !Task.isCancelled else { return }
+            parseFailure = .unknown
+            step = .source
+        }
     }
 }

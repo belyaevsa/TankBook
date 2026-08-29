@@ -52,7 +52,7 @@ struct ImportWizardView: View {
             guard case .success(let urls) = result, let url = urls.first,
                   let model else { return }
             let preferred = carSelection.selectedVehicle((try? model.repository.liveVehicles()) ?? [])?.id
-            Task { await model.parse(fileURL: url, preferredVehicleID: preferred) }
+            model.parse(fileURL: url, preferredVehicleID: preferred)
         }
         .sheet(isPresented: $showingCarPicker) {
             if let model { ImportTargetCarSheet(model: model) }

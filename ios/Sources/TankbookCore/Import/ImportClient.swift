@@ -72,7 +72,8 @@ public struct ImportClient: Sendable {
         let boundary = "tankbook-import-\(UUID().uuidString)"
         let body = Self.multipartBody(data: data, fileName: fileName,
                                       formatID: format.id, boundary: boundary)
-        var request = TankbookHTTPRequest(url: url, method: "POST", body: body)
+        var request = TankbookHTTPRequest(url: url, method: "POST", body: body,
+                                          timeoutInterval: TransportTimeouts.upload)
         request.headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
         let response = try await send(request)
         guard (200...299).contains(response.status) else {

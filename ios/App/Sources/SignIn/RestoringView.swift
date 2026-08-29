@@ -169,9 +169,26 @@ struct RestoringView: View {
                 }
             }
             .frame(height: 6)
-            Text("Continues in the background – no need to wait.")
-                .font(.caption2)
-                .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
+            HStack(spacing: 8) {
+                Text("Continues in the background – no need to wait.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
+                Spacer(minLength: 0)
+                if flow.restoreProgress.isActive {
+                    // PR.6: a wait the user cannot escape is the bug this row
+                    // exists to remove (hard rule 7) - Cancel is the next step
+                    // on the progress surface itself.
+                    Button {
+                        flow.cancelRestore()
+                    } label: {
+                        Text("Cancel")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.action)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("restoreCancelButton")
+                }
+            }
         }
         .padding(18)
         .formCard()

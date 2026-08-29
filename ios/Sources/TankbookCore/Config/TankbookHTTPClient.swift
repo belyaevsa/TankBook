@@ -25,12 +25,19 @@ public struct TankbookHTTPRequest: Sendable, Equatable {
     public var method: String
     public var headers: [String: String]
     public var body: Data?
+    /// Per-request read timeout in seconds. nil inherits the session default
+    /// (`TransportTimeouts.readJSON`). The long paths (blob PUT, import multipart)
+    /// set `TransportTimeouts.upload` explicitly rather than every call inheriting
+    /// the longest budget.
+    public var timeoutInterval: TimeInterval?
 
-    public init(url: URL, method: String = "GET", headers: [String: String] = [:], body: Data? = nil) {
+    public init(url: URL, method: String = "GET", headers: [String: String] = [:],
+                body: Data? = nil, timeoutInterval: TimeInterval? = nil) {
         self.url = url
         self.method = method
         self.headers = headers
         self.body = body
+        self.timeoutInterval = timeoutInterval
     }
 }
 

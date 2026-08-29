@@ -35,6 +35,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Pull interrupted (network drop mid-restore) | Progress pauses: "Connection dropped – restore continues when you're back online." Entries already pulled remain usable | Open my garage (partial, keeps filling) · retry now |
 | Server 5xx / down | "Sync service unreachable – your data is safe on the server. You can import an export file, or it will all arrive when the service is back." (F7) | Import a file · wait (auto-retry) · sign out |
 | Wrong account realized mid-restore | Always-visible "Not my account · sign out" | Sign out → Welcome |
+| Photo download stalls / user wants out (PR.6) | The "Receipt photos" progress carries a **Cancel** while downloading | Cancel (stops the download and signs out; the app's local data and the already-pulled entries stay) · Open my garage (photos keep filling in the background) |
 
 ### Add car
 | Condition | Shows | Next step |
@@ -171,6 +172,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Nothing parses | "This looks like a PDF report, not a data export – here's where the CSV lives in Drivvo." | Guide per source app · send us the file (consent) |
 | Ambiguous units/currency | One question, once per file: "MPG or L/100km?" (ambiguous **dates** have their own row below, PJ.10) | Answer; import proceeds |
 | **Choosing the source** (not an error - the first step) | "Which app is this file from?" with the **server-driven** supported list (`GET /import/formats`). The user declares it; the app never sniffs, because two vendors' CSVs look alike and a confident mis-mapping is worse than a question (hard rule 13) | Pick the app · "My app isn't listed" |
+| **Parse in flight** (PR.6, not an error - the upload) | The source screen's button shows a spinner, and a **Cancel** affordance sits below it. The upload's budget is bounded (docs/PRACTICES.md U6), so a half-connected radio can never freeze the wizard for a minute | Cancel (stops the upload; nothing was written - the garage is untouched). A stalled upload times out into the **Offline** row, never a generic failure |
 | **Source app not listed** | "We don't read that one yet." Names what *is* supported rather than dead-ending, and offers to take the file so the format can be added - the same ask as the capture notice (P6.10) | Send us the file (explicit consent) · pick a different app · cancel |
 | **File does not match the declared source** (`422`) | Specific, never generic: "This doesn't look like a My Fuel Manager export." Offers the picker again with the likely alternatives, because picking the wrong app is the expected mistake, not a rare one | Choose a different app · send us the file · cancel |
 | **Preview before commit** (not an error - the gate) | "Here's what we read: 220 fill-ups · Mar 2023 - Aug 2026 · 118 930 km · EUR · **8.2 L/100km**". Figures the user can check from memory, F7's "numbers, not a checkmark" (`JOURNEYS.md` F6a). Names the target car, and the S2 duplicate count when merging | Import · adjust currency/units/car · fix flagged rows · cancel |

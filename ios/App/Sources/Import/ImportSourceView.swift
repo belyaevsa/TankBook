@@ -277,6 +277,22 @@ struct ImportSourceView: View {
             .accessibilityIdentifier("importChooseFileButton")
             .padding(.bottom, 12)
             .padding(.top, 6)
+            if model.isParsing {
+                // PR.6: the parse is the one part of import that needs the
+                // connection (hard rule 9's exception), and it can sit on a
+                // half-connected radio for the upload budget. The user must be
+                // able to stop it (hard rule 7 - the next step exists).
+                Button {
+                    model.cancelParse()
+                } label: {
+                    Text("Cancel")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("importCancelButton")
+                .padding(.bottom, 12)
+            }
         }
     }
 

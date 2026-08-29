@@ -103,6 +103,11 @@ final class SignInFlow {
     private(set) var errorMessage: String?
     let restoreProgress = RestoreProgress()
 
+    /// The in-flight restore (pull + photo download), so the Restoring screen's
+    /// Cancel can stop it (PR.6 - a wait the user cannot escape is the bug this
+    /// exists to remove).
+    private var restoreTask: Task<Void, Never>?
+
     /// Whether the user came through "Already use Tankbook?".
     let arrivedViaRestore: Bool
 
@@ -159,6 +164,11 @@ final class SignInFlow {
             phase = .restoreUnreachable
         } else if arguments.contains("-signInRestore") {
             phase = .restoring(SignInTestSeed.restoreSnapshot())
+            // PR.6: put the photo-download progress on screen so the Cancel
+            // affordance (and its screenshot) renders - the artboard's "38%".
+            if arguments.contains("-seedRestoreProgress") {
+                restoreProgress.report(completed: 38, total: 100)
+            }
         }
         #endif
     }
@@ -193,7 +203,18 @@ final class SignInFlow {
     /// state). Re-runs the same pull-from-zero; the cursor makes it resume.
     func retryRestore() {
         guard let accountId = signedInAccountId else { return }
-        Task { await runRestore(accountId: accountId) }
+        runRestore(accountId: accountId)
+    }
+
+    /// Abandons a restore in progress: cancels the in-flight pull, signs out
+    /// locally and closes the sheet. The app's local data is untouched (hard
+    /// rule 1). This is the Restoring screen's escape hatch - hard rule 7, the
+    /// next step exists on the progress surface itself.
+    func cancelRestore() {
+        restoreTask?.cancel()
+        restoreTask = nil
+        signOutLocally()
+        onFinished()
     }
 
     /// The user accepts the empty account ("Start fresh") - the account is
@@ -231,7 +252,7 @@ final class SignInFlow {
                 return
             }
 
-            await runRestore(accountId: session.accountId)
+            runRestore(accountId: session.accountId)
         } catch {
             errorMessage = L10n.localize("Couldn't sign in. Check your connection and try again, or keep using the app without an account.")
             phase = .choosing
@@ -239,7 +260,15 @@ final class SignInFlow {
     }
 
     /// Runs the restore (pull from 0) and routes through the honest F7 states.
-    private func runRestore(accountId: String) async {
+    /// Runs in a tracked task so the Restoring screen's Cancel can stop it.
+    private func runRestore(accountId: String) {
+        restoreTask?.cancel()
+        restoreTask = Task { [weak self] in
+            await self?.performRestore(accountId: accountId)
+        }
+    }
+
+    private func performRestore(accountId: String) async {
         let outcome = await restoreProvider.restore(accountId: accountId)
         switch outcome {
         case .restored(let stats):

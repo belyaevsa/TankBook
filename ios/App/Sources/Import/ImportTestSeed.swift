@@ -58,7 +58,18 @@ enum ImportTestSeed {
             let url = FileManager.default.temporaryDirectory
                 .appendingPathComponent("seed-422-\(UUID().uuidString).csv")
             try? Data("Date;Volume\n1/1/2024;42.1".utf8).write(to: url)
-            Task { await model.parse(fileURL: url) }
+            model.parse(fileURL: url)
+        } else if arguments.contains("-seedImportParsing") {
+            // PR.6: drive the real parse path against a slow stub transport so
+            // the Cancel affordance is on screen while `isParsing` is true - the
+            // screenshot/UI-test state for "Cancel is visible while parsing".
+            model.selectFormat(model.formats.first ?? ImportFormat(id: "mfm", displayName: "My Fuel Manager",
+                                                                   fileKinds: ["csv"], helpUrl: nil,
+                                                                   addedInPackVersion: 1))
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("seed-parsing-\(UUID().uuidString).csv")
+            try? Data("Date;Volume\n1/1/2024;42.1".utf8).write(to: url)
+            model.parse(fileURL: url)
         }
     }
 }

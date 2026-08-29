@@ -32,7 +32,7 @@ public sealed class CisRateFeed : IRateFeed
             return [];
         }
 
-        var client = _httpClientFactory.CreateClient();
+        var client = _httpClientFactory.CreateClient("rates");
         using var response = await client.GetAsync(DailyUrl, cancellationToken);
         response.EnsureSuccessStatusCode();
 

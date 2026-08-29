@@ -390,6 +390,16 @@ capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStu
 capture PJ.11-import-flagged-row    en -presentScreen importWizard -seedImportTimeline
 capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTimeline
 
+# PR.6: the transport-timeout cancels (docs/PRACTICES.md U6). The import parse's
+# Cancel - the source screen mid-upload, driven by the slow stub so `isParsing`
+# is still true at the 6 s capture - and the restore progress's Cancel - the
+# Restoring screen's photo download under `-seedRestoreProgress`. RU is the
+# overflow check on both affordances.
+capture PR.6-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
+capture PR.6-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
+capture PR.6-restore-cancel    en -presentScreen signIn -signInRestore -seedRestoreProgress
+capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRestoreProgress
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

@@ -125,12 +125,14 @@ struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
     private let formatsName: String?
     private let parseName: String?
     private let parse422: Bool
+    private let parseSlow: Bool
 
     init?(launchArguments: [String]) {
         formatsName = Self.value(for: "-importStubFormats", in: launchArguments)
         parseName = Self.value(for: "-importStubParse", in: launchArguments)
         parse422 = launchArguments.contains("-importStubParse422")
-        if formatsName == nil && parseName == nil && !parse422 { return nil }
+        parseSlow = launchArguments.contains("-importStubParseSlow")
+        if formatsName == nil && parseName == nil && !parse422 && !parseSlow { return nil }
     }
 
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
@@ -144,6 +146,13 @@ struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
         }
         if path.hasPrefix("/import/") {
             if parse422 { return TankbookHTTPResponse(status: 422) }
+            // PR.6: hold the parse in flight so the Cancel affordance (and its
+            // UI-test/screenshot state) is visible. `Task.sleep` is cancellation-
+            // aware, so the user's Cancel propagates exactly as a real socket
+            // would.
+            if parseSlow {
+                try await Task.sleep(for: .seconds(30))
+            }
             if let parseName {
                 return Self.resource("import-parse-\(parseName)")
             }

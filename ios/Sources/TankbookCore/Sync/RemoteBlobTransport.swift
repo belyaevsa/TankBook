@@ -47,7 +47,10 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
     }
 
     public func put(_ data: Data, to url: URL, contentType: String) async throws {
-        var request = TankbookHTTPRequest(url: url, method: "PUT", body: data)
+        // The upload carries megabytes over a mobile uplink, so it asks for the
+        // long budget explicitly rather than inheriting the JSON read timeout.
+        var request = TankbookHTTPRequest(url: url, method: "PUT", body: data,
+                                          timeoutInterval: TransportTimeouts.upload)
         request.headers["Content-Type"] = contentType
         let response: TankbookHTTPResponse
         do {

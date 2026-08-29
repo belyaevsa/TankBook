@@ -139,6 +139,7 @@ builder.Services.AddScoped<SyncService>();
 // as a transient failure, so a nudge degrades to polling instead of erroring.
 builder.Services.AddHttpClient("apns", client =>
 {
+    client.Timeout = HttpClientTimeouts.Apns;
     client.DefaultRequestVersion = HttpVersion.Version20;
     client.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionExact;
 });
@@ -190,7 +191,13 @@ if (!builder.Environment.IsEnvironment("Testing"))
 // issuer mints/validates the server's own RS256 JWTs; the signing key is
 // Auth:JwtSigningKeyBase64 (ephemeral dev fallback, see JwtAccessTokenIssuer).
 builder.Services.AddMemoryCache();
+// The bare default client remains for the LLM gateway (its own vendor contract,
+// v2); the auth JWKS and the rate feeds each get a named client with a budget
+// that fits their caller (docs/PRACTICES.md U6, HttpClientTimeouts) - a slow
+// JWKS fetch stalls every sign-in behind it, and a slow feed pins a job thread.
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("jwks", client => client.Timeout = HttpClientTimeouts.Jwks);
+builder.Services.AddHttpClient("rates", client => client.Timeout = HttpClientTimeouts.RateFeed);
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<JwtAccessTokenIssuer>();
 builder.Services.AddSingleton<AppleGoogleIdTokenVerifier>();

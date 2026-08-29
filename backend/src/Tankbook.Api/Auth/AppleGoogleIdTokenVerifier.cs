@@ -26,7 +26,7 @@ public sealed class AppleGoogleIdTokenVerifier : IIdTokenVerifier
         IOptions<AuthOptions> options,
         TimeProvider time)
     {
-        _http = httpFactory.CreateClient();
+        _http = httpFactory.CreateClient("jwks");
         _cache = cache;
         _options = options.Value;
         _time = time;

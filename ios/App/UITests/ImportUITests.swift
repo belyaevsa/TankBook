@@ -302,6 +302,28 @@ final class ImportUITests: XCTestCase {
                       "Fix is localised in Russian")
     }
 
+    // MARK: - Cancel while parsing (PR.6)
+
+    /// The parse is the one part of import that needs the connection, and on a
+    /// half-connected radio it can sit for the full upload budget. Cancel must be
+    /// visible while the parse is in flight, and cancelling must leave the garage
+    /// untouched - the wizard returns to the source picker, never to a preview
+    /// that would imply anything was read or written (F6a).
+    func testCancelAppearsWhileParsingAndCancellingLeavesTheGarageUntouched() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-importStubParseSlow",
+                          "-seedImportParsing"])
+        let cancel = app.buttons["importCancelButton"]
+        XCTAssertTrue(cancel.waitForExistence(timeout: 10),
+                      "Cancel must be visible while the parse is in flight")
+        cancel.tap()
+
+        XCTAssertTrue(app.buttons["importChooseFileButton"].waitForExistence(timeout: 10),
+                      "cancelling returns the wizard to the source picker")
+        XCTAssertFalse(app.otherElements["importPreviewScreen"].exists,
+                       "cancelling must never advance to the preview (the garage is untouched)")
+    }
+
     // MARK: - Per-car export (P5.5b export lane)
 
     /// The Garage's car screen offers the per-car export row (the archive
