@@ -395,3 +395,170 @@ is a review list that failed to explain itself.
 2. **Never block on the network.** Every journey completes offline except restore (J11) and cloud-LLM fallback; anything async happens after Save, invisibly.
 3. **Failure always degrades to the manual form pre-filled with whatever was read** – captured photos are never discarded, and the user never re-does work.
 4. **One emotional beat per journey.** J3's beat is the ✓ lock; J5's is "exact, free"; J6's is the two-car chart; J13's is the dossier. Everything else stays quiet.
+
+---
+
+## Agent journeys (v2, Pro) – the Ask tab
+
+*Added 2026-08-29 with `docs/AGENT.md`, the single authority for how these are built. The agent
+is a Pro feature and a v2 phase; none of these journeys is a v1 condition. Personas as above;
+each journey carries its **user stories** with acceptance criteria, because the stories are what
+the agent fixtures (`AGENT.md` §8) are written from.*
+
+**The agent's four rules, restated so every journey below can lean on them:** numbers come from
+the app's tools and render as cards, never as model prose (§2) · every write is a pre-filled
+screen the user saves, never a chat-bubble "done" (hard rule 13) · the agent is never the only
+door to anything (hard rule 1) · offline, not-Pro and quota-spent are states with next steps,
+not errors (§6).
+
+### J14 · Ask about the car (P1)
+**Trigger:** idle curiosity that Trends' four tiles do not answer – "what did the Volvo cost me
+this year, all in?", "when did I last do the brakes?", "which station do I actually pay least at?"
+**Goal:** a sentence-shaped question gets a figure-shaped answer in under ten seconds, and the
+figure is the same one Trends would compute.
+
+| Stage | Doing | Thinking / feeling | Notes |
+|---|---|---|---|
+| Open | Taps Ask; sees the car chip, the last thread, three example questions | "It knows which car I mean" | → The car chip is the same control as Home's; switching car switches context |
+| Ask | Types or dictates the question | Testing it with a number they already know | ⚠ The first answer decides trust – same as the first scan (J1) → the first example question is one whose answer the user can verify on Trends |
+| Answer | A **card** (spend by month, or the service row, or the station table) with a one-paragraph narration under it; "Open in Trends" on the card | Checks the number against memory – matches | → Every figure is a tool result rendered by the app; the model narrates. A number in prose that is not on a card is a defect (`AGENT.md` §8) |
+| Follow-up | "and last year?" – the thread keeps context | Conversation, not a query language | → Follow-ups reuse the same tool with a new range; the card updates, not a new screen |
+
+**Stories**
+- As Andrus, I want to ask "how much did this car cost me in 2025, everything included?" and
+  get a total with the breakdown by type, so that I do not add up Trends tiles by hand.
+  *Accepted when:* the total equals `TrendsStats` for the same range to the cent; rate-pending
+  entries are named as excluded with a count; the card opens Trends filtered to 2025.
+- As Andrus, I want "when did I last change the brake pads and at what mileage?" answered from my
+  service log, so that I stop scrolling the timeline. *Accepted when:* the answer is the service
+  row card with its odometer and attachment glyph; if no such record exists the answer says so and
+  offers "log a past service", never guesses a date.
+- As Marta, I want to ask across both cars ("which car costs us more per km?"), so that the
+  household comparison Trends promises is one question away. *Accepted when:* two cost/km cards
+  from the two vehicles' engines, side by side, in each car's accent.
+- As anyone, I want to ask in Russian and get Russian back, with numbers formatted my way.
+  *Accepted when:* the RU fixture passes with `42,3 л` and `1 234,50 ₽` rendering from the app's
+  formatters, not from the model.
+
+**Success metric:** first-answer figure matches the app's own computation in 100 % of fixtures
+(the gate); ≥60 % of Pro users ask at least one question a month.
+
+### J15 · "Remind me" (P3)
+**Trigger:** the user knows a date or a mileage and would rather say it than fill a form:
+«Напомни про ОСАГО за две недели до 4 сентября», "remind me to rotate the tyres at 125 000".
+**Goal:** the reminder exists, with the user's words turned into the right fields, and the user
+saw and could change every field before it was saved.
+
+| Stage | Doing | Notes |
+|---|---|---|
+| Say it | Types or dictates | → Category, due date/odometer, lead time and recurrence are parsed by the model into a `draftReminder` call; ambiguity is asked back in one line ("Insurance – the ОСАГО policy on the Lada?") |
+| See it | The **Reminder form opens, pre-filled**, dimmed like OCR rows until touched, Save under the thumb | ⚠ A chat bubble saying "Done, reminder created" is a hard-rule-13 bug – the user never saw the fields |
+| Save | Taps Save (or edits first) | → The thread shows the saved reminder as a card; the agent is told the outcome and does not re-offer |
+| Cancel | Swipes the form away | → Nothing written; the thread says "not saved" in `inkSoft`; no retry pressure |
+
+**Stories**
+- As Sergei, I want to say the insurance renewal date in Russian and get the reminder form filled
+  with the insurance category, the date, and a lead time, so that the app's forms stop feeling
+  like paperwork. *Accepted when:* the form opens with exactly those fields set, the lead time is
+  a field (not folded into the date), and the RU fixture's date «4 сентября» lands as 2026-09-04
+  in the user's time zone.
+- As Andrus, I want "every 15 000 km or 12 months, starting from the oil change I logged last
+  week" to create a recurring reminder anchored at that record, so that the maintenance loop
+  closes itself (J7c). *Accepted when:* the form shows recurrence and the anchor entry; saving
+  links `sourceEntryId`.
+- As anyone, I want to decline the draft and have nothing saved. *Accepted when:* the repository
+  is unchanged and the thread records the decline as a count, not a nag.
+
+**Success metric:** drafts saved without an edit ≥70 % (the parse was right); drafts dismissed
+≤15 % (tracked as a count – a dismissed draft is the agent being wrong).
+
+### J16 · Invoice through the agent (P2)
+**Trigger:** Marta leaves the workshop with a three-page invoice in German for the SUV and does
+not know what half the lines are.
+**Goal:** the invoice becomes a categorised service record with the bill attached, the lines she
+did not understand are explained, and the next reminder is offered – in one thread.
+
+| Stage | Doing | Notes |
+|---|---|---|
+| Hand it over | Taps the camera in the composer; document camera, multi-page (the same capture as J7) | → `captureInvoice()` returns the `InvoiceSplitter` result and the page attachments; the model reads the *result*, not the image, unless she opts this image into the tier-3 pass |
+| Read it | The thread shows the split as an **items card** – each line named, categorised, with a one-line plain-language explanation ("Bremsbeläge VA – front brake pads") and the ones the parser could not place marked | ⚠ Never fake precision: an unplaced line stays unplaced and says so (J7's rule) |
+| Fix it | "the 148 is an annual service, not parts" – the card updates | → Corrections are edits to the draft, in the thread, before any screen opens |
+| Save it | "Save it" → `ServiceEntryView` opens pre-filled with the items, vendor, date, odometer from last known, pages attached; she saves | → Same screen as J7; the agent never writes |
+| Close the loop | "Want a reminder for the pads – about 40 000 km?" → J15 | → Lifetime proposal from item categories (the PJ.22 gap, delivered here) |
+
+**Stories**
+- As Marta, I want a photographed invoice explained line by line in my language, so that I know
+  what I paid for. *Accepted when:* every parsed line has a name, a category and an explanation
+  or an explicit "couldn't place this"; the sum of placed lines plus unplaced equals the invoice
+  total (hard rule 4's arithmetic, applied to services).
+- As Marta, I want the record saved through the ordinary Service screen with the pages attached,
+  so that it looks like every other service record. *Accepted when:* the saved record is
+  indistinguishable from a J7 record except `provenance = .agent`.
+- As Marta, I want the agent to notice a part on my shelf ("the oil filter from March") and offer
+  to link it, so that cost is counted once (J7b). *Accepted when:* the link appears in the draft
+  as a suggestion; declining leaves the shelf untouched.
+
+**Success metric:** invoices saved through the agent carry an attachment 100 % (it captured it);
+lines the user renames ≤20 %.
+
+### J17 · Diagnosis with the car's context (P1)
+**Trigger:** "there's a whine that gets higher with speed, not with revs". Or a photo of a lit
+warning lamp. Andrus wants to know whether to worry before Monday.
+**Goal:** a ranked, evidence-backed second opinion, an honest urgency call, and next steps that
+are all things the app can do.
+
+| Stage | Doing | Notes |
+|---|---|---|
+| Describe | Types the symptom, or photographs the dashboard | → `carProfile`, `lastService`, `consumption`, `anomaly` run first; the **context card** ("Volvo V60 D4, 119 486 km · brakes 41 000 km ago · consumption +9 % vs last winter") is shown *before* the answer so the user sees what the model was told |
+| Read | Ranked causes – most likely / also possible / less likely – each with the fact from the log that supports it, or "general knowledge, not from your log" | ⚠ A cause with no evidence label is a defect; the fixture checks every cause carries one |
+| Urgency | A fixed row: **drive on · book this week · stop driving** – amber for the middle, the system-red dialog only for the last | → Brakes, steering, fuel smell, red lamps and smoke escalate by rule (`AGENT.md` §5); the model cannot talk a user out of a workshop |
+| Act | Buttons: "Remind me to book" (J15), "Note it on the car", "Questions for the workshop" (copyable) | → All three are app actions; no parts-shop links, no ads, no "find a garage" |
+
+**Stories**
+- As Andrus, I want the causes ranked and each tied to something in my log or clearly marked as
+  general knowledge, so that I can tell an informed guess from a lookup. *Accepted when:* every
+  cause in the fixture carries an evidence label; a cause citing the log names a real record.
+- As Andrus, I want a clear "can I drive it till Monday?" answer, so that the app says something
+  a forum thread won't. *Accepted when:* the urgency row is present on every diagnosis turn with
+  one of the three values; brake/steering/fuel-smell fixtures never resolve to "drive on".
+- As Sergei, I want the same in Russian with the same triage vocabulary, so that «можно ехать»
+  means exactly what "drive on" means. *Accepted when:* the RU fixture passes; the vocabulary is
+  from the String Catalog, not translated by the model.
+- As anyone, I want the screen to say it is a second opinion, once, without nagging. *Accepted
+  when:* the `inkSoft` line is present at the top of a diagnosis thread and nowhere else.
+
+**Success metric:** diagnosis turns ending in a reminder or a note ≥40 %; "that's not right" taps
+per 100 answers, trended per model version (the F2 metric of chat).
+
+### F11 · Ask is unavailable – offline, not Pro, quota spent
+**Trigger:** underground garage; a free-tier user curious what the tab does; a Pro user whose
+monthly turns are used up; the gateway is down.
+
+- The tab stays. The thread stays readable. The composer explains the state in one line and
+  names the next step; the three example questions become taps that open the ordinary screen
+  that answers them (Trends, Reminders, Garage). Nothing in the app is gated by Ask (hard rule 1).
+- Not Pro: the examples plus the Pro card – the one surface besides the car-limit sheet that
+  offers Pro. Tapping an example opens the ordinary screen, not a paywall.
+- Quota / gateway: F4's copy, no upsell, never mid-turn pressure.
+
+**Metric:** free-tier users who open Ask and then open Trends or Reminders from it (the tab
+teaches the app even when it cannot answer).
+
+### F12 · The agent is wrong
+**Trigger:** a figure looks off; a draft has the wrong category; a diagnosis names a part the car
+does not have.
+
+- **Figures cannot be wrong in the model's favour**: they are the app's numbers rendered as
+  cards. If a card is wrong, the engine is wrong, and that is a bug with a fixture, not an AI
+  problem – say so in the copy ("this is your log's number; if it's wrong, the entry is").
+- **Drafts are corrected before they are saved** – in the thread or on the form; a saved record
+  the user disagrees with is edited like any other (hard rule 13) and the agent is never asked to
+  "undo".
+- **"That's not right"** on any answer: one tap, optional reason, counted, never sent with the
+  content unless the user opts to attach the thread (the same consent shape as F1's improvement
+  sample). It teaches the fixture set, not the model in production.
+- A diagnosis the user rejects stays on screen with its evidence labels – the user can see *why*
+  it was wrong, which is the honest version of confidence.
+
+**Metric:** "not right" rate per 100 answers falls across model versions; zero support tickets
+about a figure the agent stated that the app did not.

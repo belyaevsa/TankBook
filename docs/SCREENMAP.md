@@ -33,8 +33,18 @@ flowchart TD
     subgraph Tabs["Tab roots (no back)"]
         Home
         Trends
+        Ask["Ask (v2, Pro – docs/AGENT.md)"]
         Garage
     end
+
+    Ask -->|draft reminder| ReminderForm
+    Ask -->|draft service entry / invoice| ServiceEntry
+    Ask -->|draft fill-up| ConfirmManual
+    Ask -->|card: Open in Trends| Trends
+    Ask -->|card: service row| EditEntry
+    Ask -->|camera in composer| Capture
+    Ask -.->|not Pro: example question| Trends
+    Ask -.->|not Pro: Pro card| Paywall
 
     Home <-->|tab switch| Trends
     Home <-->|tab switch| Garage
@@ -149,6 +159,19 @@ and **retires permanently at 3 captures or 3 dismissals** - so it does not
 appear in the graph because it cannot trap anyone and eventually stops rendering
 altogether. It is never present on any Confirm sheet and never appears between
 the shutter and a result.
+
+### Ask (v2, Pro)
+
+Tab root, no back. Header: `Ask` + the car chip (same control as Home; switching car switches
+the thread's context). Body: the thread – user turns, the car **context card** on every
+diagnosis turn, answer **cards** rendered from tool results (spend, service row, station table,
+reminder draft, invoice items, diagnosis with its urgency row), the model's narration beneath
+each. Composer: text field, mic, camera. States (`ERRORS.md` → Ask): offline, not Pro, quota
+spent, gateway down – the tab and thread stay, the composer explains, the examples become taps
+to the ordinary screens. Forward exits: every draft opens its ordinary screen (Reminder form,
+Service entry, Confirm manual), every card opens where the data lives (Trends, Edit entry). Back:
+none – it is a tab root; sheets it opens dismiss to it. Artboards (`design/screens/v2/`): `AgentChat`, `AgentDiagnosis`,
+`AgentInvoice`, `AgentReminderDraft`, `AgentAsk` (states), `AgentHome` (the bar).
 
 ## Screens referenced but not yet drawn
 

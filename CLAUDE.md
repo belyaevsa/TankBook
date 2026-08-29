@@ -22,7 +22,8 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/SCHEMA.md` | Entities, fields, naming (canonical across Swift/C#/SQL), validation invariants, consumption math, backup format, reference data services, import mappings | Any data model, algorithm, or persistence work |
 | `docs/SYNC.md` | Sync protocol, conflict scenarios S1–S8, blob pipeline, encryption stance (decided), offline behavior | Any sync, backend-storage, or attachment work |
 | `docs/API.md` | The complete HTTP contract: auth, sync, blobs, reference data, feedback, LLM gateway, account | Any endpoint work, client networking; changes here = breaking-change review |
-| `design/screens/*.dc.html` + `canvas.json` | The screen mockups (source of truth for pixels); canvas artifact id `208136b7-4861-4b40-9d05-dcf5067ea123` | Building any screen – match these, don't reinvent |
+| `design/screens/*.dc.html` + `canvas.json` (v2 work under `design/screens/v2/`) | The screen mockups (source of truth for pixels); canvas artifact id `208136b7-4861-4b40-9d05-dcf5067ea123` | Building any screen – match these, don't reinvent |
+| `docs/AGENT.md` | The Car Agent (v2, Pro): device-hosted agent loop, tool catalogue, `/agent/turn` as the second rule-9 exception, diagnosis safety framing, the Ask tab, the answer gate | Any chat, LLM-over-user-data, assistant or "AI" feature; anything that sends car data to a model |
 | `docs/PRACTICES.md` | Mobile+backend integration practices (architecture, network UX, security, debuggability), the constants-placement policy (compiled / remote / user / frozen), and the dated review of the code against them with its task list | Adding a timeout, limit, threshold or any tunable number; networking, auth-refresh, diagnostics or error-envelope work; phase-gate reviews |
 | `docs/TESTING.md` | Verification levels, per-story/endpoint/function check matrix, CI gates | Writing or skipping any test; defining done |
 | `docs/PHASES.md` | Build order and each phase's verifiable exit gate | Planning work; deciding what to build next |
@@ -70,6 +71,11 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
      note, an amount or a coordinate (hard rule 12).
    - **It does not spread.** This exception licenses import parsing and nothing else. A second
      endpoint that reads domain meaning needs its own decision, written here.
+   **The second exception (decided 2026-08-29, product owner, v2): the Car Agent's `POST
+   /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
+   (the device holds the conversation), it **requires an account** because it is Pro-metered
+   per turn, and it reads only what the device's own tools returned for that turn. Pure
+   function; shape-only logging; it does not spread – no server-side search, stats or memory.
 10. **All user-facing strings** go through String Catalogs (EN + RU from day one), traced to the copy glossary once it exists; no hardcoded text. (`docs/VISION.md` localization)
 11. **No secrets in the app bundle, ever** – an IPA is a zip. Tokens and `deviceId` live in the Keychain as `AfterFirstUnlockThisDeviceOnly`; the database and attachments use `completeUntilFirstUserAuthentication` file protection (including `-wal`/`-shm`). API keys stay server-side, which is why the LLM gateway exists. (`docs/SECURITY.md`)
 12. **Never log domain values.** Ids, counts, codes, durations and field *names* are loggable; amounts, stations, notes, coordinates, payloads, tokens and images are not – at any level, in any build. (`docs/LOGGING.md`)

@@ -204,6 +204,19 @@ changes what the *next* car pre-fills; it never rewrites a car already in the ga
 typed over is theirs permanently (`SYNC.md` → the master rule and its limit). There is no such thing as a
 catalog-vs-garage conflict to surface.
 
+### Ask (v2, Pro – `docs/AGENT.md`)
+
+| State | Severity | Copy | Next step |
+|---|---|---|---|
+| Offline | `inkSoft` status | "Ask needs a connection – your log works as always." | The three example questions become taps to Trends / Reminders / Garage; thread stays readable |
+| Not Pro | `inkSoft` + the Pro card | "Ask is part of Pro." (examples above it) | Example → the ordinary screen that answers it; Pro card → Paywall. The one Pro surface besides the car-limit sheet |
+| Quota spent | `inkSoft` | "Your Ask turns for this month are used up – resets on the 1st." | The examples as taps; no upsell |
+| Gateway unreachable / timed out | `inkSoft` | "Ask isn't answering right now." | "Try again" + the examples; the turn is kept in the composer, never lost |
+| Draft dismissed | `inkSoft` line in thread | "Not saved." | Nothing; no re-offer |
+| Ambiguous request | question in thread | one line, one question ("Which car?") | Answer inline; car chip also switches |
+| Diagnosis: stop driving | system dialog (the only red) | "This can be unsafe to drive. Have it checked before driving further." | "Remind me to book" · "Questions for the workshop" |
+| "That's not right" | `inkSoft` | "Noted. Attach this thread to help improve answers?" | Opt-in per thread; declined = count only |
+
 ## The audit rule (for CI-of-design and future screens)
 
 Every new error/warning must answer three questions before it ships: (1) what happened, in the user's words; (2) what is the **preselected** next step; (3) what happens if they ignore it (and it must be survivable). If any answer is missing, the design isn't done. Monetization never appears in an error surface except the explicit car-limit sheet.

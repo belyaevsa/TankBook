@@ -11,6 +11,10 @@
     {
       "id": "page-2",
       "name": "Unchosen options"
+    },
+    {
+      "id": "page-4",
+      "name": "Agent (v2, Pro)"
     }
   ],
   "artboards": [
@@ -328,6 +332,69 @@
       "y": 4080,
       "w": 390,
       "h": 844
+    },
+    {
+      "file": "AgentHome.dc.html",
+      "title": "Home · five-slot bar with Ask",
+      "page": "page-4",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentAsk.dc.html",
+      "title": "Ask · not Pro (F11)",
+      "page": "page-4",
+      "x": 490,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentChat.dc.html",
+      "title": "Ask · question over the log (J14)",
+      "page": "page-4",
+      "x": 980,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentDiagnosis.dc.html",
+      "title": "Ask · diagnosis with context (J17)",
+      "page": "page-4",
+      "x": 1470,
+      "y": 0,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentInvoice.dc.html",
+      "title": "Ask · invoice read and explained (J16)",
+      "page": "page-4",
+      "x": 0,
+      "y": 1020,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentReminderDraft.dc.html",
+      "title": "Ask · reminder draft, RU (J15)",
+      "page": "page-4",
+      "x": 490,
+      "y": 1020,
+      "w": 390,
+      "h": 844
+    },
+    {
+      "file": "AgentAltHeader.dc.html",
+      "title": "Alternative B · header button (rejected)",
+      "page": "page-4",
+      "x": 1470,
+      "y": 1020,
+      "w": 390,
+      "h": 844
     }
   ],
   "annotations": [
@@ -354,10 +421,18 @@
       "y": 40,
       "w": 260,
       "text": "Kept for reference. Ideas worth stealing later: Home A's big hero metric could become the Trends header; Confirm B's giant readout could be a landscape/one-hand mode of the confirm sheet."
+    },
+    {
+      "id": "note-agent",
+      "page": "page-4",
+      "x": 980,
+      "y": 1060,
+      "w": 420,
+      "text": "THE CAR AGENT (v2, Pro) - docs/AGENT.md\nDecided 2026-08-29. The tab bar gains a fifth slot: Log · Trends · ● Capture · Ask · Garage. Ask is glyph-and-label, never raised, never accented. Everyone sees the tab; free users land on the examples + the Pro card (AgentAsk).\n\nFour rules every screen here obeys: figures are the app's own numbers rendered as cards, never model prose · every write is a pre-filled form the user saves (AgentReminderDraft) · Ask is never the only door to anything · offline / not-Pro / quota are states with next steps, not errors.\n\nDiagnosis (AgentDiagnosis): context card first, ranked causes each labelled 'from your log' or 'general knowledge', a fixed urgency row (amber only for 'book this week', system red only for 'stop driving').\n\nRU tab label 'Спросить' must be verified at Dynamic Type XL; 'Чат' is the fallback."
     }
   ],
   "launch": {
     "view": "canvas",
-    "page": "page-3"
+    "page": "page-4"
   }
 }
