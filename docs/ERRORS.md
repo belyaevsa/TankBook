@@ -93,6 +93,8 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Swipe-down with typed input | "Keep editing / Discard" (typed input only – pure scans discard silently, photo re-offerable) | Either |
 | No vehicle yet (manual variant) | Hint card: "No car yet – add one from Garage to start logging fill-ups." | Add a car from Garage · close |
 
+| AdBlue chosen on a car whose offer set has no `.adBlue` (2026-08-30) | `warn` under the fuel row | "This car isn't set up for AdBlue - add it to the car?" | One tap adds `.adBlue` to the car's fuel kinds (needs diesel; otherwise the row explains that); save proceeds either way (hard rule 13) |
+
 ### Tank level (sheet)
 | Condition | Shows | Next step |
 |---|---|---|

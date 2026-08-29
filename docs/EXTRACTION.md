@@ -464,3 +464,18 @@ Breadth beats count: more makes of pump, more countries and languages, non-CIS r
 receipts, and matched pairs or triples of the same fill from different documents. The triple
 `receipt-001` / `pump-001` / `screenshot-004` settled a question about list versus effective
 price that no amount of re-reading a single document could.
+
+## AdBlue on a receipt (added 2026-08-30)
+
+Vocabulary: `ADBLUE`, `AdBlue`, `AD BLUE`, `AUS 32`, `AUS32`, `DEF`, `HARNSTOFF`, `МОЧЕВИНА`,
+`АДБЛЮ`, `AdBlue®`. Price band: roughly 0.5–2.0 per litre in EUR/PLN-equivalent, 50–150 ₽/L -
+about half to a third of diesel, so a band rejects it as a diesel price the way it rejects LPG.
+
+Rule: **an AdBlue line is never the fuel line.** On a diesel receipt that carries both, the
+diesel line is the fill and the AdBlue line becomes a second `FillUp(.adBlue)` in the same
+purchase group (`SCHEMA.md` → AdBlue), each cross-checked against its own litres × price. The
+mixed-receipt detector must classify the AdBlue line as a fill, not as an Expense. On a receipt
+that carries only AdBlue for a car whose offer set includes it, the fill is `.adBlue` - never
+`.diesel` with a suspiciously low price. The Spike parser lists `ADBLUE` among fuel product
+words; that entry moves to the AdBlue vocabulary when the task lands, and the corpus gains a
+diesel + AdBlue fixture and an AdBlue-only fixture, both asserting the fuel line and the kind.

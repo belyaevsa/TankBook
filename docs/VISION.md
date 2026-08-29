@@ -62,7 +62,7 @@ Pipeline:
 | Feature | Phase | Notes |
 |---|---|---|
 | Multi-vehicle garage | MVP | Multiple cars per account from day one – vehicle switcher, per-vehicle stats and history, all tied to the one identity/backup. Every competitor gates this behind Pro; CarScope even revoked it retroactively and paid for it in reviews. |
-| Fill-up log (manual quick-form) | MVP | Odometer, volume, price, station, fuel type/quality. Partial fills via optional tank-level-after-fillup (% or liters) instead of a bare flag – the My Fuel Manager approach, it keeps consumption computable between partials. Smart defaults per favorite station (station, fuel type, quality pre-filled from last visit). Show "+N km since last" beside the odometer field as a live typo check. |
+| Fill-up log (manual quick-form) | MVP | Odometer, volume, price, station, fuel type/quality (incl. **AdBlue** as a fill-up kind with its own L / 1000 km rate, never in fuel consumption - `SCHEMA.md` → AdBlue, 2026-08-30). Partial fills via optional tank-level-after-fillup (% or liters) instead of a bare flag – the My Fuel Manager approach, it keeps consumption computable between partials. Smart defaults per favorite station (station, fuel type, quality pre-filled from last visit). Show "+N km since last" beside the odometer field as a live typo check. |
 | Receipt scan | MVP | The hero feature. On-device pipeline above; user confirms pre-filled card. |
 | Pump display photo | MVP | For stations without receipts. Reads liters / price / total off the pump. |
 | Fiscal QR scan (RU/KZ receipts) | MVP | FNS/ОФД QR codes carry the full purchase machine-readable – 100% accuracy, no OCR needed. Cheap to build, unowned in the CIS market. |

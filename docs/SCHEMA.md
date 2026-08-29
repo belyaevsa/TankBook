@@ -109,7 +109,7 @@ Money {
 FillUp: EntryCommon {
   volumeL: Double               // always stored in liters; displayed in vehicle unit
   unitPrice: Decimal?           // per liter, original currency
-  fuelKind: FuelKind            // .diesel, .petrol92, .petrol95, .petrol98, .petrol100, .lpg, .cng, .e85…
+  fuelKind: FuelKind            // .diesel, .petrol92, .petrol95, .petrol98, .petrol100, .lpg, .cng, .e85, .adBlue (a FLUID, not a fuel - see "AdBlue" below)…
   fuelGrade: String?            // marketing tier: "V-Power", "Ultimate", "Standard"
   isFull: Bool                  // closes a consumption segment
   tankLevelAfterPct: Double?    // 0–100; 100 ⇒ isFull. The mature partial-fill answer (My Fuel Manager pattern)
@@ -310,6 +310,7 @@ INVARIANT  For a vehicle's entries with odometer set, sorted by date: odometer s
 CHECK 1    Order: odometer fits between date-neighbors. Violation → discrepancy UI.
 CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
+CHECK 4    AdBlue (2026-08-30): `.adBlue` in Vehicle.fuelKinds requires `.diesel` in the same set; an AdBlue fill never opens, closes or feeds a fuel segment (FuelKind.family) - see → AdBlue.
            SYMMETRY LIMIT: multiplication is commutative, so this check passes just as happily on a
            SWAPPED volume/unitPrice pair. It validates the product, never the assignment – deciding
            which operand is which is the job of the resolution ladder in Reference data → Fuel price
@@ -374,7 +375,9 @@ syncPayloadMemory (id text pk, payload text not null)
 Never stored. Recomputed for a vehicle whenever any FillUp in range changes.
 
 ```
-SEGMENT    Between consecutive isFull fill-ups (conflict-free, same fuelKind family):
+SEGMENT    Between consecutive isFull fill-ups (conflict-free, same fuelKind family;
+           the families are combustion / electric / adBlue - an AdBlue fill never opens,
+           closes or feeds a fuel segment):
              km     = odo(close) − odo(open)
              liters = Σ volume of every fill after open, up to and including close
              per100 = liters / km × 100
@@ -408,6 +411,44 @@ COST/KM    all-in: Σ homeAmount of ALL entry types in window / km in window.
            younger) - "last 3 months" over a full window, "last month" over two
            weeks of readings.
 ```
+
+
+### AdBlue (added 2026-08-30, product owner)
+
+**AdBlue is logged as a fill-up and is never a fuel.** Diesel drivers buy it at the pump, in
+litres, at a price per litre, with an odometer reading and a receipt - every property of a
+`FillUp` - and the question they ask is a consumption question ("how much AdBlue does this car
+use?"). So it is `FuelKind.adBlue`, not an `Expense` category. What keeps it out of the fuel
+math is structural, not a flag:
+
+- **Its own family.** `FuelKind.family` is `combustion / electric / adBlue`. A segment never
+  spans families, so no AdBlue litre can reach L/100 km, the headline, the lifetime average, the
+  anomaly engine or the D1-D4 vectors. `isFull` is stored but meaningless for AdBlue (the tank
+  is topped up, not filled) and is ignored by every algorithm.
+- **Its own metric.** `ADBLUE RATE = Σ volume of AdBlue fills except the last ÷ (odo(last) −
+  odo(first))`, in **L / 1000 km**, distance-weighted over the car's lifetime - never full-to-full,
+  because AdBlue fills are not full. Needs ≥ 2 AdBlue fills with odometers, else unavailable and
+  shown as `–` (never estimated, the tire-mileage rule). Rendered in Trends as one small tile
+  only when the car has ≥ 2 AdBlue fills; absent otherwise.
+- **Its money is car money.** AdBlue spend counts wherever fuel spend counts - monthly totals,
+  cost/km, the J13 dossier - and never in litres.
+- **Offer set.** `Vehicle.fuelKinds` may contain `.adBlue` only alongside `.diesel` (invariant,
+  enforced on AddVehicle and Vehicle detail; CHECK 4). The catalog offers it for diesel cars with
+  SCR, i.e. Euro 6 / 2015 onward, as a default the user may remove (hard rule 13). On a
+  `[.diesel, .adBlue]` car the Confirm fuel row shows two chips - a real choice, per the
+  `DESIGN.md` input rule.
+- **On a receipt.** A diesel receipt carrying an AdBlue line is a **mixed receipt** whose extra
+  line becomes a second `FillUp(.adBlue)` in the same purchase group - not an Expense - and the
+  fuel line is still the diesel line (CHECK 3 applies to each fill against its own line).
+  **An AdBlue line is never the fuel line**: the extractor must not select it for a diesel car's
+  fill even when its litres × price cross-check locks (`EXTRACTION.md` → AdBlue). A standalone
+  AdBlue purchase (a 10 L can at a shop) is a plain `FillUp(.adBlue)` with `provenance` as usual.
+- **Import.** Sources that carry AdBlue (Spritmonitor, MFM's "AdBlue" fuel type where present)
+  map to `.adBlue`; unknown sources leave it as the user's manual re-kind. Never guessed.
+- **Payload contract.** Adding the enum value is **additive** in `fillUp.schema.json` (registry
+  bump, no `minSchemaVersion` change, no transform); old clients that pull an `.adBlue` fill
+  treat the unknown kind per the SYNC.md unknown-value rule - kept, displayed as its raw string,
+  never dropped (hard rule 8).
 
 ### Recalculation on edit (normative)
 
