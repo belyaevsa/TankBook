@@ -4516,23 +4516,6 @@
         }
       }
     },
-    "Scan receipts, pump displays and QR codes": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scan receipts, pump displays and QR codes"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сканируйте чеки, экраны заправок и QR-коды"
-          }
-        }
-      }
-    },
     " – your garage follows you.": {
       "extractionState": "manual",
       "localizations": {
@@ -4699,23 +4682,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сумма по чеку %1$@ · записано %2$@"
-          }
-        }
-      }
-    },
-    "Receipts, pump displays and fiscal QR are detected automatically": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receipts, pump displays and fiscal QR are detected automatically"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Чеки, дисплеи заправок и фискальные QR-коды определяются автоматически"
           }
         }
       }
@@ -11417,6 +11383,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Нарушает хронологию"
+          }
+        }
+      }
+    },
+    "Scan receipts and pump displays": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan receipts and pump displays"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сканируйте чеки и экраны заправок"
+          }
+        }
+      }
+    },
+    "Receipts and pump displays are detected automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipts and pump displays are detected automatically"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чеки и дисплеи заправок определяются автоматически"
           }
         }
       }

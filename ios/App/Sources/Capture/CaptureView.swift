@@ -310,7 +310,7 @@ struct CaptureView: View {
     private var liveLayout: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
-            Text("Receipts, pump displays and fiscal QR are detected automatically")
+            Text("Receipts and pump displays are detected automatically")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)

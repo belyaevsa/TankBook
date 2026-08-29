@@ -1,6 +1,6 @@
 # Tankbook (fuel-counter-ios)
 
-Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with PostgreSQL. Local-first; scanning (receipts, pump displays, fiscal QR) **reduces** typing - it never replaces it, and **typing is a peer entry path, never a fallback** (hard rule 15). This file is the index – **read the referenced doc before working in its area; each doc is the single authority for its domain.**
+Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with PostgreSQL. Local-first; scanning (receipts, pump displays) **reduces** typing - it never replaces it, and **typing is a peer entry path, never a fallback** (hard rule 15). This file is the index – **read the referenced doc before working in its area; each doc is the single authority for its domain.**
 
 **Starting a fresh session? Read `HANDOVER.md` first** – it carries current status, what to do next, and the traps that cost previous runs.
 

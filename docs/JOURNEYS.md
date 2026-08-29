@@ -98,12 +98,12 @@ design - a user who typed and a user who scanned are editing the identical scree
 manual save time under 20 s; and no growth in abandoned captures - a user who backs out of a
 scan should land on a filled-in manual form, not an empty one.
 
-### J5 · Fiscal QR fill-up (P3, RU/KZ)
-**Trigger:** every receipt has an FNS/ОФД QR square.
+### J5 · The RU/KZ receipt (P3) – the fiscal QR as an anchor, never a feature
+**Trigger:** a fill-up receipt in Russia or Kazakhstan; the FNS/ОФД QR printed on it is decoded as part of the same receipt scan. The user never "scans a QR" and the app never says it does (`VISION.md`, decided 2026-08-30).
 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
-| Scan | Points capture at the QR corner | "Апps never do this" | → Same capture surface auto-detects QR vs text – zero mode switching |
+| Scan | Scans the receipt exactly as in J3 | Nothing new to learn | → The QR is found on the receipt image by the same capture; no mode, no chip, no mention |
 | Anchor, not fill | **Total and date land exact from the QR; litres, price and fuel kind still come from OCR** and stay editable | Quiet confidence: the money is right | → The QR confirms or corrects the OCR total, and a QR total *above* the extracted fuel line is the mixed-receipt signal (hard rule 4) |
 | Confirm | Check the OCR'd litres and price, odometer, save | Fewer corrections than before | → Never claim "exact" for a field the QR cannot carry |
 
@@ -273,14 +273,14 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Metric:** capture abandonment when fallback is down: no different from baseline.
 
-### F5 · Fiscal QR scans but lookup fails (P3)
-**Trigger:** the QR decodes, but full line-item data needs an FNS/ОФД fetch that times out, or the fiscal service is down (common).
+### F5 · The receipt's QR decodes, and nothing more is fetched (P3)
+**Trigger:** the QR on the receipt decodes. No fiscal-service lookup is attempted – enrichment is permanently deferred (J5 above) – so this is the normal path, not a failure.
 
 - Parse locally what the QR string itself carries (total, date-time, fiscal IDs) → card pre-fills total and date instantly, liters/price left for the user or a later fetch.
 - Enrichment retries in background after save; when it lands, it *fills blanks* only – never overwrites anything the user typed.
-- Copy: "Fiscal service isn't answering – saved the total from the QR itself."
+- No copy: nothing failed, and the QR is not named. The Confirm sheet simply shows the anchored total and date as verified.
 
-**Metric:** QR entries saved on first attempt ≥95% regardless of FNS availability.
+**Metric:** RU/KZ receipts with a decodable QR save with the anchored total in ≥95% of cases.
 
 ### F6 · Import file won't parse (J2's failure)
 **Trigger:** truncated export, exotic CSV dialect, an app version we haven't seen, wrong file shared entirely.

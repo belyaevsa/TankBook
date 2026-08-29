@@ -70,8 +70,8 @@ Two camps: payment/station apps (Яндекс Заправки, ЛУКОЙЛ, Г
 
 ## What the sweep changes for us
 
-1. **OCR is contested, not open.** Fuelio (receipts, offline) and Spritmonitor (invoices) both scan already. Our capture edge must be the *whole* system: pump-display and dashboard photos, fiscal QR (RU/KZ), the visible arithmetic cross-check, and best-in-class confirm UX – not "we have scanning".
-2. **Fiscal QR is still unowned as a free feature.** Only Мой Авто touches QR at all, and it paywalls it inside a decaying app.
+1. **OCR is contested, not open.** Fuelio (receipts, offline) and Spritmonitor (invoices) both scan already. Our capture edge must be the *whole* system: pump-display and dashboard photos, the visible arithmetic cross-check, and best-in-class confirm UX – not "we have scanning".
+2. **Fiscal QR is not something we market** (decided 2026-08-30): it is read as part of the receipt and anchors the total. Only Мой Авто names it, paywalled inside a decaying app – a claim not worth competing for.
 3. **Every incumbent has burned pricing goodwill** (Fuelio's Premium creep, Drivvo's export paywall, Fuelly's nags, CarScope's vehicle lock). "Free tier that stays free + export always free" is a real, marketable differentiator.
 4. **No competitor owns the mixed-household EV-vs-petrol comparison.** Spritmonitor has the deepest EV data but no household framing.
 5. **Migration is expected.** Drivvo and CarScope both ship importers from everyone; we need parity (Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope, My Fuel Manager formats) at launch. My Fuel Manager has confirmed export/import, and a real export from it is our first import test fixture and consumption-math dataset.
