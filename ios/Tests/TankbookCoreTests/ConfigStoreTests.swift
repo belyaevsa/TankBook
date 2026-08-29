@@ -102,19 +102,17 @@ private func makeBundled() -> AppConfig {
 private struct StubError: Error {}
 
 private final class StubConfigFetcher: ConfigFetcher, @unchecked Sendable {
-    private let lock = OSAllocatedUnfairLock(initialState: Result<ConfigFetchResult, any Error>.success(
-        ConfigFetchResult(document: Data(), signature: "", etag: nil)
-    ))
+    private let lock = OSAllocatedUnfairLock(initialState: Result<ConfigFetchResult?, any Error>.success(nil))
 
-    init(result: Result<ConfigFetchResult, any Error>) {
+    init(result: Result<ConfigFetchResult?, any Error>) {
         lock.withLock { $0 = result }
     }
 
-    func set(result: Result<ConfigFetchResult, any Error>) {
+    func set(result: Result<ConfigFetchResult?, any Error>) {
         lock.withLock { $0 = result }
     }
 
-    func fetch() async throws -> ConfigFetchResult {
+    func fetch(ifNoneMatch etag: String?) async throws -> ConfigFetchResult? {
         let result = lock.withLock { $0 }
         return try result.get()
     }
@@ -462,7 +460,10 @@ private func cacheFileURL(directory: URL) -> URL {
 
     let docB = makeDocument(tier3: true)
     fetcher.set(result: .success(ConfigFetchResult(document: docB, signature: sign(docB), etag: nil)))
-    await store.refresh()
+    // User-initiated: this test is about snapshot semantics, not the throttle,
+    // so it bypasses the 6 h automatic-refresh window (the injected clock is
+    // fixed at `referenceNow` and would otherwise skip the second fetch).
+    await store.refresh(userInitiated: true)
 
     #expect(before.tier3CloudFallback == false, "the taken snapshot is the pre-refresh value")
     #expect(store.current.tier3CloudFallback == true, "the refreshed store reflects the new document")
@@ -619,10 +620,13 @@ private func cacheFileURL(directory: URL) -> URL {
     #expect(applyText.contains("changedKeys=") && applyText.contains("tier3CloudFallback"))
     #expect(!applyText.contains("api.tankbook"), "the log must not dump the document body")
 
-    // A rejected document emits config.reject.
+    // A rejected document emits config.reject. User-initiated: the first store
+    // above wrote a cache to this same directory, so a background refresh here
+    // would be throttled (the injected clock is fixed) and never reach the
+    // reject path.
     let badStore = makeStore(bundled: bundled, directory: directory,
                              fetcher: successFetcher(document: document, signature: "garbage"), log: log)
-    await badStore.refresh()
+    await badStore.refresh(userInitiated: true)
 
     let rejectText = sink.rendered().filter { $0.contains("event=config.reject") }
     #expect(!rejectText.isEmpty, "a bad signature must emit config.reject")

@@ -76,15 +76,13 @@ private final class InMemoryConfigRollbackFloor: ConfigRollbackFloorStoring, @un
 }
 
 private final class StubConfigFetcher: ConfigFetcher, @unchecked Sendable {
-    private let lock = OSAllocatedUnfairLock(initialState: Result<ConfigFetchResult, any Error>.success(
-        ConfigFetchResult(document: Data(), signature: "", etag: nil)
-    ))
+    private let lock = OSAllocatedUnfairLock(initialState: Result<ConfigFetchResult?, any Error>.success(nil))
 
-    init(result: Result<ConfigFetchResult, any Error>) {
+    init(result: Result<ConfigFetchResult?, any Error>) {
         lock.withLock { $0 = result }
     }
 
-    func fetch() async throws -> ConfigFetchResult {
+    func fetch(ifNoneMatch etag: String?) async throws -> ConfigFetchResult? {
         try lock.withLock { $0 }.get()
     }
 }

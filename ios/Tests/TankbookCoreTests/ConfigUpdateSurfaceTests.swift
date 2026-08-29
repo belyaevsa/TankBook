@@ -136,14 +136,14 @@ private actor FetchGate {
 
 private final class GatedConfigFetcher: ConfigFetcher, @unchecked Sendable {
     private let gate: FetchGate
-    private let result: Result<ConfigFetchResult, any Error>
+    private let result: Result<ConfigFetchResult?, any Error>
 
-    init(gate: FetchGate, result: Result<ConfigFetchResult, any Error>) {
+    init(gate: FetchGate, result: Result<ConfigFetchResult?, any Error>) {
         self.gate = gate
         self.result = result
     }
 
-    func fetch() async throws -> ConfigFetchResult {
+    func fetch(ifNoneMatch etag: String?) async throws -> ConfigFetchResult? {
         await gate.wait()
         return try result.get()
     }
@@ -270,7 +270,11 @@ private func makeStore(
     let before = store.snapshot().updateRequirement(runningVersion: "1.3.0")
     #expect(before == .recommended, "the cached document governs at cold start")
 
-    let refresh = Task { await store.refresh() }
+    // User-initiated: this test seeds a cache with `fetchedAt = referenceNow`,
+    // so a background refresh would be throttled (the injected clock is fixed).
+    // The surface contract - the held snapshot, never the in-flight fetch - is
+    // what is under test, not the throttle.
+    let refresh = Task { await store.refresh(userInitiated: true) }
     // Give refresh time to fetch + validate, so it is now stalled on the probe
     // with the new document fetched but NOT committed.
     try await Task.sleep(for: .milliseconds(150))

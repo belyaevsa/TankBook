@@ -26,7 +26,10 @@ public struct ConfigFetchResult: Sendable, Equatable {
 }
 
 public protocol ConfigFetcher: Sendable {
-    func fetch() async throws -> ConfigFetchResult
+    /// Fetches the remote config document, sending `If-None-Match` when an etag
+    /// is known. Returns nil when the server answered `304` - the held document
+    /// stands, and that is **not a failure** (docs/API.md `GET /config`).
+    func fetch(ifNoneMatch etag: String?) async throws -> ConfigFetchResult?
 }
 
 /// Probes `GET /health` against a candidate base URL (docs/CONFIG.md ->
@@ -86,6 +89,14 @@ public final class ConfigStore: @unchecked Sendable {
     private let keychain: any ConfigRollbackFloorStoring
     private let clock: Clock
     private let deviceIdentifier: String
+    /// The minimum interval between automatic (launch/foreground) config fetches
+    /// (docs/CONFIG.md -> "Delivery": once per 6 hours). A compiled constant -
+    /// deliberately **not** a remote key: `configPollInterval` does not exist in
+    /// the document, the seeder or the schema, and adding it spans both tiers
+    /// and three bundled copies (that is PR.3c). A user-initiated refresh
+    /// bypasses this throttle; a background/foreground one does not.
+    static let automaticRefreshInterval: TimeInterval = 6 * 60 * 60
+
     private let fetcher: (any ConfigFetcher)?
     private let healthProber: (any HealthProber)?
     private let maxConsecutiveFailures: Int
@@ -205,16 +216,35 @@ public final class ConfigStore: @unchecked Sendable {
     /// "Delivery"). A transport failure fetching config is silent and keeps the
     /// current config; it is not the same thing as a transport failure against
     /// the active base URL, which is reported via `recordRequestOutcome`.
-    public func refresh() async {
+    ///
+    /// Automatic refreshes are throttled to `automaticRefreshInterval` from the
+    /// cache record's `fetchedAt` (using the injected `clock`, never `Date()`).
+    /// A user-initiated refresh bypasses the throttle; the background/foreground
+    /// paths do not. A `304` answer (fetcher returns nil) is "no change", not a
+    /// failure.
+    public func refresh(userInitiated: Bool = false) async {
         guard let fetcher else { return }
-        let result: ConfigFetchResult
+
+        let now = clock()
+        if !userInitiated {
+            let fetchedAt = lock.withLock { $0.remoteFetchedAt }
+            if let fetchedAt, now.timeIntervalSince(fetchedAt) < Self.automaticRefreshInterval {
+                return
+            }
+        }
+
+        let etag = lock.withLock { $0.remoteEtag }
+        let result: ConfigFetchResult?
         do {
-            result = try await fetcher.fetch()
+            result = try await fetcher.fetch(ifNoneMatch: etag)
         } catch {
             return
         }
+        guard let result else {
+            // 304: the held document stands. Not a change, not a failure.
+            return
+        }
 
-        let now = clock()
         let floor = lock.withLock { $0.floor }
         let validation = Self.validate(
             document: result.document,

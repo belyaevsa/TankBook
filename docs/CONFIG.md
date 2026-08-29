@@ -121,17 +121,20 @@ screen ever waits on a response to decide what to draw. The three shapes:
   correct (and fail-open, per the rule above); the version just has to become `1.0.0` before the
   notice can ever fire. UI tests pin the three-component running version via a DEBUG launch
   argument (`-configRunningVersion`), never by weakening the parser.
-- **The live layer is not wired yet.** `AppConfigService` constructs the store with no fetcher, so
-  today the held snapshot is cache-else-bundled; the update requirement arrives the moment a
-  cached document holds it. The real `GET /config` fetch (and the bundled signing key, currently
-  empty) lands with the transport work; the surface reads whatever snapshot the store holds and
-  needs no further change.
+- **The live layer is now wired (PR.3a), with one release caveat.** `AppConfigService` constructs
+  the store with a real `RemoteConfigFetcher` (`GET /v1/config` over `TankbookHTTPClient`, honouring
+  `ETag`/`If-None-Match`/`304`) and a real `RemoteHealthProber` (`GET /health`), and the throttled
+  foreground refresh actually fetches. In DEBUG the bundled signing key is the dev key's public half,
+  so the path is exercised end to end; in RELEASE the key is still empty until ops provisions it,
+  which is an explicit release blocker (`ConfigSigningKeyTests`) rather than a silent fail-open. The
+  transports still build their base URL from nine inline fallbacks rather than `ConfigStore.current`
+  - that is PR.3b - and the `configPollInterval` remote override does not exist (PR.3c).
 
 ## Delivery
 
 **Pull is the mechanism; push is only a hint.**
 
-- `GET /v1/config` – **public, no auth** (guests and signed-out users need it too), `ETag`/`If-None-Match`, so an unchanged config costs a `304`. Checked on app foreground, throttled to **once per 6 hours** unless a nudge or a failure forces it. Config changes are rare; polling is nearly free and needs no infrastructure.
+- `GET /v1/config` – **public, no auth** (guests and signed-out users need it too), `ETag`/`If-None-Match`, so an unchanged config costs a `304`. Checked on app foreground, throttled to **once per 6 hours** – a **compiled** constant (`ConfigStore.automaticRefreshInterval`), read from the cache record's `fetchedAt` against the injected clock, never `Date()`. A **user-initiated** refresh bypasses the throttle; the background/foreground paths do not. **There is no remote override yet** (`configPollInterval` does not exist – PR.3c). Config changes are rare; polling is nearly free and needs no infrastructure.
 - **Push nudge (optional accelerator):** the existing silent APNs channel (`NOTIFICATIONS.md`) gains a `config: true` hint so an urgent change – a kill switch during an incident – propagates in minutes rather than hours. Silent pushes need no user permission, but they are unreliable and only reach registered devices, so **the system must be correct with push disabled entirely**. Never make a nudge the only path.
 - **Never at launch-blocking time.** Config fetch is background and asynchronous; the UI never waits on it. A cold start with no cached config uses bundled defaults immediately.
 - **Launch counts as a foreground event**, so the update requirement is evaluated on every cold start - but it is evaluated **against the resolved snapshot the app already holds** (live, else cache, else bundled), not against the fetch in flight. The notice therefore appears instantly on a launch with a cached document and never at all on a first launch offline, and no screen has ever waited for a response to decide what to draw.

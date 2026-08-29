@@ -64,21 +64,44 @@ final class AppConfigService {
         }
     }
 
-    /// Builds the app's one service over the real store: bundled defaults,
-    /// the config cache directory, the (currently unprovisioned) signature
-    /// key, the Keychain rollback floor and a per-install device id. The live
-    /// fetcher is nil until P0.12c ships it; the surface reads the held
-    /// snapshot regardless, which is the whole point.
+    /// Builds the app's one service over the real store: bundled defaults, the
+    /// config cache directory, the (DEBUG-provisioned) signature key, the
+    /// Keychain rollback floor, a per-install device id, and the live fetcher +
+    /// health prober (PR.3a). The surface reads the held snapshot regardless -
+    /// no screen ever waits on a fetch (hard rule 1).
     static func make(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppConfigService {
+        let bundled = (try? ConfigDefaults.bundledAppConfig()) ?? fallbackBundled()
+
+        // Config and health are public endpoints (docs/API.md), so the client
+        // needs no token: a nil provider means `TankbookHTTPClient` never builds
+        // an Authorization header for them.
+        let client = TankbookHTTPClient(
+            transport: URLSessionTransport(),
+            tokenProvider: NoConfigTokenProvider()
+        )
+
+        // The fetcher reads the resolved base URL at fetch time, so it follows
+        // an `apiBaseUrl` migration instead of pinning the one baked in at
+        // launch. A box breaks the store<->fetcher construction cycle: the
+        // closure captures the box (a Sendable reference), and the box's `store`
+        // is assigned before `make()` returns - no refresh runs until the
+        // service exists, so the closure never reads it unset.
+        let box = ConfigStoreBox()
+        let fetcher = RemoteConfigFetcher(client: client) {
+            box.store?.current.apiBaseURL ?? bundled.apiBaseURL
+        }
+        let prober = RemoteHealthProber(client: client)
         let store = ConfigStore(
-            bundled: (try? ConfigDefaults.bundledAppConfig()) ?? fallbackBundled(),
+            bundled: bundled,
             cacheDirectory: cacheDirectory(),
-            verifier: ConfigSignatureVerifier(publicKeyBase64: Self.bundledConfigPublicKey),
+            verifier: ConfigSignatureVerifier(publicKeyBase64: ConfigSigningKey.bundledPublicKeyBase64),
             keychain: KeychainConfigRollbackFloor(),
             clock: { Date() },
             deviceIdentifier: deviceIdentifier(),
-            fetcher: nil
+            fetcher: fetcher,
+            healthProber: prober
         )
+        box.store = store
         return AppConfigService(
             store: store,
             runningVersion: runningVersion(arguments),
@@ -107,14 +130,21 @@ final class AppConfigService {
 
     // MARK: - Construction details
 
-    /// The config signing public key, base64. **Empty today**: the backend
-    /// signs config v1 with a key that has not been provisioned into the app
-    /// bundle yet (P0.12c / ops). A build with no key fails every fetch and
-    /// cache read OPEN to bundled defaults - exactly the fail-open the docs
-    /// demand. Bundle the real key here when it ships; never fetch it
-    /// (docs/CONFIG.md -> "Defence in depth": the key is injected, never
-    /// fetched).
-    private static let bundledConfigPublicKey = ""
+    /// A mutable holder for the store, so the fetcher's `@Sendable` base-URL
+    /// closure can read the resolved `apiBaseURL` at fetch time without
+    /// capturing a `var` (which `@Sendable` forbids). Written once in `make()`
+    /// before any refresh can run; read only from `refresh()` thereafter.
+    private final class ConfigStoreBox: @unchecked Sendable {
+        var store: ConfigStore?
+    }
+
+    /// A token provider that supplies no token, for the public config + health
+    /// endpoints (docs/API.md). `TankbookHTTPClient` still enforces the
+    /// allowlist on every request; it just never builds an `Authorization`
+    /// header for these.
+    private struct NoConfigTokenProvider: AuthorizationTokenProvider {
+        func token() -> String? { nil }
+    }
 
     /// The store's cold-start cache directory (docs/CONFIG.md -> "Where it is
     /// stored"): `Application Support/Tankbook`, the same directory the
