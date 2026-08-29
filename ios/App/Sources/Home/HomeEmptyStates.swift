@@ -72,7 +72,7 @@ struct HomeNoCarLayout: View {
             NavigationLink(value: Route.addVehicle) {
                 Text("Add your first car")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.Palette.midnight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
                     .background(Theme.Palette.taillight)

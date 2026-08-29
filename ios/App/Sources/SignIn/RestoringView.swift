@@ -185,7 +185,7 @@ struct RestoringView: View {
             } label: {
                 Text("Open my garage")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.Palette.midnight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 17)
                     .background(Theme.Palette.taillight)

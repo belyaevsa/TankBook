@@ -298,7 +298,7 @@ struct TankLevelSheet: View {
             Button(action: apply) {
                 Text(TankLevelFormat.setTitle(draft))
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.Palette.midnight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 15)
                     .background(RoundedRectangle(cornerRadius: 15).fill(Theme.Palette.taillight))

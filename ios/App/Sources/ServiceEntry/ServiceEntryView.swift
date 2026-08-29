@@ -380,7 +380,7 @@ struct ServiceEntryView: View {
             Button(action: save) {
                 Text(form.mode == .tires ? "Save swap" : "Save service")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(saveEnabled ? Color.white : Theme.Palette.inkSoft)
+                    .foregroundStyle(saveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(saveEnabled ? Theme.Palette.taillight : Theme.Palette.dash)

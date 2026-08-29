@@ -182,7 +182,7 @@ struct VehicleDetailView: View {
         Button(action: save) {
             Text("Save changes")
                 .font(.body.weight(.bold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.Palette.midnight)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Theme.Palette.taillight)

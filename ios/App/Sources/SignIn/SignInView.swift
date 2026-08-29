@@ -291,7 +291,7 @@ struct WrongProviderView: View {
                 } label: {
                     Text(L10n.switchProvider(otherProvider))
                         .font(.body.weight(.bold))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(Theme.Palette.midnight)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 15)
                         .background(Theme.Palette.taillight)

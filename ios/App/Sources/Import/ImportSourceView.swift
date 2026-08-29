@@ -269,7 +269,7 @@ struct ImportSourceView: View {
             ImportPrimaryBar(action: onChooseFile,
                              enabled: model.pickedFormat != nil && !model.isParsing) {
                 if model.isParsing {
-                    ProgressView().tint(.white)
+                    ProgressView().tint(Theme.Palette.midnight)
                 } else {
                     Text("Choose file")
                 }

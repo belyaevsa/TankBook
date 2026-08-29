@@ -207,7 +207,7 @@ struct ExpenseEntryView: View {
             Button(action: save) {
                 Text("Save expense")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(saveEnabled ? Color.white : Theme.Palette.inkSoft)
+                    .foregroundStyle(saveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(saveEnabled ? Theme.Palette.taillight : Theme.Palette.dash)

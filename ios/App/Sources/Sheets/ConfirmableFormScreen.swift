@@ -63,7 +63,7 @@ struct ConfirmableFormScreen<Content: View>: View {
             Button(action: action) {
                 Text(confirmTitle)
                     .font(.body.weight(.bold))
-                    .foregroundStyle(isEnabled ? Color.white : Theme.Palette.inkSoft)
+                    .foregroundStyle(isEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
                     .background(isEnabled ? Theme.Palette.taillight : Theme.Palette.dash)

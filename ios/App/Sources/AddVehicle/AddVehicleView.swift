@@ -109,7 +109,7 @@ struct AddVehicleView: View {
         Button(action: save) {
             Text(saveTitle)
                 .font(.body.weight(.bold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.Palette.midnight)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
                 .background(Theme.Palette.taillight)

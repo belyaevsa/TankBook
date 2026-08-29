@@ -181,7 +181,7 @@ struct AnomalyInsightCard: View {
             Button(action: onAct) {
                 Text("Create reminder")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.Palette.midnight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 11)
                     .background(Theme.Palette.warn)
@@ -339,7 +339,7 @@ struct AnomalyDismissalSheet: View {
             } label: {
                 Text("Save")
                     .font(.caption.weight(.bold))
-                    .foregroundStyle(customSaveEnabled ? Color.white : Theme.Palette.inkSoft.opacity(0.5))
+                    .foregroundStyle(customSaveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft.opacity(0.5))
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(customSaveEnabled ? Theme.Palette.warn : Theme.Palette.dash)

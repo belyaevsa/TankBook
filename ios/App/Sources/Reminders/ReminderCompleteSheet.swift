@@ -131,7 +131,7 @@ struct ReminderCompleteSheet: View {
             Button(action: typeAmount) {
                 Text("Type amount")
                     .font(.body.weight(.bold))
-                    .foregroundStyle(Color.white)
+                    .foregroundStyle(Theme.Palette.midnight)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
                     .background(Theme.Palette.taillight)

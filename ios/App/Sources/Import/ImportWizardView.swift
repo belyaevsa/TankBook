@@ -166,7 +166,7 @@ struct ImportPrimaryBar<Label: View>: View {
         Button(action: action) {
             label
                 .font(.body.weight(.bold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.Palette.midnight)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 15)
                 .background(Theme.Palette.taillight)

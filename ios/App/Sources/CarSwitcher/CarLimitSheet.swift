@@ -39,7 +39,7 @@ struct CarLimitSheet: View {
                 Button(action: onArchive) {
                     Text("Archive a car")
                         .font(.body.weight(.semibold))
-                        .foregroundStyle(Color.white)
+                        .foregroundStyle(Theme.Palette.midnight)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(Theme.Palette.taillight)

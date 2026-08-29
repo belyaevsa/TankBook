@@ -157,7 +157,7 @@ struct HomeGuestLayout: View {
                 .multilineTextAlignment(.center)
             Button("Type it", action: onTypeIt)
                 .font(.footnote.weight(.bold))
-                .foregroundStyle(Color.white)
+                .foregroundStyle(Theme.Palette.midnight)
                 .padding(.horizontal, 26)
                 .padding(.vertical, 11)
                 .background(Theme.Palette.taillight)
