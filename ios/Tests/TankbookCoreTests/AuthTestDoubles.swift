@@ -44,6 +44,7 @@ final class AuthRecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
     private struct State {
         var responses: [TankbookHTTPResponse] = []
         var received: [TankbookHTTPRequest] = []
+        var shouldFail = false
     }
 
     private let lock = OSAllocatedUnfairLock(initialState: State())
@@ -52,13 +53,18 @@ final class AuthRecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
         lock.withLock { $0.responses = responses }
     }
 
+    func failAllRequests() {
+        lock.withLock { $0.shouldFail = true }
+    }
+
     func receivedRequests() -> [TankbookHTTPRequest] {
         lock.withLock { $0.received }
     }
 
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
-        lock.withLock { state in
+        try lock.withLock { state in
             state.received.append(request)
+            if state.shouldFail { throw URLError(.notConnectedToInternet) }
             if state.responses.isEmpty { return TankbookHTTPResponse(status: 200) }
             return state.responses.removeFirst()
         }

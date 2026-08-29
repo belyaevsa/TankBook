@@ -14,6 +14,15 @@ Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7
 
 Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
 
+**The client's half of the token lifecycle (PR.1/PR.2).** A `401` on any bearer endpoint is an
+auth event, never a gate from a newer server: the client refreshes **once** through a single shared
+`SessionRefresher` actor (concurrent `401`s await the one in-flight refresh, because a reuse of a
+rotated refresh token revokes the chain), persists the rotated pair, and replays the original
+request with the new bearer. A refresh that itself answers `401` clears the session locally and
+surfaces "sign in again" - the honest next step, never "update the app". Sign-out calls
+`DELETE /auth/session` best-effort and clears the Keychain even when that call fails, so offline
+sign-out still signs out locally.
+
 All endpoints below marked **bearer** take `Authorization: Bearer <accessToken>`. **public** = no auth.
 
 ## Sync (the core – "latest data" and "changes")

@@ -25,7 +25,8 @@ enum AccountDevicesService {
         let client = AccountClient(
             httpClient: TankbookHTTPClient(
                 transport: transport,
-                tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
+                tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
+                refresher: AppSessionRefresher.shared),
             baseURL: baseURL)
         return AccountDevicesModel(client: client, sessionStore: sessionStore)
     }

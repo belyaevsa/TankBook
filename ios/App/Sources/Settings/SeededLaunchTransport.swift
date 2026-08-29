@@ -27,6 +27,17 @@ struct SeededLaunchTransport: TankbookHTTPTransport {
     }
 }
 
+/// PR.1's UI-test seam: answers every request with a `401`, so a seeded
+/// signed-in launch runs the real 401 -> refresh -> refresh-fails path and
+/// surfaces the re-sign-in card (the expired-session state no real server can
+/// produce deterministically in a screenshot). Stateless - the same 401 comes
+/// back for the sync pull, the push and `/auth/refresh`.
+struct AuthExpiredTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        TankbookHTTPResponse(status: 401)
+    }
+}
+
 enum SeededLaunch {
     /// True when the process was launched by a UI test or the screenshot script.
     ///
@@ -52,8 +63,12 @@ enum SeededLaunch {
     }
 
     /// The transport to use for this launch: offline under a seed, real otherwise.
+    /// The auth-expired seed is the one exception to "offline": it answers 401 so
+    /// the real refresh path runs and fails (PR.1).
     static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
         -> any TankbookHTTPTransport {
-        isSeeded(arguments) ? SeededLaunchTransport() : URLSessionTransport()
+        if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
+        if isSeeded(arguments) { return SeededLaunchTransport() }
+        return URLSessionTransport()
     }
 }

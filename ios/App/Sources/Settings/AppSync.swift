@@ -13,17 +13,20 @@ enum SyncService {
         let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
             ?? URL(string: "https://api.tankbook.live")!
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
+        let refresher = AppSessionRefresher.shared
         let transport = RemoteSyncTransport(
             baseURL: baseURL,
             transport: SeededLaunch.transport(),
-            tokenProvider: tokenProvider
+            tokenProvider: tokenProvider,
+            refresher: refresher
         )
         // P4.6: the blob gate hooks attachments into the push loop - a live
         // attachment record uploads its rendition (begin -> PUT -> commit)
         // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
         let blobGate = LocalFileBlobPushGate(
             uploader: BlobUploader(transport: RemoteBlobTransport(
-                baseURL: baseURL, transport: SeededLaunch.transport(), tokenProvider: tokenProvider)),
+                baseURL: baseURL, transport: SeededLaunch.transport(), tokenProvider: tokenProvider,
+                refresher: refresher)),
             source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
         )
         let engine = SyncEngine(
@@ -48,7 +51,8 @@ enum SyncService {
         let transport = RemoteBlobTransport(
             baseURL: baseURL,
             transport: SeededLaunch.transport(),
-            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)
+            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
+            refresher: AppSessionRefresher.shared
         )
         let store = FileBackedBlobStore(
             directory: (try? VehiclePhotoStore.attachmentsDirectory())
@@ -154,6 +158,7 @@ final class AppSync {
             transportUnavailable: forcedTransportUnavailable
                 || (lastOutcome?.transportUnavailable ?? false),
             deviceRevoked: forcedRevoked || (lastOutcome?.deviceRevoked ?? false),
+            authExpired: lastOutcome?.authExpired ?? false,
             quotaUsedPercent: forcedQuotaPercent,
             flaggedCount: flaggedCount,
             isSyncing: isSyncing,
@@ -164,6 +169,11 @@ final class AppSync {
     }
 
     var status: SyncStatus { SyncSurface.status(surfaceState) }
+
+    /// Whether the last cycle ended with an expired session whose refresh was
+    /// rejected (PR.1). The account card shows the re-sign-in card for this,
+    /// never "update the app".
+    var authExpired: Bool { lastOutcome?.authExpired ?? false }
 
     /// The server-ahead notice the Settings account card surfaces: the forced
     /// fixture when a seed set one, else the coordinator's last outcome. It is

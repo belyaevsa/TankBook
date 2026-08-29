@@ -368,6 +368,14 @@ enum L10n {
         localize("This device was signed out – sign in to reconnect. Your data on this phone is untouched.")
     }
 
+    /// "Your session has expired – sign in again. Your data on this phone is
+    /// untouched." - the PR.1 auth-expired card (docs/ERRORS.md -> Settings):
+    /// the refresh token came back rejected, so the session is gone and the next
+    /// step is signing in again - never "update the app" (hard rule 7).
+    static var authExpiredMessage: String {
+        localize("Your session has expired – sign in again. Your data on this phone is untouched.")
+    }
+
     /// "Sync service unreachable – your data is safe on this phone. It will go
     /// up automatically when the service is back." (docs/ERRORS.md -> Settings,
     /// the server-5xx card). Reassurance, never amber.

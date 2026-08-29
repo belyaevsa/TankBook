@@ -42,6 +42,9 @@ public enum BlobSyncError: Error, Equatable, Sendable {
     case hashMismatch
     /// The host could not be reached or was refused.
     case transportUnavailable
+    /// The access token expired and the refresh failed (PR.1): an auth event,
+    /// never an undecodable body and never an unknown gate.
+    case authExpired
     /// The server answered but the body could not be decoded.
     case invalidResponse
 }

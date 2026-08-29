@@ -8,7 +8,6 @@ import TankbookCore
 /// a real session to the Keychain (or clears it) and the screen reads it back
 /// through `SessionStore`.
 enum SettingsTestSeed {
-
     enum State {
         case none
         case guest
@@ -22,6 +21,7 @@ enum SettingsTestSeed {
         case refused
         case rateLimited
         case lowPower
+        case authExpired
     }
 
     static func state(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> State {
@@ -38,7 +38,8 @@ enum SettingsTestSeed {
             "-seedSettingsTierRefused": .tierRefused,
             "-seedSettingsRefused": .refused,
             "-seedSettingsRateLimited": .rateLimited,
-            "-seedSettingsLowPower": .lowPower
+            "-seedSettingsLowPower": .lowPower,
+            "-seedSettingsAuthExpired": .authExpired
         ]
         for argument in arguments {
             if let state = seeds[argument] { return state }
@@ -66,7 +67,12 @@ enum SettingsTestSeed {
     static func seedSessionAtLaunchIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         let state = Self.state(arguments)
-        guard state != .none, state != .guest else { return }
+        // The auth-expired seed is deliberately NOT planted at launch: the
+        // launch opportunistic sync must see no session (a no-op), so the
+        // re-sign-in card is produced deterministically by the "Sync now" tap
+        // after `seedIfRequested` writes the session - never by racing the
+        // launch sync's 401 -> refresh -> fail path against the seed.
+        guard state != .none, state != .guest, state != .authExpired else { return }
         let store = KeychainSessionStore()
         try? store.clear()
         try? store.save(stubSession())

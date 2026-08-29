@@ -11,8 +11,10 @@ public struct RemoteSyncTransport: SyncTransport {
     private let baseURL: URL
 
     public init(baseURL: URL, transport: any TankbookHTTPTransport,
-                tokenProvider: any AuthorizationTokenProvider) {
-        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
+                tokenProvider: any AuthorizationTokenProvider,
+                refresher: (any SessionRefreshing)? = nil) {
+        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
+                                         refresher: refresher)
         self.baseURL = baseURL
     }
 
@@ -49,12 +51,25 @@ public struct RemoteSyncTransport: SyncTransport {
             response = try await client.send(request)
         } catch TankbookHTTPClientError.hostNotAllowlisted {
             throw SyncServerError.transportUnavailable
+        } catch SessionRefresherError.authExpired {
+            throw SyncServerError.authExpired
         } catch {
             throw SyncServerError.transportUnavailable
         }
+        return try Self.requireSuccess(response)
+    }
+
+    /// Maps a non-2xx status to its `SyncServerError`. A 401 is an auth event,
+    /// never an unknown gate from a newer server (PR.1 - the honest next step is
+    /// "sign in again", never "update the app").
+    private static func requireSuccess(_ response: TankbookHTTPResponse) throws -> TankbookHTTPResponse {
         switch response.status {
         case 200...299:
             return response
+        case 401:
+            // Unreachable with a wired refresher (the client intercepts 401
+            // first); without one, a 401 is still an auth event.
+            throw SyncServerError.authExpired
         case 410:
             throw SyncServerError.deviceRevoked
         case 426:

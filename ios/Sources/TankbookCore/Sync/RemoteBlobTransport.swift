@@ -14,8 +14,10 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
     private let raw: any TankbookHTTPTransport
 
     public init(baseURL: URL, transport: any TankbookHTTPTransport,
-                tokenProvider: any AuthorizationTokenProvider) {
-        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
+                tokenProvider: any AuthorizationTokenProvider,
+                refresher: (any SessionRefreshing)? = nil) {
+        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
+                                         refresher: refresher)
         self.baseURL = baseURL
         self.raw = transport
     }
@@ -32,6 +34,8 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         switch response.status {
         case 200:
             return try decodeBegin(response.body)
+        case 401:
+            throw BlobSyncError.authExpired
         case 413:
             throw BlobSyncError.sizeExceeded
         case 429:
@@ -58,7 +62,10 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         var request = TankbookHTTPRequest(url: endpoint("blobs/commit"), method: "POST", body: body)
         request.headers["Content-Type"] = "application/json"
         let response = try await send(request)
-        guard (200...299).contains(response.status) else { throw BlobSyncError.invalidResponse }
+        guard (200...299).contains(response.status) else {
+            if response.status == 401 { throw BlobSyncError.authExpired }
+            throw BlobSyncError.invalidResponse
+        }
     }
 
     public func download(sha256: String) async throws -> Data {
@@ -70,6 +77,8 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         case 200:
             guard let body = response.body else { throw BlobSyncError.invalidResponse }
             return body
+        case 401:
+            throw BlobSyncError.authExpired
         case 404:
             throw BlobSyncError.notFound
         default:
@@ -84,6 +93,8 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
             return try await client.send(request)
         } catch TankbookHTTPClientError.hostNotAllowlisted {
             throw BlobSyncError.transportUnavailable
+        } catch SessionRefresherError.authExpired {
+            throw BlobSyncError.authExpired
         } catch {
             throw BlobSyncError.transportUnavailable
         }

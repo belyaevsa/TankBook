@@ -80,6 +80,26 @@ final class SettingsUITests: XCTestCase {
                       "the quota card names its next step: Pro")
     }
 
+    /// PR.1: an expired session shows the re-sign-in card, never "update the
+    /// app". The seed answers 401 for the sync AND the refresh, so the real
+    /// 401 -> refresh -> refresh-fails path runs and the surface derives the
+    /// card from the outcome (the card is asserted by nothing else).
+    func testExpiredSessionShowsReSignInCardNotUpdateNotice() {
+        let app = launchSettings(seed: "-seedSettingsAuthExpired")
+        // The launch sync may already have expired the session; if it has not,
+        // drive the cycle deterministically with "Sync now".
+        let syncNow = app.buttons["settingsSyncNowButton"]
+        if syncNow.waitForExistence(timeout: 5) {
+            syncNow.tap()
+        }
+        XCTAssertTrue(app.otherElements["settingsAuthExpiredCard"].waitForExistence(timeout: 10),
+                      "an expired session shows the re-sign-in card, not the update notice")
+        XCTAssertTrue(app.buttons["settingsAuthExpiredSignInButton"].exists,
+                      "the expired-session card names its next step: sign in")
+        XCTAssertFalse(app.staticTexts["settingsSyncNoticeAttention"].exists,
+                       "an expired session is never 'the server has moved ahead'")
+    }
+
     // MARK: - The flagged row navigates to the filtered Log
 
     func testFlaggedRowNavigatesToFilteredLog() {

@@ -86,31 +86,48 @@ public enum TankbookHTTPClientError: Error, Sendable, Equatable {
 public struct TankbookHTTPClient: Sendable {
     private let transport: any TankbookHTTPTransport
     private let tokenProvider: any AuthorizationTokenProvider
+    private let refresher: (any SessionRefreshing)?
     private let maxRedirects: Int
 
     public init(
         transport: any TankbookHTTPTransport,
         tokenProvider: any AuthorizationTokenProvider,
+        refresher: (any SessionRefreshing)? = nil,
         maxRedirects: Int = 10
     ) {
         self.transport = transport
         self.tokenProvider = tokenProvider
+        self.refresher = refresher
         self.maxRedirects = maxRedirects
     }
 
     /// Sends a request, following redirects while re-checking the allowlist at
     /// every hop. A request to a non-allowlisted host is refused before any I/O.
+    ///
+    /// A `401` is an auth event, not a gate from a newer server (PR.1): when a
+    /// refresher is wired, the client refreshes once and replays the request
+    /// with the rotated bearer; a failed refresh propagates as
+    /// `SessionRefresherError`, so no transport ever maps a 401 to an
+    /// "update the app" refusal again.
     public func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         guard HostAllowlist.allows(url: request.url) else {
             throw TankbookHTTPClientError.hostNotAllowlisted
         }
-        return try await follow(request, remainingRedirects: maxRedirects)
+        var response = try await follow(request, remainingRedirects: maxRedirects, overrideToken: nil)
+        if response.status == 401, let refresher {
+            let token = try await refresher.refresh()
+            response = try await follow(request, remainingRedirects: maxRedirects, overrideToken: token)
+        }
+        return response
     }
 
     /// Executes one hop, then follows a redirect if present and allowed.
+    /// `overrideToken` carries a freshly rotated bearer through the replay; when
+    /// nil the token is read from the provider as usual.
     private func follow(_ request: TankbookHTTPRequest,
-                        remainingRedirects: Int) async throws -> TankbookHTTPResponse {
-        let response = try await transport.execute(authorizing(request))
+                        remainingRedirects: Int,
+                        overrideToken: String?) async throws -> TankbookHTTPResponse {
+        let response = try await transport.execute(authorizing(request, overrideToken: overrideToken))
 
         guard isRedirect(response.status) else { return response }
         guard remainingRedirects > 0 else { throw TankbookHTTPClientError.tooManyRedirects }
@@ -124,16 +141,23 @@ public struct TankbookHTTPClient: Sendable {
         // token never travels to a host it was not bound to.
         var next = TankbookHTTPRequest(url: nextURL, method: request.method, headers: request.headers)
         next.headers.removeValue(forKey: "Authorization")
-        return try await follow(next, remainingRedirects: remainingRedirects - 1)
+        return try await follow(next, remainingRedirects: remainingRedirects - 1,
+                                overrideToken: overrideToken)
     }
 
     /// Returns a copy of `request` with `Authorization` attached **only** when
     /// the request host is allowlisted. This is the single point where the
     /// header string is constructed, and it never runs for a non-allowlisted
-    /// host.
-    private func authorizing(_ request: TankbookHTTPRequest) -> TankbookHTTPRequest {
+    /// host. `overrideToken` (the post-refresh replay) wins over the provider
+    /// so the replay carries the rotated bearer even when the provider has not
+    /// re-read it yet.
+    private func authorizing(_ request: TankbookHTTPRequest,
+                             overrideToken: String?) -> TankbookHTTPRequest {
         var out = request
-        if HostAllowlist.allows(url: request.url), let token = tokenProvider.token() {
+        guard HostAllowlist.allows(url: request.url) else { return out }
+        if let overrideToken {
+            out.headers["Authorization"] = "Bearer \(overrideToken)"
+        } else if let token = tokenProvider.token() {
             out.headers["Authorization"] = "Bearer \(token)"
         }
         return out

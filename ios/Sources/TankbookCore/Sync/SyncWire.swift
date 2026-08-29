@@ -122,6 +122,11 @@ public enum SyncServerError: Error, Equatable, Sendable {
     /// `410`: the device is revoked or the account is deleted. Local data stays
     /// local; the app re-onboards or detaches.
     case deviceRevoked
+    /// The access token expired and the refresh failed (the refresh token was
+    /// rejected). The session is gone; the user signs in again. This is an auth
+    /// event, never an unknown gate from a newer server (PR.1 - never "update
+    /// the app").
+    case authExpired
     /// `426`: the push batch is refused because the client's schema version is
     /// below the server's minimum. Pull still works - never lock a user out.
     case upgradeRequired

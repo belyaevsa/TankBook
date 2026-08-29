@@ -78,6 +78,33 @@ struct SettingsView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("settingsAccountCard")
+        } else if sync.authExpired {
+            // The session expired and the refresh was rejected (PR.1): the user
+            // must sign in again. A card with its next step, never "update the
+            // app" (hard rule 7) - the app is current, the token is not.
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "person.crop.circle.badge.exclamationmark")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.Palette.warn)
+                        .padding(.top, 1)
+                    Text(L10n.authExpiredMessage)
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.ink)
+                        .lineSpacing(1.5)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 0)
+                }
+                Button("Sign in") { showsSignIn = true }
+                    .buttonStyle(.plain)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.action)
+                    .accessibilityIdentifier("settingsAuthExpiredSignInButton")
+            }
+            .padding(14)
+            .formCard()
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier("settingsAuthExpiredCard")
         } else {
             Button {
                 showsSignIn = true
@@ -160,7 +187,7 @@ struct SettingsView: View {
                                       lowPowerReason: SyncSurface.lowPowerReason(sync.surfaceState))
         case .serverUnreachable, .quotaFull:
             return L10n.syncedAgo(lastSyncDate: sync.lastSyncDate)
-        case .deviceRevoked:
+        case .deviceRevoked, .authExpired:
             return L10n.localize("Signed out")
         }
     }
@@ -401,6 +428,10 @@ private struct SettingsSyncSurface: View {
                     .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("settingsRevokedSignInButton")
             }
+        case .authExpired:
+            // The expired-session card renders in the account card's signed-out
+            // branch, so this status never reaches the signed-in issue cards.
+            EmptyView()
         case .quotaFull:
             transportCard(
                 icon: "photo.badge.exclamationmark",

@@ -169,9 +169,17 @@ final class SignInFlow {
         startSignIn(provider: current == .apple ? .google : .apple)
     }
 
-    /// Sign out (the wrong-provider and Restoring escapes): the session goes,
-    /// the local app is untouched (docs/SECURITY.md -> the sign-out test).
+    /// Sign out (the wrong-provider and Restoring escapes): revokes the session
+    /// server-side best-effort, then clears it locally (docs/SECURITY.md -> the
+    /// sign-out test). The clear is synchronous - a following sign-in
+    /// (`switchProvider`) must never race a stale clear - while the revoke
+    /// (`DELETE /auth/session`) rides in the background with the captured
+    /// bearer, so an offline sign-out still signs out locally (hard rule 1).
     func signOutLocally() {
+        let session = try? sessionStore.load()
+        if let session {
+            Task { try? await authService.signOut(session) }
+        }
         try? sessionStore.clear()
     }
 
@@ -316,7 +324,8 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
         let transport = RemoteSyncTransport(
             baseURL: baseURL,
             transport: URLSessionTransport(),
-            tokenProvider: tokenProvider
+            tokenProvider: tokenProvider,
+            refresher: AppSessionRefresher.shared
         )
         // A fresh cursor: restore always pulls from 0, never from a stale
         // account's cursor.

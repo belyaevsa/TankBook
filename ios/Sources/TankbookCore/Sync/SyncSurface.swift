@@ -14,6 +14,10 @@ public struct SyncSurfaceState: Equatable, Sendable {
     public var transportUnavailable: Bool
     /// The device was revoked (410) - a transport issue that belongs here.
     public var deviceRevoked: Bool
+    /// The session expired and the refresh failed (PR.1): the user must sign in
+    /// again. An account issue, surfaced as a card with its next step - never
+    /// "update the app".
+    public var authExpired: Bool
     /// Blob-storage quota usage percent; nil = no quota pressure (429).
     public var quotaUsedPercent: Int?
     /// Records carrying a `ConflictState` (derived, never stored).
@@ -33,6 +37,7 @@ public struct SyncSurfaceState: Equatable, Sendable {
         dirtyCount: Int = 0,
         transportUnavailable: Bool = false,
         deviceRevoked: Bool = false,
+        authExpired: Bool = false,
         quotaUsedPercent: Int? = nil,
         flaggedCount: Int = 0,
         isSyncing: Bool = false,
@@ -43,6 +48,7 @@ public struct SyncSurfaceState: Equatable, Sendable {
         self.dirtyCount = dirtyCount
         self.transportUnavailable = transportUnavailable
         self.deviceRevoked = deviceRevoked
+        self.authExpired = authExpired
         self.quotaUsedPercent = quotaUsedPercent
         self.flaggedCount = flaggedCount
         self.isSyncing = isSyncing
@@ -65,6 +71,8 @@ public enum SyncStatus: Equatable, Sendable {
     case serverUnreachable
     /// The device was signed out (410): an account issue the user can act on.
     case deviceRevoked
+    /// The session expired and the refresh failed (PR.1): sign in again.
+    case authExpired
     /// Blob storage is near/full (429): an account issue the user can act on.
     case quotaFull
 
@@ -73,7 +81,7 @@ public enum SyncStatus: Equatable, Sendable {
     /// age, queue length and a service outage are not.
     public var isAttention: Bool {
         switch self {
-        case .deviceRevoked, .quotaFull: return true
+        case .deviceRevoked, .authExpired, .quotaFull: return true
         case .synced, .waitingToSync, .serverUnreachable: return false
         }
     }
@@ -90,6 +98,7 @@ public enum SyncSurface {
     /// hour old - the "never turns amber with age" rule).
     public static func status(_ state: SyncSurfaceState) -> SyncStatus {
         if state.deviceRevoked { return .deviceRevoked }
+        if state.authExpired { return .authExpired }
         if let quota = state.quotaUsedPercent, quota >= 95 { return .quotaFull }
         if state.transportUnavailable && state.dirtyCount == 0 {
             return .serverUnreachable

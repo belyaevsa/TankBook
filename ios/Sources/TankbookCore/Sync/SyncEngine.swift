@@ -9,6 +9,11 @@ public struct SyncOutcome: Equatable, Sendable {
     public var flaggedEntries = 0
     public var clampedIds: [UUID] = []
     public var deviceRevoked = false
+    /// The access token expired and the refresh failed (PR.1): the session is
+    /// gone and the user signs in again. Distinct from `deviceRevoked` (a 410
+    /// from the server) and from `transportUnavailable` (an outage the app
+    /// retries itself). Nothing is lost - rows stay dirty (S7).
+    public var authExpired = false
     public var upgradeRequired = false
     public var transportUnavailable = false
     /// A `402`/unknown-4xx refusal from a server newer than this client, or a
@@ -84,6 +89,9 @@ public struct SyncEngine {
         } catch SyncServerError.deviceRevoked {
             outcome.deviceRevoked = true
             return outcome
+        } catch SyncServerError.authExpired {
+            outcome.authExpired = true
+            return outcome
         } catch {
             outcome.transportUnavailable = true
             return outcome
@@ -108,6 +116,9 @@ public struct SyncEngine {
             try? repository.recoverStuckPushes()
         } catch SyncServerError.refused(let status) {
             outcome.refusedByServer = .refused(status: status)
+            try? repository.recoverStuckPushes()
+        } catch SyncServerError.authExpired {
+            outcome.authExpired = true
             try? repository.recoverStuckPushes()
         } catch {
             outcome.transportUnavailable = true

@@ -100,6 +100,17 @@ struct SyncStatusMappingTests {
         }
     }
 
+    /// PR.1: a 401 is an auth event, never an unknown gate from a newer server.
+    /// The honest next step is "sign in again", not "update the app" - the
+    /// whole point of this mapping.
+    @Test("a 401 is authExpired, never a refusal to update")
+    func unauthorizedIsAuthExpired() async {
+        #expect(await pullError(status: 401) == .authExpired)
+        #expect(await pullError(status: 401) != .refused(status: 401))
+        #expect(await pullError(status: 401) != .transportUnavailable)
+        #expect(await pullError(status: 401) != .invalidResponse)
+    }
+
     /// A 5xx is the server having a problem, which is S7: it resolves itself,
     /// rows return to dirty, and it must NOT be reported as a refusal that asks
     /// the user to update an app that is perfectly current.

@@ -118,6 +118,11 @@ public struct AccountClient: Sendable {
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         do {
             return try await httpClient.send(request)
+        } catch SessionRefresherError.authExpired {
+            // The access token expired and the refresh failed: the session is
+            // gone. Same next step as a 401 - sign in again (hard rule 1, local
+            // data untouched).
+            throw AccountClientError.unauthorized
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.
