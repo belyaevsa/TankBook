@@ -2,7 +2,7 @@
 
 *The complete HTTP surface of the C#/ASP.NET Core backend. Shapes reference `SCHEMA.md` (payloads) and `SYNC.md` (protocol semantics). This document is the contract both the iOS client and the backend implement against – changes here are breaking-change reviews, not refactors.*
 
-Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7807 problem+json: `{ type, title, status, detail }`. All endpoints are TLS-only. Rate limits return `429` with `Retry-After`.
+Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7807 problem+json: `{ type, title, status, detail }`. All endpoints are TLS-only. Rate limits return `429` with `Retry-After`; oversize bodies return `413` with the `traceId` (see "Rate limits and request body caps").
 
 ## Auth
 
@@ -329,6 +329,36 @@ never a second 3 s wait imposed on someone who has already moved on.
 ## Ops
 
 `GET /health` – liveness (public, unversioned). Everything else is versioned under `/v1/…` from day one; additive evolution within v1 (new optional fields, new endpoints), breaking changes = `/v2`.
+
+## Rate limits and request body caps
+
+Every limit here is a flood guard, chosen so a real user can never hit it – a `429` means an attacker or a bug, not a busy human. A rate-limited request is a `429` problem+json carrying `Retry-After` (seconds until the window resets); the client decodes and displays that header, so the user always knows when to retry (hard rule 7). The limits are operational and bind from the `RateLimit` configuration section (`RateLimit__AuthSessionPerMinute` etc.).
+
+**Rate limits** (requests per one-minute fixed window):
+
+| Endpoint | Key | Default |
+|---|---|---|
+| `POST /auth/session` | client IP | 30/min |
+| `POST /auth/refresh` | client IP | 60/min |
+| `POST /import/parse` | client IP | 20/min |
+| `POST /catalog/publish` | client IP | 30/min |
+| `POST /extract` | device | 30/min |
+| `POST /sync/push` | device | 120/min |
+| `POST /blobs/begin` | device | 120/min |
+
+Per-device limits key on the authenticated device id (the bearer token's `device_id`), falling back to the `X-Device-Id` header, then the IP.
+
+**Request body caps** (enforced at the envelope, before any byte is read; an oversize body is a `413` problem+json carrying its `traceId`, never a bare connection reset):
+
+| Endpoint | Cap |
+|---|---|
+| `POST /sync/push` | 200 × 256 KB payloads + envelope (~52 MB) – the maximal legal batch |
+| `POST /extract` | 6 MB (4 MB base64 image + envelope) |
+| `POST /import/parse` | 8 MB file + multipart envelope |
+| `POST /catalog/publish` | 8 MB (a full operator pack; the 64 KB default deliberately does not apply) |
+| everything else (auth, blobs begin/commit, account push-token) | 64 KB |
+
+The push cap references the same constants the payload validator and sync service enforce, so the transport can never reject a batch the server would otherwise accept (`PRACTICES.md` – a number in two places is a bug).
 
 ## Explicitly not in the API
 

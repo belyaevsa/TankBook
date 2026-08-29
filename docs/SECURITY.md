@@ -57,7 +57,22 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 | Account-hash salt (`LOGGING.md`) | Platform secret store, dev default only in `appsettings.Development.json` |
 | LLM provider API key | Platform secret store; never leaves the gateway process |
 
-`appsettings.json` holds empty placeholders; `appsettings.Development.json` holds only local-dev values (`localhost`, `tankbook`, `minio`). A CI check greps for anything resembling a real credential.
+`appsettings.json` holds only placeholders (the committed dev signing-key placeholder, empty S3/Postgres credentials); `appsettings.Development.json` holds only local-dev values (`localhost`, `tankbook`, `minio`). A CI check greps for anything resembling a real credential.
+
+**A committed placeholder is a refusal, not a warning (PR.34).** Outside Development the server
+refuses to start if the account-hash salt (`Tankbook:Logging:HashSalt`) is unset or the committed
+`change-me` placeholder, if `Config:SigningKey` is unset or the committed dev placeholder, or if
+`Auth:JwtSigningKeyBase64` is unset. A warning is not a refusal: a production server that boots
+hashing account ids with a salt printed in this repo, or signing config documents with a keypair
+anyone who reads this repo can reproduce and forge, has already lost. The refusal names the setting
+and how to supply it (the same next-step rule operators get, `ERRORS.md`). Development and the test
+host are exempt; real deployments are not.
+
+**A presigned PUT is bound to what was declared, not bearer-of-the-URL (PR.18).** `POST /blobs/begin`
+mints a presigned PUT that signs the declared `contentType` and `size` into the URL, so the URL
+cannot be reused to upload bytes of a different kind or length for its whole lifetime. The orphan
+sweep (`SweepOrphansAsync` + `DeleteStalePendingAsync`) runs hourly across all accounts, so a
+never-committed upload or an unreferenced blob is cleaned up rather than filling the store forever.
 
 ## Transport
 

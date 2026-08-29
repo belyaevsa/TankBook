@@ -12,11 +12,13 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Catalog;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
+using Tankbook.Api.Http;
 using Tankbook.Api.Import;
 using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Notifications;
 using Tankbook.Api.Options;
+using Tankbook.Api.RateLimiting;
 using Tankbook.Api.Rates;
 using Tankbook.Api.Sync;
 
@@ -53,6 +55,16 @@ builder.Services.Configure<CatalogOptions>(
     builder.Configuration.GetSection(CatalogOptions.SectionName));
 builder.Services.Configure<ImportOptions>(
     builder.Configuration.GetSection(ImportOptions.SectionName));
+builder.Services.Configure<RateLimitOptions>(
+    builder.Configuration.GetSection(RateLimitOptions.SectionName));
+
+// The Kestrel default body cap (30 MB) is below a maximal legal sync push batch
+// (200 changes x 256 KB + envelope, docs/API.md "Request body caps"), so the
+// server-level ceiling is raised to the largest legal body and every endpoint is
+// then capped explicitly (BodySizeLimits, PR.17). An oversize body is a 413
+// problem+json, never a bare connection reset.
+builder.WebHost.ConfigureKestrel(options =>
+    options.Limits.MaxRequestBodySize = BodySizeLimits.PushBytes);
 
 // Logging foundations (docs/LOGGING.md). One JSON object per line to stdout
 // (human-readable only in Development), every line redacted through the
@@ -199,6 +211,14 @@ builder.Services.AddSingleton<IBlobStorage>(sp =>
         sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddScoped<BlobRepository>();
 builder.Services.AddScoped<BlobService>();
+builder.Services.AddScoped<BlobSweepService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    // The orphan sweep (docs/PRACTICES.md S11, PR.18) runs hourly across every
+    // account; like the account/import purges the timer is not registered in
+    // test hosts, so tests drive BlobSweepService.SweepAllAsync directly.
+    builder.Services.AddHostedService<BlobSweepHostedService>();
+}
 
 // Account & devices (docs/API.md "Account & devices") and the grace purge job
 // (docs/SYNC.md "Offline & failure behavior"). The purge is a scoped service so
@@ -242,21 +262,49 @@ builder.Services.AddSingleton<ILlmProvider>(sp =>
 builder.Services.AddScoped<LlmRepository>();
 builder.Services.AddScoped<LlmService>();
 
+// Rate limiting (docs/API.md "Rate limits", PR.17): per-IP on the unauth
+// mutating surfaces, per-device on the bearer mutating surfaces. A rejection is
+// a 429 problem+json with Retry-After and the traceId (hard rule 7).
+builder.Services.AddTankbookRateLimiting(
+    builder.Configuration.GetSection(RateLimitOptions.SectionName).Get<RateLimitOptions>() ?? new RateLimitOptions());
+
 var app = builder.Build();
 
-if (!builder.Environment.IsDevelopment() &&
-    (string.IsNullOrWhiteSpace(loggingOptions.HashSalt) ||
-     loggingOptions.HashSalt == "tankbook-dev-hash-salt-change-me"))
+// Startup secrets guard (docs/SECURITY.md, PR.34): a production-like host must
+// refuse to start with any committed placeholder or unset secret. A warning is
+// not a refusal - a server that boots hashing account ids with a salt printed
+// in this repo, or signing config documents with a keypair anyone reading this
+// repo can reproduce and forge, has already lost. The message names the setting
+// and how to supply it (hard rule 7 applies to operators too).
+if (!builder.Environment.IsDevelopment() && !builder.Environment.IsEnvironment("Testing"))
 {
-    app.Logger.LogWarning(
-        "Tankbook:Logging:HashSalt is unset or the dev placeholder; set it from secrets in production. accountHash is not reliable.");
-}
+    var problems = new List<string>();
 
-if (!builder.Environment.IsDevelopment() &&
-    string.IsNullOrWhiteSpace(builder.Configuration["Auth:JwtSigningKeyBase64"]))
-{
-    app.Logger.LogWarning(
-        "Auth:JwtSigningKeyBase64 is unset; access tokens are signed with an ephemeral key and will not survive a restart. Set it from secrets in production.");
+    if (string.IsNullOrWhiteSpace(builder.Configuration["Tankbook:Logging:HashSalt"]) ||
+        builder.Configuration["Tankbook:Logging:HashSalt"] == LoggingOptions.DevHashSalt)
+    {
+        problems.Add(
+            "Tankbook:Logging:HashSalt is unset or the committed dev placeholder; set it from the platform secret store.");
+    }
+
+    if (string.IsNullOrWhiteSpace(builder.Configuration["Config:SigningKey"]) ||
+        builder.Configuration["Config:SigningKey"] == ConfigSigningOptions.DevPlaceholderSeed)
+    {
+        problems.Add(
+            "Config:SigningKey is unset or the committed dev placeholder; set it from the platform secret store.");
+    }
+
+    if (string.IsNullOrWhiteSpace(builder.Configuration["Auth:JwtSigningKeyBase64"]))
+    {
+        problems.Add(
+            "Auth:JwtSigningKeyBase64 is unset; set it from the platform secret store so access tokens survive a restart and are not signed with an ephemeral key.");
+    }
+
+    if (problems.Count > 0)
+    {
+        throw new InvalidOperationException(
+            "Refusing to start outside Development with unsafe secret configuration: " + string.Join(" ", problems));
+    }
 }
 
 // Trace correlation + the per-request line must wrap everything below so every
@@ -267,6 +315,16 @@ app.UseMiddleware<TraceCorrelationMiddleware>();
 // validates an Authorization header when present and exposes the account/device
 // identity via AuthContext. Public endpoints simply see no identity.
 app.UseMiddleware<BearerAuthenticationMiddleware>();
+
+// Routing must run before the rate limiter so the per-endpoint policies are
+// visible; the rate limiter must run after bearer auth so per-device policies
+// can key on the authenticated device (docs/API.md "Rate limits", PR.17).
+app.UseRouting();
+app.UseRateLimiter();
+
+// Per-endpoint request-body caps (docs/API.md "Request body caps", PR.17):
+// enforced after routing so the endpoint's declared cap is visible.
+app.UseMiddleware<BodySizeLimitMiddleware>();
 
 // Errors become problem+json with the traceId extension member, and every
 // ERROR line carries errorCode/exceptionType/message/stackTrace/traceId plus
@@ -358,7 +416,9 @@ rates.MapGet("/pack", RateEndpoints.GetRatesPack);
 // gated on the Catalog:AdminToken secret, never on a user account.
 var catalog = v1.MapGroup("/catalog");
 catalog.MapGet("", CatalogEndpoints.GetCatalog);
-catalog.MapPost("/publish", CatalogEndpoints.Publish);
+catalog.MapPost("/publish", CatalogEndpoints.Publish)
+    .RequireRateLimiting(RateLimitingSetup.CatalogPublish)
+    .WithBodySizeLimit(BodySizeLimits.CatalogPublishBytes);
 
 // Import parsing (docs/API.md "Import parsing"): the one endpoint that reads
 // what a field means, plus the public format list and the stored-parse read and
@@ -370,40 +430,55 @@ import.MapGet("/formats", ImportEndpoints.Formats);
 // The parse endpoint is a public multipart upload consumed by the native app -
 // there are no browser cookies to protect, so the anti-forgery metadata that
 // [FromForm] would otherwise attach is disabled (docs/API.md "Import parsing").
-import.MapPost("/parse", ImportEndpoints.Parse).DisableAntiforgery();
+import.MapPost("/parse", ImportEndpoints.Parse)
+    .DisableAntiforgery()
+    .RequireRateLimiting(RateLimitingSetup.ImportParse)
+    .WithBodySizeLimit(BodySizeLimits.ImportBytes);
 import.MapGet("/{importId:guid}", ImportEndpoints.Get);
 import.MapDelete("/{importId:guid}", ImportEndpoints.Delete);
 
 // Auth (docs/API.md Auth): session exchange, refresh rotation, sign-out.
 var auth = v1.MapGroup("/auth");
-auth.MapPost("/session", AuthEndpoints.CreateSession);
-auth.MapPost("/refresh", AuthEndpoints.Refresh);
+auth.MapPost("/session", AuthEndpoints.CreateSession)
+    .RequireRateLimiting(RateLimitingSetup.AuthSession)
+    .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
+auth.MapPost("/refresh", AuthEndpoints.Refresh)
+    .RequireRateLimiting(RateLimitingSetup.AuthRefresh)
+    .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
 auth.MapDelete("/session", AuthEndpoints.SignOut);
 
 // Sync (docs/API.md Sync, docs/SYNC.md): push and pull over the record stream.
 // Both bearer endpoints; fetching the latest data is pulling from 0.
 var sync = v1.MapGroup("/sync");
 sync.MapGet("/pull", SyncEndpoints.Pull);
-sync.MapPost("/push", SyncEndpoints.Push);
+sync.MapPost("/push", SyncEndpoints.Push)
+    .RequireRateLimiting(RateLimitingSetup.SyncPush)
+    .WithBodySizeLimit(BodySizeLimits.PushBytes);
 
 // Attachments (docs/API.md "Attachments"): the content-addressed blob pipeline.
 // All three bearer endpoints; the server never proxies file bytes - it only
 // mints presigned URLs and keeps the index.
 var blobs = v1.MapGroup("/blobs");
-blobs.MapPost("/begin", BlobEndpoints.Begin);
-blobs.MapPost("/commit", BlobEndpoints.Commit);
+blobs.MapPost("/begin", BlobEndpoints.Begin)
+    .RequireRateLimiting(RateLimitingSetup.BlobBegin)
+    .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
+blobs.MapPost("/commit", BlobEndpoints.Commit)
+    .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
 blobs.MapGet("/{sha256}", BlobEndpoints.Get);
 
 // Account & devices (docs/API.md "Account & devices"): the manage-devices
 // screen, push-token registration, per-device revocation, and account deletion.
 var account = v1.MapGroup("/account");
 account.MapGet("/devices", AccountEndpoints.GetDevices);
-account.MapPut("/devices/{id}/push-token", AccountEndpoints.SetPushToken);
+account.MapPut("/devices/{id}/push-token", AccountEndpoints.SetPushToken)
+    .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
 account.MapDelete("/devices/{id}", AccountEndpoints.DeleteDevice);
 account.MapDelete("", AccountEndpoints.DeleteAccount);
 
 // LLM gateway (docs/API.md "LLM gateway (Pro)"): POST /v1/extract, bearer.
-v1.MapPost("/extract", ExtractEndpoints.Extract);
+v1.MapPost("/extract", ExtractEndpoints.Extract)
+    .RequireRateLimiting(RateLimitingSetup.Extract)
+    .WithBodySizeLimit(BodySizeLimits.ExtractBytes);
 
 app.Run();
 

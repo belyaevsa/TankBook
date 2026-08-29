@@ -11,8 +11,15 @@ public sealed class LoggingOptions
 {
     public const string SectionName = "Tankbook:Logging";
 
+    /// <summary>
+    /// The committed dev-only placeholder salt. A production server must refuse
+    /// to start with this (or with none), because the accountHash pepper is
+    /// meant to be secret and this value is printed in the repo (PR.34).
+    /// </summary>
+    public const string DevHashSalt = "tankbook-dev-hash-salt-change-me";
+
     /// <summary>Pepper for the salted accountHash (docs/LOGGING.md §1). Dev-only default.</summary>
-    public string HashSalt { get; set; } = "tankbook-dev-hash-salt-change-me";
+    public string HashSalt { get; set; } = DevHashSalt;
 
     /// <summary>
     /// When true (the default) Sensitive values are masked before they can be

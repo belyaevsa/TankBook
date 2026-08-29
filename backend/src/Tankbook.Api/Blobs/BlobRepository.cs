@@ -288,6 +288,35 @@ public sealed class BlobRepository
         }
     }
 
+    /// <summary>
+    /// The distinct account ids that have sweepable state: a committed blob row
+    /// (which may be orphaned) or a pending row (which may be stale). The sweep
+    /// job iterates exactly these, so it never touches an account that cannot
+    /// possibly have anything to remove.
+    /// </summary>
+    public async Task<IReadOnlyList<Guid>> ListAccountsWithBlobsAsync(CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            var rows = await _db.QueryAsync<Guid>(new CommandDefinition(
+                """
+                SELECT account_id FROM blobs
+                UNION
+                SELECT account_id FROM blob_pending
+                """,
+                cancellationToken: cancellationToken));
+            return rows.ToList();
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
     /// <summary>Removes pending rows that are older than the grace period (never-committed begins).</summary>
     public async Task DeleteStalePendingAsync(Guid accountId, DateTimeOffset cutoff, CancellationToken cancellationToken)
     {

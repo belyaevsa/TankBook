@@ -106,7 +106,7 @@ public sealed class BlobService
         var key = BlobKeys.Key(accountId, sha256);
         await _repository.UpsertPendingAsync(accountId, sha256, size, contentType, cancellationToken);
 
-        var presigned = _storage.CreateUploadUrl(key, _options.UploadPresignLifetime);
+        var presigned = _storage.CreateUploadUrl(key, contentType, size, _options.UploadPresignLifetime);
         TankbookLog.BlobBegin(_logger, sha256, size, contentType, "miss", QuotaPercent(used));
 
         return new BeginOutcome(

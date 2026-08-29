@@ -14,8 +14,13 @@ public sealed record PresignedUrl(string Url, DateTimeOffset ExpiresAt);
 /// </summary>
 public interface IBlobStorage
 {
-    /// <summary>Mints a presigned PUT valid for <paramref name="lifetime"/>. Pure local computation, no network.</summary>
-    PresignedUrl CreateUploadUrl(string key, TimeSpan lifetime);
+    /// <summary>
+    /// Mints a presigned PUT valid for <paramref name="lifetime"/> and bound to the
+    /// declared content type and length, so the URL cannot be reused to upload
+    /// bytes of a different kind or size (docs/PRACTICES.md S10, PR.18). Pure
+    /// local computation, no network.
+    /// </summary>
+    PresignedUrl CreateUploadUrl(string key, string contentType, long contentLength, TimeSpan lifetime);
 
     /// <summary>Mints a presigned GET valid for <paramref name="lifetime"/>. Pure local computation, no network.</summary>
     PresignedUrl CreateDownloadUrl(string key, TimeSpan lifetime);

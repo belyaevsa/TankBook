@@ -32,9 +32,10 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 
     public ConfigEndpointTests(WebApplicationFactory<Program> factory)
     {
-        // "Testing" loads only appsettings.json (empty Config:SigningKey, empty
-        // ConnectionStrings:Postgres), so the migration host has nothing to do
-        // and the endpoint behaviour below is fully deterministic.
+        // "Testing" loads only appsettings.json (empty ConnectionStrings:Postgres,
+        // the committed dev Config:SigningKey placeholder), so the migration host
+        // has nothing to do and the endpoint behaviour below is fully
+        // deterministic.
         _factory = factory.WithWebHostBuilder(b => b.UseEnvironment("Testing"));
     }
 
@@ -136,7 +137,14 @@ public class ConfigEndpointTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task GetPublicKey_WithoutConfiguredSigningKey_Returns503()
     {
-        var client = _factory.CreateClient();
+        // appsettings.json now carries the committed dev placeholder, so a host
+        // boots with a configured signer; override it back to empty to exercise
+        // the "no key configured" path (a real production host refuses to start
+        // with either state - PR.34).
+        var client = _factory
+            .WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, cfg) => cfg.AddInMemoryCollection(
+                new Dictionary<string, string?> { ["Config:SigningKey"] = "" })))
+            .CreateClient();
 
         var response = await client.GetAsync("/v1/config/public-key");
 

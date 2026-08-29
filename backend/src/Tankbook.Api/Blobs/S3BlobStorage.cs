@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using Amazon.Runtime;
 using Amazon.S3;
@@ -46,16 +47,24 @@ public sealed class S3BlobStorage : IBlobStorage
         _time = time;
     }
 
-    public PresignedUrl CreateUploadUrl(string key, TimeSpan lifetime)
+    public PresignedUrl CreateUploadUrl(string key, string contentType, long contentLength, TimeSpan lifetime)
     {
         var expiresAt = _time.GetUtcNow().Add(lifetime);
+
+        // Bind the presigned PUT to the declared content type and length
+        // (docs/PRACTICES.md S10, PR.18): both are signed into the URL, so S3
+        // refuses an upload that sends a different type or a different number of
+        // bytes. Without this, any bearer of the URL could fill the blob store
+        // with bytes of any kind and any size for the URL's whole lifetime.
         var request = new GetPreSignedUrlRequest
         {
             BucketName = _bucket,
             Key = key,
             Verb = HttpVerb.PUT,
             Expires = expiresAt.UtcDateTime,
+            ContentType = contentType,
         };
+        request.Headers["Content-Length"] = contentLength.ToString(CultureInfo.InvariantCulture);
         return new PresignedUrl(_client.GetPreSignedURL(request), expiresAt);
     }
 

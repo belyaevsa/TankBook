@@ -19,10 +19,9 @@ public sealed class RecordingBlobStorage : IBlobStorage
         _time = time ?? TimeProvider.System;
     }
 
-    public IReadOnlyList<(string Key, TimeSpan Lifetime)> UploadUrls { get; private set; } = [];
+    public IReadOnlyList<(string Key, string ContentType, long ContentLength, TimeSpan Lifetime)> UploadUrls { get; private set; } = [];
 
     public IReadOnlyList<(string Key, TimeSpan Lifetime)> DownloadUrls { get; private set; } = [];
-
     public IReadOnlyList<string> DeletedKeys { get; private set; } = [];
 
     public IReadOnlyDictionary<string, long> Objects => _objects;
@@ -45,9 +44,9 @@ public sealed class RecordingBlobStorage : IBlobStorage
     public Task<byte[]?> GetObjectAsync(string key, CancellationToken cancellationToken)
         => Task.FromResult(_bytes.TryGetValue(key, out var bytes) ? bytes : (byte[]?)null);
 
-    public PresignedUrl CreateUploadUrl(string key, TimeSpan lifetime)
+    public PresignedUrl CreateUploadUrl(string key, string contentType, long contentLength, TimeSpan lifetime)
     {
-        UploadUrls = UploadUrls.Append((key, lifetime)).ToList();
+        UploadUrls = UploadUrls.Append((key, contentType, contentLength, lifetime)).ToList();
         var expiresAt = _time.GetUtcNow().Add(lifetime);
         return new PresignedUrl(
             $"https://presign.invalid/{key}?X-Amz-Expires={(int)lifetime.TotalSeconds}&X-Amz-Signature=upload",

@@ -35,9 +35,14 @@ public sealed class BlobOptions
     /// </summary>
     public int OrphanGraceDays { get; set; } = 30;
 
+    /// <summary>How often the background orphan sweep runs a pass. Hourly by default.</summary>
+    public int SweepIntervalMinutes { get; set; } = 60;
+
     public TimeSpan UploadPresignLifetime => TimeSpan.FromMinutes(UploadPresignMinutes);
 
     public TimeSpan DownloadPresignLifetime => TimeSpan.FromMinutes(DownloadPresignMinutes);
 
     public TimeSpan OrphanGracePeriod => TimeSpan.FromDays(OrphanGraceDays);
+
+    public TimeSpan SweepInterval => TimeSpan.FromMinutes(SweepIntervalMinutes);
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Npgsql;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Blobs;
@@ -228,6 +229,24 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
             $"download lifetime {downloadLifetime}");
     }
 
+    [SkippableFact]
+    public async Task Presign_UploadBindsDeclaredContentTypeAndLength()
+    {
+        var signer = new TestIdTokenSigner();
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(signer, storage);
+        var (token, _, _) = await CreateSessionAsync(app, signer, "presign-bind", "presign-bind@example.com");
+
+        var sha = Sha('c');
+        Assert.Equal(HttpStatusCode.OK, (await BeginAsync(app.Client, token, sha, 123_456, "application/pdf")).StatusCode);
+
+        // The recorded presign carries the begin's declared content type and size,
+        // so the URL cannot be reused to upload different bytes (PR.18).
+        var upload = Assert.Single(storage.UploadUrls);
+        Assert.Equal("application/pdf", upload.ContentType);
+        Assert.Equal(123_456L, upload.ContentLength);
+    }
+
     // ---- 7. Quota is metered and enforced at begin -------------------------
 
     [SkippableFact]
@@ -302,6 +321,48 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
         Assert.Contains(BlobKeys.Key(accountId, orphan), storage.DeletedKeys);
         Assert.True(storage.Objects.ContainsKey(BlobKeys.Key(accountId, live)));
         Assert.True(storage.Objects.ContainsKey(BlobKeys.Key(accountId, tombstoned)));
+    }
+
+    [SkippableFact]
+    public async Task SweepOrphans_ClearsStalePendingRowsInTheSamePass()
+    {
+        var signer = new TestIdTokenSigner();
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(signer, storage);
+        var (_, accountId, _) = await CreateSessionAsync(app, signer, "sweep-pending", "sweep-pending@example.com");
+
+        var old = DateTimeOffset.UtcNow.AddDays(-40);
+        var orphan = Sha('a');
+
+        // An unreferenced committed blob past grace, and a never-committed pending
+        // row past grace. Both must vanish in one pass (PR.18).
+        var key = BlobKeys.Key(accountId, orphan);
+        storage.Put(key, 1000);
+        await app.Db.ExecuteAsync(
+            "INSERT INTO blobs (account_id, sha256, size_bytes, storage_ref, created_at) VALUES (@a, @s, 1000, @r, @c)",
+            new { a = accountId, s = orphan, r = key, c = old });
+        await app.Db.ExecuteAsync(
+            "INSERT INTO blob_pending (account_id, sha256, size_bytes, content_type, created_at) VALUES (@a, @s, 1000, 'image/jpeg', @c)",
+            new { a = accountId, s = Sha('b'), c = old });
+
+        using var scope = app.Services.CreateScope();
+        var blobs = scope.ServiceProvider.GetRequiredService<BlobService>();
+        var swept = await blobs.SweepOrphansAsync(accountId, CancellationToken.None);
+
+        Assert.Equal(1, swept);
+        Assert.Equal(0, await app.CountAsync("blob_pending", "account_id = @p", new { p = accountId }));
+        Assert.Equal(0, await app.CountAsync("blobs", "account_id = @p", new { p = accountId }));
+    }
+
+    [SkippableFact]
+    public async Task BlobSweepHostedService_IsNotRegisteredInTheTestHost()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer, new RecordingBlobStorage());
+
+        // Tests drive BlobSweepService.SweepAllAsync directly, never the clock -
+        // the same reason the account/import/rates timers are gated (PR.18).
+        Assert.DoesNotContain(app.Services.GetServices<IHostedService>(), h => h is BlobSweepHostedService);
     }
 
     // ---- 9. Account deletion purges the whole prefix -----------------------

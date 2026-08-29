@@ -18,7 +18,7 @@ public enum ExtractStatus
 }
 
 /// <summary>POST /extract outcome with the response body when extraction succeeded.</summary>
-public sealed record ExtractOutcome(ExtractStatus Status, ExtractResponse? Response);
+public sealed record ExtractOutcome(ExtractStatus Status, ExtractResponse? Response, int RetryAfterSeconds = 0);
 
 /// <summary>
 /// The LLM gateway service (docs/API.md "LLM gateway (Pro)",
@@ -107,7 +107,7 @@ public sealed class LlmService
         if (usedBefore >= allowance.Value)
         {
             TankbookLog.LlmExtract(_logger, LogLevel.Warning, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "quota_spent");
-            return new ExtractOutcome(ExtractStatus.QuotaSpent, null);
+            return new ExtractOutcome(ExtractStatus.QuotaSpent, null, SecondsUntilNextPeriod(_time.GetUtcNow()));
         }
 
         // The paid call. A provider failure resolves to a 502 in the endpoint and
@@ -145,5 +145,12 @@ public sealed class LlmService
             pair => new ExtractFieldResponse(pair.Value.Value, pair.Value.Confidence),
             StringComparer.Ordinal);
         return new ExtractOutcome(ExtractStatus.Ok, new ExtractResponse(fields, Pipeline));
+    }
+
+    /// <summary>Whole seconds until the next quota period (midnight UTC, the boundary the daily period uses).</summary>
+    private static int SecondsUntilNextPeriod(DateTimeOffset now)
+    {
+        var next = new DateTimeOffset(now.UtcDateTime.Date.AddDays(1), TimeSpan.Zero);
+        return (int)Math.Ceiling((next - now).TotalSeconds);
     }
 }

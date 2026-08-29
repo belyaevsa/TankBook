@@ -1,3 +1,4 @@
+using System.Globalization;
 using Tankbook.Api.Auth;
 
 namespace Tankbook.Api.Llm;
@@ -54,10 +55,7 @@ public static class ExtractEndpoints
                 StatusCodes.Status402PaymentRequired,
                 "No extraction allowance.",
                 "This account's tier has no cloud-extraction allowance."),
-            ExtractStatus.QuotaSpent => Problem(
-                StatusCodes.Status429TooManyRequests,
-                "Extraction allowance spent.",
-                "This period's cloud-extraction allowance is used up; try again next period."),
+            ExtractStatus.QuotaSpent => QuotaSpent(httpContext, outcome),
             ExtractStatus.ProviderFailed => Problem(
                 StatusCodes.Status502BadGateway,
                 "Extraction provider unavailable.",
@@ -68,4 +66,19 @@ public static class ExtractEndpoints
 
     private static IResult Problem(int status, string title, string detail)
         => Results.Problem(statusCode: status, title: title, detail: detail);
+
+    /// <summary>The period is spent, so the 429 names when the next period begins (Retry-After, hard rule 7).</summary>
+    private static IResult QuotaSpent(HttpContext httpContext, ExtractOutcome outcome)
+    {
+        if (outcome.RetryAfterSeconds > 0)
+        {
+            httpContext.Response.Headers.RetryAfter =
+                outcome.RetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return Problem(
+            StatusCodes.Status429TooManyRequests,
+            "Extraction allowance spent.",
+            "This period's cloud-extraction allowance is used up; try again next period.");
+    }
 }
