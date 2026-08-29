@@ -45,12 +45,13 @@ public protocol VehicleCatalogFetcher: Sendable {
 /// an OFFER SET (docs/SCHEMA.md - never one car's fuel).
 public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport,
+    public init(director: ConfigTransportDirector,
+                transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
-        self.baseURL = baseURL
+        self.director = director
     }
 
     public func fetchPack(sinceVersion: Int) async throws -> VehicleCatalogPack? {
@@ -64,9 +65,11 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(request)
+            await director.report(.response(status: response.status))
         } catch {
             // Every transport failure - allowlist refusal, socket error - is
-            // one silent miss to the caller.
+            // one silent miss to the caller, and evidence the host was unreachable.
+            await director.report(.transportFailure)
             throw CatalogFetchError.transportUnavailable
         }
 
@@ -87,7 +90,7 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
     }
 
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     // MARK: - Wire decoding

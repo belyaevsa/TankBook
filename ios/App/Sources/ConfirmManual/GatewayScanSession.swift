@@ -126,10 +126,8 @@ enum GatewayScanStarter {
     ) -> (any GatewayExtractTransport)? {
         if let seed = GatewaySeedTransport.from(arguments: arguments) { return seed }
         guard (try? KeychainSessionStore().load()) != nil else { return nil }
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         return RemoteGatewayExtractTransport(
-            baseURL: baseURL,
+            director: AppConfigStore.shared.director,
             transport: URLSessionTransport(),
             tokenProvider: KeychainTokenProvider(sessionStore: KeychainSessionStore()))
     }

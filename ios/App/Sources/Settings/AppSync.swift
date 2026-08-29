@@ -10,12 +10,11 @@ enum SyncService {
     static func makeCoordinator(repository: TankbookRepository,
                                 sessionStore: any SessionStore,
                                 powerState: any PowerStateProvider) -> SyncCoordinator {
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
+        let director = AppConfigStore.shared.director
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let refresher = AppSessionRefresher.shared
         let transport = RemoteSyncTransport(
-            baseURL: baseURL,
+            director: director,
             transport: SeededLaunch.transport(),
             tokenProvider: tokenProvider,
             refresher: refresher
@@ -25,7 +24,7 @@ enum SyncService {
         // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
         let blobGate = LocalFileBlobPushGate(
             uploader: BlobUploader(transport: RemoteBlobTransport(
-                baseURL: baseURL, transport: SeededLaunch.transport(), tokenProvider: tokenProvider,
+                director: director, transport: SeededLaunch.transport(), tokenProvider: tokenProvider,
                 refresher: refresher)),
             source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
         )
@@ -46,10 +45,8 @@ enum SyncService {
     /// after; a failure leaves the "photo syncing" shimmer, never an error.
     static func makeBlobFetcher(sessionStore: any SessionStore) -> LazyBlobFetcher? {
         guard (try? sessionStore.load()) != nil else { return nil }
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         let transport = RemoteBlobTransport(
-            baseURL: baseURL,
+            director: AppConfigStore.shared.director,
             transport: SeededLaunch.transport(),
             tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
             refresher: AppSessionRefresher.shared

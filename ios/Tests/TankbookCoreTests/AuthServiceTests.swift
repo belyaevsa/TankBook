@@ -14,7 +14,7 @@ struct AuthServiceTests {
     private func makeService(transport: AuthRecordingTransport,
                              store: InMemorySessionStore) -> RemoteAuthService {
         RemoteAuthService(
-            baseURL: Self.baseURL,
+            director: ConfigTransportDirector(baseURL: { Self.baseURL }, report: { _ in }),
             transport: transport,
             sessionStore: store,
             device: RemoteAuthService.SessionDevice(name: "iPhone 17 Pro", platform: "iOS")
@@ -129,10 +129,10 @@ struct AuthServiceTests {
             accessToken: "secret", refreshToken: "rt",
             accountId: "acc", deviceId: "dev", provider: .apple))
         let service = RemoteAuthService(
-            baseURL: URL(string: "https://evil.com")!,
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.com")! }, report: { _ in }),
             transport: transport,
             sessionStore: store,
-            device: RemoteAuthService.SessionDevice(name: "iPhone", platform: "iOS")
+            device: RemoteAuthService.SessionDevice(name: "iPhone 17 Pro", platform: "iOS")
         )
 
         await #expect(throws: TankbookHTTPClientError.hostNotAllowlisted) {

@@ -39,16 +39,16 @@ public enum ImportClientError: Error, Sendable, Equatable {
 /// target can build it over its own transport and session store.
 public struct ImportClient: Sendable {
     public let httpClient: TankbookHTTPClient
-    public let baseURL: URL
+    public let director: ConfigTransportDirector
     /// The device identity for attribution when signed out (docs/API.md: a
     /// signed-out parse is stored under `X-Device-Id`). nil when unknown.
     public let deviceID: String?
     /// ISO-8601 decoder for the parse responses.
     private let decoder: JSONDecoder
 
-    public init(httpClient: TankbookHTTPClient, baseURL: URL, deviceID: String?) {
+    public init(httpClient: TankbookHTTPClient, director: ConfigTransportDirector, deviceID: String?) {
         self.httpClient = httpClient
-        self.baseURL = baseURL
+        self.director = director
         self.deviceID = deviceID
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
@@ -58,7 +58,7 @@ public struct ImportClient: Sendable {
     /// `GET /import/formats` - the server-driven supported-source list. The
     /// source picker renders this response and nothing else.
     public func fetchFormats() async throws -> [ImportFormat] {
-        let url = baseURL.appendingPathComponent("import/formats")
+        let url = director.baseURL().appendingPathComponent("import/formats")
         let response = try await send(TankbookHTTPRequest(url: url))
         return try decode([ImportFormat].self, from: response, url: url)
     }
@@ -68,7 +68,7 @@ public struct ImportClient: Sendable {
     /// display name is carried so a 422 can name the declared source ("this
     /// doesn't look like a My Fuel Manager export") instead of failing vaguely.
     public func parseFile(data: Data, fileName: String, format: ImportFormat) async throws -> ImportParseResponse {
-        let url = baseURL.appendingPathComponent("import/parse")
+        let url = director.baseURL().appendingPathComponent("import/parse")
         let boundary = "tankbook-import-\(UUID().uuidString)"
         let body = Self.multipartBody(data: data, fileName: fileName,
                                       formatID: format.id, boundary: boundary)
@@ -89,7 +89,7 @@ public struct ImportClient: Sendable {
     /// `GET /import/{importId}` - re-reads a stored parse so a review can be
     /// resumed after a crash or on another device.
     public func fetchParse(importId: String) async throws -> ImportParseResponse {
-        let url = baseURL.appendingPathComponent("import/\(importId)")
+        let url = director.baseURL().appendingPathComponent("import/\(importId)")
         let response = try await send(TankbookHTTPRequest(url: url))
         return try decode(ImportParseResponse.self, from: response, url: url)
     }
@@ -98,7 +98,7 @@ public struct ImportClient: Sendable {
     /// (`204` whether or not it existed). Called when the user cancels at the
     /// preview gate; nothing else is written.
     public func deleteParse(importId: String) async throws {
-        let url = baseURL.appendingPathComponent("import/\(importId)")
+        let url = director.baseURL().appendingPathComponent("import/\(importId)")
         _ = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
     }
 
@@ -110,12 +110,16 @@ public struct ImportClient: Sendable {
             request.headers["X-Device-Id"] = deviceID
         }
         do {
-            return try await httpClient.send(request)
+            let response = try await httpClient.send(request)
+            await director.report(.response(status: response.status))
+            return response
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.
+            await director.report(.transportFailure)
             throw ImportClientError.client
         } catch {
+            await director.report(.transportFailure)
             throw ImportClientError.transportUnreachable
         }
     }

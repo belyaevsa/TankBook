@@ -14,7 +14,7 @@ struct SessionSignOutTests {
     private func makeSignOut(transport: AuthRecordingTransport,
                              store: InMemorySessionStore) -> SessionSignOut {
         let service = RemoteAuthService(
-            baseURL: Self.baseURL,
+            director: ConfigTransportDirector(baseURL: { Self.baseURL }, report: { _ in }),
             transport: transport,
             sessionStore: store,
             device: RemoteAuthService.SessionDevice(name: "iPhone 17 Pro", platform: "iOS")

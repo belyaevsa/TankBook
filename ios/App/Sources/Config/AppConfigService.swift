@@ -70,7 +70,15 @@ final class AppConfigService {
     /// health prober (PR.3a). The surface reads the held snapshot regardless -
     /// no screen ever waits on a fetch (hard rule 1).
     static func make(arguments: [String] = ProcessInfo.processInfo.arguments) -> AppConfigService {
-        let bundled = (try? ConfigDefaults.bundledAppConfig()) ?? fallbackBundled()
+        let bundled: AppConfig
+        do {
+            bundled = try ConfigDefaults.bundledAppConfig()
+        } catch {
+            // The bundled layer is the bootstrap floor (docs/CONFIG.md). If the
+            // bundle is missing its config the app cannot resolve any base URL,
+            // so this is a hard failure - never a fallback to an invented value.
+            fatalError("config: bundled defaults unavailable - the app cannot boot (\(error))")
+        }
 
         // Config and health are public endpoints (docs/API.md), so the client
         // needs no token: a nil provider means `TankbookHTTPClient` never builds
@@ -82,13 +90,11 @@ final class AppConfigService {
 
         // The fetcher reads the resolved base URL at fetch time, so it follows
         // an `apiBaseUrl` migration instead of pinning the one baked in at
-        // launch. A box breaks the store<->fetcher construction cycle: the
-        // closure captures the box (a Sendable reference), and the box's `store`
-        // is assigned before `make()` returns - no refresh runs until the
-        // service exists, so the closure never reads it unset.
-        let box = ConfigStoreBox()
+        // launch. The store is published to `AppConfigStore` before `make()`
+        // returns and before any refresh can run, so the closure never reads it
+        // unset.
         let fetcher = RemoteConfigFetcher(client: client) {
-            box.store?.current.apiBaseURL ?? bundled.apiBaseURL
+            AppConfigStore.shared.store?.current.apiBaseURL ?? bundled.apiBaseURL
         }
         let prober = RemoteHealthProber(client: client)
         let store = ConfigStore(
@@ -101,7 +107,7 @@ final class AppConfigService {
             fetcher: fetcher,
             healthProber: prober
         )
-        box.store = store
+        AppConfigStore.shared.setStore(store)
         return AppConfigService(
             store: store,
             runningVersion: runningVersion(arguments),
@@ -129,14 +135,6 @@ final class AppConfigService {
     }
 
     // MARK: - Construction details
-
-    /// A mutable holder for the store, so the fetcher's `@Sendable` base-URL
-    /// closure can read the resolved `apiBaseURL` at fetch time without
-    /// capturing a `var` (which `@Sendable` forbids). Written once in `make()`
-    /// before any refresh can run; read only from `refresh()` thereafter.
-    private final class ConfigStoreBox: @unchecked Sendable {
-        var store: ConfigStore?
-    }
 
     /// A token provider that supplies no token, for the public config + health
     /// endpoints (docs/API.md). `TankbookHTTPClient` still enforces the
@@ -200,32 +198,54 @@ final class AppConfigService {
     /// DEBUG launch argument above). This is the only value the store link
     /// gates on - no placeholder URL, no dead button (docs/CONFIG.md).
     private static let compiledAppStoreID = ""
+}
 
-    /// A minimal bundled config for the case the bundled JSON cannot be read -
-    /// which must never happen in practice (the bundled layer is the bootstrap
-    /// floor). The nested quota/pack types only expose their `Decodable` init,
-    /// so they are decoded from literals rather than hand-rolled; a literal
-    /// that fails to decode can only mean a code bug, so it is a hard failure.
-    private static func fallbackBundled() -> AppConfig {
-        func decode<T: Decodable>(_ json: String) -> T {
-            guard let value = try? JSONDecoder().decode(T.self, from: Data(json.utf8)) else {
-                fatalError("config: bundled fallback payload is invalid - the app cannot boot")
+/// The app's one `ConfigStore`, published process-wide at launch for the static
+/// transport factories (`AppSessionRefresher`, `SyncService`, `AppRates`,
+/// `GatewayScanStarter`, `SignInFlow`, `AccountDevicesService`, `ImportService`).
+/// Those factories run before any screen holds the `AppConfigService`, so they
+/// read the store from here rather than thread a reference through every factory
+/// signature.
+///
+/// `AppConfigService.make()` writes the store once, on the first line of
+/// `AppRootView.init`, before any screen can build a transport; the factories
+/// read it at request time through `director`, so a long-lived transport
+/// observes a later promotion or auto-revert (docs/CONFIG.md -> "Base URL per
+/// operation").
+///
+/// The store is `@unchecked Sendable` with an internal lock, so reading
+/// `current` and reporting an outcome is safe from any task. The box shape (a
+/// mutable reference behind a Sendable class) is the same one the fetcher's
+/// closure needs: a `static var ConfigStore?` could not be captured by a
+/// `@Sendable` closure cleanly, and the store must be assignable once.
+final class AppConfigStore: @unchecked Sendable {
+    static let shared = AppConfigStore()
+
+    private(set) var store: ConfigStore?
+
+    func setStore(_ store: ConfigStore) {
+        self.store = store
+    }
+
+    /// The `ConfigTransportDirector` the transports take. `baseURL` reads
+    /// `store.current.apiBaseURL` at request time - there is no stored URL to
+    /// capture once by accident - and `report` forwards to
+    /// `store.recordRequestOutcome`. A nil store is unreachable in the app (set
+    /// before any transport issues a request), so `baseURL` fails loudly rather
+    /// than falling back: the config layer, not each call site, owns the
+    /// fallback (docs/CONFIG.md).
+    var director: ConfigTransportDirector {
+        ConfigTransportDirector(
+            baseURL: {
+                guard let store = self.store else {
+                    preconditionFailure(
+                        "AppConfigStore: the ConfigStore must be set before any transport issues a request")
+                }
+                return store.current.apiBaseURL
+            },
+            report: { outcome in
+                await self.store?.recordRequestOutcome(outcome)
             }
-            return value
-        }
-        return AppConfig(
-            apiBaseURL: URL(string: "https://api.tankbook.live")!,
-            tier2OnDeviceLLM: true,
-            tier3CloudFallback: true,
-            llmQuota: decode("{\"onDeviceLLM\":200,\"cloudFallback\":50}"),
-            ocrConfidenceThreshold: 0.75,
-            minSchemaVersion: 1,
-            referencePacks: decode("{\"rates\":1,\"catalog\":1}"),
-            maintenance: nil,
-            appUpdate: nil,
-            rolloutSalt: "bundled-fallback",
-            flags: [:],
-            version: 0
         )
     }
 }

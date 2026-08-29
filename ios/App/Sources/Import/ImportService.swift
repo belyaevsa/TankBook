@@ -90,13 +90,11 @@ enum ImportService {
         } else {
             transport = URLSessionTransport()
         }
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         let sessionStore = KeychainSessionStore()
         let client = ImportClient(
             httpClient: TankbookHTTPClient(transport: transport,
                                            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
-            baseURL: baseURL,
+            director: AppConfigStore.shared.director,
             deviceID: Self.deviceID(sessionStore: sessionStore))
         return ImportFlowModel(client: client, repository: repository,
                                configService: configService)

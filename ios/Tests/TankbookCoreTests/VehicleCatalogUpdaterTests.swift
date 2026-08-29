@@ -630,7 +630,7 @@ private func deterministicEncode(_ value: some Encodable) throws -> Data {
 @Test func fetcherBuildsThePublicSinceVersionQueryAndReadsA304() async throws {
     let transport = RecordingTransport()
     transport.script(TankbookHTTPResponse(status: 304, body: nil))
-    let fetcher = RemoteVehicleCatalogFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
+    let fetcher = RemoteVehicleCatalogFetcher(director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
                                               transport: transport, tokenProvider: NoAuthTokenProvider())
 
     let pack = try await fetcher.fetchPack(sinceVersion: 7)
@@ -689,7 +689,7 @@ private func deterministicEncode(_ value: some Encodable) throws -> Data {
 
 @Test func catalogFetcherRefusesNonAllowlistedHost() async throws {
     let transport = RecordingTransport()
-    let fetcher = RemoteVehicleCatalogFetcher(baseURL: URL(string: "https://evil.com")!,
+    let fetcher = RemoteVehicleCatalogFetcher(director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.com")! }, report: { _ in }),
                                               transport: transport, tokenProvider: NoAuthTokenProvider())
     await #expect(throws: CatalogFetchError.transportUnavailable) {
         _ = try await fetcher.fetchPack(sinceVersion: 2)

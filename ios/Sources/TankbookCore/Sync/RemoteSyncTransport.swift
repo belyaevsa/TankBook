@@ -8,14 +8,15 @@ import Foundation
 /// conventions).
 public struct RemoteSyncTransport: SyncTransport {
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport,
+    public init(director: ConfigTransportDirector,
+                transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider,
                 refresher: (any SessionRefreshing)? = nil) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
                                          refresher: refresher)
-        self.baseURL = baseURL
+        self.director = director
     }
 
     public func pull(since: Int64, limit: Int) async throws -> SyncPullResponse {
@@ -49,11 +50,18 @@ public struct RemoteSyncTransport: SyncTransport {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(request)
-        } catch TankbookHTTPClientError.hostNotAllowlisted {
-            throw SyncServerError.transportUnavailable
+            await director.report(.response(status: response.status))
         } catch SessionRefresherError.authExpired {
+            // The host answered - the 401 that triggered the refresh, then the
+            // refresh's own non-2xx. The session is gone; the base URL is fine,
+            // so this is a response, never evidence the URL is wrong.
+            await director.report(.response(status: 401))
             throw SyncServerError.authExpired
         } catch {
+            // hostNotAllowlisted, tooManyRedirects, a transport error, or a
+            // refresh that could not reach the host: none of them is "the host
+            // answered", so each counts toward auto-revert.
+            await director.report(.transportFailure)
             throw SyncServerError.transportUnavailable
         }
         return try Self.requireSuccess(response)
@@ -93,7 +101,7 @@ public struct RemoteSyncTransport: SyncTransport {
     }
 
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     // MARK: - Encoding

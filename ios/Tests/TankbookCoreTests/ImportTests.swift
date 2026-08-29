@@ -50,7 +50,8 @@ private func makeClient(transport: ImportTestTransport,
     let client = TankbookHTTPClient(transport: transport,
                                     tokenProvider: ImportTestTokenProvider())
     return ImportClient(httpClient: client,
-                        baseURL: URL(string: "https://api.tankbook.live")!,
+                        director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! },
+                                                          report: { _ in }),
                         deviceID: deviceID)
 }
 

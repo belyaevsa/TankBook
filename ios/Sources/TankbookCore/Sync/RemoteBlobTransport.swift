@@ -10,15 +10,16 @@ import Foundation
 /// refuse it and leak the token to a host it was never bound to.
 public struct RemoteBlobTransport: BlobTransport, Sendable {
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
     private let raw: any TankbookHTTPTransport
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport,
+    public init(director: ConfigTransportDirector,
+                transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider,
                 refresher: (any SessionRefreshing)? = nil) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
                                          refresher: refresher)
-        self.baseURL = baseURL
+        self.director = director
         self.raw = transport
     }
 
@@ -90,18 +91,22 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
 
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         do {
-            return try await client.send(request)
-        } catch TankbookHTTPClientError.hostNotAllowlisted {
-            throw BlobSyncError.transportUnavailable
+            let response = try await client.send(request)
+            await director.report(.response(status: response.status))
+            return response
         } catch SessionRefresherError.authExpired {
+            // The host answered (401, then a failed refresh). Session gone,
+            // base URL fine - a response, never evidence the URL is wrong.
+            await director.report(.response(status: 401))
             throw BlobSyncError.authExpired
         } catch {
+            await director.report(.transportFailure)
             throw BlobSyncError.transportUnavailable
         }
     }
 
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     private func decodeBegin(_ data: Data?) throws -> BlobBeginResult {

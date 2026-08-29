@@ -136,7 +136,7 @@ private struct RecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
 @Test func fetchPackBuildsFromToBaseQuery() async throws {
     let transport = RecordingTransport()
     transport.script([TankbookHTTPResponse(status: 200, body: Data(#"{"base":"EUR","rates":[]}"#.utf8))])
-    let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
+    let fetcher = RemoteRateFetcher(director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
                                     transport: transport, tokenProvider: NoAuthTokenProvider())
 
     _ = try await fetcher.fetchPack(from: day(2026, 8, 1), to: day(2026, 8, 27), base: .eur)
@@ -155,7 +155,7 @@ private struct RecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
 
 @Test func nonAllowlistedHostIsRefusedBeforeAnyIO() async {
     let transport = RecordingTransport()
-    let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://evil.com")!,
+    let fetcher = RemoteRateFetcher(director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.com")! }, report: { _ in }),
                                     transport: transport, tokenProvider: NoAuthTokenProvider())
 
     await #expect(throws: RateFetchError.transportUnavailable) {
@@ -183,8 +183,10 @@ private struct FetchFailure: Error {}
     ]
 
     for (_, transport) in failures {
-        let fetcher = RemoteRateFetcher(baseURL: URL(string: "https://api.tankbook.live")!,
-                                        transport: transport, tokenProvider: NoAuthTokenProvider())
+        let fetcher = RemoteRateFetcher(
+            director: ConfigTransportDirector(
+                baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
+            transport: transport, tokenProvider: NoAuthTokenProvider())
         let store = RateStore(seed: [seed], fetcher: fetcher, calendar: utcCalendar)
 
         await store.refresh() // must not throw

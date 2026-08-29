@@ -30,7 +30,7 @@ struct SessionRefresherTests {
 
     private func makeRefresher(transport: AuthRecordingTransport,
                                store: InMemorySessionStore) -> SessionRefresher {
-        SessionRefresher(baseURL: Self.baseURL, transport: transport, sessionStore: store)
+        SessionRefresher(baseURLProvider: { Self.baseURL }, transport: transport, sessionStore: store)
     }
 
     // MARK: - Single flight

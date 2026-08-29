@@ -51,7 +51,7 @@ public struct RemoteAuthService: AuthService {
     }
 
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
     private let device: SessionDevice
 
     /// Builds the service over an injected transport (testable without sockets;
@@ -59,7 +59,7 @@ public struct RemoteAuthService: AuthService {
     /// token, so `DELETE /auth/session` carries the bearer automatically while
     /// a fresh sign-in (no session yet) carries none.
     public init(
-        baseURL: URL,
+        director: ConfigTransportDirector,
         transport: any TankbookHTTPTransport,
         sessionStore: any SessionStore,
         device: SessionDevice
@@ -68,7 +68,7 @@ public struct RemoteAuthService: AuthService {
             transport: transport,
             tokenProvider: SessionTokenProvider(sessionStore: sessionStore)
         )
-        self.baseURL = baseURL
+        self.director = director
         self.device = device
     }
 
@@ -99,7 +99,7 @@ public struct RemoteAuthService: AuthService {
         let url = endpoint("auth/session")
         var request = TankbookHTTPRequest(url: url, method: "DELETE")
         request.headers["Authorization"] = "Bearer \(session.accessToken)"
-        let response = try await client.send(request)
+        let response = try await send(request)
         guard (200...299).contains(response.status) || response.status == 204 else {
             throw Self.error(for: response.status)
         }
@@ -111,13 +111,27 @@ public struct RemoteAuthService: AuthService {
         let data = try JSONSerialization.data(withJSONObject: body)
         var request = TankbookHTTPRequest(url: endpoint(path), method: "POST", body: data)
         request.headers["Content-Type"] = "application/json"
-        return try await client.send(request)
+        return try await send(request)
+    }
+
+    /// Sends a request and reports its outcome to the config layer
+    /// (docs/CONFIG.md -> "Auto-revert on sustained failure"). A response of any
+    /// status means the host answered; a thrown transport error means it did not.
+    private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        do {
+            let response = try await client.send(request)
+            await director.report(.response(status: response.status))
+            return response
+        } catch {
+            await director.report(.transportFailure)
+            throw error
+        }
     }
 
     /// All auth endpoints live under `/v1` (docs/API.md -> "Ops" / backend
     /// `Program.cs`: `app.MapGroup("/v1")`).
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     private static func error(for status: Int) -> AuthError {

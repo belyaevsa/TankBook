@@ -6,7 +6,7 @@ import TankbookCore
 /// `SettingsTestSeed` plants a `"stub-access-token"` so signed-in states can be
 /// screenshotted and UI-tested. Once P6.8b/P6.18b wired the launch and
 /// foreground sync cycles, that seed started causing a REAL authenticated
-/// request to `api.tankbook.live` on every seeded launch - with a token the
+/// request to the live API host on every seeded launch - with a token the
 /// server can never accept.
 ///
 /// The damage was not slowness. It made the app's rendered state depend on

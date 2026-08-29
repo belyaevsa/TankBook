@@ -50,7 +50,8 @@ private func makeClient(transport: AccountTestTransport) -> AccountClient {
     let client = TankbookHTTPClient(transport: transport,
                                     tokenProvider: AccountTestTokenProvider())
     return AccountClient(httpClient: client,
-                         baseURL: URL(string: "https://api.tankbook.live")!)
+                         director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! },
+                                                           report: { _ in }))
 }
 
 @Suite("Account & devices wire client (P6.4)")
@@ -181,7 +182,8 @@ struct AccountClientTests {
         let httpClient = TankbookHTTPClient(transport: transport,
                                             tokenProvider: AccountTestTokenProvider())
         let client = AccountClient(httpClient: httpClient,
-                                   baseURL: URL(string: "https://evil.example")!)
+                                   director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.example")! },
+                                                                     report: { _ in }))
         await #expect(throws: AccountClientError.client) {
             _ = try await client.devices()
         }

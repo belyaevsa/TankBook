@@ -126,9 +126,16 @@ screen ever waits on a response to decide what to draw. The three shapes:
   `ETag`/`If-None-Match`/`304`) and a real `RemoteHealthProber` (`GET /health`), and the throttled
   foreground refresh actually fetches. In DEBUG the bundled signing key is the dev key's public half,
   so the path is exercised end to end; in RELEASE the key is still empty until ops provisions it,
-  which is an explicit release blocker (`ConfigSigningKeyTests`) rather than a silent fail-open. The
-  transports still build their base URL from nine inline fallbacks rather than `ConfigStore.current`
-  - that is PR.3b - and the `configPollInterval` remote override does not exist (PR.3c).
+  which is an explicit release blocker (`ConfigSigningKeyTests`) rather than a silent fail-open.
+- **The transports now obey the layer (PR.3b).** Every transport reads the base URL **per operation**
+  through a `ConfigTransportDirector` – never a URL captured once at construction – and reports every
+  request outcome to `recordRequestOutcome` (`.transportFailure` when the host was unreachable,
+  `.response(status:)` whenever it answered, any status). The ten inline `?? URL(string:
+  "https://api.tankbook.live")!` fallbacks and `AppConfigService.fallbackBundled()` are gone; the
+  bundled default lives only in `Config.default.json`, and the app's transport factories resolve the
+  base URL from the one process-wide `ConfigStore` (`AppConfigStore`). A grep gate pins zero
+  `api.tankbook.live` literals under `ios/App/Sources`. The `configPollInterval` remote override does
+  not exist yet (PR.3c).
 
 ## Delivery
 
@@ -213,7 +220,7 @@ public struct AppConfig: Sendable, Equatable {
 
 Three rules that make this safe:
 
-1. **Take a snapshot at the start of an operation and use it throughout.** A capture flow must not observe `tier3CloudFallback` flipping halfway through; a sync cycle must not change base URL mid-batch. Live-reading per call site is how you get races that reproduce once a month.
+1. **Take a snapshot at the start of an operation and use it throughout.** A capture flow must not observe `tier3CloudFallback` flipping halfway through. Live-reading per call site is how you get races that reproduce once a month. The one deliberate exception is the **base URL itself**, which transports read per operation through `ConfigTransportDirector` (PR.3b): a long-lived transport built at launch must observe a later promotion or auto-revert, so `apiBaseURL` is resolved at the moment a request is made rather than captured once at construction. Everything else in the snapshot stays snapshot-based.
 2. **Typed fields, not string keys.** `config.tier3CloudFallback`, never `config.bool("tier3_cloud_fallback")` – so a renamed key is a compile error, and a coverage test can assert every documented remote key maps to a field.
 3. **Injected, not a singleton.** `ConfigStore` is passed in, so tests construct one over fabricated layers with no file, no network, and no `#if DEBUG` gymnastics – per the standing rule in `TESTING.md`.
 

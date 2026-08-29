@@ -36,14 +36,15 @@ public protocol SessionRefreshing: Sendable {
 /// and without a token provider, because the refresh token rides in the body,
 /// not in `Authorization` (docs/API.md -> Auth).
 public actor SessionRefresher: SessionRefreshing {
-    private let baseURL: URL
+    private let baseURLProvider: @Sendable () -> URL
     private let transport: any TankbookHTTPTransport
     private let sessionStore: any SessionStore
     private let client: TankbookHTTPClient
     private var inFlight: Task<String, Error>?
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport, sessionStore: any SessionStore) {
-        self.baseURL = baseURL
+    public init(baseURLProvider: @escaping @Sendable () -> URL,
+                transport: any TankbookHTTPTransport, sessionStore: any SessionStore) {
+        self.baseURLProvider = baseURLProvider
         self.transport = transport
         self.sessionStore = sessionStore
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: NilTokenProvider())
@@ -53,8 +54,14 @@ public actor SessionRefresher: SessionRefreshing {
         if let inFlight {
             return try await inFlight.value
         }
+        // The base URL is read per refresh, never captured at construction, so
+        // the refresher follows a promoted or reverted apiBaseURL (docs/CONFIG.md
+        // -> "Base URL per operation"). The refresher does not report its own
+        // outcome: it only runs nested inside a transport's 401 replay, and that
+        // transport reports the request the refresher was serving.
+        let baseURL = baseURLProvider()
         let task = Task { () async throws -> String in
-            try await Self.performRefresh(baseURL: self.baseURL, client: self.client,
+            try await Self.performRefresh(baseURL: baseURL, client: self.client,
                                           sessionStore: self.sessionStore)
         }
         inFlight = task

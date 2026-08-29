@@ -10,12 +10,13 @@ import Foundation
 /// forward row keeps its real source (docs/API.md -> Exchange rates).
 public struct RemoteRateFetcher: RateFetcher, Sendable {
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport,
+    public init(director: ConfigTransportDirector,
+                transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
-        self.baseURL = baseURL
+        self.director = director
     }
 
     public func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
@@ -48,9 +49,12 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(request)
+            await director.report(.response(status: response.status))
         } catch {
             // Every transport failure - allowlist refusal, socket error - is
-            // one silent miss to the caller (RateStore.refresh swallows it).
+            // one silent miss to the caller (RateStore.refresh swallows it),
+            // and evidence the host was unreachable.
+            await director.report(.transportFailure)
             throw RateFetchError.transportUnavailable
         }
         switch response.status {
@@ -64,7 +68,7 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
     }
 
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     // MARK: - Decoding

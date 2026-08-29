@@ -52,6 +52,32 @@ public enum ConfigTransportOutcome: Sendable, Equatable {
     case response(status: Int)
 }
 
+/// The config layer's handle that a transport uses to resolve the base URL and
+/// report request outcomes, both at request time rather than captured once at
+/// construction (docs/CONFIG.md -> "Base URL per operation").
+///
+/// The two travel as one value on purpose: a transport that reads the base URL
+/// per operation but forgets to report (or vice versa) is exactly the PR.3b
+/// defect - the guardrails become real code with no caller, or a promoted base
+/// URL that nothing observes. Bundling them makes the omission a missing
+/// argument, not a silent one.
+public struct ConfigTransportDirector: Sendable {
+    /// Resolves the current `apiBaseURL` on every call. There is deliberately no
+    /// stored `URL` - a transport that holds one has captured it once by
+    /// accident, which is the bug this type exists to prevent.
+    public let baseURL: @Sendable () -> URL
+    /// Reports a request's outcome to `ConfigStore.recordRequestOutcome`
+    /// (`.transportFailure` vs `.response(status:)`). This is what feeds the
+    /// failure counter and makes auto-revert reachable in the shipping app.
+    public let report: @Sendable (ConfigTransportOutcome) async -> Void
+
+    public init(baseURL: @escaping @Sendable () -> URL,
+                report: @escaping @Sendable (ConfigTransportOutcome) async -> Void) {
+        self.baseURL = baseURL
+        self.report = report
+    }
+}
+
 /// Resolves the three-layer config precedence (docs/CONFIG.md):
 ///
 ///     Debug override (DEBUG only) > Remote (live, else cached) > Bundled

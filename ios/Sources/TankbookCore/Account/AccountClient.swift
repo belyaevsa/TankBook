@@ -54,15 +54,15 @@ public enum AccountClientError: Error, Sendable, Equatable {
 /// the Account & devices screen needs and nothing else.
 public struct AccountClient: Sendable {
     public let httpClient: TankbookHTTPClient
-    public let baseURL: URL
+    public let director: ConfigTransportDirector
     /// ISO-8601 decoder that accepts the server's `DateTimeOffset` serialization
     /// (round-trip `O` format, offset and fractional seconds) and the plain UTC
     /// forms. A device list must decode on any server version.
     private let decoder: JSONDecoder
 
-    public init(httpClient: TankbookHTTPClient, baseURL: URL) {
+    public init(httpClient: TankbookHTTPClient, director: ConfigTransportDirector) {
         self.httpClient = httpClient
-        self.baseURL = baseURL
+        self.director = director
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom(Self.decodeISO8601WithOffset)
         self.decoder = decoder
@@ -112,22 +112,26 @@ public struct AccountClient: Sendable {
     /// All account endpoints live under `/v1` (docs/API.md -> "Account &
     /// devices"; backend `Program.cs`: `app.MapGroup("/v1")`).
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         do {
-            return try await httpClient.send(request)
+            let response = try await httpClient.send(request)
+            await director.report(.response(status: response.status))
+            return response
         } catch SessionRefresherError.authExpired {
-            // The access token expired and the refresh failed: the session is
-            // gone. Same next step as a 401 - sign in again (hard rule 1, local
-            // data untouched).
+            // The host answered (401, then a failed refresh). Session gone,
+            // base URL fine - a response, never evidence the URL is wrong.
+            await director.report(.response(status: 401))
             throw AccountClientError.unauthorized
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.
+            await director.report(.transportFailure)
             throw AccountClientError.client
         } catch {
+            await director.report(.transportFailure)
             throw AccountClientError.transportUnreachable
         }
     }

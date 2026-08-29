@@ -27,12 +27,13 @@ public protocol GatewayExtractTransport: Sendable {
 /// (docs/SECURITY.md) apply exactly as they do for auth and sync.
 public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     private let client: TankbookHTTPClient
-    private let baseURL: URL
+    private let director: ConfigTransportDirector
 
-    public init(baseURL: URL, transport: any TankbookHTTPTransport,
+    public init(director: ConfigTransportDirector,
+                transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
-        self.baseURL = baseURL
+        self.director = director
     }
 
     public func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
@@ -43,9 +44,12 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(http)
+            await director.report(.response(status: response.status))
         } catch {
             // The allowlist refusal and any socket-level failure are the same
-            // survival shape: the on-device result stands (F4, S7).
+            // survival shape: the on-device result stands (F4, S7) - and both
+            // are evidence the host was unreachable.
+            await director.report(.transportFailure)
             throw SyncServerError.transportUnavailable
         }
 
@@ -98,6 +102,6 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     }
 
     private func endpoint(_ path: String) -> URL {
-        baseURL.appendingPathComponent("v1").appendingPathComponent(path)
+        director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 }

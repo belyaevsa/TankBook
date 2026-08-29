@@ -100,7 +100,7 @@ struct GatewayExtractClientTests {
 
     private static func makeClient(_ stub: StubTransport) -> RemoteGatewayExtractTransport {
         RemoteGatewayExtractTransport(
-            baseURL: URL(string: "https://api.tankbook.live")!,
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
             transport: stub,
             tokenProvider: StaticTokenProvider())
     }
@@ -163,7 +163,7 @@ struct GatewayExtractClientTests {
         // The allowlist is a TankbookHTTPClient rule, and it applies to this
         // client exactly as to auth and sync.
         let outside = RemoteGatewayExtractTransport(
-            baseURL: URL(string: "https://evil.example")!,
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.example")! }, report: { _ in }),
             transport: stub,
             tokenProvider: StaticTokenProvider())
         await #expect(throws: SyncServerError.transportUnavailable) {

@@ -283,10 +283,8 @@ extension SignInFlow {
 
     @MainActor
     private static func makeRemoteAuthService(sessionStore: any SessionStore) -> any AuthService {
-        let bundled = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         return RemoteAuthService(
-            baseURL: bundled,
+            director: AppConfigStore.shared.director,
             transport: URLSessionTransport(),
             sessionStore: sessionStore,
             device: RemoteAuthService.SessionDevice(
@@ -318,11 +316,9 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
     let sessionStore: any SessionStore
 
     func restore(accountId: String) async -> RestoreOutcome {
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let transport = RemoteSyncTransport(
-            baseURL: baseURL,
+            director: AppConfigStore.shared.director,
             transport: URLSessionTransport(),
             tokenProvider: tokenProvider,
             refresher: AppSessionRefresher.shared

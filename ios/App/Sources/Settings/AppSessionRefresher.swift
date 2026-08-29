@@ -14,10 +14,8 @@ import TankbookCore
 /// still have to agree on a single owner. Evaluated once, on first use.
 enum AppSessionRefresher {
     static let shared: SessionRefresher = {
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         return SessionRefresher(
-            baseURL: baseURL,
+            baseURLProvider: { AppConfigStore.shared.director.baseURL() },
             transport: SeededLaunch.transport(),
             sessionStore: KeychainSessionStore())
     }()

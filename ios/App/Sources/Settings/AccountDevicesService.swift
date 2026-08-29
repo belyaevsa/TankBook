@@ -20,14 +20,12 @@ enum AccountDevicesService {
         } else {
             transport = URLSessionTransport()
         }
-        let baseURL = (try? ConfigDefaults.bundledAppConfig().apiBaseURL)
-            ?? URL(string: "https://api.tankbook.live")!
         let client = AccountClient(
             httpClient: TankbookHTTPClient(
                 transport: transport,
                 tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
                 refresher: AppSessionRefresher.shared),
-            baseURL: baseURL)
+            director: AppConfigStore.shared.director)
         return AccountDevicesModel(client: client, sessionStore: sessionStore)
     }
 }
