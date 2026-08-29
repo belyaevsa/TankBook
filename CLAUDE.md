@@ -23,6 +23,7 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/SYNC.md` | Sync protocol, conflict scenarios S1–S8, blob pipeline, encryption stance (decided), offline behavior | Any sync, backend-storage, or attachment work |
 | `docs/API.md` | The complete HTTP contract: auth, sync, blobs, reference data, feedback, LLM gateway, account | Any endpoint work, client networking; changes here = breaking-change review |
 | `design/screens/*.dc.html` + `canvas.json` | The screen mockups (source of truth for pixels); canvas artifact id `208136b7-4861-4b40-9d05-dcf5067ea123` | Building any screen – match these, don't reinvent |
+| `docs/PRACTICES.md` | Mobile+backend integration practices (architecture, network UX, security, debuggability), the constants-placement policy (compiled / remote / user / frozen), and the dated review of the code against them with its task list | Adding a timeout, limit, threshold or any tunable number; networking, auth-refresh, diagnostics or error-envelope work; phase-gate reviews |
 | `docs/TESTING.md` | Verification levels, per-story/endpoint/function check matrix, CI gates | Writing or skipping any test; defining done |
 | `docs/PHASES.md` | Build order and each phase's verifiable exit gate | Planning work; deciding what to build next |
 | `docs/TASKS.md` | The task backlog: agent-sized tasks with per-task checks; stable IDs for branches/PRs | Picking up any work item; one task = one PR = code + checks |
