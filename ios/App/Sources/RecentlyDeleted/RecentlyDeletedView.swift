@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -25,8 +24,6 @@ struct RecentlyDeletedView: View {
     @State private var fixtures = RecentlyDeletedFixtures.fromLaunchArguments()
     @State private var showPurgeConfirm = false
     @State private var didLoad = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "recentlyDeleted")
 
     private var hasAnythingToDelete: Bool {
         !deleted.isEmpty || !fixtures.syncOverwritten.isEmpty
@@ -286,7 +283,7 @@ struct RecentlyDeletedView: View {
                 reload()
             }
         } catch {
-            Self.log.error("Restore failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "recentlyDeleted.restore", category: .ui, error: error)
         }
     }
 
@@ -297,7 +294,7 @@ struct RecentlyDeletedView: View {
             toastCenter.noteEntryChanged()
             reload()
         } catch {
-            Self.log.error("Delete all failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "recentlyDeleted.deleteAll", category: .ui, error: error)
         }
     }
 
@@ -326,7 +323,7 @@ struct RecentlyDeletedView: View {
             vehicles = byID
             stations = try repository.liveStations()
         } catch {
-            Self.log.error("Recently deleted load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "recentlyDeleted.load", category: .ui, error: error)
         }
     }
 }

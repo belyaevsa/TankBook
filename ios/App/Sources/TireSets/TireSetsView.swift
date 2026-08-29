@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -19,8 +18,6 @@ struct TireSetsView: View {
     @State private var serviceRecords: [ServiceRecord] = []
     @State private var latestOdometer: Int?
     @State private var archiveTarget: TireSet?
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "tireSets")
 
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
@@ -125,7 +122,7 @@ struct TireSetsView: View {
             archiveTarget = nil
             reload()
         } catch {
-            Self.log.error("Tire set archive failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "tireSets.archive", category: .ui, error: error)
         }
     }
 
@@ -155,7 +152,7 @@ struct TireSetsView: View {
             serviceRecords = try repository.liveServiceRecords(forVehicle: vehicle.id)
             sets = try repository.liveTireSets(forVehicle: vehicle.id)
         } catch {
-            Self.log.error("Tire sets load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "tireSets.load", category: .ui, error: error)
         }
     }
 }

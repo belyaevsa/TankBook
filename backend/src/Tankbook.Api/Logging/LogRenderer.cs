@@ -101,17 +101,23 @@ public sealed class LogRenderer
             ordered.Add(new KeyValuePair<string, object?>(field.Name, field.Value));
         }
 
-        // Error context (docs/LOGGING.md §3 Errors).
+        // Error context (docs/LOGGING.md §3 Errors). The exception message and
+        // stack trace are free text that can embed a domain value, so both go
+        // through the redactor - masked, never raw (hard rule 12). errorCode and
+        // exceptionType are stable codes and pass through untouched.
         if (exception is not null || errorCodeValue is not null)
         {
             ordered.Add(new KeyValuePair<string, object?>("errorCode", errorCodeValue ?? "internal_error"));
             ordered.Add(new KeyValuePair<string, object?>("exceptionType", exception?.GetType().Name));
-            ordered.Add(new KeyValuePair<string, object?>("exceptionMessage", exception?.Message));
-            ordered.Add(new KeyValuePair<string, object?>("stackTrace", exception?.ToString()));
+            ordered.Add(new KeyValuePair<string, object?>("exceptionMessage", RedactOrNull("exceptionMessage", exception?.Message)));
+            ordered.Add(new KeyValuePair<string, object?>("stackTrace", RedactOrNull("stackTrace", exception?.ToString())));
         }
 
         return _json ? RenderJson(ordered) : RenderText(ordered);
     }
+
+    private object? RedactOrNull(string fieldName, object? value) =>
+        value is null ? null : _redactor.RedactProperty(fieldName, value)?.Value;
 
     private static IReadOnlyList<KeyValuePair<string, object?>> ExtractState(object? state, out string? template)
     {

@@ -59,6 +59,11 @@ public static class SensitiveFieldCatalog
         "cardnumber", "accountnumber", "iban", "bic",
         // Fuel marketing tier is station-issued free text ("V-Power").
         "fuelgrade",
+        // Exception diagnostics: a rendered exception message can embed a
+        // statement's arguments or a domain value, and the stack trace embeds
+        // the message plus file paths (filenames are Sensitive) - so both are
+        // masked, never logged raw (hard rule 12).
+        "exceptionmessage", "stacktrace",
     };
 
     /// <summary>

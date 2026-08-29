@@ -1,4 +1,3 @@
-import os
 import PhotosUI
 import SwiftUI
 import TankbookCore
@@ -43,8 +42,6 @@ struct VehicleDetailView: View {
     @State private var didLoad = false
     @State private var loadFailed = false
     @FocusState private var focus: AddVehicleFocus?
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "vehicleDetail")
 
     var body: some View {
         Group {
@@ -231,7 +228,7 @@ struct VehicleDetailView: View {
             notify(before: before, after: after, vehicle: updated)
             dismiss()
         } catch {
-            Self.log.error("Vehicle detail save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "vehicleDetail.save", category: .ui, error: error)
         }
     }
 
@@ -278,7 +275,7 @@ struct VehicleDetailView: View {
             toastCenter.noteEntryChanged()
             reload()
         } catch {
-            Self.log.error("Vehicle archive toggle failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "vehicleDetail.archiveToggle", category: .ui, error: error)
         }
     }
 
@@ -295,7 +292,7 @@ struct VehicleDetailView: View {
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {
-            Self.log.error("Vehicle delete failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "vehicleDetail.delete", category: .ui, error: error)
         }
     }
 
@@ -317,7 +314,7 @@ struct VehicleDetailView: View {
             self.vehicle = target
             form.load(from: target, photoData: try loadPhoto(repository: repository, vehicle: target))
         } catch {
-            Self.log.error("Vehicle detail load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "vehicleDetail.load", category: .ui, error: error)
             loadFailed = true
         }
     }
@@ -333,7 +330,7 @@ struct VehicleDetailView: View {
             self.vehicle = refreshed
             form.load(from: refreshed, photoData: try loadPhoto(repository: repository, vehicle: refreshed))
         } catch {
-            Self.log.error("Vehicle detail reload failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "vehicleDetail.reload", category: .ui, error: error)
         }
     }
 

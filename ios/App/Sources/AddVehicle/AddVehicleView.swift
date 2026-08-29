@@ -1,4 +1,3 @@
-import os
 import PhotosUI
 import SwiftUI
 import TankbookCore
@@ -19,7 +18,6 @@ struct AddVehicleView: View {
     @State private var photoItem: PhotosPickerItem?
 
     private let units = AddVehicleFormState.units()
-    private static let log = Logger(subsystem: "app.tankbook", category: "addVehicle")
 
     var body: some View {
         ScrollView {
@@ -143,7 +141,7 @@ struct AddVehicleView: View {
             try repository.upsertVehicle(result.vehicle)
             dismiss()
         } catch {
-            Self.log.error("Add car save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "addVehicle.save", category: .ui, error: error)
         }
     }
 

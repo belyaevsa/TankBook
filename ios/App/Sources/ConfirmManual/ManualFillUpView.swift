@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -63,8 +62,6 @@ struct ManualFillUpView: View {
         self.injectedPrefill = prefill
         self._hasUnsavedChanges = hasUnsavedChanges
     }
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "confirmManual")
 
     var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
@@ -286,7 +283,7 @@ struct ManualFillUpView: View {
                 form.manualRate = ProcessInfo.processInfo.arguments[index + 1]
             }
         } catch {
-            Self.log.error("Manual fill-up load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "confirmManual.load", category: .ui, error: error)
         }
     }
 
@@ -555,7 +552,7 @@ struct ManualFillUpView: View {
             Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
             dismiss()
         } catch {
-            Self.log.error("Manual fill-up save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "confirmManual.save", category: .ui, error: error)
         }
     }
 }
@@ -593,7 +590,7 @@ private extension ManualFillUpView {
             try writeReceiptAttachment(id: attachmentID, repository: repository)
             return [attachmentID]
         } catch {
-            Self.log.error("Receipt photo save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "confirmManual.receiptPhotoSave", category: .ui, error: error)
             return []
         }
     }

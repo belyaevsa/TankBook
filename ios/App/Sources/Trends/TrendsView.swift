@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -29,8 +28,6 @@ struct TrendsView: View {
     /// Trends"). Loaded from the synced preference on every `load`, flipped
     /// through the notification coordinator, which persists and reschedules.
     @State private var monthlySummaryEnabled = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "trends")
 
     /// Derived, never stored (hard rule 2): recomputed from the current entries
     /// on every render - `TrendsStats` wraps `HomeStats`, so Home and Trends
@@ -176,7 +173,7 @@ struct TrendsView: View {
             monthlySummaryEnabled = (try? repository.livePreferences())?
                 .notifications.monthlySummary ?? false
         } catch {
-            Self.log.error("Trends load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "trends.load", category: .ui, error: error)
         }
     }
 }

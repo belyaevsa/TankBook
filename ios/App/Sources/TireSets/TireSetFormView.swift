@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -21,8 +20,6 @@ struct TireSetFormView: View {
     @State private var didLoad = false
     @State private var existing: TireSet?
     @FocusState private var nameFocused: Bool
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "tireSetForm")
 
     private var isEditing: Bool { tireSetID != nil }
 
@@ -94,7 +91,7 @@ struct TireSetFormView: View {
             }
             dismiss()
         } catch {
-            Self.log.error("Tire set save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "tireSetForm.save", category: .ui, error: error)
         }
     }
 
@@ -117,7 +114,7 @@ struct TireSetFormView: View {
                 }
             }
         } catch {
-            Self.log.error("Tire set form load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "tireSetForm.load", category: .ui, error: error)
         }
     }
 

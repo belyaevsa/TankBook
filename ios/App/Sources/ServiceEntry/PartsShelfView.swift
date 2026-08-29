@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -68,11 +67,9 @@ struct PartsShelfView: View {
             self.vehicle = vehicle
             shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
         } catch {
-            Self.log.error("Parts shelf load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "partsShelf.load", category: .ui, error: error)
         }
     }
-
-    private static let log = os.Logger(subsystem: "app.tankbook", category: "partsShelf")
 }
 
 /// One on-shelf part: title, its purchase provenance ("bought Mar 3 · 12.40 €")

@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import os
 import TankbookCore
 
 /// The app's one config service (P6.18b, docs/CONFIG.md -> "App version and
@@ -46,8 +45,6 @@ final class AppConfigService {
 
     private let store: ConfigStore
 
-    private static let log = Logger(subsystem: "app.tankbook", category: "config")
-
     init(store: ConfigStore, runningVersion: String, appStoreURL: URL?) {
         self.store = store
         self.runningVersion = runningVersion
@@ -60,7 +57,8 @@ final class AppConfigService {
             // docs/CONFIG.md: an unparseable running version fails OPEN to
             // `.none`. Field name only, never the value (docs/LOGGING.md hard
             // rule 12).
-            Self.log.error("config.updateRequirement: running version string does not parse - resolving .none")
+            AppLog.warning(operation: "config.updateRequirement", category: .config,
+                           reason: "runningVersionUnparseable")
         }
     }
 

@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -210,11 +209,9 @@ struct ExpenseEntryView: View {
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {
-            Self.log.error("Expense entry save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "expenseEntry.save", category: .ui, error: error)
         }
     }
-
-    private static let log = os.Logger(subsystem: "app.tankbook", category: "expenseEntry")
 
     private var saveBar: some View {
         VStack(spacing: 8) {
@@ -273,7 +270,7 @@ struct ExpenseEntryView: View {
             form.initialAmount = form.amount
             form.initialDate = form.date
         } catch {
-            Self.log.error("Expense entry load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "expenseEntry.load", category: .ui, error: error)
         }
     }
 

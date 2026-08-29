@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import UIKit
 import TankbookCore
@@ -33,8 +32,6 @@ struct RemindersView: View {
     @State private var pendingEditID: UUID?
     @State private var editReminderID: UUID?
     @State private var isPresentingEdit = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "reminders")
 
     private var attention: [Reminder] {
         reminders.filter { ReminderLifecycle.isAttentionDue($0, currentOdometer: currentOdometer, now: Date()) }
@@ -161,7 +158,7 @@ struct RemindersView: View {
             dismissTarget = nil
             reload()
         } catch {
-            Self.log.error("Dismiss failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminders.dismiss", category: .notifications, error: error)
         }
     }
 
@@ -176,7 +173,7 @@ struct RemindersView: View {
             Task { await notificationCoordinator.cancelNotifications(for: target) }
             reload()
         } catch {
-            Self.log.error("Delete failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminders.delete", category: .notifications, error: error)
         }
     }
 
@@ -337,7 +334,7 @@ struct RemindersView: View {
             reminders = await notificationCoordinator.reconcile(vehicleId: vehicle.id)
                 .filter { ReminderLifecycle.isActive($0) }
         } catch {
-            Self.log.error("Reminders load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminders.load", category: .notifications, error: error)
         }
     }
 

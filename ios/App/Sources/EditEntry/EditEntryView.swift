@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -50,8 +49,6 @@ struct EditEntryView: View {
     @State private var didLoad = false
     @State private var loadFailed = false
     @State private var pendingBlobIDs: Set<UUID> = []
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "editEntry")
 
     private var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
@@ -233,7 +230,7 @@ struct EditEntryView: View {
                 loadNonFill(target)
             }
         } catch {
-            Self.log.error("Edit entry load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "editEntry.load", category: .ui, error: error)
             loadFailed = true
         }
     }
@@ -323,7 +320,7 @@ struct EditEntryView: View {
             notify(before: before, after: after, vehicle: vehicle)
             dismiss()
         } catch {
-            Self.log.error("Edit fill-up save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "editEntry.saveFillUp", category: .ui, error: error)
         }
     }
 
@@ -369,7 +366,7 @@ struct EditEntryView: View {
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {
-            Self.log.error("Edit entry save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "editEntry.save", category: .ui, error: error)
         }
     }
 
@@ -456,7 +453,7 @@ struct EditEntryView: View {
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {
-            Self.log.error("Edit entry delete failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "editEntry.delete", category: .ui, error: error)
         }
     }
 }

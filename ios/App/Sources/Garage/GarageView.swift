@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -35,8 +34,6 @@ struct GarageView: View {
     @State private var selectedID: UUID?
     @State private var showsLimitSheet = false
     @State private var didLoad = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "garage")
 
     var body: some View {
         ScrollView {
@@ -293,7 +290,7 @@ struct GarageView: View {
                 return GarageRow(vehicle: vehicle, vitals: vitals)
             }
         } catch {
-            Self.log.error("Garage load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "garage.load", category: .ui, error: error)
         }
     }
 }

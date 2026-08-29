@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import UIKit
 import TankbookCore
@@ -54,8 +53,6 @@ struct ServiceEntryView: View {
     /// odometer card. Loaded once, refreshed at save (the timeline may have
     /// moved since the sheet opened).
     @State private var existingEntries: [any Entry] = []
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "serviceEntry")
 
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
@@ -289,7 +286,7 @@ struct ServiceEntryView: View {
             form.initialTireSetId = form.tireSetId
             scheduleAutoAddPageIfRequested()
         } catch {
-            Self.log.error("Service entry load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "serviceEntry.load", category: .ui, error: error)
         }
     }
 
@@ -352,7 +349,7 @@ struct ServiceEntryView: View {
             let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
             try store.removePage(page.attachment)
         } catch {
-            Self.log.error("Page removal failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "serviceEntry.pageRemoval", category: .ui, error: error)
         }
     }
 
@@ -406,7 +403,7 @@ struct ServiceEntryView: View {
             toastCenter.noteEntryChanged()
             dismiss()
         } catch {
-            Self.log.error("Service entry save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "serviceEntry.save", category: .ui, error: error)
         }
     }
 

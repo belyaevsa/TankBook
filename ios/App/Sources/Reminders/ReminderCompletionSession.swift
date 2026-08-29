@@ -1,6 +1,5 @@
 import Foundation
 import Observation
-import os
 import TankbookCore
 
 /// Carries the "type amount" hand-off from the ReminderComplete sheet into the
@@ -49,8 +48,7 @@ extension ReminderCompletionSession {
             let vehicleId = reminder.vehicleId
             Task { await coordinator.reconcile(vehicleId: vehicleId) }
         } catch {
-            let log = Logger(subsystem: "app.tankbook", category: "reminderCompletion")
-            log.error("Completion persist failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminderCompletion.persist", category: .notifications, error: error)
         }
     }
 }

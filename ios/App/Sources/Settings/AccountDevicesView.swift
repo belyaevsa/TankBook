@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -29,8 +28,6 @@ struct AccountDevicesView: View {
     @State private var pendingRevoke: AccountDevice?
     @State private var showsDeleteConfirm = false
     @State private var didLoad = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "accountDevices")
 
     var body: some View {
         Group {

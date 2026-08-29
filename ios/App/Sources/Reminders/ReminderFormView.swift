@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -25,8 +24,6 @@ struct ReminderFormView: View {
     @State private var didLoad = false
     @State private var existing: Reminder?
     @FocusState private var focus: ReminderFormFocus?
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "reminderForm")
 
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
     private var isEditing: Bool { reminderID != nil }
@@ -114,7 +111,7 @@ struct ReminderFormView: View {
             }
             dismiss()
         } catch {
-            Self.log.error("Reminder save failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminderForm.save", category: .notifications, error: error)
         }
     }
 
@@ -139,7 +136,7 @@ struct ReminderFormView: View {
                 apply(prefill)
             }
         } catch {
-            Self.log.error("Reminder form load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "reminderForm.load", category: .notifications, error: error)
         }
     }
 

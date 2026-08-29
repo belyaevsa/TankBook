@@ -66,7 +66,7 @@ Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one 
 **What changed** is expressed as identity + outcome (`id`, `entityType`, `schema_version`, old→new `scn`), never as a value diff. A record's history is already in the stream; the log's job is to say *that* it changed and whether it succeeded.
 
 ### Errors
-Every ERROR line carries: `errorCode` (the stable code from API.md), `exceptionType`, `message`, `stackTrace`, `traceId`, plus **safe reproduction context**: which endpoint, which entity id, which schemaVersion, payload *size*, and for validation failures the **JSON pointer** to the offending field (the pointer names the field, never its value). That is the set that lets an engineer reproduce without seeing the data.
+Every ERROR line carries: `errorCode` (the stable code from API.md), `exceptionType`, `message`, `stackTrace`, `traceId`, plus **safe reproduction context**: which endpoint, which entity id, which schemaVersion, payload *size*, and for validation failures the **JSON pointer** to the offending field (the pointer names the field, never its value). That is the set that lets an engineer reproduce without seeing the data. `exceptionType` and `errorCode` are stable codes and pass through; the exception `message` and `stackTrace` are free text that can embed a statement's arguments or a domain value, so both go through the redactor and are masked (`***`) in every build - never raw (hard rule 12, `RedactionTests.SensitiveValueInsideAnExceptionMessage_IsMasked`).
 
 Level discipline: `ERROR` = the request failed or data integrity is at risk. `WARN` = handled degradation (retry, conflict, quota exceeded, refresh-reuse). `INFO` = the per-request and per-operation lines above. `DEBUG` = development only, never enabled in production.
 
@@ -74,7 +74,7 @@ Health, readiness and metrics endpoints log at DEBUG only – they would otherwi
 
 ## 4 · iOS (OSLog / `Logger`)
 
-Subsystem `live.belyaev.tankbook`; categories: `sync`, `persistence`, `capture`, `notifications`, `ui`, `auth`. OSLog gives level-based persistence, redaction by default, and Console.app/`log collect` access without shipping a logging SDK.
+Subsystem `live.belyaev.tankbook`; categories: `sync`, `persistence`, `capture`, `notifications`, `ui`, `auth` (plus `config`, the iOS-only addition). OSLog gives level-based persistence, redaction by default, and Console.app/`log collect` access without shipping a logging SDK. The app logs **only through the `TankbookLog` facade** (`AppLog` in the app target, built from `TankbookLog.makeDefault`): a raw `os.Logger` under any other subsystem is invisible to the diagnostics export (§5), so the SwiftLint rule `no_raw_os_logger` makes constructing one outside `Logging/` an error.
 
 ### Requests and their results (mirrors the backend)
 `net.request` – endpoint (route template), method, traceId, attempt number; `net.response` – status, durationMs, retryAfter, and on failure the `errorCode` + whether it will be retried. Backoff decisions are logged so a "sync seems stuck" report is explicable.
@@ -97,7 +97,7 @@ Every create / update / delete logs **twice**: an intent and an outcome, so a cr
 `capture.pipeline` – pipeline id (`vision+rules v3` / `fiscal-qr` / `cloud-fallback v1`), durationMs, per-field **confidence values and field names, never the extracted values**, crossCheck outcome, whether the user corrected a field afterwards. This is the feed for the L5 accuracy ratchet in `TESTING.md` – and it is aggregate-safe by construction.
 
 ### Errors
-Every failure logs the typed error, its `underlyingError`, the operation in flight, the entity id, and the traceId when it came from a request. iOS additionally records a **breadcrumb ring** (last ~50 events, in memory), which reaches the
+Every failure logs the typed error, its `underlyingError`, the operation in flight, the entity id, and the traceId when it came from a request. App-layer failures emit the typed events `app.error` (`operation`, `errorType` - both Safe - plus `errorDescription`, which is **Sensitive** because `localizedDescription` on a GRDB error can carry its statement's arguments: station names, notes, amounts) and `app.warning` (`operation`, `reason` - both Safe, for handled degradations). A view never interpolates `error.localizedDescription` with `.public`; what stays loggable is the type and a stable code, never the rendered message (hard rule 12). iOS additionally records a **breadcrumb ring** (last ~50 events, in memory), which reaches the
 **diagnostics export**. It does NOT reach crash reports, and saying so was fiction: there is no
 crash-reporting SDK in the app (GRDB is the only dependency), so crashes arrive only through
 Apple's own pipeline - Xcode Organizer and App Store Connect - which carries a stack trace and

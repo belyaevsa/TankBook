@@ -515,3 +515,46 @@ public struct FiscalQRParse: LogEvent {
         self.fields = fields
     }
 }
+
+// MARK: - App-layer errors (docs/LOGGING.md §4 Errors)
+
+/// An app-layer failure (docs/LOGGING.md §4 Errors). `operation` is a stable
+/// code naming the action in flight (e.g. `home.load`) and `errorType` is the
+/// error's Swift type name - both Safe. The rendered `localizedDescription` is
+/// Sensitive: a GRDB error can embed its statement's arguments (station names,
+/// notes, amounts), so it is never `.public` (hard rule 12). What stays
+/// loggable is what hard rule 12 already permits - the type and a stable code,
+/// never the rendered message.
+public struct AppError: LogEvent {
+    public let eventName = "app.error"
+    public let category: LogCategory
+    public let level = LogLevel.error
+    public let fields: [LogField]
+
+    public init(operation: String, category: LogCategory, error: any Error) {
+        self.category = category
+        fields = [
+            .safe("operation", operation),
+            .safe("errorType", String(describing: type(of: error))),
+            .sensitive("errorDescription", error.localizedDescription)
+        ]
+    }
+}
+
+/// A handled degradation at the app layer (docs/LOGGING.md §3: WARN, never
+/// ERROR). `reason` is a stable code, never a domain value and never a rendered
+/// message (hard rule 12).
+public struct AppWarning: LogEvent {
+    public let eventName = "app.warning"
+    public let category: LogCategory
+    public let level = LogLevel.warn
+    public let fields: [LogField]
+
+    public init(operation: String, category: LogCategory, reason: String) {
+        self.category = category
+        fields = [
+            .safe("operation", operation),
+            .safe("reason", reason)
+        ]
+    }
+}

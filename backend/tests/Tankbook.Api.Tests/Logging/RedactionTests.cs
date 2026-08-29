@@ -153,6 +153,37 @@ public class RedactionTests
         Assert.Equal(hash, AccountHash.Compute(email, salt));
         Assert.NotEqual(hash, AccountHash.Compute(email, "other-salt"));
     }
+
+    [Fact]
+    public void SensitiveValueInsideAnExceptionMessage_IsMasked()
+    {
+        var (services, writer) = LoggingTestHelpers.BuildPipeline();
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("RedactionTests");
+
+        const string station = "Shell Station Berlin West";
+        try
+        {
+            throw new InvalidOperationException($"failed to write station {station}");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "save failed");
+        }
+
+        var output = string.Join('\n', writer.Lines).WithoutMachineFields();
+
+        // The exception type - a stable code - survives.
+        Assert.Contains("InvalidOperationException", output);
+        // The sensitive station name must not appear anywhere, not even through
+        // the stack trace, which embeds the exception message.
+        Assert.DoesNotContain(station, output);
+        Assert.DoesNotContain("Berlin West", output);
+
+        // The message and trace are masked, never raw.
+        var errorLine = writer.JsonLines().Single(l => l.Prop("exceptionType") == "InvalidOperationException");
+        Assert.Equal(TankbookRedactor.Masked, errorLine.Prop("exceptionMessage"));
+        Assert.Equal(TankbookRedactor.Masked, errorLine.Prop("stackTrace"));
+    }
     /// <summary>
     /// The sweep helper itself, pinned deterministically. This exists because the
     /// bug it prevents is a **flake**: the assertions above failed once on a

@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 import UIKit
@@ -26,8 +25,6 @@ struct HomeView: View {
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
     @State private var resolvedDuplicateKeys: Set<DuplicateDetector.PairKey> = []
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "home")
 
     /// Derived, never stored (hard rule 2): recomputed from the current entries
     /// on every render - the engine's pure function, cheap at Home's history
@@ -174,7 +171,7 @@ struct HomeView: View {
             recordAnomalyDismissal(
                 AnomalyDismissal(cause: anomaly.cause, reason: nil, dismissedAt: Date()))
         } catch {
-            Self.log.error("Anomaly act failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "home.anomaly.act", category: .ui, error: error)
         }
     }
 
@@ -205,7 +202,7 @@ struct HomeView: View {
                 resolution: resolution))
             toastCenter.noteEntryChanged()
         } catch {
-            Self.log.error("Duplicate resolution failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "home.duplicate.resolve", category: .ui, error: error)
         }
     }
 
@@ -224,7 +221,7 @@ struct HomeView: View {
             try repository.softDeleteFillUp(id: loser.id)
             toastCenter.noteEntryChanged()
         } catch {
-            Self.log.error("Duplicate merge failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "home.duplicate.merge", category: .ui, error: error)
         }
     }
 
@@ -296,7 +293,7 @@ struct HomeView: View {
         do {
             try carSelection.select(live[nextIndex])
         } catch {
-            Self.log.error("Swipe switch failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "home.switchCar", category: .ui, error: error)
         }
     }
 
@@ -333,7 +330,7 @@ struct HomeView: View {
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
             photoData = try loadPhoto(repository: repository, vehicle: selected)
         } catch {
-            Self.log.error("Home load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "home.load", category: .ui, error: error)
         }
     }
 

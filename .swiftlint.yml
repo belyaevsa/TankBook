@@ -67,3 +67,11 @@ custom_rules:
     regex: '(?:Color|UIColor)(?:\.init)?\(red:'
     message: 'Raw component colour construction is forbidden (CLAUDE.md hard rule 5). Use generated design tokens (P0.2).'
     severity: error
+  no_raw_os_logger:
+    name: 'No Raw OSLogger'
+    regex: 'Logger\(subsystem:'
+    match_kinds:
+      - identifier
+    excluded: 'TankbookCore/Logging/'
+    message: 'Constructing an os.Logger outside Logging/ is forbidden (docs/LOGGING.md §4-§5, hard rule 12). Log through the TankbookLog facade (AppLog), so the diagnostics export sees every line.'
+    severity: error

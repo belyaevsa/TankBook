@@ -154,6 +154,36 @@ private func redactionFixture() -> (event: PopulatedEntityLog, forbidden: [Strin
     }
 }
 
+// MARK: - App error path (docs/LOGGING.md §4 Errors, hard rule 12)
+
+/// An error whose rendered description embeds a domain value - the exact shape
+/// a GRDB error takes when it carries its statement's arguments.
+private struct StationNameError: LocalizedError {
+    let stationName: String
+    var errorDescription: String? { "failed to write station \(stationName)" }
+}
+
+@Test func appErrorNeverRendersTheErrorMessage() {
+    let sink = InMemorySink()
+    let log = makeLog(sink: sink)
+    let stationName = "Shell Lubricants Rhein-Main"
+    let error = StationNameError(stationName: stationName)
+
+    log.emit(AppError(operation: "home.load", category: .ui, error: error))
+
+    let output = sink.rendered().joined(separator: "\n")
+
+    // What stays loggable (hard rule 12): the stable operation code and the
+    // error's type - never the rendered message.
+    #expect(output.contains("event=app.error"))
+    #expect(output.contains("operation=home.load"))
+    #expect(output.contains("errorType=StationNameError"))
+    // The description is Sensitive, so it is masked, not emitted.
+    #expect(output.contains("errorDescription=<redacted>"))
+    #expect(!output.contains("Shell Lubricants Rhein-Main"))
+    #expect(!output.contains("Rhein-Main"))
+}
+
 // MARK: - Common fields (docs/LOGGING.md §2)
 
 @Test func everyLineCarriesTheCommonFields() {

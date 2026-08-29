@@ -1,4 +1,3 @@
-import os
 import SwiftUI
 import TankbookCore
 
@@ -28,8 +27,6 @@ struct CarSwitcherView: View {
     @State private var selectedID: UUID?
     @State private var showsLimitSheet = false
     @State private var didLoad = false
-
-    private static let log = Logger(subsystem: "app.tankbook", category: "carSwitcher")
 
     var body: some View {
         ScrollView {
@@ -225,7 +222,7 @@ struct CarSwitcherView: View {
             try selection.select(vehicle)
             dismiss()
         } catch {
-            Self.log.error("Car selection failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "carSwitcher.select", category: .ui, error: error)
         }
     }
 
@@ -271,7 +268,7 @@ struct CarSwitcherView: View {
                 return CarSwitcherRow(vehicle: vehicle, vitals: vitals)
             }
         } catch {
-            Self.log.error("Car switcher load failed: \(error.localizedDescription, privacy: .public)")
+            AppLog.error(operation: "carSwitcher.load", category: .ui, error: error)
         }
     }
 
