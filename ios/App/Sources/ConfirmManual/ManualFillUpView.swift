@@ -508,15 +508,22 @@ struct ManualFillUpView: View {
         guard let vehicle, let derived = form.derived(volumeUnit: volumeUnit) else { return }
         do {
             let repository = try AppStore.repository()
+            let scanned = scannedSavePlan(derived: derived)
             let plan = ReceiptGroupPlanner.plan(detection: detection,
                                                 fillUpAmount: derived.total,
                                                 acceptedLineIDs: acceptedLineIDs)
-            var toSave = buildFillUp(vehicle: vehicle, derived: derived)
+            // The scanned save's one receipt photo: written once, shared by the
+            // fill-up and every accepted expense. A write failure degrades to
+            // no photo, never blocks the entry (ERRORS.md -> Confirm, "Storage full").
+            let attachmentIDs = receiptAttachmentIDs(scanned: scanned, repository: repository)
+            var toSave = buildFillUp(vehicle: vehicle, derived: derived,
+                                     attachments: attachmentIDs,
+                                     provenance: scanned.provenance,
+                                     extraction: scanned.extraction)
             if let plan {
                 // Grouped save (P2.4): the FillUp and every accepted Expense
-                // share one purchaseGroupId. The fill-up amount is already the
-                // fuel line (hard rule 4); the plan guarantees the group never
-                // exceeds the receipt total.
+                // share one purchaseGroupId AND the same receipt photo
+                // (PJ.2: one photograph of one receipt, never a copy per row).
                 toSave.purchaseGroupId = plan.purchaseGroupId
                 let now = Date()
                 for expense in plan.expenses {
@@ -525,7 +532,7 @@ struct ManualFillUpView: View {
                         vehicleId: vehicle.id, date: form.date, odometer: nil,
                         money: convertForSave(Money(amount: expense.amount, currency: form.currency,
                                                     homeCurrency: vehicle.homeCurrency)),
-                        note: nil, attachments: [], provenance: .receiptScan,
+                        note: nil, attachments: attachmentIDs, provenance: scanned.provenance,
                         conflict: .none, purchaseGroupId: plan.purchaseGroupId,
                         category: expense.category, title: expense.title)
                     try repository.upsertExpense(row)
@@ -551,24 +558,103 @@ struct ManualFillUpView: View {
             Self.log.error("Manual fill-up save failed: \(error.localizedDescription, privacy: .public)")
         }
     }
+}
 
-    /// provenance = .manual, the derived third value, and the engine's verdict.
-    /// The conflict flag is written from `TimelineValidator` - saving is never
-    /// blocked, a flagged entry surfaces its amber badge later.
-    private func buildFillUp(vehicle: Vehicle, derived: ManualFillUpMath.Derived) -> FillUp {
+// MARK: - PJ.2 the scanned save (one receipt photo, shared)
+
+/// The receipt photo could not be encoded or written (PJ.2); the save degrades
+/// to no photo - docs/ERRORS.md -> Confirm, "Storage full".
+enum ReceiptAttachmentError: Error {
+    case notEncodable
+}
+
+private extension ManualFillUpView {
+    /// The save's scan shape: the shared attachment id, the provenance, and the
+    /// extraction record. `nil` prefill IS the typed path (hard rule 15): no
+    /// attachment, `.manual`, no extraction record.
+    func scannedSavePlan(derived: ManualFillUpMath.Derived) -> ScannedSavePlan {
+        ScannedSavePlanner.plan(
+            extraction: prefill?.extraction,
+            cropRects: cropRects(from: prefill?.crops ?? [:]),
+            qrAnchor: prefill?.qrAnchor,
+            declaredProvenance: prefill?.provenance ?? .manual,
+            hasPhoto: prefill?.sourceImage != nil,
+            saved: ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
+                                     unitPrice: derived.unitPrice, currency: form.currency,
+                                     fuelKind: form.fuelKind, date: form.date))
+    }
+
+    /// The receipt photo the whole save shares, or `[]` when there is none. A
+    /// write failure degrades to no photo, never blocks the entry (hard rule 1).
+    func receiptAttachmentIDs(scanned: ScannedSavePlan,
+                              repository: TankbookRepository) -> [AttachmentID] {
+        guard let attachmentID = scanned.attachmentID else { return [] }
+        do {
+            try writeReceiptAttachment(id: attachmentID, repository: repository)
+            return [attachmentID]
+        } catch {
+            Self.log.error("Receipt photo save failed: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    /// The prefill's per-field crop evidence becomes the extraction record's
+    /// crop rects (`FieldExtraction.cropRect`, image pixel space).
+    func cropRects(from crops: [ManualFillUpMath.Field: CropEvidence]) -> [FieldRef: CGRect] {
+        crops.reduce(into: [:]) { result, entry in
+            result[entry.key.fieldRef] = entry.value.rect
+        }
+    }
+
+    /// Writes the receipt photo once: file bytes into the shared attachments
+    /// directory (the same pool `InvoiceAttachmentFiles` uses, docs/SYNC.md),
+    /// one `Attachment` row shared by the fill-up and every accepted expense,
+    /// with the inline thumbnail in the payload (P4.6).
+    func writeReceiptAttachment(id: AttachmentID,
+                                repository: TankbookRepository) throws {
+        guard let prefill, let sourceImage = prefill.sourceImage else { return }
+        guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
+            throw ReceiptAttachmentError.notEncodable
+        }
+        let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)
+        let thumbnail = (try? AttachmentRendition.thumbnailBase64(for: jpeg, kind: .photo)) ?? nil
+        let ocrText = prefill.ocrLines.isEmpty ? nil : prefill.ocrLines.map(\.text).joined(separator: "\n")
+        // The receipt's own printed date when the extraction read one, else the
+        // fiscal QR's timestamp (docs/SCHEMA.md, Attachment.extractedTimestamp).
+        let timestamp = (prefill.extraction?.date).flatMap { ConfirmDate.parse($0) }
+            ?? prefill.qrAnchor?.date
+        let now = Date()
+        let attachment = Attachment(
+            id: id, createdAt: now, updatedAt: now, deletedAt: nil,
+            kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
+            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail)
+        try repository.upsertAttachment(attachment)
+    }
+}
+
+// MARK: - The fill-up the save writes
+
+private extension ManualFillUpView {
+    /// The `FillUp` the save writes, with the scanned save's attachment id,
+    /// provenance and extraction record; the conflict flag is stamped from
+    /// `TimelineValidator` (never blocks the save). Kept here for the PJ.11
+    /// write-path guard, which pins the validator consult to this file.
+    func buildFillUp(vehicle: Vehicle, derived: ManualFillUpMath.Derived,
+                     attachments: [AttachmentID], provenance: Provenance,
+                     extraction: ExtractionMeta?) -> FillUp {
         let now = Date()
         let money = convertForSave(Money(amount: derived.total, currency: form.currency,
                                          homeCurrency: vehicle.homeCurrency))
         var candidate = FillUp(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicle.id, date: form.date, odometer: form.odometerValue,
-            money: money, note: nil, attachments: [], provenance: .manual,
+            money: money, note: nil, attachments: attachments, provenance: provenance,
             conflict: .none, purchaseGroupId: nil,
             volumeL: derived.volumeL, unitPrice: derived.unitPrice,
             fuelKind: form.fuelKind, fuelGrade: nil, isFull: form.isFull,
             tankLevelAfterPct: form.isFull ? 100 : form.tankLevelAfterPct,
             stationId: selectedStation?.id,
-            crossCheck: derived.crossCheck, extraction: nil)
+            crossCheck: derived.crossCheck, extraction: extraction)
         let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
                                                      vehicle: vehicle)
         candidate.conflict = validations.first { $0.entryID == candidate.id }?.conflict ?? .none
@@ -610,73 +696,3 @@ private extension ManualFillUpView {
     }
 }
 
-// MARK: - Focus
-
-/// Which ConfirmManual field holds focus (drives the cyan underline).
-enum ManualFillUpFocus: Hashable {
-    case total, liters, pricePerL, odometer
-
-    /// The pump-card figure this focus targets, if any (the odometer is not
-    /// part of the three-number card, so it is not in the confidence set).
-    var mathField: ManualFillUpMath.Field? {
-        switch self {
-        case .total: return .total
-        case .liters: return .volume
-        case .pricePerL: return .unitPrice
-        case .odometer: return nil
-        }
-    }
-}
-
-// MARK: - Tap-to-verify crop sheet (P2.3)
-
-/// One field's crop, presented by the sheet's `.sheet(item:)`.
-struct VerifyCrop: Identifiable {
-    let field: ManualFillUpMath.Field
-    let evidence: CropEvidence
-
-    var id: String { field.rawValue }
-}
-
-/// The tap-to-verify sheet: the crop of the source image a pre-filled value
-/// came from, so the user can check it without leaving the Confirm sheet. The
-/// evidence is dumb geometry + image; when no crop is attached the verify
-/// affordance is simply absent (degrade to no-op, never a dead affordance).
-struct VerifyCropSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let evidence: CropEvidence
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Theme.Palette.midnight.ignoresSafeArea()
-                VStack(spacing: 16) {
-                    if let image = evidence.image {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 420)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Theme.Palette.taillight, lineWidth: 2)
-                            )
-                    }
-                    Text("From the receipt photo")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                        .accessibilityIdentifier("verifyCropCaption")
-                }
-                .padding(Theme.Spacing.screenMargin)
-            }
-            .navigationTitle("Check the value")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .accessibilityIdentifier("verifyCropDoneButton")
-                }
-            }
-        }
-    }
-}

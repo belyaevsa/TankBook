@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import TankbookCore
 
@@ -51,7 +52,11 @@ enum EditEntryTestSeed {
             stationId: nil, crossCheck: .verified, extraction: nil))
 
         // The receipt with the printed timestamp that anchors the scan line.
-        let scannedAt = Calendar.current.date(bySettingHour: 21, minute: 47, second: 0, of: priorDate) ?? priorDate
+        // Dated NOW, not on the prior fill's day: `-presentScreen editEntry`
+        // opens the MOST RECENT entry, and a scanned fill whose timestamp
+        // depends on the time of day makes that selection flaky - this seed's
+        // scanned fill must always be the newest row.
+        let scannedAt = now
         let receipt = Attachment(
             id: UUID.v7(), createdAt: scannedAt, updatedAt: scannedAt, deletedAt: nil,
             kind: .photo, file: LocalFileRef(sha256: UUID().uuidString,
@@ -59,15 +64,29 @@ enum EditEntryTestSeed {
             extractedTimestamp: scannedAt, ocrText: "SHELL 71.02 42.30 1.679")
         try? repository.upsertAttachment(receipt)
 
+        // PJ.2: the scanned fill carries the save's extraction record - built
+        // through the REAL planner so the seeded row is exactly what a scanned
+        // save writes (one receipt photo, scan provenance, per-field meta).
+        let scannedPlan = ScannedSavePlanner.plan(
+            extraction: FuelExtraction(liters: 42.30, unitPrice: Decimal(string: "1.679")!,
+                                       total: Decimal(string: "71.02")!, currency: .eur,
+                                       fuelKind: .petrol95),
+            cropRects: [.total: CGRect(x: 0, y: 0, width: 120, height: 24),
+                        .volume: CGRect(x: 0, y: 28, width: 120, height: 24),
+                        .unitPrice: CGRect(x: 0, y: 56, width: 120, height: 24)],
+            hasPhoto: true,
+            saved: ScannedSaveValues(total: Decimal(string: "71.02")!, volumeL: 42.30,
+                                     unitPrice: Decimal(string: "1.679")!, currency: .eur,
+                                     fuelKind: .petrol95, date: scannedAt))
         try? repository.upsertFillUp(FillUp(
             id: UUID.v7(), createdAt: scannedAt, updatedAt: scannedAt, deletedAt: nil,
             vehicleId: vehicle.id, date: scannedAt, odometer: 119_486,
             money: Money(amount: Decimal(string: "71.02")!, currency: .eur, homeCurrency: .eur),
-            note: nil, attachments: [receipt.id], provenance: .receiptScan,
+            note: nil, attachments: [receipt.id], provenance: scannedPlan.provenance,
             conflict: .none, purchaseGroupId: nil,
             volumeL: 42.30, unitPrice: Decimal(string: "1.679")!,
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
-            stationId: shell.id, crossCheck: .verified, extraction: nil))
+            stationId: shell.id, crossCheck: .verified, extraction: scannedPlan.extraction))
     }
 
     /// The hard-rule-13 "and again afterwards" state: a foreign fill-up whose

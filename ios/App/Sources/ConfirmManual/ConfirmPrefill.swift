@@ -35,6 +35,12 @@ struct ConfirmPrefill {
     /// the P2.2 capture pipeline hands it across with the prefill, and nil is
     /// the manual form with no cloud reading (never an error, hard rule 15).
     var sourceImage: UIImage?
+    /// PJ.2: how this capture arrived, recorded on the saved entry as its
+    /// `provenance`. The receipt door is the default; the pump seed declares
+    /// `.pumpPhoto`; a decoded fiscal QR flips the save to `.fiscalQR` at plan
+    /// time (`ScannedSavePlanner`), so this is only the declared kind, never a
+    /// final provenance.
+    var provenance: Provenance = .receiptScan
     /// P2.5: the extraction's currency is uncertain - the sheet must ask, never
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
@@ -159,7 +165,8 @@ enum ConfirmPrefillSeed {
         return ConfirmPrefill(
             extraction: PumpPhotoCapture.prefill(
                 pumpPhotoEnabled: PumpPhotoGate.allowsPumpPhoto,
-                extraction: extraction))
+                extraction: extraction),
+            provenance: .pumpPhoto)
     }
 
     /// P2.5: the three foreign-currency seeds (converted / rate-pending /

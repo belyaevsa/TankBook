@@ -354,6 +354,13 @@ capture P6.3-gateway-late-answer-ru   ru -seedVehicleForUITests -presentScreen c
 capture P4.6-photo-syncing        en -seedPhotoSyncing -presentScreen editEntry
 capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 
+# PJ.2: the Edit-entry screen of a SCANNED fill-up showing its receipt card -
+# the photo a scanned save now persists (one receipt Attachment, scan
+# provenance, the extraction record). `-seedEditEntry` seeds exactly that save
+# shape, so the strip is in frame at the top of the screen, not below the fold.
+capture PJ.2-edit-entry-receipt    en -seedEditEntry -presentScreen editEntry
+capture PJ.2-edit-entry-receipt-ru ru -seedEditEntry -presentScreen editEntry
+
 # P5.5b: the import wizard's three screens (source picker, preview gate, review
 # list) plus the per-car export row on Vehicle detail. The picker renders the
 # stub transport's list; the preview/review install a stub parse (no file

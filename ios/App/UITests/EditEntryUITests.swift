@@ -21,6 +21,27 @@ final class EditEntryUITests: XCTestCase {
         return app
     }
 
+    // MARK: - PJ.2 the receipt card after a scanned save
+
+    /// The scanned fill-up from `-seedEditEntry` is shaped exactly as a PJ.2
+    /// scanned save writes it (one receipt Attachment, scan provenance, the
+    /// extraction record) - and the edit screen must show its receipt card.
+    func testReceiptCardRendersAfterScannedSave() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntry", "-presentScreen", "editEntry"]
+        app.launch()
+
+        // The receipt photo chip is the strip's left tile (inline thumbnail,
+        // zero blob fetches)...
+        let chip = app.descendants(matching: .any)
+            .matching(identifier: "attachmentPhotoChip").firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 10),
+                      "the scanned fill-up must render its receipt photo chip")
+        // ...and the strip's caption is the "Receipt photo" label.
+        XCTAssertTrue(app.staticTexts["Receipt photo"].waitForExistence(timeout: 5),
+                      "the receipt card caption must render")
+    }
+
     /// The newest fill (1 day ago, 119 486 km) is the top log row - the edit
     /// target for every test.
     private func openNewestFill(_ app: XCUIApplication) {

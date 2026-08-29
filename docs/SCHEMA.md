@@ -68,8 +68,12 @@ EntryCommon {
   odometer: Int?                // in vehicle's distance unit; REQUIRED on FillUp, optional elsewhere
   money: Money?                 // see below; nil for free events (home charge logged by kWh only gets computed cost)
   note: String?
-  attachments: [AttachmentID]
+  attachments: [AttachmentID]    // a scanned save writes ONE Attachment and references the SAME id
+                                 // from the fill-up and from every accepted expense - one photograph of
+                                 // one receipt, never a copy per row (PJ.2)
   provenance: .receiptScan | .pumpPhoto | .fiscalQR | .screenshot | .manual | .import(source: String)
+                                 // never `.manual` when a prefill was applied (PJ.2): the provenance
+                                 // names the door the capture came through, not the typing that refined it
   conflict: ConflictState       // see Validation
   purchaseGroupId: UUID?        // entries born from ONE receipt (fuel + car wash + coffee) share this;
                                 // they share attachments, sum to ≤ the receipt's grand total, and the
@@ -239,6 +243,17 @@ FieldExtraction {
 FieldRef: .total | .volume | .unitPrice | .date | .station | .fuelKind | .energy | .currency | .vendor | .lineItem(Int)
 // .currency: detected from the receipt's symbol/code ("PLN", "zł") – shown as a chip on the confirm
 // screen with its own confidence; a low-confidence currency NEVER silently converts (ask, don't guess).
+
+**On `userCorrected` (PJ.2):** the flag is set at SAVE time by the scanned save
+(`ScannedSavePlanner`), per field, by comparing the value the entry records
+against what the extraction proposed. A field the user left exactly as proposed
+is `false`; a field the user changed is `true`. The comparison is against the
+PROPOSED value (the QR-resolved total, not the raw OCR one – a user leaving a
+QR-corrected total untouched has corrected nothing), at the display precision
+the receipt prints (2 decimals for money, 2 for litres, 3 for price per litre).
+This is the accuracy feed `docs/EXTRACTION.md` names ("pre-fill overwritten by
+the user") and the one place it is produced. Crop rects are recorded in the
+source image's pixel space (the same rects tap-to-verify shows).
 ```
 
 ### Preferences (app-level settings)

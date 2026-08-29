@@ -57,7 +57,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 | Confirm | Pump Card pre-filled; cross-check line locks ✓; types odometer, sees "+907 km since last" | Trust building with each correct field | ⚠ One wrong digit typed in odometer ruins consumption → live delta as sanity check; low-confidence fields dimmed until tapped |
 | Done | Save → haptic → "6.8 L/100km – best this year" | Micro-reward; closes phone | → The insight one-liner is the habit hook, not the stored row |
 
-**Mixed receipt variant:** the slip carries fuel + car wash + coffee. The arithmetic check finds liters × price matching the *fuel line* (not the grand total) – that mismatch IS the detection. The Pump Card shows the fuel block as usual, plus an "Also on this receipt" section listing the other lines, each one tap: add as expense (pre-categorized: wash → `.wash`) or skip as not car-related. Added lines become Expenses sharing the same receipt photo and `purchaseGroupId`; the Log shows them as one grouped moment. Fallback: line detection fails → the fill-up saves with the fuel numbers and the receipt attached; the user can add the wash from the entry later ("add expense from this receipt").
+**Mixed receipt variant:** the slip carries fuel + car wash + coffee. The arithmetic check finds liters × price matching the *fuel line* (not the grand total) – that mismatch IS the detection. The Pump Card shows the fuel block as usual, plus an "Also on this receipt" section listing the other lines, each one tap: add as expense (pre-categorized: wash → `.wash`) or skip as not car-related. Added lines become Expenses sharing the same receipt photo and `purchaseGroupId`; the Log shows them as one grouped moment. Fallback: line detection fails → the fill-up saves with the fuel numbers and the receipt attached; the user can add the wash from the entry later ("add expense from this receipt"). *(PJ.2: a scanned save writes the receipt ONCE and references the same `Attachment` id from the fill-up and every accepted expense – the "same receipt photo" above is a shared id, not a copy per row.)*
 
 **Success metric:** median capture-to-save < 15s; ≥80% of fill-ups logged via capture (not manual form); D30 retention of users with ≥3 captures; mixed receipts with correctly isolated fuel totals ≥95% (wrong grand-total attribution is a stats-poisoning bug).
 
@@ -234,7 +234,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 |---|---|---|
 | Capture | Shutter fires, brief processing shimmer (<2s) | Never a spinner longer than 2s – commit to an answer |
 | Verdict | Pump Card opens **empty but alive**: photo attached at top, fields blank, keyboard already up on Total | ⚠ The failure state IS the manual form – same screen, zero navigation, no "recognition failed" error banner. A quiet caption: "Couldn't read this one – type it, the photo stays attached." |
-| Recovery | User types 3 numbers (total, liters, odometer), price/unit auto-derives, saves | Typing 3 fields ≈ 20s – degraded, not broken. The receipt photo remains as evidence |
+| Recovery | User types 3 numbers (total, liters, odometer), price/unit auto-derives, saves | Typing 3 fields ≈ 20s – degraded, not broken. The receipt photo remains as evidence. *(PJ.2: the photo survives the save – a scanned save persists the receipt as an `Attachment` with scan provenance, whatever the OCR resolved.)* |
 | Aftermath | Photo + OCR text silently queued as an (opt-in) improvement sample | → Opt-in "help improve scanning" set once during onboarding |
 
 **Metric:** save-completion rate after failed scans ≥85% (users finish manually instead of quitting).
@@ -406,7 +406,7 @@ is a review list that failed to explain itself.
 
 1. **The confirm screen is the product.** J3–J7 all funnel through the Pump Card; its trust mechanics (cross-check lock, confidence dimming, live odometer delta) are shared infrastructure – build once, polish forever.
 2. **Never block on the network.** Every journey completes offline except restore (J11) and cloud-LLM fallback; anything async happens after Save, invisibly.
-3. **Failure always degrades to the manual form pre-filled with whatever was read** – captured photos are never discarded, and the user never re-does work.
+3. **Failure always degrades to the manual form pre-filled with whatever was read** – captured photos are never discarded, and the user never re-does work. *(PJ.2: the receipt photo is persisted on a scanned save, and the saved entry's `provenance` names the door it came through; the typed path stays a peer – `.manual`, no attachment.)*
 4. **One emotional beat per journey.** J3's beat is the ✓ lock; J5's is "exact, free"; J6's is the two-car chart; J13's is the dossier. Everything else stays quiet.
 
 ---
