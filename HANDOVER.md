@@ -1,8 +1,8 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-29. Phases 4 and 5 COMPLETE; Phase 6 mostly done; the marketing site is LIVE.
-Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status
-marks.*
+*Updated 2026-08-29 (late). Phases 4-6 complete; **Tier 1 launch blockers are 14/17 done and the
+three that remain need the product owner**; the marketing site is LIVE. Read this first, then
+`CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
 
@@ -19,7 +19,7 @@ marks.*
 > A bare model name silently resolves to another provider that returns an instant error.
 >
 > **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
-> `swift build` and `swiftlint` continuously, **all 900 unit tests** (30 s, never subsetted), and
+> `swift build` and `swiftlint` continuously, **all 979 unit tests** (30 s, never subsetted), and
 > `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
 > not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
 > genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
@@ -51,17 +51,17 @@ marks.*
 >
 > **Launching: read `docs/TASKS.md` -> "Launch triage" first (2026-08-29).** Every open row is
 > sorted into blocker / required / deferred against a v1 submission, with two assumed decisions
-> (backend ships with v1; v1 ships what is built). The blockers in order: PJ.1 capture pipeline,
-> SH.1 backend deployment (after PR.17/18/34), PR.3 config live, PR.1/2 + PJ.13 auth, PJ.9/10/11
-> import integrity, PR.6 timeouts, PR.5 logging, P6.6 store, SH.2 release build. The two reviews
-> behind it are in `docs/PRACTICES.md` §7 and the PR/PJ sections of the backlog.
+> (backend ships with v1; v1 ships what is built). **Fourteen of the seventeen blockers closed on
+> 2026-08-29**; the three left - `SH.1`, `SH.2`, `P6.6` - are the product owner's, not an agent's.
+> The two reviews behind the triage are `docs/PRACTICES.md` §7 and the PR/PJ backlog sections.
 >
-> **Phase 6 is nearly done.** Closed 2026-08-29: P6.2, P6.3, P6.4, P6.7, P6.8, P6.18, P6.19, P6.21,
-> plus W8. **Still open:** `P6.20` (the Low Power enum claims coverage the app does not have),
-> `P6.13` (RU clips at Dynamic Type XL), `P6.9` (the ConfirmManual capture blind spot), `P6.5`
-> (accessibility audit), and the site rows `W6`, `W7`, `W10`. Held on the product owner: `P6.17` and
-> `W9` (Russian copy - "leave texts as they are"), `P6.6`'s export-compliance declaration, `W0`/`W4`
-> (search-console tokens), and the analytics choice.
+> **Launch state (2026-08-29 late): Tier 1 is 14/17 and the rest is yours.** Closed today, each
+> verified in the orchestrator's hands and mutation-checked: PJ.1 capture pipeline, PJ.2 keep the
+> photo, PJ.9/PJ.10/PJ.11 import integrity, PJ.13 first push, PR.1/PR.2 auth lifecycle,
+> PR.3a/PR.3b config live (closing P0.12), PR.17/PR.18/PR.34 pre-deploy hardening, PR.5 logging,
+> PR.6 + PR.6b timeouts and the visible Cancel, P6.20, W6. **Open and NOT agent-doable: `SH.1`
+> (deploy the backend), `SH.2` (release build path, iOS CI still disabled), `P6.6` (store assets +
+> two legal declarations).** Tier 2 is 24 rows, none started - `docs/TASKS.md` -> Launch triage.
 >
 > **P2.9 must be rewritten before dispatch** - its premise was falsified by `receipt-037`, and
 > `receipt-040` is further evidence rather than a rule. See the corpus section.
@@ -233,13 +233,13 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 900 unit tests, 206 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
-  from the repo root. **Backend: 253 tests, `dotnet format` 0.**
+- **iOS: 979 unit tests, 221 UI tests** (all green on `iPhone 17`), `swiftlint lint` exit **0**
+  from the repo root. **Backend: 268 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
 
-**137 screenshots**, EN and RU, in `design/screenshots/`. Four were **deleted rather than
+**157 screenshots**, EN and RU, in `design/screenshots/`. Four were **deleted rather than
 committed** in P5.2b because they missed their subject (P6.9), and three whole capture runs were
 discarded on 2026-08-29 - see "Five captures to get one" below. A capture that does not show its
 feature is evidence for the wrong code.
@@ -257,8 +257,8 @@ explicit decision on what that publishes - see Open decisions).
 | **P3** | **COMPLETE (2026-08-26).** All nine rows ticked. The exit gate is met clause by clause, each on a deliberate failure rather than an assertion - see `docs/PHASES.md` |
 | **P4** | **COMPLETE (2026-08-27).** All thirteen rows merged: auth, sync push/pull, blobs, sign-in, the iOS sync client with S1-S9, attachments, restore, silent nudges, account lifecycle (server + Settings), the LLM gateway, the `Date` round-trip, and the corpus A/B |
 | **P5** | **COMPLETE (2026-08-28).** Rates service; money end-to-end; the RU pass (51-key case-governance audit -> `docs/LOCALIZATION.md`, plural edges at 11/21); the MFM importer parsed **server-side**; the per-car backup archive; vehicle catalog server **and** client. P5.4b (five more importers) is **deferred by the product owner**, not blocked |
-| **P6** | **Nearly complete (2026-08-29).** Closed: P6.1, P6.2, P6.3, P6.4, P6.7, P6.8, P6.10, P6.11, P6.12, P6.14, P6.15, P6.18, P6.19, P6.21. `[~]` P5.5b, P6.6. `[cut]` P6.16 (Pro tier deferred). **Open: P6.5, P6.9, P6.13, P6.17, P6.20** |
-| **W** | **The site is LIVE.** W1-W3, W5, W21 done; W0/W4 need the domain's search-console tokens; W6, W7, W10 are small doc/asset rows; W8 fixed; W9 held on the product owner |
+| **P6** | **Complete but for polish (2026-08-29).** P6.20 closed late. `[~]` P5.5b, P6.6. `[cut]` P6.16 (Pro tier deferred). **Open: P6.5, P6.9, P6.13, P6.17** - all Tier 2 or owner-held |
+| **W** | **The site is LIVE.** W1-W3, W5, W6, W21 done; W0/W4 need the domain's search-console tokens; W7, W10 are small doc/asset rows; W8 fixed; W9 held on the product owner |
 
 ### The three `[~]`s are blocked on facts, not effort
 
@@ -275,26 +275,118 @@ explicit decision on what that publishes - see Open decisions).
 
 ## What to do next
 
-**P6.20** first - it is the only open row where the code *claims* more than it does: a six-case
-`PowerWorkKind` enum where three cases are never produced, and two `ConfigUpdateSurfaceTests` that
-guard a state they never create. Everything else is visible work or waiting on the product owner.
+**Three Tier 1 rows remain and none is agent work.** `SH.1` deploy the backend - everything gating
+it landed today (rate limits, body caps, presign binding, startup refusals) and the config layer now
+actually reaches a device. `SH.2` the release build path; iOS CI is still disabled and has never
+completed a run. `P6.6` store assets plus two legal declarations only the owner can make.
 
-Then **P6.13** (RU clips at Dynamic Type XL), **P6.9** (the ConfirmManual capture blind spot -
-it fixes *evidence*, which four discarded screenshots argue is worth doing), **P6.5** (the
-accessibility audit, no longer theoretical after `warn` was found at 3.82:1 and white-on-`warn` at
-2.15:1), and the three small site rows **W6** (`VISION.md` §2 contradicts hard rule 15), **W7**
-(`design/screens/support.js` is missing while every artboard references it) and **W10**.
+**One ops action blocks a real guarantee.** The production config signing key is not provisioned.
+`appsettings.json` now carries the **committed dev placeholder** so development flows, and the server
+**refuses to start outside Development** with it (PR.34). Until a real keypair exists, a RELEASE
+build has an empty bundled public key and every config signature **fails open to bundled defaults** -
+by design, but it means remote config cannot govern a shipped app. P0.12 is closed; this is not.
 
-**Two rows must be rewritten before they are dispatched:**
+**Then Tier 2, 24 rows, none started.** The two a TestFlight tester meets first: **PJ.4/PJ.5** -
+reminders shipped inside a phase marked COMPLETE and have **no production entry point**, and a fired
+notification lands nowhere; and **PJ.36/PJ.38** - "Export everything" is a dead row against
+`VISION.md`'s explicit "one-tap CSV/JSON export, always free".
 
-- **P2.9** ("resolve an unmarked operand pair by decimal places"). Its premise was that the decimal
-  count identifies the operand. **`receipt-037` breaks that**: it prints `99.99 X 25 Л`, two decimals
-  on the price and **none** on the volume. `receipt-040` (2026-08-29) prints `71.18 X 57.000` and
-  supports the decimal reading - which is exactly why it is recorded as **evidence, not a rule**. The
-  **unit marker** is what resolves both, which is `loneMarkers` territory.
-- **P6.14's follow-up**: a **sixth** `Text(_: String)` instance shipped this week. The gate cannot see
-  an interpolated `String`, only a missing key. That deserves its own gate extension rather than a
-  seventh discovery.
+**Rows that must be rewritten before dispatch:**
+
+- **P2.9** ("resolve an unmarked operand pair by decimal places"). Falsified by `receipt-037`
+  (`99.99 X 25 Л` - two decimals on the price, none on the volume). The **unit marker** resolves it,
+  which is `loneMarkers` territory.
+- **P6.14's follow-up**: a sixth `Text(_: String)` shipped this week. The gate sees a missing key,
+  never an interpolated `String`.
+
+**Rows filed from this session's own mutations, both real:**
+
+- **PJ.2b** - PJ.2's headline guarantee (one attachment **shared** by the fill-up and each expense)
+  is pinned by **no test at either tier**: giving each expense its own id passes the 13 L1 tests and
+  28 L4 tests. The behaviour is right; a regression ships silently.
+- **PR.6b's caveat** - the frame assertion is the right kind of check, but the occlusion could not be
+  forced on demand, so its regression value is unproven. The screenshot is the gate there.
+
+## Model routing (2026-08-29, corrected twice by the owner)
+
+**Code writing** - implementation against a fixed spec or artboard, wiring an existing seam, adding
+strings - goes to `deepseek/deepseek-v4-flash` or `zai-coding-plan/glm-5.3-flash`.
+**Design, debugging, architecture, security, algorithms** go to `deepseek/deepseek-v4-pro`.
+Reading an image needs `deepseek/deepseek-v4-flash-vision-exp`.
+
+Every dispatch in the first half of this session went to **pro** and that was waste. `CLAUDE.md`
+already said this; the drift was the orchestrator's. Note `zai-coding-plan/glm-5.3-flash` exists and
+`alibaba-token-plan/glm-5.x` is the provider with the 2026-08-25 outage - qualify the prefix.
+
+## The launch-blocker session (2026-08-29 late) - fourteen rows, and four ways an experiment lied
+
+| Task | The mutation that proves it |
+|---|---|
+| **PJ.1** capture pipeline | dropping the crop rects, and an always-empty assembler, each fail |
+| **PJ.2** keep the photo | **passed** - see PJ.2b; the sharing guarantee is unpinned |
+| **PJ.13** first push | `.userInitiated` -> `.background` fails both completion tests |
+| **PJ.9/PJ.10** import | restoring `row.fill != nil` fails 2 UI tests - **at L4 only** |
+| **PJ.11** validation everywhere | `.none` on the service path fails at L4; repairing the MFM `9` row fails its fixture |
+| **PR.1/PR.2** auth | removing the in-flight coalescing fails the racing concurrency test |
+| **PR.3a/PR.3b** config | re-capturing the base URL at construction fails the promotion test; outcome reporting fails **both** directions |
+| **PR.5** logging | reclassifying the description Safe **prints the leak**: `errorDescription=failed to write station Shell Lubricants Rhein-Main` |
+| **PR.6** timeouts | the mutations fail on the **numbers**, not on "a configuration exists" |
+| **PR.17/18/34** backend | downgrading the PR.34 refusal to a warning fails 3 of 4 startup tests |
+
+### Four experiments that lied, and how each was caught
+
+This is the session's sharpest lesson and it is not about the code.
+
+1. **A `--filter` that matches nothing prints "Test run with 0 tests ... passed" and exits 0.**
+   It caught the orchestrator **three times** - `--filter PJ2`, `--filter PJ11`, and a shell-quoted
+   alternation. Look up the real suite name, and read the observed count, never the exit code alone.
+2. **A mutation can "pass" because you ran the wrong tier.** Twice. `ImportFlowModel` and
+   `ManualFillUpView` live in `ios/App`, which **no unit test can reach** - a core-only run cannot
+   see them, and the guarantee pins at L4 or nowhere. Say which suites a mutation ran.
+3. **A mutation can fail to apply at all.** A regex could not match nested parens in
+   `RedactOrNull("exceptionMessage", exception?.Message)`, so a "passing" result was a broken
+   experiment. Only the Python traceback revealed it.
+4. **A timing test can race the scheduler instead of testing anything.** `GatewayBudgetTests` went
+   red **five times** in one day. It ran a 50 ms transport against a real 3 s deadline as two
+   detached tasks; this suite's corpus tests peg every core for ~29 s, so the deadline won.
+   **I fixed two, declared the class fixed, and there were four** - the contrast-guard mistake
+   repeated verbatim. All four are widened now, from whichever side the test allows, with no claim
+   loosened and `budgetIsThreeSeconds` still pinning the product rule.
+
+### The Cancel that existed for the test and not for the user
+
+PR.6 added a Cancel to the import parse. Its test passed. **The screenshot showed a spinner with no
+label and no Cancel anywhere**, because the bar was the last child of a plain `VStack` and its lower
+content laid out where the tab bar is. The test asserted `waitForExistence` - presence in the
+accessibility tree - then tapped by coordinate, and `isHittable` does not model occlusion.
+
+**Two captures were deleted rather than committed.** PR.6b fixed it with
+`safeAreaInset(edge: .bottom)`, the anchoring `ConfirmManual`'s save bar has always used, and the
+assertion now compares the Cancel's **frame** against the tab bar's.
+
+The agent then pushed back: the occlusion does not reproduce deterministically on this build, so its
+mutation could not be made to fail - and it said so rather than manufacturing a failing test. Its own
+comment reconciles both accounts: the content lands under the tab bar *"once the phantom bottom safe
+area appears"*. **State-dependent, not absent.** Ninth correct agent pushback.
+
+### Two more agent pushbacks worth the record
+
+- **PR.3b**: `ImportClient` was missing from my write fence but is a transport with the same
+  construction-time capture. It converted it anyway and flagged it - following my brief literally
+  would have shipped one transport still capturing once.
+- **PR.5**: its own first fixture was vacuous. `Error.localizedDescription` bridges to `NSError`, so
+  a struct's custom `localizedDescription` never appears and the station name never entered the
+  string. Rewritten with `LocalizedError.errorDescription`, which is why the mutation prints a real
+  leak.
+
+### Numbers in rows were wrong four times
+
+`PR.5` said "forty `os.Logger` sites" (41 was the `.public` count, 19 the `Logger` count);
+`PJ.11`'s file paths pointed at two files that do not exist and **omitted the edit path entirely**;
+`PR.6`'s brief said `ImportUITests` was 13 when it was 16; `PRACTICES.md` says four
+`TankbookHTTPClient` owners and there are **nine**, and names `recordTransportOutcome` which is
+really `recordRequestOutcome`. **`docs/PRACTICES.md` is a genuinely useful review and not a source to
+quote unchecked** - five defects found in it so far.
 
 ## The P5-completion session (2026-08-27/28) - fourteen tasks, and three documents that lied
 
