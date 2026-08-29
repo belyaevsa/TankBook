@@ -1,17 +1,15 @@
 import SwiftUI
 import TankbookCore
-#if canImport(UIKit)
 import UIKit
-#endif
 
-/// P2.1 - the capture camera screen (design/screens/Capture.dc.html). The
+/// PJ.1 - the capture camera screen (design/screens/Capture.dc.html). The
 /// whole product thesis on one screen: capture replaces typing.
 ///
-/// Layout per the artboard: a camera preview behind everything, a simulated
-/// detection frame over the surface with the extracted lines beside it, the
-/// caption, the four-mode row, and the two bottom actions (Photos, Type it).
-/// No OCR, no Vision, no parsing - P2.2 wires the real pipeline; this screen
-/// is presentation. The shutter circle is decorative in this task.
+/// The shutter now takes a real frame and the Photos pick feeds the same path:
+/// image -> `CapturePipeline` (Vision OCR + fiscal-QR detection -> the core
+/// `ExtractionAssembler`) -> the existing `ManualFillUpView` with a
+/// `ConfirmPrefill`. A scan that resolves nothing lands the ordinary empty
+/// manual form, never an error (hard rule 15).
 ///
 /// F8 (docs/ERRORS.md -> Capture): camera permission denied opens the manual
 /// form with the top card "Scanning needs the camera – enable in Settings."
@@ -25,12 +23,11 @@ struct CaptureView: View {
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     @State private var mode: CaptureMode = .fillUpAuto
-    @State private var detection: CaptureDetection?
     @State private var activeSheet: CaptureSheet?
     @State private var hasUnsavedChanges = false
     @State private var resolved = false
-    @State private var pickedImage: UIImage?
-    @State private var showDocumentCamera = false
+    /// Guards against a double shutter tap starting two pipelines.
+    @State private var isProcessing = false
     /// The P6.10 alpha-testing disclosure, derived on appear from the capture
     /// count and the persisted dismissal state (see `CaptureAlphaNoticeState`).
     @State private var alphaNoticeVisible = false
@@ -42,8 +39,12 @@ struct CaptureView: View {
     /// screenshot runs.
     @State private var powertrain: Powertrain = .ice
 
+    /// The shared camera session: the live preview and the shutter's photo
+    /// capture are the SAME session, so what the preview shows is what a scan
+    /// reads.
+    @State private var camera = CameraController()
+
     private let authorizer: CameraAuthorizing
-    private let injectedDetection: CaptureDetection?
     private let injectedPowertrain: Powertrain?
     /// The Capture -> ServiceEntry exit (SCREENMAP.md): called once the Service
     /// invoice has been scanned and processed, so the presenting tab can close
@@ -51,11 +52,9 @@ struct CaptureView: View {
     private let onServiceEntry: () -> Void
 
     init(authorizer: CameraAuthorizing = SystemCameraAuthorizer(),
-         injectedDetection: CaptureDetection? = nil,
          injectedPowertrain: Powertrain? = nil,
          onServiceEntry: @escaping () -> Void = {}) {
         self.authorizer = authorizer
-        self.injectedDetection = injectedDetection
         self.injectedPowertrain = injectedPowertrain
         self.onServiceEntry = onServiceEntry
     }
@@ -70,7 +69,7 @@ struct CaptureView: View {
             }
         }
         .task { await resolvePermission() }
-        .onAppear { loadInjected(); loadPowertrain(); loadAlphaNotice() }
+        .onAppear { loadPowertrain(); loadAlphaNotice() }
         .onChange(of: scenePhase) { _, phase in
             // Coming back from Settings after a denial: re-read the status so
             // a grant in Settings resumes the camera surface without a relaunch.
@@ -89,7 +88,9 @@ struct CaptureView: View {
                     get: { activeSheet == .photoPicker },
                     set: { isShown in if !isShown { activeSheet = nil } }
                 )) { image in
-                    pickedImage = image
+                    if let image {
+                        processScanned(image)
+                    }
                 }
             case .documentCamera:
                 DocumentCamera(
@@ -98,6 +99,8 @@ struct CaptureView: View {
                         activeSheet = nil
                         scanServiceInvoice(images)
                     })
+            case .scanned(let prefill):
+                ScannedFillUpSheet(prefill: prefill)
             }
         }
     }
@@ -112,6 +115,9 @@ struct CaptureView: View {
             cameraStatus = await authorizer.request()
         } else {
             cameraStatus = initial
+        }
+        if cameraStatus == .authorized {
+            camera.start()
         }
     }
 
@@ -135,14 +141,6 @@ struct CaptureView: View {
     private func currentVehicle() throws -> Vehicle? {
         let repository = try AppStore.repository()
         return carSelection.selectedVehicle(try repository.liveVehicles())
-    }
-
-    private func loadInjected() {
-        if let injectedDetection {
-            detection = injectedDetection
-        } else if ProcessInfo.processInfo.arguments.contains("-seedCaptureDetection") {
-            detection = .sample
-        }
     }
 
     // MARK: - Alpha notice (P6.10)
@@ -173,12 +171,55 @@ struct CaptureView: View {
         alphaNoticeVisible = false
     }
 
+    // MARK: - The capture path (PJ.1)
+
+    /// One image in, one `ConfirmPrefill` out, whichever door it came through.
+    /// The shutter's frame and the Photos pick land here identically.
+    private func processScanned(_ image: UIImage) {
+        guard !isProcessing else { return }
+        isProcessing = true
+        Task {
+            defer { isProcessing = false }
+            let prefill = await CapturePipeline.process(image, source: .receipt)
+            activeSheet = .scanned(prefill)
+        }
+    }
+
+    /// The shutter: takes a real frame (or, under `-captureFixtureImage`, a
+    /// test-injected one) and feeds the pipeline. In Service mode it is still
+    /// the door into the document camera (J7).
+    private func captureFrame() {
+        guard !isProcessing else { return }
+        isProcessing = true
+        Task {
+            defer { isProcessing = false }
+            let image: UIImage?
+            if let fixture = fixtureImage() {
+                image = fixture
+            } else {
+                image = await camera.capture()
+            }
+            guard let image else { return }
+            let prefill = await CapturePipeline.process(image, source: .receipt)
+            activeSheet = .scanned(prefill)
+        }
+    }
+
+    /// The `-captureFixtureImage <path>` test double: when set, both the shutter
+    /// (no camera on the simulator) and the Photos pick (out of process, not
+    /// automatable) resolve to this image, so the capture pipeline is reachable
+    /// from a UI test. Production never passes the argument.
+    private func fixtureImage() -> UIImage? {
+        guard let path = ProcessInfo.processInfo.arguments.captureFixtureImagePath else { return nil }
+        return UIImage(contentsOfFile: path)
+    }
+
     // MARK: - Background
 
     @ViewBuilder
     private var cameraBackground: some View {
         if cameraStatus == .authorized {
-            CameraPreview()
+            CameraPreview(controller: camera)
                 .ignoresSafeArea()
         } else {
             Theme.Palette.midnight
@@ -217,7 +258,7 @@ struct CaptureView: View {
                 }
                 permissionAction("Photos",
                                  identifier: "capturePermissionPhotosButton") {
-                    activeSheet = .photoPicker
+                    openPhotos()
                 }
             }
         }
@@ -253,16 +294,22 @@ struct CaptureView: View {
         UIApplication.shared.open(url)
     }
 
-    // MARK: - Granted: detection, caption, mode row, bottom actions
+    /// The Photos door, shared by the permission card and the granted layout:
+    /// under the fixture double the image is injected directly; otherwise the
+    /// system picker opens and its result feeds the same pipeline.
+    private func openPhotos() {
+        if let fixture = fixtureImage() {
+            processScanned(fixture)
+        } else {
+            activeSheet = .photoPicker
+        }
+    }
+
+    // MARK: - Granted: caption, mode row, bottom actions
 
     private var liveLayout: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
-            if let detection {
-                DetectionFrame(lines: detection.lines)
-                    .padding(.horizontal, 30)
-                    .padding(.bottom, 26)
-            }
             Text("Receipts, pump displays and fiscal QR are detected automatically")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.Palette.inkSoft)
@@ -353,7 +400,7 @@ struct CaptureView: View {
 
     private var photosButton: some View {
         Button {
-            activeSheet = .photoPicker
+            openPhotos()
         } label: {
             Image(systemName: "photo")
                 .font(.system(size: 17, weight: .regular))
@@ -393,26 +440,12 @@ struct CaptureView: View {
         .accessibilityIdentifier("captureTypeItButton")
     }
 
-    /// The shutter circle. In Service mode it is the door into the document
-    /// camera (J7: "document camera, multi-page"); in the other modes it is
-    /// still decorative (those capture paths land in later tasks). Hidden from
-    /// accessibility in the modes where it does nothing.
+    /// The shutter circle. In every mode it captures a frame and runs the
+    /// pipeline (a scan that resolves nothing lands the empty manual form);
+    /// in Service mode it is the door into the document camera (J7).
     private var shutter: some View {
         shutterButton
     }
-}
-
-// MARK: - Sheets
-
-/// What the capture screen can present over the camera. One enum drives one
-/// `.sheet` modifier (two `.sheet` modifiers on one view is a known SwiftUI
-/// pitfall - only the last one is honoured).
-private enum CaptureSheet: String, Identifiable {
-    case manualForm
-    case photoPicker
-    case documentCamera
-
-    var id: String { rawValue }
 }
 
 // MARK: - Service invoice capture (P3.1b)
@@ -430,14 +463,16 @@ private extension CaptureView {
         }
     }
 
-    /// The shutter circle. In Service mode it is the door into the document
-    /// camera (J7: "document camera, multi-page"); in the other modes it is
-    /// still decorative (those capture paths land in later tasks). Hidden from
-    /// accessibility in the modes where it does nothing.
+    /// The shutter circle: in Service mode the document camera (J7); in the
+    /// other modes a real frame capture into the PJ.1 pipeline.
     var shutterButton: some View {
         let isService = mode == .service
         return Button {
-            if isService { activeSheet = .documentCamera }
+            if isService {
+                activeSheet = .documentCamera
+            } else {
+                captureFrame()
+            }
         } label: {
             ZStack {
                 Circle()
@@ -451,8 +486,11 @@ private extension CaptureView {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Scan invoice")
+        .accessibilityLabel(shutterAccessibilityLabel)
         .accessibilityIdentifier("captureShutterButton")
-        .accessibilityHidden(!isService)
+    }
+
+    private var shutterAccessibilityLabel: LocalizedStringKey {
+        mode == .service ? "Scan invoice" : "Capture"
     }
 }

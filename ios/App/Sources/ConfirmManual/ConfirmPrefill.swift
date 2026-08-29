@@ -44,7 +44,7 @@ struct ConfirmPrefill {
 // MARK: - Debug seeding (screenshots + UI tests)
 
 /// Builds a `ConfirmPrefill` from launch arguments, the same test-hook pattern
-/// as `-seedCaptureDetection`:
+/// as the capture screen's `-captureFixtureImage`:
 /// - `-seedConfirmPrefillEmpty` - the all-nil extraction that must render as
 ///   the ordinary empty form (hard rule 15).
 /// - `-seedConfirmPrefillSparse` - one field resolved (a pump's liters), the

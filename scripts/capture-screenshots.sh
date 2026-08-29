@@ -147,12 +147,12 @@ capture P1.11-car-switcher         en -seedHomeCarSwitcher -presentScreen carSwi
 capture P1.11-car-switcher-ru      ru -seedHomeCarSwitcher -presentScreen carSwitcher
 capture P1.12-vehicle-detail       en -seedHomeCarSwitcher -presentScreen vehicleDetail
 capture P1.12-vehicle-detail-ru    ru -seedHomeCarSwitcher -presentScreen vehicleDetail
-capture P2.1-capture               en -presentScreen capture -cameraStatus authorized -seedCaptureDetection
-capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection
+capture P2.1-capture               en -presentScreen capture -cameraStatus authorized
+capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus authorized
 # The four-chip worst case: only a plug-in hybrid is offered both Fill-up and
 # Charge, and Russian is where four chips stop fitting. Committed so the mode
 # row's degradation is on the record, not assumed.
-capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -powertrain phev
+capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -powertrain phev
 
 # P6.10: the alpha-testing disclosure on the capture surface (docs/ERRORS.md ->
 # Capture). A fresh database is the point: with zero captures the notice is
@@ -163,9 +163,9 @@ capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus autho
 # ошибкам."), and the XL shot is the overflow check at a Dynamic Type the
 # footnote actually scales to - the disclosure must grow without pushing the
 # shutter off-screen.
-capture P6.10-capture              en -presentScreen capture -cameraStatus authorized -seedCaptureDetection -alphaNoticeReset
-capture P6.10-capture-ru           ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection -alphaNoticeReset
-capture P6.10-capture-ru-xl        ru -presentScreen capture -cameraStatus authorized -seedCaptureDetection \
+capture P6.10-capture              en -presentScreen capture -cameraStatus authorized -alphaNoticeReset
+capture P6.10-capture-ru           ru -presentScreen capture -cameraStatus authorized -alphaNoticeReset
+capture P6.10-capture-ru-xl        ru -presentScreen capture -cameraStatus authorized \
   -alphaNoticeReset -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
 
 # P2.3: the scanned path lands in the SAME ConfirmManual sheet. The main pair
