@@ -8,7 +8,7 @@ review of the ones the code actually uses. Companion to `SYNC.md` (the protocol)
 in `CLAUDE.md`, the rule number is cited; this document explains the reasoning behind it and
 records what the code does about it.*
 
-Written 2026-08-29. Section 7 is the review of the current implementation against sections 1-6;
+Scope: **v1** (`CLAUDE.md` → Version scope); the v2 agent's own practices live in `docs/AGENT.md`. Written 2026-08-29. Section 7 is the review of the current implementation against sections 1-6;
 it is re-run at each phase gate and dated.
 
 ## 1 · Architecture choices that set everything else up

@@ -4,6 +4,8 @@
 
 ## Navigation conventions
 
+0. **Version scope**: nodes and sections without a marker are v1; **[v2]** marks screens v1 does not ship (the Ask tab and its sheets, the Paywall). `CLAUDE.md` → Version scope.
+
 1. **Three navigation kinds, three gestures:**
    - **Tab roots** (Log/Home, Trends, Garage) – no back button; switching tabs preserves each tab's stack.
    - **Pushed screens** (Settings, About, Reminders, Recently deleted, Edit entry) – back chevron top-left + iOS edge-swipe. Back never discards saved data.
@@ -33,7 +35,7 @@ flowchart TD
     subgraph Tabs["Tab roots (no back)"]
         Home
         Trends
-        Ask["Ask (v2, Pro – docs/AGENT.md)"]
+        Ask["Ask [v2] (Pro – docs/AGENT.md)"]
         Garage
     end
 
@@ -160,7 +162,7 @@ appear in the graph because it cannot trap anyone and eventually stops rendering
 altogether. It is never present on any Confirm sheet and never appears between
 the shutter and a result.
 
-### Ask (v2, Pro)
+### Ask **[v2]** (Pro)
 
 Tab root, no back. Header: `Ask` + the car chip (same control as Home; switching car switches
 the thread's context). Body: the thread – user turns, the car **context card** on every
@@ -175,7 +177,7 @@ none – it is a tab root; sheets it opens dismiss to it. Artboards (`design/scr
 
 ## Screens referenced but not yet drawn
 
-The map names screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Paywall** (Pro). Each already has its journey and schema defined; only pixels are missing. (**Garage tab root** and **Account & devices** left this list on 2026-08-29: P6.4 built both. The Garage tab root has no artboard, so it follows the Car switcher sheet's vehicle-card language (42pt tile, name + selected dot, one-line vitals in the car's own units, dashed Add car tile, footer invariant) as a full tab root with each card leading to Vehicle detail. Account & devices has no artboard either, so it follows the Settings card conventions - identity header, a devices card with one row per server device, a delete-account row whose confirmation states the tombstone truth from `site/delete-account.md` (server copy removed after the grace period; the log on this phone is never touched).) (**Import wizard** left this list on 2026-08-27: it is drawn as three artboards - `ImportSource.dc.html` (which app is this file from, with the **server-driven** supported list), `ImportPreview.dc.html` (the F6a gate: figures the user can check from memory, target car, duplicate count, and nothing written until confirm) and `ImportReview.dc.html` (the F6 rows that need a look). The flow is **Settings -> Import -> source -> file -> preview -> [rows to fix] -> commit**, and every step backs out to the one before it; **Cancel** from the preview returns to Settings having written nothing and deleted the stored parse.) (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines. **Tire sets** was added in **P3.3** – no artboard, so the list and its name form follow the Reminder list/form's card metrics, eyebrows and underlines.)
+The map names screens that exist as nodes but have no artboard yet – listed so they're planned, not forgotten: **Paywall** (**[v2]**, Pro – the tier journey is not yet written; see the note under AG.12 in `docs/TASKS.md`). Each already has its journey and schema defined; only pixels are missing. (**Garage tab root** and **Account & devices** left this list on 2026-08-29: P6.4 built both. The Garage tab root has no artboard, so it follows the Car switcher sheet's vehicle-card language (42pt tile, name + selected dot, one-line vitals in the car's own units, dashed Add car tile, footer invariant) as a full tab root with each card leading to Vehicle detail. Account & devices has no artboard either, so it follows the Settings card conventions - identity header, a devices card with one row per server device, a delete-account row whose confirmation states the tombstone truth from `site/delete-account.md` (server copy removed after the grace period; the log on this phone is never touched).) (**Import wizard** left this list on 2026-08-27: it is drawn as three artboards - `ImportSource.dc.html` (which app is this file from, with the **server-driven** supported list), `ImportPreview.dc.html` (the F6a gate: figures the user can check from memory, target car, duplicate count, and nothing written until confirm) and `ImportReview.dc.html` (the F6 rows that need a look). The flow is **Settings -> Import -> source -> file -> preview -> [rows to fix] -> commit**, and every step backs out to the one before it; **Cancel** from the preview returns to Settings having written nothing and deleted the stored parse.) (**Vehicle detail** was in this list until P1.12 made it real: per-car settings, archive/unarchive (J13) and delete now live there; it has no separate artboard yet, so it follows the shared Add-car layout and the DESIGN.md one-row header. **Reminder form** was in this list until **P3.4** drew it from the DESIGN.md tokens and the ServiceEntry form it sits beside – it has no dedicated artboard and follows that form's card metrics, eyebrow labels and field underlines. **Tire sets** was added in **P3.3** – no artboard, so the list and its name form follow the Reminder list/form's card metrics, eyebrows and underlines.)
 
 ## Dead-end audit
 

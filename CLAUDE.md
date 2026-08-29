@@ -23,12 +23,29 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/SYNC.md` | Sync protocol, conflict scenarios S1–S8, blob pipeline, encryption stance (decided), offline behavior | Any sync, backend-storage, or attachment work |
 | `docs/API.md` | The complete HTTP contract: auth, sync, blobs, reference data, feedback, LLM gateway, account | Any endpoint work, client networking; changes here = breaking-change review |
 | `design/screens/*.dc.html` + `canvas.json` (v2 work under `design/screens/v2/`) | The screen mockups (source of truth for pixels); canvas artifact id `208136b7-4861-4b40-9d05-dcf5067ea123` | Building any screen – match these, don't reinvent |
-| `docs/AGENT.md` | The Car Agent (v2, Pro): device-hosted agent loop, tool catalogue, `/agent/turn` as the second rule-9 exception, diagnosis safety framing, the Ask tab, the answer gate | Any chat, LLM-over-user-data, assistant or "AI" feature; anything that sends car data to a model |
+| `docs/AGENT.md` | **[v2]** The Car Agent (Pro): device-hosted agent loop, tool catalogue, `/agent/turn` as the second rule-9 exception, diagnosis safety framing, the Ask tab, the answer gate | Any chat, LLM-over-user-data, assistant or "AI" feature; anything that sends car data to a model |
 | `docs/PRACTICES.md` | Mobile+backend integration practices (architecture, network UX, security, debuggability), the constants-placement policy (compiled / remote / user / frozen), and the dated review of the code against them with its task list | Adding a timeout, limit, threshold or any tunable number; networking, auth-refresh, diagnostics or error-envelope work; phase-gate reviews |
 | `docs/TESTING.md` | Verification levels, per-story/endpoint/function check matrix, CI gates | Writing or skipping any test; defining done |
 | `docs/PHASES.md` | Build order and each phase's verifiable exit gate | Planning work; deciding what to build next |
 | `docs/TASKS.md` | The task backlog: agent-sized tasks with per-task checks; stable IDs for branches/PRs | Picking up any work item; one task = one PR = code + checks |
 | `Spike/ReceiptSpike/` | OCR validation harness + parser reference implementation; its README defines the accuracy gate workflow | OCR/parser work; extending vocabularies |
+
+## Version scope (convention, 2026-08-29)
+
+Every task, journey, screen and principle in these docs belongs to exactly one version, and the
+marker says which. **Unmarked = v1.** The vocabulary:
+
+| Marker | Means | Where the list lives |
+|---|---|---|
+| **v1** (unmarked) | The launch build: phases P0–P6 and the blocker/required tiers of the launch triage. Everything built as of 2026-08-29 ships in it, including service, reminders and sync – `VISION.md` planned those as v1.x, the build got ahead of the plan | `docs/TASKS.md` → Launch triage, tiers 1–2 |
+| **[v1.0.x]** | First patch releases after launch: debuggability, maintenance, doc drift. No user-visible feature | Launch triage, tier 3 row 1 |
+| **[v1.1]** / **[v1.x]** | Point releases on the v1 architecture: journey opportunities (→), the other importers, service/parts/reminder depth, EV charging | Launch triage, tier 3 |
+| **[v2]** | The Pro tier and what it pays for: the Car Agent (`docs/AGENT.md`), the paywall and tier journeys, family sharing (J12), document wallet. Its own phase (P7 in `PHASES.md`), its own section (AG) in the backlog, its own canvas page and `design/screens/v2/` | `docs/AGENT.md` §11, `docs/TASKS.md` → AG |
+
+Hard rules are v1 unless the rule text carries a marker (rule 9's second exception is `[v2]`).
+A doc section, journey heading or task row that applies beyond v1 carries the marker in bold at
+its start; a row without one is a v1 commitment. When a v2 item becomes a v1 one (or the
+reverse), move the marker and say why in the same change.
 
 Conflict rule: if two docs disagree, the more specific one wins (API.md over SYNC.md's sketches; SCHEMA.md over prose in VISION.md) – then fix the stale doc in the same change. Keeping the docs reconciled is part of every task's definition of done.
 
@@ -71,7 +88,7 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
      note, an amount or a coordinate (hard rule 12).
    - **It does not spread.** This exception licenses import parsing and nothing else. A second
      endpoint that reads domain meaning needs its own decision, written here.
-   **The second exception (decided 2026-08-29, product owner, v2): the Car Agent's `POST
+   **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
    /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
    (the device holds the conversation), it **requires an account** because it is Pro-metered
    per turn, and it reads only what the device's own tools returned for that turn. Pure

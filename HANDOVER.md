@@ -45,6 +45,10 @@ marks.*
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
 > wrong directory. Never `pgrep -f` for a build. One task = one verified commit.
 >
+> **Version scope (2026-08-29): unmarked = v1, the launch build; `[v1.0.x]` / `[v1.1]` / `[v1.x]` /
+> `[v2]` markers on rows, headings and rules say what is deferred – `CLAUDE.md` -> Version scope.
+> The Car Agent, paywall and family sharing are v2 (`docs/AGENT.md`, backlog section AG).**
+>
 > **Launching: read `docs/TASKS.md` -> "Launch triage" first (2026-08-29).** Every open row is
 > sorted into blocker / required / deferred against a v1 submission, with two assumed decisions
 > (backend ships with v1; v1 ships what is built). The blockers in order: PJ.1 capture pipeline,

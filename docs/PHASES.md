@@ -2,6 +2,10 @@
 
 *The work broken into phases, each with a **verifiable exit gate** – a phase is done when its gate checks pass (`TESTING.md` defines how each check runs), not when its code merges. Phases are sequential for the gates, but work inside them parallelizes (iOS and backend tracks are independent until P4 joins them).*
 
+## Version map
+
+**P0–P6 are v1** – the launch build; their gates plus the launch triage (`docs/TASKS.md`) define done. What the triage defers lands as **v1.0.x** (patches) and **v1.1 / v1.x** (point releases) without a new phase. **P7 is v2**: the Pro tier and the Car Agent. Marker vocabulary in `CLAUDE.md` → Version scope.
+
 ## P0 · Foundations (everything else builds on this) – **COMPLETE** (P0.12c closed the exit gate)
 Scaffold `ios/` (SwiftUI + GRDB, DESIGN.md tokens as `Theme.swift`, String Catalogs EN/RU wired, GRDB migrations for the full SCHEMA.md model) and `backend/` (ASP.NET Core solution, Postgres + MinIO via docker compose-free scripts, Dapper migrations for the server tables). CI for both (build, lint, test, pseudo-localization). P0 also lays the three cross-cutting foundations that are far cheaper to establish before code accumulates than to retrofit: **payload contract** (P0.10), **logging** (P0.11), and **remote config** (P0.12/P0.13).
 
@@ -42,6 +46,10 @@ Catalog and rates are the same shape – **server-curated packs, versioned, cach
 ## P6 · Polish & ship
 Anomaly insights, monthly summary, Pro paywall + LLM gateway fallback (F4 quota UX), the six planned screens from SCREENMAP (Garage root, Vehicle detail, Import wizard, Reminder form, Account & devices, Paywall), accessibility audit, App Store assets EN/RU, TestFlight ring.
 **Exit gate:** ERRORS.md coverage walk – every catalogued state reachable and snapshot-tested · accessibility floor verified (Dynamic Type XL, VoiceOver labels per DESIGN.md, contrast) · SCREENMAP has zero planned-not-drawn screens left · TestFlight build passes the M-checklist.
+
+## P7 · The Pro tier and the Car Agent **[v2]**
+The paywall and tier journeys (trial, purchase, lapse, restore – to be written as J18), StoreKit entitlement, the Ask tab and the device-hosted agent with its tool catalogue, `POST /agent/turn`, the agent answer gate. Authority: `docs/AGENT.md`; backlog: `docs/TASKS.md` → AG.
+**Exit gate:** AG.11's gate ratchets with the mutation recorded (a model-stated figure fails it) · the J15 RU fixture saves through the Reminder form and nothing else · offline/not-Pro/quota states leave every tab working (hard rule 1 walk) · the five-slot bar passes Dynamic Type XL in RU on 375pt · zero prompt or answer text in either tier's logs (the sweep) · the lapse rule is written and tested: a lapsed account loses new Pro actions only, never data.
 
 ## Working agreement
 

@@ -10,6 +10,8 @@
 
 Journeys are grouped by lifecycle: **acquisition → core loop → periodic → edge/exit**. J2–J5 are the make-or-break ones.
 
+**Version scope** (`CLAUDE.md` → Version scope): a heading without a marker is a **v1** journey – the launch build must complete it. **[v1.x]** and **[v2]** headings are planned journeys that v1 does not promise; their screens may exist as artboards only.
+
 ---
 
 ## Acquisition
@@ -115,7 +117,7 @@ path.** Evidence: `Spike/ReceiptSpike/fixtures/fiscal/README.md`.
 ≥99% of fill-ups, and the user corrects the total by hand in <5%. (The old ">=60% QR share of
 captures" metric assumed QR was a capture path; it is not.)
 
-### J6 · EV charge (P2)
+### J6 · EV charge (P2) **[v1.x]**
 **Trigger:** public DC session ends in a charging app; or the weekly home-charging ritual.
 
 - **Public:** share the charging app's receipt screenshot to Tankbook (share extension) → same confirm card, in `headlight` cyan, kWh instead of liters → saved against the EV. ⚠ Dozens of charging-app layouts → the LLM-normalization layer earns its keep here; screenshots are the one place cloud fallback will be common.
@@ -207,7 +209,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Success metric:** restore success ≥99.5%; zero data-loss reviews – the reviews that kill this category.
 
-### J12 · Second driver (family car)
+### J12 · Second driver (family car) **[v2]**
 **Trigger:** both partners fuel the same car.
 **Journey (v2):** owner shares the vehicle (backend vehicle-sharing over the sync protocol – `SYNC.md` phasing) → partner accepts, sees the same log; both capture; entries show who logged them → consumption math merges both drivers' fill-ups seamlessly. ⚠ Odometer entered out of order by two drivers → sort by odometer, not timestamp, and flag impossible sequences as `warn`.
 
@@ -398,7 +400,7 @@ is a review list that failed to explain itself.
 
 ---
 
-## Agent journeys (v2, Pro) – the Ask tab
+## Agent journeys **[v2]** (Pro) – the Ask tab
 
 *Added 2026-08-29 with `docs/AGENT.md`, the single authority for how these are built. The agent
 is a Pro feature and a v2 phase; none of these journeys is a v1 condition. Personas as above;
@@ -411,7 +413,7 @@ screen the user saves, never a chat-bubble "done" (hard rule 13) · the agent is
 door to anything (hard rule 1) · offline, not-Pro and quota-spent are states with next steps,
 not errors (§6).
 
-### J14 · Ask about the car (P1)
+### J14 · Ask about the car (P1) **[v2]**
 **Trigger:** idle curiosity that Trends' four tiles do not answer – "what did the Volvo cost me
 this year, all in?", "when did I last do the brakes?", "which station do I actually pay least at?"
 **Goal:** a sentence-shaped question gets a figure-shaped answer in under ten seconds, and the
@@ -443,7 +445,7 @@ figure is the same one Trends would compute.
 **Success metric:** first-answer figure matches the app's own computation in 100 % of fixtures
 (the gate); ≥60 % of Pro users ask at least one question a month.
 
-### J15 · "Remind me" (P3)
+### J15 · "Remind me" (P3) **[v2]**
 **Trigger:** the user knows a date or a mileage and would rather say it than fill a form:
 «Напомни про ОСАГО за две недели до 4 сентября», "remind me to rotate the tyres at 125 000".
 **Goal:** the reminder exists, with the user's words turned into the right fields, and the user
@@ -472,7 +474,7 @@ saw and could change every field before it was saved.
 **Success metric:** drafts saved without an edit ≥70 % (the parse was right); drafts dismissed
 ≤15 % (tracked as a count – a dismissed draft is the agent being wrong).
 
-### J16 · Invoice through the agent (P2)
+### J16 · Invoice through the agent (P2) **[v2]**
 **Trigger:** Marta leaves the workshop with a three-page invoice in German for the SUV and does
 not know what half the lines are.
 **Goal:** the invoice becomes a categorised service record with the bill attached, the lines she
@@ -501,7 +503,7 @@ did not understand are explained, and the next reminder is offered – in one th
 **Success metric:** invoices saved through the agent carry an attachment 100 % (it captured it);
 lines the user renames ≤20 %.
 
-### J17 · Diagnosis with the car's context (P1)
+### J17 · Diagnosis with the car's context (P1) **[v2]**
 **Trigger:** "there's a whine that gets higher with speed, not with revs". Or a photo of a lit
 warning lamp. Andrus wants to know whether to worry before Monday.
 **Goal:** a ranked, evidence-backed second opinion, an honest urgency call, and next steps that
@@ -530,7 +532,7 @@ are all things the app can do.
 **Success metric:** diagnosis turns ending in a reminder or a note ≥40 %; "that's not right" taps
 per 100 answers, trended per model version (the F2 metric of chat).
 
-### F11 · Ask is unavailable – offline, not Pro, quota spent
+### F11 · Ask is unavailable – offline, not Pro, quota spent **[v2]**
 **Trigger:** underground garage; a free-tier user curious what the tab does; a Pro user whose
 monthly turns are used up; the gateway is down.
 
@@ -544,7 +546,7 @@ monthly turns are used up; the gateway is down.
 **Metric:** free-tier users who open Ask and then open Trends or Reminders from it (the tab
 teaches the app even when it cannot answer).
 
-### F12 · The agent is wrong
+### F12 · The agent is wrong **[v2]**
 **Trigger:** a figure looks off; a draft has the wrong category; a diagnosis names a part the car
 does not have.
 

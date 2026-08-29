@@ -57,6 +57,8 @@ Pipeline:
 
 ## 4 · Feature set
 
+*Phase vocabulary (`CLAUDE.md` → Version scope): **MVP** = v1, the launch build · **v1.x** = point releases on the v1 architecture · **v2** = the Pro tier and what it pays for · **Later** = no version yet. Three rows below were planned as v1.x and were built before launch (P3, P4 complete); they ship in v1 and are marked so.*
+
 | Feature | Phase | Notes |
 |---|---|---|
 | Multi-vehicle garage | MVP | Multiple cars per account from day one – vehicle switcher, per-vehicle stats and history, all tied to the one identity/backup. Every competitor gates this behind Pro; CarScope even revoked it retroactively and paid for it in reviews. |
@@ -68,11 +70,11 @@ Pipeline:
 | Localization: English + Russian | MVP | Full RU + EN from day one – UI, App Store listing, receipt-parser vocabularies (already multilingual in the spike). Architecture rule: every string goes through String Catalogs from the first commit; no hardcoded text, so adding languages later is translation work, not engineering. |
 | Trends dashboard | MVP | L/100km (or MPG), cost/km, price-per-liter over time, monthly spend. |
 | Import from Fuelio / Drivvo / Fuelly (aCar) / Spritmonitor / CarScope / My Fuel Manager | MVP | CSV/backup importers. Table stakes (Drivvo and CarScope import from everyone), and My Fuel Manager's export doubles as our first real-data test fixture. |
-| Service & maintenance records | v1.x | Repairs, parts, tires, insurance, taxes – with receipt scan and photo attachments. |
-| Reminders | v1.x | By date or odometer: oil, inspection (TÜV/MOT), insurance, tire swap. |
+| Service & maintenance records | ~~v1.x~~ **v1** (built) | Repairs, parts, tires, insurance, taxes – with receipt scan and photo attachments. |
+| Reminders | ~~v1.x~~ **v1** (built) | By date or odometer: oil, inspection (TÜV/MOT), insurance, tire swap. |
 | EV charging sessions | v1.x | kWh, tariff, home vs public, session screenshots OCR'd from charging apps. |
 | Widgets, Shortcuts, Siri | v1.x | "Log fill-up" from lock screen; Shortcut fires when CarPlay disconnects near a gas station. |
-| Multi-device sync (optional sign-in, Apple ID / Google) | v1.x | Our backend as the sync hub (`SYNC.md`): sign in on any device, the full garage follows. Strictly optional – no login wall; without an account the app is fully functional on one device. The same identity meters the cloud-LLM fallback and yields backups/restore for free. |
+| Multi-device sync (optional sign-in, Apple ID / Google) | ~~v1.x~~ **v1** (built) | Our backend as the sync hub (`SYNC.md`): sign in on any device, the full garage follows. Strictly optional – no login wall; without an account the app is fully functional on one device. The same identity meters the cloud-LLM fallback and yields backups/restore for free. |
 | **Car Agent – the Ask tab** (chat over your own log, reminders in plain language, invoice reading with explanations, symptom diagnosis in the car's context) | v2 · **Pro** | Decided 2026-08-29. The device runs the agent and its tools; the cloud model is stateless through the gateway (`docs/AGENT.md`). Every figure is the app's own computation rendered as a card; every write is a pre-filled screen the user saves. The reason Pro exists beyond cloud OCR: real per-turn cost, metered per account. |
 | Family sharing (one car, two drivers) | v2 | Vehicle-scoped sharing over the same sync protocol; entries attributed per member; odometer validation handles out-of-order merges (F9a). |
 | Anomaly insights | Later | "Consumption up 12% over 3 months – check tire pressure / air filter." |

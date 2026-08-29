@@ -204,7 +204,7 @@ changes what the *next* car pre-fills; it never rewrites a car already in the ga
 typed over is theirs permanently (`SYNC.md` → the master rule and its limit). There is no such thing as a
 catalog-vs-garage conflict to surface.
 
-### Ask (v2, Pro – `docs/AGENT.md`)
+### Ask **[v2]** (Pro – `docs/AGENT.md`)
 
 | State | Severity | Copy | Next step |
 |---|---|---|---|
