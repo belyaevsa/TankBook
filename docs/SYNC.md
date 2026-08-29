@@ -450,7 +450,16 @@ Three things live there, and the split between them is what keeps hard rule 8 in
 ## Offline & failure behavior (ties to JOURNEYS)
 
 - Every feature works with sync unreachable (F3/F4 unchanged); `dirty` records queue indefinitely.
-- Push retries with exponential backoff; partial batch acceptance is fine (idempotent by id + baseScn).
+- A failed cycle retries by itself (PR.7), so the Settings 429 notice's "Retrying in N minutes" is a
+  promise the app keeps. The schedule lives in `SyncRetryPolicy` (core), is driven by a fake clock in
+  the tests, and is: **jittered exponential backoff** - base 1 s, doubling per consecutive failure,
+  capped at 5 min, with equal jitter so the delay lands uniformly in [half, full] (a fleet retrying in
+  lockstep after an outage is a self-inflicted second outage, `PRACTICES.md` U7). The server's
+  `Retry-After` **wins over the curve, exactly** - retrying earlier would just be refused again. Only
+  the transient class retries (offline, 5xx, a 429 wait); the refusal classes are never retried -
+  `401` (authExpired, PR.1's refresher owns it), `402`, `410`, `426` and an unknown 4xx name a next
+  step that is not "try again". Partial batch acceptance is fine (idempotent by id + baseScn); only
+  idempotent calls are retried at all.
 - A device deleted server-side (user revokes it) gets `410` on its cursor → re-onboards via full pull.
 - Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything.
 - Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).

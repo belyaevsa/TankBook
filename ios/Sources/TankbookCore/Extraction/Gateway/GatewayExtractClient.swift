@@ -37,6 +37,19 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     }
 
     public func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
+        // docs/API.md -> "Retries are the device's business, not the user's:
+        // one silent retry at most, never a dialog." Only the transient class
+        // (offline, 5xx) retries, once, then the failure surfaces. A refusal
+        // (402/429/426/unknown 4xx) surfaces immediately - retrying it would
+        // just be refused again, and the on-device result already stands (F4).
+        do {
+            return try await perform(request)
+        } catch SyncServerError.transportUnavailable {
+            return try await perform(request)
+        }
+    }
+
+    private func perform(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
         let body = try encode(request)
         var http = TankbookHTTPRequest(url: endpoint("extract"), method: "POST", body: body)
         http.headers["Content-Type"] = "application/json"

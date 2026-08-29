@@ -1,4 +1,5 @@
 import Foundation
+import os
 import Testing
 @testable import TankbookCore
 
@@ -98,10 +99,10 @@ struct GatewayExtractClientTests {
         }
     }
 
-    private static func makeClient(_ stub: StubTransport) -> RemoteGatewayExtractTransport {
+    private static func makeClient(_ transport: any TankbookHTTPTransport) -> RemoteGatewayExtractTransport {
         RemoteGatewayExtractTransport(
             director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! }, report: { _ in }),
-            transport: stub,
+            transport: transport,
             tokenProvider: StaticTokenProvider())
     }
 
@@ -208,6 +209,75 @@ struct GatewayExtractClientTests {
         #expect(stub.recorded.request == nil,
                 "an oversized envelope must never reach the transport")
     }
+
+    // MARK: - The one silent retry (PR.7, docs/API.md -> "Retries are the
+    // device's business, not the user's: one silent retry at most").
+
+    @Test("a transient failure retries once, then succeeds")
+    func transientFailureRetriesOnceThenSucceeds() async throws {
+        let stub = ScriptedTransport(responses: [
+            TankbookHTTPResponse(status: 502, headers: [:], body: nil),
+            TankbookHTTPResponse(status: 200, headers: [:],
+                                 body: Data(#"{"fields":{},"pipeline":"p"}"#.utf8))
+        ])
+        let extraction = try await Self.makeClient(stub).extract(Self.request())
+        #expect(extraction.pipeline == "p")
+        #expect(stub.callCount == 2, "exactly one silent retry: two attempts total")
+    }
+
+    @Test("a transient failure surfaces after exactly one retry, never two")
+    func transientFailureSurfacesAfterOneRetry() async {
+        let stub = ScriptedTransport(responses: [
+            TankbookHTTPResponse(status: 503, headers: [:], body: nil),
+            TankbookHTTPResponse(status: 503, headers: [:], body: nil)
+        ])
+        await #expect(throws: SyncServerError.transportUnavailable) {
+            _ = try await Self.makeClient(stub).extract(Self.request())
+        }
+        #expect(stub.callCount == 2, "one silent retry at most, never two")
+    }
+
+    @Test("a refusal is never retried")
+    func refusalIsNeverRetried() async {
+        let stub = ScriptedTransport(responses: [
+            TankbookHTTPResponse(status: 429, headers: ["Retry-After": "120"], body: nil)
+        ])
+        await #expect(throws: SyncServerError.rateLimited(retryAfterSeconds: 120)) {
+            _ = try await Self.makeClient(stub).extract(Self.request())
+        }
+        #expect(stub.callCount == 1, "a refusal surfaces immediately, never retried")
+    }
+}
+
+/// A transport that returns scripted responses in order (the last one repeats),
+/// counting every call - the harness for the one-silent-retry behaviour.
+private final class ScriptedTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private struct State {
+        var responses: [TankbookHTTPResponse]
+        var calls = 0
+    }
+    private let state: OSAllocatedUnfairLock<State>
+
+    init(responses: [TankbookHTTPResponse]) {
+        state = OSAllocatedUnfairLock(initialState: State(responses: responses))
+    }
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        state.withLock { snapshot in
+            snapshot.calls += 1
+            if snapshot.responses.count > 1 {
+                return snapshot.responses.removeFirst()
+            }
+            return snapshot.responses.first ?? Self.success
+        }
+    }
+
+    var callCount: Int {
+        state.withLock { $0.calls }
+    }
+
+    private static let success = TankbookHTTPResponse(
+        status: 200, headers: [:], body: Data(#"{"fields":{},"pipeline":"p"}"#.utf8))
 }
 
 private final class RecordingBox: @unchecked Sendable {
