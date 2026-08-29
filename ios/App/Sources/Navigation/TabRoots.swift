@@ -181,7 +181,21 @@ struct AppRootView: View {
             // drains it when the mode ends - never gated on anything a user
             // tapped, never a second door into sync (hard rule 1: the automatic
             // cycle and the Settings button both go through `syncNow`).
-            await sync.runOpportunisticSync()
+            // P6.21: a SCREENSHOT launch freezes the seeded sync state.
+            // Two concerns, deliberately separated. UI TESTS want the real
+            // cycle - LowPowerModeUITests drains the resumer through it - and
+            // get determinism from the offline transport instead. SCREENSHOTS
+            // want the seeded state to stand, because an offline transport
+            // alone is not enough: SyncEngine maps any transport failure to
+            // transportUnavailable, so a seeded "synced" capture would still
+            // gain an unreachable banner the seed never asked for.
+            // So only `-freezeSyncState`, passed by capture-screenshots.sh,
+            // skips the cycle. A blanket skip on any seed broke
+            // testLowPowerReasonVanishesWhenTheModeEnds, which is the test that
+            // proves the drain works.
+            if !SeededLaunch.freezesSyncState() {
+                await sync.runOpportunisticSync()
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -192,7 +206,9 @@ struct AppRootView: View {
                 Task { await notificationCoordinator.reconcileMonthlySummary() }
                 // P6.8: foreground is the other opportunistic cycle; same
                 // `.background` trigger, same deferral-and-drain contract.
-                Task { await sync.runOpportunisticSync() }
+                if !SeededLaunch.freezesSyncState() {
+                    Task { await sync.runOpportunisticSync() }
+                }
             }
         }
     }

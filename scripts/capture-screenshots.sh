@@ -105,10 +105,10 @@ capture() {
     xcrun simctl terminate "${DEVICE}" "${BUNDLE}" >/dev/null 2>&1
     if [ "${lang}" = "ru" ]; then
         xcrun simctl launch "${DEVICE}" "${BUNDLE}" \
-            -AppleLanguages "(ru)" -AppleLocale ru_RU -homeResetDatabase "$@" >/dev/null 2>&1
+            -AppleLanguages "(ru)" -AppleLocale ru_RU -homeResetDatabase -freezeSyncState "$@" >/dev/null 2>&1
     else
         xcrun simctl launch "${DEVICE}" "${BUNDLE}" \
-            -AppleLanguages "(en)" -AppleLocale en_US -homeResetDatabase "$@" >/dev/null 2>&1
+            -AppleLanguages "(en)" -AppleLocale en_US -homeResetDatabase -freezeSyncState "$@" >/dev/null 2>&1
     fi
     sleep 6
     if xcrun simctl io "${DEVICE}" screenshot "${path}" >/dev/null 2>&1; then

@@ -15,7 +15,7 @@ enum SyncService {
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let transport = RemoteSyncTransport(
             baseURL: baseURL,
-            transport: URLSessionTransport(),
+            transport: SeededLaunch.transport(),
             tokenProvider: tokenProvider
         )
         // P4.6: the blob gate hooks attachments into the push loop - a live
@@ -23,7 +23,7 @@ enum SyncService {
         // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
         let blobGate = LocalFileBlobPushGate(
             uploader: BlobUploader(transport: RemoteBlobTransport(
-                baseURL: baseURL, transport: URLSessionTransport(), tokenProvider: tokenProvider)),
+                baseURL: baseURL, transport: SeededLaunch.transport(), tokenProvider: tokenProvider)),
             source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
         )
         let engine = SyncEngine(
@@ -47,7 +47,7 @@ enum SyncService {
             ?? URL(string: "https://api.tankbook.live")!
         let transport = RemoteBlobTransport(
             baseURL: baseURL,
-            transport: URLSessionTransport(),
+            transport: SeededLaunch.transport(),
             tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)
         )
         let store = FileBackedBlobStore(

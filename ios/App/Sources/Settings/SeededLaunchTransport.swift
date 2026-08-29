@@ -1,0 +1,59 @@
+import Foundation
+import TankbookCore
+
+/// P6.21: a seeded launch must never touch the network.
+///
+/// `SettingsTestSeed` plants a `"stub-access-token"` so signed-in states can be
+/// screenshotted and UI-tested. Once P6.8b/P6.18b wired the launch and
+/// foreground sync cycles, that seed started causing a REAL authenticated
+/// request to `api.tankbook.live` on every seeded launch - with a token the
+/// server can never accept.
+///
+/// The damage was not slowness. It made the app's rendered state depend on
+/// production: with the API returning 502, every seeded Settings capture gained
+/// a "Sync service unreachable" banner the seed never asked for, so
+/// `P4.9b-settings-synced` showed "Synced just now" AND the unreachable banner
+/// in one frame - a state no seed produces. Screenshots stopped being evidence
+/// about the build and became evidence about the server.
+///
+/// Offline is also the FAST and DETERMINISTIC path: a reachable-but-slow or 5xx
+/// server is the fragile case, not an unreachable one.
+///
+/// So under a seeded launch the transport fails immediately, with the same error
+/// a genuinely offline device produces, and no socket is opened.
+struct SeededLaunchTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        throw URLError(.notConnectedToInternet)
+    }
+}
+
+enum SeededLaunch {
+    /// True when the process was launched by a UI test or the screenshot script.
+    ///
+    /// Detected from the seed arguments themselves rather than from a dedicated
+    /// flag, so every existing test and every line of `capture-screenshots.sh`
+    /// is covered without editing them - and a NEW seed cannot forget to opt in.
+    static func isSeeded(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        arguments.contains { argument in
+            argument.hasPrefix("-seed")
+                || argument == "-presentScreen"
+                || argument == "-homeResetDatabase"
+                || argument == "-forceLowPower"
+        }
+    }
+
+    /// True only for the screenshot script, which passes `-freezeSyncState`.
+    /// UI tests deliberately do NOT set it: they want the real opportunistic
+    /// cycle, made deterministic by the offline transport above rather than by
+    /// being switched off. Freezing it for them broke the very test that proves
+    /// the Low Power resumer drains.
+    static func freezesSyncState(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> Bool {
+        arguments.contains("-freezeSyncState")
+    }
+
+    /// The transport to use for this launch: offline under a seed, real otherwise.
+    static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
+        -> any TankbookHTTPTransport {
+        isSeeded(arguments) ? SeededLaunchTransport() : URLSessionTransport()
+    }
+}
