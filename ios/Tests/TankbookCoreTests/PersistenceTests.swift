@@ -156,6 +156,34 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     #expect(fills.first?.fiscalIdentity == nil)
 }
 
+/// The v6 migration adds the device-local `syncPayloadMemory` side table (PR.4)
+/// forward over a database seeded at v5. Prior rows must stay readable and
+/// syncable, and the new table must be usable - the migration is additive, never
+/// a rewrite (docs/PRACTICES.md A5: migrations run once on the user's data).
+@Test func syncPayloadMemoryMigrationAppliesForwardOverSeededRows() throws {
+    let database = try TankbookDatabase.inMemory(upTo: "v5")
+    let repo = TankbookRepository(database: database)
+    let vehicle = makeVehicle()
+    try repo.upsertVehicle(vehicle, syncState: .synced(scn: 5))
+    let fillUp = makeFillUp(vehicleId: vehicle.id)
+    try repo.upsertFillUp(fillUp)   // dirty: queued for the next push
+
+    try database.migrator.migrate(database.writer)   // v6 applies over the seed
+
+    // The side table exists and the store is usable.
+    #expect(try database.tableNames().contains(TankbookSchema.syncPayloadMemory))
+    let memory = DatabaseSyncPayloadMemory(repository: repo)
+    let payload = try PayloadCodec.encode(vehicle).payload
+    memory.recordSynced(id: vehicle.id, payload: payload)
+    #expect(memory.lastSyncedPayload(for: vehicle.id) == payload)
+
+    // Prior rows remain readable and syncable.
+    #expect(try repo.vehicle(id: vehicle.id) == vehicle)
+    #expect(try repo.liveFillUps(forVehicle: vehicle.id).count == 1)
+    #expect(try repo.localSyncRecord(id: vehicle.id, entityType: Vehicle.entityType) != nil)
+    #expect(try repo.fetchDirtyRows().count == 1, "the seeded dirty fillUp still queues after the migration")
+}
+
 // MARK: - CRUD round-trips (catch Decimal / date / enum mapping bugs)
 
 @Test func vehicleCRUDRoundTrip() throws {

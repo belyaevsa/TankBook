@@ -73,6 +73,70 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     #expect(result.loser == nil, "a field merge loses nothing (docs/SYNC.md S9)")
 }
 
+// MARK: - S9 across a relaunch (PR.4)
+
+/// PR.4: the payload memory is persisted, so a FRESH engine over the same
+/// repository still knows which fields this device changed. The pure merge test
+/// above and every engine test hold one memory for their whole life and cannot
+/// see the bug: the in-memory double dies with the process, so after a relaunch
+/// the first sync diffs against nothing and claims EVERY field changed - a stale
+/// device then overwrites a field another device edited in between (hard rule
+/// 13). This test rebuilds the second engine over the same repository, exactly
+/// the process boundary a relaunch is.
+@Test func s9AFreshEngineOverTheSameRepositoryStillMergesOnlyTheChangedField() async throws {
+    let monday = t0.addingTimeInterval(4 * 86_400)
+    let friday = t0.addingTimeInterval(8 * 86_400)
+    let id = UUID.v7()
+    let allAtT0: [String: Date] = [
+        "name": t0, "tankCapacityL": t0, "initialOdometer": t0, "homeCurrency": t0,
+        "units": t0, "paceLimitKmPerDay": t0, "archived": t0,
+    ]
+
+    // Yesterday's sync: this device pulled and pushed the baseline, so the
+    // persisted memory holds it as the last-synced payload.
+    let baseline = makeSyncVehicle(id: id, name: "Volvo", tankCapacityL: 71,
+                                   initialOdometer: 49_000, homeCurrency: .eur,
+                                   paceLimitKmPerDay: 2000)
+    let repo = try makeSyncRepository()
+    let transport1 = SyncTransportDouble()
+    transport1.enqueuePull(SyncPullResponse(
+        records: [makePullRecord(baseline, scn: 5, fieldVersions: allAtT0)],
+        nextSince: 5, more: false, schemaPolicy: policy))
+    _ = await makeSyncEngine(repository: repo, transport: transport1,
+                             memory: DatabaseSyncPayloadMemory(repository: repo)).synchronize()
+
+    // This device (stale since yesterday) renames the car Friday; every other
+    // field is still the baseline value.
+    var edited = baseline
+    edited.name = "V60"
+    edited.updatedAt = friday
+    try repo.upsertVehicle(edited)
+
+    // The fresh device corrected tankCapacityL and initialOdometer Monday and
+    // pushed; this device relaunched and now pulls it with a FRESH engine over
+    // the same repository.
+    let remote = makeSyncVehicle(id: id, name: "Volvo", tankCapacityL: 60,
+                                 initialOdometer: 50_000, homeCurrency: .eur,
+                                 paceLimitKmPerDay: 2000)
+    let remoteVersions: [String: Date] = [
+        "name": t0, "tankCapacityL": monday, "initialOdometer": monday,
+        "homeCurrency": t0, "units": t0, "paceLimitKmPerDay": t0, "archived": t0,
+    ]
+    let transport2 = SyncTransportDouble()
+    transport2.enqueuePull(SyncPullResponse(
+        records: [makePullRecord(remote, scn: 10, fieldVersions: remoteVersions)],
+        nextSince: 10, more: false, schemaPolicy: policy))
+    _ = await makeSyncEngine(repository: repo, transport: transport2,
+                             memory: DatabaseSyncPayloadMemory(repository: repo)).synchronize()
+
+    let merged = try repo.vehicle(id: id)
+    #expect(merged?.name == "V60", "the stale device's newer name must survive")
+    #expect(merged?.tankCapacityL == 60,
+            "the fresh device's correction must survive the relaunch (S9)")
+    #expect(merged?.initialOdometer == 50_000)
+    #expect(merged?.homeCurrency == .eur)
+}
+
 // MARK: - S1
 
 @Test func s1RecordLevelLWWOnAnEntryLosesTheOlderEditToTheUndoLog() async throws {

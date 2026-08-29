@@ -315,6 +315,25 @@ func makePullRecord<E: SyncedEntity>(_ entity: E, scn: Int64, deleted: Bool? = n
     )
 }
 
+/// A pulled `Vehicle` record that carries explicit per-field versions inside the
+/// payload - the real server returns them (docs/SYNC.md: `Vehicle` field
+/// versions travel in the payload), whereas `makePullRecord`'s plain encode of
+/// the domain type has none.
+func makePullRecord(_ vehicle: Vehicle, scn: Int64, fieldVersions: [String: Date],
+                    deleted: Bool? = nil) -> SyncPullRecord {
+    let envelope = try! PayloadCodec.encode(vehicle)
+    let payload = VehicleFieldVersions.write(into: envelope.payload, versions: fieldVersions)
+    return SyncPullRecord(
+        id: vehicle.id,
+        entityType: Vehicle.entityType,
+        schemaVersion: PayloadCodec.currentSchemaVersion,
+        scn: scn,
+        payload: payload,
+        clientUpdatedAt: vehicle.updatedAt,
+        deleted: deleted ?? (vehicle.deletedAt != nil)
+    )
+}
+
 /// Builds a `SyncRecord` from a synced entity, with explicit per-field versions.
 func makeSyncRecord<E: SyncedEntity>(_ entity: E, clientUpdatedAt: Date,
                                      fieldVersions: [String: Date]? = nil) -> SyncRecord {

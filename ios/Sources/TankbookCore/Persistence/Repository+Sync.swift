@@ -322,6 +322,61 @@ extension TankbookRepository {
     }
 }
 
+// MARK: - Sync payload memory (S9)
+
+extension TankbookRepository {
+    /// The last payload this device synced for a record, or nil when it has none
+    /// (a record never synced, or the memory was never written). The `Vehicle`
+    /// field-level merge diffs against it (docs/SYNC.md S9).
+    public func lastSyncedPayload(for id: UUID) throws -> JSONValue? {
+        try database.read { db in
+            guard let json = try String.fetchOne(db, sql: """
+                SELECT payload FROM \(TankbookSchema.syncPayloadMemory) WHERE id = ?
+                """, arguments: [id.uuidString]) else {
+                return nil
+            }
+            return try? JSONValue.parse(json)
+        }
+    }
+
+    /// Persists the payload that now represents the server's state for a record
+    /// (after a successful push or pull). Upsert: one memory row per record id.
+    public func recordSynced(id: UUID, payload: JSONValue) throws {
+        let json = try payload.jsonString()
+        try database.write { db in
+            try db.execute(sql: """
+                INSERT INTO \(TankbookSchema.syncPayloadMemory) (id, payload)
+                VALUES (?, ?)
+                ON CONFLICT(id) DO UPDATE SET payload = excluded.payload
+                """, arguments: [id.uuidString, json])
+        }
+    }
+}
+
+/// The persisted `SyncPayloadMemory` (docs/SYNC.md S9: the field-level merge
+/// must survive the process, or a relaunched device claims every field changed
+/// and can revert another device's edit - hard rule 13). Device-local, never
+/// synced, lives in the same protected database as the records it remembers.
+///
+/// `@unchecked Sendable` like `InMemorySyncPayloadMemory`: the GRDB writer is
+/// thread-safe and this class is stateless beyond it, so the honest isolation
+/// is the unchecked conformance the memory seam already uses.
+public final class DatabaseSyncPayloadMemory: SyncPayloadMemory, @unchecked Sendable {
+    private let repository: TankbookRepository
+
+    public init(repository: TankbookRepository) {
+        self.repository = repository
+    }
+
+    public func lastSyncedPayload(for id: UUID) -> JSONValue? {
+        try? repository.lastSyncedPayload(for: id)
+    }
+
+    public func recordSynced(id: UUID, payload: JSONValue) {
+        try? repository.recordSynced(id: id, payload: payload)
+    }
+}
+
 // MARK: - The record stream (restore / backup snapshot)
 
 extension TankbookRepository {

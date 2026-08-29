@@ -32,7 +32,11 @@ enum SyncService {
             repository: repository,
             transport: transport,
             cursorStore: UserDefaultsSyncCursorStore(),
-            payloadMemory: InMemorySyncPayloadMemory(),
+            // PR.4: the payload memory is persisted, not in-memory - the
+            // field-level Vehicle merge must survive a relaunch, or the first
+            // sync after it claims every field changed and a stale device can
+            // revert another device's edit (docs/SYNC.md S9, hard rule 13).
+            payloadMemory: DatabaseSyncPayloadMemory(repository: repository),
             blobGate: blobGate,
             powerState: powerState
         )

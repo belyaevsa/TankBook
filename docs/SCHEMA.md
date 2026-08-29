@@ -359,6 +359,16 @@ duplicateResolution (id text pk, createdAt real, updatedAt real, deletedAt real,
 
 `resolution = keepBoth` means the user said there really were two purchases: the heuristic is suppressed for that pair and both count from then on. **Device-local** (deliberately NOT a synced table, like the sync cursor) – resolution sync is P4 work. A Merge needs no resolution row: it unions the loser's fields into the survivor and tombstones the loser, so the pair simply stops existing (and the loser lives in Recently deleted for the 30-day undo window – nothing is lost silently).
 
+### The sync payload memory (the field-level merge's baseline)
+
+The `Vehicle` field-level merge (SYNC.md S9) must know which fields *this device* actually changed, so each record's last-synced payload is remembered on the device. It is **device-local** (deliberately NOT a synced table, like the sync cursor) and holds a canonical JSON copy of the payload the device last pushed or pulled:
+
+```sql
+syncPayloadMemory (id text pk, payload text not null)
+```
+
+`id` is the synced record's id (UUIDs are globally unique, so the key carries no entityType). Written on every successful push or pull; read when a dirty `Vehicle` is diffed. **This table is why the merge survives a relaunch**: the in-memory alternative dies with the process, and the first sync after a relaunch then claims *every* field changed – a stale device can revert another device's newer edit (hard rule 13). It lives in the same protected database as the records it remembers.
+
 ## Derived: consumption
 
 Never stored. Recomputed for a vehicle whenever any FillUp in range changes.

@@ -26,6 +26,10 @@ public enum TankbookSchema {
     /// S1/S4: "the losing version is kept in a local 30-day undo log"). NOT in
     /// `syncedTables` - it is bookkeeping, like the sync cursor.
     public static let syncOverwrite = "syncOverwrite"
+    /// Device-local memory of each record's last-synced payload (docs/SYNC.md
+    /// S9: the `Vehicle` field-level merge diffs against it). NOT in
+    /// `syncedTables` - it is bookkeeping, like the sync cursor, never synced.
+    public static let syncPayloadMemory = "syncPayloadMemory"
 
     /// Every synced entity table (has the envelope + syncState bookkeeping).
     /// The reference data (exchangeRate) is deliberately NOT here.
@@ -102,6 +106,9 @@ public enum TankbookMigrations {
             try db.alter(table: TankbookSchema.attachment) { table in
                 table.add(column: "thumbnailBase64", .text)
             }
+        }
+        migrator.registerMigration("v6") { db in
+            try createSyncPayloadMemory(db)
         }
         return migrator
     }
@@ -376,6 +383,20 @@ public enum TankbookMigrations {
         }
         try db.create(index: "idx_syncOverwrite_record", on: TankbookSchema.syncOverwrite,
                       columns: ["recordId", "replacedAt"])
+    }
+
+    private static func createSyncPayloadMemory(_ db: Database) throws {
+        // Device-local last-synced payload per record id (docs/SYNC.md S9): the
+        // `Vehicle` field-level merge diffs the current payload against it to
+        // learn which fields this device actually changed. Deliberately NO
+        // envelope and NOT in `syncedTables` - the row IS the memory entry, and
+        // the memory is bookkeeping like the sync cursor, never synced.
+        // Keyed by record id alone: ids are globally unique UUIDs, and the
+        // `SyncPayloadMemory` seam reads by id.
+        try db.create(table: TankbookSchema.syncPayloadMemory) { table in
+            table.column("id", .text).primaryKey()          // the synced record's id
+            table.column("payload", .text).notNull()        // canonical JSON of the last-synced payload
+        }
     }
 
     // MARK: - Shared column groups
