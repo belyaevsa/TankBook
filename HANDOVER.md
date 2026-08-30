@@ -1,6 +1,6 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-30 (late). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain need the
+*Updated 2026-08-30 (later still: the full UI suite is GREEN - 252/0 - and PJ.7b closed). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain need the
 product owner**; **Tier 2 is 17/24**; the marketing site is LIVE. Read this first, then `CLAUDE.md`
 for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
@@ -98,16 +98,58 @@ for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 > auto-dispatch" would degrade into reading agent reports and believing them, which is the failure
 > mode this whole process exists to prevent.
 
-## `main` is carrying a RED UI test right now - PJ.7b (2026-08-30)
+## The suite is GREEN, and PJ.7b was never a restore bug (2026-08-30, late)
 
-`RecentlyDeletedUITests.testListShowsDeletedEntriesWithCountdownAndRestoreReturnsEntryToLog` fails
-with *"the restored entry must reappear in the Log"* (0, expected 1). **It fails in isolation, and
-it fails with the current work stashed** - so it is neither contention nor the task that found it.
+**252 UI tests, 0 failures**, `swift test` **1062/1062**, `swiftlint` **0** from the repo root -
+the overdue full run, driven alone on `iPhone 17`, verified in the orchestrator's own hands.
 
-It was found **by accident**: PJ.7 happened to name that suite. No task since the last full UI run
-had named it, so it drifted red unseen for roughly fifteen tasks. **That is the cost of
-subset-per-task**, and the rule's own condition - a full run at phase completion - is now overdue.
-Bisect it, and run the full suite once to find any sibling that drifted the same way.
+`RecentlyDeletedUITests.testListShowsDeletedEntriesWithCountdownAndRestoreReturnsEntryToLog`
+**passes in a full run** and failed only in isolation. Restore was never broken. What PJ.7b
+actually found is **order-dependence**: suites inherit database and session state from whatever ran
+before them, so a test can be green in company and red alone. That is invisible to subset-per-task
+*and* to a full run - only running a suite by itself shows it.
+
+The full run turned up five failures, in three unrelated causes, plus one red **unit** test no UI
+run could see:
+
+| Failure | What it really was |
+|---|---|
+| `WelcomeUITests` tagline | The hero copy changed **three times in one day**; the assertion pinned the first wording, whose key was deleted from the catalogue (PJ.7c) |
+| `TankbookShellUITests`, `UpdateRequirementUITests` | Both reached the **guest** Home, whose "Type it" is `homeGuestCaptureButton`; `typeItButton` exists only in the signed-in layout (PJ.7d) |
+| `ConfirmManualUITests` pair | **Not device-specific** - see below (PJ.7e) |
+| `OverPromiseGateTests.honestTaglineIsPresent` | The same dead tagline, pinned in a **unit** gate. Found by an agent running `swift test`, not by the UI suite (PJ.7f) |
+
+### The `ConfirmManual` pair is NOT device-specific, and this file said it was for three sessions
+
+The claim recorded here - "fails on `iPhone 17 Pro`, passes on `iPhone 17`" - was wrong, and it sent
+work looking at simulators instead of at layout. The real mechanism, proved from the failure's
+accessibility snapshot: the price field is the lowest of the three and sits **under the pinned save
+bar**, so the tap landed on **Save**, saved the entry and dismissed the sheet. `typeText` then
+resolved zero TextFields, which reads as "the field vanished". The app was on Home at failure time,
+showing a just-saved entry carrying the test's own typed values.
+
+This is the `isHittable`-does-not-model-occlusion trap **this file already documents** - the same
+one that hid PR.6's Cancel button under the tab bar. It was mislabelled "device-specific" because
+screen geometry decides which device happens to show it first. Fixed with a geometric stop
+condition (`field.frame.maxY < saveBarTop - 8`), not a sleep.
+
+**The general lesson: "device-specific" and "flaky" are diagnoses, not observations.** Both were
+recorded here from correlation - it passed there, it failed here - and both stopped anyone looking
+for a cause for weeks. When you write either word, write what you measured next to it.
+
+### `ConfirmManualUITests` was never independently green
+
+Run alone: **27/28 red**. After `simctl uninstall`: **25/26 red**. It passed only because earlier
+suites left a vehicle in the database. Two layers, both real: `WelcomeGate` reads the vehicle list
+at root init while `-seedVehicleForUITests` seeds later, **and** Home renders guest chrome without a
+session.
+
+Two things worth carrying:
+
+- **`simctl uninstall` does not clear the Keychain.** A mutation check that relies on a clean device
+  will be masked by a stub session left from an earlier run; clear it explicitly.
+- **A green suite is not a green suite until it is green alone.** Worth spot-checking one suite in
+  isolation per phase.
 
 ## Reverting a mutation with git is how live work dies (2026-08-30)
 
@@ -343,8 +385,9 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 1062 unit tests, 254 UI tests** (green on `iPhone 17`, minus the two documented
-  device-specific `ConfirmManual` cases - see below), `swiftlint lint` exit **0** from the repo
+- **iOS: 1062 unit tests (0 failures), 252 UI tests (0 failures)** - measured on `iPhone 17`,
+  2026-08-30, whole suite, run alone, **no exclusions**: the `ConfirmManual` pair that used to be
+  excused as device-specific is fixed, not excused. `swiftlint lint` exit **0** from the repo
   root. **Backend: 268 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
@@ -1009,7 +1052,13 @@ basis on 2026-08-30.
    every screenshot was **iOS 26's system rendering**, which iOS 18 would never produce. P2.1b
    replaced it with an owned bar, so that specific gap is closed – but L4 baselines recorded on
    26.5 still need re-recording, and the iOS 18 runtime needs an explicit ~8 GB fetch.
-2. **The `AddVehicle` pair and the `ConfirmManual` pair are DEVICE-SPECIFIC, not broken.**
+2. **The `AddVehicle` pair - and, until 2026-08-30, the `ConfirmManual` pair - were filed as
+   DEVICE-SPECIFIC. For `ConfirmManual` that was WRONG** (see the green-suite section at the top:
+   the price field sat under the save bar, the tap hit Save). Treat the `AddVehicle` claim below as
+   unverified for the same reason - it has never been traced to a cause, only to a correlation.
+   Original wording follows.
+
+   **The `AddVehicle` pair and the `ConfirmManual` pair are DEVICE-SPECIFIC, not broken.**
    `testConfirmItIsRightIsOneTap` and `testImplausibleOdometerWarnsButNeverBlocksSave`, plus
    `testCrossCheckMismatchShowsAmberRefusesLockButSaveAnywayWorks` and
    `testReducedMotionLockStillLandsWithoutAnimation`, fail on some simulators and pass on others -
