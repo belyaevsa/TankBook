@@ -14,7 +14,16 @@ import TankbookCore
 ///   screen in the tabbed app, so the tabs must exist to host it.
 /// - `-homeResetDatabase` is the seed harness's clean-slate flag; the tests
 ///   using it target the tabbed app, not onboarding.
-/// - `-presentWelcome` overrides those three: run the real onboarding decision
+/// - `-seedVehicleForUITests` is the tabbed-app seed flag too: it asks for one
+///   vehicle plus a prior fill so the ConfirmManual/entry forms have a car to
+///   write to, which is only reachable from Home - so it signals the tabbed
+///   app exactly as `-homeResetDatabase` does. The seed writes the vehicle only
+///   when the form opens, after this decision, so the gate also plants the
+///   same stub session the settings seeds use: Home's `typeItButton` lives in
+///   the signed-in layout, never the guest chrome, and a clean device has
+///   neither vehicle nor session. Without the session the tabbed app would
+///   still render the guest Home and the entry tests would find no `typeItButton`.
+/// - `-presentWelcome` overrides those four: run the real onboarding decision
 ///   even under the harness flags (the Welcome UI tests and screenshots use it
 ///   to reach the fresh-install state deterministically). It forces no outcome
 ///   on its own - a vehicle or session still suppresses Welcome.
@@ -32,8 +41,20 @@ enum WelcomeGate {
             return false
         }
         #endif
+        // `-seedVehicleForUITests` targets the signed-in Home (see the doc
+        // comment above): plant the stub session first so a clean device shows
+        // that layout, not the guest chrome. The seed's vehicle write still
+        // happens later, on the form's own load; the session is the piece that
+        // must exist before Home's first frame.
         if !arguments.contains("-presentWelcome"),
-           arguments.contains("-homeResetDatabase") {
+           arguments.contains("-seedVehicleForUITests") {
+            let store = KeychainSessionStore()
+            try? store.clear()
+            try? store.save(SettingsTestSeed.stubSession())
+        }
+        let tabbedAppHarness = arguments.contains("-homeResetDatabase")
+            || arguments.contains("-seedVehicleForUITests")
+        if !arguments.contains("-presentWelcome"), tabbedAppHarness {
             return false
         }
 

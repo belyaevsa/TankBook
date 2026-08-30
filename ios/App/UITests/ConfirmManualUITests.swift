@@ -20,27 +20,25 @@ final class ConfirmManualUITests: XCTestCase {
         return app
     }
 
-    /// Bring a field on screen, then tap it. Defensive: the numbers card sits
-    /// below Date/Odometer/Station/Fuel, and a keyboard left up by the previous
-    /// field rides the pinned Save bar and hides the next field - `tap()` on a
-    /// non-hittable element silently misses, then typeText fails with "no
-    /// keyboard focus", which reads like a broken field, not a covered one.
+    /// Bring a field on screen, then tap it. The numbers card sits below
+    /// Date/Odometer/Station/Fuel, and a keyboard left up by the previous
+    /// field rides the pinned Save bar and hides the next field. The stop
+    /// condition is GEOMETRIC, not `isHittable`: `isHittable` is true while a
+    /// field sits UNDER the save bar (the accessibility tree does not model
+    /// the `safeAreaInset` overlay), and a tap there lands on Save - saving
+    /// the entry and dismissing the sheet, which reads as "the field
+    /// vanished" when the next `typeText` finds no TextField. The drag is
+    /// anchored at dy 0.5 - above the keyboard (a lower anchor is eaten by
+    /// it) - on the sheet's own hittable scroll view, never Home's behind it.
     @discardableResult
     private func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let field = app.textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
-        // Dismiss any keyboard and scroll the field clear, on the SHEET'S OWN
-        // scroll view. Two traps here:
-        // - `app.scrollViews.firstMatch` is the Home screen's scroll view
-        //   BEHIND the presented sheet (not hittable), so it must be the
-        //   hittable one - the sheet's.
-        // - `scroll.swipeUp()` on a full-height scroll view starts its touch
-        //   under the keyboard, so the keyboard eats it and nothing scrolls.
-        //   A short drag anchored in the visible region above the pinned save
-        //   bar both dismisses the keyboard (`scrollDismissesKeyboard
-        //   (.immediately)`) and reveals the field.
+        let bar = app.buttons["manualFillUpSaveButton"]
         var scrolls = 0
-        while !field.isHittable && scrolls < 8 {
+        while scrolls < 8 {
+            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            if field.isHittable && field.frame.maxY < barTop - 8 { break }
             if let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable }) {
                 let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
                 let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15))
