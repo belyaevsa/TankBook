@@ -122,17 +122,47 @@ struct OverPromiseGateTests {
         }
     }
 
-    /// The gate's positive control: the honest tagline must be present in the
-    /// app and both artboards. A path typo or an unread file would otherwise
-    /// read as "passed" on an empty scan.
+    /// Derives the tagline from its single source of truth - the hero's second
+    /// `Text("…")`, the one that immediately follows `Text("Tankbook")` in
+    /// WelcomeView.swift. Returns nil (never "") when the file is missing, the
+    /// pattern fails to match, or the captured literal is empty, so the caller
+    /// fails loudly instead of deriving "" and finding "" in every file.
+    private static func extractTagline() -> String? {
+        let welcomeURL = appSources
+            .appendingPathComponent("Welcome", isDirectory: true)
+            .appendingPathComponent("WelcomeView.swift")
+        guard let source = try? String(contentsOf: welcomeURL, encoding: .utf8) else {
+            return nil
+        }
+        let pattern = #"Text\("Tankbook"\)[\s\S]*?Text\("([^"]+)"\)"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: source,
+                                           range: NSRange(source.startIndex..., in: source)),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: source) else {
+            return nil
+        }
+        let tagline = String(source[range])
+        return tagline.isEmpty ? nil : tagline
+    }
+
+    /// The gate's positive control: the tagline is derived from its single
+    /// source of truth - the `Text("…")` in WelcomeView.swift - and the other
+    /// three scanned files (the String Catalog and both artboards) must carry
+    /// that same string. A path typo or an unread file would otherwise read as
+    /// "passed" on an empty scan, and deriving "" then finding "" everywhere
+    /// would pass the same way; the extraction fails loudly (nil) instead, and
+    /// a file that lacks the derived tagline fails the assertion below.
     @Test("the honest tagline is present in the app and both artboards")
     func honestTaglineIsPresent() throws {
+        let tagline = try #require(
+            Self.extractTagline(),
+            "cannot derive the tagline from WelcomeView.swift - missing file or pattern drift")
         let byName = Dictionary(uniqueKeysWithValues: try Self.scannedTexts())
-        for name in ["WelcomeView.swift", "Localizable.xcstrings",
-                     "Welcome.dc.html", "LightWelcome.dc.html"] {
+        for name in ["Localizable.xcstrings", "Welcome.dc.html", "LightWelcome.dc.html"] {
             let text = byName[name] ?? ""
-            #expect(text.contains("A head start, not an answer"),
-                    "\(name) must carry the honest tagline - the gate's positive control")
+            #expect(text.contains(tagline),
+                    "\(name) must carry the tagline '\(tagline)' - the gate's positive control")
         }
     }
 }
