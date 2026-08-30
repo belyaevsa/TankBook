@@ -29,6 +29,26 @@
   text-decoration: none;
 }
 
+.brand .icon--logo {
+  /* The app icon itself (static/icon.svg, from design/brand). A background,
+     not an <img>: the W2 hygiene rule keeps <img> inside the screenshot
+     partial, and the mark is chrome, not content. */
+  display: inline-block;
+  flex: none;
+  border-radius: 22%;
+  background: url("/icon.svg") center / contain no-repeat;
+}
+
+.icon--logo-nav {
+  width: 26px;
+  height: 26px;
+}
+
+.icon--logo-footer {
+  width: 22px;
+  height: 22px;
+}
+
 .nav-links {
   display: flex;
   align-items: center;

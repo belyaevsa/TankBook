@@ -161,6 +161,8 @@ layers only, and everything that carries meaning is composited on top.**
 tarmac, a dark road gradient, grain and texture fields, the ambient wash behind a section. Things
 with no claim in them.
 
+**The brand mark is the one generated *object* on the site** (2026-08-30): the app icon's nozzle and plug are generated artwork, composed per `design/brand/README.md`, and the site shows that finished icon (`icon.svg`, favicons, header, press) – never a re-generation of it. Everything below still holds.
+
 **May never be generated:**
 
 - **Any product UI.** A generated "app screen" is a fabricated mockup, which this document already

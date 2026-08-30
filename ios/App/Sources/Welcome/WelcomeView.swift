@@ -154,67 +154,19 @@ struct WelcomeView: View {
 /// `headlight` means *electric* (docs/DESIGN.md, enforced by
 /// `PaletteAccentGuardTests`) makes `action` the legal interactive colour, and
 /// the checkmark is a "done" mark, not an electric charge.
+
+/// The brand mark: the app icon itself (`design/brand/README.md` - a fuel nozzle
+/// and a charging plug face to face, framed), as the light/dark `BrandMark`
+/// image set. Welcome shows the same picture the user tapped on the home
+/// screen; nothing here is drawn by hand any more (P6.22, 2026-08-30).
 private struct WelcomeLogoMark: View {
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 26)
-                .fill(Theme.Palette.dash)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 26)
-                        .stroke(Theme.Palette.ink.opacity(0.18), lineWidth: 1)
-                )
-                .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
-            pumpPaths
-                .frame(width: 52, height: 52)
-        }
-        .frame(width: 92, height: 92)
-    }
-
-    private var pumpPaths: some View {
-        ZStack {
-            // The pump body outline (Welcome.dc.html's logo SVG, viewBox 52x52).
-            Path { path in
-                path.move(to: CGPoint(x: 14, y: 42))
-                path.addLine(to: CGPoint(x: 14, y: 18))
-                path.addQuadCurve(to: CGPoint(x: 18, y: 14), control: CGPoint(x: 14, y: 14))
-                path.addLine(to: CGPoint(x: 28, y: 14))
-                path.addQuadCurve(to: CGPoint(x: 32, y: 18), control: CGPoint(x: 32, y: 14))
-                path.addLine(to: CGPoint(x: 32, y: 42))
-            }
-            .stroke(Theme.Palette.taillight,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            // The nozzle.
-            Path { path in
-                path.move(to: CGPoint(x: 32, y: 20))
-                path.addLine(to: CGPoint(x: 36, y: 20))
-                path.addQuadCurve(to: CGPoint(x: 39, y: 23), control: CGPoint(x: 39, y: 20))
-                path.addLine(to: CGPoint(x: 39, y: 33))
-                path.addQuadCurve(to: CGPoint(x: 44, y: 33), control: CGPoint(x: 41.5, y: 35.5))
-                path.addLine(to: CGPoint(x: 44, y: 24))
-            }
-            .stroke(Theme.Palette.taillight,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-            // The pump base line.
-            Path { path in
-                path.move(to: CGPoint(x: 10, y: 42))
-                path.addLine(to: CGPoint(x: 36, y: 42))
-            }
-            .stroke(Theme.Palette.taillight,
-                    style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            // The window.
-            Path { path in
-                path.addRect(CGRect(x: 18, y: 16, width: 10, height: 8))
-            }
-            .stroke(Theme.Palette.taillight,
-                    style: StrokeStyle(lineWidth: 2.4, lineJoin: .round))
-            // The "done" checkmark.
-            Path { path in
-                path.move(to: CGPoint(x: 41, y: 17))
-                path.addLine(to: CGPoint(x: 44, y: 20))
-                path.addLine(to: CGPoint(x: 50, y: 13))
-            }
-            .stroke(Theme.Palette.action,
-                    style: StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round))
-        }
+        Image("BrandMark")
+            .resizable()
+            .interpolation(.high)
+            .frame(width: 92, height: 92)
+            .clipShape(RoundedRectangle(cornerRadius: 21, style: .continuous))
+            .shadow(color: .black.opacity(0.4), radius: 20, y: 8)
+            .accessibilityHidden(true)
     }
 }
