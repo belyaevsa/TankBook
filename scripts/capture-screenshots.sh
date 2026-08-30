@@ -460,6 +460,13 @@ capture PJ.5-summary-tap-ru  ru -seedHomeFullHistory -replayNotificationResponse
 capture PJ.6-typeit-service    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureAutoTypeIt
 capture PJ.6-typeit-service-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureAutoTypeIt
 
+# PJ.12: the EV capture surface with the dead Charge chip gone - the mode row
+# holds exactly Service (selected - the EV now opens on a mode that works) and
+# Expense, with no Charge chip in frame. RU is where the row's labels expand
+# ("Обслуживание", "Расходы") and Service's default selection must survive it.
+capture PJ.12-capture-ev    en -presentScreen capture -cameraStatus authorized -powertrain ev
+capture PJ.12-capture-ev-ru ru -presentScreen capture -cameraStatus authorized -powertrain ev
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

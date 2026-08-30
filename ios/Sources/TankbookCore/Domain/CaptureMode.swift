@@ -26,7 +26,17 @@ public enum CaptureMode: String, Codable, Sendable, CaseIterable {
     /// The distinction that is easy to get wrong is **hybrid vs plug-in
     /// hybrid**. A plain `.hybrid` (HEV) has no plug: its battery is charged by
     /// the engine and by regeneration, never from a charger, so it gets Fill-up
-    /// and no Charge. Only `.phev` legitimately does both.
+    /// and no Charge. Only `.phev` legitimately has a fill-up door among the
+    /// electrics.
+    ///
+    /// PJ.12 deferral (docs/TASKS.md -> PJ.12): `.charge` is deliberately
+    /// offered to **no** powertrain while EV charging stays out of v1 - J6 is
+    /// `[v1.x]` in docs/JOURNEYS.md and no charge entry form exists, so the
+    /// chip would be a dead door (decorative shutter, "Type it" opening the
+    /// fill-up form for a car with no fuel tank). The enum case stays:
+    /// `ChargeSession` is a real entity elsewhere. **Restored by** the v1.x EV
+    /// charging work that closes J6 (a charge entry form exists), and only
+    /// then: `.ev` regains `.charge` and `.phev` the four-chip row.
     ///
     /// `Vehicle.powertrain` is a catalog pre-fill the user may correct
     /// (CLAUDE.md rule 13), so this must be evaluated against the vehicle's
@@ -34,8 +44,8 @@ public enum CaptureMode: String, Codable, Sendable, CaseIterable {
     public static func modes(for powertrain: Powertrain) -> [CaptureMode] {
         switch powertrain {
         case .ice, .hybrid: return [.fillUpAuto, .service, .expense]
-        case .ev: return [.charge, .service, .expense]
-        case .phev: return [.fillUpAuto, .charge, .service, .expense]
+        case .ev: return [.service, .expense]
+        case .phev: return [.fillUpAuto, .service, .expense]
         }
     }
 

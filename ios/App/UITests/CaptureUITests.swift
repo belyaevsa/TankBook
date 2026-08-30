@@ -204,32 +204,36 @@ final class CaptureUITests: XCTestCase {
         XCTAssertFalse(app.buttons["captureMode_fillUpAuto"].isSelected)
     }
 
-    /// An EV is the mirror image, and it must not open on a mode it cannot use.
-    func testAnEVIsOfferedChargeAndNeverFillUp() {
+    /// An EV's mirror image, plus the PJ.12 dead chip: EV charging is v1.x
+    /// (docs/TASKS.md -> PJ.12), so no Charge chip is offered and the EV opens
+    /// on Service - the first mode whose shutter and "Type it" actually work.
+    func testAnEVShowsNoChargeAndOpensOnService() {
         let app = launch(args: ["-homeResetDatabase",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
                                 "-powertrain", "ev"])
         openCapture(app)
 
-        let charge = app.buttons["captureMode_charge"]
-        XCTAssertTrue(charge.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["captureMode_charge"].exists,
+                       "PJ.12: an EV must not be offered the dead Charge chip")
         XCTAssertFalse(app.buttons["captureMode_fillUpAuto"].exists,
                        "an EV must not be offered Fill-up")
-        XCTAssertTrue(charge.isSelected, "an EV must open on Charge, not on a mode it lacks")
+        XCTAssertTrue(app.buttons["captureMode_service"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["captureMode_expense"].exists)
+        XCTAssertTrue(app.buttons["captureMode_service"].isSelected,
+                      "an EV must open on Service - a mode that works - not on a dead chip")
     }
 
-    /// The four-chip case. A plain hybrid has no plug, so only a plug-in gets
-    /// both - and this is the layout that has to survive Russian without
-    /// wrapping a chip onto its own row.
-    func testOnlyAPlugInHybridIsOfferedBothFillUpAndCharge() {
+    /// The plug-in hybrid keeps the Fill-up door but loses Charge with
+    /// everyone else until EV charging is v1.x (PJ.12).
+    func testAPlugInHybridKeepsFillUpAndLosesCharge() {
         let app = launch(args: ["-homeResetDatabase",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
                                 "-powertrain", "phev"])
         openCapture(app)
 
         XCTAssertTrue(app.buttons["captureMode_fillUpAuto"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["captureMode_charge"].exists,
-                      "a plug-in hybrid must be offered Charge")
+        XCTAssertFalse(app.buttons["captureMode_charge"].exists,
+                       "PJ.12: a plug-in hybrid must not be offered the dead Charge chip")
         XCTAssertTrue(app.buttons["captureMode_service"].exists)
         XCTAssertTrue(app.buttons["captureMode_expense"].exists)
     }
