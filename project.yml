@@ -37,16 +37,32 @@ targets:
         # anything it cannot parse - so a two-component "1.0" makes every real
         # install resolve .none and the notice can never fire. The behaviour is
         # correct; the version string was the thing making it inert.
-        CFBundleShortVersionString: "1.0.0"
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
         NSCameraUsageDescription: "Tankbook uses the camera to scan receipts and pump displays so you do not have to type them."
         NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
+    entitlements:
+      path: ios/App/Tankbook.entitlements
     settings:
       base:
         SWIFT_VERSION: "6.0"
+        # Signing (docs/STORE.md -> Release checklist). Automatic: Xcode creates
+        # and refreshes the distribution certificate and the App Store profile on
+        # archive (-allowProvisioningUpdates), so nothing is registered by hand.
+        # The team id is an environment variable, not a literal - the repo is
+        # public-by-construction and the id belongs to the machine that
+        # archives. `xcodegen generate` substitutes it; unset, simulator builds
+        # still work (no signing needed) and an archive fails loudly.
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: "${TANKBOOK_TEAM_ID}"
+        # The build number is stamped by scripts/release.sh from the commit
+        # count (monotonic on main); this default is what a local Debug build gets.
+        CURRENT_PROJECT_VERSION: "1"
+        MARKETING_VERSION: "1.0.0"
         # Pinned rather than inherited. Xcode's Release default is already
         # dwarf-with-dsym, but a silent flip to plain "dwarf" produces
         # unsymbolicated addresses in Organizer months later, with nothing
