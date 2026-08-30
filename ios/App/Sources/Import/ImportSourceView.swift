@@ -126,42 +126,75 @@ struct ImportSourceView: View {
 
     private func formatRow(_ format: ImportFormat) -> some View {
         let selected = model.pickedFormat?.id == format.id
-        return Button {
-            model.selectFormat(format)
-        } label: {
-            HStack(spacing: 13) {
-                Image(systemName: "doc")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Theme.Palette.action)
-                    .frame(width: 34, height: 34)
-                    .background(Theme.Palette.dash.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 9))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(format.displayName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                    Text(L10n.fileKindsLabel(format.fileKinds))
-                        .font(.caption2)
-                        .foregroundStyle(Theme.Palette.inkSoft)
+        return VStack(spacing: 0) {
+            Button {
+                model.selectFormat(format)
+            } label: {
+                HStack(spacing: 13) {
+                    Image(systemName: "doc")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.Palette.action)
+                        .frame(width: 34, height: 34)
+                        .background(Theme.Palette.dash.opacity(0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 9))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(format.displayName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.ink)
+                        Text(L10n.fileKindsLabel(format.fileKinds))
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    }
+                    Spacer(minLength: 8)
+                    Image(systemName: selected ? "largecircle.fill.circle" : "circle")
+                        .font(.body)
+                        .foregroundStyle(selected ? Theme.Palette.action : Theme.Palette.inkSoft)
                 }
-                Spacer(minLength: 8)
-                Image(systemName: selected ? "largecircle.fill.circle" : "circle")
-                    .font(.body)
-                    .foregroundStyle(selected ? Theme.Palette.action : Theme.Palette.inkSoft)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 13)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
-            .overlay(
-                RoundedRectangle(cornerRadius: Theme.Radius.card)
-                    .stroke(selected ? Theme.Palette.action : Theme.Palette.hairline,
-                            lineWidth: selected ? 1.5 : 1)
-            )
-            .background(Theme.Palette.dash)
-            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("importFormatRow-\(format.id)")
+            .accessibilityAddTraits(selected ? .isSelected : [])
+
+            // PJ.33: "How to export" - the per-source export guide, on the row
+            // itself. J2's switcher is anxious about the export step ("their UIs
+            // hide export"), and hard rule 7: a link must point at a page that
+            // exists, so this renders only when the wire carries a `helpUrl`.
+            if let helpUrl = format.helpUrl, let url = URL(string: helpUrl) {
+                Rectangle()
+                    .fill(Theme.Palette.hairline)
+                    .frame(height: 1)
+                    .padding(.horizontal, 16)
+                helpLink(url, identifier: "importFormatHelp-\(format.id)")
+            }
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("importFormatRow-\(format.id)")
-        .accessibilityAddTraits(selected ? .isSelected : [])
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .stroke(selected ? Theme.Palette.action : Theme.Palette.hairline,
+                        lineWidth: selected ? 1.5 : 1)
+        )
+        .background(Theme.Palette.dash)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+    }
+
+    /// The shared "How to export" link into the source app's guide page
+    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
+    @ViewBuilder
+    private func helpLink(_ url: URL, identifier: String) -> some View {
+        Link(destination: url) {
+            HStack(spacing: 6) {
+                Image(systemName: "questionmark.circle")
+                    .font(.caption)
+                Text("How to export")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(Theme.Palette.action)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+        }
+        .accessibilityIdentifier(identifier)
     }
 
     // MARK: - Not yet / not supported
@@ -321,17 +354,31 @@ struct ImportSourceView: View {
         switch failure {
         case .doesNotMatchDeclared(let displayName):
             VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.doesNotLookLike(displayName: displayName))
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.warn)
-                Text("Pick another app from the list, or send us the file.")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
+                // PJ.33: the card identifier sits on the message block only -
+                // a container identifier propagates to descendants and would
+                // override the link's own, making `import422Help` unreachable
+                // (the accessibility tree proved it).
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(L10n.doesNotLookLike(displayName: displayName))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.warn)
+                    Text("Pick another app from the list, or send us the file.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .accessibilityIdentifier("import422Card")
+                // PJ.33: this is where a stuck user sits - the declared source
+                // rejected their file. "How to export" is the next step that
+                // EXISTS (hard rule 7): the guide page tells them what a real
+                // export looks like before they try again.
+                if let helpUrl = model.pickedFormat?.helpUrl,
+                   let url = URL(string: helpUrl) {
+                    helpLink(url, identifier: "import422Help")
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             .formCard()
-            .accessibilityIdentifier("import422Card")
             .padding(.horizontal, Theme.Spacing.screenMargin)
             .padding(.bottom, 10)
         case .transportUnreachable:

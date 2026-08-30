@@ -284,6 +284,14 @@ struct ImportNotSupportedSheet: View {
         return model.formats.map(\.displayName).joined(separator: ", ")
     }
 
+    /// PJ.33: the per-source export guide, from the supported formats' `helpUrl`
+    /// (the wire is the single source; no hardcoded URL here). A stuck user's
+    /// next step that exists (hard rule 7).
+    private var guideURL: URL? {
+        guard let model else { return nil }
+        return model.formats.compactMap { $0.helpUrl.flatMap(URL.init(string:)) }.first
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("We don't read that one yet.")
@@ -293,6 +301,18 @@ struct ImportNotSupportedSheet: View {
                 .font(.subheadline)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.5)
+            if let guideURL {
+                Link(destination: guideURL) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "questionmark.circle")
+                            .font(.caption)
+                        Text("How to export")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(Theme.Palette.action)
+                }
+                .accessibilityIdentifier("importNotSupportedHelp")
+            }
             Spacer()
             ImportPrimaryBar(action: { showingFilePicker = true },
                              label: { Text(L10n.sendFileTitle) })

@@ -165,7 +165,8 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | **Unknown gate from a newer server (any other 4xx)** | Account card, attention (amber): "Tankbook needs an update – the server has moved ahead" | **Update the app.** No invented reason (F7) |
 | **Sync paused by the server (429)** | Account card, reassurance (`inkSoft`, never amber): "Retrying in 2 minutes" / "Retrying in a moment" | **None; it retries itself.** A wait, not a failure - no update prompt (the distinction is the point of the P6.11 core half) |
 | **Update required (`.required`, docs/CONFIG.md)** | The sync surface (the "Sync now" row and its cards) is replaced by a non-dismissible notice: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The App Store button renders only when a compiled-in app id exists - none today | **Update the app.** Everything local keeps working (hard rule 1); a paused push leaves the queue dirty (S7) |
-| Export fails (disk) | "Not enough space to build the export." | Free space · try smaller (no photos) export |
+| Export fails (disk) | Alert: "Not enough space to build the export." | Free some space · **Try again** (the alert's button re-runs the export). Never a crash - the app stays usable (hard rule 7) |
+| Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
 
 ### Import wizard (planned screen; F6 rules)
 | Condition | Shows | Next step |

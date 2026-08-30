@@ -1,5 +1,5 @@
 [
-  { "id": "mfm", "displayName": "My Fuel Manager", "fileKinds": ["csv", "backup"], "addedInPackVersion": 1 },
+  { "id": "mfm", "displayName": "My Fuel Manager", "fileKinds": ["csv", "backup"], "helpUrl": "https://tankbook.live/import-guide/", "addedInPackVersion": 1 },
   { "id": "fuelio", "displayName": "Fuelio", "fileKinds": ["csv"], "addedInPackVersion": 2 },
   { "id": "drivvo", "displayName": "Drivvo", "fileKinds": ["csv"], "addedInPackVersion": 2 },
   { "id": "fuelly", "displayName": "Fuelly", "fileKinds": ["csv"], "addedInPackVersion": 2 },

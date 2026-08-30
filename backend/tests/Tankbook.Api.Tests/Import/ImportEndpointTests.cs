@@ -248,6 +248,18 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
             var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
             var formats = body.EnumerateArray().Select(f => f.GetProperty("id").GetString()!).ToArray();
             Assert.Contains("mfm", formats);
+            // PJ.33: every listed format carries a helpUrl pointing at the site's per-source export
+            // guide, so "How to export" can render on the row and inside the 422 / not-listed
+            // messages (hard rule 7: the next step must exist). A null here means the app's link
+            // silently vanishes - the wire carrying the field is what this asserts.
+            foreach (var f in body.EnumerateArray())
+            {
+                var helpUrl = f.GetProperty("helpUrl").GetString();
+                Assert.False(string.IsNullOrWhiteSpace(helpUrl),
+                             $"format {f.GetProperty("id").GetString()} must carry a non-null helpUrl");
+                Assert.True(Uri.IsWellFormedUriString(helpUrl, UriKind.Absolute),
+                            $"format {f.GetProperty("id").GetString()} helpUrl must be an absolute URL");
+            }
             var etag = response.Headers.ETag!.Tag;
 
             // A matching If-None-Match answers 304.

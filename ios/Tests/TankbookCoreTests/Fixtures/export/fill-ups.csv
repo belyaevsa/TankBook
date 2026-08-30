@@ -1,0 +1,3 @@
+id,vehicleId,date,odometer,amount,currency,homeAmount,homeCurrency,rate,rateDate,deletedAt,note,volumeL,unitPrice,fuelKind,fuelGrade,isFull,tankLevelAfterPct,stationId,crossCheck
+00000000-0000-7000-8000-000000000202,00000000-0000-7000-8000-000000000101,2026-08-01,81000,289.50,PLN,67.79,EUR,4.2706,2026-08-01,2026-08-12,,30.0,,petrol95,,false,60.0,00000000-0000-7000-8000-000000000302,notApplicable
+00000000-0000-7000-8000-000000000201,00000000-0000-7000-8000-000000000101,2026-08-10,82000,71.02,EUR,71.02,EUR,1,,,"Shell, A4 exit",42.3,1.679,petrol95,V-Power,true,100.0,00000000-0000-7000-8000-000000000301,verified

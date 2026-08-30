@@ -702,6 +702,37 @@ file forced - each one is a documented mapping, never a silent guess:
   `parsed.json` (rolling 90 days, floor 3, full-tank segments) - it is **not** a backend assertion,
   and the backend does not reimplement consumption.
 
+## Export formats (PJ.36, PJ.38)
+
+`VISION.md`'s "one-tap CSV/JSON export - always free" is two lanes, both local-first (hard rule 1):
+
+- **"Export everything" (Settings, PJ.36)** builds the **whole-account archive** with the same
+  writer the per-car export uses, declared `scope: "account"`: every vehicle - live or tombstoned -
+  every entry of every type, reminders, stations, tariffs, the matching attachments and every blob
+  the device still holds. It is the F7 restore stream's shape in a hand-off. The local importer
+  still refuses `.account` scope on commit (P5.5a's guard); the share sheet hands the directory to
+  the user.
+- **Per-car CSV (Vehicle detail, PJ.38)** writes four files - `fill-ups.csv`, `charge-sessions.csv`,
+  `service.csv`, `expenses.csv` - as **flat rows**: one row per entry, tombstoned rows INCLUDED (a
+  non-empty `deletedAt` marks a tombstone still inside the 30-day undo window - hard rule 8). The
+  CSVs ship inside the per-car archive directory AND as their own share items.
+
+Column rules (the bytes are pinned by a golden-fixture test, so a rename or a date-format change is
+a visible diff):
+
+- **Field names are SCHEMA.md's exactly** - the shared envelope columns
+  `id, vehicleId, date, odometer, amount, currency, homeAmount, homeCurrency, rate, rateDate,
+  deletedAt, note`, then the type's own fields (`volumeL, unitPrice, fuelKind, fuelGrade, isFull,
+  tankLevelAfterPct, stationId, crossCheck` for a fill-up; `energyKWh, unitPrice, chargeType,
+  provider, tariffId, durationMin, socStartPct, socEndPct` for a charge; `vendor` for a service;
+  `category, title` for an expense).
+- **Money is a PAIR (hard rule 3)**: `amount` + `currency` (as paid) and `homeAmount` +
+  `homeCurrency` (converted) always ride together, with the `rate`/`rateDate` snapshot. Amounts
+  render with the currency's minor units (289.50, never 289.5); the rate keeps its full precision.
+- **Dates are ISO-8601 in UTC** (`2026-08-22`), matching the archive's UTC convention - an export
+  never depends on the device's timezone.
+- **RFC 4180 quoting**: a field containing a comma, quote or newline is quoted.
+
 ## Open questions
 
 1. **CNG has no volume unit.** `FuelKind` includes `.cng`, but `VolumeUnit` is

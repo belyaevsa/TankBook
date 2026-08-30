@@ -384,6 +384,17 @@ capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse 
 capture P5.5b-export            en -seedHomeCarSwitcher -presentScreen vehicleDetail
 capture P5.5b-export-ru         ru -seedHomeCarSwitcher -presentScreen vehicleDetail
 
+# PJ.36/PJ.38: the export lanes. `-presentExportShare` / `-presentCarExportShare`
+# are DEBUG hooks that drive the SAME build the row's tap runs, because simctl
+# cannot tap the share sheet open. The PJ.36 shot is Settings with the
+# whole-account share sheet up; the PJ.38 shot is the car's CSV share sheet over
+# Vehicle detail (RU is where "Export everything · always free" and the row's
+# caption run longest).
+capture PJ.36-export-share       en -presentScreen settings -seedSettingsPending -presentExportShare
+capture PJ.36-export-share-ru    ru -presentScreen settings -seedSettingsPending -presentExportShare
+capture PJ.38-car-export         en -seedHomeCarSwitcher -presentScreen vehicleDetail -presentCarExportShare
+capture PJ.38-car-export-ru      ru -seedHomeCarSwitcher -presentScreen vehicleDetail -presentCarExportShare
+
 # PJ.10/PJ.9: the preview's once-per-file date-format question (confirm stays
 # disabled until answered) and the review list's non-fuel row with its
 # "Import as service" action. The service seed's review screen holds exactly
@@ -398,6 +409,13 @@ capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStu
 # before anything is written (F6a).
 capture PJ.11-import-flagged-row    en -presentScreen importWizard -seedImportTimeline
 capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTimeline
+
+# PJ.33: the per-source export guide (docs/JOURNEYS.md J2 "their UIs hide
+# export"). The format row carries "How to export" from the wire's helpUrl -
+# the link that tells a switcher where the CSV export lives. RU is where the
+# label runs longest; the link must stay in the card, never over the edge.
+capture PJ.33-import-guide    en -presentScreen importWizard -importStubFormats one
+capture PJ.33-import-guide-ru ru -presentScreen importWizard -importStubFormats one
 
 # PR.6: the transport-timeout cancels (docs/PRACTICES.md U6). The import parse's
 # Cancel - the source screen mid-upload, driven by the slow stub so `isParsing`

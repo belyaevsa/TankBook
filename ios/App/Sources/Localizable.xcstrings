@@ -3041,6 +3041,23 @@
         }
       }
     },
+    "How to export": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How to export"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Как экспортировать"
+          }
+        }
+      }
+    },
     "Hybrid": {
       "extractionState": "manual",
       "localizations": {
@@ -10281,6 +10298,23 @@
         }
       }
     },
+    "Couldn't build the export.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't build the export."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось собрать экспорт."
+          }
+        }
+      }
+    },
     "OK": {
       "extractionState": "manual",
       "localizations": {
@@ -10298,19 +10332,19 @@
         }
       }
     },
-    "Not enough space to build the export – free some space and try again.": {
+    "Not enough space to build the export.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Not enough space to build the export – free some space and try again."
+            "value": "Not enough space to build the export."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Не хватает места для экспорта – освободите место и попробуйте снова."
+            "value": "Не хватает места для экспорта."
           }
         }
       }

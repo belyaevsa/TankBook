@@ -114,6 +114,30 @@ final class SettingsUITests: XCTestCase {
                       "the filtered Log lists the flagged entries")
     }
 
+    // MARK: - The "Export everything" row (PJ.36)
+
+    /// The row that used to be a bare chevron now builds the WHOLE-ACCOUNT
+    /// archive and hands it to the system share sheet (VISION.md's "one-tap
+    /// CSV/JSON export – always free"). The pending seed's garage (one vehicle,
+    /// five fills) is enough for a real archive; the share sheet appearing is
+    /// the whole guarantee - the row must do something, never dead-end.
+    func testExportRowOpensTheWholeAccountShareSheet() {
+        let app = launchSettings(seed: "-seedSettingsPending")
+        let row = app.buttons["settingsExportRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10),
+                      "the Export everything row is reachable")
+        if !row.isHittable {
+            app.swipeUp()
+        }
+        row.tap()
+
+        let shareCaption = app.otherElements["LP.CaptionBar.TopCaption"]
+        XCTAssertTrue(shareCaption.waitForExistence(timeout: 20),
+                      "the export row must open the system share sheet, not dead-end")
+        XCTAssertTrue(shareCaption.label.contains("Tankbook"),
+                      "the share sheet carries the whole-account export; got '\(shareCaption.label)'")
+    }
+
     // MARK: - Settings contains no resolution control (hard rule 8)
 
     func testSettingsHasNoResolutionControl() {

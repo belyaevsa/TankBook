@@ -219,7 +219,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 ### J13 · Selling the car
 **Trigger:** the Volvo is going to a new owner.
-**Journey:** Garage → vehicle → "Export history" → a clean PDF service-and-fuel dossier (resale value in paper form) plus CSV/JSON → then archive the car (history retained, out of active stats). → The dossier is a quiet marketing artifact: it carries the app's name into a stranger's hands at the exact moment they acquire a car.
+**Journey:** Garage → vehicle → "Export history" → a clean PDF service-and-fuel dossier (resale value in paper form) plus CSV/JSON → then archive the car (history retained, out of active stats). → The dossier is a quiet marketing artifact: it carries the app's name into a stranger's hands at the exact moment they acquire a car. **Landed 2026-08-30 (PJ.38):** the per-car export row now shares the CSV files (fill-ups, charge sessions, service, expenses - flat rows with the money pair and ISO dates) as their own share items, inside the archive too; the **PDF dossier is PJ.37 (v1.1, deferred)**.
 
 **Success metric:** exports per archived vehicle; installs attributed to dossiers (long-shot, but trackable via QR on the PDF).
 
@@ -286,7 +286,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 **Trigger:** truncated export, exotic CSV dialect, an app version we haven't seen, wrong file shared entirely.
 
 - Partial parse is the goal: import what parses, then show "214 of 220 entries imported – 6 rows need a look," with the 6 raw rows listed for inline fix or skip. All-or-nothing imports are how switchers bounce.
-- Nothing parses at all → name the reason plainly ("this looks like a PDF report, not a data export – here's where the CSV export lives in Drivvo") and offer to send us the file (explicit consent) so the importer learns.
+- Nothing parses at all → name the reason plainly ("this looks like a PDF report, not a data export – here's where the CSV export lives in Drivvo") and offer to send us the file (explicit consent) so the importer learns. **The "here's where the CSV export lives" step is the site's per-source guide (PJ.33)**: the import wizard's format row and its 422 / not-listed messages link to `tankbook.live/import-guide/` via the format's `helpUrl`, so a stuck switcher lands on a page that exists (hard rule 7). With only My Fuel Manager shipping, the guide covers that one source and says so - never implying the deferred importers (P5.4b).
 - ⚠ Never import with guessed units/currency: ambiguity pauses those rows for one question ("MPG or L/100km?"), asked once for the whole file.
 
 **Metric:** recovery rate of failed imports after guidance ≥50%; importer coverage grows from submitted samples.

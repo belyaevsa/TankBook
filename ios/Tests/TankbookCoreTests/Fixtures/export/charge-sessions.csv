@@ -1,0 +1,2 @@
+id,vehicleId,date,odometer,amount,currency,homeAmount,homeCurrency,rate,rateDate,deletedAt,note,energyKWh,unitPrice,chargeType,provider,tariffId,durationMin,socStartPct,socEndPct
+00000000-0000-7000-8000-000000000203,00000000-0000-7000-8000-000000000101,2026-08-11,82400,6.63,EUR,6.63,EUR,1,,,,43.2,0.39,dcPublic,Ionity,00000000-0000-7000-8000-000000000303,42,18.0,92.0

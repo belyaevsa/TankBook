@@ -214,7 +214,12 @@ deploy rather than an App Store release.
 
 **`GET /import/formats`** - the supported-source list, **server-driven and public**. Returns
 `[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion } ]`, ETag'd like the other reference
-data. Today it lists one format: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], addedInPackVersion: 1 }`.
+data. Today it lists one format: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }`.
+
+**`helpUrl` points at the site's per-source export guide** (J2's "their UIs hide export"; PJ.33).
+The client renders a "How to export" link on the format row and inside the 422 / not-listed
+messages. The page must exist before the URL ships - a link that 404s is worse than no link (hard
+rule 7) - so `helpUrl` and the `site/content/import-guide*.md` page land in the same change.
 
 **This endpoint is what makes server-side parsing pay off, and hardcoding the list in the app would
 throw that away.** Moving the parser to the server buys two things: fixing a mapping without an App

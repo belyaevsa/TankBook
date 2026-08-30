@@ -1,0 +1,2 @@
+id,vehicleId,date,odometer,amount,currency,homeAmount,homeCurrency,rate,rateDate,deletedAt,note,category,title
+00000000-0000-7000-8000-000000000205,00000000-0000-7000-8000-000000000101,2026-08-03,,540.00,EUR,540.00,EUR,1,,,,insurance,Annual insurance

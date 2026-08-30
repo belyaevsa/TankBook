@@ -21,6 +21,9 @@ struct SettingsView: View {
     @Environment(AppSync.self) private var sync
     @State private var showsSignIn = false
     @State private var didSeed = false
+    @State private var isExporting = false
+    @State private var shareable: ExportShareable?
+    @State private var exportFailure: ExportFailure?
 
     var body: some View {
         ScrollView {
@@ -46,6 +49,7 @@ struct SettingsView: View {
                 SettingsTestSeed.seedIfRequested(sync: sync)
             }
             await sync.refresh()
+            presentExportShareIfRequested()
         }
         .sheet(isPresented: $showsSignIn,
                onDismiss: {
@@ -58,6 +62,8 @@ struct SettingsView: View {
                    Task { await sync.refresh() }
                },
                content: { SignInFlowHost() })
+        .exportFlow(shareable: $shareable, failure: $exportFailure,
+                    retry: buildAccountExport)
     }
 
     // MARK: - Account card
@@ -267,28 +273,63 @@ struct SettingsView: View {
         }
     }
 
-    /// "Export everything · always free" - a system share sheet (a leaf). The
-    /// export body is a later task; the row renders the artboard's label and
-    /// promise now, so the "always free" guarantee is visible before the share
-    /// sheet exists.
+    /// "Export everything · always free" (PJ.36) - a system share sheet. The
+    /// row builds the WHOLE-ACCOUNT archive (`scope: .account`, every car and
+    /// every tombstone) and hands the directory to the share sheet; a disk-full
+    /// failure surfaces its message as a state, never a crash (docs/ERRORS.md ->
+    /// Settings). The "always free" promise is the row's label AND the only
+    /// truth: there is no Pro gate anywhere on this path (VISION.md).
     private var exportRow: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text("Export everything")
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.ink)
-            Text("·")
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
-            Text("always free")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 8)
-            chevron
+        Button(action: buildAccountExport) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("Export everything")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.ink)
+                Text("·")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
+                Text("always free")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                Spacer(minLength: 8)
+                if isExporting {
+                    ProgressView().controlSize(.small).tint(Theme.Palette.inkSoft)
+                } else {
+                    chevron
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .accessibilityElement(children: .combine)
+        .buttonStyle(.plain)
+        .disabled(isExporting)
         .accessibilityIdentifier("settingsExportRow")
+    }
+
+    private func buildAccountExport() {
+        guard !isExporting else { return }
+        isExporting = true
+        Task {
+            do {
+                shareable = ExportShareable(items: [try ExportBuilder.buildAccountArchive()])
+            } catch {
+                exportFailure = ExportFailure.map(error)
+            }
+            isExporting = false
+        }
+    }
+
+    /// DEBUG/test-only: `-presentExportShare` opens the whole-account share
+    /// sheet a beat after Settings appears, so a screenshot can show it without
+    /// a UI test driving a tap (`simctl` cannot tap). Routes through the exact
+    /// method the button calls; production never passes the argument.
+    private func presentExportShareIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentExportShare") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            buildAccountExport()
+        }
     }
 
     private func navRow(_ label: LocalizedStringKey) -> some View {

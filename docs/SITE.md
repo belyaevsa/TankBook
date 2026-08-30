@@ -89,6 +89,7 @@ expand worst - the same constraint that broke tab labels in the app will break n
 | `/support/` | How to get help, and the feedback route | `POST /feedback` is the in-app channel; this page is the out-of-app one. **Required** by App Store review. The address is **`to@belyaev.live`** (product owner, 2026-08-28) - it is also the App Store listing's support contact, so the two must never disagree |
 | `/delete-account/` | How to delete an account and what happens | Apple requires an in-app route **and** a discoverable explanation. Ours is a tombstone: devices learn via `410`, **local data stays local** |
 | `/roadmap/` | What is shipped, what is next, what was deliberately cut | Cheap honesty, and it is where pump capture and CarPlay belong |
+| `/import-guide/` | Per-source export guide: where the source app's CSV export lives and what Tankbook does with it (PJ.33) | **Linked from the app's import flow** - the format row's "How to export" and the 422 / not-listed messages carry `helpUrl` from `GET /import/formats`. A link that 404s is worse than no link (hard rule 7), so a `helpUrl` and its page ship in the same change; today it covers My Fuel Manager only, and it must never imply formats that do not exist (P5.4b deferred) |
 | `/press/` | Name, icon, screenshots, one-paragraph description | Saves answering the same email twice |
 | `/404.html` | | |
 | favicon, `icon.svg`, `apple-touch-icon.png` | Tab and home-screen identity | Needed for the Lighthouse best-practices target; `DESIGN.md` already specifies the app icon, so the source art exists |

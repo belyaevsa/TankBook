@@ -153,6 +153,31 @@ final class VehicleDetailUITests: XCTestCase {
         XCTAssertTrue(save.exists && save.isHittable)
     }
 
+    // MARK: - The per-car export's share sheet carries the CSV (PJ.38)
+
+    /// Tapping the per-car export row builds the archive AND the four CSV files,
+    /// and the share sheet must carry the CSV as its own item (PJ.38) - not just
+    /// the archive folder. iOS groups the four CSV files (text documents) under
+    /// "Plain Text" in the caption while the archive folder rides as the
+    /// "1 Document" - so the CSV reaching the sheet is exactly this grouping.
+    /// If only the archive were shared, the caption would name the folder alone.
+    func testExportShareSheetCarriesTheCSV() {
+        let app = launch()
+        openDetail(app)
+
+        let row = app.buttons["vehicleExportRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10),
+                      "the car's export row is reachable")
+        scrollTo(row, in: app)
+        row.tap()
+
+        let shareCaption = app.otherElements["LP.CaptionBar.TopCaption"]
+        XCTAssertTrue(shareCaption.waitForExistence(timeout: 20),
+                      "the export row must open the system share sheet")
+        XCTAssertTrue(shareCaption.label.contains("Plain Text"),
+                      "the share sheet must carry the CSV files; caption was '\(shareCaption.label)'")
+    }
+
     // MARK: - Archive updates the Car switcher's row (J13)
 
     func testArchivingFromDetailUpdatesTheSwitcherRow() {

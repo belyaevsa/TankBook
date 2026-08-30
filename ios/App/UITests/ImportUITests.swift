@@ -17,6 +17,59 @@ final class ImportUITests: XCTestCase {
         return app
     }
 
+    // MARK: - "How to export" on the format row and in the 422 (PJ.33)
+
+    /// J2's switcher is anxious about the export step, so the source picker's
+    /// row itself carries the per-source export guide. The link renders only
+    /// when the wire supplies a `helpUrl` - a link to a page that does not
+    /// exist is worse than no link (hard rule 7).
+    func testFormatRowShowsHowToExportLink() {
+        let app = launch(["-presentScreen", "importWizard", "-importStubFormats", "one"])
+        XCTAssertTrue(app.buttons["importFormatRow-mfm"].waitForExistence(timeout: 10))
+        let link = app.descendants(matching: .any)["importFormatHelp-mfm"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5),
+                      "the format row must show the 'How to export' guide link")
+        XCTAssertTrue(app.staticTexts["How to export"].exists,
+                      "the link is labelled 'How to export'")
+    }
+
+    func testFormatRowShowsHowToExportLinkInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard", "-importStubFormats", "one"])
+        XCTAssertTrue(app.buttons["importFormatRow-mfm"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["importFormatHelp-mfm"].waitForExistence(timeout: 5),
+                      "the RU format row must show the 'How to export' guide link")
+        XCTAssertTrue(app.staticTexts["Как экспортировать"].exists,
+                      "the RU link label is localised, not the English key")
+    }
+
+    /// The 422 is where a stuck user actually sits: the declared source rejected
+    /// their file. The message must name the guide as its next step (F7), never
+    /// dead-end - the mutation that drops the link from this card must fail.
+    func test422MessageNamesHowToExport() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportParse422",
+                          "-importStubParse422"])
+        XCTAssertTrue(app.staticTexts["This doesn't look like a My Fuel Manager export."].waitForExistence(timeout: 10))
+        let link = app.descendants(matching: .any)["import422Help"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5),
+                      "the 422 message must name 'How to export' as its next step")
+        XCTAssertTrue(app.staticTexts["How to export"].exists,
+                      "the 422 card's link is labelled 'How to export'")
+    }
+
+    func test422MessageNamesHowToExportInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportParse422",
+                          "-importStubParse422"])
+        XCTAssertTrue(app.staticTexts["Это не похоже на экспорт из «My Fuel Manager»."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.descendants(matching: .any)["import422Help"].waitForExistence(timeout: 5),
+                      "the RU 422 message must name 'How to export'")
+        XCTAssertTrue(app.staticTexts["Как экспортировать"].exists,
+                      "the RU 422 link label is localised")
+    }
+
     // MARK: - The format list is server-driven (test 4)
 
     /// The picker must render the transport's response, not a hardcoded list.

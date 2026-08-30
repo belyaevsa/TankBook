@@ -1,18 +1,21 @@
 import SwiftUI
 import TankbookCore
 
-// The per-car export (P5.5b) - reached from the car in the Garage (Vehicle
-// detail). Builds THAT car's archive through P5.5a's writer (one car: its
-// Vehicle, every entry, reminders, tariffs, stations, attachments and every
-// tombstone - docs/SCHEMA.md -> Backup format) and hands it off through the
-// system share sheet. No second writer was written: this is the P5.5a surface.
+// The per-car export (P5.5b, PJ.38) - reached from the car in the Garage
+// (Vehicle detail). Builds THAT car's archive through P5.5a's writer (one car:
+// its Vehicle, every entry, reminders, tariffs, stations, attachments and every
+// tombstone - docs/SCHEMA.md -> Backup format) plus the four per-car CSV files
+// (fill-ups, charge sessions, service, expenses - flat rows with SCHEMA.md
+// field names, the money pair, ISO dates). The CSVs ride INSIDE the archive
+// directory and are handed to the share sheet as their own items (PJ.38). A
+// disk-full failure surfaces its message as a state, never a crash
+// (docs/ERRORS.md -> Settings; hard rule 7).
 struct VehicleExportRow: View {
     let vehicle: Vehicle
 
-    @Environment(AppToastCenter.self) private var toastCenter
     @State private var isExporting = false
-    @State private var shareable: ShareableURL?
-    @State private var showError = false
+    @State private var shareable: ExportShareable?
+    @State private var failure: ExportFailure?
 
     var body: some View {
         Button(action: buildExport) {
@@ -45,15 +48,8 @@ struct VehicleExportRow: View {
         .buttonStyle(.plain)
         .disabled(isExporting)
         .accessibilityIdentifier("vehicleExportRow")
-        .sheet(item: $shareable) { shareable in
-            ActivityView(items: [shareable.url])
-                .presentationDetents([.medium, .large])
-        }
-        .alert("Couldn't build the export", isPresented: $showError) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("Not enough space to build the export – free some space and try again.")
-        }
+        .onAppear { presentCarExportIfRequested() }
+        .exportFlow(shareable: $shareable, failure: $failure, retry: buildExport)
     }
 
     private func buildExport() {
@@ -61,39 +57,23 @@ struct VehicleExportRow: View {
         isExporting = true
         Task {
             do {
-                let repository = try AppStore.repository()
-                let directory = try VehicleExport.makeTemporaryDirectory(vehicleID: vehicle.id)
-                let writer = VehicleArchiveWriter(
-                    repository: repository,
-                    blobSource: FileBackedBlobSource(
-                        directory: (try? VehiclePhotoStore.attachmentsDirectory())
-                            ?? FileManager.default.temporaryDirectory))
-                _ = try writer.writeArchive(vehicleID: vehicle.id, to: directory)
-                shareable = ShareableURL(url: directory)
+                shareable = try ExportBuilder.buildCarExport(vehicleID: vehicle.id)
             } catch {
-                showError = true
+                failure = ExportFailure.map(error)
             }
             isExporting = false
         }
     }
-}
 
-/// A directory URL the share sheet can present (`URL` is not Identifiable).
-private struct ShareableURL: Identifiable {
-    let id = UUID()
-    let url: URL
-}
-
-enum VehicleExport {
-    /// A fresh temp directory for one car's archive - cleaned by the system,
-    /// never inside Application Support (an export is a hand-off, not data).
-    static func makeTemporaryDirectory(vehicleID: UUID) throws -> URL {
-        let root = FileManager.default.temporaryDirectory
-            .appendingPathComponent("tankbook-exports", isDirectory: true)
-        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-        let directory = root.appendingPathComponent("Tankbook-\(vehicleID.uuidString.prefix(8))",
-                                                    isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory
+    /// DEBUG/test-only: `-presentCarExportShare` opens the per-car share sheet
+    /// a beat after the row appears, so a screenshot can show the CSV share
+    /// sheet without a UI test driving a tap (`simctl` cannot tap). Routes
+    /// through the exact method the button calls.
+    private func presentCarExportIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentCarExportShare") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            buildExport()
+        }
     }
 }

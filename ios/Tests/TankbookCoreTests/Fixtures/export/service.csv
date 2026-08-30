@@ -1,0 +1,2 @@
+id,vehicleId,date,odometer,amount,currency,homeAmount,homeCurrency,rate,rateDate,deletedAt,note,vendor
+00000000-0000-7000-8000-000000000204,00000000-0000-7000-8000-000000000101,2026-08-05,82500,148.00,EUR,148.00,EUR,1,,,,Bosch Service
