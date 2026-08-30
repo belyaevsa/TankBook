@@ -102,6 +102,7 @@ points, a corporate fuel-card slip with no QR, or simply a preference.
 | Reach it | Taps "Type it" - present next to capture on Home, both empty states, the guest layout and inside Capture | "I don't have to fight the camera" | → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15) |
 | Fill | Types total and litres; price derives; odometer pre-filled from last known | Fast, predictable | → Same `ConfirmManual` sheet the capture paths land in - one screen, not a lesser one. Inside Capture, "Type it" opens the form for the **selected mode** (PJ.6): Service → ServiceEntry, Expense → ExpenseEntry, Fill-up → ConfirmManual |
 | Save | Saves | "That was quicker than scanning" | → The cross-check locks exactly as it does for a scan |
+| Later (PJ.48, **[v1.1]**) | Finds the receipt in a pocket, opens the entry, taps "Add receipt" | "I can still keep the paper" | → The typed door is a peer, so its entries can carry the receipt too: attach from camera or Photos on Edit entry; OCR may then **fill blank fields only**, never overwrite a typed value (hard rule 13). The paperclip appears in the Log like a scanned entry's |
 
 **Why this is a journey and not a fallback.** A capture-first design punishes the user on every
 capture the camera cannot serve, and the measured corpus says that is common: receipts extract

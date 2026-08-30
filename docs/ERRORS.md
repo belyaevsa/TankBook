@@ -122,6 +122,9 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |
 | Edit shifts stats | Toast on save: "Consumption updated: 6.9 → 6.8 L/100km" | Informational; tap → Trends |
 
+| Add receipt to an existing entry (PJ.48): photo could not be saved (disk full, permission) | `warn` line under the receipt card | "Couldn't save the photo – the entry is unchanged." | Try again · free up space (Settings deep link); the entry's fields are never touched by a failed attach |
+| Add receipt: OCR read values that disagree with what was typed (PJ.48) | none – no amber, no dialog | – | Typed values win silently; only blank fields are offered a pre-fill, each dimmed until tapped (hard rule 13). The photo is kept either way |
+
 ### Recently deleted
 | Condition | Shows | Next step |
 |---|---|---|
