@@ -39,11 +39,35 @@ public struct VehicleArchiveWriter {
         now: Date = Date()
     ) throws -> VehicleArchiveManifest {
         let contents = try collect(vehicleID: vehicleID)
-        try write(contents, to: directory, appVersion: appVersion,
-                  passphrase: passphrase, kdfIterations: kdfIterations, now: now)
-        let manifestURL = directory.appendingPathComponent(VehicleArchiveManifest.fileName)
-        let manifestData = try ArchiveFileIO.readData(manifestURL)
-        return try VehicleArchiveManifest.parse(JSONValue.parse(manifestData))
+        return try write(contents, scope: .vehicle, to: directory, appVersion: appVersion,
+                         passphrase: passphrase, kdfIterations: kdfIterations, now: now)
+    }
+
+    /// Writes the WHOLE-ACCOUNT archive (PJ.36): every vehicle - live or
+    /// tombstoned - with every entry type, reminders, stations, tariffs, the
+    /// matching attachments and every blob the device still holds. Declares
+    /// `scope: "account"`, the shape the F7 restore path consumes; a per-car
+    /// import must refuse it, and the reader's account-restore branch refuses
+    /// it too - this is a user-held hand-off, not a local restore input
+    /// (docs/SCHEMA.md -> "Scope: a user-held export is PER CAR").
+    @discardableResult
+    public func writeAccountArchive(
+        to directory: URL,
+        appVersion: String = LogContext.currentAppVersion(),
+        passphrase: String? = nil,
+        kdfIterations: Int = ArchiveCrypto.kdfIterations,
+        now: Date = Date()
+    ) throws -> VehicleArchiveManifest {
+        let contents = try collectAll()
+        return try write(contents, scope: .account, to: directory, appVersion: appVersion,
+                         passphrase: passphrase, kdfIterations: kdfIterations, now: now)
+    }
+
+    /// The whole-account contents this writer collects (PJ.36): the round-trip
+    /// test compares it hash-equal against what the reader decodes back, so the
+    /// collection rule and the decode rule are pinned to agree.
+    func accountContents() throws -> VehicleArchiveContents {
+        try collectAll()
     }
 
     // MARK: - Collection (the per-car rule)
@@ -110,15 +134,66 @@ public struct VehicleArchiveWriter {
         return contents
     }
 
+    /// The whole-account collection (PJ.36): everything the repository holds,
+    /// tombstones included. For an account archive there is no "referenced
+    /// only" filter to apply - every station, tariff and attachment IS the
+    /// account's data, and every vehicle's entries ride with it (nothing lost
+    /// silently, hard rule 8).
+    private func collectAll() throws -> VehicleArchiveContents {
+        var contents = VehicleArchiveContents()
+        let vehicles = try repository.allVehiclesIncludingDeleted()
+        contents.vehicles = vehicles
+        for vehicle in vehicles {
+            contents.fillUps += try repository.fillUpsIncludingDeleted(forVehicle: vehicle.id)
+            contents.chargeSessions += try repository.chargeSessionsIncludingDeleted(forVehicle: vehicle.id)
+            contents.serviceRecords += try repository.serviceRecordsIncludingDeleted(forVehicle: vehicle.id)
+            contents.expenses += try repository.expensesIncludingDeleted(forVehicle: vehicle.id)
+            contents.reminders += try repository.remindersIncludingDeleted(forVehicle: vehicle.id)
+        }
+        contents.stations = try repository.stationsIncludingDeleted()
+        contents.tariffs = try repository.tariffsIncludingDeleted()
+
+        var referencedAttachmentIDs = Set<AttachmentID>()
+        let entryLists: [any Entry] = contents.fillUps + contents.chargeSessions
+            + contents.serviceRecords + contents.expenses
+        for entry in entryLists {
+            referencedAttachmentIDs.formUnion(entry.attachments)
+        }
+        for vehicle in vehicles {
+            if let photo = vehicle.photo {
+                referencedAttachmentIDs.insert(photo)
+            }
+        }
+        let attachments = try repository.attachmentsIncludingDeleted()
+            .filter { referencedAttachmentIDs.contains($0.id) }
+        contents.attachments = attachments
+
+        // Blob bytes. Same rule as the per-car writer: a blob the device no
+        // longer holds is skipped, not fatal - the reference still travels and
+        // lazy-fetches exactly as a synced attachment would.
+        var blobs: [String: Data] = [:]
+        for attachment in attachments {
+            guard let data = try blobSource.renditionData(for: attachment) else { continue }
+            let sha = attachment.file.sha256
+            guard BlobHash.sha256(data) == sha else {
+                throw VehicleArchiveError.underlying(
+                    "blob \(sha) does not hash to its content address; refusing a corrupt export")
+            }
+            blobs[sha] = data
+        }
+        contents.blobs = blobs
+        return contents
+    }
+
     // MARK: - Writing
 
-    private func write(_ contents: VehicleArchiveContents, to directory: URL,
+    private func write(_ contents: VehicleArchiveContents, scope: ArchiveScope, to directory: URL,
                        appVersion: String, passphrase: String?,
-                       kdfIterations: Int, now: Date) throws {
+                       kdfIterations: Int, now: Date) throws -> VehicleArchiveManifest {
         let schemaVersion = policy.currentVersion
         let manifest = VehicleArchiveManifest(
             schemaVersion: schemaVersion,
-            scope: .vehicle,
+            scope: scope,
             vehicleIds: contents.vehicles.map(\.id),
             exportedAt: now,
             appVersion: appVersion,
@@ -151,5 +226,6 @@ public struct VehicleArchiveWriter {
                 try ArchiveFileIO.atomicWrite(bytes, to: url)
             }
         }
+        return manifest
     }
 }

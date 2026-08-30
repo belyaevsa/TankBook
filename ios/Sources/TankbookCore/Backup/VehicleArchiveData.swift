@@ -18,8 +18,11 @@ import Foundation
 // its elements carry the sync envelope's discriminator.
 
 /// The typed contents of an archive: everything the writer collected, and what
-/// the reader produces after it has validated and decoded.
-struct VehicleArchiveContents: Sendable {
+/// the reader produces after it has validated and decoded. Equatable so the
+/// whole-account round-trip (PJ.36) can pin that write -> read is lossless:
+/// the collected contents and the decoded contents must be equal, blobs and
+/// all, or an export silently dropped something.
+struct VehicleArchiveContents: Sendable, Equatable {
     var vehicles: [Vehicle] = []
     var fillUps: [FillUp] = []
     var chargeSessions: [ChargeSession] = []

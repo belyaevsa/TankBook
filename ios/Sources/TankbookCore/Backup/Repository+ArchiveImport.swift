@@ -98,6 +98,16 @@ extension TankbookRepository {
         }
     }
 
+    /// EVERY vehicle row, tombstones included - the whole-account archive's
+    /// collection root (PJ.36). A per-car export picks one car; an account
+    /// export is the whole garage, and a tombstoned car is still the user's
+    /// data inside the 30-day undo window (hard rule 8).
+    public func allVehiclesIncludingDeleted() throws -> [Vehicle] {
+        try database.read { db in
+            try VehicleRow.order(Column("createdAt")).fetchAll(db).map(\.vehicle)
+        }
+    }
+
     public func fillUpsIncludingDeleted(forVehicle vehicleId: UUID) throws -> [FillUp] {
         try database.read { db in
             try rowsIncludingDeleted(FillUpRow.self, forVehicle: vehicleId, in: db).map(\.fillUp)

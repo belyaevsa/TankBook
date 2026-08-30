@@ -59,13 +59,8 @@ public struct VehicleArchiveReader {
         guard !manifest.passphraseProtected || passphrase != nil else {
             throw VehicleArchiveError.passphraseRequired
         }
-
-        let (data, effectiveVersion) = try readDataTree(manifest: manifest, at: directory,
-                                                        passphrase: passphrase,
-                                                        kdfIterations: kdfIterations)
-        let contents = try validateContents(data: data, effectiveVersion: effectiveVersion)
-        let stagedBlobs = try stageBlobs(contents: contents, manifest: manifest, at: directory,
-                                         passphrase: passphrase, kdfIterations: kdfIterations)
+        let (contents, stagedBlobs) = try decodeContents(at: directory, passphrase: passphrase,
+                                                         kdfIterations: kdfIterations)
         try commit(contents: contents, stagedBlobs: stagedBlobs)
 
         return VehicleArchiveImportResult(
@@ -75,6 +70,31 @@ public struct VehicleArchiveReader {
             entryCount: contents.entryCount,
             attachmentCount: contents.attachments.count,
             blobCount: stagedBlobs.count)
+    }
+
+    /// Opens, validates and typed-decodes an archive WITHOUT committing
+    /// anything (PJ.36). The whole-account round-trip test reads an account
+    /// archive through this path and compares the decoded contents hash-equal
+    /// against what the writer collected - the local importer still refuses
+    /// `.account` scope on commit, by design; reading is not importing.
+    func decodeContents(
+        at directory: URL,
+        passphrase: String? = nil,
+        kdfIterations: Int = ArchiveCrypto.kdfIterations
+    ) throws -> (VehicleArchiveContents, [String: Data]) {
+        let manifest = try Self.readManifest(at: directory)
+        let (data, effectiveVersion) = try readDataTree(manifest: manifest, at: directory,
+                                                        passphrase: passphrase,
+                                                        kdfIterations: kdfIterations)
+        var contents = try validateContents(data: data, effectiveVersion: effectiveVersion)
+        let stagedBlobs = try stageBlobs(contents: contents, manifest: manifest, at: directory,
+                                         passphrase: passphrase, kdfIterations: kdfIterations)
+        // The decoded contents carry the staged bytes so the whole-account
+        // round-trip (PJ.36) compares the FULL contents hash-equal - blobs and
+        // all - against what the writer collected. `commit` uses `stagedBlobs`
+        // directly, never this copy.
+        contents.blobs = stagedBlobs
+        return (contents, stagedBlobs)
     }
 
     /// Opens, decrypts and version-upcasts `data.json`, returning the parsed
