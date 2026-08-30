@@ -1,7 +1,10 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-30 (later still: the full UI suite is GREEN - 252/0 - and PJ.7b closed). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain need the
-product owner**; **Tier 2 is 17/24**; the marketing site is LIVE. Read this first, then `CLAUDE.md`
+*Updated 2026-08-30 (evening). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain
+need the product owner** (`SH.1`, `SH.2`, `P6.6`); **Tier 2 is 18/24 - six rows left: `PR.8`,
+`PR.14`, `PR.16`, `P6.5`, `P6.13`, `P1.13`**. Landed this evening: PR.13, P2.3b/c, plus P2.15,
+P2.16 and the PJ.7 family, all filed from the work rather than the backlog. `PJ.48` (v1.1) in
+flight. The marketing site is LIVE. Read this first, then `CLAUDE.md`
 for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
@@ -150,6 +153,103 @@ Two things worth carrying:
   will be masked by a stub session left from an earlier run; clear it explicitly.
 - **A green suite is not a green suite until it is green alone.** Worth spot-checking one suite in
   isolation per phase.
+
+## The Tier 2 session (2026-08-30, evening) - six lanes, and what each cost
+
+Committed, each verified in the orchestrator's own hands (build + `xcodebuild` + lint + the whole
+unit suite + the touched UI suites) before the commit existed:
+
+| Commit | Row | The mutation that proves it |
+|---|---|---|
+| `e55e225` | **PR.13** offline vs server-down | making a 5xx throw `.offline` fails **naming the wrong sentence**, not merely "an error appeared" |
+| `18a66d1` | **P2.16** under-run gate + de-raced budget tests | the gate itself, mutation-checked four ways (full 0, reduced 1, empty 1, absent suite 1) |
+| `25b0283` | **P2.15** numeric input + **P2.3b** fuel row | removing the sanitizer from one call site fails **naming that field** |
+| `053512a` | Info.plist | - (found in tree, committed separately rather than buried) |
+| `d7ec242` | **P2.3c** the fuel rule corrected | narrowing the offer set fails on a **missing petrol grade**; capping the `+` menu fails on the **dead end** |
+
+### A suite printed "passed" while ten of its tests never ran
+
+A full run executed 249 unique tests; **ten that ran in the previous full suite did not run at
+all**, and all ten still existed in source. `Test Suite 'CaptureUITests' passed` was printed
+anyway. Same family as a `--filter` matching nothing and printing *"0 tests ... passed"*, and it
+means **a green full-suite result is not self-validating**.
+
+`scripts/check-ui-test-count.sh` (P2.16) now compares observed executed cases against the
+`func test` count and **exits non-zero on a shortfall**. Run it on every full-suite log; the rule
+is in `docs/TESTING.md`. Note the summary line is the thing that lied - `xcodebuild` printed
+`Executed 202 tests` for a run with 249 unique cases - so count the cases, not the summary.
+
+### The `ConfirmManual` pair was never device-specific, and "flaky" is a diagnosis
+
+Recorded here for three sessions as *"fails on `iPhone 17 Pro`, passes on `iPhone 17`"*. Wrong,
+and it sent work looking at simulators instead of at layout. The price field sits **under the
+pinned save bar**, so the tap hit **Save**, saved the entry and dismissed the sheet; `typeText`
+then found no TextField. Proved from the failure snapshot: the app was on Home showing a
+just-saved entry carrying the test's own typed values.
+
+**"Device-specific" and "flaky" are diagnoses, not observations.** Both were written here from
+correlation alone and both stopped anyone looking for a cause. When you write either word, write
+what you measured next to it. `AddVehicleUITests` still carries the label on the same kind of
+evidence - treat it as unverified.
+
+### Suites that only pass in company (the order-dependence family)
+
+- `ConfirmManualUITests`: **27/28 red alone**, 25/26 red on a clean device. It passed only because
+  earlier suites left a vehicle behind. Two layers: `WelcomeGate` reads the vehicle list at root
+  init while `-seedVehicleForUITests` seeds later, **and** Home renders guest chrome without a
+  session. Fixed in PJ.7e.
+- `AddVehicleUITests`: launches with **no arguments**, so a pristine device shows Welcome and a
+  dirty one hits the 3-car cap. Still open - it passes only when earlier suites leave state.
+- **`simctl uninstall` does NOT clear the Keychain.** A "clean device" mutation check is masked by
+  a stub session left from an earlier run.
+
+**A green suite is not green until it is green alone.** Spot-check one suite in isolation per phase.
+
+### Screenshots caught what every test missed, twice in one evening
+
+- **P2.3c's chips wrapped INSIDE the capsule** - the adaptive grid's `minimum: 44` was narrower
+  than "100" and "LPG" need, so it packed five per row and squeezed each cell until the label broke
+  ("10"/"0", "LP"/"G" in EN). `ConfirmFuelKindUITests` was green throughout. Fixed by widening the
+  grid minimum so it **wraps chips onto the next row**, plus `lineLimit(1)`.
+- The agent captured that screenshot, reported it, and **could not see it** - no image input. That
+  is the whole reason "the orchestrator opens every screenshot personally" exists.
+
+### An agent reported a sibling's breakage that did not exist
+
+P2.16 reported, with line numbers and element types, that P2.15 had broken decimal typing
+(`typeText("88.88")` yielding `"88"`). It had not: P2.16 read the tree **while P2.15 was still
+writing it**. Measured on an idle tree afterwards: ConfirmManual 26/26, GatewayCapture 6/6,
+NumericInput 2/2.
+
+**An agent's report about a SIBLING's files is worth less than its report about its own** - it is
+reading a moving tree. Verify cross-lane claims before acting on them.
+
+### Two lanes in one tree cannot produce two commits
+
+P2.15 and P2.3b interleaved inside `VehicleFormControls.swift` and `ManualFillUpSections.swift`,
+and this environment has no interactive hunk staging. They went in as **one commit naming both
+ids**, because splitting by file would have put one lane's hunks under the other's name. **The
+fence has to be per-file, or the commits cannot be.**
+
+### My numbers were wrong twice more, and both agents counted
+
+A brief said 5 seed sites (there were **11, across 7 files**) and 16 numeric fields (there were
+**18** - `figureRow` renders three, `recurrenceRow` two). That is now **six** instances of a count
+in a task row or brief being wrong. Every brief should tell the agent to verify the list and report
+where it was wrong; both did.
+
+### The wedge threshold is too tight under load
+
+`HANDOVER.md` says a healthy run writes ~17 KB in its first 30 seconds. Three dispatches this
+evening sat at **0 bytes for 45-120 seconds** and then ran normally. Under load that number
+produces false wedge diagnoses. The real signal is **still flat after several minutes AND
+near-zero CPU** - check `%cpu` before killing anything.
+
+### `swift build` still does not compile `ios/App`
+
+A file split that lints clean and builds clean under `swift build` is **not** proven. Only
+`xcodebuild ... build` compiles the app target. Same trap as ever; it cost nothing this time only
+because it was remembered.
 
 ## Reverting a mutation with git is how live work dies (2026-08-30)
 
@@ -385,8 +485,9 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 1062 unit tests (0 failures), 252 UI tests (0 failures)** - measured on `iPhone 17`,
-  2026-08-30, whole suite, run alone, **no exclusions**: the `ConfirmManual` pair that used to be
+- **iOS: 1088 unit tests (0 failures)**, UI **263 declared** (252 was the last full green run;
+   the evening's lanes added the rest and the closing full run is owed) - measured on `iPhone 17`,
+   2026-08-30, run alone, **no exclusions**: the `ConfirmManual` pair that used to be
   excused as device-specific is fixed, not excused. `swiftlint lint` exit **0** from the repo
   root. **Backend: 268 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
