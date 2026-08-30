@@ -11918,19 +11918,19 @@
         }
       }
     },
-    "Scan the receipt – or type the numbers": {
+    "Fuel, charging and service – one log": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan the receipt – or type the numbers"
+            "value": "Fuel, charging and service – one log"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Снимите чек – или введите цифры"
+            "value": "Заправки, зарядки и сервис – один журнал"
           }
         }
       }

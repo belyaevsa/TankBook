@@ -60,7 +60,7 @@ struct WelcomeView: View {
                         .font(.system(size: 40, weight: .heavy))
                         .tracking(-0.4)
                         .foregroundStyle(Theme.Palette.ink)
-                    Text("Scan the receipt – or type the numbers")
+                    Text("Fuel, charging and service – one log")
                         .font(.system(size: 16))
                         .tracking(0.3)
                         .foregroundStyle(Theme.Palette.inkSoft)
