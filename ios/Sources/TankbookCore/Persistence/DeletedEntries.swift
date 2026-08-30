@@ -29,6 +29,27 @@ public struct DeletedEntry: Identifiable {
     }
 }
 
+/// A tombstoned reminder on the Recently deleted screen (PJ.7). A reminder is
+/// an `Entity`, not an `Entry` - it has no `date`/`money` - so it cannot ride in
+/// `DeletedEntry`; this is the parallel shape the screen renders beside the
+/// entry list, with the same 30-day countdown and the same Restore path
+/// (`restoreReminder`, which clears the tombstone so the row re-enters the
+/// Reminders list with its status and recurrence intact - hard rule 8 holds for
+/// reminders exactly as it does for entries).
+public struct DeletedReminder: Identifiable {
+    public let reminder: Reminder
+    /// The tombstone stamp. `reminder.deletedAt` is authoritative.
+    public let deletedAt: Date
+
+    public var id: UUID { reminder.id }
+    public var vehicleId: UUID { reminder.vehicleId }
+
+    public init(reminder: Reminder, deletedAt: Date? = nil) {
+        self.reminder = reminder
+        self.deletedAt = deletedAt ?? reminder.deletedAt ?? reminder.updatedAt
+    }
+}
+
 /// The 30-day countdown arithmetic (docs/SYNC.md: "30-day undo", the purge
 /// grace period in Repository). Pure so it is unit-testable without a simulator
 /// (docs/TESTING.md L1).

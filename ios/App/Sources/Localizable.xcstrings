@@ -2191,19 +2191,19 @@
         }
       }
     },
-    "Deleted reminders are gone – this can't be undone.": {
+    "Deleted reminders stay here for 30 days, in case you change your mind.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deleted reminders are gone – this can't be undone."
+            "value": "Deleted reminders stay here for 30 days, in case you change your mind."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Удалённые напоминания исчезают безвозвратно."
+            "value": "Удалённые напоминания хранятся здесь 30 дней – вдруг вы передумаете."
           }
         }
       }
@@ -4639,19 +4639,19 @@
         }
       }
     },
-    "Point. Scan. Done.": {
+    "A head start, not an answer": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Point. Scan. Done."
+            "value": "A head start, not an answer"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Наведи. Сканируй. Готово."
+            "value": "Это фора, а не готовый ответ"
           }
         }
       }

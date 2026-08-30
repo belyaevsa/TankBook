@@ -432,17 +432,20 @@ capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRest
 capture PR.6b-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 capture PR.6b-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 
-# PJ.3: the Welcome root (design/screens/Welcome.dc.html) - the fresh-install
+# PJ.3b: the Welcome root (design/screens/Welcome.dc.html) - the fresh-install
 # screen a reinstall or an Android migrant meets, with its three equal paths.
 # `-presentWelcome` runs the REAL onboarding decision under the seed harness's
 # reset. The light pair uses the light artboard (LightWelcome.dc.html) - this
 # row has a light artboard, so light is not optional here. RU is where the
-# feature lines and the third path's sentence run longest.
-capture PJ.3-welcome         en -presentWelcome
-capture PJ.3-welcome-ru      ru -presentWelcome
+# feature lines and the third path's sentence run longest. PJ.3b replaced the
+# "Point. Scan. Done." promise with the honest "A head start, not an answer"
+# (hard rule 15) - the tagline is the subject of these frames, so it must be
+# legible in every capture, EN and RU, dark and light.
+capture PJ.3b-welcome         en -presentWelcome
+capture PJ.3b-welcome-ru      ru -presentWelcome
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
-capture PJ.3-welcome-light      en -presentWelcome
-capture PJ.3-welcome-light-ru   ru -presentWelcome
+capture PJ.3b-welcome-light      en -presentWelcome
+capture PJ.3b-welcome-light-ru   ru -presentWelcome
 xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 
 # PJ.4: the reminder banner is REAL data now (docs/ERRORS.md -> Home, row
@@ -468,6 +471,19 @@ capture PJ.5-reminder-tap    en -seedReminders -replayNotificationResponse remin
 capture PJ.5-reminder-tap-ru ru -seedReminders -replayNotificationResponse reminder.0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D.date
 capture PJ.5-summary-tap     en -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
 capture PJ.5-summary-tap-ru  ru -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
+
+# PJ.7: a deleted reminder is a tombstone like any entry (hard rule 8) - it
+# appears on Recently deleted with its countdown and a Restore, and deleting a
+# reminder is reversible for 30 days. The list shot shows the seeded reminder
+# row (the "Oil change" with its own Restore); the alert shot shows the
+# CORRECTED delete confirmation - the 30-day truth, never "this can't be
+# undone" (`-presentReminderDeleteAlert`, since simctl cannot tap the row menu).
+# RU is where the alert sentence and the countdown ("Удалено <день> · Осталось
+# 24 дня") run longest.
+capture PJ.7-deleted-reminder     en -seedRecentlyDeleted -presentScreen recentlyDeleted
+capture PJ.7-deleted-reminder-ru  ru -seedRecentlyDeleted -presentScreen recentlyDeleted
+capture PJ.7-delete-alert         en -seedReminders -presentScreen reminders -presentReminderDeleteAlert
+capture PJ.7-delete-alert-ru      ru -seedReminders -presentScreen reminders -presentReminderDeleteAlert
 
 # PJ.6: "Type it" opens the form for the mode you are in (hard rule 15) - the
 # capture surface in Service mode with the Service form open over it, driven by

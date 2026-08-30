@@ -41,6 +41,26 @@ extension TankbookRepository {
         }
     }
 
+    /// All tombstoned reminders, newest deletion first - the Recently deleted
+    /// screen lists reminders beside the entry list (PJ.7). A reminder is NOT
+    /// an `Entry` (no `date`/`money`), so it cannot ride in `deletedEntries()`;
+    /// it is a parallel list with the same 30-day window and the same Restore
+    /// path (`restoreReminder`). Hard rule 8 - nothing lost silently - holds
+    /// for reminders exactly as it does for entries: a deleted reminder is
+    /// recoverable and reachable until the purge.
+    public func deletedReminders() throws -> [DeletedReminder] {
+        try database.read { db in
+            try ReminderRow
+                .filter(Column("deletedAt") != nil)
+                .fetchAll(db)
+                .compactMap { row -> DeletedReminder? in
+                    guard row.reminder.deletedAt != nil else { return nil }
+                    return DeletedReminder(reminder: row.reminder)
+                }
+                .sorted { $0.deletedAt > $1.deletedAt }
+        }
+    }
+
     /// Restores any tombstoned entry - the screen's Restore button (hard rule
     /// 8: restoring clears the tombstone and the entry re-enters the Log and
     /// the statistics, because stats are derived and the next recompute sees

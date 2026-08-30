@@ -238,6 +238,36 @@ final class RemindersUITests: XCTestCase {
         XCTAssertTrue(odometer.isEnabled, "the pre-filled odometer must stay editable")
     }
 
+    // MARK: - PJ.7 the delete alert states the 30-day truth
+
+    /// Deleting a reminder tombstones it (`softDeleteReminder`) - the 30-day
+    /// undo holds exactly as for an entry, and the alert says so (hard rule 8:
+    /// nothing lost silently). It is a confirmation, never a warning: the
+    /// message must state the window and must NOT claim the delete is
+    /// permanent. Mutation guards: restoring "this can't be undone", or
+    /// dropping the 30-day claim, both fail here.
+    func testDeleteAlertStatesTheThirtyDayTruth() {
+        let app = launch(["-seedReminders"])
+
+        let menu = app.buttons["reminderRowMenu"].firstMatch
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+
+        let delete = app.buttons["Delete"].firstMatch
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+
+        let alert = app.alerts["Delete reminder?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        // A wrapped alert message is exposed as one element PER LINE, so the
+        // visible lines are joined before matching (the Account suite's pattern).
+        let message = alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ")
+        XCTAssertTrue(message.contains("30 days"),
+                      "the alert must state the 30-day undo window; was: \(message)")
+        XCTAssertFalse(message.contains("can't be undone"),
+                       "the alert must not claim the delete is permanent; was: \(message)")
+    }
+
     // MARK: - P3.6 notification permission
 
     /// The one-time denied card (docs/ERRORS.md -> Reminders) renders when

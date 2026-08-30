@@ -99,7 +99,11 @@ struct RemindersView: View {
             Button("Delete", role: .destructive) { confirmDelete() }
             Button("Cancel", role: .cancel) { deleteTarget = nil }
         } message: {
-            Text("Deleted reminders are gone – this can't be undone.")
+            // PJ.7: deletion tombstones the row (`softDeleteReminder`), so the
+            // 30-day undo holds for reminders exactly as for entries - the
+            // alert states that truth (a confirmation, never a warning), and
+            // the Recently deleted screen is where the user can act on it.
+            Text("Deleted reminders stay here for 30 days, in case you change your mind.")
         }
         // The P3.5 completion sheet: what was completed, "Log the cost?",
         // Type amount / Skip, and the next-cycle line. Its Edit/Reschedule
@@ -322,6 +326,14 @@ struct RemindersView: View {
             if ProcessInfo.processInfo.arguments.contains("-presentReminderComplete"),
                let target = reminders.first {
                 completeTarget = ReminderSheetTarget(reminder: target)
+            }
+            // PJ.7: `-presentReminderDeleteAlert`: open the delete confirmation
+            // for the first reminder, so the corrected alert (the 30-day truth,
+            // not a permanent-delete claim) can be captured by simctl, which
+            // cannot tap the row's menu.
+            if ProcessInfo.processInfo.arguments.contains("-presentReminderDeleteAlert"),
+               let target = reminders.first {
+                deleteTarget = target
             }
             #endif
         }

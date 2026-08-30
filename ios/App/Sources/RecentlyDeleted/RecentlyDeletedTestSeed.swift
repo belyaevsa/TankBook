@@ -107,6 +107,16 @@ enum RecentlyDeletedTestSeed {
             recurrence: nil, installedInServiceId: nil)
         try? repository.upsertExpense(expense)
         try? repository.softDeleteExpense(id: expense.id, at: now.addingTimeInterval(-26 * 86_400))
+
+        // PJ.7: a tombstoned reminder joins the entry tombstones - hard rule 8
+        // holds for reminders too. Deleted 6 days ago, so its countdown reads
+        // "24 days left" on any run date, distinct from the entries' three.
+        let reminder = ReminderLifecycle.makeReminder(
+            vehicleId: vehicle.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(30 * 86_400), dueOdometer: nil,
+            recurrence: Reminder.Recurrence(everyKm: 15_000, everyMonths: 12))
+        try? repository.upsertReminder(reminder)
+        try? repository.softDeleteReminder(id: reminder.id, at: now.addingTimeInterval(-6 * 86_400))
     }
 
     private static func tombstonedChargeIDs(in repository: TankbookRepository) -> [UUID] {

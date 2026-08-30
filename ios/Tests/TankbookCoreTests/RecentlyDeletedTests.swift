@@ -152,6 +152,72 @@ private func headline(_ repository: TankbookRepository, vehicle: Vehicle,
     #expect(deleted.contains { $0.entry is Expense })
 }
 
+// MARK: - PJ.7: reminders are tombstones too (hard rule 8)
+
+/// A deleted reminder is listed on the Recently deleted screen's reminder
+/// list, newest deletion first - the screen's data, not the entry list
+/// (a reminder is an `Entity`, not an `Entry`, so it has its own list).
+@Test func deletedRemindersListsTombstonedRemindersNewestDeletionFirst() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+
+    let tires = ReminderLifecycle.makeReminder(
+        vehicleId: vehicleID, title: "Winter tires", category: .tires,
+        dueDate: UTC.day(2026, 11, 1), dueOdometer: nil, recurrence: nil)
+    let inspection = ReminderLifecycle.makeReminder(
+        vehicleId: vehicleID, title: "Inspection (TÜV)", category: .inspection,
+        dueDate: UTC.day(2026, 12, 1), dueOdometer: nil, recurrence: nil)
+    try repository.upsertReminder(tires)
+    try repository.upsertReminder(inspection)
+
+    try repository.softDeleteReminder(id: tires.id, at: UTC.day(2026, 8, 20))
+    try repository.softDeleteReminder(id: inspection.id, at: UTC.day(2026, 8, 22))
+
+    let deleted = try repository.deletedReminders()
+    #expect(deleted.map(\.id) == [inspection.id, tires.id])
+    #expect(deleted.first?.deletedAt == UTC.day(2026, 8, 22))
+    // A deleted reminder is out of the live list...
+    #expect(try repository.liveReminders(forVehicle: vehicleID).isEmpty)
+    // ...and is NOT an entry: the entry list and its restore path never see it.
+    #expect(try repository.deletedEntries().isEmpty)
+}
+
+/// The load-bearing PJ.7 guarantee: restoring a deleted reminder brings the
+/// row back WITH the fields that made it useful - its status and its
+/// recurrence. A restore that rebuilds a repeating reminder as a one-off
+/// (or silently resets a fired `.attention`) fails this even though the row
+/// itself "came back".
+@Test func restoringAReminderKeepsItsStatusAndRecurrence() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+
+    let recurrence = Reminder.Recurrence(everyKm: 15_000, everyMonths: 12)
+    let reminder = ReminderLifecycle.makeReminder(
+        vehicleId: vehicleID, title: "Oil change", category: .oil,
+        dueDate: UTC.day(2026, 10, 1), dueOdometer: nil,
+        recurrence: recurrence, status: .attention)
+    try repository.upsertReminder(reminder)
+
+    try repository.softDeleteReminder(id: reminder.id, at: UTC.day(2026, 8, 20))
+    #expect(try repository.deletedReminders().map(\.id) == [reminder.id])
+
+    try repository.restoreReminder(id: reminder.id)
+
+    // The row came back...
+    let restored = try repository.liveReminders(forVehicle: vehicleID)
+    #expect(restored.map(\.id) == [reminder.id])
+    #expect(try repository.deletedReminders().isEmpty)
+    // ...and carries the fields that made it useful - asserted on the VALUES,
+    // never merely that a row exists (a one-off re-creation would pass that).
+    #expect(restored.first?.status == ReminderStatus.attention,
+            "a restored reminder keeps its status, not a silent reset to scheduled")
+    #expect(restored.first?.recurrence == recurrence,
+            "a restored repeating reminder keeps its recurrence - not a one-off")
+    #expect(restored.first?.deletedAt == nil)
+}
+
 // MARK: - Purge honours the grace period (both sides of the boundary)
 
 @Test func purgeHonoursGracePeriodAt29And31Days() throws {

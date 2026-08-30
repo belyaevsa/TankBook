@@ -19,6 +19,7 @@ import TankbookCore
 struct RecentlyDeletedView: View {
     @Environment(AppToastCenter.self) private var toastCenter
     @State private var deleted: [DeletedEntry] = []
+    @State private var deletedReminders: [DeletedReminder] = []
     @State private var vehicles: [UUID: Vehicle] = [:]
     @State private var stations: [Station] = []
     @State private var fixtures = RecentlyDeletedFixtures.fromLaunchArguments()
@@ -26,7 +27,7 @@ struct RecentlyDeletedView: View {
     @State private var didLoad = false
 
     private var hasAnythingToDelete: Bool {
-        !deleted.isEmpty || !fixtures.syncOverwritten.isEmpty
+        !deleted.isEmpty || !deletedReminders.isEmpty || !fixtures.syncOverwritten.isEmpty
     }
 
     var body: some View {
@@ -34,7 +35,7 @@ struct RecentlyDeletedView: View {
             VStack(alignment: .leading, spacing: 14) {
                 intro
 
-                if deleted.isEmpty && fixtures.syncOverwritten.isEmpty {
+                if deleted.isEmpty && deletedReminders.isEmpty && fixtures.syncOverwritten.isEmpty {
                     emptyState
                 } else {
                     deletedSection
@@ -78,6 +79,12 @@ struct RecentlyDeletedView: View {
         VStack(alignment: .leading, spacing: 8) {
             ForEach(deleted) { entry in
                 deletedRow(entry)
+            }
+            ForEach(deletedReminders) { deleted in
+                DeletedReminderRow(
+                    deleted: deleted,
+                    subtitle: countdownSubtitle(deletedAt: deleted.deletedAt, device: nil),
+                    onRestore: { restoreReminder(deleted.id) })
             }
         }
     }
@@ -219,8 +226,15 @@ struct RecentlyDeletedView: View {
     }
 
     private func subtitle(_ entry: DeletedEntry, device: String?) -> String {
-        let day = HomeFormat.day(entry.deletedAt)
-        let daysLeft = String(localized: "\(TombstoneCountdown.daysRemaining(deletedAt: entry.deletedAt)) days left")
+        countdownSubtitle(deletedAt: entry.deletedAt, device: device)
+    }
+
+    /// "Deleted Aug 20 · 27 days left · removed on iPad" - shared by the entry
+    /// rows and the reminder rows (PJ.7): both surfaces carry the countdown
+    /// that tells the user how long they have to change their mind (hard rule 8).
+    private func countdownSubtitle(deletedAt: Date, device: String?) -> String {
+        let day = HomeFormat.day(deletedAt)
+        let daysLeft = String(localized: "\(TombstoneCountdown.daysRemaining(deletedAt: deletedAt)) days left")
         var parts = [String(format: L10n.localize("Deleted %@"), day), daysLeft]
         if let device {
             parts.append(String(format: L10n.localize("removed on %@"), device))
@@ -287,6 +301,20 @@ struct RecentlyDeletedView: View {
         }
     }
 
+    /// The reminder rows' Restore (PJ.7): routes through `restoreReminder`, not
+    /// `restoreEntry` - the entry restore path iterates the entry tables and
+    /// cannot see a reminder, and `restoreReminder` is what keeps the row's
+    /// status and recurrence intact. No entry toast: nothing in the Log moved.
+    private func restoreReminder(_ id: UUID) {
+        do {
+            let repository = try AppStore.repository()
+            try repository.restoreReminder(id: id)
+            reload()
+        } catch {
+            AppLog.error(operation: "recentlyDeleted.restoreReminder", category: .ui, error: error)
+        }
+    }
+
     private func performPurgeAll() {
         do {
             let repository = try AppStore.repository()
@@ -312,6 +340,7 @@ struct RecentlyDeletedView: View {
         do {
             let repository = try AppStore.repository()
             deleted = try repository.deletedEntries()
+            deletedReminders = try repository.deletedReminders()
             let allVehicles = try repository.liveVehicles()
             var byID: [UUID: Vehicle] = [:]
             for vehicle in allVehicles { byID[vehicle.id] = vehicle }
@@ -325,5 +354,52 @@ struct RecentlyDeletedView: View {
         } catch {
             AppLog.error(operation: "recentlyDeleted.load", category: .ui, error: error)
         }
+    }
+}
+
+/// A tombstoned reminder's card on the Recently deleted screen (PJ.7),
+/// rendered beside the entry rows in the same card style. A reminder is an
+/// `Entity`, not an `Entry`, so it cannot use the entry row's title/quantity/
+/// amount composition; the row is title + countdown, and Restore routes
+/// through `restoreReminder` - the entry restore path never sees a reminder.
+struct DeletedReminderRow: View {
+    let deleted: DeletedReminder
+    let subtitle: String
+    let onRestore: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Theme.Palette.inkSoft)
+                .frame(width: 9, height: 9)
+                .opacity(0.55)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(deleted.reminder.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .lineLimit(2)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.72))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button(action: onRestore) {
+                Text("Restore")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.Palette.action)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(.clear))
+                    .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("recentlyDeletedRestoreButton")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recentlyDeletedReminderRow")
     }
 }

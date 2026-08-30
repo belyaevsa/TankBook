@@ -60,7 +60,7 @@ struct WelcomeView: View {
                         .font(.system(size: 40, weight: .heavy))
                         .tracking(-0.4)
                         .foregroundStyle(Theme.Palette.ink)
-                    Text("Point. Scan. Done.")
+                    Text("A head start, not an answer")
                         .font(.system(size: 16))
                         .tracking(0.3)
                         .foregroundStyle(Theme.Palette.inkSoft)
