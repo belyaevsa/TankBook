@@ -166,6 +166,49 @@ final class RemindersUITests: XCTestCase {
                       "the seeded car has no reminders - the list's empty state is the honest landing")
     }
 
+    // MARK: - PJ.5 the notification deep link (SCREENMAP.md -> the deep link)
+
+    /// A tapped reminder notification routes to Reminders with THAT reminder's
+    /// completion sheet surfaced. The replay identifier names the seed's
+    /// attention reminder by its fixed id (ReminderTestSeed.deepLinkReminderID);
+    /// the assertion that the sheet is the insurance one - not whichever row is
+    /// first - is what pins that the route carried the reminder id, not merely
+    /// the screen.
+    func testReplayedReminderTapLandsOnRemindersWithItsCompletionSheet() {
+        let reminderID = "0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D"
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedReminders",
+                               "-replayNotificationResponse", "reminder.\(reminderID).date"]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 10),
+                      "a tapped reminder notification must land on the Reminders screen")
+        XCTAssertTrue(app.buttons["reminderCompleteSkip"].waitForExistence(timeout: 5),
+                      "that reminder's completion sheet must be surfaced by the tap")
+        XCTAssertTrue(app.staticTexts["Insurance renewal – done"].exists,
+                      "the sheet is the REMINDER the identifier named, not whichever row is first")
+        XCTAssertTrue(app.buttons["tabbar.log"].isSelected,
+                      "the Reminders screen is pushed on the Log tab - a tapped reminder must select it")
+    }
+
+    /// An unknown or malformed identifier is inert (hard rule 7): the app opens
+    /// to its normal state, routes nowhere, and never dead-ends. The Home root
+    /// (seeded with a car so `homeOdometer` renders) is what is in frame - not
+    /// a stray screen.
+    func testReplayedUnknownTapIsInert() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeFullHistory",
+                               "-replayNotificationResponse", "not-a-notification"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["homeOdometer"].waitForExistence(timeout: 10),
+                      "an unknown identifier must open the app to its normal Home")
+        XCTAssertFalse(app.navigationBars["Reminders"].exists,
+                       "an unknown identifier must not route anywhere")
+        XCTAssertTrue(app.buttons["tabbar.log"].isSelected,
+                      "an unknown identifier must leave the launch tab selected, not switch it")
+    }
+
     func testTypeAmountLandsInTheEntryWithThePrefill() {
         let app = launch(["-seedReminderComplete"])
 

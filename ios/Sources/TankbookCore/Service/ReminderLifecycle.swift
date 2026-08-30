@@ -40,8 +40,9 @@ public enum ReminderLifecycle {
                                     recurrence: Reminder.Recurrence? = nil,
                                     sourceEntryId: UUID? = nil,
                                     status: ReminderStatus = .scheduled,
-                                    createdAt: Date = Date()) -> Reminder {
-        Reminder(id: UUID.v7(), createdAt: createdAt, updatedAt: createdAt, deletedAt: nil,
+                                    createdAt: Date = Date(),
+                                    id: UUID = UUID.v7()) -> Reminder {
+        Reminder(id: id, createdAt: createdAt, updatedAt: createdAt, deletedAt: nil,
                  vehicleId: vehicleId, title: title, category: category,
                  dueDate: dueDate, dueOdometer: dueOdometer,
                  recurrence: recurrence, sourceEntryId: sourceEntryId,

@@ -28,6 +28,7 @@ struct DestinationView: View {
         case .settings: SettingsView()
         case .about: AboutView()
         case .reminders: RemindersView()
+        case .reminderDeepLink(let reminderID): RemindersView(reminderToComplete: reminderID)
         case .reminderForm(let reminderID): ReminderFormView(reminderID: reminderID)
         case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)

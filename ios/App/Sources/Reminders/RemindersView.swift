@@ -17,6 +17,14 @@ struct RemindersView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
 
+    /// PJ.5: the reminder a tapped notification named. When set, the screen
+    /// surfaces that reminder's completion flow once its list has loaded; when
+    /// the reminder no longer exists (deleted since the notification was
+    /// scheduled), it is simply the plain list - a stale tap is a landing, not
+    /// a dead end (hard rule 7). `nil` from the ordinary navigation links
+    /// (Home banner, Vehicle detail).
+    var reminderToComplete: UUID?
+
     @State private var reminders: [Reminder] = []
     @State private var vehicle: Vehicle?
     @State private var currentOdometer: Int?
@@ -298,15 +306,25 @@ struct RemindersView: View {
         didLoad = true
         ReminderTestSeed.seedIfRequested()
         await refresh()
-        #if DEBUG
-        // `-presentReminderComplete`: open the completion sheet for the first
-        // active reminder, so simctl-driven screenshots can capture the sheet
-        // without a UI test driving a tap (simctl cannot tap).
-        if ProcessInfo.processInfo.arguments.contains("-presentReminderComplete"),
-           let target = reminders.first {
-            completeTarget = ReminderSheetTarget(reminder: target)
+        // PJ.5: a tapped notification named this reminder - surface its
+        // completion flow. Works in release (the deep link is product
+        // behavior), and a reminder that no longer exists falls back to the
+        // plain list rather than a dead end (hard rule 7).
+        if let id = reminderToComplete {
+            if let target = reminders.first(where: { $0.id == id }) {
+                completeTarget = ReminderSheetTarget(reminder: target)
+            }
+        } else {
+            #if DEBUG
+            // `-presentReminderComplete`: open the completion sheet for the first
+            // active reminder, so simctl-driven screenshots can capture the sheet
+            // without a UI test driving a tap (simctl cannot tap).
+            if ProcessInfo.processInfo.arguments.contains("-presentReminderComplete"),
+               let target = reminders.first {
+                completeTarget = ReminderSheetTarget(reminder: target)
+            }
+            #endif
         }
-        #endif
     }
 
     private func reload() {

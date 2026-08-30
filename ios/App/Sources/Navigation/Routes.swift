@@ -12,6 +12,11 @@ enum Route: Hashable {
     case settings
     case about
     case reminders
+    /// PJ.5: the notification-tap deep link - Reminders with the tapped
+    /// reminder's completion sheet surfaced. Distinct from `.reminders` (which
+    /// is the plain list from the Home banner / Vehicle detail) so a tap's
+    /// destination cannot be confused with a navigation link's.
+    case reminderDeepLink(UUID)
     /// The reminder form. `nil` = create a new reminder (the list's "New
     /// reminder"); otherwise the reminder being edited/rescheduled.
     case reminderForm(UUID?)
@@ -44,6 +49,7 @@ enum Route: Hashable {
         case .settings: "Settings"
         case .about: "About"
         case .reminders: "Reminders"
+        case .reminderDeepLink: "Reminders"
         case .reminderForm: "Reminder form"
         case .recentlyDeleted: "Recently deleted"
         case .editEntry: "Edit entry"

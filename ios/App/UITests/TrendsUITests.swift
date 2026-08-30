@@ -174,6 +174,32 @@ final class TrendsUITests: XCTestCase {
                        "the monthly-summary preference must survive a relaunch")
     }
 
+    // MARK: - PJ.5 the notification deep link (SCREENMAP.md -> the deep link)
+
+    /// A tapped monthly-summary notification lands on the Trends tab - the
+    /// identifier's family decides the destination. The launch default is the
+    /// Log tab, so this proves the tap switched tabs. The selected-trait on the
+    /// tab bar button is the ground truth: the inactive tabs' content stays in
+    /// the accessibility tree (opacity is the tab switcher, not removal), so
+    /// finding "Trends" content alone would not prove the tab was switched.
+    func testReplayedMonthlySummaryTapLandsOnTrends() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeFullHistory",
+                               "-replayNotificationResponse",
+                               "monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08"]
+        app.launch()
+
+        let trendsTab = app.buttons["tabbar.trends"]
+        XCTAssertTrue(trendsTab.waitForExistence(timeout: 10))
+        let selected = NSPredicate(format: "isSelected == true")
+        expectation(for: selected, evaluatedWith: trendsTab)
+        waitForExpectations(timeout: 10)
+        XCTAssertFalse(app.buttons["tabbar.log"].isSelected,
+                       "the Log tab must not be selected after a monthly-summary tap")
+        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5),
+                      "the Trends root is what is in frame, not a bare title")
+    }
+
     // MARK: - Helpers
 
     private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {

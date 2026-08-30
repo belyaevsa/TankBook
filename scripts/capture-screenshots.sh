@@ -434,6 +434,17 @@ capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
 capture PJ.4-reminders        en -seedReminders -presentScreen reminders
 capture PJ.4-reminders-ru     ru -seedReminders -presentScreen reminders
 
+# PJ.5: the notification deep link - a tapped reminder opens Reminders with
+# the completion sheet for the REMINDER the identifier named (the fixed
+# ReminderTestSeed.deepLinkReminderID "Insurance renewal"); a tapped monthly
+# summary opens the Trends tab. `-replayNotificationResponse <identifier>`
+# replays the tap without a real notification (the DEBUG hook). RU is where the
+# sheet's phrases ("Страховка – выполнено") and the list's chip run longest.
+capture PJ.5-reminder-tap    en -seedReminders -replayNotificationResponse reminder.0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D.date
+capture PJ.5-reminder-tap-ru ru -seedReminders -replayNotificationResponse reminder.0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D.date
+capture PJ.5-summary-tap     en -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
+capture PJ.5-summary-tap-ru  ru -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

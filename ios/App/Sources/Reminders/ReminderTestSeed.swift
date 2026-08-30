@@ -10,6 +10,11 @@ import TankbookCore
 /// test run. The empty state needs no seed: `-homeResetDatabase` alone leaves
 /// nothing to list.
 enum ReminderTestSeed {
+    /// PJ.5: the attention reminder's FIXED id, so a UI test or screenshot can
+    /// address the seeded "Insurance renewal" through the replay identifier
+    /// `reminder.<id>.date` without reading a runtime UUID.
+    static let deepLinkReminderID = UUID(uuidString: "0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D")!
+
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
@@ -83,7 +88,8 @@ enum ReminderTestSeed {
             vehicleId: vehicle.id, title: "Insurance renewal", category: .insurance,
             dueDate: now.addingTimeInterval(12 * 86_400), dueOdometer: nil,
             recurrence: Reminder.Recurrence(everyKm: nil, everyMonths: 12),
-            createdAt: now.addingTimeInterval(-330 * 86_400))
+            createdAt: now.addingTimeInterval(-330 * 86_400),
+            id: Self.deepLinkReminderID)
         try? repository.upsertReminder(insurance)
 
         let oilChange = ReminderLifecycle.makeReminder(

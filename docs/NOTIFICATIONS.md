@@ -28,6 +28,32 @@ Device tokens register via `PUT /account/devices/{id}/push-token` (API.md); toke
 
 Explicit non-scenarios: no "you haven't logged in a while" re-engagement, no feature announcements, no rating prompts via push, nothing from the LLM/quota system. The notification channel spends trust; only the user's own deadlines may draw on it.
 
+## The tap deep link (PJ.5)
+
+Tapping a notification goes where the catalog's "Tap lands on" column promised. The
+identifier itself carries the destination, so the tap routes without the app storing any
+"which notification" bookkeeping:
+
+- **`reminder.<uuid>.<kind>`** lands on the **Reminders screen with that reminder's
+  completion sheet surfaced** – the reminder the notification was about is the thing in
+  frame. The kind (`date` / `odometer` / `overdue`) is part of the identifier format but
+  never the destination: every reminder notification lands on the same screen, for the same
+  reminder.
+- **`monthly-summary.<uuid>.<year>-<month>`** lands on the **Trends tab**.
+
+The identifier -> destination mapping is a **pure value type in core** (`NotificationRoute`
++ `NotificationRouteParser`, unit-tested L1) precisely because the app has no unit-test
+target: `UNUserNotificationCenter` is only reachable through XCUITest, which asserts
+behaviour and never values. `didReceive` resolves the tapped identifier through the parser
+and hands the route to the app's `NotificationRouter`, which drives the tab switch / push.
+
+**An unknown or malformed identifier is inert** – no dots, a bad UUID, a kind the installed
+app does not produce: the app opens normally and routes nowhere. This is not paranoia: a
+notification is attacker-adjacent input in the sense that it can be STALE. A reminder
+deleted since its notification was scheduled must land on the Reminders list – not a dead
+end, and never somewhere arbitrary (hard rule 7). The parser is strict deliberately: an
+identifier the app itself cannot produce is treated as unknown, never guessed at.
+
 ## Monthly summary (J8) – the decisions (P6.2)
 
 The catalog row names the shape; these are the decisions implementation forced, so they are

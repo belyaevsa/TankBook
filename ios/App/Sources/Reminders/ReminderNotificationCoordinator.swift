@@ -82,28 +82,68 @@ struct UNNotificationScheduler: LocalNotificationScheduling {
         }
     }
 
+    /// Wires a tapped notification to the app's navigation (PJ.5,
+    /// docs/NOTIFICATIONS.md). Called once at launch by the root view, which
+    /// owns the router the closure captures; the delegate resolves the tapped
+    /// identifier through the core mapping and forwards the route here.
+    @MainActor
+    static func configureOpenHandler(_ handler: @escaping @MainActor (NotificationRoute) -> Void) {
+        ensureDelegate()
+        delegate.onOpen = handler
+    }
+
     /// Keeps the foreground-presentation delegate alive and installed once, so a
     /// reminder firing at 09:00/10:00 while the app is open still shows its
     /// banner rather than silently vanishing.
     private static let delegate = NotificationDelegate()
 
-    private static func ensureDelegate() {
+    /// `fileprivate` (not `private`): `ReminderNotificationCoordinator.init`
+    /// installs the delegate too, so a cold-start tap is not dropped.
+    fileprivate static func ensureDelegate() {
         UNUserNotificationCenter.current().delegate = delegate
     }
 }
 
 /// Presents user-visible notifications while the app is foregrounded (the
 /// default would suppress them, which would make a humane-hour reminder that
-/// fires during use disappear). No tap handling: tapping opens the app to its
-/// current state; the reminder deep link to the Reminders screen is out of
-/// P3.6's scope.
+/// fires during use disappear), and routes a TAP to the screen it promised
+/// (PJ.5, docs/SCREENMAP.md -> the deep link). Both methods are thin: they
+/// translate a platform object into a decision, and every decision - the
+/// identifier -> route mapping, the destination - lives in core /
+/// `NotificationRouter`, which test without this framework.
 final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @unchecked Sendable {
+    /// Where a tapped notification should drive the app (PJ.5), set by
+    /// `AppRootView` at launch. A closure rather than a method on the delegate
+    /// because the navigation state lives in SwiftUI; the router it captures is
+    /// a reference type held by the view, so a background-thread tap can reach
+    /// MainActor state through a hop.
+    @MainActor var onOpen: ((NotificationRoute) -> Void)?
+
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
         completionHandler([.banner, .sound])
+    }
+
+    /// The tap: resolve the tapped identifier to a route and hand it to the
+    /// app's navigation router. Unknown or malformed identifiers resolve to
+    /// `.none`, which routes nowhere - the app just opens (hard rule 7: a stale
+    /// notification - a reminder deleted since it was scheduled - must never
+    /// dead-end, and never route somewhere arbitrary). Called off the main
+    /// thread, so the router is reached through a MainActor hop.
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        let route = NotificationRouteParser.resolve(
+            identifier: response.notification.request.identifier)
+        completionHandler()
+        Task { @MainActor in
+            self.onOpen?(route)
+        }
     }
 }
 
@@ -201,6 +241,11 @@ final class ReminderNotificationCoordinator {
          userDefaults: UserDefaults = .standard) {
         self.scheduling = scheduling
         self.deniedCardHandled = userDefaults.bool(forKey: Self.deniedCardHandledKey)
+        // PJ.5: the tap delegate is installed as soon as the coordinator (and
+        // with it the app) exists, so a tap that COLD-STARTS the app - the
+        // response arrives right after launch - still routes instead of being
+        // dropped for a delegate that was never set.
+        UNNotificationScheduler.ensureDelegate()
     }
 
     private static let deniedCardHandledKey = "notifications.deniedCardHandled"

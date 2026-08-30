@@ -35,6 +35,17 @@ struct AppRootView: View {
     /// trigger and the derived flagged count all read from here.
     @State private var sync: AppSync
     @State private var tabSelection: AppTab
+    /// The navigation a tapped notification asks for (PJ.5): the delegate
+    /// resolves the tap to a `NotificationRoute`, this router holds the pending
+    /// request, and `body` drives it. A reference type because the delegate - a
+    /// background-thread singleton - captures it.
+    @State private var notificationRouter: NotificationRouter
+    /// Each tab's own `NavigationStack` path, lifted here so a deep link (a
+    /// tapped notification) can push onto a tab's stack from the root - a tab
+    /// view cannot push onto its own stack from outside itself.
+    @State private var logPath: [Route] = []
+    @State private var trendsPath: [Route] = []
+    @State private var garagePath: [Route] = []
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
     @State private var isConfirmableFormOnTop = false
@@ -78,6 +89,15 @@ struct AppRootView: View {
         _sync = State(initialValue: AppSync(configService: configService,
                                             powerState: power.powerState,
                                             resumer: power.resumer))
+        // PJ.5: the notification router is created here and the tap delegate
+        // wired to it, so a tap - real or replayed - always has a destination.
+        // The delegate captures the router (a reference type), not this view
+        // (a value), which is what lets a background-thread tap reach state.
+        let notificationRouter = NotificationRouter()
+        UNNotificationScheduler.configureOpenHandler { [notificationRouter] route in
+            notificationRouter.handle(route)
+        }
+        _notificationRouter = State(initialValue: notificationRouter)
         // The rate store's refresh consults the same injected power state
         // (P6.8): configure it BEFORE the store is first touched (it is a lazy
         // static), so a -forceLowPower launch can reach the deferral.
@@ -124,9 +144,9 @@ struct AppRootView: View {
             // never torn down. `.opacity` + `allowsHitTesting` rather than an
             // `if`, because an `if` would destroy and rebuild the losing tabs.
             ZStack {
-                tabRoot(.log) { HomeTabView(modal: $logModal) }
-                tabRoot(.trends) { TrendsTabView(modal: $trendsModal) }
-                tabRoot(.garage) { GarageTabView(modal: $garageModal) }
+                tabRoot(.log) { HomeTabView(path: $logPath, modal: $logModal) }
+                tabRoot(.trends) { TrendsTabView(path: $trendsPath, modal: $trendsModal) }
+                tabRoot(.garage) { GarageTabView(path: $garagePath, modal: $garageModal) }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The accent still propagates to CONTENT - entry markers, the
@@ -204,6 +224,15 @@ struct AppRootView: View {
         .environment(sync)
         .task {
             runPurgeIfNeeded()
+            #if DEBUG
+            // PJ.5: `-replayNotificationResponse <identifier>` drives a
+            // notification tap without a real notification (L4 + screenshots).
+            // It goes through the SAME handle -> drive path as a real tap, so
+            // the replay cannot drift from the shipped behavior.
+            if let identifier = NotificationResponseReplay.identifier() {
+                notificationRouter.handle(NotificationRouteParser.resolve(identifier: identifier))
+            }
+            #endif
             // Launch counts as a foreground event (docs/CONFIG.md -> Delivery):
             // the requirement is re-evaluated, but the UI already drew from the
             // held snapshot - nothing waits on this (P6.18b).
@@ -248,6 +277,12 @@ struct AppRootView: View {
                 }
             }
         }
+        // PJ.5: a tapped notification (real, or replayed by a test) drives the
+        // navigation. One drive consumes the request; the next tap sets it
+        // again, so repeated taps on the same notification each navigate.
+        .onChange(of: notificationRouter.pending) { _, _ in
+            drive(notificationRouter.consume())
+        }
     }
 
     /// Routes the capture button to whichever tab is on screen, so the cover is
@@ -257,6 +292,22 @@ struct AppRootView: View {
         case .log: logModal = .capture
         case .trends: trendsModal = .capture
         case .garage: garageModal = .capture
+        }
+    }
+
+    /// The deep link a tapped notification promised (PJ.5, docs/SCREENMAP.md):
+    /// `monthly-summary.*` switches to the Trends tab; `reminder.<id>.<kind>`
+    /// switches to Log and pushes Reminders for that reminder (whose view then
+    /// surfaces the reminder's completion flow). `.none` never reaches here -
+    /// it is swallowed by the router.
+    private func drive(_ request: NotificationRouter.Request?) {
+        guard let request else { return }
+        switch request {
+        case .openTrends:
+            tabSelection = .trends
+        case .openRemindersFor(let reminderID):
+            tabSelection = .log
+            logPath = [.reminderDeepLink(reminderID)]
         }
     }
 
@@ -293,8 +344,8 @@ struct RootedNavigationStack<Root: View>: View {
 }
 
 struct HomeTabView: View {
+    @Binding var path: [Route]
     @Binding var modal: ModalRoute?
-    @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
     @State private var didPresentDebugLaunch = false
 
@@ -339,8 +390,8 @@ struct HomeTabView: View {
 }
 
 struct TrendsTabView: View {
+    @Binding var path: [Route]
     @Binding var modal: ModalRoute?
-    @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
 
     var body: some View {
@@ -358,8 +409,8 @@ struct TrendsTabView: View {
 }
 
 struct GarageTabView: View {
+    @Binding var path: [Route]
     @Binding var modal: ModalRoute?
-    @State private var path: [Route] = []
     @State private var sheet: SheetRoute?
 
     var body: some View {
