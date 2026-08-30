@@ -1,7 +1,7 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-30. Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain need the
-product owner**; **Tier 2 is 14/24**; the marketing site is LIVE. Read this first, then `CLAUDE.md`
+*Updated 2026-08-30 (late). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain need the
+product owner**; **Tier 2 is 17/24**; the marketing site is LIVE. Read this first, then `CLAUDE.md`
 for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
@@ -19,7 +19,7 @@ for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 > A bare model name silently resolves to another provider that returns an instant error.
 >
 > **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
-> `swift build` and `swiftlint` continuously, **all 1057 unit tests** (30 s, never subsetted), and
+> `swift build` and `swiftlint` continuously, **all 1062 unit tests** (30 s, never subsetted), and
 > `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
 > not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
 > genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
@@ -60,8 +60,7 @@ for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 > never completed a run), `P6.6` store assets plus two legal declarations. **One ops action blocks a
 > real guarantee**: the production config signing key is not provisioned, so a RELEASE build's config
 > signature fails open to bundled defaults by design - remote config cannot govern a shipped app
-> until a keypair exists. Tier 2 open: `P2.3b`, `PR.8`, `PR.13`, `PR.14`, `PR.16`, `P6.5`, `P6.13`,
-> `PJ.7`, `P1.13`.
+> until a keypair exists. Tier 2 open: `P2.3b`, `PR.8`, `PR.13`, `PR.14`, `PR.16`, `P6.5`, `P6.13`, `P1.13`.
 >
 > **The v1 PJ queue is essentially done.** Closed 2026-08-29/30, each verified in the orchestrator's
 > hands and mutation-checked: PJ.1, PJ.2, PJ.3, PJ.4, PJ.5, PJ.6, PJ.8, PJ.9, PJ.10, PJ.11, PJ.12,
@@ -98,6 +97,32 @@ for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 > screenshot to see a card below the fold - is judgment a script cannot do. Wiring "auto-verify and
 > auto-dispatch" would degrade into reading agent reports and believing them, which is the failure
 > mode this whole process exists to prevent.
+
+## `main` is carrying a RED UI test right now - PJ.7b (2026-08-30)
+
+`RecentlyDeletedUITests.testListShowsDeletedEntriesWithCountdownAndRestoreReturnsEntryToLog` fails
+with *"the restored entry must reappear in the Log"* (0, expected 1). **It fails in isolation, and
+it fails with the current work stashed** - so it is neither contention nor the task that found it.
+
+It was found **by accident**: PJ.7 happened to name that suite. No task since the last full UI run
+had named it, so it drifted red unseen for roughly fifteen tasks. **That is the cost of
+subset-per-task**, and the rule's own condition - a full run at phase completion - is now overdue.
+Bisect it, and run the full suite once to find any sibling that drifted the same way.
+
+## Reverting a mutation with git is how live work dies (2026-08-30)
+
+Three times in one day, in two different hands:
+
+- `git checkout <directory>` while an agent held uncommitted work there **destroyed a completed
+  task**. `swift build` still returned 0, because it does not compile `ios/App`, where the dangling
+  reference was.
+- `git add <directory>` mid-run **swept six of an agent's half-written files** into a commit
+  labelled as something else.
+- An agent reverting its own mutation with `git checkout --` restored HEAD and **wiped its real
+  edit**. It noticed and re-applied.
+
+**Copy the single file back and verify with `md5`.** Never use git to undo a mutation, and never
+stage a directory while any agent is running.
 
 ## Two agents in one working tree share more than files (2026-08-30)
 
@@ -318,7 +343,7 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 1057 unit tests, 250 UI tests** (green on `iPhone 17`, minus the two documented
+- **iOS: 1062 unit tests, 254 UI tests** (green on `iPhone 17`, minus the two documented
   device-specific `ConfirmManual` cases - see below), `swiftlint lint` exit **0** from the repo
   root. **Backend: 268 tests, `dotnet format` 0.**
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
