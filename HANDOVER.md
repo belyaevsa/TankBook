@@ -70,8 +70,8 @@ for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 > `PJ.12b`, `PJ.20a`, `PR.3c`, `PR.6b` - and every one came from a mutation that passed or a
 > screenshot that was opened.
 >
-> **P2.9 must be rewritten before dispatch** - its premise was falsified by `receipt-037`, and
-> `receipt-040` is further evidence rather than a rule. See the corpus section.
+> **P2.9 was rewritten 2026-08-30** on the corpus evidence (decimal count and operand order carry
+> no information; the unit marker and the price band do) and is safe to dispatch. See the corpus section.
 >
 > **CI: the iOS workflow is DISABLED on GitHub** (`gh workflow disable "iOS Core"`, 2026-08-28) and
 > `backend` is active and green. Not one iOS run had ever completed - they hung for hours on
@@ -378,9 +378,9 @@ notification lands nowhere; and **PJ.36/PJ.38** - "Export everything" is a dead 
 
 **Rows that must be rewritten before dispatch:**
 
-- **P2.9** ("resolve an unmarked operand pair by decimal places"). Falsified by `receipt-037`
-  (`99.99 X 25 Л` - two decimals on the price, none on the volume). The **unit marker** resolves it,
-  which is `loneMarkers` territory.
+- ~~**P2.9** ("resolve an unmarked operand pair by decimal places")~~ **rewritten 2026-08-30**: the row
+  now asks for marker-inside-the-product-line resolution plus the price band, forbids decimal-count
+  and position as signals, and pins that with a mutation (rewrite decimals, swap order -> same answer).
 - **P6.14's follow-up**: a sixth `Text(_: String)` shipped this week. The gate sees a missing key,
   never an interpolated `String`.
 
@@ -940,8 +940,8 @@ the price. That was the strongest evidence for **P2.9** until 2026-08-27, when *
 falsified it**: it prints `99.99 X 25 Л`, two decimals on the price and **none** on the volume,
 because the volume is a whole number of litres. So "more decimals means price" is right on 037 by
 luck and wrong on `receipt-033`. **The unit marker is what actually resolves both**, which is
-`loneMarkers` territory rather than decimal counting - and P2.9's row must be rewritten before it
-is dispatched.
+`loneMarkers` territory rather than decimal counting - and P2.9's row was rewritten on exactly that
+basis on 2026-08-30.
 
 ### What the corpus proved, that no amount of design discussion would have
 
