@@ -17,13 +17,13 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.0.0</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>Tankbook uses the camera to scan receipts, pump displays and fiscal QR codes so you do not have to type them.</string>
+	<string>Tankbook uses the camera to scan receipts and pump displays so you do not have to type them.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available.</string>
 	<key>UILaunchScreen</key>
