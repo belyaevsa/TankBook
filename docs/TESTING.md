@@ -112,6 +112,33 @@ A task brief must therefore **name the suites it expects to run**, e.g.
 That is what the phase-completion full run is for, and it is the reason this rule sets a floor
 rather than removing the suite.
 
+## A suite can print "passed" while some of its tests never ran (the under-run gate, 2026-08-30)
+
+A full run printed `Test Suite 'CaptureUITests' passed` while **ten** of its tests – across
+`CaptureUITests`, `ConfirmManualUITests` and `CarSwitcherUITests` – never executed at all, though all
+ten still existed in the source. The summary line and the observed cases disagreed: `xcodebuild`'s
+`Executed N tests` is **not** the ground truth, and neither is a per-suite "passed". The only
+trustworthy record is the observed test cases themselves.
+
+**The rule: after any `xcodebuild test` run, the observed executed count must equal the declared
+count, and a shortfall must FAIL.** The gate is `scripts/check-ui-test-count.sh <log>`:
+
+- It counts the `Test Case '-[TankbookUITests.<Suite> <test>]' started.` lines – one per test that
+  actually began executing – and compares that against the number of `func test` declarations in
+  `ios/App/UITests/<Suite>.swift`. It deliberately does **not** read the `Executed N tests` summary,
+  which is the number that lied.
+- Run with no suite arguments it checks every suite the log says "started"; run with suite arguments
+  it asserts that a specific `-only-testing:` selection ran its full count. A named suite absent from
+  the log counts as 0 observed and fails, which also catches the "`--filter` matched nothing"
+  trap (a filter matching nothing prints "Test run with 0 tests ... passed" and exits 0).
+- Exit 0 means every checked suite executed its full declared count; exit 1 means an under-run.
+
+The gate is mutation-checked: a log with a deliberately reduced count exits 1 and names the suite;
+the full log exits 0. The count is derived from `func test` declarations, never hard-coded, so it
+moves as tests are added. When a run surprises you by its count, run the gate before theorising –
+the two known causes are a filter that matched nothing, and a runner/app that lost the device
+mid-suite (never drive `simctl` while `xcodebuild test` runs; they fight over the device).
+
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 
 **Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects.

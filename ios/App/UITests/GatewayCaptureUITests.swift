@@ -105,13 +105,22 @@ final class GatewayCaptureUITests: XCTestCase {
     /// The user can type while the request is in flight, and a touched field
     /// survives the late answer (the "cannot overwrite a touched one" half of
     /// test 3 - a test that never touches a field first proves nothing).
+    ///
+    /// The answer is delayed 25 s (not 10 s) so the budget's 3 s fire and the
+    /// answer's arrival are separated by a wide margin. The failure the tight
+    /// delay caused: under a saturated machine the test's own typing (each
+    /// keystroke waits on the app's main actor) takes longer than the 7 s
+    /// between the 3 s budget and the 10 s answer, so the budget banner had
+    /// already been replaced by the answer before the test looked for it. The
+    /// widened delay makes that ordering immune to machine load without
+    /// touching the 3 s product rule (`GatewayBudget.duration`).
     func testSheetStaysUsableAndTouchedFieldSurvivesTheLateAnswer() {
         let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
-                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "10"])
+                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "25"])
         openSheet(app)
 
         // Type into the total while the request is in flight (the answer lands
-        // at 10 s, the budget fires at 3 s).
+        // at 25 s, the budget fires at 3 s).
         focusField(app, "manualFillUpTotalField").typeText("88.88")
         XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "88.88",
                        "the sheet must accept typing while the request is in flight")
@@ -122,9 +131,11 @@ final class GatewayCaptureUITests: XCTestCase {
                       "the budget must expire after the user started typing")
 
         // The late answer arrives and fills the BLANK UNTOUCHED price field...
+        // (the answer lands at 25 s, so the wait is a multiple of that, not the
+        // old 8 s that raced the answer's arrival).
         let priceFilled = NSPredicate(format: "value == %@", "1.679")
         expectation(for: priceFilled, evaluatedWith: app.textFields["manualFillUpPricePerLField"])
-        waitForExpectations(timeout: 8)
+        waitForExpectations(timeout: 25)
 
         // ...but it never overwrites the touched total (the gateway says 99.99).
         XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "88.88",
@@ -134,8 +145,13 @@ final class GatewayCaptureUITests: XCTestCase {
     // MARK: - A late answer fills blank untouched fields only
 
     func testLateAnswerFillsBlankUntouchedFields() {
+        // Delay 15 s (not 6 s) - the same widening as the touched-field test.
+        // The 6 s answer arrived only 3 s after the budget, so the test's own
+        // blank-field assertions raced the answer's fill under a loaded machine
+        // (openSheet + the assertions could outlast 6 s). The 12 s margin makes
+        // the ordering immune to load without touching the 3 s product rule.
         let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
-                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "6"])
+                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "15"])
         openSheet(app)
 
         // Do NOT touch anything: total and price are blank and untouched.
@@ -147,10 +163,11 @@ final class GatewayCaptureUITests: XCTestCase {
 
         // ...then the late answer fills the blank fields (99.99 total, 1.679
         // price) and never refills the on-device-resolved liters (the gateway
-        // says 55.00, the parser's 42.30 stands - F4).
+        // says 55.00, the parser's 42.30 stands - F4). The wait spans the 15 s
+        // answer, not the old 8 s that raced it.
         let totalFilled = NSPredicate(format: "value == %@", "99.99")
         expectation(for: totalFilled, evaluatedWith: app.textFields["manualFillUpTotalField"])
-        waitForExpectations(timeout: 8)
+        waitForExpectations(timeout: 15)
         XCTAssertEqual(fieldValue(app, "manualFillUpPricePerLField"), "1.679")
         XCTAssertEqual(fieldValue(app, "manualFillUpLitersField"), "42.30",
                        "the on-device result has first claim - the gateway never fights it")
@@ -159,9 +176,12 @@ final class GatewayCaptureUITests: XCTestCase {
     // MARK: - Nothing arrives after save (F4)
 
     func testNothingArrivesAfterSave() {
-        // Delay 10 s: the save happens first, the answer lands after it.
+        // Delay 25 s: the save happens first, the answer lands after it. The
+        // widened delay is the same class of fix as the touched-field test - a
+        // 10 s answer raced the save under a loaded machine (typing could
+        // outlast 10 s and let the answer fill before the save).
         let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
-                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "10"])
+                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "25"])
         openSheet(app)
 
         // Save with the on-device liters and a typed price; the total derives.
@@ -174,7 +194,7 @@ final class GatewayCaptureUITests: XCTestCase {
                       "saving must leave the Confirm sheet")
 
         // Wait past the point the gateway answer would have arrived.
-        Thread.sleep(forTimeInterval: 11)
+        Thread.sleep(forTimeInterval: 26)
 
         // Re-open the saved entry (the newest row is first - LogStream orders
         // descending) and assert the gateway's distinctive 99.99 total is NOT
