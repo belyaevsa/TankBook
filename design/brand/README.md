@@ -1,22 +1,26 @@
 # Brand – the app icon
 
-*The mark is a gas pistol and a charging plug facing each other inside a thin frame: fuel in
-`taillight`, electric in `headlight`, ink frame on `midnight` (`docs/DESIGN.md` → app icon,
-product owner, 2026-08-30).*
-
-The two objects were **generated** (`imagegen`, Gemini image model; the exact prompt is
-`icon-prompt.txt`), then extracted into `icon-objects.png` – an alpha layer with the colours
-snapped to the palette tokens. Everything else is composed from that layer, never redrawn:
+*The mark is the fuel pump: body with its window, base line, hose to a spout, and a checkmark,
+in `taillight` on `midnight` (`docs/DESIGN.md` → app icon; product owner, 2026-08-30: "the pump
+icon was absolutely fine"). It is the mark Welcome and the site header have carried since P1.*
 
 | File | What | Used by |
 |---|---|---|
-| `icon-objects.png` | the two objects, alpha, token colours – **the master** | everything below |
-| `AppIcon-dark-1024.png` | objects at 700 px inside the ink frame on `#101318` | app icon (Dark), site favicon / touch icon / `icon.svg` |
-| `AppIcon-light-1024.png` | objects recoloured to the light tokens, frame `ink.light`, on `#F5F6F8` | app icon (Any / light) |
-| `AppIcon-tinted-1024.png` | objects and frame in white on transparent | app icon (Tinted) |
-| `AppIcon-dark-unframed-1024.png` | the unframed alternate, kept for the record | canvas Brand page |
+| `icon.svg` | **the master**, vector, 52-unit grid, full-bleed on the token ground | everything below; copied verbatim to `site/static/icon.svg` |
+| `AppIcon-dark-1024.png` | `taillight` on `#101318` | app icon (Dark); site touch icon and favicon; press page |
+| `AppIcon-light-1024.png` | `taillight.light` on `#F5F6F8` | app icon (Any / light); press page |
+| `AppIcon-tinted-1024.png` | white strokes on transparent | app icon (Tinted) |
+| `alt-pistol-plug/` | the generated gas-pistol-and-charging-plug alternative (objects layer, prompt, three appearances, unframed) | the canvas Brand page only |
 
-Re-render after changing the master (all ImageMagick, see the shell history in the P6.6 row of
-`docs/TASKS.md`); copy the three `AppIcon-*` files into
-`ios/App/Resources/Assets.xcassets/AppIcon.appiconset/`. Full-bleed squares, no alpha on the
-opaque pair – iOS applies the mask; never pre-round the corners.
+Re-render after editing the master:
+
+```
+rsvg-convert -w 1024 -h 1024 icon.svg | magick - -alpha off AppIcon-dark-1024.png
+sed -e 's/#101318/#F5F6F8/g' -e 's/#F4503A/#CE3422/g' icon.svg | rsvg-convert -w 1024 -h 1024 | magick - -alpha off AppIcon-light-1024.png
+sed -e 's/<rect[^>]*\/>//' -e 's/#F4503A/#FFFFFF/g' icon.svg | rsvg-convert -w 1024 -h 1024 > AppIcon-tinted-1024.png
+```
+
+Then copy the three into `ios/App/Resources/Assets.xcassets/AppIcon.appiconset/`, re-render
+`BrandMark.imageset` (276 px from the dark and light PNGs), `site/static/apple-touch-icon.png`
+(180 px) and `favicon.ico` (64/32/16). Full-bleed squares, no alpha on the opaque pair – iOS
+applies the mask; never pre-round the corners.

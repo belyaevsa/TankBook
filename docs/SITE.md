@@ -161,7 +161,7 @@ layers only, and everything that carries meaning is composited on top.**
 tarmac, a dark road gradient, grain and texture fields, the ambient wash behind a section. Things
 with no claim in them.
 
-**The brand mark is the one generated *object* on the site** (2026-08-30): the app icon's nozzle and plug are generated artwork, composed per `design/brand/README.md`, and the site shows that finished icon (`icon.svg`, favicons, header, press) – never a re-generation of it. Everything below still holds.
+**The brand mark is vector** (`design/brand/icon.svg`, 2026-08-30) and the site shows it as-is in `icon.svg`, the favicons, the header and the press page. A generated pistol-and-plug alternative exists under `design/brand/alt-pistol-plug/` and is not on the site.
 
 **May never be generated:**
 

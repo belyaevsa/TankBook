@@ -26,7 +26,7 @@ sign in first.
 
 ## The icon
 
-A fuel nozzle and a charging plug, face to face – fuel in red, electric in cyan. Download the 1024 px master: [dark](/press/tankbook-icon-1024.png) · [light](/press/tankbook-icon-light-1024.png). Please do not recolour, rotate or add text to it.
+A fuel pump whose hose ends in a checkmark, in the brand red on night blue. Download the 1024 px master: [dark](/press/tankbook-icon-1024.png) · [light](/press/tankbook-icon-light-1024.png). Please do not recolour, rotate or add text to it.
 
 ## Screenshots
 
