@@ -11,6 +11,13 @@ import TankbookCore
 /// typing is a peer door, not a degraded one). The decision lives in core
 /// (`ConfirmEmptyScanCaption.shouldShow`) so it is L1-testable; this file is
 /// only the rendering and the focus.
+///
+/// PJ.17b: the caption renders ABOVE the numbers card, not at the top of the
+/// form - `body` places it next to the field the user types into. Total is
+/// focused on appear (below), and that focus auto-scrolls Total into view
+/// above the keyboard; a caption at the form's top is pushed under the nav bar
+/// by that same scroll and is invisible precisely in the F1 state. Riding with
+/// the card, it stays in frame for as long as the user can see what they type.
 extension ManualFillUpView {
     /// Whether the empty-but-alive caption (and the Total focus) applies.
     var emptyScanCaptionShows: Bool {

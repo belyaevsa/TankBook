@@ -206,11 +206,8 @@ extension ConfirmManualUITests {
     }
 
     func openForm(_ app: XCUIApplication) {
-        XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
-        app.buttons["typeItButton"].tap()
-        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
+        openManualForm(app)
     }
-
     private func fieldValue(_ app: XCUIApplication, _ identifier: String) -> String {
         (app.textFields[identifier].value as? String) ?? ""
     }
@@ -657,12 +654,14 @@ extension ConfirmManualUITests {
         let caption = app.staticTexts["manualFillUpEmptyScanCaption"]
         XCTAssertTrue(caption.waitForExistence(timeout: 5))
         XCTAssertEqual(caption.label, "Couldn't read this one – type it, the photo stays attached.")
-        XCTAssertTrue(caption.isHittable, "caption in frame, not below the fold")
         // F1: keyboard up on Total - prove focus by typing with no tap.
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), "keyboard up on Total (F1)")
         let total = app.textFields["manualFillUpTotalField"]
         let deadline = Date().addingTimeInterval(5)
         while !total.isHittable && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
+        // PJ.17b: poll the caption to the settled state, never assert in a slide-in transient.
+        while !caption.isHittable && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
+        XCTAssertTrue(caption.isHittable, "caption in frame, not below the fold")
         total.typeText("7")
         XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "7")
     }

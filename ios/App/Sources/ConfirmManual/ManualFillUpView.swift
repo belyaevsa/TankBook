@@ -112,9 +112,6 @@ struct ManualFillUpView: View {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
-                    if emptyScanCaptionShows {
-                        emptyScanCaption
-                    }
                     // Field order matches Edit entry (docs/DESIGN.md) - one
                     // order across both screens so muscle memory transfers.
                     ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
@@ -138,6 +135,17 @@ struct ManualFillUpView: View {
                             .formCard()
                     }
                     if currencyNeedsAttention { currencySection }
+                    // PJ.17b: the empty-scan caption rides ABOVE the numbers
+                    // card, not at the top of the form. Focused Total auto-
+                    // scrolls into view above the keyboard, and a caption at
+                    // the top is scrolled into the nav bar by that same scroll
+                    // - invisible exactly in the F1 state it describes. Above
+                    // the card it stays in frame whenever the user can see what
+                    // they are typing into (the design's caption->card
+                    // adjacency, ConfirmManual.dc.html).
+                    if emptyScanCaptionShows {
+                        emptyScanCaption
+                    }
                     ManualFillUpNumbersCard(
                         form: $form, focus: $focus,
                         volumeUnit: volumeUnit,
