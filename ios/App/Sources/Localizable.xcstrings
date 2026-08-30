@@ -4639,23 +4639,6 @@
         }
       }
     },
-    "A head start, not an answer": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A head start, not an answer"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Это фора, а не готовый ответ"
-          }
-        }
-      }
-    },
     "Fuel, charging and service in one history": {
       "extractionState": "manual",
       "localizations": {
@@ -11931,6 +11914,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Поделиться файлом"
+          }
+        }
+      }
+    },
+    "Scan the receipt – or type the numbers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan the receipt – or type the numbers"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снимите чек – или введите цифры"
           }
         }
       }
