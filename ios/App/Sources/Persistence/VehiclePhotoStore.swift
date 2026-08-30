@@ -3,8 +3,13 @@ import Foundation
 
 /// Persists a picked car photo as a content-addressed attachment blob
 /// (docs/SCHEMA.md, Attachment.file: sha256 + local relative path). The
-/// attachments directory lives under Application Support so it stays out of
-/// iCloud backups; the blob pipeline that syncs it arrives with P4.6.
+/// attachments directory lives under Application Support next to the database
+/// and carries the same `completeUntilFirstUserAuthentication` protection class
+/// (docs/SECURITY.md), applied to the directory so every file written into it
+/// inherits the class. It is user data, so it stays in device backups like the
+/// database does - only the regenerable caches exclude themselves
+/// (docs/PRACTICES.md -> S2). The blob pipeline that syncs it arrives with
+/// P4.6.
 enum VehiclePhotoStore {
     static func attachmentsDirectory() throws -> URL {
         let directory = try FileManager.default
@@ -12,6 +17,10 @@ enum VehiclePhotoStore {
                  appropriateFor: nil, create: true)
             .appendingPathComponent("Tankbook/Attachments", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? FileManager.default.setAttributes(
+            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+            ofItemAtPath: directory.path
+        )
         return directory
     }
 

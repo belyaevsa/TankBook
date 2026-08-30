@@ -89,6 +89,25 @@ targets:
         TEST_TARGET_NAME: Tankbook
         GENERATE_INFOPLIST_FILE: YES
 
+  # App-target unit tests (L2): hosted in Tankbook so they run inside the app's
+  # sandbox, where the app's own Application Support and attachment paths exist.
+  # FileProtectionTests (PR.16) is the first occupant; it must never be moved to
+  # the SwiftPM core tests, which run on macOS.
+  TankbookTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: ios/App/Tests
+    dependencies:
+      - target: Tankbook
+    settings:
+      base:
+        SWIFT_VERSION: "6.0"
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/Tankbook.app/Tankbook"
+        BUNDLE_LOADER: "$(TEST_HOST)"
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   Tankbook:
     build:
@@ -102,4 +121,5 @@ schemes:
       config: Debug
       gatherCoverageData: false
       targets:
+        - TankbookTests
         - TankbookUITests

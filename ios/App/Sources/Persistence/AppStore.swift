@@ -53,8 +53,25 @@ enum AppStore {
                  appropriateFor: nil, create: true)
             .appendingPathComponent("Tankbook", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        let database = try TankbookDatabase(
-            path: directory.appendingPathComponent("tankbook.sqlite").path)
+        let databaseURL = directory.appendingPathComponent("tankbook.sqlite")
+        let database = try TankbookDatabase(path: databaseURL.path)
+        applyFileProtection(to: databaseURL)
         return TankbookRepository(database: database)
+    }
+
+    /// Sets `completeUntilFirstUserAuthentication` on the database triple -
+    /// `.sqlite`, `-wal`, `-shm` - after the database is opened, because the
+    /// WAL and SHM files do not exist until then (docs/SECURITY.md: "on all
+    /// three files"). The main file usually already carries the class by
+    /// platform default; the WAL and SHM hold the most recent rows and are the
+    /// ones people forget, so all three are set and all three are asserted by
+    /// `TankbookTests/FileProtectionTests`.
+    private static func applyFileProtection(to databaseURL: URL) {
+        for suffix in ["", "-wal", "-shm"] {
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
+                ofItemAtPath: databaseURL.path + suffix
+            )
+        }
     }
 }
