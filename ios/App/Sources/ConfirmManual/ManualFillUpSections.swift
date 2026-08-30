@@ -546,7 +546,7 @@ struct ManualFillUpStationRow: View {
         if let name = selection?.name {
             Text(name)
         } else {
-            Text("Nearby suggestion")
+            Text("Choose station")
         }
     }
 
@@ -557,9 +557,14 @@ struct ManualFillUpStationRow: View {
                 .foregroundStyle(Theme.Palette.inkSoft)
             Spacer(minLength: 8)
             if stations.isEmpty {
-                Text("Nearby suggestion")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.action)
+                // Nothing to choose from yet, so nothing to tap: an honest
+                // placeholder in inkSoft, never the action colour (a label that
+                // looks tappable and is not is a dead control - SCREENMAP rule
+                // zero). The location-based suggestion is PJ.19; until it
+                // ships this row promises nothing (docs/JOURNEYS.md -> J4).
+                Text("Not set")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("manualFillUpStationRow")
             } else {
                 Menu {

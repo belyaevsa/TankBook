@@ -70,6 +70,25 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
+**Station suggestion – the logic (written 2026-08-30, shipped as PJ.19 [v1.1]; until then the
+Confirm row shows an honest "Not set" placeholder and promises nothing).** The station field is a
+default input (hard rule 13): the app proposes one, the user changes it in one tap, and a changed
+station is theirs. The proposal is ranked, first match wins:
+
+1. a **favourite** station within 300 m of the device;
+2. the **last-used** station within 300 m;
+3. the **most recently used** station for this car, regardless of distance – this rung needs no
+   location permission and is what most users get most of the time;
+4. nothing – the row stays "Not set".
+
+Rungs 1–2 need location; rungs 3–4 never do. **Permission is asked on the first Confirm after the
+second fill-up** – the earliest moment the question can be answered with a station on file –
+never on launch and never before a car exists; denied means the ranking simply runs without its
+distance rungs, forever, with no re-prompt. Location is read once per Confirm, while the sheet is
+open, and is never stored on the entry – only `Station.location` is written, and only when the
+user saves a fill at a station the app has no coordinate for (`SCHEMA.md` → Station). Offline is
+a non-event: the ranking is local (F3). Coordinates are Sensitive and never logged (hard rule 12).
+
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
 
 ### J3b · Type it (the peer path, every locale)

@@ -288,9 +288,10 @@ The Settings screen renders both kinds in one list; the split is invisible to th
 Station {
   id, createdAt, updatedAt, deletedAt
   name: String; brand: String?
-  location: CLLocationCoordinate2D?
+  location: CLLocationCoordinate2D?   // written once, when a fill is saved here with location granted; never updated silently; never on the entry
   favorite: Bool
   defaults: { fuelKind: FuelKind?, fuelGrade: String? }   // pre-fill on next visit (smart defaults)
+  // Suggestion ranking (favourite ≤300 m → last-used ≤300 m → most recent for the car → none): docs/JOURNEYS.md → J4, PJ.19
   lastUsedAt: Date?
 }
 ```

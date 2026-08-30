@@ -95,6 +95,10 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 
 | AdBlue chosen on a car whose offer set has no `.adBlue` (2026-08-30) | `warn` under the fuel row | "This car isn't set up for AdBlue - add it to the car?" | One tap adds `.adBlue` to the car's fuel kinds (needs diesel; otherwise the row explains that); save proceeds either way (hard rule 13) |
 
+| Station: nothing to suggest yet (no stations on file; or PJ.19 not shipped) | none – `inkSoft` placeholder "Not set" | – | Type or pick one later; the row is never action-coloured while it cannot act |
+| Station: location denied (PJ.19) | none – no banner, no re-prompt | – | The ranking runs without its distance rungs: the car's most recent station is still proposed |
+| Station: none within 300 m (PJ.19) | none | – | Falls through to the most recent station, else "Not set" |
+
 ### Tank level (sheet)
 | Condition | Shows | Next step |
 |---|---|---|

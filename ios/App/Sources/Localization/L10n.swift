@@ -14,7 +14,7 @@ import TankbookCore
 /// Four have been found this way, each by looking at a Russian screenshot:
 ///   let text = locked ? "✓" : "checks as you type"     // inferred String
 ///   Text(conflict.quote ?? "Odometer breaks the...")   // coalesced String?
-///   Text(selection?.name ?? "Nearby suggestion")       // coalesced String?
+///   Text(selection?.name ?? "Choose station")          // coalesced String?
 ///   hintText("Which currency is this?")                // String parameter
 ///
 /// The shape is always the same: **runtime data and copy sharing one expression**.

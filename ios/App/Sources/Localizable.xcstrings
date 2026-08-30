@@ -3874,23 +3874,6 @@
         }
       }
     },
-    "Nearby suggestion": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nearby suggestion"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ближайшая заправка"
-          }
-        }
-      }
-    },
     "Needs attention": {
       "extractionState": "manual",
       "localizations": {
@@ -11931,6 +11914,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Введите вручную или отсканируйте – секунды в любом случае"
+          }
+        }
+      }
+    },
+    "Not set": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not set"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не указана"
+          }
+        }
+      }
+    },
+    "Choose station": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose station"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать заправку"
           }
         }
       }
