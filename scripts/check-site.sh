@@ -11,15 +11,25 @@ set -u
 # checks reported bad images when they simply could not measure. Reading the PNG
 # IHDR header in python3 works on both, needs no ImageMagick or PIL, and was
 # cross-checked against sips on the same files.
-png_size() {  # $1 = path -> "WIDTH HEIGHT", or nothing if unreadable
+png_size() {  # $1 = path -> "WIDTH HEIGHT", or nothing if unreadable. PNG or JPEG - the OG card is a JPEG since 2026-08-30
   python3 - "$1" <<'PYEOF' 2>/dev/null
 import struct, sys
 try:
-    d = open(sys.argv[1], 'rb').read(24)
-    if d[:8] != b'\x89PNG\r\n\x1a\n':
-        raise ValueError('not a PNG')
-    w, h = struct.unpack('>II', d[16:24])
-    print(w, h)
+    f = open(sys.argv[1], 'rb'); d = f.read(24)
+    if d[:8] == b'\x89PNG\r\n\x1a\n':
+        w, h = struct.unpack('>II', d[16:24]); print(w, h)
+    elif d[:2] == b'\xff\xd8':
+        f.seek(2)
+        while True:
+            marker, = struct.unpack('>H', f.read(2))
+            if marker in (0xFFD9, 0xFFDA):
+                break
+            length, = struct.unpack('>H', f.read(2))
+            if 0xFFC0 <= marker <= 0xFFCF and marker not in (0xFFC4, 0xFFC8, 0xFFCC):
+                f.read(1); h, w = struct.unpack('>HH', f.read(4)); print(w, h); break
+            f.seek(length - 2, 1)
+    else:
+        raise ValueError('not a PNG or JPEG')
 except Exception:
     pass
 PYEOF

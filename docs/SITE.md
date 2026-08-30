@@ -210,7 +210,7 @@ assumption about where it came from.
   **Calibrate the FAQ expectation**: since 2023 Google shows FAQ rich results almost only for
   government and health sites, so this validates without earning a snippet there. Keep it - it
   costs nothing, and Yandex, which serves half our audience, still consumes it.
-- **OpenGraph and Twitter cards** with a per-language OG image generated from a real screenshot.
+- **OpenGraph and Twitter cards** with a per-language OG image composed at build time (`head/seo.html`, 2026-08-30): the app icon, the wordmark, the hero's own three-line title and the eyebrow on the left, the real Home screenshot on the right. Text is set with `images.Text` from bundled faces - Archivo for Latin, **Golos Text for the Russian lines** (Archivo has no Cyrillic) - so it is composited from a real render, never generated. JPEG, under `check-site`'s 750 KB cap; `png_size` reads JPEG headers too.
 - `apple-itunes-app` smart banner meta - **only once an App Store id exists**, not before.
 - Performance is an SEO input and this stack makes it nearly free: no framework, Hugo-processed
   responsive images (**WebP with a PNG fallback**, `srcset`), inline critical CSS, everything else

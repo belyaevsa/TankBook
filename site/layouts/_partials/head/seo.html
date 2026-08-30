@@ -15,18 +15,41 @@
 <link rel="alternate" hreflang="x-default" href="{{ . }}">
 {{- end }}
 
-{{- /* One composed OG image per language: a real screenshot centred on the
-      Night Drive midnight base. No text is drawn onto the image. */ -}}
+{{- /* One composed OG image per language (2026-08-30): the icon, the wordmark, the
+      hero's own three-line title and the eyebrow on the left, the real Home
+      screenshot on the right - text set from the bundled Archivo faces with
+      images.Text (composited from a real render, never generated; SITE.md).
+      JPEG so the card stays under check-site's 750 KB cap. */ -}}
 {{- $shotName := "P1.4-home.png" -}}
 {{- if eq site.Language.Lang "ru" -}}{{- $shotName = "P1.4-home-ru.png" -}}{{- end -}}
+{{- $home := site.Home -}}
 {{- $og := "" -}}
 {{- with resources.Get "og/og-base.png" -}}
   {{- $base := . -}}
+  {{- /* Archivo (the DIN stand-in) has no Cyrillic: the RU lines are set in Golos
+        Text, a Russian-designed OFL face; the wordmark stays Archivo in both. */ -}}
+  {{- $bold := resources.Get "fonts/Archivo-Bold.ttf" -}}
+  {{- if eq site.Language.Lang "ru" -}}{{- $bold = resources.Get "fonts/GolosText-Bold.ttf" -}}{{- end -}}
+  {{- $black := resources.Get "fonts/Archivo-SemiCondensed-Black.ttf" -}}
+  {{- $icon := resources.Get "og/icon-240.png" -}}
+  {{- /* Russian runs 20-30% longer (CLAUDE.md): the RU lines are set smaller and
+        the text column is measured against the screenshot's left edge at 800. */ -}}
+  {{- $ru := eq site.Language.Lang "ru" -}}
+  {{- $eyebrowSize := cond $ru 21 26 -}}
+  {{- $titleSize := cond $ru 34 44 -}}
+  {{- $step := cond $ru 46 58 -}}
   {{- with resources.Get (printf "screenshots/%s" $shotName) -}}
-    {{- $shot := .Resize "x580" -}}
-    {{- $x := div (sub 1200 $shot.Width) 2 -}}
-    {{- $y := div (sub 630 $shot.Height) 2 -}}
-    {{- $og = $base.Filter (images.Overlay $shot $x $y) -}}
+    {{- $shot := .Resize "x880" -}}
+    {{- $img := $base.Filter
+          (images.Overlay $icon 84 84)
+          (images.Text "Tankbook" (dict "color" "#EAEDF2" "size" 74 "x" 352 "y" 118 "font" $black))
+          (images.Text ($home.Params.hero_eyebrow | default $home.Title) (dict "color" "#98A2B3" "size" $eyebrowSize "x" 356 "y" 214 "font" $bold))
+          (images.Text (printf "%s" ($home.Params.hero_title_1 | default "")) (dict "color" "#EAEDF2" "size" $titleSize "x" 84 "y" 372 "font" $bold))
+          (images.Text (printf "%s" ($home.Params.hero_title_2 | default "")) (dict "color" "#F4503A" "size" $titleSize "x" 84 "y" (add 372 $step) "font" $bold))
+          (images.Text (printf "%s" ($home.Params.hero_title_3 | default "")) (dict "color" "#F4503A" "size" $titleSize "x" 84 "y" (add 372 (mul 2 $step)) "font" $bold))
+          (images.Overlay $shot 800 70)
+    -}}
+    {{- $og = $img.Process "jpg q86" -}}
   {{- else -}}
     {{- errorf (printf "head/seo: OG screenshot %s not found in assets/screenshots" $shotName) -}}
   {{- end -}}
@@ -41,8 +64,8 @@
 <meta property="og:image" content="{{ $og.Permalink }}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-{{- $ogAlt := "A real Tankbook screen: the log with a fill-up checked by the arithmetic cross-check" -}}
-{{- if eq site.Language.Lang "ru" -}}{{- $ogAlt = "Настоящий экран Tankbook: журнал с заправкой, проверенной арифметикой" -}}{{- end }}
+{{- $ogAlt := "Tankbook – fuel & cost log for iPhone: the app icon, the line \"Log the fill-up your way: snap the receipt, or type it in\", and the real Log screen" -}}
+{{- if eq site.Language.Lang "ru" -}}{{- $ogAlt = "Tankbook – журнал заправок и расходов для iPhone: иконка, строка «Записывайте заправки как удобно: снимите чек – или введите цифры» и настоящий экран журнала" -}}{{- end }}
 <meta property="og:image:alt" content="{{ $ogAlt }}">
 <meta property="og:locale" content="{{ site.Language.LanguageCode | default site.Language.Lang }}">
 {{- range .Translations }}
