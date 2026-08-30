@@ -30,10 +30,10 @@ final class WelcomeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["welcomeImportButton"].exists)
         XCTAssertTrue(app.buttons["welcomeSignInButton"].exists)
 
-        // PJ.3b: the tagline is the honest line (hard rule 15) - capture is a
-        // head start, not an answer, never the finished job. Asserting it here
-        // makes the L1 over-promise gate's sibling (the screenshot) meaningful.
-        XCTAssertTrue(app.staticTexts["A head start, not an answer"].waitForExistence(timeout: 5))
+        // The hero tagline is user-facing copy a future change could silently
+        // drift. Assert the exact sentence, verbatim, so a later rewrite cannot
+        // re-promise the hero without this test (and its screenshot) failing.
+        XCTAssertTrue(app.staticTexts["Fuel, charging and service – one log"].waitForExistence(timeout: 5))
 
         // All three paths are real doors, not decoration (hard rule 15).
         XCTAssertTrue(app.buttons["welcomeAddCarButton"].isHittable)
