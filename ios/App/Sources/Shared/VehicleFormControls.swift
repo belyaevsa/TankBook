@@ -258,15 +258,40 @@ struct VehicleFuelPills: View {
     var idPrefix: String = "addVehicle"
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 68), spacing: 6, alignment: .leading)],
-                  alignment: .leading, spacing: 6) {
-            ForEach(chipKinds, id: \.self) { kind in
-                pill(kind)
+        VStack(alignment: .leading, spacing: 8) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 68), spacing: 6, alignment: .leading)],
+                      alignment: .leading, spacing: 6) {
+                ForEach(chipKinds, id: \.self) { kind in
+                    pill(kind)
+                }
+                if !remainingKinds.isEmpty {
+                    addFuelMenu
+                }
             }
-            if !remainingKinds.isEmpty {
-                addFuelMenu
+            if !FuelKind.isRealisticCombination(selectedFuelKinds) {
+                discouragementNote
             }
         }
+    }
+
+    /// P2.3c (2026-08-30): diesel + petrol stays DISCOURAGED but savable. The
+    /// pair is almost certainly a misconfigured car, but a wrong configuration
+    /// is correctable and is not a data-integrity failure, so nothing may be
+    /// blocked (hard rule 13). The note appears only once the pair is actually
+    /// selected - it never appears mid-selection as a threat, and it never
+    /// gates the save.
+    private var discouragementNote: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.caption2)
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Diesel and petrol don't normally share a car – check it.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.warn)
+                .accessibilityIdentifier("\(idPrefix)FuelKindWarning")
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var chipKinds: [FuelKind] {
@@ -282,7 +307,6 @@ struct VehicleFuelPills: View {
 
     private func pill(_ kind: FuelKind) -> some View {
         let selected = selectedFuelKinds.contains(kind)
-        let blocked = isBlocked(kind)
         return Button {
             toggle(kind)
         } label: {
@@ -298,34 +322,19 @@ struct VehicleFuelPills: View {
                 )
         }
         .buttonStyle(.plain)
-        .disabled(blocked)
         .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("\(idPrefix)FuelKind_\(kind.rawValue)")
     }
 
-    /// The fuel-kind selection rule (P2.3b, docs/DESIGN.md): diesel and a
-    /// petrol grade never share a car. A tap that would create such a car is
-    /// refused - the conflicting pill renders disabled instead, so the
-    /// selection is always a combination that exists. Petrol grades
-    /// (92/95/98/100) share a tank and are a real driver's choice, and
-    /// LPG/CNG/E85 beside petrol are real bi-fuel and flex-fuel fits; only
-    /// diesel-meets-petrol is impossible. The rule lives in core
-    /// (`FuelKind.isRealisticCombination`) so the Confirm fuel row and the
-    /// Add-car screen cannot drift apart on what a car may burn.
+    /// P2.3c (2026-08-30): toggling is always allowed. `isRealisticCombination`
+    /// now only feeds the discouragement note above - diesel + petrol is
+    /// savable, never refused (hard rule 13).
     private func toggle(_ kind: FuelKind) {
         if selectedFuelKinds.contains(kind) {
             selectedFuelKinds.remove(kind)
-        } else if FuelKind.isRealisticCombination(selectedFuelKinds.union([kind])) {
+        } else {
             selectedFuelKinds.insert(kind)
         }
-    }
-
-    /// Whether adding this kind to the current selection would produce an
-    /// impossible car (and the tap must therefore be refused). A kind already
-    /// selected is never blocked - toggling it off is always allowed.
-    private func isBlocked(_ kind: FuelKind) -> Bool {
-        guard !selectedFuelKinds.contains(kind) else { return false }
-        return !FuelKind.isRealisticCombination(selectedFuelKinds.union([kind]))
     }
 
     private var addFuelMenu: some View {
@@ -336,7 +345,6 @@ struct VehicleFuelPills: View {
                 } label: {
                     Text(kind.labelKey)
                 }
-                .disabled(isBlocked(kind))
                 .accessibilityIdentifier("\(idPrefix)AddFuelMenu_\(kind.rawValue)")
             }
         } label: {

@@ -2225,6 +2225,23 @@
         }
       }
     },
+    "Diesel and petrol don't normally share a car – check it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesel and petrol don't normally share a car – check it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дизель и бензин обычно не сочетаются в одной машине – проверьте."
+          }
+        }
+      }
+    },
     "Discard": {
       "extractionState": "manual",
       "localizations": {

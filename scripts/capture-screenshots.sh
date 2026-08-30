@@ -205,16 +205,18 @@ capture P5.2b-trends-pending-footnote-ru    ru -seedHomePendingRates -selectTren
 capture P5.2b-home-pending-footnote         en -seedHomePendingRates
 capture P5.2b-home-pending-footnote-ru      ru -seedHomePendingRates
 
-# P2.3b: the Fuel row offers exactly what the car burns (docs/DESIGN.md). The
-# multi shot is a real bi-fuel car (petrol + LPG) - the row's chooser shows
-# exactly those two chips; the single shot is a single-kind petrol car, where
-# the row is a static "95" value that stays correctable (hard rule 13). RU is
-# where the static value's expanded labels ("Дизель", "Газ") and the chip row
-# overflow worst.
+# P2.3c (correcting P2.3b): the Fuel row offers a LIKELY set, never a limit -
+# petrol grades share a tank, so a car whose kinds include any petrol grade is
+# offered ALL petrol grades plus its other kinds, and the "+" menu reaches every
+# other kind. The multi shot is a real bi-fuel car (petrol + LPG) - the row
+# shows 92/95/98/100 + LPG plus the "+"; the single shot is a single-kind diesel
+# car, the one case that still renders a static value (it stays correctable,
+# hard rule 13). RU is where the static value's labels ("Дизель") and the chip
+# row overflow worst.
 capture P2.3b-confirm-fuel-multi     en -seedVehicleForUITests -presentScreen confirmManual -seedVehiclePetrolLPG -screenshotPrefill
 capture P2.3b-confirm-fuel-multi-ru  ru -seedVehicleForUITests -presentScreen confirmManual -seedVehiclePetrolLPG -screenshotPrefill
-capture P2.3b-confirm-fuel-single    en -seedVehicleForUITests -presentScreen confirmManual -screenshotPrefill
-capture P2.3b-confirm-fuel-single-ru ru -seedVehicleForUITests -presentScreen confirmManual -screenshotPrefill
+capture P2.3b-confirm-fuel-single    en -seedVehicleForUITests -presentScreen confirmManual -seedVehicleDieselOnly -screenshotPrefill
+capture P2.3b-confirm-fuel-single-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedVehicleDieselOnly -screenshotPrefill
 
 
 # PJ.8: the same Home entry after the S8 backfill filled it - a rate that

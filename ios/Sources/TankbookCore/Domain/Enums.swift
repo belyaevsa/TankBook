@@ -24,16 +24,34 @@ extension FuelKind {
         }
     }
 
-    /// Whether this set of kinds can all be ONE car. Diesel and a petrol grade
-    /// cannot share a tank - no such car exists - while petrol grades share a
-    /// tank and LPG/CNG/E85 beside petrol are real bi-fuel and flex-fuel fits
-    /// (docs/DESIGN.md). The rule guards INPUT exactly as DESIGN.md guards
-    /// display: the combination the Confirm fuel row may offer is the one
-    /// AddVehicle may save.
+    /// Whether this set of kinds is a TYPICAL car. Diesel and a petrol grade
+    /// are an unusual fit - a driver who selects both is almost certainly
+    /// misconfigured - while petrol grades share a tank and LPG/CNG/E85 beside
+    /// petrol are real bi-fuel and flex-fuel fits (docs/DESIGN.md).
+    /// P2.3c (2026-08-30): this is a DISCOURAGEMENT signal, never a blocker.
+    /// The pills still let diesel + petrol be saved, because a wrong car
+    /// configuration is correctable and nothing the user records may be refused
+    /// (hard rule 13).
     public static func isRealisticCombination(_ kinds: Set<FuelKind>) -> Bool {
         let hasDiesel = kinds.contains(.diesel)
         let hasPetrol = kinds.contains { $0.isPetrolGrade }
         return !(hasDiesel && hasPetrol)
+    }
+
+    /// The LIKELY offer set for the Confirm fuel row (P2.3c, 2026-08-30).
+    /// `Vehicle.fuelKinds` is a suggestion, not a limit (hard rule 13): petrol
+    /// grades share a tank, so a car configured for 95 is routinely filled with
+    /// 92 or 100. A car whose kinds include any petrol grade is therefore
+    /// offered ALL petrol grades plus its other kinds; a car without a petrol
+    /// grade (diesel, EV, gas-only) is offered its own kinds. This is what the
+    /// row shows as chips - every other kind stays reachable through the
+    /// correction affordance, so nothing is ever blocked.
+    public static func offeredKinds(for kinds: Set<FuelKind>) -> [FuelKind] {
+        var result = kinds
+        if kinds.contains(where: { $0.isPetrolGrade }) {
+            result.formUnion([.petrol92, .petrol95, .petrol98, .petrol100])
+        }
+        return allCases.filter { result.contains($0) }
     }
 }
 
