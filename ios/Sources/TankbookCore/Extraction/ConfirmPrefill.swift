@@ -219,6 +219,40 @@ public enum ConfirmDate {
     }
 }
 
+// MARK: - PJ.17 the empty-but-alive caption decision
+
+/// F1's verdict (docs/JOURNEYS.md F1): a scan that resolved NOTHING but kept
+/// its photo degrades to the ordinary manual form - the failure state IS the
+/// form (hard rule 15), never an error screen and never a dead end. The quiet
+/// inkSoft caption "Couldn't read this one – type it, the photo stays attached."
+/// and the Total-focused-on-appear behaviour both key off this one decision:
+///
+/// - `hasPhoto == false` (the typed path, or a prefill with no capture) - never
+///   a caption. A user who typed by choice must see nothing (hard rule 15 makes
+///   typing a peer door, not a degraded one; a caption there frames it as the
+///   failure branch).
+/// - an extraction that resolved even one field - not "couldn't read this one",
+///   no caption (a partly-filled scan needs no apology, its dimmed fields say
+///   what it read).
+/// - a fiscal QR grand total is EXACT and fills the total field: the scan DID
+///   read something, the form is not empty, no caption.
+public enum ConfirmEmptyScanCaption {
+
+    /// Whether the empty-but-alive caption (and the Total focus) applies.
+    public static func shouldShow(extraction: FuelExtraction?,
+                                  qrAnchor: FiscalQRAnchor?,
+                                  hasPhoto: Bool) -> Bool {
+        guard hasPhoto else { return false }
+        guard extraction?.resolvedAnyField != true else { return false }
+        if let qrAnchor,
+           case .qrAuthoritative = ConfirmQRTotal.resolve(
+               extraction: extraction ?? FuelExtraction(), qrAnchor: qrAnchor) {
+            return false
+        }
+        return true
+    }
+}
+
 // MARK: - The lock's reduce-motion decision
 
 /// The cross-check lock's motion (docs/DESIGN.md -> Motion: the rule draws in

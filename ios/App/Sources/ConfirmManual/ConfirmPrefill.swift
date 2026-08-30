@@ -53,6 +53,9 @@ struct ConfirmPrefill {
 /// as the capture screen's `-captureFixtureImage`:
 /// - `-seedConfirmPrefillEmpty` - the all-nil extraction that must render as
 ///   the ordinary empty form (hard rule 15).
+/// - `-seedConfirmPrefillEmptyPhoto` - the PJ.17 empty-but-alive state: the
+///   same all-nil extraction WITH a photo, so the quiet caption shows and Total
+///   is focused (docs/JOURNEYS.md F1).
 /// - `-seedConfirmPrefillSparse` - one field resolved (a pump's liters), the
 ///   rest blank and focusable, the resolved field dimmed.
 /// - `-seedConfirmPrefill` - the common partly-empty reality (liters + price,
@@ -77,6 +80,12 @@ enum ConfirmPrefillSeed {
         if arguments.contains("-seedGateway") {
             prefill.sourceImage = syntheticSourceImage()
         }
+        // PJ.17: the empty-but-alive state - a scan that resolved NOTHING but
+        // kept its photo (docs/JOURNEYS.md F1). The extraction is all-nil;
+        // this is what carries the photo the caption promises stays attached.
+        if arguments.contains("-seedConfirmPrefillEmptyPhoto") {
+            prefill.sourceImage = syntheticSourceImage()
+        }
         return prefill
     }
 
@@ -84,6 +93,14 @@ enum ConfirmPrefillSeed {
         if let foreign = foreignPrefill(from: arguments) { return foreign }
         if let pump = pumpPrefill(from: arguments) { return pump }
         if arguments.contains("-seedConfirmPrefillEmpty") {
+            return ConfirmPrefill(extraction: FuelExtraction())
+        }
+        if arguments.contains("-seedConfirmPrefillEmptyPhoto") {
+            // PJ.17: F1's empty-but-alive state - all-nil extraction, the photo
+            // arrives from `from()` (it needs the synthetic source image). The
+            // caption shows and Total is focused; a bare
+            // `-seedConfirmPrefillEmpty` (no photo) is the same form with no
+            // caption at all (hard rule 15).
             return ConfirmPrefill(extraction: FuelExtraction())
         }
         if arguments.contains("-seedConfirmPrefillSparse") {

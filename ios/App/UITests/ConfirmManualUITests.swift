@@ -20,17 +20,11 @@ final class ConfirmManualUITests: XCTestCase {
         return app
     }
 
-
-    /// Bring a field on screen, then tap it.
-    ///
-    /// Defensive rather than required: after the 2026-08-25 field reorder
-    /// (docs/DESIGN.md - entry form order) the three-number card sits below
-    /// Date, Odometer, Station and Fuel. It still fits one screen on this
-    /// device, but it no longer fits with room to spare, so a keyboard left up
-    /// by the previous field rides the pinned Save bar up over the card and
-    /// hides the next field. `tap()` on a non-hittable element silently misses
-    /// and the following `typeText` fails with "no keyboard focus", which reads
-    /// like a broken field rather than a covered one.
+    /// Bring a field on screen, then tap it. Defensive: the numbers card sits
+    /// below Date/Odometer/Station/Fuel, and a keyboard left up by the previous
+    /// field rides the pinned Save bar and hides the next field - `tap()` on a
+    /// non-hittable element silently misses, then typeText fails with "no
+    /// keyboard focus", which reads like a broken field, not a covered one.
     @discardableResult
     private func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let field = app.textFields[identifier]
@@ -59,19 +53,12 @@ final class ConfirmManualUITests: XCTestCase {
         return field
     }
 
-
     /// Scroll an element clear of the **pinned save bar**, not merely to where
-    /// XCUITest calls it hittable.
-    ///
-    /// `isHittable` is true for an element sitting UNDER the save bar - the bar
-    /// is a `safeAreaInset` overlay, and the accessibility tree does not model
-    /// the occlusion. Trusting it cost a real debugging round: the mixed
-    /// section's toggles start at y=825 in an 874 pt window, the bar occupies
-    /// 753-806, the "tap" landed on the bar, and the entry SAVED - so the next
-    /// query found no save button at all and the failure read as a missing
-    /// element rather than an accidental save.
-    ///
-    /// So the condition is geometric: the element must sit above the bar's top.
+    /// XCUITest calls it hittable: `isHittable` is true UNDER the bar (a
+    /// `safeAreaInset` overlay the accessibility tree does not model). A tap on
+    /// such an element once saved the entry - the failure read as a missing
+    /// button, not an accidental save. So the condition is geometric: above the
+    /// bar's top.
     private func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
         let bar = app.buttons["manualFillUpSaveButton"]
         var scrolls = 0
@@ -257,6 +244,9 @@ extension ConfirmManualUITests {
         // is a timeline warning, not a scan-failure one.)
         XCTAssertFalse(app.staticTexts["manualFillUpCrossCheckMismatch"].exists)
         XCTAssertFalse(app.staticTexts["manualFillUpNoVehicleHint"].exists)
+        // And no PJ.17 caption: this seed carries no photo (the empty-but-alive
+        // caption is for a scan that kept its photo).
+        XCTAssertFalse(app.staticTexts["manualFillUpEmptyScanCaption"].exists)
         // The neutral, unlocked check line is up, exactly as on a manual form.
         XCTAssertTrue(app.staticTexts["manualFillUpCheckLine"].exists)
 
@@ -610,12 +600,10 @@ extension ConfirmManualUITests {
     }
 
     /// Replaces the odometer field's contents, keeping it focused across calls:
-    /// a blur (from dismissing the keyboard or scrolling) regroups the digits on
-    /// format-on-blur and can scroll the field out from under a re-tap, which
-    /// races the delete/type sequence. The first call taps the field's right
-    /// edge so the cursor lands at the end of the trailing-aligned value; later
-    /// calls reuse the already-focused field, whose cursor sits where the
-    /// previous typeText left it.
+    /// a blur regroups the digits on format-on-blur and can scroll the field
+    /// out from under a re-tap, which races the delete/type sequence. The first
+    /// call taps the field's right edge so the cursor lands at the end of the
+    /// value; later calls reuse the already-focused field.
     private func replaceOdometer(_ app: XCUIApplication, _ text: String) {
         let field = app.textFields["manualFillUpOdometerField"]
         if !app.keyboards.firstMatch.exists {
@@ -683,5 +671,30 @@ extension ConfirmManualUITests {
         XCTAssertTrue(save.isEnabled, "a warn caption must never gate the save")
         save.tap()
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+    }
+}
+
+// MARK: - PJ.17 the empty-but-alive Confirm (F1)
+extension ConfirmManualUITests {
+    func testEmptyScanWithPhotoFocusesTotalAndShowsCaption() {
+        let app = launchWithPrefill("-seedConfirmPrefillEmptyPhoto")
+        openForm(app)
+        let caption = app.staticTexts["manualFillUpEmptyScanCaption"]
+        XCTAssertTrue(caption.waitForExistence(timeout: 5))
+        XCTAssertEqual(caption.label, "Couldn't read this one – type it, the photo stays attached.")
+        XCTAssertTrue(caption.isHittable, "caption in frame, not below the fold")
+        // F1: keyboard up on Total - prove focus by typing with no tap.
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10), "keyboard up on Total (F1)")
+        let total = app.textFields["manualFillUpTotalField"]
+        let deadline = Date().addingTimeInterval(5)
+        while !total.isHittable && Date() < deadline { RunLoop.current.run(until: Date().addingTimeInterval(0.1)) }
+        total.typeText("7")
+        XCTAssertEqual(fieldValue(app, "manualFillUpTotalField"), "7")
+    }
+
+    func testTypedPathShowsNoEmptyScanCaption() {
+        let app = launch()
+        openManualForm(app)
+        XCTAssertFalse(app.staticTexts["manualFillUpEmptyScanCaption"].exists)
     }
 }

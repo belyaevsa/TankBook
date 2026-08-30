@@ -477,6 +477,14 @@ capture PJ.14-odometer-delta-ru ru -seedVehicleForUITests -presentScreen confirm
 capture PJ.14-odometer-warn     en -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 130000
 capture PJ.14-odometer-warn-ru  ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 130000
 
+# PJ.17: the empty-but-alive Confirm (docs/JOURNEYS.md F1) - a scan that
+# resolved NOTHING but kept its photo. The quiet inkSoft caption is visible,
+# Total is focused (keyboard up), and nothing is amber. The caption sits at the
+# TOP of the sheet, above Date/Odometer/Fuel - Total's focus keeps the numbers
+# card in view and must NOT scroll the caption out of frame; RU is where the
+# caption ("Не удалось распознать – введите вручную, фото останется
+# прикреплённым.") runs longest.
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

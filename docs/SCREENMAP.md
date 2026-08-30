@@ -203,7 +203,11 @@ The map names screens that exist as nodes but have no artboard yet – listed so
   their kind of entry, editing the same fields.
 - **Confirm takes a `ConfirmPrefill` (P2.3)**: the extraction pre-fills present fields, nil
   fields stay blank and focusable, and an all-nil extraction IS the ordinary manual form -
-  never an error, never a "scan failed" banner (the two doors stay equal). Resolved-but-
+  never an error, never a "scan failed" banner (the two doors stay equal). **PJ.17: when that
+  all-nil scan carried a photo** (F1 - "recognized nothing"), the sheet stays the same ordinary
+  form and adds the ONE quiet trace of the failed scan: an `inkSoft` caption "Couldn't read this
+  one – type it, the photo stays attached." (a caption, never a banner, never amber - hard rule
+  5 - and the typed path shows no caption at all), with Total focused on appear. Resolved-but-
   unconfirmed fields render at 60% opacity (docs/DESIGN.md) and remain fully editable
   (hard rule 13); the magnifier on such a field opens the source-image crop it came from
   (tap-to-verify), degrading to a no-op when no crop is attached. A fiscal QR anchor

@@ -9958,6 +9958,23 @@
         }
       }
     },
+    "Couldn't read this one – type it, the photo stays attached.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't read this one – type it, the photo stays attached."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось распознать – введите вручную, фото останется прикреплённым."
+          }
+        }
+      }
+    },
     "Litres": {
       "extractionState": "manual",
       "localizations": {

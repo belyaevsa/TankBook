@@ -80,7 +80,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 |---|---|---|
 | Cross-check mismatch (F2) | Amber underline on the suspect field + "these don't multiply up – check the amber field"; check line refuses to lock | Tap field → source crop shown → correct · save anyway (entry flagged) |
 | Low-confidence fields (F1 partial) | Fields dimmed at 60% | Tap to confirm or edit each; save enabled once required fields exist |
-| OCR read nothing (F1) | The Manual variant IS the answer: photo kept, caption "Couldn't read this one – type it in." | Type 3 fields · Rescan · photo stays attached regardless |
+| OCR read nothing (F1) | The Manual variant IS the answer: photo kept, a quiet inkSoft caption "Couldn't read this one – type it, the photo stays attached." (never amber - this is not an error state, hard rule 5; the caption is a hint, never a banner), Total focused on appear | Type 3 fields · photo stays attached regardless |
 | Currency low-confidence (schema rule) | Currency chip amber: "Which currency is this?" – never silently converts | One tap on the chip row |
 | No exchange rate for that date (F9) | Hint on conversion card: "≈ – · converts when online", with the manual-rate entry offered on the card itself (hard rule 7: the hint names its next step) | Save anyway (converts later) · enter rate manually (on the card) |
 | Cloud-fallback unavailable/quota spent (F4) | Hint: "check these – enhanced reading unavailable right now"; **never an upsell here** | Confirm/fix by hand · save |

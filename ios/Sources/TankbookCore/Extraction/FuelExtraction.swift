@@ -53,6 +53,15 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         self.digitRepair = digitRepair
     }
 
+    /// Whether the extraction resolved ANY of its fields (PJ.17): an all-nil
+    /// extraction is F1's "recognized nothing" (docs/JOURNEYS.md F1). `crossCheck`
+    /// and `digitRepair` are verdicts, not values the user reads off a receipt,
+    /// so they deliberately do not count.
+    public var resolvedAnyField: Bool {
+        liters != nil || unitPrice != nil || total != nil
+            || currency != nil || fuelKind != nil || date != nil
+    }
+
     /// The fuel-line amount when volume and price are both known, else nil.
     /// On a mixed receipt this is the amount the fill-up records (hard rule 4),
     /// distinct from the receipt's grand total. Money, so `Decimal`: the volume

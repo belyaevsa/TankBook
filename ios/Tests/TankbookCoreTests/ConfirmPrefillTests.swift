@@ -247,4 +247,95 @@ import Foundation
         #expect(ConfirmLockAnimation.shouldAnimate(reduceMotion: false))
         #expect(!ConfirmLockAnimation.shouldAnimate(reduceMotion: true))
     }
+
+    // MARK: - PJ.17 the empty-but-alive caption decision (F1)
+
+    @Test func emptyScanWithPhotoShowsTheCaption() {
+        // F1's verdict: a scan that resolved nothing but kept its photo
+        // degrades to the ordinary manual form with the quiet caption.
+        #expect(ConfirmEmptyScanCaption.shouldShow(extraction: FuelExtraction(),
+                                                   qrAnchor: nil,
+                                                   hasPhoto: true))
+        #expect(ConfirmEmptyScanCaption.shouldShow(extraction: nil,
+                                                   qrAnchor: nil,
+                                                   hasPhoto: true))
+    }
+
+    @Test func emptyScanWithoutPhotoShowsNoCaption() {
+        // No photo, nothing was promised - the plain empty form (hard rule 15).
+        #expect(!ConfirmEmptyScanCaption.shouldShow(extraction: FuelExtraction(),
+                                                    qrAnchor: nil,
+                                                    hasPhoto: false))
+    }
+
+    @Test func typedPathShowsNoCaption() {
+        // The typed path is a peer door, never a degraded one: no prefill, no
+        // photo, no caption - a user who typed by choice sees nothing.
+        #expect(!ConfirmEmptyScanCaption.shouldShow(extraction: nil,
+                                                    qrAnchor: nil,
+                                                    hasPhoto: false))
+    }
+
+    @Test func aScanThatResolvedSomethingShowsNoCaption() {
+        // "Couldn't read this one" would be a lie once even one field resolved -
+        // the dimmed fields already say what the scan read.
+        #expect(!ConfirmEmptyScanCaption.shouldShow(
+            extraction: FuelExtraction(liters: 42.30, currency: .eur, date: "17.08.2026"),
+            qrAnchor: nil, hasPhoto: true))
+    }
+
+    @Test func aFiscalQrTotalShowsNoCaption() {
+        // The QR grand total is EXACT and fills the field - the scan read
+        // something, so the form is not empty and needs no caption.
+        let qr = FiscalQRAnchor(total: Decimal(string: "71.02")!,
+                                date: Date(timeIntervalSince1970: 1_700_000_000))
+        #expect(!ConfirmEmptyScanCaption.shouldShow(extraction: FuelExtraction(),
+                                                    qrAnchor: qr,
+                                                    hasPhoto: true))
+    }
+
+    // MARK: - PJ.17 the caption is a hint, never amber (hard rule 5)
+
+    /// The caption's foreground must stay `inkSoft` (a hint) in
+    /// `EmptyScanCaption.swift` - never `warn`. XCUITest cannot read a colour,
+    /// so this pins the palette choice by scanning the source of the caption's
+    /// rendering, the same source-guard shape as `PaletteAccentGuardTests`.
+    /// The mutation that breaks it is the obvious one: rendering the caption
+    /// in amber to "signal" the failed scan - which is exactly what makes it
+    /// an error state, and hard rule 5 reserves amber for attention.
+    @Test func emptyScanCaptionIsRenderedInInkSoftNeverWarn() throws {
+        let url = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent() // TankbookCoreTests
+            .deletingLastPathComponent() // Tests
+            .deletingLastPathComponent() // ios
+            .appendingPathComponent("App/Sources/ConfirmManual/EmptyScanCaption.swift")
+        let contents = try String(contentsOf: url, encoding: .utf8)
+        let lines = contents.components(separatedBy: "\n")
+
+        // The accessibility identifier that marks the caption's rendering.
+        guard let idIndex = lines.firstIndex(where: {
+            $0.contains("manualFillUpEmptyScanCaption")
+        }) else {
+            Issue.record("empty-scan caption identifier not found in EmptyScanCaption.swift")
+            return
+        }
+        // Find the enclosing property declaration: walk back to the nearest
+        // `var` start so the scan covers the whole caption body.
+        var start = idIndex
+        while start > 0 {
+            let trimmed = lines[start].trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("var ") || trimmed.hasPrefix("private var ") {
+                break
+            }
+            start -= 1
+        }
+        let body = lines[start...idIndex]
+        let usesWarn = body.contains { $0.contains("Theme.Palette.warn") }
+        let usesInkSoft = body.contains { $0.contains("Theme.Palette.inkSoft") }
+        let rendered = lines[start...idIndex].joined(separator: "\n")
+        #expect(usesInkSoft,
+                "the empty-scan caption must render in Theme.Palette.inkSoft, got: \(rendered)")
+        #expect(!usesWarn,
+                "the empty-scan caption must NEVER be amber (hard rule 5) - a hint, not an error state: \(rendered)")
+    }
 }

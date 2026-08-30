@@ -74,6 +74,23 @@ import Foundation
         #expect(typed.extraction == nil)
     }
 
+    @Test("PJ.17 an all-nil scan with a photo still attaches it")
+    func emptyScanWithPhotoStillAttachesIt() {
+        // The PJ.17 empty-but-alive promise: the caption says "the photo stays
+        // attached" for a scan that resolved NOTHING - an all-nil extraction
+        // is a prefill (never the typed path), so its photo MUST be written,
+        // and the save records scan provenance, never `.manual`. A promise in
+        // copy the code does not keep is worse than no copy.
+        let scanned = plan(extraction(), hasPhoto: true,
+                           saved: ScannedSaveValues(total: decimal("71.02"), volumeL: 42.30,
+                                                    unitPrice: decimal("1.679")))
+        #expect(scanned.attachmentID != nil,
+                "a scan that resolved nothing still keeps its photo on save (PJ.17)")
+        #expect(scanned.sharedAttachmentIDs == [scanned.attachmentID!])
+        #expect(scanned.provenance != .manual)
+        #expect(scanned.extraction != nil)
+    }
+
     // MARK: - Provenance
 
     @Test("a scanned save is never .manual")

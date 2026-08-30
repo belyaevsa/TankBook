@@ -34,7 +34,8 @@ struct ManualFillUpView: View {
     private let injectedPrefill: ConfirmPrefill?
 
     @State var form = ManualFillUpFormState()
-    @FocusState private var focus: ManualFillUpFocus?
+    // Non-private so EmptyScanCaption.swift can focus Total on appear.
+    @FocusState var focus: ManualFillUpFocus?
     @State var vehicle: Vehicle?
     @State private var existingEntries: [any Entry] = []
     /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
@@ -103,14 +104,11 @@ struct ManualFillUpView: View {
                 if vehicle == nil {
                     noVehicleCard
                 } else {
-                    // Field order matches Edit entry (docs/DESIGN.md - entry
-                    // form order): Date, Odometer, Station, Fuel, the numbers,
-                    // then currency. The artboards drew the numbers first
-                    // because the scan's payload is what arrives first; in the
-                    // hand it put the ODOMETER - the field consumption depends
-                    // on, and the one a scan can never read - below the fold and
-                    // behind the pinned Save bar. One order across both screens
-                    // also means muscle memory transfers between them.
+                    if emptyScanCaptionShows {
+                        emptyScanCaption
+                    }
+                    // Field order matches Edit entry (docs/DESIGN.md) - one
+                    // order across both screens so muscle memory transfers.
                     ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
                     if cloudExtractSurface && !config.allowsServerBacked {
                         UpdateRequiredNotice()
@@ -209,7 +207,8 @@ struct ManualFillUpView: View {
         }
     }
 
-    private var prefill: ConfirmPrefill? {
+    // Non-private so EmptyScanCaption.swift can read what the scan carried.
+    var prefill: ConfirmPrefill? {
         injectedPrefill ?? ConfirmPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments)
     }
 
@@ -271,6 +270,7 @@ struct ManualFillUpView: View {
             gatewayTouchTrackingArmed = true
             currencyLowConfidence = currencyLowConfidence
                 || ProcessInfo.processInfo.arguments.contains("-forceCurrencyLowConfidence")
+            focusEmptyScanTotalIfShown()
             if ProcessInfo.processInfo.arguments.contains("-screenshotPrefill") {
                 // Screenshot hook: land the three-number card in its derived
                 // state (total + liters typed, price fills in) without typing.
