@@ -1,0 +1,50 @@
+=== IMAGE GENERATION PROMPT ===
+Generated: 2026-08-30 15:54:39
+Generator: 1.17.0+6084cde15acdacb5bce04e13873cdca5bd5fc71f
+Brand: tankbook-icon
+Provider: gemini
+Model: gemini-3-pro-image-preview
+Sizes: square
+
+--- PROMPT LINT ---
+[WARNING] COLOR001: Prompt specifies colors directly (#F4503A, #4FC3E8).
+    -> Drop the hex codes. The style already sets the palette, and a competing instruction usually loses - or worse, wins and takes the image off-palette.
+[WARNING] COLOR002: Prompt describes the background ("background").
+    -> The background is already owned by --dark; describing it again can contradict the theme override.
+
+--- ORIGINAL PROMPT ---
+App icon for a car fuel and charging log. Two objects facing each other on a plain dark background: on the left a fuel pump nozzle (gas pistol) seen from the side in coral red #F4503A, its spout pointing right; on the right an electric vehicle charging plug seen from the side in cyan #4FC3E8, its prongs pointing left toward the nozzle. Both objects large, centred, nearly touching, equal visual weight. Nothing else in the image: no text, no letters, no frame, no background shapes, no reflections.
+
+--- ENHANCED PROMPT (with brand guidelines and size constraints) ---
+App icon for a car fuel and charging log. Two objects facing each other on a plain dark background: on the left a fuel pump nozzle (gas pistol) seen from the side in coral red #F4503A, its spout pointing right; on the right an electric vehicle charging plug seen from the side in cyan #4FC3E8, its prongs pointing left toward the nozzle. Both objects large, centred, nearly touching, equal visual weight. Nothing else in the image: no text, no letters, no frame, no background shapes, no reflections.
+
+STYLE DIRECTION:
+flat vector iOS app icon, bold simplified silhouettes with rounded corners, single solid colour per object, no gradients, no shading, no outline strokes, no text
+
+COLOR PALETTE (use these colors and no others):
+- Primary: #F4503A
+- Secondary: #4FC3E8
+- Accent: #EAEDF2
+- Background: #101318, plain and solid
+
+RULES:
+- Plain solid background: no textures, no patterns, no photographic backdrops
+- No logos, no watermarks, no brand names, no signatures
+- No spelling errors in any text that appears in the image
+
+DARK THEME (REQUIRED): the background must be dark (#101318). Text and line work must be light enough to read against it. Do not use a light background - this overrides any other theme instruction.
+
+IMPORTANT: Image must be exactly 1080x1080 pixels. Ensure ALL content fits within these dimensions. Use appropriate font sizes and spacing to fit everything without cropping.
+
+=== GENERATION RESULTS ===
+Images Generated: 3
+Total Cost: $0,2100 (estimated, not billed)
+Tokens (155438-024e876f_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png): 343 in, 1358 out, 1120 image, 233 thinking
+Tokens (155438-2ef6a7b3_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png): 343 in, 1300 out, 1120 image, 181 thinking
+Tokens (155439-d8ecc397_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png): 343 in, 1315 out, 1120 image, 236 thinking
+Processing Time: 63395ms
+
+--- OUTPUT FILES ---
+- 155438-024e876f_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png (square, 1080x1080, compliance 99/100 [Pass])
+- 155438-2ef6a7b3_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png (square, 1080x1080, compliance 99/100 [Pass])
+- 155439-d8ecc397_gemini-3-pro-image-preview_square_app-icon-for-a-car-fuel-and-ch.png (square, 1080x1080, compliance 99/100 [Pass])
