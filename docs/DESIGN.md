@@ -129,7 +129,7 @@ All three degrade to crossfades under Reduce Motion.
 ## Iconography & app icon
 
 - SF Symbols throughout, `regular` weight, monochrome `inkSoft` (accent color only when the icon *is* the state, e.g. anomaly badge).
-- App icon: `taillight` fuel-nozzle silhouette whose hose draws a subtle checkmark, on `midnight` – night-drive at a glance on the home screen, legible at 29pt. No text in the icon.
+- App icon: `taillight` fuel-nozzle silhouette whose hose draws a subtle checkmark, on `midnight` – night-drive at a glance on the home screen, legible at 29pt. No text in the icon. **Shipped 2026-08-30** as an iOS 18 single-size set in `ios/App/Resources/Assets.xcassets/AppIcon.appiconset`, rendered from `site/static/icon.svg` (the one source of the mark): **Any/light** = `taillight.light` on `midnight.light`, **Dark** = `taillight` on `midnight`, **Tinted** = white glyph on transparent for the system tint. Full-bleed square – iOS applies the mask; never pre-round the corners.
 
 ## Voice
 

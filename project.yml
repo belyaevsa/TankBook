@@ -54,6 +54,10 @@ targets:
         # this app has - there is no crash SDK - so the dSYM is load bearing.
         DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         TARGETED_DEVICE_FAMILY: "1"
+        # The app icon lives in ios/App/Resources/Assets.xcassets (light / dark /
+        # tinted, iOS 18 single-size). Rendered from site/static/icon.svg - the
+        # DESIGN.md mark - so the store page and the home screen show one logo.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   TankbookUITests:
     type: bundle.ui-testing
