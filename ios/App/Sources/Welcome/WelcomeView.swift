@@ -75,7 +75,7 @@ struct WelcomeView: View {
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             featureRow("camera", "Scan receipts and pump displays")
-            featureRow("fuelpump", "Fuel, charging and service in one history")
+            featureRow("keyboard", "Type it or scan it – seconds either way")
             featureRow("checkmark.shield", "No account needed – your data stays yours")
         }
         .padding(.horizontal, 44)

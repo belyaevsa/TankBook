@@ -4639,23 +4639,6 @@
         }
       }
     },
-    "Fuel, charging and service in one history": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fuel, charging and service in one history"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Топливо, зарядка и сервис в одной истории"
-          }
-        }
-      }
-    },
     "No account needed – your data stays yours": {
       "extractionState": "manual",
       "localizations": {
@@ -11931,6 +11914,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Заправки, зарядки и сервис – один журнал"
+          }
+        }
+      }
+    },
+    "Type it or scan it – seconds either way": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Type it or scan it – seconds either way"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите вручную или отсканируйте – секунды в любом случае"
           }
         }
       }
