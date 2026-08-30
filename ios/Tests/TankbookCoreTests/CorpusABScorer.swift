@@ -299,6 +299,9 @@ enum PostSweepCorpusAdditions {
             // The matched half of pump-029: same fill, same forecourt, same
             // minute. Declared, not swept - the A/B arms are frozen.
             "receipt-040-gpn-okulovka-gdrive95-fuelcard-ru.jpg",
+            // 2026-08-30: the matched half of pump-030 - same fill, same
+            // minute, a Tver fuel card. Declared, not swept.
+            "receipt-041-zolotaya-seredina-tver-95-fuelcard-ru.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -317,6 +320,9 @@ enum PostSweepCorpusAdditions {
             "pump-027-gilbarco-circlek-ee-comma-glare.jpg",
             "pump-028-gilbarco-circlek-ee-comma-decimal-b.jpg",
             "pump-029-dresser-wayne-gpn-okulovka-ru-glare-total.jpg",
+            // 2026-08-30: the corpus's first TOKHEIM, and the matched half
+            // of receipt-041. Declared, not swept.
+            "pump-030-tokheim-zolotaya-seredina-tver-ru-comma.jpg",
         ],
     ]
 

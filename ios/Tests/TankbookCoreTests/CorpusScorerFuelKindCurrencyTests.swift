@@ -124,7 +124,7 @@ struct CorpusScorerFuelKindCurrencyTests {
                 if row.currency != nil { assertedCurrency += 1 }
             }
         }
-        #expect(rows == 40 + 29 + 3 + 8, "corpus row count drifted: \(rows)")
+        #expect(rows == 41 + 30 + 3 + 8, "corpus row count drifted: \(rows)")
         // The vacuous-assertion guard: a scored field nobody asserts is not
         // scored at all. The new columns must carry real cells, or this whole
         // task would measure nothing.
