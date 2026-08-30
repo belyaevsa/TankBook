@@ -9,10 +9,11 @@ import TankbookCore
 ///
 /// The transition itself is SILENT by construction (docs/SYNC.md S8): the
 /// service writes the snapshots, nothing posts a toast or banner - the home
-/// amount simply appears. This hook exists so the observable transition can be
-/// driven without a live rate feed; the product-side trigger (backfill after a
-/// rate refresh) is the sync half's concern, and this is the test hook that
-/// proves the screens render both sides of it.
+/// amount simply appears. Since PJ.8 the product trigger (backfill after a
+/// rate refresh, and on foreground) runs automatically, so this hook is only
+/// the deterministic "render pending, then filled" beat for a screenshot; it
+/// still performs a real backfill and remains the way to observe the flip in
+/// one launch.
 @MainActor
 enum RateBackfillDebugHook {
     static func runIfRequested(onFilled: @escaping () -> Void) {

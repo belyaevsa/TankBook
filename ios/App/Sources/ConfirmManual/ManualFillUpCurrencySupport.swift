@@ -52,7 +52,6 @@ enum AppRates {
         // Fetched rows already persisted (and the seed written back on a prior
         // launch) replace seed rows for the same key - `merge` is keyed.
         store.merge(persisted)
-        Task { await refresh() }
         return store
     }()
 
@@ -62,8 +61,17 @@ enum AppRates {
     /// app root wires it, so the store still works alone in tests.
     static var resumer: LowPowerResumer?
 
-    /// Refreshes the cache from the feed and persists what it merged. A failed
-    /// fetch leaves the cache (and any pending entries) exactly as they were.
+    /// Set by the app root: a backfill that filled something bumps the toast-
+    /// center revision so Home re-reads its derived stats (S8 - the backfill is
+    /// SILENT: `noteEntryChanged` posts no toast, no banner, no badge). Nil
+    /// until the root wires it, so `refresh` still works alone in tests.
+    static var onBackfilled: (@MainActor () -> Void)?
+
+    /// Refreshes the cache from the feed, persists what it merged, then runs
+    /// the S8 backfill (PJ.8): a rate that arrived later fills rate-pending
+    /// entries, fill-blanks-only, at the entry's own date (hard rule 3). A
+    /// failed fetch leaves the cache (and any pending entries) exactly as they
+    /// were - the backfill over the unchanged cache is still safe and silent.
     static func refresh() async {
         let refreshed = await store.refresh()
         // `RateStore.refresh` returns false only for a Low Power deferral (the
@@ -74,6 +82,19 @@ enum AppRates {
             await registerDeferredRefresh()
         }
         persist(store.allRates())
+        await runBackfill()
+    }
+
+    /// One backfill pass over the current cache (S8). Idempotent; a fill bumps
+    /// the revision through `onBackfilled` so the UI re-reads, silently.
+    @discardableResult
+    static func runBackfill() async -> MoneyBackfillService.Result? {
+        guard let repository = try? AppStore.repository() else { return nil }
+        let result = try? MoneyBackfillService(store: store).backfill(repository)
+        if result?.filledCount ?? 0 > 0 {
+            onBackfilled?()
+        }
+        return result
     }
 
     /// One stable id per refresh deferral, so re-registering replaces rather
@@ -105,8 +126,19 @@ enum AppRates {
 
     private static func makeFetcher() -> RemoteRateFetcher {
         return RemoteRateFetcher(director: AppConfigStore.shared.director,
-                                 transport: URLSessionTransport(),
+                                 transport: makeTransport(),
                                  tokenProvider: PublicTokenProvider())
+    }
+
+    /// The rate transport. `-stubRates` (UI tests + screenshots) answers the
+    /// `/rates/pack` endpoint with a deterministic pack so the refresh -> S8
+    /// backfill path runs without a live feed; otherwise the transport is the
+    /// app-wide seeded/real one (offline under a seeded launch, P6.21).
+    private static func makeTransport() -> any TankbookHTTPTransport {
+        if ProcessInfo.processInfo.arguments.contains("-stubRates") {
+            return RateStubTransport()
+        }
+        return SeededLaunch.transport()
     }
 }
 
@@ -115,6 +147,28 @@ enum AppRates {
 /// still enforced by `TankbookHTTPClient` before any I/O.
 private struct PublicTokenProvider: AuthorizationTokenProvider {
     func token() -> String? { nil }
+}
+
+/// PJ.8's UI-test/screenshot seam (`-stubRates`): answers the public
+/// `/rates/pack` endpoint with a deterministic EUR->PLN pack for the dates
+/// `HomeTestSeed` dates its rate-pending fill-ups (2026-08-22..24, deliberately
+/// OUTSIDE the bundled seed pack so only this fetch fills them), so the launch
+/// refresh -> S8 backfill fills them without a live feed or `-runRateBackfill`.
+/// Stateless; any other path is a 404 (a miss, never an error - F9).
+private struct RateStubTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        guard request.url.path.hasPrefix("/v1/rates/pack") else {
+            return TankbookHTTPResponse(status: 404)
+        }
+        let body = """
+        {"base":"EUR","rates":[
+          {"date":"2026-08-22","quote":"PLN","rate":4.2706,"source":"ecb"},
+          {"date":"2026-08-23","quote":"PLN","rate":4.2706,"source":"ecb"},
+          {"date":"2026-08-24","quote":"PLN","rate":4.2706,"source":"ecb"}
+        ]}
+        """
+        return TankbookHTTPResponse(status: 200, body: Data(body.utf8))
+    }
 }
 
 @MainActor

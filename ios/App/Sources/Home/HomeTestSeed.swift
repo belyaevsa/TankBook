@@ -272,14 +272,15 @@ enum HomeTestSeed {
     }
 
     /// The F9 pending-rates state (docs/JOURNEYS.md F9): a log where three
-    /// foreign fill-ups are still waiting on a rate. They are dated INSIDE the
-    /// bundled rate seed pack (2026-08-01..03) but stored rate-pending, so the
-    /// "N entries pending rates" footnote shows until the rate backfill fills
-    /// them (docs/SYNC.md S8) - the same seed renders both sides of the
-    /// transition under `-runRateBackfill`. A converted EUR history keeps the
-    /// log realistic (three converted rows with amounts, three pending PLN
-    /// rows without). Odometer values are strictly increasing so no F9a
-    /// conflict fires.
+    /// foreign fill-ups are still waiting on a rate. They are dated OUTSIDE the
+    /// bundled rate seed pack (2026-08-22..24; the pack ends 08-21) so the
+    /// bundled seed alone CANNOT fill them - the "N entries pending rates"
+    /// footnote shows until a rate arrives for those days. `-stubRates` supplies
+    /// those rates through the launch refresh -> S8 backfill (PJ.8), so the
+    /// same seed renders both sides of the transition WITHOUT `-runRateBackfill`.
+    /// A converted EUR history keeps the log realistic (three converted rows
+    /// with amounts, three pending PLN rows without). Odometer values are
+    /// strictly increasing so no F9a conflict fires.
     private static func seedPendingRates(_ repository: TankbookRepository) {
         let vehicle = makeVehicle()
         try? repository.upsertVehicle(vehicle)
@@ -295,9 +296,9 @@ enum HomeTestSeed {
             try? repository.upsertFillUp(makeFill(vehicleID: vehicle.id, spec))
         }
         let pending = [
-            (day: fixedDay(2026, 8, 1), odometer: 120_000, amount: "289.50"),
-            (day: fixedDay(2026, 8, 2), odometer: 120_800, amount: "294.00"),
-            (day: fixedDay(2026, 8, 3), odometer: 121_600, amount: "299.00")
+            (day: fixedDay(2026, 8, 22), odometer: 120_000, amount: "289.50"),
+            (day: fixedDay(2026, 8, 23), odometer: 120_800, amount: "294.00"),
+            (day: fixedDay(2026, 8, 24), odometer: 121_600, amount: "299.00")
         ]
         for row in pending {
             let money = Money(amount: Decimal(string: row.amount)!,

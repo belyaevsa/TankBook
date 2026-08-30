@@ -17,7 +17,7 @@ import TankbookCore
 /// root can perform.
 struct AppRootView: View {
     @Environment(\.scenePhase) private var scenePhase
-    @State private var toastCenter = AppToastCenter()
+    @State private var toastCenter: AppToastCenter
     @State private var carSelection = AppCarSelection()
     /// Carries the scanned invoice pre-fill from Capture into ServiceEntry.
     @State private var invoiceSession = ServiceInvoiceSession()
@@ -72,6 +72,12 @@ struct AppRootView: View {
     init() {
         let configService = AppConfigService.make()
         let power = AppPower()
+        // The toast center is created here (not a property default) so its
+        // revision bump can be handed to `AppRates.onBackfilled` before any
+        // refresh can complete - a backfill that fills something reloads Home
+        // silently (S8: noteEntryChanged posts no toast).
+        let toastCenter = AppToastCenter()
+        _toastCenter = State(initialValue: toastCenter)
         // DEBUG/test: write the seeded session before the launch opportunistic
         // sync runs, so the launch trigger really consults the Low Power policy
         // instead of being skipped for a still-empty Keychain (see
@@ -106,6 +112,8 @@ struct AppRootView: View {
         // (docs/SYNC.md): it shares the same resumer, so its deferred fetch
         // drains with the deferred sync when the mode ends.
         AppRates.resumer = power.resumer
+        // A backfill that filled something reloads Home silently (S8).
+        AppRates.onBackfilled = { toastCenter.noteEntryChanged() }
         _power = State(initialValue: power)
         // The Welcome decision runs after the seeded-session write above, so a
         // signed-in screenshot/test launch never shows onboarding. Read here,
@@ -275,6 +283,10 @@ struct AppRootView: View {
                 if !SeededLaunch.freezesSyncState() {
                     Task { await sync.runOpportunisticSync() }
                 }
+                // PJ.8: foreground is also an S8 backfill trigger - a rate that
+                // arrived while the app was backgrounded fills rate-pending
+                // entries (silently). `refresh` fetches, merges and backfills.
+                Task { await AppRates.refresh() }
             }
         }
         // PJ.5: a tapped notification (real, or replayed by a test) drives the

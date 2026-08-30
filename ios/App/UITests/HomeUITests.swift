@@ -370,12 +370,13 @@ final class HomeUITests: XCTestCase {
                        "at zero the footnote must disappear, not render '0 entries'")
     }
 
-    /// The pending -> filled transition (docs/SYNC.md S8) is SILENT: the same
-    /// screen renders pending before and filled after a real backfill, with no
-    /// toast, no alert, no banner - the home amounts simply appear.
+    /// The pending -> filled transition (docs/SYNC.md S8) is SILENT and now
+    /// driven by the real product path (PJ.8): the launch rate refresh fetches
+    /// a stub pack and the S8 backfill fills the pending rows - with NO
+    /// `-runRateBackfill` hook - and no toast, alert or banner may appear.
     func testPendingToFilledTransitionShowsNoToastBannerOrAlert() {
-        // Phase 1: pending renders - the footnote is up and only the converted
-        // EUR rows carry amounts (the three PLN rows have none yet). Signed in
+        // Phase 1: pending renders - no stub, and the pending fill-ups are dated
+        // outside the bundled seed pack, so nothing can fill them. Signed in
         // like the rest of the suite, so the log stream (not the guest Home)
         // is the layout under test.
         let app = XCUIApplication()
@@ -390,18 +391,17 @@ final class HomeUITests: XCTestCase {
         XCTAssertTrue(app.alerts.allElementsBoundByIndex.isEmpty,
                       "pending is not an error: no alert")
 
-        // Phase 2: relaunch with the backfill hook. The pending state renders
-        // FIRST (the hook fires a wide beat later), so the test genuinely
-        // observes the same screen flip from pending to filled - never a
-        // vacuous "it was already gone".
+        // Phase 2: relaunch with the stub rate transport. The launch refresh
+        // fetches the stub pack and the S8 backfill fills the three pending
+        // rows - silently, through the product trigger, not the debug hook.
         app.terminate()
         app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
-                               "-seedHomePendingRates", "-runRateBackfill"]
+                               "-seedHomePendingRates", "-stubRates"]
         app.launch()
 
+        // The pending state may or may not render before the instant stub
+        // backfill lands; either way the footnote must be GONE once filled.
         let after = app.staticTexts["homePendingRatesFootnote"]
-        XCTAssertTrue(after.waitForExistence(timeout: 10),
-                      "the pending state must render before the backfill fills it")
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: after)
         waitForExpectations(timeout: 15)

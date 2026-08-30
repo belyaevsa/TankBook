@@ -77,6 +77,18 @@ private func eurMoney(_ amount: String) -> Money {
     Money(amount: decimal(amount), currency: .eur, homeCurrency: .eur)
 }
 
+/// A `RateFetcher` that returns a fixed pack, so `refreshAndBackfill` (PJ.8)
+/// can be driven end to end without a live feed - the exact shape a UI-test
+/// stub transport produces after decode.
+private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
+    private let rates: [ExchangeRate]
+    init(rates: [ExchangeRate]) { self.rates = rates }
+
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+        rates
+    }
+}
+
 // MARK: - rateDate is the entry date, never today (F9)
 
 @Test func backfillRateDateIsTheEntrysDayNotToday() throws {
@@ -367,4 +379,80 @@ private func eurMoney(_ amount: String) -> Money {
     #expect(rows.count == 1)
     #expect(rows.first?.rate == decimal("4.2"))
     #expect(rows.first?.date == recent)
+}
+
+// MARK: - PJ.8: the refresh -> backfill product trigger (S8)
+
+/// A pending entry plus a stub fetcher is filled after `refresh()` - the whole
+/// point of PJ.8. No launch flag, no debug hook: the refresh merges the stub's
+/// pack and the backfill fills the entry from it.
+@Test func refreshAndBackfillFillsAPendingEntry() async throws {
+    let repo = try makeRepository()
+    let vehicle = makeVehicle()
+    try repo.upsertVehicle(vehicle)
+
+    let entryDay = day(2024, 3, 12)
+    try repo.upsertFillUp(makeFillUp(vehicleId: vehicle.id, date: entryDay,
+                                     money: pendingMoney(currency: .pln, amount: "289.50")))
+
+    let store = RateStore(seed: [], fetcher: PackRateFetcher(rates: [
+        ExchangeRate(base: .eur, quote: .pln, date: entryDay, rate: decimal("4.2706"), source: .ecb)
+    ]), calendar: utcCalendar)
+    let result = try await MoneyBackfillService(store: store).refreshAndBackfill(repo)
+
+    #expect(result?.filledCount == 1)
+    let read = try repo.liveFillUps(forVehicle: vehicle.id).first!
+    #expect(read.money?.homeAmount == decimal("67.79"))
+}
+
+/// An entry whose snapshot came from a MANUAL rate is left alone by the
+/// refresh-triggered backfill (hard rule 13: once a user sets a value it is
+/// theirs permanently). The feed still holds a different rate for the same day.
+@Test func refreshAndBackfillLeavesAManualSnapshotAlone() async throws {
+    let repo = try makeRepository()
+    let vehicle = makeVehicle()
+    try repo.upsertVehicle(vehicle)
+
+    let entryDay = day(2024, 3, 12)
+    let manual = pendingMoney(currency: .pln, amount: "289.50")
+        .applyingManualRate(decimal("4.0"), on: entryDay)
+    try repo.upsertFillUp(makeFillUp(vehicleId: vehicle.id, date: entryDay, money: manual))
+
+    let store = RateStore(seed: [], fetcher: PackRateFetcher(rates: [
+        ExchangeRate(base: .eur, quote: .pln, date: entryDay, rate: decimal("4.2706"), source: .ecb)
+    ]), calendar: utcCalendar)
+    let result = try await MoneyBackfillService(store: store).refreshAndBackfill(repo)
+
+    #expect(result?.filledCount == 0)
+    let read = try repo.liveFillUps(forVehicle: vehicle.id).first!
+    #expect(read.money?.rate == decimal("4.0"))
+    #expect(read.money?.rateSource == .manual)
+    #expect(read.money?.homeAmount == decimal("72.38"))
+}
+
+/// The filled amount uses the ENTRY's date, never today's (hard rule 3, F9).
+/// Two different rates are seeded - the entry's day and the real current day -
+/// and the VALUE is asserted, not merely that it is non-nil: converting at
+/// today's rate would give 289.50 / 3.0 = 96.50, not 67.79.
+@Test func refreshAndBackfillUsesTheEntryDateNotToday() async throws {
+    let repo = try makeRepository()
+    let vehicle = makeVehicle()
+    try repo.upsertVehicle(vehicle)
+
+    let entryDay = day(2024, 3, 12)
+    try repo.upsertFillUp(makeFillUp(vehicleId: vehicle.id, date: entryDay,
+                                     money: pendingMoney(currency: .pln, amount: "289.50")))
+
+    let today = utcCalendar.startOfDay(for: Date())
+    let store = RateStore(seed: [], fetcher: PackRateFetcher(rates: [
+        ExchangeRate(base: .eur, quote: .pln, date: entryDay, rate: decimal("4.2706"), source: .ecb),
+        ExchangeRate(base: .eur, quote: .pln, date: today, rate: decimal("3.0"), source: .ecb)
+    ]), calendar: utcCalendar)
+    let result = try await MoneyBackfillService(store: store).refreshAndBackfill(repo)
+
+    #expect(result?.filledCount == 1)
+    let read = try repo.liveFillUps(forVehicle: vehicle.id).first!
+    #expect(read.money?.homeAmount == decimal("67.79"),
+            "must convert at the entry's date rate (4.2706), never today's (3.0 -> 96.50)")
+    #expect(read.money?.rateDate == entryDay)
 }

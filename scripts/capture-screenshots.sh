@@ -205,6 +205,12 @@ capture P5.2b-trends-pending-footnote-ru    ru -seedHomePendingRates -selectTren
 capture P5.2b-home-pending-footnote         en -seedHomePendingRates
 capture P5.2b-home-pending-footnote-ru      ru -seedHomePendingRates
 
+# PJ.8: the same Home entry after the S8 backfill filled it - a rate that
+# arrived later (the `-stubRates` pack, dates outside the bundled seed) converts
+# the three pending PLN rows to EUR, silently (no toast, no footnote). The
+# converted amounts sit at the top of the log stream (the PLN fills are the
+# newest), so the subject is in frame without scrolling.
+
 # P3.1a: the typed ServiceEntry screen - the artboard state (two line items),
 # and the lump-sum variant (one uncategorized item carrying the whole total).
 capture P3.1a-service-entry            en -seedServiceEntry -presentScreen serviceEntry
