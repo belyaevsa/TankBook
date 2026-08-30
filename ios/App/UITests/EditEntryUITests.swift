@@ -78,6 +78,84 @@ final class EditEntryUITests: XCTestCase {
         field.typeText(text)
     }
 
+    // MARK: - PJ.48 add a receipt to a typed entry
+
+    /// The corpus fixtures live on the host; the simulator shares the host
+    /// filesystem, so the app under test reads a fixture by its host path -
+    /// passed through `-attachReceiptFixtureImage` - and OCRs it for real.
+    private var fixturesRoot: String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // EditEntryUITests.swift
+            .deletingLastPathComponent()  // UITests
+            .deletingLastPathComponent()  // App
+            .deletingLastPathComponent()  // ios
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures")
+            .path
+    }
+
+    /// The "Add receipt" affordance exists only when there is no attachment:
+    /// a typed entry shows it, a scanned entry (already carrying its receipt)
+    /// does not.
+    func testAddReceiptShowsOnlyWithoutAnAttachment() {
+        let typed = XCUIApplication()
+        typed.launchArguments = ["-homeResetDatabase", "-seedEditEntryTyped",
+                                 "-presentScreen", "editEntry"]
+        typed.launch()
+        XCTAssertTrue(typed.buttons["editAddReceiptButton"].waitForExistence(timeout: 10),
+                      "a typed entry with no receipt must offer 'Add receipt'")
+
+        let scanned = XCUIApplication()
+        scanned.launchArguments = ["-homeResetDatabase", "-seedEditEntry",
+                                   "-presentScreen", "editEntry"]
+        scanned.launch()
+        let chip = scanned.descendants(matching: .any)
+            .matching(identifier: "attachmentPhotoChip").firstMatch
+        XCTAssertTrue(chip.waitForExistence(timeout: 10),
+                      "a scanned entry must render its receipt chip")
+        XCTAssertFalse(scanned.buttons["editAddReceiptButton"].exists,
+                       "'Add receipt' must not show when a receipt already exists")
+    }
+
+    /// Attaching a receipt to a typed entry writes the photo and links it: the
+    /// receipt card renders the chip and, after Save, the Log shows the
+    /// paperclip. The typed values are never touched (the merge is blank-only;
+    /// the byte-identical guarantee is pinned at L1).
+    func testAttachReceiptWritesThePhotoAndTheLogShowsAPaperclip() {
+        let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntryTyped",
+                               "-presentScreen", "editEntry",
+                               "-attachReceiptFixtureImage", fixture]
+        app.launch()
+
+        let add = app.buttons["editAddReceiptButton"]
+        XCTAssertTrue(add.waitForExistence(timeout: 10))
+        add.tap()
+
+        // The "Photos" door resolves the fixture directly (the out-of-process
+        // picker cannot be driven), so this is the real attach path.
+        let photos = app.buttons["Photos"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 5))
+        photos.tap()
+
+        // Wait for the OCR to settle - `editAttachReady` flips on only when the
+        // reading finished and the attach is ready to save.
+        let ready = app.otherElements["editAttachReady"]
+        XCTAssertTrue(ready.waitForExistence(timeout: 15),
+                      "the attach must settle into the ready state after OCR")
+
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+        let paperclip = app.descendants(matching: .any)
+            .matching(identifier: "logEntryAttachment").firstMatch
+        XCTAssertTrue(paperclip.waitForExistence(timeout: 5),
+                      "the Log must show the paperclip for the entry that gained a receipt")
+    }
+
     // MARK: - The delta toast
 
     func testToastShowsOldToNewAfterEditThatMovesConsumption() {

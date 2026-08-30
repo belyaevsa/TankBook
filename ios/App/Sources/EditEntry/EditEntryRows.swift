@@ -10,9 +10,13 @@ enum EditEntryRows {
     /// The artboard's receipt strip. The first attachment renders as a photo
     /// chip from its inline thumbnail (zero blob fetches); while the full
     /// rendition blob is still syncing, the chip shimmers - the entry stays
-    /// openable and editable throughout (hard rule 1).
+    /// openable and editable throughout (hard rule 1). With no attachment the
+    /// strip shows the empty state (a `doc.text` placeholder) and, when the
+    /// caller hands an `onAddReceipt` closure, the "Add receipt" affordance -
+    /// the PJ.48 door that lets a typed entry carry its paper after the fact.
     static func receiptCard(attachments: [Attachment], entry: any Entry,
-                            pendingBlobIDs: Set<UUID> = []) -> some View {
+                            pendingBlobIDs: Set<UUID> = [],
+                            onAddReceipt: (() -> Void)? = nil) -> some View {
         HStack(spacing: 12) {
             if let first = attachments.first {
                 AttachmentPhotoChip(
@@ -33,18 +37,33 @@ enum EditEntryRows {
                 Text("Receipt photo")
                     .font(.footnote.weight(.semibold))
                     .foregroundStyle(Theme.Palette.ink)
-                Text(scannedLine(attachments: attachments, entry: entry))
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
+                if let caption = scannedLine(attachments: attachments, entry: entry) {
+                    Text(caption)
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
             }
             Spacer(minLength: 0)
+            if attachments.isEmpty, let onAddReceipt {
+                Button(action: onAddReceipt) {
+                    Text("Add receipt")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.action)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("editAddReceiptButton")
+            }
         }
         .padding(12)
         .formCard()
     }
 
-    private static func scannedLine(attachments: [Attachment], entry: any Entry) -> String {
-        guard let timestamp = attachments.first?.extractedTimestamp else {
+    /// The strip's caption line: "Scanned <timestamp>" when the photo carries an
+    /// extraction timestamp, "Added <date>" otherwise. Nil with no attachment -
+    /// the empty state's "Add receipt" affordance is the whole message there.
+    private static func scannedLine(attachments: [Attachment], entry: any Entry) -> String? {
+        guard let first = attachments.first else { return nil }
+        guard let timestamp = first.extractedTimestamp else {
             return String(format: L10n.localize("Added %@"),
                           entry.date.formatted(.dateTime.month(.abbreviated).day()))
         }

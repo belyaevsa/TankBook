@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import TankbookCore
 
 /// The Edit entry screen (P1.6) - design/screens/EditEntry.dc.html. A pushed
@@ -50,6 +51,17 @@ struct EditEntryView: View {
     @State private var loadFailed = false
     @State private var pendingBlobIDs: Set<UUID> = []
 
+    // PJ.48: the "Add receipt" attach flow. The photo, its OCR lines and the
+    // extraction are held until Save writes them; a failed write flips
+    // `attachFailed` and leaves the entry completely unchanged (ERRORS.md ->
+    // Edit entry, the PJ.48 warn row).
+    @State private var showAttachSource = false
+    @State private var attachImage: UIImage?
+    @State private var attachOcrLines: [OCRLine] = []
+    @State private var attachExtraction: FuelExtraction?
+    @State private var attachFailed = false
+    @State private var attachProcessing = false
+
     private var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
@@ -82,6 +94,9 @@ struct EditEntryView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
         }
+        .receiptAttachSource(isPresented: $showAttachSource, title: "Add receipt") { image in
+            attachReceipt(image)
+        }
         .alert("Delete this entry?",
                isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -106,53 +121,6 @@ struct EditEntryView: View {
 
     private var editConvertedAmount: Decimal? {
         fillForm.convertedAmount(vehicle: vehicle, volumeUnit: volumeUnit, lowConfidence: false)
-    }
-
-    // MARK: - FillUp content
-
-    private func fillUpContent(_ fill: FillUp) -> some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                if !attachments.isEmpty {
-                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                              pendingBlobIDs: pendingBlobIDs)
-                }
-                ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
-                ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
-                                         distanceUnit: distanceUnit,
-                                         conflict: odometerConflict,
-                                         onFixDate: { showDatePicker = true })
-                ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
-                if editCurrencyNeedsAttention { editCurrencySection }
-                ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
-                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
-                                        reduceMotion: accessibilityReduceMotion)
-                if !editCurrencyNeedsAttention { editCurrencySection }
-                if editConversionState.showsConversionCard, let vehicle {
-                    ForeignCurrencyCard(
-                        currency: fillForm.currency,
-                        homeCurrency: vehicle.homeCurrency,
-                        state: editConversionState,
-                        convertedAmount: editConvertedAmount,
-                        manualRate: $fillForm.manualRate,
-                        isManualRateEditorOpen: $fillForm.isManualRateEditorOpen)
-                }
-                TankLevelRow(isFull: fillForm.isFull,
-                             tankLevelAfterPct: fillForm.tankLevelAfterPct,
-                             action: { showTankLevel = true })
-                    .formCard()
-                EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
-                if showChangedBySync {
-                    EditEntryRows.changedBySyncRow
-                }
-                EditEntryRows.footer
-            }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 24)
-        }
-        .scrollDismissesKeyboard(.immediately)
-        .safeAreaInset(edge: .bottom) { saveBar }
     }
 
     /// Same placement rule as the Confirm sheet (docs/DESIGN.md - entry form
@@ -225,6 +193,7 @@ struct EditEntryView: View {
                 selectedStation = stations.first { $0.id == fill.stationId }
                 fillForm.load(from: fill, vehicle: vehicle)
                 note = fill.note ?? ""
+                seedAttachSuggestionIfRequested()
             } else {
                 loadNonFill(target)
             }
@@ -299,6 +268,36 @@ struct EditEntryView: View {
         guard let derived = fillForm.derived(volumeUnit: vehicle.units.volume) else { return }
         do {
             let repository = try AppStore.repository()
+            // PJ.48: write the freshly-attached receipt FIRST. A failed write
+            // leaves the entry completely unchanged - the warn row names the
+            // next step and nothing is upserted (docs/ERRORS.md -> Edit entry).
+            var attachPlan: ScannedSavePlan?
+            if let attachImage {
+                // The photo is kept either way (docs/ERRORS.md -> Edit entry):
+                // if the OCR has not settled yet, the attach still writes the
+                // photo with an empty extraction rather than dropping it.
+                let extraction = attachExtraction ?? FuelExtraction()
+                let plan = ScannedSavePlanner.plan(
+                    extraction: extraction,
+                    cropRects: [:],
+                    qrAnchor: nil,
+                    declaredProvenance: .manual,
+                    hasPhoto: true,
+                    saved: ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
+                                             unitPrice: derived.unitPrice, currency: fillForm.currency,
+                                             fuelKind: fillForm.fuelKind, date: fillForm.date))
+                do {
+                    guard let id = plan.attachmentID else { return }
+                    let attachment = try ReceiptAttachmentWriter.write(id: id, image: attachImage,
+                                                                        ocrLines: attachOcrLines,
+                                                                        extraction: extraction)
+                    try repository.upsertAttachment(attachment)
+                    attachPlan = plan
+                } catch {
+                    attachFailed = true
+                    return
+                }
+            }
             let before = headline(repository: repository, vehicle: vehicle)
             var updated = fillForm.buildUpdatedFill(from: fill, vehicle: vehicle,
                                                     derived: derived,
@@ -313,6 +312,13 @@ struct EditEntryView: View {
             // conversion and saved rate-pending.
             if let money = updated.money {
                 updated.money = fillForm.convertForSave(money, vehicle: vehicle, lowConfidence: false)
+            }
+            // PJ.48: link the receipt the attach just wrote. `buildUpdatedFill`
+            // carries `provenance` over untouched, so a typed entry stays
+            // `.manual`; the extraction record is the attach's own OCR.
+            if let plan = attachPlan, let id = plan.attachmentID {
+                updated.attachments = [id]
+                updated.extraction = plan.extraction
             }
             try repository.upsertFillUp(updated)
             let after = headline(repository: repository, vehicle: vehicle)
@@ -454,5 +460,173 @@ struct EditEntryView: View {
         } catch {
             AppLog.error(operation: "editEntry.delete", category: .ui, error: error)
         }
+    }
+}
+
+// MARK: - FillUp content
+
+private extension EditEntryView {
+    func fillUpContent(_ fill: FillUp) -> some View {
+        ScrollView {
+            VStack(spacing: 9) {
+                if !attachments.isEmpty {
+                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                              pendingBlobIDs: pendingBlobIDs)
+                } else if attachImage != nil {
+                    pendingReceiptCard
+                } else {
+                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                              pendingBlobIDs: pendingBlobIDs,
+                                              onAddReceipt: { showAttachSource = true })
+                }
+                if attachFailed {
+                    attachFailedWarn
+                }
+                ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
+                ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
+                                         distanceUnit: distanceUnit,
+                                         conflict: odometerConflict,
+                                         onFixDate: { showDatePicker = true })
+                ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
+                if editCurrencyNeedsAttention { editCurrencySection }
+                ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
+                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
+                                        reduceMotion: accessibilityReduceMotion)
+                if !editCurrencyNeedsAttention { editCurrencySection }
+                if editConversionState.showsConversionCard, let vehicle {
+                    ForeignCurrencyCard(
+                        currency: fillForm.currency,
+                        homeCurrency: vehicle.homeCurrency,
+                        state: editConversionState,
+                        convertedAmount: editConvertedAmount,
+                        manualRate: $fillForm.manualRate,
+                        isManualRateEditorOpen: $fillForm.isManualRateEditorOpen)
+                }
+                TankLevelRow(isFull: fillForm.isFull,
+                             tankLevelAfterPct: fillForm.tankLevelAfterPct,
+                             action: { showTankLevel = true })
+                    .formCard()
+                EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
+                if showChangedBySync {
+                    EditEntryRows.changedBySyncRow
+                }
+                EditEntryRows.footer
+            }
+            .padding(.horizontal, Theme.Spacing.screenMargin)
+            .padding(.bottom, 24)
+        }
+        .scrollDismissesKeyboard(.immediately)
+        .safeAreaInset(edge: .bottom) { saveBar }
+    }
+}
+
+// MARK: - PJ.48 attach a receipt to a typed entry
+
+private extension EditEntryView {
+    /// The screenshot/test hook `-seedAttachSuggestion`: applies a synthetic
+    /// OCR reading through the REAL merge + apply path (blank fields only,
+    /// dimmed until confirmed), so a screenshot can show the post-attach state
+    /// without driving the out-of-process Photos picker.
+    func seedAttachSuggestionIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-seedAttachSuggestion"),
+              let fillUp else { return }
+        // Only the unit price, so the merge suggests exactly the blank price
+        // field and nothing else - the suggestion stays dimmed (.notApplicable
+        // cross-check, no triple to verify).
+        let extraction = FuelExtraction(unitPrice: Decimal(string: "1.679")!)
+        let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
+        fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+    }
+
+    /// One image in, one set of blank-fields-only suggestions out. The OCR runs
+    /// through the same `CapturePipeline` the scan door uses; the merge then
+    /// decides which fields are blank on the TYPED entry, and only those are
+    /// offered as dimmed pre-fills (hard rule 13). A typed value is never
+    /// overwritten and raises no amber (docs/ERRORS.md -> Edit entry).
+    func attachReceipt(_ image: UIImage) {
+        guard let fillUp else { return }
+        attachFailed = false
+        attachImage = image
+        attachProcessing = true
+        Task {
+            let prefill = await CapturePipeline.process(image, source: .receipt)
+            attachOcrLines = prefill.ocrLines
+            let extraction = prefill.extraction ?? FuelExtraction()
+            attachExtraction = extraction
+            let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
+            fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+            attachProcessing = false
+        }
+    }
+
+    /// The post-pick, pre-save receipt card: the photo is held in memory and
+    /// will be written when Save runs. A spinner marks the OCR still reading;
+    /// the `editAttachReady` identifier flips on when the reading finishes, so
+    /// a UI test can wait for the attach to settle before saving.
+    private var pendingReceiptCard: some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Theme.Palette.dash)
+                .frame(width: 44, height: 56)
+                .overlay(
+                    Image(systemName: "photo")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Receipt photo")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Text("Receipt attached")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            Spacer(minLength: 0)
+            if attachProcessing {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(Theme.Palette.inkSoft)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.taillight)
+            }
+        }
+        .padding(12)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(attachProcessing ? "editAttachProcessing" : "editAttachReady")
+    }
+
+    /// The failed-write warn row (docs/ERRORS.md -> Edit entry, the PJ.48 row):
+    /// the entry is unchanged and the next step is named - retry, or free up
+    /// space in Settings. Amber is attention (hard rule 5), never a block.
+    var attachFailedWarn: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Couldn't save the photo – the entry is unchanged.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 12) {
+                Button("Try again") { save() }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
+                Button("Free up space") { openSettings() }
+                    .buttonStyle(.plain)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
+            }
+        }
+        .padding(12)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("editAttachFailedWarn")
+    }
+
+    func openSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 }

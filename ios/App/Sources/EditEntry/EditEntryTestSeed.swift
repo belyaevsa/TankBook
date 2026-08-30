@@ -17,6 +17,10 @@ enum EditEntryTestSeed {
             seedManualRate()
             return
         }
+        if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
+            seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
+            return
+        }
         guard arguments.contains("-seedEditEntry") else { return }
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
@@ -87,6 +91,59 @@ enum EditEntryTestSeed {
             volumeL: 42.30, unitPrice: Decimal(string: "1.679")!,
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: shell.id, crossCheck: .verified, extraction: scannedPlan.extraction))
+    }
+
+    /// PJ.48: a TYPED fill for the "Add receipt" flow. `-seedEditEntryTyped`
+    /// seeds a fully typed fill with no attachment - the state where the receipt
+    /// card shows "Add receipt". `-seedEditEntryTypedAttached` seeds the same
+    /// fill with a blank `unitPrice` and a receipt photo already linked - the
+    /// post-attach state the dimmed-suggestion screenshot renders (the
+    /// suggestion itself is applied by the view's `-seedAttachSuggestion` hook).
+    @MainActor
+    private static func seedTyped(attachReceipt: Bool) {
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_579)
+        try? repository.upsertVehicle(vehicle)
+
+        var attachments: [AttachmentID] = []
+        if attachReceipt {
+            let attachment = Attachment(
+                id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+                kind: .photo,
+                file: LocalFileRef(sha256: UUID().uuidString,
+                                   relativePath: "seed/\(UUID().uuidString).jpg"),
+                extractedTimestamp: nil, ocrText: "SHELL 42.30 1.679")
+            try? repository.upsertAttachment(attachment)
+            attachments = [attachment.id]
+        }
+
+        // The "Add receipt" state seeds a fully typed entry (no blank fields);
+        // the post-attach state seeds the corporate-fill shape - no amount, no
+        // price - so the attached receipt's OCR has a blank field to suggest,
+        // and the suggestion stays DIM: with only liters + the suggested price
+        // present the cross-check is .notApplicable, never a verified triple.
+        let money: Money? = attachReceipt
+            ? nil
+            : Money(amount: Decimal(string: "71.02")!, currency: .eur, homeCurrency: .eur)
+        let unitPrice: Decimal? = attachReceipt ? nil : Decimal(string: "1.679")!
+        try? repository.upsertFillUp(FillUp(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: 119_486,
+            money: money, note: nil, attachments: attachments, provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: 42.30, unitPrice: unitPrice,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: nil, crossCheck: .notApplicable, extraction: nil))
     }
 
     /// The hard-rule-13 "and again afterwards" state: a foreign fill-up whose

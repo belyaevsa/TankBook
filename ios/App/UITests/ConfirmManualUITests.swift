@@ -1,11 +1,9 @@
 import XCTest
 
 /// P1.3 ConfirmManual sheet tests. The core rule: type any two of total /
-/// litres / price, the third derives on save; the save bar is disabled until
-/// two of the three exist (the artboard's "Enter total and liters to save"
-/// state) and enables live the moment the second value is typed. All three
-/// typed runs the cross-check: a mismatch shows amber, the check line refuses
-/// to lock, and "save anyway" still works. The currency chip row is one tap.
+/// litres / price, the third derives on save; the save bar enables live the
+/// moment the second value is typed; typing all three runs the cross-check
+/// (mismatch shows amber, refuses to lock, "save anyway" still works).
 @MainActor
 final class ConfirmManualUITests: XCTestCase {
 
@@ -13,23 +11,19 @@ final class ConfirmManualUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(args: [String] = []) -> XCUIApplication {
+    func launch(args: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = args + ["-seedVehicleForUITests"]
         app.launch()
         return app
     }
 
-    /// Bring a field on screen, then tap it. The numbers card sits below
-    /// Date/Odometer/Station/Fuel, and a keyboard left up by the previous
-    /// field rides the pinned Save bar and hides the next field. The stop
-    /// condition is GEOMETRIC, not `isHittable`: `isHittable` is true while a
-    /// field sits UNDER the save bar (the accessibility tree does not model
-    /// the `safeAreaInset` overlay), and a tap there lands on Save - saving
-    /// the entry and dismissing the sheet, which reads as "the field
-    /// vanished" when the next `typeText` finds no TextField. The drag is
-    /// anchored at dy 0.5 - above the keyboard (a lower anchor is eaten by
-    /// it) - on the sheet's own hittable scroll view, never Home's behind it.
+    /// Bring a field on screen and tap it. The stop condition is GEOMETRIC, not
+    /// `isHittable`: `isHittable` is true under the pinned Save bar (the
+    /// accessibility tree does not model the `safeAreaInset` overlay), and a tap
+    /// there lands on Save - dismissing the sheet and reading as "the field
+    /// vanished". The drag is anchored above the keyboard on the sheet's own
+    /// hittable scroll view, never Home's behind it.
     @discardableResult
     private func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let field = app.textFields[identifier]
@@ -51,13 +45,10 @@ final class ConfirmManualUITests: XCTestCase {
         return field
     }
 
-    /// Scroll an element clear of the **pinned save bar**, not merely to where
-    /// XCUITest calls it hittable: `isHittable` is true UNDER the bar (a
-    /// `safeAreaInset` overlay the accessibility tree does not model). A tap on
-    /// such an element once saved the entry - the failure read as a missing
-    /// button, not an accidental save. So the condition is geometric: above the
-    /// bar's top.
-    private func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
+    /// Scroll an element clear of the pinned save bar's top, not merely to where
+    /// XCUITest calls it hittable: `isHittable` is true UNDER the bar, and a tap
+    /// there once saved the entry - the failure read as a missing button.
+    func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
         let bar = app.buttons["manualFillUpSaveButton"]
         var scrolls = 0
         while scrolls < 8 {
@@ -72,7 +63,7 @@ final class ConfirmManualUITests: XCTestCase {
         }
     }
 
-    private func openManualForm(_ app: XCUIApplication) {
+    func openManualForm(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
         app.buttons["typeItButton"].tap()
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
@@ -146,15 +137,10 @@ final class ConfirmManualUITests: XCTestCase {
 
     // MARK: - Currency chips
 
-    /// The chip row folds away while the entry is in the home currency - paying
-    /// abroad is rare, and the row cost ~100 pt of the first screen, which
-    /// pushed the odometer below the fold and behind the pinned Save bar.
-    ///
-    /// This test asserted "reachable in one tap" until 2026-08-25. It is now
-    /// **one tap to reveal, one to choose**, and the test says so rather than
-    /// being quietly deleted: the promise changed, and the change is deliberate.
-    /// What did NOT change is the guarantee that matters - see
-    /// `testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency`.
+    /// The chip row folds away while the entry is in the home currency (paying
+    /// abroad is rare). This test once asserted "reachable in one tap"; it is
+    /// now **one tap to reveal, one to choose**, and the guarantee that matters
+    /// is `testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency`.
     func testCurrencyChipRowIsOneTapAway() {
         let app = launch()
         openManualForm(app)
@@ -212,14 +198,14 @@ final class ConfirmManualUITests: XCTestCase {
 /// not gate saving, and the reduced-motion lock.
 extension ConfirmManualUITests {
 
-    private func launchWithPrefill(_ seed: String) -> XCUIApplication {
+    func launchWithPrefill(_ seed: String) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-seedVehicleForUITests", seed]
         app.launch()
         return app
     }
 
-    private func openForm(_ app: XCUIApplication) {
+    func openForm(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
         app.buttons["typeItButton"].tap()
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5))
@@ -574,22 +560,16 @@ extension ConfirmManualUITests {
 
 // MARK: - PJ.14 the live odometer-delta caption
 
-/// PJ.14: the "+N km since last" caption under the odometer is LIVE (docs/
-/// VISION.md -> Fill-up log; docs/DESIGN.md -> the Pump Card) - it reacts to
-/// what is typed, and it never blocks the save: an implausible odometer warns
-/// in amber and the user decides (hard rule 13), exactly as `TimelineValidator`
-/// flags on save. The four states are decided in core (`OdometerDelta`) and
-/// asserted at L1; these tests pin the live rendering and the never-gated save.
+/// PJ.14: the "+N km since last" caption under the odometer is LIVE - it reacts
+/// to what is typed and never blocks the save (an implausible odometer warns in
+/// amber and the user decides, hard rule 13). The four states are decided in
+/// core (`OdometerDelta`); these tests pin the live rendering and never-gated save.
 extension ConfirmManualUITests {
 
-    /// Launches with a clean database. The suite's other seeds (and saved
-    /// entries from `testOdometerWarnNeverBlocksTheSave` and the cross-check
-    /// tests) leave extra fills at the max odometer, which corrupts the caption's
-    /// pace anchor: "last known" then resolves to a fixture date and the implied
-    /// daily rate is either tiny (an old fixture) or ~0 days (a same-day save),
-    /// so the pace warn can never or always fire. A reset gives the seed exactly
-    /// one prior fill, six days before the form's date - the pace math the
-    /// assertions depend on.
+    /// Launches with a clean database. The suite's other seeds leave extra fills
+    /// at the max odometer, corrupting the caption's pace anchor; a reset gives
+    /// the seed exactly one prior fill six days before the form's date - the
+    /// pace math these assertions depend on.
     private func launchClean() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-seedVehicleForUITests", "-homeResetDatabase"]
@@ -597,11 +577,8 @@ extension ConfirmManualUITests {
         return app
     }
 
-    /// Replaces the odometer field's contents, keeping it focused across calls:
-    /// a blur regroups the digits on format-on-blur and can scroll the field
-    /// out from under a re-tap, which races the delete/type sequence. The first
-    /// call taps the field's right edge so the cursor lands at the end of the
-    /// value; later calls reuse the already-focused field.
+    /// Replaces the odometer field's contents, keeping it focused across calls
+    /// (a blur regroups the digits and can race the delete/type sequence).
     private func replaceOdometer(_ app: XCUIApplication, _ text: String) {
         let field = app.textFields["manualFillUpOdometerField"]
         if !app.keyboards.firstMatch.exists {
@@ -694,5 +671,29 @@ extension ConfirmManualUITests {
         let app = launch()
         openManualForm(app)
         XCTAssertFalse(app.staticTexts["manualFillUpEmptyScanCaption"].exists)
+    }
+}
+
+// MARK: - PJ.48 the quiet "Attach receipt" row (typed path)
+
+/// The typed door is a peer (J3b): a quiet "Attach receipt" row, never shown
+/// where a scan already carried a photo.
+extension ConfirmManualUITests {
+
+    func testAttachReceiptRowOnTheTypedPathOpensTheSourceChoice() {
+        let app = launch()
+        openManualForm(app)
+        let row = app.buttons["confirmAttachReceiptRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        scrollClearOfSaveBar(app, row)
+        XCTAssertTrue(row.isHittable)
+        row.tap()
+        XCTAssertTrue(app.buttons["Photos"].waitForExistence(timeout: 5))
+    }
+
+    func testAttachReceiptRowHiddenWhenAScanCarriedAPhoto() {
+        let app = launchWithPrefill("-seedConfirmPrefillEmptyPhoto")
+        openForm(app)
+        XCTAssertFalse(app.buttons["confirmAttachReceiptRow"].exists)
     }
 }

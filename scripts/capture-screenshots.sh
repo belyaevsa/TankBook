@@ -384,6 +384,16 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.2-edit-entry-receipt    en -seedEditEntry -presentScreen editEntry
 capture PJ.2-edit-entry-receipt-ru ru -seedEditEntry -presentScreen editEntry
 
+# PJ.48: the "Add receipt" affordance on a TYPED entry's empty receipt card, and
+# the post-attach state - the receipt linked and the OCR's unitPrice suggestion
+# sitting on the blank price field, dimmed until confirmed (hard rule 13). RU is
+# where "Add receipt" ("Добавить чек") runs longest; the dimmed suggestion must
+# stay visibly dimmer than the typed total and liters beside it.
+capture PJ.48-edit-add-receipt    en -seedEditEntryTyped -presentScreen editEntry
+capture PJ.48-edit-add-receipt-ru ru -seedEditEntryTyped -presentScreen editEntry
+capture PJ.48-edit-suggestion     en -seedEditEntryTypedAttached -presentScreen editEntry -seedAttachSuggestion
+capture PJ.48-edit-suggestion-ru  ru -seedEditEntryTypedAttached -presentScreen editEntry -seedAttachSuggestion
+
 # P5.5b: the import wizard's three screens (source picker, preview gate, review
 # list) plus the per-car export row on Vehicle detail. The picker renders the
 # stub transport's list; the preview/review install a stub parse (no file

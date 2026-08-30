@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import TankbookCore
 
 /// The ConfirmManual sheet (P1.3): the manual fill-up form, and the fallback
@@ -60,6 +61,13 @@ struct ManualFillUpView: View {
     /// Arming guard for the currency/fuelKind/date touch hooks: the form's own
     /// load-time assignment must not count as a user touch.
     @State private var gatewayTouchTrackingArmed = false
+
+    // PJ.48: the quiet "Attach receipt" row on the typed path. The picked photo
+    // is held as a second, blank-fields-only prefill; Save writes it with
+    // `.manual` provenance (the entry was typed) and the extraction records the
+    // attach. A write failure degrades to no photo, exactly like the scan path.
+    @State var attachedPrefill: ConfirmPrefill?
+    @State var showAttachSource = false
 
     init(prefill: ConfirmPrefill? = nil, hasUnsavedChanges: Binding<Bool>) {
         self.injectedPrefill = prefill
@@ -155,6 +163,9 @@ struct ManualFillUpView: View {
                             receiptTotal: grandTotal,
                             fillUpAmount: fuelLine)
                     }
+                    if canAttachReceipt {
+                        attachReceiptRow
+                    }
                 }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -164,6 +175,9 @@ struct ManualFillUpView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        .receiptAttachSource(isPresented: $showAttachSource, title: "Attach receipt") { image in
+            attachReceipt(image)
+        }
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
                 TankLevelSheet(tankLevelAfterPct: $form.tankLevelAfterPct,
@@ -486,17 +500,19 @@ struct ManualFillUpView: View {
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("gatewayTimeoutMessage")
     }
+}
 
-    // MARK: - Save
+// MARK: - Save
 
-    private var saveEnabled: Bool {
+private extension ManualFillUpView {
+    var saveEnabled: Bool {
         guard let vehicle else { return false }
         return form.canSave(volumeUnit: volumeUnit)
     }
 
     /// The save-bar label. On a mixed receipt it counts the accepted Expenses
     /// ("Save fill-up + 1 expense"), so the user knows exactly what Save writes.
-    private func saveTitle() -> String {
+    func saveTitle() -> String {
         guard case .mixed(let lines, _, _) = detection else {
             return L10n.localize("Save fill-up")
         }
@@ -507,7 +523,7 @@ struct ManualFillUpView: View {
         return L10n.localize("Save fill-up")
     }
 
-    private func save() {
+    func save() {
         guard let vehicle, let derived = form.derived(volumeUnit: volumeUnit) else { return }
         do {
             let repository = try AppStore.repository()
@@ -560,78 +576,6 @@ struct ManualFillUpView: View {
         } catch {
             AppLog.error(operation: "confirmManual.save", category: .ui, error: error)
         }
-    }
-}
-
-// MARK: - PJ.2 the scanned save (one receipt photo, shared)
-
-/// The receipt photo could not be encoded or written (PJ.2); the save degrades
-/// to no photo - docs/ERRORS.md -> Confirm, "Storage full".
-enum ReceiptAttachmentError: Error {
-    case notEncodable
-}
-
-private extension ManualFillUpView {
-    /// The save's scan shape: the shared attachment id, the provenance, and the
-    /// extraction record. `nil` prefill IS the typed path (hard rule 15): no
-    /// attachment, `.manual`, no extraction record.
-    func scannedSavePlan(derived: ManualFillUpMath.Derived) -> ScannedSavePlan {
-        ScannedSavePlanner.plan(
-            extraction: prefill?.extraction,
-            cropRects: cropRects(from: prefill?.crops ?? [:]),
-            qrAnchor: prefill?.qrAnchor,
-            declaredProvenance: prefill?.provenance ?? .manual,
-            hasPhoto: prefill?.sourceImage != nil,
-            saved: ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
-                                     unitPrice: derived.unitPrice, currency: form.currency,
-                                     fuelKind: form.fuelKind, date: form.date))
-    }
-
-    /// The receipt photo the whole save shares, or `[]` when there is none. A
-    /// write failure degrades to no photo, never blocks the entry (hard rule 1).
-    func receiptAttachmentIDs(scanned: ScannedSavePlan,
-                              repository: TankbookRepository) -> [AttachmentID] {
-        guard let attachmentID = scanned.attachmentID else { return [] }
-        do {
-            try writeReceiptAttachment(id: attachmentID, repository: repository)
-            return [attachmentID]
-        } catch {
-            AppLog.error(operation: "confirmManual.receiptPhotoSave", category: .ui, error: error)
-            return []
-        }
-    }
-
-    /// The prefill's per-field crop evidence becomes the extraction record's
-    /// crop rects (`FieldExtraction.cropRect`, image pixel space).
-    func cropRects(from crops: [ManualFillUpMath.Field: CropEvidence]) -> [FieldRef: CGRect] {
-        crops.reduce(into: [:]) { result, entry in
-            result[entry.key.fieldRef] = entry.value.rect
-        }
-    }
-
-    /// Writes the receipt photo once: file bytes into the shared attachments
-    /// directory (the same pool `InvoiceAttachmentFiles` uses, docs/SYNC.md),
-    /// one `Attachment` row shared by the fill-up and every accepted expense,
-    /// with the inline thumbnail in the payload (P4.6).
-    func writeReceiptAttachment(id: AttachmentID,
-                                repository: TankbookRepository) throws {
-        guard let prefill, let sourceImage = prefill.sourceImage else { return }
-        guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
-            throw ReceiptAttachmentError.notEncodable
-        }
-        let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)
-        let thumbnail = (try? AttachmentRendition.thumbnailBase64(for: jpeg, kind: .photo)) ?? nil
-        let ocrText = prefill.ocrLines.isEmpty ? nil : prefill.ocrLines.map(\.text).joined(separator: "\n")
-        // The receipt's own printed date when the extraction read one, else the
-        // fiscal QR's timestamp (docs/SCHEMA.md, Attachment.extractedTimestamp).
-        let timestamp = (prefill.extraction?.date).flatMap { ConfirmDate.parse($0) }
-            ?? prefill.qrAnchor?.date
-        let now = Date()
-        let attachment = Attachment(
-            id: id, createdAt: now, updatedAt: now, deletedAt: nil,
-            kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
-            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail)
-        try repository.upsertAttachment(attachment)
     }
 }
 
