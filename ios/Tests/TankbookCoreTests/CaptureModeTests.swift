@@ -81,4 +81,22 @@ struct CaptureModeTests {
                     "service and expense apply to every powertrain")
         }
     }
+
+    // MARK: - PJ.6: the manual-entry form per mode
+
+    /// Every mode pins an entry form, so "Type it" opens the form for the mode
+    /// the user selected (hard rule 15). `.charge` deliberately shares the
+    /// fill-up form - no charge form exists yet and PJ.12 owns the dead Charge
+    /// chip - and the pin makes that a decision, not a silent fallthrough: a
+    /// switch that looks complete over an enum whose cases are not all handled
+    /// is the P6.20 shape. Dropping any case fails to compile; this test pins
+    /// the intent.
+    @Test("every mode pins a manual entry form, charge deliberately sharing fill-up")
+    func manualEntryFormIsPinnedForEveryMode() {
+        #expect(CaptureMode.fillUpAuto.manualEntryForm == .fillUp)
+        #expect(CaptureMode.service.manualEntryForm == .service)
+        #expect(CaptureMode.expense.manualEntryForm == .expense)
+        #expect(CaptureMode.charge.manualEntryForm == .fillUp,
+                "no charge form exists - charge shares the fill-up form until PJ.12")
+    }
 }

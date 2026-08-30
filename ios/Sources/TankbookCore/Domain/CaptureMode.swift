@@ -43,4 +43,32 @@ public enum CaptureMode: String, Codable, Sendable, CaseIterable {
     public static func defaultMode(for powertrain: Powertrain) -> CaptureMode {
         modes(for: powertrain).first ?? .fillUpAuto
     }
+
+    /// The manual entry form "Type it" opens for this mode (hard rule 15 - the
+    /// typed door is a peer of capture and must open the form for the mode the
+    /// user selected, never a fill-up form in Service mode).
+    ///
+    /// `.charge` deliberately shares the fill-up form: there is no charge entry
+    /// form yet (PJ.12 owns the dead Charge chip for EV/PHEV), and the fill-up
+    /// form is the only manual entry form that exists. Routing it there keeps
+    /// "Type it" a working door in every mode and matches the shutter, which
+    /// also lands a Charge-mode scan in that form. The mapping is a value so
+    /// both call sites and the tests pin it together.
+    public var manualEntryForm: CaptureEntryForm {
+        switch self {
+        case .fillUpAuto: return .fillUp
+        case .charge: return .fillUp
+        case .service: return .service
+        case .expense: return .expense
+        }
+    }
+}
+
+/// The manual entry form a capture mode routes "Type it" to
+/// (`CaptureMode.manualEntryForm`). One case per form that exists today; the
+/// app maps a case to the sheet it presents (`SheetRoute`).
+public enum CaptureEntryForm: String, Codable, Sendable, CaseIterable {
+    case fillUp
+    case service
+    case expense
 }

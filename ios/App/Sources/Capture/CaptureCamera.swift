@@ -52,6 +52,16 @@ extension Array where Element == String {
         guard let index = firstIndex(of: "-powertrain"), index + 1 < count else { return nil }
         return Powertrain(rawValue: self[index + 1])
     }
+
+    /// The DEBUG `-captureMode <rawValue>` override, if present. PJ.6: forces
+    /// the selected mode so a UI test (or the denied-permission state, which
+    /// has no mode row) can open "Type it" in a mode of its choosing without
+    /// tapping a chip. A mode the powertrain does not offer is ignored, exactly
+    /// as the real mode row would not show it.
+    var captureModeOverride: CaptureMode? {
+        guard let index = firstIndex(of: "-captureMode"), index + 1 < count else { return nil }
+        return CaptureMode(rawValue: self[index + 1])
+    }
 }
 
 private extension Array where Element == String {

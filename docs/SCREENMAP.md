@@ -62,8 +62,11 @@ flowchart TD
         Capture -->|auto: receipt| Confirm
         Capture -->|auto: foreign currency| ConfirmForeign
         Capture -->|auto: mixed receipt| ConfirmMixed
-        Capture -->|Type it, or OCR declined to guess| ConfirmManual
-        Capture -->|Service mode| ServiceEntry
+        Capture -->|OCR declined to guess| ConfirmManual
+        Capture -->|Type it · Fill-up mode| ConfirmManual
+        Capture -->|Type it · Service mode| ServiceEntry
+        Capture -->|Type it · Expense mode| ExpenseEntry
+        Capture -->|scan · Service mode| ServiceEntry
         Capture -.->|X| Back[return to opener]
         Confirm -->|tank row| TankLevel
         TankLevel -.->|Set / Skip| Confirm
@@ -71,6 +74,8 @@ flowchart TD
         Confirm & ConfirmForeign & ConfirmMixed & ConfirmManual -.->|back| Capture
         ServiceEntry -->|Save| Home
         ServiceEntry -.->|X| Capture
+        ExpenseEntry -->|Save| Home
+        ExpenseEntry -.->|X| Capture
     end
 
     Home -->|capture button| Capture
@@ -133,10 +138,11 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
-| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets | X → opener |
-| Confirm / Foreign / Mixed / Manual | Capture result | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
+| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · scan → Confirm/ServiceEntry | X → opener |
+| Confirm / Foreign / Mixed / Manual | Capture result · Capture "Type it" (Fill-up mode) | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
-| Service & expenses | Capture (Service mode), ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
+| Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
+| Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · ServiceEntry's Parts/Other mode row | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | Trends | tab root | insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
@@ -190,9 +196,11 @@ The map names screens that exist as nodes but have no artboard yet – listed so
 - **Failure states are forks, not ends** (JOURNEYS F-series): OCR failure → ConfirmManual is the same sheet, same back paths; denied camera → Capture's "Type it" path still works. ✓
 - **Manual entry is a peer path, not a failure branch** (hard rule 15). "Type it" is offered
   next to capture at every entry point - Home's header, both empty states, the guest layout and
-  the Capture screen itself - and reaching it never requires first attempting a scan. It is the
-  same `ConfirmManual` sheet either way, so a user who starts manually and one whose scan came
-  back thin end up in the identical screen, editing the same fields.
+  the Capture screen itself - and reaching it never requires first attempting a scan. Outside
+  Capture it is the `ConfirmManual` sheet; **inside Capture it opens the form for the selected
+  mode** (PJ.6): Fill-up → `ConfirmManual`, Service → ServiceEntry, Expense → ExpenseEntry. A
+  user who starts manually and one whose scan came back thin end up in the identical screen for
+  their kind of entry, editing the same fields.
 - **Confirm takes a `ConfirmPrefill` (P2.3)**: the extraction pre-fills present fields, nil
   fields stay blank and focusable, and an all-nil extraction IS the ordinary manual form -
   never an error, never a "scan failed" banner (the two doors stay equal). Resolved-but-

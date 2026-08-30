@@ -595,3 +595,81 @@ final class CaptureUITests: XCTestCase {
                        "after three dismissals the notice must retire permanently")
     }
 }
+
+// MARK: - PJ.6: "Type it" opens the form for the selected mode
+
+/// The PJ.6 tests live in an extension of `CaptureUITests` (not inside the
+/// class body) so the class stays under SwiftLint's `type_body_length` floor
+/// while `-only-testing:TankbookUITests/CaptureUITests` still picks them up.
+///
+/// The shape of the assertion matters: each mode asserts the identifier of the
+/// sheet that opens, never that "a sheet appeared" (the P6.20 shape). A
+/// mutation that sends every mode to the fill-up form fails Service and
+/// Expense; one that only breaks the permission card's "Type it" fails the
+/// denied test. The mode -> form mapping itself is pinned at L1 in
+/// `CaptureModeTests.manualEntryFormIsPinnedForEveryMode`.
+@MainActor
+extension CaptureUITests {
+
+    /// PJ.6 launch helper: the capture cover with a seeded car. The camera
+    /// status defaults to authorized; the denied test overrides it, and
+    /// `-captureMode` pins the mode where the denied layout has no mode row.
+    ///
+    /// `-seedVehicleForUITests` seeds when a Manual fill-up or Service entry
+    /// form loads; the Expense entry alone never triggers it (it only ever ran
+    /// nested inside a Service entry, which seeded first), so the expense test
+    /// passes `-seedHomeEmptyVehicle`, which Home's own task seeds.
+    private func captureApp(_ status: String = "authorized",
+                            _ extraArgs: [String] = [],
+                            seed: String = "-seedVehicleForUITests") -> XCUIApplication {
+        let app = launch(args: ["-homeResetDatabase", seed,
+                                "-presentScreen", "capture", "-cameraStatus", status]
+                            + extraArgs)
+        openCapture(app)
+        return app
+    }
+
+    /// Fill-up is the default mode; no chip tap needed. The sheet that opens is
+    /// asserted by identifier, never that "a sheet appeared".
+    func testTypeItInFillUpModeOpensTheFillUpForm() {
+        let app = captureApp()
+        app.buttons["captureTypeItButton"].tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
+                      "Fill-up Type it must open the fill-up form, by identifier")
+    }
+
+    func testTypeItInServiceModeOpensTheServiceForm() {
+        let app = captureApp()
+        app.buttons["captureMode_service"].tap()
+        app.buttons["captureTypeItButton"].tap()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
+                      "Service Type it must open the service entry form, by identifier")
+        XCTAssertFalse(app.textFields["manualFillUpTotalField"].exists,
+                       "Service Type it must not open the fill-up form")
+    }
+
+    func testTypeItInExpenseModeOpensTheExpenseForm() {
+        let app = captureApp(seed: "-seedHomeEmptyVehicle")
+        app.buttons["captureMode_expense"].tap()
+        app.buttons["captureTypeItButton"].tap()
+        XCTAssertTrue(app.textFields["expenseEntryTitleField"].waitForExistence(timeout: 10),
+                      "Expense Type it must open the expense entry form, by identifier")
+        XCTAssertFalse(app.textFields["manualFillUpTotalField"].exists,
+                       "Expense Type it must not open the fill-up form")
+    }
+
+    /// The F8 escape obeys the mode too (the brief's second call site): the
+    /// permission card's "Type it" is the door a user reaches when the camera
+    /// is refused, and sending them to the wrong form is worse, not better.
+    /// The mode is forced with `-captureMode service` because the denied
+    /// layout has no mode row to tap - exactly the state a real denied user is
+    /// in, with the default mode overridden by the debug hook the test drives.
+    func testDeniedPermissionTypeItOpensTheFormForTheSelectedMode() {
+        let app = captureApp("denied", ["-captureMode", "service"])
+        let typeIt = app.buttons["capturePermissionTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 10))
+        typeIt.tap()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
+                      "the permission card's Type it must open the form for the selected mode")
+    }
+}

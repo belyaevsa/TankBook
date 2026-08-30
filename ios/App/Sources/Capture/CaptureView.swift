@@ -69,7 +69,7 @@ struct CaptureView: View {
             }
         }
         .task { await resolvePermission() }
-        .onAppear { loadPowertrain(); loadAlphaNotice() }
+        .onAppear { loadPowertrain(); loadAlphaNotice(); presentTypeItIfRequested() }
         .onChange(of: scenePhase) { _, phase in
             // Coming back from Settings after a denial: re-read the status so
             // a grant in Settings resumes the camera surface without a relaunch.
@@ -81,8 +81,8 @@ struct CaptureView: View {
         }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
-            case .manualForm:
-                SheetDestinationView(route: .confirmManual)
+            case .manualForm(let form):
+                SheetDestinationView(route: form.sheetRoute)
             case .photoPicker:
                 PhotoPickerView(isPresented: Binding(
                     get: { activeSheet == .photoPicker },
@@ -133,7 +133,14 @@ struct CaptureView: View {
         } else if let selected = try? currentVehicle() {
             powertrain = selected.powertrain
         }
-        if !offeredModes.contains(mode) {
+        // PJ.6: `-captureMode <rawValue>` pins the selected mode (tests, and
+        // the denied state which has no mode row to tap). A mode the car is
+        // not offered is ignored rather than honoured, exactly as the row
+        // would not show it.
+        if let forcedMode = ProcessInfo.processInfo.arguments.captureModeOverride,
+           offeredModes.contains(forcedMode) {
+            mode = forcedMode
+        } else if !offeredModes.contains(mode) {
             mode = CaptureMode.defaultMode(for: powertrain)
         }
     }
@@ -141,6 +148,19 @@ struct CaptureView: View {
     private func currentVehicle() throws -> Vehicle? {
         let repository = try AppStore.repository()
         return carSelection.selectedVehicle(try repository.liveVehicles())
+    }
+
+    /// DEBUG/test-only: `-captureAutoTypeIt` opens the "Type it" sheet for the
+    /// current mode a beat after the surface appears, so a screenshot can show
+    /// the Service form open over the capture surface without a UI test driving
+    /// a tap (`simctl` cannot tap). Production never passes the argument; it
+    /// routes through the exact call the button makes.
+    private func presentTypeItIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-captureAutoTypeIt") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            activeSheet = .manualForm(mode.manualEntryForm)
+        }
     }
 
     // MARK: - Alpha notice (P6.10)
@@ -254,7 +274,7 @@ struct CaptureView: View {
                                  action: openSettings)
                 permissionAction("Type it",
                                  identifier: "capturePermissionTypeItButton") {
-                    activeSheet = .manualForm
+                    activeSheet = .manualForm(mode.manualEntryForm)
                 }
                 permissionAction("Photos",
                                  identifier: "capturePermissionPhotosButton") {
@@ -421,7 +441,7 @@ struct CaptureView: View {
 
     private var typeItButton: some View {
         Button {
-            activeSheet = .manualForm
+            activeSheet = .manualForm(mode.manualEntryForm)
         } label: {
             Image(systemName: "square.and.pencil")
                 .font(.system(size: 17, weight: .regular))

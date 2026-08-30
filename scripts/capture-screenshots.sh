@@ -445,6 +445,15 @@ capture PJ.5-reminder-tap-ru ru -seedReminders -replayNotificationResponse remin
 capture PJ.5-summary-tap     en -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
 capture PJ.5-summary-tap-ru  ru -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
 
+# PJ.6: "Type it" opens the form for the mode you are in (hard rule 15) - the
+# capture surface in Service mode with the Service form open over it, driven by
+# `-captureMode service` (the mode row shows Service selected beneath the sheet)
+# and `-captureAutoTypeIt` (`simctl` cannot tap). The form in frame is the
+# SERVICE form, not the fill-up one - that is the whole bug this row fixes. RU
+# is where the sheet's labels run longest.
+capture PJ.6-typeit-service    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureAutoTypeIt
+capture PJ.6-typeit-service-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode service -captureAutoTypeIt
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
