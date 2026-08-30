@@ -12,6 +12,8 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 **Version scope** (`CLAUDE.md` → Version scope): a heading without a marker is a **v1** journey – the launch build must complete it. **[v1.x]** and **[v2]** headings are planned journeys that v1 does not promise; their screens may exist as artboards only.
 
+**Reconciled against the ledger:** where a journey's claim overreaches the code, an inline *(PJ.x: …)* footnote names the task that closes it; the reconciliation ledger is `docs/TASKS.md` → PJ.
+
 ---
 
 ## Acquisition
@@ -22,7 +24,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
-| Open | Skips a 1-screen promise ("Point. Scan. Done.") | "Show me, don't pitch me" – impatient | ⚠ Every extra onboarding screen loses users → one screen, skippable |
+| Open | Skips a 1-screen promise ("Point. Scan. Done.") | "Show me, don't pitch me" – impatient | ⚠ Every extra onboarding screen loses users → one screen, skippable *(PJ.3: the Welcome root and its three paths – "Add your car", "Import from another app", "Already use Tankbook? Sign in" – are real since 2026-08-30, behind no `-force*` fixture.)* |
 | Add car | Types make/model or plate, picks powertrain, home currency pre-filled from locale | "That was quick" | → RU locale defaults to ₽ + RU fuel grades; photo of car optional, adds emotional ownership |
 | First entry | Prompted: "Have a receipt from your last fill-up? Scan it" | Curious – this is the promised magic | → The first scan IS onboarding; a bundled demo receipt if they have none |
 | Payoff | Sees the Pump Card lock ✓, entry saved | Delight or disappointment – nothing in between | ⚠ A failed first scan kills trust permanently → confidence gating, instant manual fallback without losing the photo |
@@ -36,7 +38,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
 | Export | Finds export in old app (Fuelio/Drivvo/Fuelly/Spritmonitor/CarScope/My Fuel Manager) | Anxious – "will it all come across?" | → In-app illustrated guide per source app, since their UIs hide export |
-| Import | Shares the file to Tankbook (share sheet / file picker) | Skeptical | → Auto-detect format; never ask "which app is this from" if the file says it |
+| Import | Shares the file to Tankbook (share sheet / file picker) | Skeptical | → Declare the source app, never the format: "Which app is this from?" against the server-driven supported list (`GET /import/formats`). The app never sniffs the file – a format the picker cannot list is a format that does not exist, and a confident mis-mapping is worse than a question (hard rule 13; `ERRORS.md` → Import wizard) |
 | Verify | Sees preview: N entries, date range, detected currency/units, per-field mapping | Checking their known numbers | → Show *their* lifetime average consumption next to the old app's; matching numbers = instant trust |
 | Commit | Confirms; garage now shows full history and trends from day one | Relief, sunk cost transferred | ⚠ Silent unit/currency misread poisons all trends → flag ambiguous rows for review instead of guessing |
 
@@ -53,7 +55,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
 | Open | Lock-screen widget / app opens on capture | In a hurry; one hand holds the receipt | → Camera ready in <1s; auto-shutter on document detect |
-| Scan | Points at crumpled thermal receipt | "Will it read this?" | ⚠ Glare, dark canopy → torch auto-suggest; keep the photo regardless of OCR result |
+| Scan | Points at crumpled thermal receipt | "Will it read this?" | ⚠ Glare, dark canopy → torch auto-suggest; keep the photo regardless of OCR result *(PJ.1: shutter and Photos now feed one pipeline into `ConfirmPrefill` – a real image becomes the prefill, no `-seedConfirmPrefill` fixture in the path.)* |
 | Confirm | Pump Card pre-filled; cross-check line locks ✓; types odometer, sees "+907 km since last" | Trust building with each correct field | ⚠ One wrong digit typed in odometer ruins consumption → live delta as sanity check; low-confidence fields dimmed until tapped. *(PJ.14: the delta is LIVE – typed > last shows "+N km since last", typed < last warns amber "went backwards", an implied pace over the vehicle's `paceLimitKmPerDay` warns amber "over the limit", equal shows neutral "Same as last"; none of them ever blocks the save, hard rule 13.)* |
 | Done | Save → haptic → "6.8 L/100km – best this year" | Micro-reward; closes phone | → The insight one-liner is the habit hook, not the stored row |
 
@@ -164,7 +166,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 | **Reschedule** | Push the due date/odometer; a fired notification re-arms | For "next month, honestly" moments – snoozing beats ignoring |
 | **Delete** | Gone (tombstone, 30-day undo like everything) | Distinct from **dismiss-with-reason**, which keeps history and teaches insights ("sold the tires") |
 
-⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop.
+⚠ The completion→entry→next-cycle chain is where competitors leak: a reminder marked done with no record and no follow-up is a dead end (Drivvo's pattern). Ours is a loop. *(PJ.4: Reminders has a production entry point – the Home banner derives from real reminders and VehicleDetail carries a reminders row, so this journey is reachable in a Release build.)*
 
 **Success metric:** completed reminders that create an entry ≥50%; recurring reminders auto-rescheduled 100%.
 
@@ -182,7 +184,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 ### J10 · Cross-border trip (P1)
 **Trigger:** filling up in Poland with a Euro-currency car.
-**Journey:** scan as always → currency auto-detected as PLN from the receipt → card shows both: "289.50 zł · ≈ €67.79 at today's rate" → saved with the historical rate snapshot; trends stay in the car's home currency, original always preserved on the entry. No settings visited at any point.
+**Journey:** scan as always → currency auto-detected as PLN from the receipt → card shows both: "289.50 zł · ≈ €67.79" (converted at the entry-date rate – `rateDate` is the entry's date, never "today", hard rule 3) → saved with the historical rate snapshot; trends stay in the car's home currency, original always preserved on the entry. No settings visited at any point.
 
 **Success metric:** multi-currency entries with zero manual currency picks.
 
@@ -200,7 +202,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 | First push | The local log uploads (everything becomes the account's record stream) | Settings card flips to "Synced just now · 1 device". Nothing on the phone changed – sync added, not migrated. The upload is a **user-initiated** sync that runs BEFORE the sheet closes (`SignInFirstPush`, PJ.13): it must never be a background cycle, because Low Power Mode defers those and a first push the user just asked for must not wait. It pushes **only** on the two completion paths (local log present; empty restore accepted); the wrong-provider path never pushes into an account the user has not accepted |
 | Confirm | "Your garage now follows your account" | One line, no ceremony – the account card shows it (with the device count) right after the first push |
 
-**⚠ The wrong-provider trap:** the user signed in with Google on Android but taps Apple on the new iPhone → two identities, two accounts, and the "restore" finds an empty account. v1 ships **no account linking**; two mitigations. *Proactive:* the Sign in screen carries a warn-amber notice at the decision moment – "Pick one and keep it. Apple and Google create separate accounts – use the same one on every device." *Reactive:* honest detection – if the signed-in account is empty *and* the user came through "Already use Tankbook?", say "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" with a one-tap provider switch – never show an empty garage as if their data were gone. (Same guard in reverse when a local log exists: J11a never overwrites local data – it uploads it.) *(PJ.3: "came through 'Already use Tankbook?'" is now REAL – the Welcome root's third path carries the restore intent, so a fresh install over an empty account asks the honest question; the `-signInWrongProvider` fixture that used to stand in for it is retired.)* *(PJ.3: "came through 'Already use Tankbook?'" is now REAL – the Welcome root's third path carries the restore intent, so a fresh install over an empty account asks the honest question; the `-signInWrongProvider` fixture that used to stand in for it is retired.)*
+**⚠ The wrong-provider trap:** the user signed in with Google on Android but taps Apple on the new iPhone → two identities, two accounts, and the "restore" finds an empty account. v1 ships **no account linking**; two mitigations. *Proactive:* the Sign in screen carries a warn-amber notice at the decision moment – "Pick one and keep it. Apple and Google create separate accounts – use the same one on every device." *Reactive:* honest detection – if the signed-in account is empty *and* the user came through "Already use Tankbook?", say "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" with a one-tap provider switch – never show an empty garage as if their data were gone. (Same guard in reverse when a local log exists: J11a never overwrites local data – it uploads it.) *(PJ.3: "came through 'Already use Tankbook?'" is now REAL – the Welcome root's third path carries the restore intent, so a fresh install over an empty account asks the honest question; the `-signInWrongProvider` fixture that used to stand in for it is retired.)*
 
 **Success metric:** first-sign-in completion ≥90% from the Sign in screen; wrong-provider recoveries resolved in-flow ≥95%; zero "my data disappeared" reviews traced to provider mix-ups.
 
@@ -268,7 +270,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 - The app **never waits on the gateway to show the card**: on-device results (however partial) render immediately; the fallback was always an *enhancement* pass.
 - **The wait has a 3-second budget** (`API.md` -> "The device's side of `/extract`"). At 3 s the UI stops presenting the call as something to wait for and says so, naming the next step: carry on with what was read locally. The request may still finish in the background - the budget bounds the **user's** wait, not the work - and its late answer may fill only **blank, untouched** fields, as a suggestion (hard rule 13). After save it arrives nowhere.
 - **The upload is compressed on device** before any of this, because on a forecourt signal the upload is the slowest step in the flow. How hard it may be compressed is settled by the corpus, not by taste: if compression costs extraction hits, it is too aggressive.
-- If fallback is unreachable: low-confidence fields stay dimmed with "check these – enhanced reading unavailable right now." User confirms or fixes by hand, saves. A retry never re-asks the user – if the photo later re-processes successfully in background, we *don't* silently change a saved entry; corrections post-save are the user's alone.
+- If fallback is unreachable: low-confidence fields stay dimmed with "check these – enhanced reading unavailable right now." User confirms or fixes by hand, saves. A retry never re-asks the user – if the photo later re-processes successfully in background, we *don't* silently change a saved entry; corrections post-save are the user's alone. *(PJ.18: this unreachable hint is still open ([v2]) – today only the timeout branch of F4 renders.)*
 - If quota is spent: same UX, plus a quiet, non-blocking note in Settings – never an upsell interstitial mid-capture. ⚠ Monetization pressure must never leak into the capture flow; that is the incumbents' disease.
 
 **Metric:** capture abandonment when fallback is down: no different from baseline.
@@ -276,8 +278,7 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 ### F5 · The receipt's QR decodes, and nothing more is fetched (P3)
 **Trigger:** the QR on the receipt decodes. No fiscal-service lookup is attempted – enrichment is permanently deferred (J5 above) – so this is the normal path, not a failure.
 
-- Parse locally what the QR string itself carries (total, date-time, fiscal IDs) → card pre-fills total and date instantly, liters/price left for the user or a later fetch.
-- Enrichment retries in background after save; when it lands, it *fills blanks* only – never overwrites anything the user typed.
+- Parse locally what the QR string itself carries (total, date-time, fiscal IDs) → card pre-fills total and date instantly; liters/price are the user's, from OCR and editable as always (hard rule 13) – the anchor never pretends to know the volume.
 - No copy: nothing failed, and the QR is not named. The Confirm sheet simply shows the anchored total and date as verified.
 
 **Metric:** RU/KZ receipts with a decodable QR save with the anchored total in ≥95% of cases.
@@ -389,7 +390,7 @@ is a review list that failed to explain itself.
 **Trigger:** obscure currency pair, rate feed gap (RUB after ECB delisting), or first-ever launch offline abroad.
 
 - Entry always saves with the original amount – conversion is metadata, never a save-blocker.
-- Rate arrives later → conversion fills in; rate *never* exists (feed gap) → entry shows original currency in trends with a footnote count ("3 entries pending rates"), and the user may set a manual rate per entry.
+- Rate arrives later → conversion fills in *(PJ.8: the S8 backfill is live – it runs after every successful `AppRates.refresh()` and on foreground, fill-blanks-only, behind no DEBUG flag.)*; rate *never* exists (feed gap) → entry shows original currency in trends with a footnote count ("3 entries pending rates"), and the user may set a manual rate per entry.
 - ⚠ Never apply today's rate to last month's fill-up silently: a wrong-date rate is worse than no rate.
 
 **Metric:** entries stuck >7 days without a rate <0.5%.
