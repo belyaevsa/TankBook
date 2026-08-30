@@ -235,8 +235,7 @@ final class HomeUITests: XCTestCase {
     func testSyncShapedPresentationStatesAreReachable() {
         let app = launch(args: ["-seedHomeEmptyVehicle",
                                 "-forceArchivedReturned",
-                                "-forceSyncToast",
-                                "-forceReminderDue"])
+                                "-forceSyncToast"])
 
         // S5: archived car returned via sync, with its next steps.
         XCTAssertTrue(app.buttons["homeDeleteAgainButton"].exists)
@@ -244,12 +243,33 @@ final class HomeUITests: XCTestCase {
 
         // S7: post-outage sync toast.
         XCTAssertTrue(app.staticTexts["Synced. 2 entries need a look"].waitForExistence(timeout: 5))
+    }
 
-        // Reminder due: amber banner with a working View affordance.
-        let viewButton = app.buttons["homeReminderViewButton"]
-        XCTAssertTrue(viewButton.exists)
-        viewButton.tap()
+    // MARK: - PJ.4 the reminder banner is real data (no fixture flag)
+
+    /// The banner is REAL since PJ.4: a seeded due reminder renders it with the
+    /// reminder's own title and the actual count, and View reaches the list -
+    /// with NO `-forceReminderDue` and NO `-route` argument. The exact banner
+    /// text is asserted, not just the banner's existence: a hardcoded fixture
+    /// sentence would fail this (docs/ERRORS.md -> Home, row "Reminder due").
+    func testReminderBannerDerivesFromRealReminderAndReachesList() {
+        let app = launch(args: ["-seedHomeReminderDue"])
+
+        let view = app.buttons["homeReminderViewButton"]
+        XCTAssertTrue(view.waitForExistence(timeout: 10),
+                      "a seeded due reminder must render the banner")
+
+        // The banner names the ACTUAL reminder and its due count - never the
+        // old "Insurance renews in 12 days" fixture sentence.
+        XCTAssertTrue(textContaining(app, "Insurance renewal").exists,
+                      "the banner must carry the real reminder's title")
+        XCTAssertTrue(textContaining(app, "in 12 days").exists,
+                      "the banner must carry the real due count")
+
+        view.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Insurance renewal"].waitForExistence(timeout: 5),
+                      "the banner reaches the list holding the same reminder")
     }
 
     // MARK: - P1.8: S2 duplicates (real data, docs/SYNC.md)

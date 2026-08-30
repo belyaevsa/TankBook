@@ -304,7 +304,16 @@ struct LocalizationGateP53Tests {
               2: "В этом файле 2 напоминания; напоминания не импортируются в v1.",
               5: "В этом файле 5 напоминаний; напоминания не импортируются в v1.",
               11: "В этом файле 11 напоминаний; напоминания не импортируются в v1.",
-              21: "В этом файле 21 напоминание; напоминания не импортируются в v1."])
+              21: "В этом файле 21 напоминание; напоминания не импортируются в v1."]),
+            // PJ.4: the Home banner's due-in-N-days sentence - the title sits in
+            // the nominative head, `через` reaches only the %lld count, so the
+            // 11/21 edge applies to the number (11 дней takes `many`, 21 день
+            // takes `one`). The `%@` slot is rendered as "Volvo V60" here, the
+            // same user-text slot the banner feeds the reminder title into.
+            ("%@ in %lld days",
+             [1: "Volvo V60 через 1 день", 2: "Volvo V60 через 2 дня",
+              5: "Volvo V60 через 5 дней", 11: "Volvo V60 через 11 дней",
+              21: "Volvo V60 через 21 день"])
         ]
 
     /// Russian plural selection is not 1/2/5: 11 ends in 1 but takes `many`,

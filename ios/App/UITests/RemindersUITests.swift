@@ -123,6 +123,49 @@ final class RemindersUITests: XCTestCase {
                        "a non-recurring reminder leaves the list when completed")
     }
 
+    // MARK: - PJ.4 the Vehicle detail door (SCREENMAP.md: Reminders is reached
+    // from "Home banner, VehicleDetail, push notification")
+
+    /// The second door to the Reminders screen does not depend on anything
+    /// being due: the Vehicle detail reminders row is always there, like Tire
+    /// sets. A car with NO reminders still reaches the same list via it.
+    func testVehicleDetailRowReachesTheRemindersScreen() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedHomeCarSwitcher"]
+        app.launch()
+
+        // Garage tab → the Volvo's detail screen.
+        XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
+        app.buttons["tabbar.garage"].tap()
+        let carRow = app.buttons["garageCarRow"].firstMatch
+        XCTAssertTrue(carRow.waitForExistence(timeout: 5))
+        carRow.tap()
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
+
+        // The row sits below the fold on this screen; scroll the form until the
+        // reminders link is hittable clear of the pinned save bar (the same
+        // geometry the Vehicle detail suite uses: midpoint above 0.75 height).
+        let remindersRow = app.buttons["vehicleDetailRemindersLink"]
+        func formScrollView() -> XCUIElement {
+            app.scrollViews.allElementsBoundByIndex
+                .max { $0.frame.height < $1.frame.height } ?? app.scrollViews.firstMatch
+        }
+        let clearPoint = app.frame.height * 0.75
+        var swipes = 0
+        while swipes < 10, !remindersRow.isHittable || remindersRow.frame.midY > clearPoint {
+            formScrollView().swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(remindersRow.isHittable && remindersRow.frame.midY <= clearPoint,
+                      "the reminders row never reached a tappable position")
+
+        remindersRow.tap()
+        XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5),
+                      "the Vehicle detail reminders row must reach the Reminders screen")
+        XCTAssertTrue(app.staticTexts["No reminders yet"].waitForExistence(timeout: 5),
+                      "the seeded car has no reminders - the list's empty state is the honest landing")
+    }
+
     func testTypeAmountLandsInTheEntryWithThePrefill() {
         let app = launch(["-seedReminderComplete"])
 

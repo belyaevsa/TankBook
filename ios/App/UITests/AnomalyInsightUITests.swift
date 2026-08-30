@@ -135,8 +135,11 @@ final class AnomalyInsightUITests: XCTestCase {
     /// "Act" creates a service reminder - asserted by the reminder EXISTING in
     /// the Reminders list afterwards, never by a button's visual state. The
     /// card also leaves: a card with only "act" is the nag J9 forbids.
+    /// PJ.4: the reminder is due TODAY (the act anchors it at `Date()`), so the
+    /// REAL banner derives it and its View affordance is the door to the list -
+    /// no `-forceReminderDue` fixture remains.
     func testActCreatesAReminder() {
-        let app = launch(["-seedHomeAnomaly", "-forceReminderDue", "-anomalyDismissalReset"])
+        let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
 
         app.buttons["homeAnomalyToggle"].tap()
@@ -148,10 +151,11 @@ final class AnomalyInsightUITests: XCTestCase {
         expectation(for: gone, evaluatedWith: cardElement(app))
         waitForExpectations(timeout: 5)
 
-        // The reminder exists on the Reminders list (reached via the fixture
-        // banner's View affordance, the only in-app door to the list).
+        // The reminder exists on the Reminders list (reached via the real
+        // banner's View affordance, derived from the just-created reminder).
         let view = app.buttons["homeReminderViewButton"]
-        XCTAssertTrue(view.waitForExistence(timeout: 5))
+        XCTAssertTrue(view.waitForExistence(timeout: 5),
+                      "acting must derive the banner from the new reminder")
         view.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Check fuel consumption"].waitForExistence(timeout: 5),

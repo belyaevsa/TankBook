@@ -50,7 +50,8 @@ enum HomeTestSeed {
             ("-seedHomeDuplicate", seedDuplicate),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
-            ("-seedHomeAnomaly", AnomalyTestSeed.seed)
+            ("-seedHomeAnomaly", AnomalyTestSeed.seed),
+            ("-seedHomeReminderDue", seedReminderDue)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
@@ -59,6 +60,21 @@ enum HomeTestSeed {
 
     private static func seedEmptyVehicle(_ repository: TankbookRepository) {
         try? repository.upsertVehicle(makeVehicle())
+    }
+
+    /// PJ.4: a REAL reminder due inside the attention window (12 days), so the
+    /// Home banner derives from actual data - the same shape the `-forceReminderDue`
+    /// fixture used to paint ("Insurance renewal due in 12 days"), but a real,
+    /// editable, completable row. No launch argument can force the banner
+    /// anymore; this seed is what a test (or a screenshot) shows it with.
+    private static func seedReminderDue(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        let reminder = ReminderLifecycle.makeReminder(
+            vehicleId: vehicle.id, title: "Insurance renewal", category: .insurance,
+            dueDate: Date().addingTimeInterval(12 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(reminder)
     }
 
     /// The D4 state: a car, one full tank logged, no segment closed yet.

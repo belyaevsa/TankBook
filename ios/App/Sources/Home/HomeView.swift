@@ -23,6 +23,7 @@ struct HomeView: View {
     @State private var vehicles: [Vehicle] = []
     @State private var entries: [any Entry] = []
     @State private var stations: [Station] = []
+    @State private var reminders: [Reminder] = []
     @State private var photoData: Data?
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
@@ -49,6 +50,24 @@ struct HomeView: View {
             vehicle: vehicle, entries: entries,
             duplicateResolutions: resolvedDuplicateKeys,
             dismissals: AnomalyInsightStore.dismissals(for: vehicle.id))
+    }
+
+    /// The vehicle's current odometer - the same derivation the Reminders list
+    /// uses, so Home and the list can never disagree about a km-driven
+    /// reminder's due state.
+    private var currentOdometer: Int? {
+        entries.compactMap(\.odometer).max() ?? vehicle?.initialOdometer
+    }
+
+    /// The reminder banner's subject (PJ.4): the earliest attention-due
+    /// reminder, derived at read time from the live rows (hard rule 2's spirit
+    /// - derived, never stored). `nil` hides the banner entirely; it retires
+    /// itself the moment the reminder completes, because `.done` rows never
+    /// re-derive (docs/SCHEMA.md).
+    private var bannerReminder: Reminder? {
+        ReminderBanner.bannerReminder(among: reminders,
+                                      currentOdometer: currentOdometer,
+                                      now: Date())
     }
 
     /// Title and settings gear on ONE row (docs/DESIGN.md: "The Home header is
@@ -108,6 +127,16 @@ struct HomeView: View {
             // reload so the derived stats and the log reflect it immediately.
             Task { await load() }
         }
+        .onAppear {
+            // Returning from a pushed screen (the Reminders list, an edit) can
+            // change data Home does not observe through `toastCenter` - most
+            // importantly a reminder completed in the list, which must retire
+            // its banner on the way back (hard rule 2: the banner is derived,
+            // so it re-derives). First appearance is `.task`'s job (`didSeed`
+            // is still false then), exactly like the Reminders list's own
+            // `onAppear { if didLoad { reload() } }`.
+            if didSeed { Task { await load() } }
+        }
     }
 
     /// The guest Home (design/screens/GuestHome.dc.html) is the no-account
@@ -139,7 +168,10 @@ struct HomeView: View {
 
     @ViewBuilder
     private func fullLayout(_ stats: HomeStats) -> some View {
-        HomeBanners(presentables: presentables, vehicleName: stats.vehicle.name)
+        HomeBanners(presentables: presentables,
+                    vehicleName: stats.vehicle.name,
+                    bannerReminder: bannerReminder,
+                    currentOdometer: currentOdometer)
         headerRow(stats.vehicle)
         HomeGarageCard(vehicle: stats.vehicle, odometer: stats.odometer,
                        updatedAt: stats.updatedAt, photoData: photoData)
@@ -344,6 +376,7 @@ struct HomeView: View {
             self.vehicle = selected
             entries = try repository.liveEntries(forVehicle: selected.id)
             stations = try repository.liveStations()
+            reminders = try repository.liveReminders(forVehicle: selected.id)
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
             photoData = try loadPhoto(repository: repository, vehicle: selected)
         } catch {

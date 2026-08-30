@@ -93,25 +93,18 @@ struct VehicleDetailView: View {
                 }
                 VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
                 section("Tire sets") {
-                    NavigationLink(value: Route.tireSets) {
-                        HStack {
-                            Text("Tire sets")
-                                .font(.subheadline)
-                                .foregroundStyle(Theme.Palette.ink)
-                            Spacer(minLength: 8)
-                            Text("Manage sets and swap history")
-                                .font(.caption)
-                                .foregroundStyle(Theme.Palette.inkSoft)
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                                .foregroundStyle(Theme.Palette.inkSoft)
-                        }
-                        .padding(.horizontal, Theme.Spacing.cardPadding)
-                        .padding(.vertical, 12)
-                        .formCard()
+                    linkRow(title: "Tire sets",
+                            subtitle: "Manage sets and swap history",
+                            identifier: "vehicleDetailTireSetsLink") {
+                        Route.tireSets
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("vehicleDetailTireSetsLink")
+                }
+                section("Reminders") {
+                    linkRow(title: "Reminders",
+                            subtitle: "Track dates and odometer limits",
+                            identifier: "vehicleDetailRemindersLink") {
+                        Route.reminders
+                    }
                 }
                 section("Your data") {
                     VehicleExportRow(vehicle: vehicle)
@@ -133,6 +126,35 @@ struct VehicleDetailView: View {
             SectionEyebrow(title)
             content()
         }
+    }
+
+    /// A per-car management row (Tire sets, Reminders - docs/SCREENMAP.md): a
+    /// chevroned NavigationLink card with a title and a caption. Shared so the
+    /// two rows render identically and the form body stays within the lint
+    /// budget.
+    private func linkRow(title: LocalizedStringKey,
+                         subtitle: LocalizedStringKey,
+                         identifier: String,
+                         destination: @escaping () -> Route) -> some View {
+        NavigationLink(value: destination()) {
+            HStack {
+                Text(title)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.ink)
+                Spacer(minLength: 8)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 12)
+            .formCard()
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
     }
 
     /// The honest consequence, stated once (docs/SCHEMA.md, Recalculation on

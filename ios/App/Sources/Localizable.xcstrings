@@ -207,6 +207,59 @@
         }
       }
     },
+    "%@ in %lld days": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ in 1 day"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ in %lld days"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ через %lld день"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ через %lld дня"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ через %lld дней"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ через %lld дней"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%d on this receipt": {
       "extractionState": "manual",
       "localizations": {
@@ -4227,6 +4280,23 @@
         }
       }
     },
+    "Overdue: %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Overdue: %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Просрочено: %@"
+          }
+        }
+      }
+    },
     "Overdue by %1$@ km": {
       "extractionState": "manual",
       "localizations": {
@@ -5908,6 +5978,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Буксировка"
+          }
+        }
+      }
+    },
+    "Track dates and odometer limits": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Track dates and odometer limits"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Даты и лимиты пробега"
           }
         }
       }

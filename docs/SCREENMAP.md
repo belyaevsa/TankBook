@@ -81,6 +81,7 @@ flowchart TD
     Garage -->|Add car| AddVehicle
     VehicleDetail -.->|back| Garage
     VehicleDetail -->|Tire sets| TireSets
+    VehicleDetail -->|Reminders| Reminders
     TireSets -->|New tire set / row| TireSetForm
     TireSets -.->|back| VehicleDetail
     TireSetForm -->|Save| TireSets
@@ -139,7 +140,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | Trends | tab root | insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
-| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets | back → Garage (or opener) |
+| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due) | back → Garage (or opener) |
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |

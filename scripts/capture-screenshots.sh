@@ -421,6 +421,19 @@ capture PJ.3-welcome-light      en -presentWelcome
 capture PJ.3-welcome-light-ru   ru -presentWelcome
 xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 
+# PJ.4: the reminder banner is REAL data now (docs/ERRORS.md -> Home, row
+# "Reminder due") - a seeded due reminder renders it with the reminder's own
+# title and the actual count, never the old "Insurance renews in 12 days"
+# fixture sentence. `-seedSettingsSignedIn` puts the launch on the signed-in
+# layout (the banner renders there; a no-session launch is the guest chrome).
+# The list shot is the screen the banner's View reaches, carrying the same
+# attention row. RU is where the banner's count phrase ("Страховка через 12
+# дней") and the list's chip run longest.
+capture PJ.4-home-reminder    en -seedSettingsSignedIn -seedHomeReminderDue
+capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
+capture PJ.4-reminders        en -seedReminders -presentScreen reminders
+capture PJ.4-reminders-ru     ru -seedReminders -presentScreen reminders
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
