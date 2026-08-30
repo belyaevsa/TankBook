@@ -121,8 +121,7 @@ struct EditEntryView: View {
                 ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                          distanceUnit: distanceUnit,
                                          conflict: odometerConflict,
-                                         onFixDate: { showDatePicker = true },
-                                         caption: nil)
+                                         onFixDate: { showDatePicker = true })
                 ManualFillUpStationRow(stations: stations, selection: $selectedStation)
                 ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
                 if editCurrencyNeedsAttention { editCurrencySection }

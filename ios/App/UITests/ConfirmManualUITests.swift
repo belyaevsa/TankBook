@@ -583,3 +583,105 @@ extension ConfirmManualUITests {
                       "Save must work from the pending state without a rate")
     }
 }
+
+// MARK: - PJ.14 the live odometer-delta caption
+
+/// PJ.14: the "+N km since last" caption under the odometer is LIVE (docs/
+/// VISION.md -> Fill-up log; docs/DESIGN.md -> the Pump Card) - it reacts to
+/// what is typed, and it never blocks the save: an implausible odometer warns
+/// in amber and the user decides (hard rule 13), exactly as `TimelineValidator`
+/// flags on save. The four states are decided in core (`OdometerDelta`) and
+/// asserted at L1; these tests pin the live rendering and the never-gated save.
+extension ConfirmManualUITests {
+
+    /// Launches with a clean database. The suite's other seeds (and saved
+    /// entries from `testOdometerWarnNeverBlocksTheSave` and the cross-check
+    /// tests) leave extra fills at the max odometer, which corrupts the caption's
+    /// pace anchor: "last known" then resolves to a fixture date and the implied
+    /// daily rate is either tiny (an old fixture) or ~0 days (a same-day save),
+    /// so the pace warn can never or always fire. A reset gives the seed exactly
+    /// one prior fill, six days before the form's date - the pace math the
+    /// assertions depend on.
+    private func launchClean() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-seedVehicleForUITests", "-homeResetDatabase"]
+        app.launch()
+        return app
+    }
+
+    /// Replaces the odometer field's contents, keeping it focused across calls:
+    /// a blur (from dismissing the keyboard or scrolling) regroups the digits on
+    /// format-on-blur and can scroll the field out from under a re-tap, which
+    /// races the delete/type sequence. The first call taps the field's right
+    /// edge so the cursor lands at the end of the trailing-aligned value; later
+    /// calls reuse the already-focused field, whose cursor sits where the
+    /// previous typeText left it.
+    private func replaceOdometer(_ app: XCUIApplication, _ text: String) {
+        let field = app.textFields["manualFillUpOdometerField"]
+        if !app.keyboards.firstMatch.exists {
+            field.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap()
+        }
+        let current = (field.value as? String) ?? ""
+        if !current.isEmpty {
+            field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue,
+                                  count: current.count))
+        }
+        field.typeText(text)
+    }
+
+    private func waitForCaption(_ app: XCUIApplication, _ label: String) {
+        let predicate = NSPredicate(format: "label == %@", label)
+        let caption = app.staticTexts["manualFillUpOdometerCaption"]
+        expectation(for: predicate, evaluatedWith: caption)
+        waitForExpectations(timeout: 5)
+    }
+
+    func testOdometerCaptionUpdatesLiveWithTheTypedValue() {
+        let app = launchClean()
+        openManualForm(app)
+
+        // The pre-fill equals the last known odometer (119 486): the neutral
+        // equal caption, never amber (equal is a legitimate no-distance state).
+        waitForCaption(app, "Same as last")
+
+        // Typing a larger value flips it live to the positive delta.
+        replaceOdometer(app, "120000")
+        waitForCaption(app, "+514 km since last")
+
+        // Typing below last known flips it to the backwards warn.
+        replaceOdometer(app, "119000")
+        waitForCaption(app, "Odometer went backwards – check it.")
+
+        // A forward value whose implied daily rate exceeds the limit warns too
+        // (10 514 km / 6 days = 1 752/day > the seeded 1 500).
+        replaceOdometer(app, "130000")
+        waitForCaption(app, "Daily pace over the limit – check it.")
+    }
+
+    func testOdometerWarnNeverBlocksTheSave() {
+        let app = launchClean()
+        openManualForm(app)
+
+        // A backwards odometer puts the amber warn up...
+        replaceOdometer(app, "119000")
+        waitForCaption(app, "Odometer went backwards – check it.")
+
+        // ...but the save bar never becomes disabled because of it: two numbers
+        // typed, save works, and the entry lands (hard rule 13).
+        // The odometer's number pad is up; drop it first - a follow-up tap on
+        // another field while it is up does not reliably transfer focus on the
+        // iOS 26 simulator (the tap lands, focus does not move, and the next
+        // typeText fails with "no keyboard focus").
+        if app.keyboards.firstMatch.exists {
+            app.swipeDown()
+        }
+        let total = focusField(app, "manualFillUpTotalField")
+        total.typeText("71.02")
+        let liters = focusField(app, "manualFillUpLitersField")
+        liters.typeText("42.30")
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.isEnabled, "a warn caption must never gate the save")
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+    }
+}

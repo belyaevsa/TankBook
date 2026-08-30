@@ -642,6 +642,59 @@
         }
       }
     },
+    "+%lld km since last": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld km since last"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld km since last"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld километр с прошлой заправки"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld километра с прошлой заправки"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld километров с прошлой заправки"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld километров с прошлой заправки"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "98": {
       "extractionState": "manual",
       "localizations": {
@@ -1896,6 +1949,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "DC"
+          }
+        }
+      }
+    },
+    "Daily pace over the limit – check it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Daily pace over the limit – check it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дневной пробег выше предела – проверьте."
           }
         }
       }
@@ -4161,6 +4231,23 @@
         }
       }
     },
+    "Odometer went backwards – check it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Odometer went backwards – check it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пробег уменьшился – проверьте."
+          }
+        }
+      }
+    },
     "Oil": {
       "extractionState": "manual",
       "localizations": {
@@ -5058,6 +5145,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Восстановить мою версию"
+          }
+        }
+      }
+    },
+    "Same as last": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Same as last"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Совпадает с прошлой заправкой"
           }
         }
       }
@@ -6836,23 +6940,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "последний известный"
-          }
-        }
-      }
-    },
-    "last known · update after typing fuel": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "last known · update after typing fuel"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "последний известный · обновите после ввода топлива"
           }
         }
       }

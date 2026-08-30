@@ -37,6 +37,8 @@ struct ManualFillUpView: View {
     @FocusState private var focus: ManualFillUpFocus?
     @State var vehicle: Vehicle?
     @State private var existingEntries: [any Entry] = []
+    /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
+    @State private var lastKnown: OdometerLastKnown?
     @State private var stations: [Station] = []
     @State private var selectedStation: Station?
     @State var currencyLowConfidence = false
@@ -116,11 +118,11 @@ struct ManualFillUpView: View {
                     if gatewaySession.phase == .budgetExpired {
                         gatewayTimeoutBanner
                     }
-                    ManualFillUpOdometerCard(
-                        form: $form, focus: $focus,
-                        distanceUnit: distanceUnit,
-                        conflict: odometerConflict,
-                        onFixDate: { showDatePicker = true })
+                    ManualFillUpOdometerCard(form: $form, focus: $focus, distanceUnit: distanceUnit,
+                                             conflict: odometerConflict,
+                                             onFixDate: { showDatePicker = true },
+                                             lastKnown: lastKnown,
+                                             paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
                     ManualFillUpStationRow(stations: stations, selection: $selectedStation)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {
@@ -249,8 +251,8 @@ struct ManualFillUpView: View {
             stations = try repository.liveStations()
             form.currency = vehicle.homeCurrency
             form.fuelKind = vehicle.fuelKinds.first ?? .petrol95
-            let lastKnown = existingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
-            form.odometer = lastKnown.map(String.init) ?? ""
+            lastKnown = OdometerLastKnown.lastKnown(in: existingEntries, vehicle: vehicle)
+            form.odometer = lastKnown?.odometer.map(String.init) ?? ""
             if let prefill {
                 apply(prefill, vehicle: vehicle)
                 detectMixedReceipt(prefill)
@@ -281,6 +283,10 @@ struct ManualFillUpView: View {
                 // renders as converted-from-Manual without typing (the P5.2b
                 // screenshot state). Same default-input rules as any pre-fill.
                 form.manualRate = ProcessInfo.processInfo.arguments[index + 1]
+            }
+            if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-screenshotOdometer"),
+               ProcessInfo.processInfo.arguments.indices.contains(index + 1) {
+                form.odometer = ProcessInfo.processInfo.arguments[index + 1]
             }
         } catch {
             AppLog.error(operation: "confirmManual.load", category: .ui, error: error)
@@ -692,4 +698,3 @@ private extension ManualFillUpView {
         .background(Theme.Palette.midnight)
     }
 }
-

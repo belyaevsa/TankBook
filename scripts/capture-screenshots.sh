@@ -467,6 +467,16 @@ capture PJ.6-typeit-service-ru ru -seedVehicleForUITests -presentScreen capture 
 capture PJ.12-capture-ev    en -presentScreen capture -cameraStatus authorized -powertrain ev
 capture PJ.12-capture-ev-ru ru -presentScreen capture -cameraStatus authorized -powertrain ev
 
+# PJ.14: the live "+N km since last" odometer caption (docs/DESIGN.md -> the
+# Pump Card) - the positive-delta state (120 000 vs the seeded 119 486 = +514)
+# and the amber pace warn (130 000 over 6 days = 1 752/day > the seeded 1 500).
+# `-screenshotOdometer` lands the value without typing; RU is where the caption
+# runs longest ("+514 километров с прошлой заправки").
+capture PJ.14-odometer-delta    en -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 120000
+capture PJ.14-odometer-delta-ru ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 120000
+capture PJ.14-odometer-warn     en -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 130000
+capture PJ.14-odometer-warn-ru  ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 130000
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

@@ -37,7 +37,8 @@ struct ManualFillUpFormState: Equatable {
     /// The 100 ⇔ full invariant is enforced on save: full always writes 100.
     var tankLevelAfterPct: Double?
     /// The odometer in the vehicle's distance unit, pre-filled from the last
-    /// known value ("last known · update after typing fuel" - artboard).
+    /// known value; the live "+N km since last" caption under it (PJ.14)
+    /// reacts to what is typed here.
     var odometer = ""
     var date = Date()
 

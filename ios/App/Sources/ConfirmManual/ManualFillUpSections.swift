@@ -393,9 +393,14 @@ struct ManualFillUpOdometerCard: View {
     let distanceUnit: DistanceUnit
     let conflict: OdometerConflict?
     let onFixDate: () -> Void
-    /// The helper caption under the row; ConfirmManual explains the last-known
-    /// pre-fill, the Edit screen passes `nil` (its odometer is not a pre-fill).
-    var caption: LocalizedStringKey? = "last known · update after typing fuel"
+    /// PJ.14: the last-known odometer reference for the live "+N km since last"
+    /// caption (docs/VISION.md -> Fill-up log; docs/DESIGN.md -> the Pump
+    /// Card). ConfirmManual passes the derived last known; the Edit screen
+    /// passes nil (its odometer is not a pre-fill) and renders no caption.
+    /// `paceLimitKmPerDay` is the vehicle's own pace rule (default 1500,
+    /// docs/SCHEMA.md).
+    var lastKnown: OdometerLastKnown?
+    var paceLimitKmPerDay: Double = 1500
 
     var body: some View {
         VStack(spacing: 0) {
@@ -403,16 +408,52 @@ struct ManualFillUpOdometerCard: View {
             if let conflict {
                 warningRow(conflict)
             }
-            if let caption {
-                Text(caption)
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                    .padding(.horizontal, Theme.Spacing.cardPadding)
-                    .padding(.bottom, 12)
-            }
+            caption
         }
         .formCard()
+    }
+
+    /// PJ.14: the live delta caption, computed in core (`OdometerDelta`) so the
+    /// four states are L1-testable - a view-only caption would only be reachable
+    /// by XCUITest, which asserts behaviour and never values (the P3.7 lesson).
+    /// Amber is attention, never alarm (hard rule 5): only a backwards odometer
+    /// and an exceeded pace warn, and the caption never blocks the save - an
+    /// implausible odometer warns and the user decides (hard rule 13).
+    @ViewBuilder
+    private var caption: some View {
+        if let delta = deltaValue {
+            captionText(delta)
+                .font(.caption2)
+                .foregroundStyle(delta.state.isWarning ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, Theme.Spacing.cardPadding)
+                .padding(.bottom, 12)
+                .accessibilityIdentifier("manualFillUpOdometerCaption")
+        }
+    }
+
+    /// The delta itself, evaluated fresh on every render so the caption reacts
+    /// live as the user types (the form binding re-renders the card).
+    private var deltaValue: OdometerDelta? {
+        OdometerDelta.evaluate(typed: form.odometerValue,
+                               lastKnown: lastKnown?.odometer,
+                               lastKnownDate: lastKnown?.date,
+                               entryDate: form.date,
+                               paceLimitKmPerDay: paceLimitKmPerDay)
+    }
+
+    /// The localized caption per state. The forward case is an interpolated
+    /// literal (`Text(_: LocalizedStringKey)`) so the catalogue's plural
+    /// variations render; the warn/equal cases are plain literals. The `Text`
+    /// wrapper is deliberate - a bare `LocalizedStringKey` return would hide the
+    /// literals from the P0.3 localization gate.
+    private func captionText(_ delta: OdometerDelta) -> Text {
+        switch delta.state {
+        case .forward: return Text("+\(delta.km) km since last")
+        case .equal: return Text("Same as last")
+        case .backwards: return Text("Odometer went backwards – check it.")
+        case .pace: return Text("Daily pace over the limit – check it.")
+        }
     }
 
     private var odometerRow: some View {

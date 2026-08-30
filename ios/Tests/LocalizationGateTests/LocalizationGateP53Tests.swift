@@ -313,7 +313,16 @@ struct LocalizationGateP53Tests {
             ("%@ in %lld days",
              [1: "Volvo V60 через 1 день", 2: "Volvo V60 через 2 дня",
               5: "Volvo V60 через 5 дней", 11: "Volvo V60 через 11 дней",
-              21: "Volvo V60 через 21 день"])
+              21: "Volvo V60 через 21 день"]),
+            // PJ.14: the live odometer-delta caption (docs/DESIGN.md -> the
+            // Pump Card). RU spells out the unit so the count governs a real
+            // three-form plural (километр / километра / километров) - the 11/21
+            // edge is the same trap as every other count key: 11 takes `many`,
+            // 21 takes `one`.
+            ("+%lld km since last",
+             [1: "+1 километр с прошлой заправки", 2: "+2 километра с прошлой заправки",
+              5: "+5 километров с прошлой заправки", 11: "+11 километров с прошлой заправки",
+              21: "+21 километр с прошлой заправки"])
         ]
 
     /// Russian plural selection is not 1/2/5: 11 ends in 1 but takes `many`,

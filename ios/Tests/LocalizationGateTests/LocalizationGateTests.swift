@@ -252,7 +252,7 @@ struct LocalizationGateTests {
         }
 
         struct FakeModel {
-            var caption: LocalizedStringKey? = "last known · update after typing fuel"
+            var caption: LocalizedStringKey? = "Save fill-up"
         }
         """
         try content.write(to: file, atomically: true, encoding: .utf8)
