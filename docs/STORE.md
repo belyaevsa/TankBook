@@ -87,3 +87,54 @@ background mode the app does not use is itself a rejection reason**. Add
   page, and a store listing is harder to correct than a website.
 - **Age rating, category** (Finance or Travel - decide deliberately; the category
   affects who finds it), and the export-compliance answer above.
+
+## Release checklist (written 2026-08-30 for SH.2; the "why" is the point of each line)
+
+The Apple developer portal has three doors – **Certificates, IDs & Profiles**, **App Store
+Connect**, **Services** – and each artefact has exactly one home. Nothing store-related is typed
+twice, and nothing that lives in this repo is re-declared on the portal by hand.
+
+### 1 · Certificates, IDs & Profiles (identity – once per app, rarely touched)
+
+| Step | Where | Why |
+|---|---|---|
+| **Identifier**: register the App ID `app.tankbook.Tankbook` (explicit, not wildcard) | Identifiers → App IDs | The bundle id in `project.yml` (`bundleIdPrefix: app.tankbook`) is the app's identity everywhere: builds, TestFlight, the store record, Sign in with Apple's `aud` claim. It cannot change after the first upload |
+| Enable the **Sign in with Apple** capability on that App ID | Identifiers → the App ID → Capabilities | The app signs in with `ASAuthorizationController` only (`AppIDTokenProvider.swift`); without the capability the request fails at runtime, and the entitlement must match |
+| Do **not** enable Push Notifications, Background Modes, Associated Domains yet | – | Nothing in the app calls `registerForRemoteNotifications`; declaring what the app does not use is a rejection reason (`UIBackgroundModes` note above). PR.20 adds push and the capability together |
+| **Certificates**: none by hand | Certificates | Let Xcode manage them (automatic signing). The distribution certificate is created on first archive with the team selected. Manual certificates only for CI (SH.2's later half) |
+| **Profiles**: none by hand | Profiles | Same – automatic signing generates the App Store profile. Manual profiles rot |
+| **Devices**: add your iPhone 12 (the iOS 18 floor device) and the phone you test on | Devices | Development builds and ad-hoc installs need the UDID registered; TestFlight builds do not |
+| **Keys**: one **App Store Connect API key** (role App Manager), stored in the platform secret store – never in the repo | Keys | Lets `xcodebuild -exportArchive` / `altool` upload without a session; needed the day CI uploads builds. Not needed for a first manual upload from Xcode |
+
+Repo side of this section: `project.yml` gets `DEVELOPMENT_TEAM: <team id>`, `CODE_SIGN_STYLE: Automatic`, and an entitlements file `ios/App/Tankbook.entitlements` carrying `com.apple.developer.applesignin = [Default]`. All three are committed – an IPA is a zip and none of these is a secret.
+
+### 2 · App Store Connect (the listing and the builds)
+
+| Step | Where | What you type, and its source of truth |
+|---|---|---|
+| **Create the app record**: name `Tankbook`, primary language English, bundle id from step 1, SKU `tankbook-ios` | Apps → + | The App Store id this creates goes into `AppConfigService.compiledAppStoreID` and the site's `params.appStoreId` – the two places that deliberately stay empty until it exists |
+| **App Information**: subtitle, category (Finance vs Travel – decide; see above), content rights, age rating questionnaire, Privacy Policy URL `https://tankbook.live/privacy/` | App Information | Copy comes from this document; the URL from the live site |
+| **Pricing**: Free, all territories except where you decide otherwise | Pricing and Availability | `VISION.md`: free tier fully usable; Pro is v2 |
+| **App Privacy** questionnaire | App Privacy | Must agree with `PrivacyInfo.xcprivacy` (in the build) and `tankbook.live/privacy/` – the three-way rule above. Data collected: email (account, when signed in), device id, the synced records; none for tracking; none linked to identity beyond the account itself |
+| **Localizations**: add Russian; description, keywords, promotional text, What's New – EN and RU | Version → Localizable | Copy bound by `SITE.md`'s rule: never "zero typing", never "automatic" as the verb; never name the QR (VISION, 2026-08-30) |
+| **Screenshots**: 6.9" (1320×2868) required; 6.5" optional; EN and RU sets | Version → App Previews and Screenshots | **Not the `design/screenshots/` files** – those are engineering evidence at one size with a simulator status bar. Store art is captured on the iPhone 17 Pro Max simulator with `simctl status_bar override` (9:41, full battery), dark theme, from the same seeds the capture script uses, and kept under `design/store/` so they are reproducible |
+| **App icon** | – | Nothing to upload: App Store Connect reads the 1024 px icon from the build's asset catalog (`AppIcon.appiconset`). The generated alternative stays in `design/brand/alt-pistol-plug/` and is not uploaded |
+| **Support URL / Marketing URL** | Version | `https://tankbook.live/support/` · `https://tankbook.live/` |
+| **Export compliance** | Version → build → compliance | Answered once by `ITSAppUsesNonExemptEncryption: false` in the build; confirm the legal declaration deliberately (above) |
+| **Sign-in demo account** for App Review | Version → App Review Information | Review must be able to exercise Sign in with Apple; provide notes that the app is fully usable without an account, and that sync needs the backend (SH.1) to be up during review |
+| **TestFlight**: internal group (you, the floor device), then external with Beta App Review; "What to Test" per build | TestFlight | Internal testers get the build minutes after upload; external needs a review pass. The launch-readiness walk (SH.3) runs on the TestFlight build, not on a debug install |
+
+### 3 · Services
+
+Nothing today. **Push Notifications** and **CloudKit** stay untouched (no push client yet; CloudKit was rejected by decision – the backend is the sync hub). **Xcode Cloud** is an option for SH.2's CI half but the self-hosted runner that builds the site is the current plan.
+
+### 4 · Repo side, before the first archive
+
+1. `project.yml`: `DEVELOPMENT_TEAM`, automatic signing, the entitlements file; `CFBundleVersion` becomes a build number that increases on every upload (the archive step sets it from a counter or the commit count – App Store Connect rejects a reused build number).
+2. `xcodegen generate && xcodebuild -scheme Tankbook -configuration Release archive -archivePath build/Tankbook.xcarchive`, then `-exportArchive` with `method: app-store-connect` and upload (Xcode Organizer or `xcrun altool`/the API key). Record the exact commands in `scripts/release.sh` so SH.2 has one documented path.
+3. Backend (SH.1): `Auth:Audience` must equal the **bundle id** for Apple id tokens (`aud` = `app.tankbook.Tankbook`), not the default `tankbook-app`; Google is not wired in the app (see SH.4).
+4. After the record exists: the App Store id into `compiledAppStoreID`, the site `params.appStoreId`, and `CONFIG.md`'s `appUpdate` document.
+
+### 5 · Why in this order
+
+Identity first because the bundle id and the Sign in with Apple capability are immutable inputs to everything after; the store record second because it yields the App Store id the app and the site are waiting for; the archive last because it is the only step that can be repeated freely. Screenshots and copy can be prepared in parallel with all of it – they are typed into App Store Connect, never built.

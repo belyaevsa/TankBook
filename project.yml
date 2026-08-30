@@ -42,7 +42,7 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: "Tankbook uses the camera to scan receipts, pump displays and fiscal QR codes so you do not have to type them."
+        NSCameraUsageDescription: "Tankbook uses the camera to scan receipts and pump displays so you do not have to type them."
         NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
     settings:
       base:
