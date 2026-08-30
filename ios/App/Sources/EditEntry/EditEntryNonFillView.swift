@@ -55,6 +55,7 @@ struct EditEntryNonFillView: View {
                             .font(.custom(AppFonts.dinAlternateBold, size: 24))
                             .foregroundStyle(Theme.Palette.ink)
                             .accessibilityIdentifier("editEntryEnergyField")
+                            .numericInput($form.energyKWh, kind: .decimal)
                         Text(L10n.kWh)
                             .font(.caption)
                             .foregroundStyle(Theme.Palette.inkSoft)
@@ -103,6 +104,7 @@ struct EditEntryNonFillView: View {
                         .font(.custom(AppFonts.dinAlternateBold, size: 24))
                         .foregroundStyle(Theme.Palette.ink)
                         .accessibilityIdentifier("editEntryAmountField")
+                        .numericInput($form.amount, kind: .decimal)
                     Text(AddVehicleSupport.currencySymbol(for: form.currency))
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
@@ -131,6 +133,7 @@ struct EditEntryNonFillView: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .focused($odometerFocused)
                     .accessibilityIdentifier("editEntryOdometerField")
+                    .numericInput($form.odometer, kind: .integer)
                     .onChange(of: odometerFocused) { oldValue, newValue in
                         if newValue {
                             form.odometer = OdometerFormat.ungrouped(form.odometer)

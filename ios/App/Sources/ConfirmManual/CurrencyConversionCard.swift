@@ -200,6 +200,7 @@ struct ForeignCurrencyCard: View {
                 .font(.custom(AppFonts.dinAlternateBold, size: 18))
                 .foregroundStyle(Theme.Palette.ink)
                 .accessibilityIdentifier("manualFillUpManualRateField")
+                .numericInput($manualRate, kind: .decimal)
             Text(ratePair)
                 .font(.caption)
                 .fontWeight(.semibold)

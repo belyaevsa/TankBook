@@ -269,6 +269,7 @@ struct ServiceEntryDateOdometerCard: View {
                     .fieldUnderline(isFocused: focus == .odometer,
                                     warn: odometerRequired && form.odometerValue == nil)
                     .accessibilityIdentifier("serviceEntryOdometerField")
+                    .numericInput($form.odometer, kind: .integer)
                     .onChange(of: focus) { oldValue, newValue in
                         if newValue == .odometer {
                             form.odometer = OdometerFormat.ungrouped(form.odometer)
@@ -364,6 +365,7 @@ struct ServiceEntryItemCard: View {
                     .frame(maxWidth: 96)
                     .opacity(isDimmed ? ConfirmConfidenceGate.dimmedOpacity : 1)
                     .accessibilityIdentifier("serviceEntryItemCost")
+                    .numericInput($item.cost, kind: .decimal)
             }
             HStack {
                 categoryMenu

@@ -117,6 +117,7 @@ struct ImportOdometerCell: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .submitLabel(.done)
                     .onSubmit(onSubmit)
+                    .numericInput($text, kind: .integer)
             } else if let odo = fill.odometer {
                 Text("\(ImportFormatting.odometer(odo)) \(L10n.distanceUnit(distanceUnit))")
                     .font(.system(size: 15, weight: .bold))
@@ -159,6 +160,7 @@ struct ImportTotalEditorCell: View {
                 .foregroundStyle(Theme.Palette.ink)
                 .submitLabel(.done)
                 .onSubmit(onSubmit)
+                .numericInput($text, kind: .decimal)
         }
         .padding(9)
         .frame(maxWidth: .infinity, alignment: .leading)

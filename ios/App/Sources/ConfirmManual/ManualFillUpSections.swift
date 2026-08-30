@@ -114,10 +114,16 @@ struct ManualFillUpNumbersCard: View {
         Binding(
             get: { form.displayText(for: field, volumeUnit: volumeUnit) ?? "" },
             set: { newValue in
+                // P2.15: filtered here, not via `.numericInput`, because this
+                // card shows a DERIVED value in an empty field - a change-based
+                // filter fires on the derived figure and a write-back mid-edit
+                // destabilises the cursor. Filtering in the set keeps the model
+                // clean without re-rendering the field out from under the user.
+                let cleaned = NumericInputSanitizer.sanitize(newValue, kind: .decimal)
                 switch field {
-                case .total: form.total = newValue
-                case .volume: form.liters = newValue
-                case .unitPrice: form.pricePerL = newValue
+                case .total: form.total = cleaned
+                case .volume: form.liters = cleaned
+                case .unitPrice: form.pricePerL = cleaned
                 }
                 // Typing IS the confirmation (DESIGN.md: dimmed "until
                 // confirmed by tap or edit").
@@ -316,75 +322,6 @@ struct ManualFillUpNumbersCard: View {
     }
 }
 
-// MARK: - Fuel kind + full-tank toggle
-
-struct ManualFillUpFuelFullCard: View {
-    @Binding var form: ManualFillUpFormState
-    let fuelKinds: [FuelKind]
-
-    var body: some View {
-        VStack(spacing: 0) {
-            FieldRow("Fuel") {
-                HStack(spacing: 6) {
-                    ForEach(fuelKinds, id: \.self) { kind in
-                        chip(kind)
-                    }
-                }
-            }
-            CardDivider()
-            fullToggleRow
-        }
-        .formCard()
-    }
-
-    private func chip(_ kind: FuelKind) -> some View {
-        let selected = form.fuelKind == kind
-        return Button {
-            form.fuelKind = kind
-        } label: {
-            Text(kind.labelKey)
-                .font(.footnote.weight(selected ? .bold : .semibold))
-                .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
-                .padding(.horizontal, 13)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(selected ? Theme.Palette.taillight.opacity(0.14) : Theme.Palette.dash))
-                .overlay(Capsule().stroke(selected ? Theme.Palette.taillight : Theme.Palette.hairline,
-                                          lineWidth: selected ? 1.5 : 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("manualFillUpFuelKind_\(kind.rawValue)")
-    }
-
-    private var fullToggleRow: some View {
-        HStack {
-            Text("Full tank")
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 8)
-            Toggle("", isOn: Binding(
-                get: { form.isFull },
-                set: { full in
-                    form.isFull = full
-                    // The 100 ⇔ full invariant (docs/SCHEMA.md): turning the
-                    // toggle on is a 100% tank, turning it off from a full
-                    // state is a bare partial (the tank row then offers the
-                    // sheet to set a real level).
-                    if full {
-                        form.tankLevelAfterPct = 100
-                    } else if form.tankLevelAfterPct == 100 {
-                        form.tankLevelAfterPct = nil
-                    }
-                }
-            ))
-            .labelsHidden()
-            .tint(Theme.Palette.taillight)
-            .accessibilityIdentifier("manualFillUpIsFullToggle")
-        }
-        .padding(.horizontal, Theme.Spacing.cardPadding)
-        .padding(.vertical, 12)
-    }
-}
-
 // MARK: - Odometer
 
 struct ManualFillUpOdometerCard: View {
@@ -467,6 +404,7 @@ struct ManualFillUpOdometerCard: View {
                     .focused($focus, equals: .odometer)
                     .fieldUnderline(isFocused: focus == .odometer, warn: conflict != nil)
                     .accessibilityIdentifier("manualFillUpOdometerField")
+                    .numericInput($form.odometer, kind: .integer)
                     .onChange(of: focus) { oldValue, newValue in
                         // Format-on-blur (HANDOVER.md open item 0): grouped
                         // digits belong in DISPLAY, not in a field being typed

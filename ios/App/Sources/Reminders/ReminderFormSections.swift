@@ -170,6 +170,7 @@ struct ReminderFormDueCard: View {
                 .fieldUnderline(isFocused: focus == .odometer,
                                 warn: form.readiness == .noDueField)
                 .accessibilityIdentifier("reminderFormOdometerField")
+                .numericInput($form.dueOdometer, kind: .integer)
                 .onChange(of: focus) { oldValue, newValue in
                     if newValue == .odometer {
                         form.dueOdometer = OdometerFormat.ungrouped(form.dueOdometer)
@@ -254,6 +255,7 @@ struct ReminderFormRecurrenceCard: View {
                 .foregroundStyle(Theme.Palette.ink)
                 .frame(maxWidth: 90)
                 .accessibilityIdentifier(identifier)
+                .numericInput(text, kind: .integer)
             Text(unit)
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)

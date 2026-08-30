@@ -25,7 +25,7 @@ enum TargetCar: Equatable {
         return .new(Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: name, make: nil, model: nil, year: nil, plate: nil,
-            powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: nil, batteryCapacityKWh: nil,
             homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l,

@@ -93,7 +93,10 @@ enum HomeTestSeed {
     /// receipt) and attached receipts on two entries. The "Full" state
     /// (design/screens/HomeA.dc.html).
     private static func seedFullHistory(_ repository: TankbookRepository) {
-        let vehicle = makeVehicle()
+        // A realistic multi-fuel car (petrol + LPG, docs/SCHEMA.md): the D4
+        // "Full" state must show the conditional fuel-kind badge on the log
+        // rows, and the car's fills are 95, so the badge reads "95".
+        let vehicle = makeVehicle(fuelKinds: [.petrol95, .lpg])
         try? repository.upsertVehicle(vehicle)
         let shell = makeStation(repository, name: "Shell")
         let neste = makeStation(repository, name: "Neste")
@@ -257,8 +260,12 @@ enum HomeTestSeed {
 
     // MARK: - Fixture builders
 
-    /// Shared with `TrendsTestSeed` (same fixture shapes, one source).
-    static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95, .diesel]) -> Vehicle {
+    /// Shared with `TrendsTestSeed` (same fixture shapes, one source). The
+    /// default is a single-kind petrol car - a car that burns two fuels that
+    /// cannot share a tank does not exist, so the old `[.petrol95, .diesel]`
+    /// default is gone; callers wanting a multi-fuel car pass a realistic pair
+    /// (`seedFullHistory` uses petrol + LPG).
+    static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95]) -> Vehicle {
         let now = Date()
         return Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,

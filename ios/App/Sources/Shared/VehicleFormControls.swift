@@ -3,6 +3,28 @@ import SwiftUI
 import TankbookCore
 import UIKit
 
+// MARK: - Numeric input filtering (P2.15)
+
+/// Filters a numeric field's writes through `NumericInputSanitizer` as the
+/// value changes, then writes the cleaned value back. The write-back is what
+/// forces the TextField's display to re-sync: filtering inside a Binding's
+/// `set` leaves the field showing the raw text while the model stays clean,
+/// because a `set` that resolves to the previous value never re-renders the
+/// TextField. `keyboardType` is a hint, not a constraint - a hardware keyboard
+/// (the simulator), paste and dictation all bypass it - so every numeric field
+/// routes its changes through this one place. The rule itself lives in core and
+/// is unit-tested there; the app layer only applies it.
+extension View {
+    func numericInput(_ value: Binding<String>, kind: NumericInputSanitizer.Kind) -> some View {
+        onChange(of: value.wrappedValue) { _, newValue in
+            let cleaned = NumericInputSanitizer.sanitize(newValue, kind: kind)
+            if cleaned != newValue {
+                value.wrappedValue = cleaned
+            }
+        }
+    }
+}
+
 // MARK: - Photo tile
 
 /// The optional car photo tile (Add-car artboard): dashed card, system photo
@@ -260,12 +282,9 @@ struct VehicleFuelPills: View {
 
     private func pill(_ kind: FuelKind) -> some View {
         let selected = selectedFuelKinds.contains(kind)
+        let blocked = isBlocked(kind)
         return Button {
-            if selected {
-                selectedFuelKinds.remove(kind)
-            } else {
-                selectedFuelKinds.insert(kind)
-            }
+            toggle(kind)
         } label: {
             Text(kind.labelKey)
                 .font(.footnote.weight(selected ? .bold : .semibold))
@@ -279,17 +298,46 @@ struct VehicleFuelPills: View {
                 )
         }
         .buttonStyle(.plain)
+        .disabled(blocked)
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("\(idPrefix)FuelKind_\(kind.rawValue)")
+    }
+
+    /// The fuel-kind selection rule (P2.3b, docs/DESIGN.md): diesel and a
+    /// petrol grade never share a car. A tap that would create such a car is
+    /// refused - the conflicting pill renders disabled instead, so the
+    /// selection is always a combination that exists. Petrol grades
+    /// (92/95/98/100) share a tank and are a real driver's choice, and
+    /// LPG/CNG/E85 beside petrol are real bi-fuel and flex-fuel fits; only
+    /// diesel-meets-petrol is impossible. The rule lives in core
+    /// (`FuelKind.isRealisticCombination`) so the Confirm fuel row and the
+    /// Add-car screen cannot drift apart on what a car may burn.
+    private func toggle(_ kind: FuelKind) {
+        if selectedFuelKinds.contains(kind) {
+            selectedFuelKinds.remove(kind)
+        } else if FuelKind.isRealisticCombination(selectedFuelKinds.union([kind])) {
+            selectedFuelKinds.insert(kind)
+        }
+    }
+
+    /// Whether adding this kind to the current selection would produce an
+    /// impossible car (and the tap must therefore be refused). A kind already
+    /// selected is never blocked - toggling it off is always allowed.
+    private func isBlocked(_ kind: FuelKind) -> Bool {
+        guard !selectedFuelKinds.contains(kind) else { return false }
+        return !FuelKind.isRealisticCombination(selectedFuelKinds.union([kind]))
     }
 
     private var addFuelMenu: some View {
         Menu {
             ForEach(remainingKinds, id: \.self) { kind in
                 Button {
-                    selectedFuelKinds.insert(kind)
+                    toggle(kind)
                 } label: {
                     Text(kind.labelKey)
                 }
+                .disabled(isBlocked(kind))
+                .accessibilityIdentifier("\(idPrefix)AddFuelMenu_\(kind.rawValue)")
             }
         } label: {
             Text("+")
@@ -326,6 +374,7 @@ struct VehicleCapacityField: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .focused($focus, equals: .capacity)
                     .accessibilityIdentifier("\(idPrefix)TankCapacityField")
+                    .numericInput($capacity, kind: .decimal)
                 Text(isElectric ? L10n.kWh : L10n.volumeUnit(volumeUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
@@ -398,6 +447,7 @@ struct VehicleOdometerField: View {
                 .focused($focus, equals: .odometer)
                 .fieldUnderline(isFocused: focus == .odometer, warn: warn)
                 .accessibilityIdentifier("\(idPrefix)OdometerField")
+                .numericInput($odometer, kind: .integer)
                 .onChange(of: odometer) { _, _ in onEdit() }
                 .onChange(of: focus) { oldValue, newValue in
                     if newValue == .odometer {

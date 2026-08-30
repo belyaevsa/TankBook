@@ -152,6 +152,7 @@ struct ExpenseEntryView: View {
                     .font(.custom(AppFonts.dinAlternateBold, size: 24))
                     .foregroundStyle(Theme.Palette.ink)
                     .accessibilityIdentifier("expenseEntryAmountField")
+                    .numericInput($form.amount, kind: .decimal)
                 Text(AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)

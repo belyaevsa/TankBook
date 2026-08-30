@@ -48,7 +48,7 @@ enum ReminderTestSeed {
         let vehicle = Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
-            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
@@ -76,7 +76,7 @@ enum ReminderTestSeed {
         let vehicle = Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
-            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),

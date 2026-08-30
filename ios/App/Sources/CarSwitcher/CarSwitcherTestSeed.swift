@@ -41,7 +41,7 @@ enum CarSwitcherTestSeed {
         let volvo = Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
-            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .lpg],
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
@@ -137,7 +137,7 @@ enum CarSwitcherTestSeed {
             ("Kia Niro", Powertrain.hybrid)
         ]
         for (name, powertrain) in live {
-            let fuelKinds: [FuelKind] = powertrain == .ev ? [.electricity] : [.petrol95, .diesel]
+            let fuelKinds: [FuelKind] = powertrain == .ev ? [.electricity] : [.petrol95]
             try? repository.upsertVehicle(Vehicle(
                 id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
                 name: name, make: nil, model: nil, year: 2021, plate: nil,

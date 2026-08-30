@@ -227,4 +227,74 @@ final class AddVehicleUITests: XCTestCase {
         scrollTo(capacity, in: app)
         XCTAssertEqual(capacity.value as? String, "71")
     }
+
+    // MARK: - P2.3b fuel pills reject impossible combinations
+
+    /// The fuel-kind rule (docs/DESIGN.md): diesel and a petrol grade never
+    /// share a tank - no such car exists - while petrol grades share a tank
+    /// and LPG/CNG/E85 beside petrol are real bi-fuel and flex-fuel fits.
+    /// Add car refuses the impossible pair: a conflicting pill renders
+    /// disabled (a tap could never land), so the form can only save a
+    /// combination that exists. `isEnabled` is the assertion - a blocked pill
+    /// is unselectable, an allowed one is not - and `isSelected` proves the
+    /// allowed pairs actually select together.
+    func testFuelPillsRejectDieselWhilePetrolIsSelected() {
+        let app = launch()
+        openAddCar(app)
+
+        // The locale default is a petrol car: diesel is blocked, the other
+        // grades and LPG are not.
+        let petrol95 = app.buttons["addVehicleFuelKind_petrol95"]
+        scrollTo(petrol95, in: app)
+        XCTAssertTrue(petrol95.isSelected, "the locale default is a petrol car")
+        XCTAssertFalse(app.buttons["addVehicleFuelKind_diesel"].isEnabled,
+                       "a petrol car must not be offered diesel")
+        XCTAssertTrue(app.buttons["addVehicleFuelKind_petrol98"].isEnabled,
+                      "petrol grades share a tank and are a real choice")
+
+        // Petrol + LPG is a real bi-fuel car: selectable, and selecting it
+        // keeps the petrol grade - the pair persists.
+        let lpg = app.buttons["addVehicleFuelKind_lpg"]
+        XCTAssertTrue(lpg.isEnabled, "petrol + LPG is a real car")
+        lpg.tap()
+        XCTAssertTrue(lpg.isSelected, "LPG lands in the selection")
+        XCTAssertTrue(petrol95.isSelected, "selecting LPG must not drop the petrol grade")
+        XCTAssertFalse(app.buttons["addVehicleFuelKind_diesel"].isEnabled,
+                       "diesel stays blocked beside the pair")
+    }
+
+    func testFuelPillsRejectPetrolWhileDieselIsSelected() {
+        let app = launch()
+        openAddCar(app)
+
+        // Drop every selected petrol grade so diesel becomes selectable (the
+        // RU locale defaults to 92 + 95, so loop rather than assume one).
+        let petrol95 = app.buttons["addVehicleFuelKind_petrol95"]
+        scrollTo(petrol95, in: app)
+        for identifier in ["addVehicleFuelKind_petrol92",
+                           "addVehicleFuelKind_petrol95",
+                           "addVehicleFuelKind_petrol98"] {
+            let pill = app.buttons[identifier]
+            if pill.exists && pill.isSelected {
+                pill.tap()
+            }
+        }
+        XCTAssertFalse(petrol95.isSelected, "the petrol grade was dropped")
+
+        // Diesel is now selectable, and selecting it blocks every petrol grade.
+        let diesel = app.buttons["addVehicleFuelKind_diesel"]
+        XCTAssertTrue(diesel.isEnabled, "diesel is selectable once no petrol grade is chosen")
+        diesel.tap()
+        XCTAssertTrue(diesel.isSelected)
+        XCTAssertFalse(petrol95.isEnabled, "a diesel car must not be offered petrol")
+        XCTAssertFalse(app.buttons["addVehicleFuelKind_petrol98"].isEnabled,
+                       "no petrol grade may sit beside diesel")
+
+        // Diesel + LPG is a real conversion: still selectable, and it persists.
+        let lpg = app.buttons["addVehicleFuelKind_lpg"]
+        XCTAssertTrue(lpg.isEnabled, "diesel + LPG is a real conversion")
+        lpg.tap()
+        XCTAssertTrue(lpg.isSelected, "LPG lands beside diesel")
+        XCTAssertTrue(diesel.isSelected, "selecting LPG must not drop diesel")
+    }
 }

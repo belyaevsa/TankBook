@@ -108,11 +108,12 @@ final class VehicleDetailUITests: XCTestCase {
         let ev = app.buttons["vehicleDetailPowertrainEV"]
         XCTAssertTrue(ev.exists)
 
-        // Fuel pills - the seeded petrol95 + diesel are both toggleable.
+        // Fuel pills - the seeded petrol + LPG pair are both toggleable (the
+        // seed is a REAL multi-fuel car; diesel-with-petrol would be impossible).
         let petrol95 = app.buttons["vehicleDetailFuelKind_petrol95"]
-        let diesel = app.buttons["vehicleDetailFuelKind_diesel"]
+        let lpg = app.buttons["vehicleDetailFuelKind_lpg"]
         XCTAssertTrue(petrol95.exists)
-        XCTAssertTrue(diesel.exists)
+        XCTAssertTrue(lpg.exists)
 
         // Tank capacity - the seeded 71 L is in the field and editable.
         let capacity = app.textFields["vehicleDetailTankCapacityField"]

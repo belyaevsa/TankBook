@@ -13,6 +13,30 @@ public enum FuelKind: String, Codable, Sendable, CaseIterable {
     case electricity
 }
 
+extension FuelKind {
+    /// The petrol grades. They share one tank and are a real driver's choice -
+    /// a 92/95 car can burn either, so a driver logging against it is choosing
+    /// between grades, not switching fuels (docs/DESIGN.md).
+    public var isPetrolGrade: Bool {
+        switch self {
+        case .petrol92, .petrol95, .petrol98, .petrol100: return true
+        case .diesel, .lpg, .cng, .e85, .electricity: return false
+        }
+    }
+
+    /// Whether this set of kinds can all be ONE car. Diesel and a petrol grade
+    /// cannot share a tank - no such car exists - while petrol grades share a
+    /// tank and LPG/CNG/E85 beside petrol are real bi-fuel and flex-fuel fits
+    /// (docs/DESIGN.md). The rule guards INPUT exactly as DESIGN.md guards
+    /// display: the combination the Confirm fuel row may offer is the one
+    /// AddVehicle may save.
+    public static func isRealisticCombination(_ kinds: Set<FuelKind>) -> Bool {
+        let hasDiesel = kinds.contains(.diesel)
+        let hasPetrol = kinds.contains { $0.isPetrolGrade }
+        return !(hasDiesel && hasPetrol)
+    }
+}
+
 /// Vehicle drivetrain (docs/SCHEMA.md, Vehicle.powertrain).
 public enum Powertrain: String, Codable, Sendable, CaseIterable {
     case ice
