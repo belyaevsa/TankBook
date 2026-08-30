@@ -231,7 +231,7 @@ final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
             return (state.failAll, next)
         }
 
-        if snapshot.failAll { throw SyncServerError.transportUnavailable }
+        if snapshot.failAll { throw SyncServerError.offline }
         if let next = snapshot.next { return try next.get() }
         return SyncPullResponse(records: [], nextSince: since, more: false,
                                 schemaPolicy: SyncSchemaPolicy(minSupported: 1, current: 1))
@@ -253,7 +253,7 @@ final class SyncTransportDouble: SyncTransport, @unchecked Sendable {
                             current: state.conflictCurrent, next: next)
         }
 
-        if snapshot.failAll { throw SyncServerError.transportUnavailable }
+        if snapshot.failAll { throw SyncServerError.offline }
         if snapshot.alwaysConflict, let current = snapshot.current {
             return SyncPushResponse(results: changes.map {
                 SyncPushResult(id: $0.id, status: .conflict(current: current))

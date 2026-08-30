@@ -509,7 +509,8 @@ private struct SettingsSyncSurface: View {
                 icon: "wifi.exclamationmark",
                 iconColor: Theme.Palette.inkSoft,
                 message: L10n.syncServiceUnreachableMessage,
-                identifier: "settingsServerCard"
+                identifier: "settingsServerCard",
+                messageIdentifier: "settingsServerCardMessage"
             ) {
                 Button("Try again") {
                     Task { await sync.syncNow() }
@@ -576,6 +577,7 @@ private struct SettingsSyncSurface: View {
     /// issues that belong in Settings with their next step (docs/SYNC.md).
     private func transportCard(icon: String, iconColor: Color, message: String,
                                identifier: String,
+                               messageIdentifier: String? = nil,
                                @ViewBuilder action: () -> some View) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
@@ -588,6 +590,7 @@ private struct SettingsSyncSurface: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .lineSpacing(1.5)
                     .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(messageIdentifier ?? "")
                 Spacer(minLength: 0)
             }
             action()

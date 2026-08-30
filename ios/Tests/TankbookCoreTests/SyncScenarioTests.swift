@@ -334,14 +334,14 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     try repo.upsertFillUp(f2)
 
     let outcome1 = await engine.synchronize()
-    #expect(outcome1.transportUnavailable)
+    #expect(outcome1.offline)
     #expect(try repo.liveFillUps(forVehicle: vehicleId).count == 2, "nothing is sync-gated")
     #expect(try repo.fetchDirtyRows().count == 2, "rows remain queued, not stuck in pushing")
 
     // Recovery: the queue drains, pull before push.
     transport.setFailAll(false)
     let outcome2 = await engine.synchronize()
-    #expect(!outcome2.transportUnavailable)
+    #expect(!outcome2.offline)
     #expect(try repo.fetchDirtyRows().isEmpty, "the queue drained on recovery")
     #expect(!transport.recordedCallOrder.isEmpty)
     #expect(transport.recordedCallOrder.first == "pull", "the cycle pulls before it pushes")
@@ -363,11 +363,11 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     let transport1 = SyncTransportDouble()
     transport1.enqueuePull(SyncPullResponse(
         records: [makePullRecord(f1, scn: 10)], nextSince: 10, more: true, schemaPolicy: policy))
-    transport1.enqueuePullError(.transportUnavailable)
+    transport1.enqueuePullError(.offline)
 
     let engine1 = makeSyncEngine(repository: repo, transport: transport1, cursor: cursor)
     let outcome1 = await engine1.synchronize()
-    #expect(outcome1.transportUnavailable)
+    #expect(outcome1.offline)
     #expect(try cursor.load() == 10, "the cursor is persisted only after the page is applied")
     #expect(try repo.liveFillUps(forVehicle: vehicleId).count == 1)
 

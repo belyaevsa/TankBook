@@ -55,6 +55,29 @@ private func pullError(status: Int, headers: [String: String] = [:]) async -> Sy
     }
 }
 
+private struct ThrowingTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        throw URLError(.notConnectedToInternet)
+    }
+}
+
+private func pullTransportError() async -> SyncServerError? {
+    let transport = RemoteSyncTransport(
+        director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! },
+                                          report: { _ in }),
+        transport: ThrowingTransport(),
+        tokenProvider: NoToken()
+    )
+    do {
+        _ = try await transport.pull(since: 0, limit: 10)
+        return nil
+    } catch let error as SyncServerError {
+        return error
+    } catch {
+        return nil
+    }
+}
+
 @Suite("Server status mapping (P6.11)")
 struct SyncStatusMappingTests {
 
@@ -73,6 +96,8 @@ struct SyncStatusMappingTests {
         for status in [402, 426, 410, 429] {
             let error = await pullError(status: status)
             #expect(error != .transportUnavailable, "\(status) must not read as an outage")
+            #expect(error != .offline, "\(status) must not read as offline")
+            #expect(error != .serverUnavailable, "\(status) must not read as a 5xx")
             #expect(error != .invalidResponse, "\(status) must not read as an undecodable body")
         }
     }
@@ -115,10 +140,24 @@ struct SyncStatusMappingTests {
     /// A 5xx is the server having a problem, which is S7: it resolves itself,
     /// rows return to dirty, and it must NOT be reported as a refusal that asks
     /// the user to update an app that is perfectly current.
-    @Test("5xx stays the transport case - an outage is not a refusal")
-    func serverErrorIsAnOutage() async {
-        #expect(await pullError(status: 500) == .transportUnavailable)
-        #expect(await pullError(status: 503) == .transportUnavailable)
+    @Test("5xx is serverUnavailable - an outage is not a refusal and not offline")
+    func serverErrorIsServerUnavailable() async {
+        #expect(await pullError(status: 500) == .serverUnavailable)
+        #expect(await pullError(status: 503) == .serverUnavailable)
         #expect(await pullError(status: 500) != .refused(status: 500))
+        #expect(await pullError(status: 500) != .offline,
+                "a 5xx comes from the host answering, so it is 'service unreachable', never offline")
+        #expect(await pullError(status: 500) != .transportUnavailable,
+                "the sync transport no longer throws the gateway's lumped case")
+    }
+
+    /// A socket-level failure (no answer from the host) is offline, never a 5xx.
+    /// This is the other half of the PR.13 split: the two conditions name
+    /// different next steps, so the classification must not collapse them.
+    @Test("a transport failure is offline - never a 5xx")
+    func transportFailureIsOffline() async {
+        #expect(await pullTransportError() == .offline)
+        #expect(await pullTransportError() != .serverUnavailable,
+                "a socket failure is 'back online', never 'service unreachable'")
     }
 }

@@ -23,7 +23,7 @@ struct AuthExpiredSyncTests {
         let outcome = await engine.synchronize()
 
         #expect(outcome.authExpired, "a rejected refresh surfaces as authExpired, not an outage")
-        #expect(!outcome.transportUnavailable)
+        #expect(!outcome.offline && !outcome.serverUnavailable)
         #expect(!outcome.deviceRevoked)
 
         let dirty = try repository.fetchDirtyRows()

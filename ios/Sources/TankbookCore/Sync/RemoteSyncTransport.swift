@@ -60,9 +60,10 @@ public struct RemoteSyncTransport: SyncTransport {
         } catch {
             // hostNotAllowlisted, tooManyRedirects, a transport error, or a
             // refresh that could not reach the host: none of them is "the host
-            // answered", so each counts toward auto-revert.
+            // answered", so each counts toward auto-revert, and none is a 5xx -
+            // the device is offline, not the server down.
             await director.report(.transportFailure)
-            throw SyncServerError.transportUnavailable
+            throw SyncServerError.offline
         }
         return try Self.requireSuccess(response)
     }
@@ -94,9 +95,10 @@ public struct RemoteSyncTransport: SyncTransport {
             // decode" and never as a generic failure (JOURNEYS F7).
             throw SyncServerError.refused(status: response.status)
         default:
-            // 5xx and anything non-HTTP-shaped: the server is having a problem,
-            // which is S7 - rows return to dirty and the cycle retries.
-            throw SyncServerError.transportUnavailable
+            // 5xx and anything non-HTTP-shaped: the host answered, so the
+            // device is online and the service is down - S7 - rows return to
+            // dirty and the cycle retries.
+            throw SyncServerError.serverUnavailable
         }
     }
 

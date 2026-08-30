@@ -123,7 +123,7 @@ public struct RestoreEngine {
 
         let stats = try? RestoreStats.compute(repository: engine.repository, now: now)
 
-        if outcome.transportUnavailable {
+        if outcome.offline || outcome.serverUnavailable {
             // A prior pull already landed data (an interrupted restore being
             // resumed) - that data is usable and must be shown, not hidden
             // behind an unreachable banner.

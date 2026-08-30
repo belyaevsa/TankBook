@@ -147,11 +147,11 @@ struct SyncCoordinatorTests {
         try repo.upsertFillUp(makeSyncFillUp(vehicleId: vehicle.id), syncState: .dirty)
 
         let transport = SyncTransportDouble()
-        transport.setFailAll(true)   // offline / server down
+        transport.setFailAll(true)   // offline
         let coordinator = SyncCoordinator(engine: makeSyncEngine(repository: repo, transport: transport))
 
         let outcome = await coordinator.syncNow()
-        #expect(outcome.transportUnavailable, "the engine reports an outage as a flag, not an error type")
+        #expect(outcome.offline, "the engine reports an outage as a flag, not an error type")
 
         // The dirty row is untouched - nothing was lost, nothing is an error.
         #expect(try repo.fetchDirtyRows().count == 1)
@@ -159,7 +159,7 @@ struct SyncCoordinatorTests {
         let state = SyncSurfaceState(
             isSignedIn: true,
             dirtyCount: try repo.fetchDirtyRows().count,
-            transportUnavailable: outcome.transportUnavailable)
+            offline: outcome.offline)
         let status = SyncSurface.status(state)
         #expect(status == .waitingToSync, "offline sync-now settles back to the waiting copy")
         #expect(status.isAttention == false, "offline is never an error surface")
@@ -188,7 +188,7 @@ struct SyncCoordinatorTests {
         // never age or queue length.
         #expect(SyncSurface.status(SyncSurfaceState(isSignedIn: true, deviceRevoked: true)).isAttention)
         #expect(SyncSurface.status(SyncSurfaceState(isSignedIn: true, quotaUsedPercent: 95)).isAttention)
-        #expect(!SyncSurface.status(SyncSurfaceState(isSignedIn: true, transportUnavailable: true)).isAttention,
+        #expect(!SyncSurface.status(SyncSurfaceState(isSignedIn: true, serverUnavailable: true)).isAttention,
                 "a service outage is reassurance, not attention")
     }
 

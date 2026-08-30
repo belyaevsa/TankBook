@@ -135,7 +135,13 @@ final class AppSync {
     /// Absent = not forced; production never sets them.
     var forcedDeviceCount: Int?
     var forcedJustSignedIn = false
-    var forcedTransportUnavailable = false
+    /// PR.13 fixtures for the two transport-failure states: offline (a passive
+    /// "back online" row) and server-down (a 5xx, the "service unreachable"
+    /// card with Try again). A frozen screenshot cannot run a real cycle, so
+    /// these force the outcome a real transport would produce. Absent = not
+    /// forced; production never sets them.
+    var forcedOffline = false
+    var forcedServerUnavailable = false
     /// P6.11 fixtures for a server that has moved ahead of this client (426,
     /// 402, unknown 4xx, 429): outcomes this app version can never provoke from
     /// a real server, so the only way to render them is to force them. Nil/
@@ -184,8 +190,9 @@ final class AppSync {
             isSignedIn: signedIn,
             lastSyncDate: lastSyncDate,
             dirtyCount: dirtyCount,
-            transportUnavailable: forcedTransportUnavailable
-                || (lastOutcome?.transportUnavailable ?? false),
+            offline: forcedOffline || (lastOutcome?.offline ?? false),
+            serverUnavailable: forcedServerUnavailable
+                || (lastOutcome?.serverUnavailable ?? false),
             deviceRevoked: forcedRevoked || (lastOutcome?.deviceRevoked ?? false),
             authExpired: lastOutcome?.authExpired ?? false,
             quotaUsedPercent: forcedQuotaPercent,

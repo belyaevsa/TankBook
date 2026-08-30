@@ -36,7 +36,7 @@ public enum SyncRetryPolicy {
             // size of its window.
             return .seconds(Double(retryAfter))
         }
-        if outcome.transportUnavailable {
+        if outcome.offline || outcome.serverUnavailable {
             return jittered(backoff(attempt: attempt), jitter: jitter)
         }
         if case .rateLimited = outcome.refusedByServer {

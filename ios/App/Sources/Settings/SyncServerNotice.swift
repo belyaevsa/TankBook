@@ -32,8 +32,9 @@ enum SyncServerNotice: Equatable {
 
     /// Maps a sync outcome to the notice it must surface. Only the server-ahead
     /// responses land here; a transport outage stays in the existing
-    /// `transportUnavailable` path untouched (S7) - `.rateLimited` must never
-    /// read like `.transportUnavailable` (docs/SYNC.md: "a wait, not a failure").
+    /// `offline`/`serverUnavailable` path untouched (S7) - `.rateLimited` must
+    /// never read like `.serverUnavailable` (docs/SYNC.md: "a wait, not a
+    /// failure").
     static func classify(_ outcome: SyncOutcome) -> SyncServerNotice {
         if outcome.upgradeRequired { return .upgradeRequired }
         switch outcome.refusedByServer {

@@ -28,6 +28,11 @@ final class SettingsUITests: XCTestCase {
         launch(["-presentScreen", "settings", seed])
     }
 
+    private func launchSettingsRU(seed: String) -> XCUIApplication {
+        launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                "-presentScreen", "settings", seed])
+    }
+
     /// The status line's rendered text (the account card subtitle).
     private func syncStatus(_ app: XCUIApplication) -> XCUIElement {
         app.staticTexts["settingsSyncStatus"]
@@ -54,8 +59,49 @@ final class SettingsUITests: XCTestCase {
         let status = syncStatus(app)
         XCTAssertTrue(status.waitForExistence(timeout: 10))
         XCTAssertEqual(status.label, "Waiting to sync · 5 changes")
-        XCTAssertTrue(app.staticTexts["settingsOfflineHint"].waitForExistence(timeout: 5),
+        let hint = app.staticTexts["settingsOfflineHint"]
+        XCTAssertTrue(hint.waitForExistence(timeout: 5),
                       "an offline queue names its next step: back online")
+        XCTAssertEqual(hint.label, "Will sync when you're back online",
+                       "the offline row renders the passive sentence, never 'service unreachable'")
+    }
+
+    /// PR.13: a server 5xx is NOT the same sentence as offline. The server-down
+    /// seed answers 503 for the sync, so the surface renders the "Sync service
+    /// unreachable" card with Try again - never the passive "back online" row.
+    /// The whole point of the split is the user-facing next step.
+    func testServerDownShowsUnreachableCardNotOfflineHint() {
+        let app = launchSettings(seed: "-seedSettingsServerDown")
+        let card = app.otherElements["settingsServerCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "a 5xx shows the service-unreachable card")
+        XCTAssertEqual(app.staticTexts["settingsServerCardMessage"].label,
+                       "Sync service unreachable – your data is safe on this phone. "
+                       + "It will go up automatically when the service is back.",
+                       "the card names the service being down, not the offline sentence")
+        XCTAssertTrue(app.buttons["settingsServerRetryButton"].exists,
+                      "the server-down card names its next step: Try again")
+        XCTAssertFalse(app.staticTexts["settingsOfflineHint"].exists,
+                       "a 5xx is never the offline row 'Will sync when you're back online'")
+    }
+
+    /// PR.13 RU: the two sentences stay distinct in Russian. The server-down
+    /// card renders its own RU sentence (never the passive offline one), and the
+    /// offline row renders the passive RU sentence.
+    func testServerDownAndOfflineRenderDistinctRussianSentences() {
+        let serverDown = launchSettingsRU(seed: "-seedSettingsServerDown")
+        XCTAssertTrue(serverDown.otherElements["settingsServerCard"].waitForExistence(timeout: 10))
+        XCTAssertEqual(serverDown.staticTexts["settingsServerCardMessage"].label,
+                       "Сервис синхронизации недоступен – ваши данные в безопасности на этом телефоне. "
+                       + "Они отправятся автоматически, когда сервис снова заработает.",
+                       "the RU server-down card names the service, never 'back online'")
+        XCTAssertTrue(serverDown.buttons["settingsServerRetryButton"].exists)
+
+        let offline = launchSettingsRU(seed: "-seedSettingsPending")
+        XCTAssertTrue(offline.staticTexts["settingsOfflineHint"].waitForExistence(timeout: 10))
+        XCTAssertEqual(offline.staticTexts["settingsOfflineHint"].label,
+                       "Синхронизируется, когда вы снова будете в сети",
+                       "the RU offline row renders the passive sentence, never 'service unreachable'")
     }
 
     func testFlaggedShowsCountAndLinkOnly() {

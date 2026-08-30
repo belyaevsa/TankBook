@@ -11,16 +11,26 @@ public struct SyncOutcome: Equatable, Sendable {
     public var deviceRevoked = false
     /// The access token expired and the refresh failed (PR.1): the session is
     /// gone and the user signs in again. Distinct from `deviceRevoked` (a 410
-    /// from the server) and from `transportUnavailable` (an outage the app
-    /// retries itself). Nothing is lost - rows stay dirty (S7).
+    /// from the server) and from `offline`/`serverUnavailable` (an outage the
+    /// app retries itself). Nothing is lost - rows stay dirty (S7).
     public var authExpired = false
     public var upgradeRequired = false
-    public var transportUnavailable = false
+    /// The host could not be reached (no network, DNS failure, connection
+    /// refused): the device is offline. Passive - the honest next step is
+    /// "will sync when you're back online" (docs/ERRORS.md -> Settings), never
+    /// an error. Nothing is lost - rows stay dirty (S7).
+    public var offline = false
+    /// The host answered 5xx: the server is up but failing. Distinct from
+    /// `offline` because the honest next step differs: a 5xx names the service
+    /// being down with "try again", where offline is a passive "back online"
+    /// (docs/ERRORS.md -> Settings). Nothing is lost either way - rows stay
+    /// dirty (S7).
+    public var serverUnavailable = false
     /// A `402`/unknown-4xx refusal from a server newer than this client, or a
-    /// `429` wait. Distinct from `transportUnavailable` because the honest next
-    /// step differs: an outage resolves itself, a refusal needs a newer app
-    /// (P6.11). `retryAfterSeconds` carries the server's own hint when it sent
-    /// one. Nothing is lost either way - the rows stay dirty (S7).
+    /// `429` wait. Distinct from `offline`/`serverUnavailable` because the
+    /// honest next step differs: an outage resolves itself, a refusal needs a
+    /// newer app (P6.11). `retryAfterSeconds` carries the server's own hint
+    /// when it sent one. Nothing is lost either way - the rows stay dirty (S7).
     public var refusedByServer: SyncServerError?
     public var retryAfterSeconds: Int?
     /// P6.8: the cycle was postponed because Low Power Mode is on and this was
@@ -30,6 +40,22 @@ public struct SyncOutcome: Equatable, Sendable {
     public var deferred = false
 
     public init() {}
+}
+
+extension SyncOutcome {
+    /// Splits the transport failure into the two PR.13 states, made where the
+    /// transport failure is actually known: `offline` is the one case where the
+    /// host never answered; every other error (a 5xx, an undecodable body, a
+    /// pull-side refusal) means the host answered and the service is down, so it
+    /// folds into `serverUnavailable`. Kept on the outcome so `SyncEngine`'s
+    /// catch ladder stays below the cyclomatic-complexity budget.
+    mutating func applyTransportFailure(_ error: any Error) {
+        if case SyncServerError.offline = error {
+            offline = true
+        } else {
+            serverUnavailable = true
+        }
+    }
 }
 
 /// The sync client's one cycle: pull -> merge -> push (docs/SYNC.md, Protocol).
@@ -93,7 +119,12 @@ public struct SyncEngine {
             outcome.authExpired = true
             return outcome
         } catch {
-            outcome.transportUnavailable = true
+            // A 5xx, an undecodable body, or a pull-side refusal: the host
+            // answered, so the honest reading is "the service is down" - never
+            // offline. `applyTransportFailure` splits the one case (offline) that
+            // did NOT reach the host. The refusal folding is the pre-existing
+            // pull-side asymmetry PR.7 noted.
+            outcome.applyTransportFailure(error)
             return outcome
         }
 
@@ -121,7 +152,9 @@ public struct SyncEngine {
             outcome.authExpired = true
             try? repository.recoverStuckPushes()
         } catch {
-            outcome.transportUnavailable = true
+            // A 5xx, a 410 during push, or an undecodable body: the host
+            // answered, so this is the service being down - never offline.
+            outcome.applyTransportFailure(error)
             try? repository.recoverStuckPushes()
         }
 

@@ -92,7 +92,7 @@ final class RestoreServerDouble: SyncTransport, @unchecked Sendable {
             let more = state.records.contains { $0.scn > nextSince }
             return Snapshot(fail: fail, records: records, nextSince: nextSince, more: more)
         }
-        if snapshot.fail { throw SyncServerError.transportUnavailable }
+        if snapshot.fail { throw SyncServerError.offline }
         return SyncPullResponse(records: snapshot.records, nextSince: snapshot.nextSince,
                                 more: snapshot.more, schemaPolicy: policy)
     }

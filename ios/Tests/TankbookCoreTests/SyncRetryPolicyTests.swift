@@ -26,7 +26,13 @@ struct SyncRetryPolicyTests {
 
     private func unavailable() -> SyncOutcome {
         var outcome = SyncOutcome()
-        outcome.transportUnavailable = true
+        outcome.serverUnavailable = true
+        return outcome
+    }
+
+    private func offline() -> SyncOutcome {
+        var outcome = SyncOutcome()
+        outcome.offline = true
         return outcome
     }
 
@@ -68,6 +74,16 @@ struct SyncRetryPolicyTests {
         #expect(SyncRetryPolicy.delay(after: outcome, attempt: 9, jitter: 1.0) == .seconds(300))
         #expect(SyncRetryPolicy.delay(after: outcome, attempt: 100, jitter: 1.0) == .seconds(300))
         #expect(SyncRetryPolicy.capSeconds == 300)
+    }
+
+    @Test("offline retries exactly like a 5xx - both are the transient class")
+    func offlineRetriesLikeAnOutage() {
+        // Offline and server-down are the same class for RETRY purposes (both
+        // resolve themselves); the split is about the surface's next step, not
+        // about whether to retry.
+        let offline = offline()
+        #expect(SyncRetryPolicy.delay(after: offline, attempt: 0, jitter: 1.0) == .seconds(1))
+        #expect(SyncRetryPolicy.delay(after: offline, attempt: 1, jitter: 1.0) == .seconds(2))
     }
 
     // MARK: - Jitter is bounded and actually moves the delay

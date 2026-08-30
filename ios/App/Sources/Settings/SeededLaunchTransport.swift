@@ -38,6 +38,18 @@ struct AuthExpiredTransport: TankbookHTTPTransport {
     }
 }
 
+/// PR.13's server-down seam: answers every request with a `503`, so a seeded
+/// signed-in launch runs the real 5xx -> server-unavailable path and surfaces
+/// the "Sync service unreachable" card with Try again - the state a real
+/// server cannot produce deterministically in a screenshot. Stateless. The
+/// host answers, so the transport classifies it as `serverUnavailable`, never
+/// `offline` (the whole point of the PR.13 split).
+struct ServerDownTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        TankbookHTTPResponse(status: 503)
+    }
+}
+
 /// PJ.13's UI-test seam (`-signInSyncStub`): a transport that ANSWERS the sync
 /// and account-devices endpoints, so the L4 "sign in pushes" test runs a real
 /// sync cycle end-to-end under a seeded launch (which would otherwise be
@@ -112,11 +124,13 @@ enum SeededLaunch {
     /// The transport to use for this launch: offline under a seed, real otherwise.
     /// The auth-expired seed is the one exception to "offline": it answers 401 so
     /// the real refresh path runs and fails (PR.1). PJ.13's sign-in stub answers
-    /// success so the L4 sign-in flow can push for real.
+    /// success so the L4 sign-in flow can push for real. PR.13's server-down seed
+    /// answers 503 so the L4 server-down card renders through the real 5xx path.
     static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
         -> any TankbookHTTPTransport {
         if arguments.contains("-signInSyncStub") { return SignInSyncStubTransport() }
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
+        if arguments.contains("-seedSettingsServerDown") { return ServerDownTransport() }
         if isSeeded(arguments) { return SeededLaunchTransport() }
         return URLSessionTransport()
     }

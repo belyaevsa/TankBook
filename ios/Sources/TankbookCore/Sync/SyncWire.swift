@@ -130,8 +130,20 @@ public enum SyncServerError: Error, Equatable, Sendable {
     /// `426`: the push batch is refused because the client's schema version is
     /// below the server's minimum. Pull still works - never lock a user out.
     case upgradeRequired
-    /// The host could not be reached or the response was not HTTP-shaped. S7:
-    /// nothing is lost, rows return to `dirty`.
+    /// The host could not be reached (no network, DNS failure, connection
+    /// refused, timeout): the device is offline. S7: nothing is lost, rows
+    /// return to `dirty`. Distinct from `serverUnavailable` because the honest
+    /// next step differs (docs/ERRORS.md -> Settings): offline is a passive
+    /// "will sync when you're back online", a 5xx names the service being down.
+    case offline
+    /// The host answered 5xx: the server is up but failing. S7: nothing is
+    /// lost, rows return to `dirty`. Distinct from `offline` for the same
+    /// reason the two next steps differ.
+    case serverUnavailable
+    /// The gateway's lumped "transport failure or 5xx" case (docs/API.md ->
+    /// "LLM gateway"). The extract client does not need the split: its next
+    /// step is the same either way (the on-device result stands, F4). The sync
+    /// transport throws `offline` / `serverUnavailable` instead.
     case transportUnavailable
     /// The server answered but the body could not be decoded.
     case invalidResponse

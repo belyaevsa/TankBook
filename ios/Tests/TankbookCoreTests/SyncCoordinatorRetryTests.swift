@@ -105,7 +105,7 @@ struct SyncCoordinatorRetryTests {
     func outageSchedulesThePolicyBackoffAndReRuns() async throws {
         let repo = try makeSyncRepository()
         let transport = SyncTransportDouble()
-        transport.enqueuePullError(.transportUnavailable)
+        transport.enqueuePullError(.serverUnavailable)
 
         let waiter = GatedRetryWaiter()
         let coordinator = SyncCoordinator(
@@ -114,7 +114,7 @@ struct SyncCoordinatorRetryTests {
             retryWait: { await waiter.wait($0) })
 
         let outcome = await coordinator.syncNow()
-        #expect(outcome.transportUnavailable)
+        #expect(outcome.serverUnavailable)
 
         // jitter 1.0 -> the upper bound, so the first backoff is exactly 1 s.
         #expect(coordinator.scheduledRetryDelay() == .seconds(1))

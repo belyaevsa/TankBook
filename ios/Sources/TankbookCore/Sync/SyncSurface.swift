@@ -10,8 +10,13 @@ public struct SyncSurfaceState: Equatable, Sendable {
     public var lastSyncDate: Date?
     /// Rows still waiting to push (docs/SYNC.md S7: "Waiting to sync · N changes").
     public var dirtyCount: Int
-    /// The last cycle ended in a transport outage (offline / server down).
-    public var transportUnavailable: Bool
+    /// The last cycle could not reach the host: the device is offline. Passive
+    /// (docs/ERRORS.md -> Settings) - never an error, "will sync when you're
+    /// back online".
+    public var offline: Bool
+    /// The last cycle got a 5xx: the server is up but failing. Distinct from
+    /// `offline` - it names the service being down with a next step.
+    public var serverUnavailable: Bool
     /// The device was revoked (410) - a transport issue that belongs here.
     public var deviceRevoked: Bool
     /// The session expired and the refresh failed (PR.1): the user must sign in
@@ -28,14 +33,15 @@ public struct SyncSurfaceState: Equatable, Sendable {
     /// and opportunistic cycles that would drain the queue are being postponed.
     /// The app fills this from the injected power state - never `ProcessInfo`
     /// read at a call site - so the surface's "the reason is on" decision is
-    /// testable exactly like `dirtyCount` and `transportUnavailable`.
+    /// testable exactly like `dirtyCount` and `offline`.
     public var lowPowerModeDeferring: Bool
 
     public init(
         isSignedIn: Bool,
         lastSyncDate: Date? = nil,
         dirtyCount: Int = 0,
-        transportUnavailable: Bool = false,
+        offline: Bool = false,
+        serverUnavailable: Bool = false,
         deviceRevoked: Bool = false,
         authExpired: Bool = false,
         quotaUsedPercent: Int? = nil,
@@ -46,7 +52,8 @@ public struct SyncSurfaceState: Equatable, Sendable {
         self.isSignedIn = isSignedIn
         self.lastSyncDate = lastSyncDate
         self.dirtyCount = dirtyCount
-        self.transportUnavailable = transportUnavailable
+        self.offline = offline
+        self.serverUnavailable = serverUnavailable
         self.deviceRevoked = deviceRevoked
         self.authExpired = authExpired
         self.quotaUsedPercent = quotaUsedPercent
@@ -66,8 +73,10 @@ public enum SyncStatus: Equatable, Sendable {
     case synced
     /// A dirty queue exists (S7): "Waiting to sync · N changes".
     case waitingToSync
-    /// The last manual cycle ended in a transport outage with nothing pending:
-    /// "Sync service unreachable - your data is safe..." (reassurance, not amber).
+    /// The last cycle got a 5xx: the server is up but failing. Names the
+    /// service being down with a next step ("Sync service unreachable - your
+    /// data is safe..." + Try again) - reassurance, not amber, but distinct
+    /// from the passive offline row (docs/ERRORS.md -> Settings).
     case serverUnreachable
     /// The device was signed out (410): an account issue the user can act on.
     case deviceRevoked
@@ -100,9 +109,7 @@ public enum SyncSurface {
         if state.deviceRevoked { return .deviceRevoked }
         if state.authExpired { return .authExpired }
         if let quota = state.quotaUsedPercent, quota >= 95 { return .quotaFull }
-        if state.transportUnavailable && state.dirtyCount == 0 {
-            return .serverUnreachable
-        }
+        if state.serverUnavailable { return .serverUnreachable }
         if state.dirtyCount > 0 { return .waitingToSync }
         return .synced
     }
@@ -110,10 +117,12 @@ public enum SyncSurface {
     /// True when the status row should carry the offline suffix
     /// "Will sync when you're back online" (docs/ERRORS.md -> Settings): an
     /// offline device **with a queue**. A queue on a reachable device just
-    /// waits; an offline device with nothing to push shows the unreachable
-    /// reassurance instead.
+    /// waits; an offline device with nothing to push shows the ordinary synced
+    /// reassurance instead - offline is never an error. A 5xx is deliberately
+    /// NOT this row: `serverUnavailable` names the service being down, never
+    /// "back online".
     public static func isOfflineWithQueue(_ state: SyncSurfaceState) -> Bool {
-        state.transportUnavailable && state.dirtyCount > 0
+        state.offline && state.dirtyCount > 0
     }
 
     /// True when the status row should carry the Low Power reason (docs/SYNC.md

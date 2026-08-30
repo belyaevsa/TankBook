@@ -260,9 +260,9 @@ struct AppRootView: View {
             // cycle - LowPowerModeUITests drains the resumer through it - and
             // get determinism from the offline transport instead. SCREENSHOTS
             // want the seeded state to stand, because an offline transport
-            // alone is not enough: SyncEngine maps any transport failure to
-            // transportUnavailable, so a seeded "synced" capture would still
-            // gain an unreachable banner the seed never asked for.
+            // alone is not enough: the launch cycle's outcome (offline hint,
+            // or a server-down card under PR.13's 5xx seed) would overwrite
+            // the state the seed asked for.
             // So only `-freezeSyncState`, passed by capture-screenshots.sh,
             // skips the cycle. A blanket skip on any seed broke
             // testLowPowerReasonVanishesWhenTheModeEnds, which is the test that

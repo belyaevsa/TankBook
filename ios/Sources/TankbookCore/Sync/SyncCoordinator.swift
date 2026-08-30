@@ -85,8 +85,8 @@ public final class SyncCoordinator: @unchecked Sendable {
     /// Runs one sync cycle. Inert while a cycle is already in flight: the
     /// returned outcome is the previous one (or an empty one on first call) and
     /// no transport call is made. Offline is not an error - the engine maps a
-    /// transport failure to `transportUnavailable` and the dirty queue is
-    /// untouched (docs/SYNC.md S7).
+    /// transport failure to `offline` (or a 5xx to `serverUnavailable`) and the
+    /// dirty queue is untouched (docs/SYNC.md S7).
     ///
     /// The trigger is explicit at every call site (docs/SYNC.md -> Low Power
     /// Mode): while the mode is on, an **opportunistic** cycle (`.background`)
@@ -121,7 +121,7 @@ public final class SyncCoordinator: @unchecked Sendable {
         let outcome = await engine.synchronize(trigger: trigger)
         state.withLock { snapshot in
             snapshot.lastOutcome = outcome
-            if !outcome.transportUnavailable {
+            if !outcome.offline && !outcome.serverUnavailable {
                 snapshot.lastSyncDate = Date()
             }
             snapshot.inFlight = false

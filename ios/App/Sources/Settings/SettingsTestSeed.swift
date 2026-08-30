@@ -13,6 +13,7 @@ enum SettingsTestSeed {
         case guest
         case synced
         case pending
+        case serverDown
         case flagged
         case revoked
         case quota
@@ -38,6 +39,7 @@ enum SettingsTestSeed {
             "-seedSettingsGuest": .guest,
             "-seedSettingsSynced": .synced,
             "-seedSettingsPending": .pending,
+            "-seedSettingsServerDown": .serverDown,
             "-seedSettingsFlagged": .flagged,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
@@ -117,10 +119,14 @@ enum SettingsTestSeed {
         sync.forcedJustSignedIn = (state == .signedIn)
 
         // Transport-issue fixtures (410 revoked, blob-quota 429, offline with a
-        // queue): real states the transport never produces in a screenshot.
+        // queue, server 5xx): real states the transport never produces in a
+        // frozen screenshot. `pending` is the offline-with-a-queue state
+        // (PR.13's passive "back online" row); `serverDown` is the 5xx state
+        // (the "service unreachable" card with Try again).
         sync.forcedRevoked = (state == .revoked)
         sync.forcedQuotaPercent = (state == .quota) ? 95 : nil
-        sync.forcedTransportUnavailable = (state == .pending)
+        sync.forcedOffline = (state == .pending)
+        sync.forcedServerUnavailable = (state == .serverDown)
 
         // P6.11 server-ahead fixtures (426 / 402 / unknown 4xx / 429): outcomes
         // this app version cannot provoke from a real server, forced so the
