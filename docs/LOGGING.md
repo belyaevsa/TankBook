@@ -96,6 +96,14 @@ Every create / update / delete logs **twice**: an intent and an outcome, so a cr
 ### Capture / OCR
 `capture.pipeline` – pipeline id (`vision+rules v3` / `fiscal-qr` / `cloud-fallback v1`), durationMs, per-field **confidence values and field names, never the extracted values**, crossCheck outcome, whether the user corrected a field afterwards. This is the feed for the L5 accuracy ratchet in `TESTING.md` – and it is aggregate-safe by construction.
 
+### Feedback (PJ.20)
+`feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the
+stable code), `textLength` (a count), `hasReplyTo` / `hasDeviceModel` (field *presence*, never the
+values), and on failure `errorCode` + `durationMs`. **Never the feedback text, never a replyTo
+address, never the device-model string, never a file's contents** (hard rule 12). The payload's
+domain values have no route into these events by construction - the same discipline as
+`capture.pipeline`.
+
 ### Errors
 Every failure logs the typed error, its `underlyingError`, the operation in flight, the entity id, and the traceId when it came from a request. App-layer failures emit the typed events `app.error` (`operation`, `errorType` - both Safe - plus `errorDescription`, which is **Sensitive** because `localizedDescription` on a GRDB error can carry its statement's arguments: station names, notes, amounts) and `app.warning` (`operation`, `reason` - both Safe, for handled degradations). A view never interpolates `error.localizedDescription` with `.public`; what stays loggable is the type and a stable code, never the rendered message (hard rule 12). iOS additionally records a **breadcrumb ring** (last ~50 events, in memory), which reaches the
 **diagnostics export**. It does NOT reach crash reports, and saying so was fiction: there is no

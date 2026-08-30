@@ -485,6 +485,15 @@ capture PJ.14-odometer-warn-ru  ru -seedVehicleForUITests -presentScreen confirm
 # caption ("Не удалось распознать – введите вручную, фото останется
 # прикреплённым.") runs longest.
 
+# PJ.20: About & feedback - the "Tell us" composer with the consent toggle (the
+# load-bearing default-off opt-in) and the send row. RU is where the consent's
+# explanation and the composed consent-required phrase run longest.
+# PJ.20: the import "send us the file" consent step - the explicit consent line
+# and the actual file name, before the share sheet. `-seedSendFile` drives the
+# sheet with a seeded file (the system file picker cannot be tapped by simctl).
+capture PJ.20-import-sendfile     en -presentScreen importWizard -importStubFormats one -seedSendFile
+capture PJ.20-import-sendfile-ru  ru -presentScreen importWizard -importStubFormats one -seedSendFile
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

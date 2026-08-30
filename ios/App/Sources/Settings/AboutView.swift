@@ -11,6 +11,7 @@ import TankbookCore
 /// and the identity header the artboard draws.
 struct AboutView: View {
     @Environment(AppConfigService.self) private var config
+    @State private var feedbackModel: FeedbackModel?
 
     var body: some View {
         ScrollView {
@@ -19,6 +20,9 @@ struct AboutView: View {
                 if config.requirement == .recommended {
                     UpdateRecommendedRow()
                 }
+                if let feedbackModel {
+                    FeedbackComposerView(model: feedbackModel)
+                }
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -26,6 +30,12 @@ struct AboutView: View {
             .padding(.bottom, 32)
         }
         .background(Theme.Palette.midnight)
+        .task {
+            if feedbackModel == nil {
+                feedbackModel = FeedbackService.makeModel()
+            }
+            await feedbackModel?.autoSendIfRequested()
+        }
     }
 
     /// The artboard's identity block: the 58 pt app mark, the name, and the

@@ -175,7 +175,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Ambiguous units/currency | One question, once per file: "MPG or L/100km?" (ambiguous **dates** have their own row below, PJ.10) | Answer; import proceeds |
 | **Choosing the source** (not an error - the first step) | "Which app is this file from?" with the **server-driven** supported list (`GET /import/formats`). The user declares it; the app never sniffs, because two vendors' CSVs look alike and a confident mis-mapping is worse than a question (hard rule 13) | Pick the app · "My app isn't listed" |
 | **Parse in flight** (PR.6, PR.6b - not an error - the upload) | The source screen's bar shows **"Reading file…"** next to its spinner - a bare spinner would tell the user nothing about what is happening (PR.6b) - and a **Cancel** affordance sits below it. PR.6b: the Cancel is anchored above the owned tab bar, so it is **visible**, not merely present - PR.6's half rendered it under the tab bar, present for the test and not for the user (`isHittable` does not model occlusion, HANDOVER). The upload's budget is bounded (docs/PRACTICES.md U6), so a half-connected radio can never freeze the wizard for a minute | Cancel (stops the upload; nothing was written - the garage is untouched). A stalled upload times out into the **Offline** row, never a generic failure |
-| **Source app not listed** | "We don't read that one yet." Names what *is* supported rather than dead-ending, and offers to take the file so the format can be added - the same ask as the capture notice (P6.10) | Send us the file (explicit consent) · pick a different app · cancel |
+| **Source app not listed** | "We don't read that one yet." Names what *is* supported rather than dead-ending, and offers to take the file so the format can be added - the same ask as the capture notice (P6.10). **"Send us the file" now attaches the actual file** (PJ.20): it picks the file, shows an explicit consent step naming the exact file and what it may contain, and only then opens the share sheet with the file riding it - never the sentence alone | Send us the file (explicit consent) · pick a different app · cancel |
 | **File does not match the declared source** (`422`) | Specific, never generic: "This doesn't look like a My Fuel Manager export." Offers the picker again with the likely alternatives, because picking the wrong app is the expected mistake, not a rare one | Choose a different app · send us the file · cancel |
 | **Preview before commit** (not an error - the gate) | "Here's what we read: 220 fill-ups · Mar 2023 - Aug 2026 · 118 930 km · EUR · **8.2 L/100km**". Figures the user can check from memory, F7's "numbers, not a checkmark" (`JOURNEYS.md` F6a). Names the target car, and the S2 duplicate count when merging | Import · adjust currency/units/car · fix flagged rows · cancel |
 | **Ambiguous dates (`dateFormat`)** (PJ.10, `JOURNEYS.md` F6) | The preview asks once per file: "Date format matters – N dates read either way" with `M/D/YYYY` / `D/M/YYYY` as choices. **Confirm stays disabled until it is answered** - the parser's M/D guess standing silently is how a year of history shifts by up to eleven months. Answering re-dates the counted rows before anything is committed | Pick a format; import proceeds |
@@ -188,11 +188,21 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 
 ### About & feedback
+
+The composer (design/screens/About.dc.html "Tell us"): category chips (feature/problem/other), the
+message, an "Attach device model" toggle (default off - `deviceModel` rides only with it,
+docs/API.md), and "Reply to (optional)". **The load-bearing part is the consent**: "Help improve
+scanning – attach this case", default OFF, persisted, and changeable afterwards (hard rule 13). A
+case is queued only with consent; without it Send surfaces the opt-in and queues nothing.
+
 | Condition | Shows | Next step |
 |---|---|---|
 | **Update recommended (`.recommended`, docs/CONFIG.md)** | Dismissible row in About: "A newer version of Tankbook is available." The App Store button renders only when a compiled-in app id exists - none today | Update (App Store, when a listing exists) · dismiss. Quiet information - nothing is withheld |
+| **Send without consent** | Amber line: "Turn on "Help improve scanning – attach this case" to send." - the toggle is the next step, nothing is queued | Toggle consent on · leave it |
+| Feedback sent (202) | "Thanks – your feedback is on its way." | Nothing to do |
 | Feedback send fails offline | "Saved – sends automatically when you're online." (queued, like everything) | Nothing to do |
 | Rate-limited (429) | "That's a lot of feedback today – this one's queued for tomorrow." | Nothing to do |
+| Service error (other non-202) | "Saved – we'll try again when the service is back." (queued, hard rule 8) | Nothing to do |
 
 ### Vehicle catalog updates (background, `SYNC.md` → Reference data)
 

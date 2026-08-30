@@ -11611,6 +11611,295 @@
           }
         }
       }
+    },
+    "Tell us": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tell us"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Расскажите нам"
+          }
+        }
+      }
+    },
+    "Ask for a feature": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ask for a feature"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предложить функцию"
+          }
+        }
+      }
+    },
+    "Something's wrong": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something's wrong"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что-то не работает"
+          }
+        }
+      }
+    },
+    "What's on your mind?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's on your mind?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что вы хотите сказать?"
+          }
+        }
+      }
+    },
+    "Attach device model": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach device model"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прикрепить модель устройства"
+          }
+        }
+      }
+    },
+    "Reply to (optional)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reply to (optional)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ответить (необязательно)"
+          }
+        }
+      }
+    },
+    "Help improve scanning – attach this case": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help improve scanning – attach this case"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Помогите улучшить распознавание – прикрепить этот случай"
+          }
+        }
+      }
+    },
+    "Sends your message with the app version and any details you attach. Never log data, and never your name or address unless you add them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sends your message with the app version and any details you attach. Never log data, and never your name or address unless you add them."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправляет ваше сообщение с версией приложения и деталями, которые вы прикрепите. Без данных журнала и без вашего имени или адреса, если вы сами их не укажете."
+          }
+        }
+      }
+    },
+    "Send feedback": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send feedback"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить отзыв"
+          }
+        }
+      }
+    },
+    "Thanks – your feedback is on its way.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Thanks – your feedback is on its way."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спасибо – ваш отзыв уже в пути."
+          }
+        }
+      }
+    },
+    "Saved – sends automatically when you're online.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved – sends automatically when you're online."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено – отправится автоматически, когда появится связь."
+          }
+        }
+      }
+    },
+    "That's a lot of feedback today – this one's queued for tomorrow.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That's a lot of feedback today – this one's queued for tomorrow."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сегодня много отзывов – этот встанет в очередь до завтра."
+          }
+        }
+      }
+    },
+    "Saved – we'll try again when the service is back.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Saved – we'll try again when the service is back."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранено – попробуем ещё раз, когда сервис снова заработает."
+          }
+        }
+      }
+    },
+    "Turn on “Help improve scanning – attach this case” to send.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn on “Help improve scanning – attach this case” to send."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включите «Помогите улучшить распознавание – прикрепить этот случай», чтобы отправить."
+          }
+        }
+      }
+    },
+    "Every message is read by a human. Feature requests shape the roadmap – the importers exist because people asked.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every message is read by a human. Feature requests shape the roadmap – the importers exist because people asked."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Каждое сообщение читает живой человек. Пожелания формируют планы – импортёры появились потому, что о них просили."
+          }
+        }
+      }
+    },
+    "Tankbook receives your export file so we can add support for your fuel app. It may contain your fuel history, amounts and notes.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tankbook receives your export file so we can add support for your fuel app. It may contain your fuel history, amounts and notes."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tankbook получит ваш файл экспорта, чтобы мы могли добавить поддержку вашего топливного приложения. Файл может содержать вашу историю заправок, суммы и заметки."
+          }
+        }
+      }
+    },
+    "Share file": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share file"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поделиться файлом"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

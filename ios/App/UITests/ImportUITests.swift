@@ -370,6 +370,34 @@ final class ImportUITests: XCTestCase {
                       "cancelling returns the wizard to the source picker in Russian")
     }
 
+    // MARK: - Send us the file (PJ.20)
+
+    /// The "send us the file" path attaches the actual file, not a sentence:
+    /// the consent step names the exact file, and the share sheet lists the
+    /// file name (docs/ERRORS.md -> Import wizard). The file rides the sheet
+    /// only after the explicit consent is given.
+    func testSendUsTheFileListsTheFileNameInTheShareSheet() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedSendFile"])
+
+        let fileName = app.staticTexts["sendFileFileName"]
+        XCTAssertTrue(fileName.waitForExistence(timeout: 10),
+                      "the consent step shows the file name")
+        XCTAssertEqual(fileName.label, "MyFuelManager_export.csv",
+                       "the consent step names the exact file")
+
+        app.buttons["sendFileShareButton"].tap()
+
+        // The system share sheet's content caption lists the file name (the
+        // display name, without the extension). The consent step showed the
+        // full name; this is the file actually riding the share sheet.
+        let shareCaption = app.otherElements["LP.CaptionBar.TopCaption"]
+        XCTAssertTrue(shareCaption.waitForExistence(timeout: 10),
+                      "the share sheet lists the file name")
+        XCTAssertEqual(shareCaption.label, "MyFuelManager_export",
+                       "the share sheet names the file")
+    }
+
     // MARK: - Per-car export (P5.5b export lane)
 
     /// The Garage's car screen offers the per-car export row (the archive

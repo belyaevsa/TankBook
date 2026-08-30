@@ -45,6 +45,11 @@ struct ImportWizardView: View {
                 await model.loadFormats()
                 ImportTestSeed.seedFlowIfRequested(model: model)
             }
+            // PJ.20: the send-file consent flow's seed - opens the not-supported
+            // sheet so the consent + share sheet render without a real tap.
+            if ProcessInfo.processInfo.arguments.contains("-seedSendFile") {
+                showingNotSupported = true
+            }
         }
         .fileImporter(isPresented: $showingFilePicker,
                       allowedContentTypes: [.commaSeparatedText, .plainText, .item],
@@ -269,7 +274,10 @@ struct ImportTargetCarSheet: View {
 struct ImportNotSupportedSheet: View {
     let model: ImportFlowModel?
     @Environment(\.dismiss) private var dismiss
+    @State private var showingFilePicker = false
+    @State private var pickedFileURL: URL?
     @State private var showingSendFile = false
+    @State private var didSeed = false
 
     private var supportedNames: String {
         guard let model else { return "" }
@@ -286,8 +294,8 @@ struct ImportNotSupportedSheet: View {
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.5)
             Spacer()
-            ImportPrimaryBar(action: { showingSendFile = true },
-                             label: { Text("Send us the file") })
+            ImportPrimaryBar(action: { showingFilePicker = true },
+                             label: { Text(L10n.sendFileTitle) })
             Button("Pick a different app") {
                 dismiss()
             }
@@ -301,8 +309,87 @@ struct ImportNotSupportedSheet: View {
         .padding(.top, 24)
         .padding(.bottom, 24)
         .presentationDetents([.medium])
+        .fileImporter(isPresented: $showingFilePicker,
+                      allowedContentTypes: [.commaSeparatedText, .plainText, .item],
+                      allowsMultipleSelection: false) { result in
+            guard case .success(let urls) = result, let url = urls.first else { return }
+            pickedFileURL = url
+            showingSendFile = true
+        }
         .sheet(isPresented: $showingSendFile) {
-            ActivityView(items: [L10n.sendUsTheFileMessage])
+            SendFileConsentSheet(fileURL: pickedFileURL)
+        }
+        .task { seedIfRequested() }
+    }
+
+    /// PJ.20 DEBUG seed: with `-seedSendFile` a temp file is "picked" and the
+    /// consent sheet opens, so the L4 test and screenshot reach the share sheet
+    /// without driving the system file picker.
+    private func seedIfRequested() {
+        guard !didSeed else { return }
+        didSeed = true
+        guard ProcessInfo.processInfo.arguments.contains("-seedSendFile") else { return }
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("MyFuelManager_export.csv")
+        try? Data("Date;Odometer;Volume\n1/1/2024;120000;42.5".utf8).write(to: url)
+        pickedFileURL = url
+        showingSendFile = true
+    }
+}
+
+/// The explicit-consent step before the file is shared (PJ.20, docs/ERRORS.md
+/// -> Import wizard). The file is attached only after this consent is given:
+/// the copy states plainly what the file may contain, and "Share file" is the
+/// affirmative act. Nothing is uploaded or queued until then.
+struct SendFileConsentSheet: View {
+    let fileURL: URL?
+    @Environment(\.dismiss) private var dismiss
+    @State private var showingShare = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(L10n.sendFileTitle)
+                .font(.title3.weight(.bold))
+                .foregroundStyle(Theme.Palette.ink)
+            Text(L10n.sendFileConsent)
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.5)
+            if let fileURL {
+                HStack(spacing: 8) {
+                    Image(systemName: "doc")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.action)
+                    Text(verbatim: fileURL.lastPathComponent)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .accessibilityIdentifier("sendFileFileName")
+                }
+                .padding(.horizontal, Theme.Spacing.cardPadding)
+                .padding(.vertical, 12)
+                .formCard()
+            }
+            Spacer()
+            ImportPrimaryBar(action: { showingShare = true },
+                             label: { Text(L10n.sendFileShare) })
+                .accessibilityIdentifier("sendFileShareButton")
+            Button("Cancel") {
+                dismiss()
+            }
+            .buttonStyle(.plain)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.top, 24)
+        .padding(.bottom, 24)
+        .presentationDetents([.medium])
+        .sheet(isPresented: $showingShare) {
+            // PJ.20: the actual file rides the share sheet, with the consent
+            // sentence alongside it - never the sentence alone.
+            ActivityView(items: [fileURL as Any, L10n.sendFileMessage])
                 .presentationDetents([.medium, .large])
         }
     }

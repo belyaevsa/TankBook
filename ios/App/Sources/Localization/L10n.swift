@@ -497,12 +497,6 @@ enum L10n {
         String(format: localize("We read: %@. Send us the file and we'll add it."), supportedNames)
     }
 
-    /// The "send us the file" share-sheet body - a consent affordance, not a
-    /// silent upload.
-    static var sendUsTheFileMessage: String {
-        localize("I'd like Tankbook to import from my fuel app – here's my export file.")
-    }
-
     /// "Off by 4.20 €" - a cross-check-mismatch row's badge (F6b). The amount
     /// is already formatted with its symbol.
     static func offBy(amount: String) -> String {

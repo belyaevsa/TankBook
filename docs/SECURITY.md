@@ -46,6 +46,13 @@ The list is deliberately short. **Every item not on it must not exist on the dev
 
 **The auth token is bound to the host, not to the session.** `Authorization` is attached only when the request host is on the compiled-in allowlist, enforced in the HTTP client itself. This is what makes a redirected `apiBaseUrl` (`CONFIG.md`) unable to harvest a token even if every other guardrail failed: the request simply goes out unauthenticated. Never attach credentials to "whatever base URL is currently configured".
 
+**The feedback queue (PJ.20).** A queued case - the feedback text and an optional `replyTo` address,
+held while offline or rate-limited (docs/ERRORS.md -> About & feedback) - is user content, not a
+secret. It lives in a JSON file (`feedback-queue.json`) in the same `Application Support/Tankbook`
+container as the database, so it inherits the same `completeUntilFirstUserAuthentication` file
+protection, and it is never synced, never uploaded except through `POST /feedback`, and never logged
+(hard rule 12). It is purged from the file as each case is accepted (`202`).
+
 ## Backend – secret management
 
 | Secret | Where |
