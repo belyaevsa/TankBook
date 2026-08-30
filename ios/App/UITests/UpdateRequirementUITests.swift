@@ -172,7 +172,12 @@ final class UpdateRequirementUITests: XCTestCase {
     // MARK: - The load-bearing journey: a fill-up still saves under .required
 
     func testFillUpStillSavesUnderRequired() {
-        let app = launch(requiredArgs + ["-seedVehicleForUITests"])
+        // `-seedSettingsSignedIn` pins the session the journey needs: Home's
+        // `typeItButton` (and the log stream the final assertion reads) live in
+        // the signed-in layout, never the guest chrome. Without it the launch
+        // renders the guest Home - a real state since PJ.3 - and the button the
+        // test taps is `homeGuestCaptureButton`, not `typeItButton`.
+        let app = launch(requiredArgs + ["-seedVehicleForUITests", "-seedSettingsSignedIn"])
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
 
         // The journey, not a state assertion: open the manual form, type the

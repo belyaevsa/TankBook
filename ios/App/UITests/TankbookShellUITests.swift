@@ -11,15 +11,20 @@ final class TankbookShellUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    /// Deterministic start state for every shell walk: a reset database plus a
-    /// car with no entries. Home then shows the empty-entries card (the
-    /// `editEntryButton` link), the header affordances (gear, car switcher,
-    /// type it) and the Garage tab's links all exist. Without the reset the
-    /// shell tests would depend on whatever the PREVIOUS test left in the
-    /// database - a latent isolation bug P1.9's suite exposed.
+    /// Deterministic start state for every shell walk: a reset database, a
+    /// signed-in session (`-seedSettingsSignedIn`) and a car with no entries.
+    /// Home then shows the empty-entries card (the `editEntryButton` link), the
+    /// header affordances (gear, car switcher, type it) and the Garage tab's
+    /// links all exist. The session is not decoration: since PJ.3 a no-session
+    /// launch renders the guest chrome, which has no `editEntryButton` or
+    /// `carSwitcherButton`, so the shell walks would be order-dependent on
+    /// whatever session a previous test left behind. Without the reset the shell
+    /// tests would likewise depend on the previous test's database - a latent
+    /// isolation bug P1.9's suite exposed.
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle"]
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeEmptyVehicle"]
         app.launch()
         return app
     }
@@ -119,6 +124,7 @@ final class TankbookShellUITests: XCTestCase {
         let app = launch()
 
         // gear -> Settings -> back
+        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 10))
         app.buttons["settingsButton"].tap()
         XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
