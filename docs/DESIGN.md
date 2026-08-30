@@ -129,7 +129,7 @@ All three degrade to crossfades under Reduce Motion.
 ## Iconography & app icon
 
 - SF Symbols throughout, `regular` weight, monochrome `inkSoft` (accent color only when the icon *is* the state, e.g. anomaly badge).
-- App icon: `taillight` fuel-nozzle silhouette whose hose draws a subtle checkmark, on `midnight` – night-drive at a glance on the home screen, legible at 29pt. No text in the icon. **Shipped 2026-08-30** as an iOS 18 single-size set in `ios/App/Resources/Assets.xcassets/AppIcon.appiconset`, rendered from `site/static/icon.svg` (the one source of the mark): **Any/light** = `taillight.light` on `midnight.light`, **Dark** = `taillight` on `midnight`, **Tinted** = white glyph on transparent for the system tint. Full-bleed square – iOS applies the mask; never pre-round the corners.
+- App icon (**redrawn 2026-08-30, product owner: "a mix of a gas pistol and the electric plug"**): one `taillight` grip that is both a fuel nozzle – spout to the left – and a charging plug – two `headlight` prongs up – whose hose draws a subtle checkmark, on `midnight`. Powertrain-agnostic at a glance, legible at 29pt, no text. The three directions considered sit on the canvas's Brand page (`design/screens/Icon.dc.html`); "one grip, two ends" won because it reads as a single object at home-screen size. **Shipped 2026-08-30** as an iOS 18 single-size set in `ios/App/Resources/Assets.xcassets/AppIcon.appiconset`, rendered from `site/static/icon.svg` (the one source of the mark): **Any/light** = `taillight.light` on `midnight.light`, **Dark** = `taillight` on `midnight`, **Tinted** = white glyph on transparent for the system tint. Full-bleed square – iOS applies the mask; never pre-round the corners.
 
 ## Voice
 
