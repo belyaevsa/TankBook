@@ -78,6 +78,26 @@ final class EditEntryUITests: XCTestCase {
         field.typeText(text)
     }
 
+    /// Scroll an element clear of the pinned save bar's top, not merely to where
+    /// XCUITest calls it hittable: `isHittable` is true UNDER the bar, and a tap
+    /// there hits Save instead - the PJ.7e failure, where a tap "on" the price
+    /// field saved the entry. The drag is anchored on the form's own hittable
+    /// scroll view, never on one behind it.
+    private func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
+        let bar = app.buttons["editEntrySaveButton"]
+        var scrolls = 0
+        while scrolls < 8 {
+            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            if element.isHittable && element.frame.maxY < barTop - 8 { return }
+            guard let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            else { return }
+            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            from.press(forDuration: 0.05, thenDragTo: to)
+            scrolls += 1
+        }
+    }
+
     // MARK: - PJ.48 add a receipt to a typed entry
 
     /// The corpus fixtures live on the host; the simulator shares the host
@@ -201,7 +221,13 @@ final class EditEntryUITests: XCTestCase {
         let app = launch()
         openNewestFill(app)
 
-        app.buttons["editEntryDeleteButton"].tap()
+        let delete = app.buttons["editEntryDeleteButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), "editEntryDeleteButton never appeared")
+        // The footer sits at the bottom of the scroll, under the pinned save bar:
+        // a wait is not enough - `isHittable` is true under the bar and the tap
+        // would hit Save (PJ.7e). Scroll it clear by geometry first.
+        scrollClearOfSaveBar(app, delete)
+        delete.tap()
 
         // The system confirmation appears - the one place red lives.
         let alert = app.alerts["Delete this entry?"]

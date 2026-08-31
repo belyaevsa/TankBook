@@ -199,8 +199,10 @@ final class CaptureUITests: XCTestCase {
         XCTAssertTrue(app.buttons["captureMode_fillUpAuto"].isSelected,
                       "Fill-up must be selected by default on a petrol car")
 
-        app.buttons["captureMode_service"].tap()
-        XCTAssertTrue(app.buttons["captureMode_service"].isSelected)
+        let service = app.buttons["captureMode_service"]
+        XCTAssertTrue(service.waitForExistence(timeout: 5), "captureMode_service never appeared")
+        service.tap()
+        XCTAssertTrue(service.isSelected)
         XCTAssertFalse(app.buttons["captureMode_fillUpAuto"].isSelected)
     }
 
@@ -292,7 +294,9 @@ final class CaptureUITests: XCTestCase {
         let app = launch(args: ["-homeResetDatabase", "-seedHomeFullHistory",
                                 "-cameraStatus", "authorized"])
 
-        app.buttons["tabbar.trends"].tap()
+        let trends = app.buttons["tabbar.trends"]
+        XCTAssertTrue(trends.waitForExistence(timeout: 10), "tabbar.trends never appeared")
+        trends.tap()
         XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
 
         let button = app.buttons["captureButton"]
@@ -305,7 +309,9 @@ final class CaptureUITests: XCTestCase {
                       "capture is not a tab - selection must stay on Trends")
 
         // Closing the cover returns to wherever it was opened from.
-        app.buttons["captureCloseButton"].tap()
+        let close = app.buttons["captureCloseButton"]
+        XCTAssertTrue(close.waitForExistence(timeout: 5), "captureCloseButton never appeared")
+        close.tap()
         XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5),
                       "closing capture must return to the originating tab")
         XCTAssertTrue(app.buttons["tabbar.trends"].isSelected,
@@ -320,7 +326,9 @@ final class CaptureUITests: XCTestCase {
         let app = launch(args: ["-homeResetDatabase", "-seedHomeDuplicate",
                                 "-cameraStatus", "authorized"])
 
-        app.buttons["tabbar.trends"].tap()
+        let trends = app.buttons["tabbar.trends"]
+        XCTAssertTrue(trends.waitForExistence(timeout: 10), "tabbar.trends never appeared")
+        trends.tap()
         XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
 
         // Push a screen on Trends' own stack via the excluded-entries footnote
@@ -449,7 +457,9 @@ final class CaptureUITests: XCTestCase {
                                 "-captureFixtureImage", fixture])
         openCapture(app)
 
-        app.buttons["captureShutterButton"].tap()
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "captureShutterButton never appeared")
+        shutter.tap()
 
         let total = app.textFields["manualFillUpTotalField"]
         XCTAssertTrue(total.waitForExistence(timeout: 15),
@@ -637,15 +647,21 @@ extension CaptureUITests {
     /// asserted by identifier, never that "a sheet appeared".
     func testTypeItInFillUpModeOpensTheFillUpForm() {
         let app = captureApp()
-        app.buttons["captureTypeItButton"].tap()
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 5), "captureTypeItButton never appeared")
+        typeIt.tap()
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
                       "Fill-up Type it must open the fill-up form, by identifier")
     }
 
     func testTypeItInServiceModeOpensTheServiceForm() {
         let app = captureApp()
-        app.buttons["captureMode_service"].tap()
-        app.buttons["captureTypeItButton"].tap()
+        let service = app.buttons["captureMode_service"]
+        XCTAssertTrue(service.waitForExistence(timeout: 5), "captureMode_service never appeared")
+        service.tap()
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 5), "captureTypeItButton never appeared")
+        typeIt.tap()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
                       "Service Type it must open the service entry form, by identifier")
         XCTAssertFalse(app.textFields["manualFillUpTotalField"].exists,
@@ -654,8 +670,12 @@ extension CaptureUITests {
 
     func testTypeItInExpenseModeOpensTheExpenseForm() {
         let app = captureApp(seed: "-seedHomeEmptyVehicle")
-        app.buttons["captureMode_expense"].tap()
-        app.buttons["captureTypeItButton"].tap()
+        let expense = app.buttons["captureMode_expense"]
+        XCTAssertTrue(expense.waitForExistence(timeout: 5), "captureMode_expense never appeared")
+        expense.tap()
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 5), "captureTypeItButton never appeared")
+        typeIt.tap()
         XCTAssertTrue(app.textFields["expenseEntryTitleField"].waitForExistence(timeout: 10),
                       "Expense Type it must open the expense entry form, by identifier")
         XCTAssertFalse(app.textFields["manualFillUpTotalField"].exists,

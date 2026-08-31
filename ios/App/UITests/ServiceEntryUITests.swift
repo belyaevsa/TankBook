@@ -22,6 +22,26 @@ final class ServiceEntryUITests: XCTestCase {
         return app
     }
 
+    /// Scroll an element clear of the pinned save bar's top, not merely to where
+    /// XCUITest calls it hittable: `isHittable` is true UNDER the bar, and a tap
+    /// there hits Save instead (the PJ.7e failure mode - a tap "on" a field once
+    /// saved the entry). The drag is anchored on the sheet's own hittable scroll
+    /// view, and scrolling dismisses the keyboard (`.scrollDismissesKeyboard`).
+    private func scrollClearOfSaveBar(_ app: XCUIApplication, _ element: XCUIElement) {
+        let bar = app.buttons["serviceEntrySaveButton"]
+        var scrolls = 0
+        while scrolls < 8 {
+            let barTop = bar.exists ? bar.frame.minY : app.windows.firstMatch.frame.maxY
+            if element.isHittable && element.frame.maxY < barTop - 8 { return }
+            guard let scroll = app.scrollViews.allElementsBoundByIndex.first(where: { $0.isHittable })
+            else { return }
+            let from = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+            let to = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25))
+            from.press(forDuration: 0.05, thenDragTo: to)
+            scrolls += 1
+        }
+    }
+
     func testScreenRendersItsSections() {
         let app = launch()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10))
@@ -46,7 +66,12 @@ final class ServiceEntryUITests: XCTestCase {
         let total = app.staticTexts["serviceEntryHeaderTotal"]
         XCTAssertTrue(total.label.contains("89.00"), "header total was \(total.label)")
 
-        app.buttons["serviceEntryItemDelete"].tap()
+        let delete = app.buttons["serviceEntryItemDelete"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5), "serviceEntryItemDelete never appeared")
+        // The item row can sit under the pinned save bar (`isHittable` ignores
+        // the overlay), so scroll it clear by geometry before tapping.
+        scrollClearOfSaveBar(app, delete)
+        delete.tap()
         XCTAssertTrue(total.label.contains("0.00"), "header total was \(total.label)")
     }
 

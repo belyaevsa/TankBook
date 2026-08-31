@@ -18,7 +18,11 @@ final class VehicleDetailUITests: XCTestCase {
     /// value the detail screen must make editable is populated.
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-seedHomeCarSwitcher"]
+        // A session is required: since PJ.3 a sessionless launch renders the
+        // guest Home, which has no `carSwitcherButton` - the same reason
+        // TankbookShellUITests seeds `-seedSettingsSignedIn`.
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeCarSwitcher"]
         app.launch()
         return app
     }
@@ -222,7 +226,9 @@ final class VehicleDetailUITests: XCTestCase {
     /// (P1.12 wiring) with the archived banner and the Unarchive path.
     func testArchivedRowOpensTheArchivedCarsDetail() {
         let app = launch()
-        app.buttons["carSwitcherButton"].tap()
+        let switcher = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 10), "carSwitcherButton never appeared")
+        switcher.tap()
         XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
 
         let archived = app.buttons["carSwitcherArchivedRow"].firstMatch
@@ -263,7 +269,9 @@ final class VehicleDetailUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
         app.buttons["tabbar.log"].tap()
-        app.buttons["carSwitcherButton"].tap()
+        let switcher = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 5), "carSwitcherButton never appeared")
+        switcher.tap()
         XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons.matching(identifier: "carSwitcherRow").count, 2,
                        "cancelling must leave both live cars intact")

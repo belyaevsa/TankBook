@@ -15,7 +15,10 @@ final class CarSwitcherUITests: XCTestCase {
 
     private func launch(args: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase"] + args
+        // A session is required: since PJ.3 a sessionless launch renders the
+        // guest Home, which has no `carSwitcherButton` and no log stream -
+        // the same reason TankbookShellUITests seeds `-seedSettingsSignedIn`.
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + args
         app.launch()
         return app
     }
@@ -113,7 +116,9 @@ final class CarSwitcherUITests: XCTestCase {
 
         XCTAssertEqual(rows(app).count, 3, "three live cars sit at the cap")
 
-        app.buttons["carSwitcherAddCar"].tap()
+        let addCar = app.buttons["carSwitcherAddCar"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 5), "carSwitcherAddCar never appeared")
+        addCar.tap()
 
         // The cap explanation, verbatim from docs/ERRORS.md.
         XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one, or go Pro."]

@@ -227,7 +227,10 @@ final class SignInUITests: XCTestCase {
         // then does add-a-car become reachable (and only because the accepted
         // account left a session: a no-session user is the guest Home, not the
         // signed-in empty garage, since PJ.3).
-        app.buttons["emptyRestoreStartFreshButton"].tap()
+        let startFresh = app.buttons["emptyRestoreStartFreshButton"]
+        XCTAssertTrue(startFresh.waitForExistence(timeout: 5),
+                      "emptyRestoreStartFreshButton never appeared")
+        startFresh.tap()
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["homeAddFirstCarButton"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["homeAddFirstCarButton"].isHittable,

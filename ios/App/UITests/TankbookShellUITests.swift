@@ -197,7 +197,9 @@ final class TankbookShellUITests: XCTestCase {
 
     func testCarSwitcherSheetDismissesSilently() {
         let app = launch()
-        app.buttons["carSwitcherButton"].tap()
+        let switcher = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 10), "carSwitcherButton never appeared")
+        switcher.tap()
         XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
 
         app.buttons["sheetCloseButton"].tap()

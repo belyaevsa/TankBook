@@ -77,7 +77,9 @@ final class GarageUITests: XCTestCase {
         let app = launch(["-seedHomeCarSwitcher"])
         openGarage(app)
 
-        liveRows(app).firstMatch.tap()
+        let firstRow = liveRows(app).firstMatch
+        XCTAssertTrue(firstRow.waitForExistence(timeout: 5), "garageCarRow never appeared")
+        firstRow.tap()
         XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5),
                       "a live car card pushes the vehicle detail")
         let name = app.textFields["vehicleDetailNameField"]
@@ -106,7 +108,9 @@ final class GarageUITests: XCTestCase {
 
         XCTAssertEqual(liveRows(app).count, 3, "three live cars sit at the cap")
 
-        app.buttons["garageAddCar"].tap()
+        let addCar = app.buttons["garageAddCar"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 5), "garageAddCar never appeared")
+        addCar.tap()
 
         XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one, or go Pro."]
             .waitForExistence(timeout: 5), "the cap explanation is the sheet, not an error")
@@ -126,7 +130,9 @@ final class GarageUITests: XCTestCase {
         let app = launch(["-seedHomeCarSwitcher"])
         openGarage(app)
 
-        app.buttons["garageAddCar"].tap()
+        let addCar = app.buttons["garageAddCar"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 5), "garageAddCar never appeared")
+        addCar.tap()
         XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5),
                       "with a free slot, Add car opens the form")
     }

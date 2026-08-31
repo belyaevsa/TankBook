@@ -25,10 +25,13 @@ final class AnomalyInsightUITests: XCTestCase {
     /// Every anomaly test starts from a wiped database. `-anomalyDismissalReset`
     /// also clears the UserDefaults dismissal store (which survives
     /// `-homeResetDatabase`), so a prior test's dismissal can never hide a card
-    /// this test expects to see.
+    /// this test expects to see. A signed-in session is required too: since
+    /// PJ.3 a sessionless launch renders the guest Home, whose layout has no
+    /// anomaly card - the card lives only in the signed-in full layout (the
+    /// same reason TankbookShellUITests seeds `-seedSettingsSignedIn`).
     private func launch(_ arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase"] + arguments
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + arguments
         app.launch()
         return app
     }
@@ -102,7 +105,9 @@ final class AnomalyInsightUITests: XCTestCase {
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
 
         // Expand, then dismiss with a reason from the sheet.
-        app.buttons["homeAnomalyToggle"].tap()
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
         let dismiss = app.buttons["homeAnomalyDismissButton"]
         XCTAssertTrue(dismiss.waitForExistence(timeout: 5))
         dismiss.tap()
@@ -110,7 +115,9 @@ final class AnomalyInsightUITests: XCTestCase {
         let sheetTitle = app.staticTexts["anomalyDismissTitle"]
         XCTAssertTrue(sheetTitle.waitForExistence(timeout: 5))
         XCTAssertEqual(sheetTitle.label, "Why is consumption higher?")
-        app.buttons["anomalyDismissReasonWinter"].tap()
+        let reason = app.buttons["anomalyDismissReasonWinter"]
+        XCTAssertTrue(reason.waitForExistence(timeout: 5), "anomalyDismissReasonWinter never appeared")
+        reason.tap()
 
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: cardElement(app))
@@ -122,7 +129,7 @@ final class AnomalyInsightUITests: XCTestCase {
         // must not return for this cause.
         app.terminate()
         let relaunch = XCUIApplication()
-        relaunch.launchArguments = ["-seedHomeAnomaly"]
+        relaunch.launchArguments = ["-seedHomeAnomaly", "-seedSettingsSignedIn"]
         relaunch.launch()
 
         XCTAssertTrue(relaunch.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
@@ -142,7 +149,9 @@ final class AnomalyInsightUITests: XCTestCase {
         let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
 
-        app.buttons["homeAnomalyToggle"].tap()
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
         let act = app.buttons["homeAnomalyActButton"]
         XCTAssertTrue(act.waitForExistence(timeout: 5))
         act.tap()
@@ -181,7 +190,9 @@ final class AnomalyInsightUITests: XCTestCase {
                         || app.staticTexts["homeHeadlineValue"].exists,
                       "the Log screen must still be visible behind the card")
 
-        app.buttons["homeAnomalyToggle"].tap()
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
         XCTAssertTrue(app.buttons["homeAnomalyActButton"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.alerts.allElementsBoundByIndex.isEmpty,
                       "expanding the evidence must not present an alert either")
@@ -215,7 +226,9 @@ final class AnomalyInsightUITests: XCTestCase {
                       "caption was \(caption.label)")
 
         // The dismissal sheet's reasons are localised too ("Зима").
-        app.buttons["homeAnomalyToggle"].tap()
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
         XCTAssertTrue(app.buttons["homeAnomalyDismissButton"].waitForExistence(timeout: 5))
         app.buttons["homeAnomalyDismissButton"].tap()
         XCTAssertTrue(app.buttons["anomalyDismissReasonWinter"].waitForExistence(timeout: 5))

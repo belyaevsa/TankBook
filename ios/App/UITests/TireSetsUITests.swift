@@ -99,8 +99,13 @@ final class TireSetsUITests: XCTestCase {
         // Mount a set. With no odometer anywhere on the car, the P3.1a rule
         // (a mounted set anchors the span) makes the odometer required: the
         // warning appears and Save stays gated.
-        app.buttons["serviceEntryTireSetPicker"].tap()
-        app.buttons["Winter Nokian"].tap()
+        let picker = app.buttons["serviceEntryTireSetPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5),
+                      "serviceEntryTireSetPicker never appeared")
+        picker.tap()
+        let winter = app.buttons["Winter Nokian"]
+        XCTAssertTrue(winter.waitForExistence(timeout: 5), "Winter Nokian never appeared")
+        winter.tap()
 
         XCTAssertTrue(app.staticTexts["serviceEntryOdometerWarning"].waitForExistence(timeout: 5),
                       "mounting a set makes the odometer required")
