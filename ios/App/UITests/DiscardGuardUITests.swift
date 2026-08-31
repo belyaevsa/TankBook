@@ -12,7 +12,7 @@ final class DiscardGuardUITests: XCTestCase {
 
     private func launch() -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-seedVehicleForUITests"]
+        app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests"]
         app.launch()
         return app
     }

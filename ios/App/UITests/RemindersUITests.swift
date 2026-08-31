@@ -286,12 +286,35 @@ final class RemindersUITests: XCTestCase {
     func testReminderSavesDespiteNotificationsDenied() {
         let app = launch(["-notificationStatus", "denied", "-seedReminders"])
 
+        // The denied card pushes "New reminder" beneath the owned tab bar, and
+        // `isHittable` does not model that occlusion (the same caveat as the
+        // pinned save bar): a tap then lands on the bar / the row above and
+        // opens that row's EDIT form. Scroll the action clear of the bar first,
+        // the way a user would.
         let newButton = app.buttons["remindersNewReminderButton"]
         XCTAssertTrue(newButton.waitForExistence(timeout: 10))
+        let tabBar = app.otherElements["tabbar"]
+        var attempts = 0
+        while attempts < 10,
+              !newButton.isHittable || newButton.frame.maxY > tabBar.frame.minY + 1 {
+            app.swipeUp()
+            attempts += 1
+        }
+        XCTAssertTrue(newButton.frame.maxY <= tabBar.frame.minY + 1,
+                      "New reminder (\(newButton.frame)) overlaps the tab bar (\(tabBar.frame))")
         newButton.tap()
 
+        // Prove the form is NEW, not a row's edit form: the title opens empty
+        // and the Add-date button renders (the form carries no due date). The
+        // failure this guards against opened the seeded "Oil change" edit form
+        // ("Edit reminder", title pre-filled, due date "Feb 29, 2028").
         let title = app.textFields["reminderFormTitleField"]
         XCTAssertTrue(title.waitForExistence(timeout: 5))
+        let titleValue = title.value as? String
+        XCTAssertTrue(titleValue == nil || titleValue == "",
+                      "a new reminder must open with an empty title, was \(String(describing: titleValue))")
+        XCTAssertTrue(app.buttons["reminderFormAddDateButton"].exists,
+                      "a new reminder must open with no due date")
         title.tap()
         title.typeText("Brake check")
 

@@ -13,7 +13,7 @@ final class ConfirmManualUITests: XCTestCase {
 
     func launch(args: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = args + ["-seedVehicleForUITests"]
+        app.launchArguments = ["-homeResetDatabase"] + args + ["-seedVehicleForUITests"]
         app.launch()
         return app
     }
@@ -200,7 +200,7 @@ extension ConfirmManualUITests {
 
     func launchWithPrefill(_ seed: String) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-seedVehicleForUITests", seed]
+        app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests", seed]
         app.launch()
         return app
     }
@@ -356,7 +356,7 @@ extension ConfirmManualUITests {
 
     func testReducedMotionLockStillLandsWithoutAnimation() {
         let app = XCUIApplication()
-        app.launchArguments = ["-seedVehicleForUITests", "-forceReduceMotion"]
+        app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests", "-forceReduceMotion"]
         app.launch()
         openForm(app)
 

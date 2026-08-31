@@ -15,9 +15,11 @@ final class AddVehicleUITests: XCTestCase {
 
     private func launch(args: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        if !args.isEmpty {
-            app.launchArguments = args
-        }
+        // `-homeResetDatabase` makes every launch deterministic: without it a
+        // default launch passes NO arguments, so a pristine device shows
+        // Welcome and a dirty device (three cars from earlier suites) hits the
+        // free-tier cap - the Add car screen is reachable from neither.
+        app.launchArguments = ["-homeResetDatabase"] + args
         app.launch()
         return app
     }
