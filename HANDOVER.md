@@ -1,11 +1,14 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-30 (evening). Phases 4-6 complete; **Tier 1 is 14/17 and the three that remain
-need the product owner** (`SH.1`, `SH.2`, `P6.6`); **Tier 2 is 18/24 - six rows left: `PR.8`,
-`PR.14`, `PR.16`, `P6.5`, `P6.13`, `P1.13`**. Landed this evening: PR.13, P2.3b/c, plus P2.15,
-P2.16 and the PJ.7 family, all filed from the work rather than the backlog. `PJ.48` (v1.1) in
-flight. The marketing site is LIVE. Read this first, then `CLAUDE.md`
-for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Updated 2026-08-31. **Tier 2 is COMPLETE (24/24)** and the UI suite is **274 tests** with one
+intermittent (`T.3`). Phases 4-6 complete. **Tier 1 is 14/17**: `SH.1` (deploy the backend),
+`SH.3` (launch-readiness walk on a device, by a human) and `SH.4` (the Sign-in screen offers
+"Continue with Google" and the provider throws `unsupported` - a dead control on the auth screen)
+are the product owner's, not an agent's; `SH.2` and `P6.6` are `[~]`. **Ten rows block v1 and only
+six are agent work**: `PJ.12b`, `P6.17`, `P1.13b`, `PJ.2b`, `PR.16b`, `PR.3c`, plus `T.3`. Beyond
+v1: 13 `[v1.0.x]`, 32 `[v1.1]` (eleven of them an ordered priority queue set by the owner on
+2026-08-31), 15 `[v2]`. Counts: **144 done, 68 open**. The marketing site is LIVE. Read this first,
+then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
 
 ## Start here (paste this to open a new session)
 
@@ -181,6 +184,78 @@ produces - P6.20 again), `PJ.45` (`paceLimitKmPerDay` edited nowhere).
 
 **Ask what PRODUCES a case, not only what handles it.** That question found P6.20, and it found
 these four.
+
+## Tier 2 is COMPLETE, and the day the suite was hardened (2026-08-31)
+
+**Tier 2 closed at 24/24.** Landed and verified in the orchestrator's own hands: `PR.13`, `P2.15`,
+`P2.16`, `P2.3b/c`, `PJ.48`, `PJ.17b`, `PR.16`, `P1.13`, `PR.8`, `P6.13`, `PR.14`, `P6.5`, plus
+`PJ.7g`, `PJ.20a` and the corpus addition. **Full UI suite: 274 executed** (was 252), unit
+**1121**, backend **281**, lint 0, Debug *and* Release builds green.
+
+### "Device-specific" and "flaky" were both wrong twice, and the truth was geometry
+
+Two failures carried those labels and neither deserved them:
+
+- The **`ConfirmManual` pair** was never device-specific. The price field sits **under the pinned
+  save bar**, so the tap hit **Save**, saved the entry and dismissed the sheet; `typeText` then
+  found no field (PJ.7e).
+- **`PJ.4b`** was filed as order-dependence and was **tab-bar occlusion**: the denied-notifications
+  card pushes "New reminder" to y 761.7-806 while the owned tab bar starts at **y=772**, so the tap
+  opened the **edit** form for the row above - hence a seeded 18-month date (`Feb 29 2028`, clamped
+  off 2026-08-31). Proven with frame dumps (T.1).
+
+**`isHittable` does not model occlusion - for the save bar OR the tab bar.** When a tap "succeeds"
+and the next assertion fails, suspect what is drawn over the target. And when you write
+"device-specific" or "flaky", write what you measured next to it, or the label will cost someone a
+day.
+
+### The test suite's own fragility, classified by measurement
+
+A scan produced four classes. The orchestrator's classification was **half wrong**, and the
+correction is the lesson:
+
+| Class | Finding |
+|---|---|
+| **A** order-dependent launches | 8 flagged, **4 were false positives** - intentional relaunches that READ state the test just persisted. Adding a reset there destroys what they prove. One real site was missed (`ConfirmManual:16`). Fixed in `T.1` |
+| **B** tap without wait | **23 sites**. A tap on an absent element fails at the NEXT assertion, naming the wrong thing. 21 waits + 2 geometric scrolls. Fixed in `T.2` |
+| **C** appearance-blind assertions | **281 text assertions**. XCUITest reads the string a view was GIVEN, not the pixels drawn - not a task, the standing reason screenshots stay in the process |
+| **D** stale expectations | Copy and counts drift; fixed three times in one day (`PJ.7c`, `PJ.7f`, the corpus row pin) |
+
+**A grep cannot tell "forgot to" from "deliberately did not."** Present a scan as a hypothesis, not
+a defect list.
+
+### `simctl uninstall` does NOT clear the Keychain
+
+T.1's first mutation **passed spuriously** because a leftover session suppressed Welcome. A truly
+pristine device needs **`xcrun simctl keychain <device> reset`** as well. This also explains why
+two lanes disagreed about the same suite's baseline on the same day.
+
+### Three more ways a green result lied
+
+- **A custom `Layout` painted nothing.** P6.13's `SubtitleFlow` used an absolute x with a
+  **relative y** - never offset by `bounds.minY` - so subtitles were drawn at absolute y ~ 0. Its
+  geometry test passed: the frames existed, only the pixels were missing. The screenshot caught it.
+- **A screenshot taken after a mutation run captures the MUTANT.** `xcodebuild build` does not
+  install, so the simulator keeps the reverted binary. Reinstall before capturing.
+- **A simulator-wide `AppleLanguages` default outlives the capture you set it for.** One left on
+  `ru` produced **15 phantom failures** and a confident wrong diagnosis from the orchestrator before
+  the assertion text was actually read. Pass `-AppleLanguages` per launch, never as a default.
+
+### Duplicate catalogue keys silently displace their translations
+
+Xcode auto-extracted `+%@ km since last`, `%@-%@` and `%@-` beside their translated `%lld`
+originals. `LocalizationCatalogue` keys entries by the **normalised** template (every specifier
+collapses to `%@`), so each pair is ONE entry and the untranslated newcomer won - real Russian
+plurals became unreachable while still sitting in the file. It surfaced as five cryptic
+"MISSING-few/many/one" failures. A guard now names the collision directly.
+
+### Agents corrected the orchestrator six times, and were right every time
+
+My briefs carried wrong counts or lists: 5 seed sites that were **11**, 16 numeric fields that were
+**18**, four `TankbookHTTPClient` owners that were **twelve**, `SignInFlow` "already clean" when it
+referenced a stub provider from PRODUCTION code, a tagline two commits stale, and half the
+order-dependence list. **Every brief should tell the agent to verify the list and report where it
+was wrong** - it costs nothing and it has never once been wasted.
 
 ## The Tier 2 session (2026-08-30, evening) - six lanes, and what each cost
 
