@@ -26,6 +26,24 @@ struct StatTile: View {
     var seriesColor: Color = Theme.Palette.inkSoft
     /// Bars for the spend tile, a line otherwise (the artboard's charts).
     var bars = false
+    /// The series' direction for VoiceOver ("improving" / "worsening"), when
+    /// the metric is lower-is-better and the series supports one. `nil` (the
+    /// common case) is silently omitted from the label - never "steady".
+    var trend: TrendDirection?
+
+    /// The figure's VoiceOver label: value + unit + trend, in that order
+    /// (docs/DESIGN.md -> Accessibility floor: a bare number read aloud is
+    /// useless). The subordinate `unit` is hidden from VoiceOver on its own -
+    /// reading "6.8" then "L/100" as two announcements is the failure the
+    /// combined figure exists to prevent - and the trend, when the series
+    /// supports one, is appended. The eyebrow (title) and caption remain their
+    /// own elements, so a tile reads "CONSUMPTION", "6.8 L/100, improving",
+    /// "last 5 months".
+    private var figureVoiceOverLabel: String {
+        let figure = unit.map { "\(value) \($0)" } ?? value
+        if let trend { return "\(figure), \(L10n.trend(trend))" }
+        return figure
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -48,11 +66,13 @@ struct StatTile: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
+                    .accessibilityLabel(figureVoiceOverLabel)
                 if let unit {
                     Text(unit)
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .lineLimit(1)
+                        .accessibilityHidden(true)
                 }
             }
             if series.count >= 2 {

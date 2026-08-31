@@ -12140,6 +12140,125 @@
           }
         }
       }
+    },
+    "improving": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "improving"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "улучшается"
+          }
+        }
+      }
+    },
+    "kilometers per liter": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kilometers per liter"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "километров на литр"
+          }
+        }
+      }
+    },
+    "kilowatt-hours per 100 kilometers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "kilowatt-hours per 100 kilometers"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "киловатт-часов на 100 километров"
+          }
+        }
+      }
+    },
+    "liters per 100 kilometers": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "liters per 100 kilometers"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "литров на 100 километров"
+          }
+        }
+      }
+    },
+    "miles per gallon (UK)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "miles per gallon (UK)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль на галлон (Великобритания)"
+          }
+        }
+      }
+    },
+    "miles per gallon (US)": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "miles per gallon (US)"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "миль на галлон (США)"
+          }
+        }
+      }
+    },
+    "worsening": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "worsening"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ухудшается"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

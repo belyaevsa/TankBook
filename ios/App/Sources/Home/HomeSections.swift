@@ -152,16 +152,30 @@ struct HomeHeadlineBlock: View {
                         .font(.custom(AppFonts.dinCondensedBold, size: 68))
                         .foregroundStyle(Theme.Palette.ink)
                         .accessibilityIdentifier("homeHeadlineValue")
+                        .accessibilityLabel(headlineValueVoiceOverLabel(headline))
                     Text(L10n.headlineUnit(vehicle.headlineUnit))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .tracking(0.4)
+                        .accessibilityHidden(true)
                 }
                 labelLine(headline)
             }
         } else if stats.needsAnotherFullTank {
             d4Hint
         }
+    }
+
+    /// The hero figure's VoiceOver label: the value with its SPOKEN unit
+    /// ("liters per 100 kilometers", never the "L/100km" a screen reader reads
+    /// as "L one hundred k m") plus the derived trend (docs/DESIGN.md ->
+    /// Accessibility floor). A nil trend is omitted, never "steady".
+    private func headlineValueVoiceOverLabel(_ headline: Headline) -> String {
+        let value = ManualFillUpFormat.decimal(headline.value, fractionDigits: 1)
+        let unit = L10n.spokenHeadlineUnit(vehicle.headlineUnit)
+        var parts = ["\(value) \(unit)"]
+        if let trend = stats.headlineTrend { parts.append(L10n.trend(trend)) }
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder
@@ -421,9 +435,7 @@ struct HomeRecentEntries: View {
         HStack(spacing: 12) {
             NavigationLink(value: Route.editEntry(entry.id)) {
                 HStack(spacing: 12) {
-                    Circle()
-                        .fill(dotColor(entry.kind))
-                        .frame(width: 9, height: 9)
+                    EntryKindMark(kind: entry.kind)
                     VStack(alignment: .leading, spacing: 1) {
                         titleLine(entry)
                         subtitleLine(entry)
@@ -532,14 +544,6 @@ struct HomeRecentEntries: View {
         return HomeFormat.entryAmount(homeAmount, symbol: symbol)
     }
 
-    private func dotColor(_ kind: LogStream.Kind) -> Color {
-        switch kind {
-        case .fuel: return Theme.Palette.taillight
-        case .charge: return Theme.Palette.headlight
-        case .service, .expense: return Theme.Palette.inkSoft
-        }
-    }
-
     private func title(_ entry: LogStream.LogEntry) -> String {
         switch entry.kind {
         case .fuel:
@@ -575,9 +579,7 @@ struct HomeRecentEntries: View {
                 }
             } label: {
                 HStack(spacing: 12) {
-                    Circle()
-                        .fill(dotColor(group.members.first?.kind ?? .fuel))
-                        .frame(width: 9, height: 9)
+                    EntryKindMark(kind: group.members.first?.kind ?? .fuel)
                     VStack(alignment: .leading, spacing: 1) {
                         HStack(spacing: 5) {
                             Text(groupTitle(group))

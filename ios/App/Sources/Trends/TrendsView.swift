@@ -116,7 +116,8 @@ struct TrendsView: View {
                          unit: TrendsFormat.consumptionUnit(stats.vehicle.headlineUnit),
                          caption: L10n.honestSpanLabel(headline.label),
                          series: stats.consumptionSeries.map(\.value),
-                         seriesColor: Self.consumptionColor(stats.vehicle))
+                         seriesColor: Self.consumptionColor(stats.vehicle),
+                         trend: stats.consumptionTrend)
             }
             if let costPerKm = stats.home.costPerKm, let spanMonths = stats.costPerKmSpanMonths {
                 StatTile(title: L10n.localize("Cost / km"),
@@ -124,7 +125,8 @@ struct TrendsView: View {
                          identifier: "trendsCostPerKmTile",
                          unit: symbol,
                          caption: L10n.honestSpanLabel(.window(months: spanMonths)),
-                         series: stats.costSeries.map(\.value))
+                         series: stats.costSeries.map(\.value),
+                         trend: stats.costTrend)
             }
             if let monthSpend = stats.home.monthSpend {
                 StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),

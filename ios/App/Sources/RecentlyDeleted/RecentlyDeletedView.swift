@@ -92,10 +92,7 @@ struct RecentlyDeletedView: View {
     private func deletedRow(_ deletedEntry: DeletedEntry) -> some View {
         let device = fixtures.deletedOnDeviceByEntryID[deletedEntry.id]
         return HStack(spacing: 12) {
-            Circle()
-                .fill(dotColor(deletedEntry.entry))
-                .frame(width: 9, height: 9)
-                .opacity(0.55)
+            EntryKindMark(kind: LogStream.Kind(deletedEntry.entry), dimmed: true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(titleLine(deletedEntry.entry))
                     .font(.subheadline.weight(.semibold))
@@ -258,14 +255,6 @@ struct RecentlyDeletedView: View {
         guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
         let symbol = AddVehicleSupport.currencySymbol(for: money.homeCurrency)
         return HomeFormat.entryAmount(homeAmount, symbol: symbol)
-    }
-
-    private func dotColor(_ entry: any Entry) -> Color {
-        switch entry {
-        case is FillUp: return Theme.Palette.taillight
-        case is ChargeSession: return Theme.Palette.headlight
-        default: return Theme.Palette.inkSoft
-        }
     }
 
     private static func title(_ entry: any Entry, stations: [Station]) -> String {

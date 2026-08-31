@@ -103,6 +103,8 @@ struct ReminderRow: View {
                 .foregroundStyle(isAttention ? Theme.Palette.warn : Theme.Palette.inkSoft)
         }
         .buttonStyle(.plain)
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
         .accessibilityLabel("Complete")
         .accessibilityIdentifier("reminderCompleteButton")
     }
@@ -126,7 +128,7 @@ struct ReminderRow: View {
             Image(systemName: "ellipsis")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(Theme.Palette.inkSoft)
-                .frame(width: 30, height: 30)
+                .frame(width: 44, height: 44)
         }
         .accessibilityLabel("Reminder actions")
         .accessibilityIdentifier("reminderRowMenu")

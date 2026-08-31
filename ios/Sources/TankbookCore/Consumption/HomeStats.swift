@@ -14,6 +14,12 @@ public struct HomeStats: Equatable, Sendable {
     /// Headline consumption over the trailing window/floor. `nil` until a
     /// segment closes - a single full tank opens one but does not close it.
     public let headline: Headline?
+    /// The direction the headline's per100 series is moving, derived from the
+    /// same segments the headline is built from (hard rule 2 - never stored).
+    /// `nil` with fewer than two closing segments or a flat series: VoiceOver
+    /// then announces the figure with no invented "improving"/"worsening"
+    /// (docs/DESIGN.md -> Accessibility floor).
+    public let headlineTrend: TrendDirection?
     /// All-history distance-weighted consumption; `nil` with no usable distance.
     public let lifetime: Double?
     /// All-in cost per km over the window; `nil` with no km span in the window.
@@ -76,6 +82,8 @@ public struct HomeStats: Equatable, Sendable {
         let segments = usesEV ? evSegments : fuelSegments
 
         self.headline = ConsumptionEngine.headline(segments: segments, asOf: asOf)
+        self.headlineTrend = TrendDirection.lowerIsBetter(
+            segments.sorted { $0.closes < $1.closes }.map(\.per100))
         self.lifetime = ConsumptionEngine.lifetime(segments: segments)
         self.costPerKm = ConsumptionEngine.costPerKm(entries: countingEntries, asOf: asOf)
         self.monthSpend = Self.monthSpend(entries: countingEntries, asOf: asOf, calendar: calendar)

@@ -134,6 +134,8 @@ struct ReminderFormDueCard: View {
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }
                 .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
                 .accessibilityLabel("Remove date")
                 .accessibilityIdentifier("reminderFormClearDateButton")
             } else {
@@ -190,6 +192,8 @@ struct ReminderFormDueCard: View {
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }
                 .buttonStyle(.plain)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
                 .accessibilityLabel("Remove odometer")
                 .accessibilityIdentifier("reminderFormClearOdometerButton")
             }

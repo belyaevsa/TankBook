@@ -15,21 +15,32 @@ enum AppFonts {
 
 /// The standard surface: `dash` fill, 12pt radius, hairline border
 /// (docs/DESIGN.md: "Cards use 12pt corner radius, 1px hairline border").
-struct CardBackground: ViewModifier {
-    func body(content: Content) -> some View {
+///
+/// docs/DESIGN.md -> Accessibility floor: Increase Contrast is respected. The
+/// border is `Theme.Palette.hairline` (ink at 0.08) by default; when the user
+/// has Increase Contrast on it is raised to the `ContrastPolicy` value so card
+/// edges stay legible. The opacity decision lives in core (testable), the
+/// environment read lives here.
+struct CardSurface<Content: View>: View {
+    @Environment(\.colorSchemeContrast) private var contrast
+    let content: Content
+
+    var body: some View {
         content
             .background(Theme.Palette.dash)
             .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
             .overlay(
                 RoundedRectangle(cornerRadius: Theme.Radius.card)
-                    .stroke(Theme.Palette.hairline, lineWidth: 1)
+                    .stroke(Theme.Palette.ink.opacity(
+                        ContrastPolicy.hairlineOpacity(increasedContrast: contrast == .increased)),
+                        lineWidth: 1)
             )
     }
 }
 
 extension View {
     func formCard() -> some View {
-        modifier(CardBackground())
+        CardSurface(content: self)
     }
 }
 

@@ -31,9 +31,16 @@ public struct TrendsStats: Equatable, Sendable {
     /// segments the headline is built from, so the sparkline and the honest
     /// label describe the same history.
     public let consumptionSeries: [TrendPoint]
+    /// The direction the consumption series is moving (lower is better),
+    /// derived from the series itself - never stored (hard rule 2). `nil`
+    /// below two points or on a flat series.
+    public let consumptionTrend: TrendDirection?
     /// All-in cost/km per calendar month (Σ homeAmount / odometer span within
     /// the month). A month without a km span is omitted, never drawn as zero.
     public let costSeries: [TrendPoint]
+    /// The direction the cost/km series is moving (lower is better). `nil`
+    /// below two points or on a flat series.
+    public let costTrend: TrendDirection?
     /// Total spend per calendar month (all entry types), trailing 12 months.
     public let spendSeries: [TrendPoint]
     /// Unit price per fill by date, most recent 12 fills.
@@ -73,8 +80,10 @@ public struct TrendsStats: Equatable, Sendable {
         self.consumptionSeries = segments
             .sorted { $0.closes < $1.closes }
             .map { TrendPoint(date: $0.closes, value: $0.per100) }
+        self.consumptionTrend = TrendDirection.lowerIsBetter(consumptionSeries.map(\.value))
 
         self.costSeries = Self.monthlyCostSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
+        self.costTrend = TrendDirection.lowerIsBetter(costSeries.map(\.value))
         self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
         self.priceSeries = Self.priceSeries(entries: countingEntries)
         self.costPerKmSpanMonths = Self.costPerKmSpanMonths(entries: countingEntries, asOf: asOf)
