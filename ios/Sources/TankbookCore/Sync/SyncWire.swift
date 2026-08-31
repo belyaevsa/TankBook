@@ -13,9 +13,15 @@ public struct SyncPullRecord: Equatable, Sendable {
     public var payload: JSONValue
     public var clientUpdatedAt: Date
     public var deleted: Bool
+    /// The name of the device that authored this record, when the server sends
+    /// it (PR.14: it lets a losing device attribute the overwrite in the
+    /// "Changed by sync" row). Forward-compatible: nil when the wire omits it,
+    /// so an older backend simply leaves the overwrite unattributed.
+    public var originDeviceName: String?
 
     public init(id: UUID, entityType: String, schemaVersion: Int, scn: Int64,
-                payload: JSONValue, clientUpdatedAt: Date, deleted: Bool) {
+                payload: JSONValue, clientUpdatedAt: Date, deleted: Bool,
+                originDeviceName: String? = nil) {
         self.id = id
         self.entityType = entityType
         self.schemaVersion = schemaVersion
@@ -23,6 +29,7 @@ public struct SyncPullRecord: Equatable, Sendable {
         self.payload = payload
         self.clientUpdatedAt = clientUpdatedAt
         self.deleted = deleted
+        self.originDeviceName = originDeviceName
     }
 
     /// Converts to the merge shape, reading any per-field versions the payload

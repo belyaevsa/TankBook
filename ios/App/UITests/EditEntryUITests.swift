@@ -298,4 +298,87 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertEqual(reopened.value as? String, "4.5000",
                        "the changed manual rate must persist, got '\(reopened.value ?? "")'")
     }
+
+    // MARK: - PR.14 the "Changed by sync" row is real data
+
+    private func textContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {
+        app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", substring)).firstMatch
+    }
+
+    /// The row reads the REAL overwrite log: the seeded device is "iPad", so the
+    /// row must name "iPad" - a hardcoded "iPhone" (or any other constant) would
+    /// fail this. "Restore my version" then round-trips the user's odometer back
+    /// into the field and the row disappears.
+    func testChangedBySyncRowReadsTheRealOverwriteLogAndRestores() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntrySyncOverwritten",
+                               "-presentScreen", "editEntry"]
+        app.launch()
+
+        let restore = app.buttons["editSyncRestoreButton"]
+        XCTAssertTrue(restore.waitForExistence(timeout: 10),
+                      "a seeded overwrite must render the row's Restore action")
+        XCTAssertTrue(textContaining(app, "iPad").exists,
+                      "the row names the device from the log, never a constant")
+        XCTAssertTrue(textContaining(app, "Changed by sync").exists,
+                      "the row carries the 'Changed by sync' sentence")
+
+        // The synced version shows 119 486; restore returns the user's 118 486.
+        restore.tap()
+
+        let odometer = app.textFields["manualFillUpOdometerField"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        let restored = (odometer.value as? String) ?? ""
+        XCTAssertTrue(restored.contains("118"),
+                      "restore returns the user's odometer (118 486), got '\(restored)'")
+        XCTAssertFalse(restored.contains("119"),
+                       "the synced odometer (119 486) is replaced, got '\(restored)'")
+        XCTAssertFalse(app.buttons["editSyncRestoreButton"].exists,
+                       "the row disappears once the user has chosen")
+    }
+
+    /// The RU sentence renders the device name and the sync verb - the row must
+    /// localise like every other surface, never an English-in-RU drift.
+    func testChangedBySyncRowRendersInRussian() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntrySyncOverwritten",
+                               "-presentScreen", "editEntry",
+                               "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+        app.launch()
+
+        XCTAssertTrue(app.buttons["Восстановить мою версию"].waitForExistence(timeout: 10),
+                      "the RU restore action renders")
+        XCTAssertTrue(textContaining(app, "Изменено при синхронизации").exists,
+                      "the RU sentence renders")
+        XCTAssertTrue(textContaining(app, "iPad").exists,
+                      "the device name renders in RU too")
+    }
+
+    // MARK: - PR.14 the post-batch toast names the real flagged count
+
+    /// The toast's N comes from `SyncOutcome.flaggedEntries`: the sync pulls an
+    /// out-of-order fill, `revalidateTimeline` flags both entries of the
+    /// reversed pair, so the toast must say "2 entries" - a hardcoded constant
+    /// (the old fixture's "2", or any other number) fails when it disagrees.
+    /// `-freezeSyncState` keeps the automatic cycles from racing this, so the
+    /// single "Sync now" is the one batch that flags.
+    func testSyncToastShowsTheFlaggedBatchCount() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-freezeSyncState",
+                               "-seedSettingsSynced", "-seedSyncFlaggedBatch",
+                               "-syncFlaggedPullStub", "-presentScreen", "settings"]
+        app.launch()
+
+        let syncNow = app.buttons["settingsSyncNowButton"]
+        XCTAssertTrue(syncNow.waitForExistence(timeout: 10))
+        syncNow.tap()
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
+
+        let toast = app.staticTexts["Synced. 2 entries need a look"]
+        XCTAssertTrue(toast.waitForExistence(timeout: 10),
+                      "the post-batch toast must name the actual flagged count")
+    }
 }

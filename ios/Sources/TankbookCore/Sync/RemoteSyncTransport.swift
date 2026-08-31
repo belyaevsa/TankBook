@@ -162,7 +162,8 @@ public struct RemoteSyncTransport: SyncTransport {
             scn: scn,
             payload: payload,
             clientUpdatedAt: clientUpdatedAt,
-            deleted: object["deleted"]?.boolValue ?? false
+            deleted: object["deleted"]?.boolValue ?? false,
+            originDeviceName: object["originDeviceName"]?.stringValue
         )
     }
 

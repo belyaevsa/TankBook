@@ -12,7 +12,8 @@ struct EditEntryNonFillView: View {
     let vehicle: Vehicle
     let attachments: [Attachment]
     @Binding var showDatePicker: Bool
-    let showChangedBySync: Bool
+    let syncOverwrite: SyncOverwrite?
+    let onRestore: () -> Void
     let pendingBlobIDs: Set<UUID>
 
     @FocusState private var odometerFocused: Bool
@@ -31,8 +32,10 @@ struct EditEntryNonFillView: View {
                 ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
                 odometerRow
                 EditEntryRows.noteRow(text: $form.note, identifier: "editEntryNonFillNoteField")
-                if showChangedBySync {
-                    EditEntryRows.changedBySyncRow
+                if let syncOverwrite {
+                    EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
+                                                   replacedAt: syncOverwrite.replacedAt,
+                                                   onRestore: onRestore)
                 }
                 EditEntryRows.footer
             }

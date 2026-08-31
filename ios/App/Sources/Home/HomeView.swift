@@ -101,7 +101,9 @@ struct HomeView: View {
         ScrollView {
             VStack(spacing: 9) {
                 header
-                if presentables.syncToast {
+                if let flagged = sync.lastBatchFlaggedEntries {
+                    syncFlaggedToast(count: flagged)
+                } else if presentables.syncToast {
                     HomeSyncToast()
                 }
                 content
@@ -164,6 +166,39 @@ struct HomeView: View {
         } else if let stats {
             fullLayout(stats)
         }
+    }
+
+    /// The post-batch sync toast (docs/SYNC.md -> "Synced. N entries need a
+    /// look"): the count is the REAL number the last sync batch flagged, read
+    /// from `AppSync` - never a constant, never a fixture (PR.14). Tapping
+    /// filters the Log to the flagged entries, where the data lives (hard rule 8).
+    private func syncFlaggedToast(count: Int) -> some View {
+        NavigationLink(value: Route.flaggedEntries) {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                Text(String(localized: "Synced. \(count) entries need a look"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            .padding(12)
+            .background(Theme.Palette.dash)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.Radius.card)
+                    .stroke(Theme.Palette.hairline, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("homeSyncToast")
+        .simultaneousGesture(TapGesture().onEnded {
+            sync.acknowledgeFlaggedBatch()
+        })
     }
 
     @ViewBuilder
@@ -355,6 +390,7 @@ struct HomeView: View {
         if !didSeed {
             didSeed = true
             HomeTestSeed.seedIfRequested()
+            EditEntryTestSeed.seedSyncFlaggedBatchIfRequested()
             RateBackfillDebugHook.runIfRequested {
                 // A backfill filled rate-pending entries: reload so the F9
                 // footnote disappears and the home amounts appear - silently

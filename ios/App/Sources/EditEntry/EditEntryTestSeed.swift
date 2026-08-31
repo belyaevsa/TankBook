@@ -21,7 +21,23 @@ enum EditEntryTestSeed {
             seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
             return
         }
-        guard arguments.contains("-seedEditEntry") else { return }
+        let standard = arguments.contains("-seedEditEntry")
+            || arguments.contains("-seedEditEntrySyncOverwritten")
+            || arguments.contains("-seedEditEntrySyncOverwrittenExpense")
+        guard standard else { return }
+        seedStandard()
+        if arguments.contains("-seedEditEntrySyncOverwritten") {
+            seedSyncOverwrite()
+        } else if arguments.contains("-seedEditEntrySyncOverwrittenExpense") {
+            seedSyncOverwrittenExpense()
+        }
+    }
+
+    /// The artboard edit-entry history (design/screens/EditEntry.dc.html): a
+    /// vehicle, one prior fill so the target has an odometer delta, and the
+    /// target fill itself - a full tank at Shell with a scanned receipt.
+    @MainActor
+    private static func seedStandard() {
         guard let repository = try? AppStore.repository() else { return }
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
@@ -91,6 +107,77 @@ enum EditEntryTestSeed {
             volumeL: 42.30, unitPrice: Decimal(string: "1.679")!,
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: shell.id, crossCheck: .verified, extraction: scannedPlan.extraction))
+    }
+
+    /// PR.14: writes the REAL overwrite log row the "Changed by sync" row reads.
+    /// The target fill's user version carries a different odometer than the
+    /// synced version, so "Restore my version" has something to restore. The
+    /// device and date come from the log - the row must name them, never a
+    /// constant.
+    @MainActor
+    private static func seedSyncOverwrite() {
+        guard let repository = try? AppStore.repository() else { return }
+        guard let vehicle = (try? repository.liveVehicles())?.first else { return }
+        guard let target = (try? repository.liveFillUps(forVehicle: vehicle.id))?.last else { return }
+        // The overwrite already seeded (idempotent): leave the log alone.
+        guard (try? repository.syncOverwrite(for: target.id)) == nil else { return }
+
+        // The user's own version - the same fill with their odometer 118 486.
+        let userVersion = FillUp(
+            id: target.id, createdAt: target.createdAt, updatedAt: target.updatedAt, deletedAt: nil,
+            vehicleId: target.vehicleId, date: target.date, odometer: 118_486,
+            money: target.money, note: target.note, attachments: target.attachments,
+            provenance: target.provenance, conflict: target.conflict,
+            purchaseGroupId: target.purchaseGroupId, volumeL: target.volumeL,
+            unitPrice: target.unitPrice, fuelKind: target.fuelKind, fuelGrade: target.fuelGrade,
+            isFull: target.isFull, tankLevelAfterPct: target.tankLevelAfterPct,
+            stationId: target.stationId, crossCheck: target.crossCheck, extraction: target.extraction)
+        guard let payload = try? PayloadCodec.encode(userVersion).payload else { return }
+        let losingRecord = SyncRecord(
+            id: target.id, entityType: FillUp.entityType,
+            schemaVersion: PayloadCodec.currentSchemaVersion, payload: payload,
+            clientUpdatedAt: target.updatedAt, deleted: false)
+        try? repository.recordSyncOverwrite(
+            recordId: target.id, losingRecord: losingRecord,
+            deviceName: "iPad", at: Date().addingTimeInterval(-2 * 86_400))
+    }
+
+    /// PR.14 screenshot seam: a compact NON-FILL (expense) entry carrying the
+    /// overwrite, so the "Changed by sync" row renders above the fold - the
+    /// full fill-up form puts the row below it, which a `simctl` screenshot
+    /// cannot scroll to. The row and the round-trip behave exactly as the fill
+    /// seed; only the entry type differs.
+    @MainActor
+    private static func seedSyncOverwrittenExpense() {
+        guard let repository = try? AppStore.repository() else { return }
+        guard let vehicle = (try? repository.liveVehicles())?.first else { return }
+        let now = Date()
+        let expense = Expense(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: nil,
+            money: Money(amount: Decimal(string: "12.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, category: .other("car wash"), title: "Car wash",
+            recurrence: nil, installedInServiceId: nil)
+        try? repository.upsertExpense(expense)
+
+        guard (try? repository.syncOverwrite(for: expense.id)) == nil else { return }
+        let userVersion = Expense(
+            id: expense.id, createdAt: expense.createdAt, updatedAt: expense.updatedAt, deletedAt: nil,
+            vehicleId: expense.vehicleId, date: expense.date, odometer: expense.odometer,
+            money: expense.money, note: expense.note, attachments: expense.attachments,
+            provenance: expense.provenance, conflict: expense.conflict,
+            purchaseGroupId: expense.purchaseGroupId, category: expense.category,
+            title: "Full car wash", recurrence: expense.recurrence,
+            installedInServiceId: expense.installedInServiceId)
+        guard let payload = try? PayloadCodec.encode(userVersion).payload else { return }
+        let losingRecord = SyncRecord(
+            id: expense.id, entityType: Expense.entityType,
+            schemaVersion: PayloadCodec.currentSchemaVersion, payload: payload,
+            clientUpdatedAt: expense.updatedAt, deleted: false)
+        try? repository.recordSyncOverwrite(
+            recordId: expense.id, losingRecord: losingRecord,
+            deviceName: "iPad", at: Date().addingTimeInterval(-2 * 86_400))
     }
 
     /// PJ.48: a TYPED fill for the "Add receipt" flow. `-seedEditEntryTyped`
@@ -188,5 +275,46 @@ enum EditEntryTestSeed {
             volumeL: 42.3, unitPrice: Decimal(string: "6.844")!,
             fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: nil, crossCheck: .notApplicable, extraction: nil))
+    }
+
+    /// PR.14: seeds the state a real sync flags - a synced fill at odometer
+    /// 120 000. The `-syncFlaggedPullStub` transport then PULLS an out-of-order
+    /// fill (119 000, one day later) for the same vehicle, so `revalidateTimeline`
+    /// flags it and `SyncOutcome.flaggedEntries` is 1 - Home's toast must say so,
+    /// never a hardcoded count. The vehicle id is a fixed constant shared with
+    /// the stub, so the pulled fill always lands on this vehicle. Hooked from
+    /// HomeView.load(), so it runs on a plain Home launch.
+    static let syncFlaggedVehicleID = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+
+    @MainActor
+    static func seedSyncFlaggedBatchIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard arguments.contains("-seedSyncFlaggedBatch") else { return }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: syncFlaggedVehicleID, createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_000)
+        try? repository.upsertVehicle(vehicle, syncState: .synced(scn: 1))
+
+        // The in-order anchor: 120 000 km two days ago.
+        let older = now.addingTimeInterval(-2 * 86_400)
+        try? repository.upsertFillUp(FillUp(
+            id: UUID.v7(), createdAt: older, updatedAt: older, deletedAt: nil,
+            vehicleId: vehicle.id, date: older, odometer: 120_000,
+            money: Money(amount: Decimal(string: "71.02")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: 42.3, unitPrice: Decimal(string: "1.679")!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: nil, crossCheck: .verified, extraction: nil),
+            syncState: .synced(scn: 2))
     }
 }

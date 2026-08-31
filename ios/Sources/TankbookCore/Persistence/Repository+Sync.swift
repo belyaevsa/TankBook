@@ -29,6 +29,12 @@ public struct SyncOverwrite: Equatable, Sendable {
     public let losingPayload: JSONValue
     public let losingUpdatedAt: Date
     public let replacedAt: Date
+    /// The name of the device whose version won (the writer of the remote record
+    /// that overwrote the local edit). Nil until the transport provides it - the
+    /// wire is forward-compatible, so an older backend simply leaves the row
+    /// unattributed rather than guessing (docs/LOCALIZATION.md: a device name is
+    /// runtime data, never invented).
+    public let deviceName: String?
 }
 
 /// The sync bookkeeping every synced row type already carries. Conforming it
@@ -275,14 +281,17 @@ extension TankbookRepository {
 
 extension TankbookRepository {
     /// Records a version a sync merge overwrote (docs/SYNC.md S1/S4: the losing
-    /// version is kept for the 30-day undo window).
-    public func recordSyncOverwrite(recordId: UUID, losingRecord: SyncRecord, at date: Date = Date()) throws {
+    /// version is kept for the 30-day undo window). `deviceName` attributes the
+    /// overwrite to the winning device when the transport carries it; nil leaves
+    /// the row unattributed rather than inventing a name.
+    public func recordSyncOverwrite(recordId: UUID, losingRecord: SyncRecord,
+                                    deviceName: String? = nil, at date: Date = Date()) throws {
         try database.write { db in
             let payloadJSON = try losingRecord.payload.jsonString()
             try db.execute(sql: """
                 INSERT INTO \(TankbookSchema.syncOverwrite)
-                    (id, recordId, entityType, losingPayload, losingUpdatedAt, replacedAt)
-                VALUES (?, ?, ?, ?, ?, ?)
+                    (id, recordId, entityType, losingPayload, losingUpdatedAt, replacedAt, deviceName)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, arguments: [
                     UUID.v7().uuidString,
                     recordId.uuidString,
@@ -290,6 +299,7 @@ extension TankbookRepository {
                     payloadJSON,
                     losingRecord.clientUpdatedAt.timeIntervalSinceReferenceDate,
                     date.timeIntervalSinceReferenceDate,
+                    deviceName,
                 ])
         }
     }
@@ -298,27 +308,87 @@ extension TankbookRepository {
     public func syncOverwrittenEntries() throws -> [SyncOverwrite] {
         try database.read { db in
             let rows = try Row.fetchAll(db, sql: """
-                SELECT id, recordId, entityType, losingPayload, losingUpdatedAt, replacedAt
+                SELECT id, recordId, entityType, losingPayload, losingUpdatedAt, replacedAt, deviceName
                 FROM \(TankbookSchema.syncOverwrite)
                 ORDER BY replacedAt DESC
                 """)
-            return rows.compactMap { row in
-                guard let id = UUID(uuidString: row["id"] as String),
-                      let recordId = UUID(uuidString: row["recordId"] as String),
-                      let entityType = row["entityType"] as String?,
-                      let payloadJSON = row["losingPayload"] as String?,
-                      let payload = try? JSONValue.parse(payloadJSON) else {
-                    return nil
-                }
-                return SyncOverwrite(
-                    id: id,
-                    recordId: recordId,
-                    entityType: entityType,
-                    losingPayload: payload,
-                    losingUpdatedAt: Date(timeIntervalSinceReferenceDate: row["losingUpdatedAt"] as Double),
-                    replacedAt: Date(timeIntervalSinceReferenceDate: row["replacedAt"] as Double))
-            }
+            return rows.compactMap(Self.parseSyncOverwrite)
         }
+    }
+
+    /// The newest overwrite recorded for one record - the fact the Edit entry
+    /// "Changed by sync" row renders (the device and the moment the local edit
+    /// lost). Nil when the record has no overwrite on this device.
+    public func syncOverwrite(for recordId: UUID) throws -> SyncOverwrite? {
+        try database.read { db in
+            guard let row = try Row.fetchOne(db, sql: """
+                SELECT id, recordId, entityType, losingPayload, losingUpdatedAt, replacedAt, deviceName
+                FROM \(TankbookSchema.syncOverwrite)
+                WHERE recordId = ?
+                ORDER BY replacedAt DESC
+                LIMIT 1
+                """, arguments: [recordId.uuidString]) else {
+                return nil
+            }
+            return Self.parseSyncOverwrite(row)
+        }
+    }
+
+    /// "Restore my version" (docs/SYNC.md S1/S4, hard rule 13): writes the
+    /// losing version back over the record and marks it `.dirty` at a fresh
+    /// `updatedAt`, so the restored value is the newest write and the next sync
+    /// pushes it instead of overwriting it again. The overwrite log row is then
+    /// cleared - the user has chosen, and the row's question is answered.
+    /// Returns false when the record has no overwrite to restore.
+    @discardableResult
+    public func restoreSyncOverwrite(recordId: UUID, at date: Date = Date()) throws -> Bool {
+        guard let overwrite = try syncOverwrite(for: recordId) else { return false }
+        let envelope = PayloadEnvelope(entityType: overwrite.entityType,
+                                       schemaVersion: PayloadCodec.currentSchemaVersion,
+                                       payload: overwrite.losingPayload)
+        switch overwrite.entityType {
+        case FillUp.entityType:
+            var entity = try PayloadCodec.decode(envelope, as: FillUp.self).entity
+            entity.updatedAt = date
+            try upsertFillUp(entity, syncState: .dirty)
+        case ChargeSession.entityType:
+            var entity = try PayloadCodec.decode(envelope, as: ChargeSession.self).entity
+            entity.updatedAt = date
+            try upsertChargeSession(entity, syncState: .dirty)
+        case ServiceRecord.entityType:
+            var entity = try PayloadCodec.decode(envelope, as: ServiceRecord.self).entity
+            entity.updatedAt = date
+            try upsertServiceRecord(entity, syncState: .dirty)
+        case Expense.entityType:
+            var entity = try PayloadCodec.decode(envelope, as: Expense.self).entity
+            entity.updatedAt = date
+            try upsertExpense(entity, syncState: .dirty)
+        default:
+            return false
+        }
+        try database.write { db in
+            try db.execute(sql: "DELETE FROM \(TankbookSchema.syncOverwrite) WHERE recordId = ?",
+                           arguments: [recordId.uuidString])
+        }
+        return true
+    }
+
+    private static func parseSyncOverwrite(_ row: Row) -> SyncOverwrite? {
+        guard let id = UUID(uuidString: row["id"] as String),
+              let recordId = UUID(uuidString: row["recordId"] as String),
+              let entityType = row["entityType"] as String?,
+              let payloadJSON = row["losingPayload"] as String?,
+              let payload = try? JSONValue.parse(payloadJSON) else {
+            return nil
+        }
+        return SyncOverwrite(
+            id: id,
+            recordId: recordId,
+            entityType: entityType,
+            losingPayload: payload,
+            losingUpdatedAt: Date(timeIntervalSinceReferenceDate: row["losingUpdatedAt"] as Double),
+            replacedAt: Date(timeIntervalSinceReferenceDate: row["replacedAt"] as Double),
+            deviceName: row["deviceName"] as String?)
     }
 }
 

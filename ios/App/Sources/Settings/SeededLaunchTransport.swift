@@ -97,6 +97,61 @@ struct SignInSyncStubTransport: TankbookHTTPTransport {
     }
 }
 
+/// PR.14's UI-test seam (`-syncFlaggedPullStub`): a transport that ANSWERS the
+/// sync by PULLING an out-of-order fill, so a seeded launch can run a real
+/// pull -> merge -> revalidate cycle and surface the post-batch toast
+/// ("Synced. 1 entry needs a look") - the S3 scenario, deterministically. The
+/// pulled fill references the same fixed vehicle the `-seedSyncFlaggedBatch`
+/// seed writes, so the merge lands on the right car and flags exactly one
+/// entry.
+struct FlaggedBatchSyncStubTransport: TankbookHTTPTransport, @unchecked Sendable {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        let path = request.url.path
+        if path.hasPrefix("/v1/sync/pull") {
+            let now = Date()
+            let fill = FillUp(
+                id: UUID(uuidString: "22222222-2222-4222-8222-222222222222")!,
+                createdAt: now, updatedAt: now, deletedAt: nil,
+                vehicleId: EditEntryTestSeed.syncFlaggedVehicleID,
+                date: now.addingTimeInterval(-1 * 86_400), odometer: 119_000,
+                money: Money(amount: Decimal(string: "70.15")!, currency: .eur, homeCurrency: .eur),
+                note: nil, attachments: [], provenance: .manual, conflict: .none,
+                purchaseGroupId: nil, volumeL: 42.1, unitPrice: Decimal(string: "1.666")!,
+                fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+                stationId: nil, crossCheck: .verified, extraction: nil)
+            let payload = (try? PayloadCodec.encode(fill).payload) ?? .object([:])
+            let stamp = {
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                return formatter.string(from: now)
+            }()
+            let body = JSONValue.object([
+                "records": .array([.object([
+                    "id": .string(fill.id.uuidString),
+                    "entityType": .string(FillUp.entityType),
+                    "schemaVersion": .number(String(PayloadCodec.currentSchemaVersion)),
+                    "scn": .number("3"),
+                    "payload": payload,
+                    "clientUpdatedAt": .string(stamp),
+                    "deleted": .bool(false),
+                ])]),
+                "nextSince": .number("3"),
+                "more": .bool(false),
+                "schemaPolicy": .object([
+                    "minSupported": .number("1"),
+                    "current": .number("1"),
+                ]),
+            ])
+            return TankbookHTTPResponse(status: 200, body: try? body.jsonData())
+        }
+        if path.hasPrefix("/v1/sync/push") {
+            return TankbookHTTPResponse(status: 200,
+                                        body: try? JSONValue.object(["results": .array([])]).jsonData())
+        }
+        return TankbookHTTPResponse(status: 404)
+    }
+}
+
 enum SeededLaunch {
     /// True when the process was launched by a UI test or the screenshot script.
     ///
@@ -129,6 +184,7 @@ enum SeededLaunch {
     static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
         -> any TankbookHTTPTransport {
         if arguments.contains("-signInSyncStub") { return SignInSyncStubTransport() }
+        if arguments.contains("-syncFlaggedPullStub") { return FlaggedBatchSyncStubTransport() }
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
         if arguments.contains("-seedSettingsServerDown") { return ServerDownTransport() }
         if isSeeded(arguments) { return SeededLaunchTransport() }

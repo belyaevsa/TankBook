@@ -83,20 +83,24 @@ enum EditEntryRows {
         .formCard()
     }
 
-    /// The S1 sync state (docs/ERRORS.md -> Edit entry, row 2). Fixture-driven
-    /// until sync lands (P4): there is no real "changed by sync" data yet, so
-    /// the row renders under `-forceChangedBySync` and "Restore my version" is
-    /// presentational.
-    static var changedBySyncRow: some View {
+    /// The S1 sync state (docs/ERRORS.md -> Edit entry, row 2), built from the
+    /// real `syncOverwrite` log (PR.14): the device whose version won, the
+    /// moment the local edit lost, and the "Restore my version" action that
+    /// round-trips the losing version back (hard rule 8 - the badge lives where
+    /// the data lives). `deviceName` is runtime data (docs/LOCALIZATION.md) and
+    /// nil when the transport did not attribute the overwrite, in which case the
+    /// row names only the date - never an invented device.
+    static func changedBySyncRow(deviceName: String?, replacedAt: Date,
+                                 onRestore: @escaping () -> Void) -> some View {
         HStack(spacing: 10) {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
-            Text(String(format: L10n.localize("Changed by sync · %@, %@"), "iPad", "Aug 21"))
+            Text(Self.changedBySyncText(deviceName: deviceName, replacedAt: replacedAt))
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
             Spacer(minLength: 8)
-            Button("Restore my version") {}
+            Button("Restore my version", action: onRestore)
                 .buttonStyle(.plain)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.action)
@@ -109,7 +113,20 @@ enum EditEntryRows {
             RoundedRectangle(cornerRadius: Theme.Radius.card)
                 .stroke(Theme.Palette.hairline, lineWidth: 1)
         )
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("editChangedBySyncRow")
+    }
+
+    /// "Changed by sync · <device>, <date>" with a device, "Changed by sync ·
+    /// <date>" without one. The device name is runtime data sharing a sentence
+    /// behind a separator, so no case governs it (docs/LOCALIZATION.md); the
+    /// date is app-formatted and never declines.
+    private static func changedBySyncText(deviceName: String?, replacedAt: Date) -> String {
+        let stamp = replacedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+        if let deviceName {
+            return String(format: L10n.localize("Changed by sync · %@, %@"), deviceName, stamp)
+        }
+        return String(format: L10n.localize("Changed by sync · %@"), stamp)
     }
 
     static var footer: some View {

@@ -110,6 +110,14 @@ public enum TankbookMigrations {
         migrator.registerMigration("v6") { db in
             try createSyncPayloadMemory(db)
         }
+        migrator.registerMigration("v7") { db in
+            // PR.14: the overwrite log records the overwriting device's name so
+            // the Edit entry "Changed by sync" row can attribute the change. Nil
+            // until the transport provides it (the wire is forward-compatible).
+            try db.alter(table: TankbookSchema.syncOverwrite) { table in
+                table.add(column: "deviceName", .text)
+            }
+        }
         return migrator
     }
 

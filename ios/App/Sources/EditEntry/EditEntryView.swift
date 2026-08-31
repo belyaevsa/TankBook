@@ -46,7 +46,7 @@ struct EditEntryView: View {
     @State private var showDatePicker = false
     @State private var showDeleteConfirm = false
     @State private var showTankLevel = false
-    @State private var showChangedBySync = false
+    @State private var syncOverwrite: SyncOverwrite?
     @State private var didLoad = false
     @State private var loadFailed = false
     @State private var pendingBlobIDs: Set<UUID> = []
@@ -153,7 +153,8 @@ struct EditEntryView: View {
                              vehicle: vehicle,
                              attachments: attachments,
                              showDatePicker: $showDatePicker,
-                             showChangedBySync: showChangedBySync,
+                             syncOverwrite: syncOverwrite,
+                             onRestore: restoreSyncOverwrite,
                              pendingBlobIDs: pendingBlobIDs)
             .safeAreaInset(edge: .bottom) { saveBar }
     }
@@ -165,7 +166,13 @@ struct EditEntryView: View {
         didLoad = true
         EditEntryTestSeed.seedIfRequested()
         PhotoSyncingTestSeed.seedIfRequested()
-        showChangedBySync = ProcessInfo.processInfo.arguments.contains("-forceChangedBySync")
+        await reloadData()
+    }
+
+    /// Reads the entry, its attachments and its overwrite log row from the
+    /// repository. Runs on first load and again after "Restore my version" so
+    /// the restored values render in the form.
+    private func reloadData() async {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -188,6 +195,9 @@ struct EditEntryView: View {
             pendingBlobIDs = Set(attachments
                 .filter { !BlobService.isBlobAvailable($0) }
                 .map(\.id))
+            // PR.14: the "Changed by sync" row is real data - the newest
+            // overwrite the sync log recorded for this entry, or nil when none.
+            syncOverwrite = try repository.syncOverwrite(for: target.id)
             if let fill = target as? FillUp {
                 fillUp = fill
                 selectedStation = stations.first { $0.id == fill.stationId }
@@ -441,6 +451,26 @@ struct EditEntryView: View {
         .background(Theme.Palette.midnight)
     }
 
+    // MARK: - Restore (the "Changed by sync" action)
+
+    /// "Restore my version" (docs/SYNC.md S1/S4, hard rule 13): writes the
+    /// losing version back as a fresh local edit, so the next sync pushes it
+    /// instead of overwriting it again. The overwrite log row is cleared by the
+    /// restore, and the form reloads to show the restored values.
+    private func restoreSyncOverwrite() {
+        guard let overwrite = syncOverwrite else { return }
+        do {
+            let repository = try AppStore.repository()
+            if try repository.restoreSyncOverwrite(recordId: overwrite.recordId) {
+                syncOverwrite = nil
+                toastCenter.noteEntryChanged()
+                Task { await reloadData() }
+            }
+        } catch {
+            AppLog.error(operation: "editEntry.restoreSyncOverwrite", category: .ui, error: error)
+        }
+    }
+
     // MARK: - Delete
 
     private func performDelete() {
@@ -508,8 +538,10 @@ private extension EditEntryView {
                              action: { showTankLevel = true })
                     .formCard()
                 EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
-                if showChangedBySync {
-                    EditEntryRows.changedBySyncRow
+                if let syncOverwrite {
+                    EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
+                                                   replacedAt: syncOverwrite.replacedAt,
+                                                   onRestore: restoreSyncOverwrite)
                 }
                 EditEntryRows.footer
             }

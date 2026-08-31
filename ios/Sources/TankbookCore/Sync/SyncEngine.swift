@@ -210,7 +210,8 @@ public struct SyncEngine {
             payloadMemory.recordSynced(id: remote.id, payload: result.keep.payload)
             // S1/S4: a local edit overwritten by sync lands in the undo log.
             if let loser = result.loser, !loser.deleted, isLocalEdit(local.syncState) {
-                try repository.recordSyncOverwrite(recordId: remote.id, losingRecord: loser)
+                try repository.recordSyncOverwrite(recordId: remote.id, losingRecord: loser,
+                                                   deviceName: remote.originDeviceName)
             }
             try resurrectReferencedVehicles(for: remote.entityType, touched: touched)
             return touched
@@ -361,6 +362,7 @@ public struct SyncEngine {
         var currentRecord = current.asRecord()
         var currentScn = current.scn
         var remaining = maxConflictRetries
+        let remoteDeviceName = current.originDeviceName
 
         while true {
             let result = RecordMerge.merge(local: localRecord, remote: currentRecord)
@@ -372,7 +374,8 @@ public struct SyncEngine {
                 payloadMemory.recordSynced(id: id, payload: currentRecord.payload)
                 // The local version lost (S1/S4): it lands in the undo log.
                 if keep.payload != localRecord.payload || keep.deleted != localRecord.deleted {
-                    try repository.recordSyncOverwrite(recordId: id, losingRecord: localRecord)
+                    try repository.recordSyncOverwrite(recordId: id, losingRecord: localRecord,
+                                                       deviceName: remoteDeviceName)
                 }
                 return (1, touched)
             }

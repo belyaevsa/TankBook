@@ -112,6 +112,11 @@ final class AppSync {
     private(set) var lastSyncDate: Date?
     private(set) var lastOutcome: SyncOutcome?
     private(set) var isSyncing = false
+    /// PR.14: the number of entries the last sync batch flagged (docs/SYNC.md
+    /// -> the post-batch toast "Synced. N entries need a look"). Nil while no
+    /// batch has flagged anything; the Home toast reads it and clears it when
+    /// the user taps through. Derived from the outcome, never a stored counter.
+    private(set) var lastBatchFlaggedEntries: Int?
 
     /// PJ.13 (docs/JOURNEYS.md J11a -> First push): whether the user just
     /// signed in and the first push ran, so the account card shows the one-line
@@ -349,6 +354,15 @@ final class AppSync {
             registerDeferredSync()
         }
         await refresh()
+        // PR.14: the post-batch toast count. A batch that flagged nothing
+        // clears any earlier count; the toast is about what just arrived.
+        lastBatchFlaggedEntries = outcome.flaggedEntries > 0 ? outcome.flaggedEntries : nil
+    }
+
+    /// Clears the post-batch toast once the user taps through to the flagged
+    /// entries (the toast's next step, docs/SYNC.md).
+    func acknowledgeFlaggedBatch() {
+        lastBatchFlaggedEntries = nil
     }
 
     /// P6.8: records the deferred cycle with the resumer so it drains on the

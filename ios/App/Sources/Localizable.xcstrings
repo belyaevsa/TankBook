@@ -1579,6 +1579,23 @@
         }
       }
     },
+    "Changed by sync · %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Changed by sync · %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменено при синхронизации · %@"
+          }
+        }
+      }
+    },
     "Changed by sync · %@, %@": {
       "extractionState": "manual",
       "localizations": {
@@ -5827,6 +5844,59 @@
           "stringUnit": {
             "state": "translated",
             "value": "Подсказки недоступны офлайн – объём бака можно указать позже в Гараже."
+          }
+        }
+      }
+    },
+    "Synced. %lld entries need a look": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Synced. %lld entry needs a look"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Synced. %lld entries need a look"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано. %lld запись требует внимания"
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано. %lld записи требуют внимания"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано. %lld записей требуют внимания"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Синхронизировано. %lld записей требуют внимания"
+                }
+              }
+            }
           }
         }
       }
