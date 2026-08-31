@@ -131,7 +131,9 @@ struct TireSetsView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         TireSetTestSeed.seedIfRequested()
+        #endif
         reload()
     }
 

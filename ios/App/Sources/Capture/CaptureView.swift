@@ -156,11 +156,13 @@ struct CaptureView: View {
     /// a tap (`simctl` cannot tap). Production never passes the argument; it
     /// routes through the exact call the button makes.
     private func presentTypeItIfRequested() {
+        #if DEBUG
         guard ProcessInfo.processInfo.arguments.contains("-captureAutoTypeIt") else { return }
         Task {
             try? await Task.sleep(for: .milliseconds(600))
             activeSheet = .manualForm(mode.manualEntryForm)
         }
+        #endif
     }
 
     // MARK: - Alpha notice (P6.10)
@@ -170,8 +172,10 @@ struct CaptureView: View {
     /// derives whether the notice should show: not retired (fewer than three
     /// captures and fewer than three dismissals) and not dismissed today.
     private func loadAlphaNotice() {
+        #if DEBUG
         CaptureAlphaNoticeState.resetForTestsIfRequested()
         HomeTestSeed.seedIfRequested()
+        #endif
         alphaNoticeVisible = CaptureAlphaNoticeState.shouldShow(captureCount: captureEntryCount())
     }
 

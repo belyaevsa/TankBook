@@ -42,6 +42,7 @@ enum AnomalyInsightStore {
     /// Test-only: `-anomalyDismissalReset` clears every vehicle's dismissals so
     /// a UI test starts from the same place (UserDefaults survive
     /// `-homeResetDatabase`, which only wipes the database).
+    #if DEBUG
     static func resetForTestsIfRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
         guard arguments.contains("-anomalyDismissalReset") else { return }
         let keys = UserDefaults.standard.dictionaryRepresentation().keys
@@ -50,4 +51,5 @@ enum AnomalyInsightStore {
             UserDefaults.standard.removeObject(forKey: key)
         }
     }
+    #endif
 }

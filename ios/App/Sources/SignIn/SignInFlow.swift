@@ -368,10 +368,18 @@ extension SignInFlow {
     @MainActor
     private static func makeRestoreProvider(sessionStore: any SessionStore) -> any RestoreProviding {
         guard let repository = try? AppStore.repository() else {
-            return SignInTestSeed.StubRestoreProvider(outcome: .unreachable)
+            return UnreachableRestoreProvider()
         }
         return SyncRestoreProvider(repository: repository, sessionStore: sessionStore)
     }
+}
+
+/// A restore that always reports the backend unreachable. This is the
+/// degenerate fallback when the app's repository cannot be opened (no local
+/// database), not a test double - a restore with no repository has nothing to
+/// merge into, so "unreachable" is the honest outcome.
+private struct UnreachableRestoreProvider: RestoreProviding, @unchecked Sendable {
+    func restore(accountId: String) async -> RestoreOutcome { .unreachable }
 }
 
 /// The production restore provider (P4.7): restore IS the sync engine pulling

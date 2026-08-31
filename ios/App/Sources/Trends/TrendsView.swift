@@ -161,7 +161,9 @@ struct TrendsView: View {
         // stale derived tiles after an entry change (hard rule 2).
         if !didSeed {
             didSeed = true
+            #if DEBUG
             TrendsTestSeed.seedIfRequested()
+            #endif
         }
         do {
             let repository = try AppStore.repository()

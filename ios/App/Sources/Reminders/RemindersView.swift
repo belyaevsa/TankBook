@@ -308,7 +308,9 @@ struct RemindersView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         ReminderTestSeed.seedIfRequested()
+        #endif
         await refresh()
         // PJ.5: a tapped notification named this reminder - surface its
         // completion flow. Works in release (the deep link is product

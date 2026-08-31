@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -46,3 +47,4 @@ enum AnomalyTestSeed {
         }
     }
 }
+#endif

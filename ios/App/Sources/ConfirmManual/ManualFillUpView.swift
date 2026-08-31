@@ -231,7 +231,11 @@ struct ManualFillUpView: View {
 
     // Non-private so EmptyScanCaption.swift can read what the scan carried.
     var prefill: ConfirmPrefill? {
+        #if DEBUG
         injectedPrefill ?? ConfirmPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments)
+        #else
+        injectedPrefill
+        #endif
     }
 
     /// Whether this sheet is a cloud-extract surface (P6.18b): a scan carried a
@@ -258,7 +262,9 @@ struct ManualFillUpView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         ManualFillUpTestSeed.seedIfRequested()
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()

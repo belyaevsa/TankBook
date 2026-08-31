@@ -83,6 +83,7 @@ enum ImportService {
                           configService: AppConfigService) -> ImportFlowModel {
         let arguments = ProcessInfo.processInfo.arguments
         let transport: any TankbookHTTPTransport
+        #if DEBUG
         if arguments.contains("-importTransportOffline") {
             transport = FailingImportTransport()
         } else if let stub = ImportStubTransport(launchArguments: arguments) {
@@ -90,6 +91,9 @@ enum ImportService {
         } else {
             transport = URLSessionTransport()
         }
+        #else
+        transport = URLSessionTransport()
+        #endif
         let sessionStore = KeychainSessionStore()
         let client = ImportClient(
             httpClient: TankbookHTTPClient(transport: transport,
@@ -121,6 +125,7 @@ enum ImportService {
 /// resources, driven by launch arguments (`-importStubFormats <name>` and
 /// `-importStubParse <name>`). The picker and the preview genuinely render the
 /// transport's response - the stub only replaces the bytes, never the code path.
+#if DEBUG
 struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
     private let formatsName: String?
     private let parseName: String?
@@ -181,3 +186,4 @@ struct FailingImportTransport: TankbookHTTPTransport, @unchecked Sendable {
         throw URLError(.notConnectedToInternet)
     }
 }
+#endif

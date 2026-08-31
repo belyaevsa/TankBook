@@ -47,6 +47,7 @@ struct ConfirmPrefill {
     var currencyLowConfidence: Bool = false
 }
 
+#if DEBUG
 // MARK: - Debug seeding (screenshots + UI tests)
 
 /// Builds a `ConfirmPrefill` from launch arguments, the same test-hook pattern
@@ -253,3 +254,4 @@ extension Color {
         UIColor(self)
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -73,3 +74,4 @@ enum ImportTestSeed {
         }
     }
 }
+#endif

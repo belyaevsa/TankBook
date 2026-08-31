@@ -226,6 +226,7 @@ struct ServiceEntryView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         ServiceEntryTestSeed.seedIfRequested()
         PartsShelfTestSeed.seedIfRequested()
         // The tire-set seed is only for the Tires-mode scenarios (P3.3). Gated
@@ -238,6 +239,7 @@ struct ServiceEntryView: View {
             || arguments.contains("-seedTireSetsNoOdometer") {
             TireSetTestSeed.seedIfRequested()
         }
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -266,14 +268,18 @@ struct ServiceEntryView: View {
             } else if let prefill = invoiceSession.pendingPrefill {
                 apply(prefill)
                 invoiceSession.pendingPrefill = nil
-            } else if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
-                apply(prefill)
-            } else if ProcessInfo.processInfo.arguments.contains("-seedServiceEntryTires") {
-                // The Tires-mode screenshot pre-fill (P3.3): a set is chosen for
-                // the camera, and the odometer is already pre-filled from the
-                // last known value.
-                form.mode = .tires
-                form.tireSetId = tireSets.first?.id
+            } else {
+                #if DEBUG
+                if let prefill = ServiceEntryPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
+                    apply(prefill)
+                } else if ProcessInfo.processInfo.arguments.contains("-seedServiceEntryTires") {
+                    // The Tires-mode screenshot pre-fill (P3.3): a set is chosen for
+                    // the camera, and the odometer is already pre-filled from the
+                    // last known value.
+                    form.mode = .tires
+                    form.tireSetId = tireSets.first?.id
+                }
+                #endif
             }
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
             // date, seed) - none of them count as an edit.

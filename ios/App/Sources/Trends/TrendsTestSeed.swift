@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -75,3 +76,4 @@ enum TrendsTestSeed {
         }
     }
 }
+#endif

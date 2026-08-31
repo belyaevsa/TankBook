@@ -82,15 +82,17 @@ struct AppRootView: View {
         // sync runs, so the launch trigger really consults the Low Power policy
         // instead of being skipped for a still-empty Keychain (see
         // `SettingsTestSeed.seedSessionAtLaunchIfRequested`). Inert in release.
-        SettingsTestSeed.seedSessionAtLaunchIfRequested()
         // DEBUG/test: `-clearSessionAtLaunch` makes a launch deterministically
         // guest. The Keychain outlives `-homeResetDatabase` (which wipes only
         // the database), so without it a test that wants the guest Home could
         // inherit a session a previous test in the run left behind - which
         // flipped the Home layout under PJ.3 (guest chrome is real state now).
+        #if DEBUG
+        SettingsTestSeed.seedSessionAtLaunchIfRequested()
         if ProcessInfo.processInfo.arguments.contains("-clearSessionAtLaunch") {
             try? KeychainSessionStore().clear()
         }
+        #endif
         _configService = State(initialValue: configService)
         _sync = State(initialValue: AppSync(configService: configService,
                                             powerState: power.powerState,
@@ -122,6 +124,7 @@ struct AppRootView: View {
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
+        #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-selectTrendsTab") {
             _tabSelection = State(initialValue: .trends)
         } else if ProcessInfo.processInfo.arguments.contains("-selectGarageTab") {
@@ -129,6 +132,9 @@ struct AppRootView: View {
         } else {
             _tabSelection = State(initialValue: .log)
         }
+        #else
+        _tabSelection = State(initialValue: .log)
+        #endif
     }
 
     /// The tabbed app: the three roots plus the owned bar. `showWelcome` swaps
@@ -267,7 +273,7 @@ struct AppRootView: View {
             // skips the cycle. A blanket skip on any seed broke
             // testLowPowerReasonVanishesWhenTheModeEnds, which is the test that
             // proves the drain works.
-            if !SeededLaunch.freezesSyncState() {
+            if !Self.freezesSyncState {
                 await sync.runOpportunisticSync()
             }
         }
@@ -280,7 +286,7 @@ struct AppRootView: View {
                 Task { await notificationCoordinator.reconcileMonthlySummary() }
                 // P6.8: foreground is the other opportunistic cycle; same
                 // `.background` trigger, same deferral-and-drain contract.
-                if !SeededLaunch.freezesSyncState() {
+                if !Self.freezesSyncState {
                     Task { await sync.runOpportunisticSync() }
                 }
                 // PJ.8: foreground is also an S8 backfill trigger - a rate that
@@ -339,6 +345,18 @@ struct AppRootView: View {
     /// The delta toast sits just above the owned bar (and its raised circle):
     /// the bar's content height plus the circle's overhang and a margin.
     private static let toastBottomClearance: CGFloat = AppTabBar.contentHeight + 20
+
+    /// Whether the screenshot script asked to freeze the launch/foreground sync
+    /// cycles (`-freezeSyncState`, P6.21). A seeded launch freezes the sync so
+    /// the seeded state stands; production never passes the argument, so this
+    /// is `false` in release.
+    private static var freezesSyncState: Bool {
+        #if DEBUG
+        return SeededLaunch.freezesSyncState()
+        #else
+        return false
+        #endif
+    }
 }
 
 /// A `NavigationStack` that owns a typed `[Route]` path and registers the

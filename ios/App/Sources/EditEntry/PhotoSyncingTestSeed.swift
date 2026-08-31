@@ -1,3 +1,4 @@
+#if DEBUG
 import CoreGraphics
 import Foundation
 import ImageIO
@@ -79,3 +80,4 @@ enum PhotoSyncingTestSeed {
         return output as Data
     }
 }
+#endif

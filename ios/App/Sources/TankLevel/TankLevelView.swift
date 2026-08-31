@@ -384,6 +384,7 @@ private struct TankLevelSlider: View {
 
 // MARK: - Test seeding
 
+#if DEBUG
 /// UI-test seeding for the tank-level sheet. `-seedTankLevel` creates a car
 /// with a known capacity (the litres equivalence shows), `-seedTankLevelNoCapacity`
 /// a car without one (the ERRORS.md hint shows). Combined with
@@ -427,3 +428,4 @@ enum TankLevelTestSeed {
         try? repository.upsertFillUp(prior)
     }
 }
+#endif

@@ -100,6 +100,7 @@ enum CaptureAlphaNoticeState {
     /// clears the state so each UI test starts from the same place, and
     /// `-alphaNoticeDismissCount <n>` seeds a dismissal history so the
     /// three-dismissal retirement is reachable without waiting three days.
+    #if DEBUG
     static func resetForTestsIfRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
         if arguments.contains("-alphaNoticeReset") {
             UserDefaults.standard.removeObject(forKey: dismissedAtKey)
@@ -111,4 +112,5 @@ enum CaptureAlphaNoticeState {
             UserDefaults.standard.set(count, forKey: dismissCountKey)
         }
     }
+    #endif
 }

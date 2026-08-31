@@ -20,6 +20,7 @@ struct ServiceEntryPrefill {
     var extraction: ExtractionMeta?
 }
 
+#if DEBUG
 enum ServiceEntryPrefillSeed {
     /// - `-seedServiceEntry` - the artboard state: Bosch Service, two line
     ///   items (oil 89.00 + brake pads 59.00), odometer 118 930.
@@ -181,3 +182,4 @@ enum ServiceEntryTestSeed {
         try? repository.upsertVehicle(vehicle)
     }
 }
+#endif

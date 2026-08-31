@@ -40,7 +40,6 @@ enum WelcomeGate {
         if request.sheet != nil || request.route != nil || request.modal != nil {
             return false
         }
-        #endif
         // `-seedVehicleForUITests` targets the signed-in Home (see the doc
         // comment above): plant the stub session first so a clean device shows
         // that layout, not the guest chrome. The seed's vehicle write still
@@ -76,6 +75,7 @@ enum WelcomeGate {
         if arguments.contains("-presentWelcome") {
             try? KeychainSessionStore().clear()
         }
+        #endif
 
         let repository = try? AppStore.repository()
         let hasVehicle = (try? repository?.liveVehicles().isEmpty) == false

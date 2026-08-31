@@ -135,10 +135,14 @@ enum AppRates {
     /// backfill path runs without a live feed; otherwise the transport is the
     /// app-wide seeded/real one (offline under a seeded launch, P6.21).
     private static func makeTransport() -> any TankbookHTTPTransport {
+        #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-stubRates") {
             return RateStubTransport()
         }
         return SeededLaunch.transport()
+        #else
+        return URLSessionTransport()
+        #endif
     }
 }
 
@@ -155,6 +159,7 @@ private struct PublicTokenProvider: AuthorizationTokenProvider {
 /// OUTSIDE the bundled seed pack so only this fetch fills them), so the launch
 /// refresh -> S8 backfill fills them without a live feed or `-runRateBackfill`.
 /// Stateless; any other path is a 404 (a miss, never an error - F9).
+#if DEBUG
 private struct RateStubTransport: TankbookHTTPTransport {
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         guard request.url.path.hasPrefix("/v1/rates/pack") else {
@@ -170,6 +175,7 @@ private struct RateStubTransport: TankbookHTTPTransport {
         return TankbookHTTPResponse(status: 200, body: Data(body.utf8))
     }
 }
+#endif
 
 @MainActor
 extension ManualFillUpFormState {

@@ -36,20 +36,26 @@ struct ImportWizardView: View {
         .task {
             guard !didLoad else { return }
             didLoad = true
+            #if DEBUG
             ImportTestSeed.seedDatabaseIfRequested()
+            #endif
             if model == nil, let repository = try? AppStore.repository() {
                 model = ImportService.makeModel(repository: repository,
                                                 configService: configService)
             }
             if let model {
                 await model.loadFormats()
+                #if DEBUG
                 ImportTestSeed.seedFlowIfRequested(model: model)
+                #endif
             }
             // PJ.20: the send-file consent flow's seed - opens the not-supported
             // sheet so the consent + share sheet render without a real tap.
+            #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-seedSendFile") {
                 showingNotSupported = true
             }
+            #endif
         }
         .fileImporter(isPresented: $showingFilePicker,
                       allowedContentTypes: [.commaSeparatedText, .plainText, .item],
@@ -339,12 +345,15 @@ struct ImportNotSupportedSheet: View {
         .sheet(isPresented: $showingSendFile) {
             SendFileConsentSheet(fileURL: pickedFileURL)
         }
+        #if DEBUG
         .task { seedIfRequested() }
+        #endif
     }
 
     /// PJ.20 DEBUG seed: with `-seedSendFile` a temp file is "picked" and the
     /// consent sheet opens, so the L4 test and screenshot reach the share sheet
     /// without driving the system file picker.
+    #if DEBUG
     private func seedIfRequested() {
         guard !didSeed else { return }
         didSeed = true
@@ -355,6 +364,7 @@ struct ImportNotSupportedSheet: View {
         pickedFileURL = url
         showingSendFile = true
     }
+    #endif
 }
 
 /// The explicit-consent step before the file is shared (PJ.20, docs/ERRORS.md

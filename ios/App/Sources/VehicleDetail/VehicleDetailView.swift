@@ -323,7 +323,9 @@ struct VehicleDetailView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         VehicleDetailTestSeed.seedIfRequested()
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -390,6 +392,7 @@ struct VehicleDetailAccuracyCard: View {
 
 // MARK: - UI-test seeding
 
+#if DEBUG
 /// UI-test DB seeding for the Vehicle detail screen. Reuses the Car switcher
 /// seed (`-seedHomeCarSwitcher`) for a populated detail state: the Volvo has
 /// every catalog-derived field (capacity, fuel kinds, units, initial odometer),
@@ -405,3 +408,4 @@ enum VehicleDetailTestSeed {
         HomeTestSeed.seedIfRequested()
     }
 }
+#endif

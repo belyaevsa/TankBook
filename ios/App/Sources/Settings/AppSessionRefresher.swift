@@ -16,7 +16,7 @@ enum AppSessionRefresher {
     static let shared: SessionRefresher = {
         return SessionRefresher(
             baseURLProvider: { AppConfigStore.shared.director.baseURL() },
-            transport: SeededLaunch.transport(),
+            transport: makeAppTransport(),
             sessionStore: KeychainSessionStore())
     }()
 }

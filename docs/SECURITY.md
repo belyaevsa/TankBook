@@ -90,6 +90,17 @@ TLS 1.2+ everywhere, ATS enforced with no per-domain exceptions. **Certificate p
 - **Bundle scan (CI):** grep the built app for high-entropy strings and known key prefixes; fail on a hit.
 - **Keychain attribute test:** assert every stored item is written with `AfterFirstUnlockThisDeviceOnly` and the app's own access group – a test, because a wrong constant compiles perfectly and fails silently in the field.
 - **File protection test (PR.16):** the class is set explicitly, not ridden on a default - `AppStore.makeRepository` applies `completeUntilFirstUserAuthentication` to the `.sqlite`, `-wal` and `-shm` files after the database opens (the WAL and SHM files are the ones people forget - protecting only the main file leaves recent writes readable), and the attachment writers apply the same class to the attachments directory. `TankbookTests/FileProtectionTests` (app-target bundle, L2) asserts the attribute on all three database files **and** on a written attachment in the app's real container. The assertion discriminates: a file whose protection reads anything but `completeUntilFirstUserAuthentication` - a `.none` set, or no protection at all - fails the test naming the file (proved by mutation in PR.16).
+- **Seed-harness gate (PJ.7g):** the whole UI-test seed harness - the DB seeds, the stub
+  Keychain session (`SettingsTestSeed.stubSession`, `WelcomeGate`), the seeded/offline transports
+  and the config seed - is compiled under `#if DEBUG`, so a RELEASE build contains none of it and
+  has no launch argument that can write a session or seed a vehicle. Hard rule 11 is the authority:
+  nothing outside the real sign-in flow writes a Keychain session, and a seed that could ship would
+  be a second writer. The gate is enforced two ways, so neither a stray reference nor a
+  compiled-in-but-unreferenced seed can slip through: a `xcodebuild -configuration Release build`
+  (a reference to a gated seed type outside `#if DEBUG` is a "cannot find type in scope" compile
+  error) and `TankbookTests/ReleaseSeedGateTests`, a `#if`-aware source scan that fails when any
+  enumerated seed symbol appears on a line the compiler emits in RELEASE - the case a compile alone
+  cannot catch, where a seed type is gated off its call sites but still ships in the binary.
 - **No-secrets-committed check (CI):** the appsettings/scripts grep above.
 - **Sign-out test:** signing out removes every Keychain item and leaves the local database intact (the user keeps their log; only sync stops – `JOURNEYS.md` J11a). Since PR.2, sign-out also issues `DELETE /auth/session` **best-effort**, so a handed-over phone does not keep a 90-day refresh chain valid on the server; the Keychain clear still runs even when that request fails (offline sign-out signs out locally, hard rule 1).
 - **Refresh-race serialisation (PR.1):** a `401` on any bearer endpoint triggers one in-flight refresh through a single shared `SessionRefresher` actor. The server rotates refresh tokens and revokes the chain on reuse, so two concurrent refreshes would sign the user out; the actor makes every concurrent caller await the one in-flight refresh. A rejected refresh clears the session and surfaces "sign in again", never "update the app".

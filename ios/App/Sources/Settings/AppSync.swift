@@ -15,7 +15,7 @@ enum SyncService {
         let refresher = AppSessionRefresher.shared
         let transport = RemoteSyncTransport(
             director: director,
-            transport: SeededLaunch.transport(),
+            transport: makeAppTransport(),
             tokenProvider: tokenProvider,
             refresher: refresher
         )
@@ -24,7 +24,7 @@ enum SyncService {
         // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
         let blobGate = LocalFileBlobPushGate(
             uploader: BlobUploader(transport: RemoteBlobTransport(
-                director: director, transport: SeededLaunch.transport(), tokenProvider: tokenProvider,
+                director: director, transport: makeAppTransport(), tokenProvider: tokenProvider,
                 refresher: refresher)),
             source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
         )
@@ -51,7 +51,7 @@ enum SyncService {
         guard (try? sessionStore.load()) != nil else { return nil }
         let transport = RemoteBlobTransport(
             director: AppConfigStore.shared.director,
-            transport: SeededLaunch.transport(),
+            transport: makeAppTransport(),
             tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
             refresher: AppSessionRefresher.shared
         )
@@ -314,7 +314,7 @@ final class AppSync {
     private func accountDevicesClient() -> AccountClient {
         AccountClient(
             httpClient: TankbookHTTPClient(
-                transport: SeededLaunch.transport(),
+                transport: makeAppTransport(),
                 tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
             director: AppConfigStore.shared.director)
     }
@@ -380,4 +380,15 @@ final class AppSync {
     private func runDeferredSync() async {
         await runSync(trigger: .background)
     }
+}
+
+/// The app's one transport selection (P6.21): under a DEBUG seeded launch the
+/// transport is offline/deterministic, and in release it is always the real
+/// URLSession transport - the seed transports never ship.
+func makeAppTransport() -> any TankbookHTTPTransport {
+    #if DEBUG
+    return SeededLaunch.transport()
+    #else
+    return URLSessionTransport()
+    #endif
 }

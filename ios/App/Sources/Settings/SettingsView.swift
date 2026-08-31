@@ -46,7 +46,9 @@ struct SettingsView: View {
         .task {
             if !didSeed {
                 didSeed = true
+                #if DEBUG
                 SettingsTestSeed.seedIfRequested(sync: sync)
+                #endif
             }
             await sync.refresh()
             presentExportShareIfRequested()

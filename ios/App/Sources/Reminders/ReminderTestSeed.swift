@@ -1,6 +1,7 @@
 import Foundation
 import TankbookCore
 
+#if DEBUG
 /// UI-test + screenshot seeding for the Reminders screen (P3.4), the same
 /// idempotent hook pattern as `HomeTestSeed` / `RecentlyDeletedTestSeed`.
 /// `-seedReminders` writes the artboard's list - an attention "Insurance
@@ -112,6 +113,7 @@ enum ReminderTestSeed {
         try? repository.upsertReminder(tires)
     }
 }
+#endif
 
 // MARK: - Form pre-fill (screenshots)
 
@@ -130,6 +132,7 @@ struct ReminderFormPrefill {
     var recurrenceEveryKm = ""
 }
 
+#if DEBUG
 enum ReminderFormPrefillSeed {
     static func from(arguments: [String]) -> ReminderFormPrefill? {
         guard arguments.contains("-seedReminderForm") else { return nil }
@@ -142,3 +145,4 @@ enum ReminderFormPrefillSeed {
             recurrenceEveryKm: OdometerFormat.grouped(15_000))
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -56,3 +57,4 @@ enum ManualFillUpTestSeed {
         try? repository.upsertFillUp(prior)
     }
 }
+#endif

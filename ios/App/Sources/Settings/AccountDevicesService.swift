@@ -13,6 +13,7 @@ enum AccountDevicesService {
     static func makeModel(sessionStore: KeychainSessionStore = KeychainSessionStore()) -> AccountDevicesModel {
         let arguments = ProcessInfo.processInfo.arguments
         let transport: any TankbookHTTPTransport
+        #if DEBUG
         if arguments.contains("-accountTransportOffline") {
             transport = FailingAccountTransport()
         } else if let stub = AccountStubTransport(launchArguments: arguments) {
@@ -20,6 +21,9 @@ enum AccountDevicesService {
         } else {
             transport = URLSessionTransport()
         }
+        #else
+        transport = URLSessionTransport()
+        #endif
         let client = AccountClient(
             httpClient: TankbookHTTPClient(
                 transport: transport,
@@ -37,6 +41,7 @@ enum AccountDevicesService {
 /// marks that device revoked in the stub's in-memory state, so the next
 /// `GET /devices` reflects it - the screen's "Signed out" state is real, not
 /// asserted against a static fixture.
+#if DEBUG
 struct AccountStubTransport: TankbookHTTPTransport, @unchecked Sendable {
     private let devicesName: String?
     private let revoke401: Bool
@@ -100,3 +105,4 @@ struct FailingAccountTransport: TankbookHTTPTransport, @unchecked Sendable {
         throw URLError(.notConnectedToInternet)
     }
 }
+#endif

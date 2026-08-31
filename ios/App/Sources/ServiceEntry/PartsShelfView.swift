@@ -59,7 +59,9 @@ struct PartsShelfView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         PartsShelfTestSeed.seedIfRequested()
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()

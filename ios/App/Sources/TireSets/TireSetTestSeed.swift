@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -117,3 +118,4 @@ enum TireSetTestSeed {
         return (try? repository.liveTireSets(forVehicle: vehicle.id))?.first?.id
     }
 }
+#endif

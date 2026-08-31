@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -217,3 +218,4 @@ enum SettingsTestSeed {
         )
     }
 }
+#endif

@@ -28,6 +28,7 @@ enum FeedbackService {
     static func makeOutbox(consentStore: FeedbackConsentStore,
                            arguments: [String] = ProcessInfo.processInfo.arguments) -> FeedbackOutbox {
         let transport: any TankbookHTTPTransport
+        #if DEBUG
         if arguments.contains("-feedbackTransportOffline") {
             transport = FailingFeedbackTransport()
         } else if arguments.contains("-feedbackRateLimit") {
@@ -35,6 +36,9 @@ enum FeedbackService {
         } else {
             transport = SeededLaunch.transport(arguments)
         }
+        #else
+        transport = URLSessionTransport()
+        #endif
         let sessionStore = KeychainSessionStore()
         let client = FeedbackClient(
             httpClient: TankbookHTTPClient(transport: transport,
@@ -97,6 +101,7 @@ enum FeedbackService {
 
 /// Forces the offline state for the "saved, sends when online" UI test and
 /// screenshot.
+#if DEBUG
 struct FailingFeedbackTransport: TankbookHTTPTransport {
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         throw URLError(.notConnectedToInternet)
@@ -109,3 +114,4 @@ struct RateLimitedFeedbackTransport: TankbookHTTPTransport {
         TankbookHTTPResponse(status: 429, headers: ["Retry-After": "3600"])
     }
 }
+#endif

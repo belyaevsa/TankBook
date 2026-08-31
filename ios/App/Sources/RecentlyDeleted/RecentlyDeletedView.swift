@@ -320,7 +320,9 @@ struct RecentlyDeletedView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         RecentlyDeletedTestSeed.seedIfRequested()
+        #endif
         fixtures = RecentlyDeletedFixtures.fromLaunchArguments()
         reload()
     }

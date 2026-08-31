@@ -120,7 +120,9 @@ struct ReminderFormView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         ReminderTestSeed.seedIfRequested()
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -132,8 +134,12 @@ struct ReminderFormView: View {
                 if let existing {
                     form = ReminderFormState.from(reminder: existing)
                 }
-            } else if let prefill = ReminderFormPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
-                apply(prefill)
+            } else {
+                #if DEBUG
+                if let prefill = ReminderFormPrefillSeed.from(arguments: ProcessInfo.processInfo.arguments) {
+                    apply(prefill)
+                }
+                #endif
             }
         } catch {
             AppLog.error(operation: "reminderForm.load", category: .notifications, error: error)

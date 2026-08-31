@@ -1,3 +1,4 @@
+#if DEBUG
 import CoreGraphics
 import Foundation
 import TankbookCore
@@ -318,3 +319,4 @@ enum EditEntryTestSeed {
             syncState: .synced(scn: 2))
     }
 }
+#endif

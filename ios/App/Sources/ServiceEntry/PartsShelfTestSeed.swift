@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -55,3 +56,4 @@ enum PartsShelfTestSeed {
         }
     }
 }
+#endif

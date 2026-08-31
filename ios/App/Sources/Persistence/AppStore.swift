@@ -23,6 +23,7 @@ enum AppStore {
     /// second reset wiped the first seed's data (P3.8). One gate on AppStore
     /// makes the wipe run at most once per launch, no matter how many seeds see
     /// the argument.
+    #if DEBUG
     private static var didResetForLaunch = false
 
     /// Wipes the on-device database so a UI test run can start each state from
@@ -46,6 +47,7 @@ enum AppStore {
             try FileManager.default.removeItem(at: directory)
         }
     }
+    #endif
 
     private static func makeRepository() throws -> TankbookRepository {
         let directory = try FileManager.default

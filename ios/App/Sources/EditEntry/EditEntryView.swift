@@ -164,8 +164,10 @@ struct EditEntryView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         EditEntryTestSeed.seedIfRequested()
         PhotoSyncingTestSeed.seedIfRequested()
+        #endif
         await reloadData()
     }
 
@@ -203,7 +205,9 @@ struct EditEntryView: View {
                 selectedStation = stations.first { $0.id == fill.stationId }
                 fillForm.load(from: fill, vehicle: vehicle)
                 note = fill.note ?? ""
+                #if DEBUG
                 seedAttachSuggestionIfRequested()
+                #endif
             } else {
                 loadNonFill(target)
             }
@@ -560,6 +564,7 @@ private extension EditEntryView {
     /// OCR reading through the REAL merge + apply path (blank fields only,
     /// dimmed until confirmed), so a screenshot can show the post-attach state
     /// without driving the out-of-process Photos picker.
+    #if DEBUG
     func seedAttachSuggestionIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-seedAttachSuggestion"),
               let fillUp else { return }
@@ -570,6 +575,7 @@ private extension EditEntryView {
         let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
         fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
     }
+    #endif
 
     /// One image in, one set of blank-fields-only suggestions out. The OCR runs
     /// through the same `CapturePipeline` the scan door uses; the merge then

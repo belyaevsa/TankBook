@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -191,3 +192,4 @@ enum SeededLaunch {
         return URLSessionTransport()
     }
 }
+#endif

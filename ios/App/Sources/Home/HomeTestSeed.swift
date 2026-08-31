@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -433,3 +434,4 @@ enum HomeTestSeed {
             installedInServiceId: nil)
     }
 }
+#endif

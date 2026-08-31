@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -122,3 +123,4 @@ enum SignInTestSeed {
         return StubRestoreProvider(outcome: outcome)
     }
 }
+#endif

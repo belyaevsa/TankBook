@@ -1,9 +1,9 @@
 import Foundation
 import TankbookCore
 
-/// UI-test seeding + sync-shaped presentation fixtures for the Recently
-/// deleted screen (P1.7), the same pattern as `HomeTestSeed` and
-/// `HomePresentables`.
+#if DEBUG
+/// UI-test seeding for the Recently deleted screen (P1.7), the same pattern as
+/// `HomeTestSeed` and `HomePresentables`.
 ///
 /// The screen's real data is tombstones - `-seedRecentlyDeleted` writes a
 /// vehicle and three entries (a fill, a charge, an expense) tombstoned at
@@ -136,6 +136,7 @@ enum RecentlyDeletedTestSeed {
         return station
     }
 }
+#endif
 
 /// A fixture row of the "Overwritten by sync" section (docs/SYNC.md S1/S4).
 /// Presentational until the real merge log lands (P4) - the Compare affordance
@@ -155,6 +156,7 @@ struct RecentlyDeletedFixtures {
     static func fromLaunchArguments(
         _ arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> RecentlyDeletedFixtures {
+        #if DEBUG
         let now = Date()
         var syncRows: [SyncOverwrittenRow] = []
         if arguments.contains("-forceSyncOverwritten") {
@@ -181,5 +183,8 @@ struct RecentlyDeletedFixtures {
         }
         return RecentlyDeletedFixtures(syncOverwritten: syncRows,
                                        deletedOnDeviceByEntryID: deletedOnDevice)
+        #else
+        return RecentlyDeletedFixtures(syncOverwritten: [], deletedOnDeviceByEntryID: [:])
+        #endif
     }
 }

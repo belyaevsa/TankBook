@@ -389,6 +389,7 @@ struct HomeView: View {
         // derived stats after an entry change (hard rule 2).
         if !didSeed {
             didSeed = true
+            #if DEBUG
             HomeTestSeed.seedIfRequested()
             EditEntryTestSeed.seedSyncFlaggedBatchIfRequested()
             RateBackfillDebugHook.runIfRequested {
@@ -398,6 +399,7 @@ struct HomeView: View {
                 // without a toast; this is exactly the edit-save reload path.
                 toastCenter.noteEntryChanged()
             }
+            #endif
             // PJ.8: the launch S8 trigger - refresh the rate pack and backfill
             // rate-pending entries. Fire-and-forget so Home's first paint is
             // never gated on the fetch (hard rule 1); the seed above has already

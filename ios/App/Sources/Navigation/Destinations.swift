@@ -98,7 +98,9 @@ struct TankLevelStandaloneHost: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         TankLevelTestSeed.seedIfRequested()
+        #endif
         guard let repository = try? AppStore.repository(),
               let vehicle = (try? repository.liveVehicles())?.first else { return }
         capacityL = vehicle.tankCapacityL

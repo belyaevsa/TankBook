@@ -1,3 +1,4 @@
+#if DEBUG
 import Foundation
 import TankbookCore
 
@@ -159,3 +160,4 @@ enum CarSwitcherTestSeed {
             paceLimitKmPerDay: 1500, initialOdometer: 96_000))
     }
 }
+#endif

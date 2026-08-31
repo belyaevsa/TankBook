@@ -276,7 +276,9 @@ struct GarageView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        #if DEBUG
         GarageTestSeed.seedIfRequested()
+        #endif
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
@@ -303,6 +305,7 @@ private struct GarageRow: Identifiable {
     var id: UUID { vehicle.id }
 }
 
+#if DEBUG
 /// UI-test DB seeding for the Garage tab root. The artboard's garage (a petrol
 /// car, an EV and an archived car) is the Car switcher seed's state, so the tab
 /// reuses it - the two surfaces must render the same garage.
@@ -312,3 +315,4 @@ enum GarageTestSeed {
         HomeTestSeed.seedIfRequested()
     }
 }
+#endif
