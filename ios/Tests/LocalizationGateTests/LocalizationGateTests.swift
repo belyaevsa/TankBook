@@ -392,4 +392,38 @@ struct LocalizationGateTests {
 
         #expect(try LocalizationGate.violations(sources: dir, catalogue: catalogue).isEmpty)
     }
+
+    /// Two catalogue keys that NORMALISE to the same template silently overwrite
+    /// each other: `LocalizationCatalogue` stores entries in a dictionary keyed by
+    /// the normalised template, and `normalizeKey` collapses every format
+    /// specifier to `%@`. So `+%lld km since last` and `+%@ km since last` are one
+    /// entry, and whichever loads last wins.
+    ///
+    /// That happened on 2026-08-31 and cost an hour: Xcode auto-extracted three
+    /// `%@` keys (`+%@ km since last`, `%@–%@`, `%@–`) alongside their translated
+    /// `%lld` originals. The untranslated duplicates displaced the translated
+    /// plurals, and the suite reported it as five confusing "MISSING-few/many/one"
+    /// plural failures - never as "you have duplicate keys". The code was always
+    /// correct: `yearsStart`, `yearsEnd` and `delta.km` are all `Int`, so the app
+    /// resolves the `%lld` keys at runtime and the `%@` ones were never reachable.
+    ///
+    /// This names the CLASS rather than those three instances: no two keys may
+    /// share a normalised template, whatever the specifiers.
+    @Test("no two catalogue keys normalise to the same template")
+    func catalogueKeysDoNotCollideAfterNormalisation() throws {
+        let data = try Data(contentsOf: Self.catalogueURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let strings = (root?["strings"] as? [String: Any]) ?? [:]
+        var byTemplate: [String: [String]] = [:]
+        for key in strings.keys {
+            byTemplate[LocalizationGate.normalizeKey(key), default: []].append(key)
+        }
+        let collisions = byTemplate
+            .filter { $0.value.count > 1 }
+            .map { "\($0.key) <- \($0.value.sorted())" }
+            .sorted()
+        #expect(collisions.isEmpty,
+                Comment(stringLiteral: "keys collide after normalisation, so one silently "
+                    + "displaces the other: \(collisions)"))
+    }
 }
