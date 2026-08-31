@@ -217,7 +217,9 @@ server itself curates, so validating it is required - it is not a hard-rule-9 vi
   appVersion, deviceModel?, replyTo? }        // deviceModel only with the user's toggle
 → 202
 ```
-Account id attached when a bearer token is present; rate-limited per device/IP; `text` ≤ 4 KB. No log content, ever.
+Account id attached when a bearer token is present; rate-limited per device/IP; `text` ≤ **4 000 characters**. No log content, ever.
+
+**Characters, not bytes (corrected 2026-08-31, PJ.20a).** This line read "≤ 4 KB" until the server half was built against the client that had already shipped: `FeedbackPayload.maxTextLength` is 4 000 **characters**, and 4 000 Cyrillic characters is roughly 8 KB of UTF-8. A byte cap of 4 KB would have rejected a legitimate Russian report with a `413` - in an app that ships EN and RU from day one. The body cap is sized to the client's real maximum instead (see the caps table below).
 
 ## Import parsing (hard rule 9's named exception)
 
@@ -372,6 +374,7 @@ Every limit here is a flood guard, chosen so a real user can never hit it – a 
 | `POST /extract` | device | 30/min |
 | `POST /sync/push` | device | 120/min |
 | `POST /blobs/begin` | device | 120/min |
+| `POST /feedback` | device | 10/min |
 
 Per-device limits key on the authenticated device id (the bearer token's `device_id`), falling back to the `X-Device-Id` header, then the IP.
 
@@ -383,6 +386,7 @@ Per-device limits key on the authenticated device id (the bearer token's `device
 | `POST /extract` | 6 MB (4 MB base64 image + envelope) |
 | `POST /import/parse` | 8 MB file + multipart envelope |
 | `POST /catalog/publish` | 8 MB (a full operator pack; the 64 KB default deliberately does not apply) |
+| `POST /feedback` | 17 KB (4 000 characters at 4 bytes worst case + 1 KB envelope) |
 | everything else (auth, blobs begin/commit, account push-token) | 64 KB |
 
 The push cap references the same constants the payload validator and sync service enforce, so the transport can never reject a batch the server would otherwise accept (`PRACTICES.md` – a number in two places is a bug).

@@ -63,6 +63,7 @@ Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one 
 | `llm.extract` | kind, quotaBefore/After, model, durationMs, outcome. **Never the image, never the extracted values.** |
 | `migration.ddl` | version, direction, durationMs |
 | `migration.payload` | entityType, fromVersion→toVersion, rowsScanned, rowsRewritten, batches, durationMs |
+| `feedback.accepted` | id, category, **textLength**, hasReplyTo, hasDeviceModel, hasAccount – shape only. **Never the text, never `replyTo`, never `deviceModel`**: the user wrote that text and `replyTo` is contact data, so all three are Never-class (hard rule 12). Pinned by a `RedactionTests` case - the mutation that proves it logs the text and watches the sweep fail naming the leaked value |
 | `account.delete` | accountHash, recordsPurged, blobsPurged, graceEndsAt |
 | `catalog.publish` | version, entries (a count), outcome (published/rejected), reason (schema_validation_failed / version_not_monotonic / invalid_document) – **never the pack's contents**: the curation feedback loop records model strings as counts only, and that discipline holds here too |
 
