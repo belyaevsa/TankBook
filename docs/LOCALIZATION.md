@@ -227,6 +227,13 @@ carries the same meaning and has no gender.
 infinitive, or an imperative. This applies to every option list, every log entry the user authors,
 and every confirmation that echoes what they just did.
 
+**Resolved in P6.17** with «Замена шин» - a noun phrase that matches the sibling options
+(`Зима`, `Буксировка`, `Прочее` are all nouns) and carries no gender. Pinned by
+`AnomalyInsightUITests.testDismissSheetRussianShapesAreGenderlessAndDomainSafe`, which asserts the
+shape, not the taste: no dismiss option's RU value contains a whole word ending in a past-tense
+verb suffix (`-л`/`-ла`/`-ло`/`-ли`). The guard enumerates the class, so a "better" gendered verb
+would still fail it - only a shape change passes.
+
 ### A word that collides with the domain vocabulary
 
 `Dismissing with a reason keeps it quiet for this period.` was translated **«Отклонение с
@@ -236,3 +243,7 @@ consumption deviation. The sentence reads as "a deviation with a cause".
 
 **Rule: check a translated term against the app's own domain vocabulary, not only against the
 dictionary.** The words that break this way are exactly the ones that look most correct.
+
+**Resolved in P6.17** with «Если укажете причину, подсказка скроется на этот период.» - the word
+«отклонени» is gone in every form, and the reason is the user's, not the card's. Pinned by the
+same guard: the dismiss subtitle must not contain «отклонени» in any form.

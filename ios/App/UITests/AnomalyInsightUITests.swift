@@ -234,4 +234,57 @@ final class AnomalyInsightUITests: XCTestCase {
         XCTAssertTrue(app.buttons["anomalyDismissReasonWinter"].waitForExistence(timeout: 5))
         XCTAssertEqual(app.buttons["anomalyDismissReasonWinter"].label, "Зима")
     }
+
+    // MARK: - Test 7: the dismiss sheet's Russian shapes (P6.17)
+
+    /// The class P6.17 guards: a user-selectable option whose Russian is a
+    /// gendered past-tense verb, and an explanatory line that collides with
+    /// the anomaly card's own vocabulary. «Поменял шины» misgenders a woman
+    /// who reads it - Russian has no genderless past tense, so the sentence
+    /// SHAPE is the bug, not the word; «Отклонение с причиной…» reads as "a
+    /// deviation with a cause" because «отклонение» is the domain's word for
+    /// deviation and the line sits under a deviation card. Both are legal
+    /// grammar and wrong meaning; only reading the rendered screen finds them.
+    ///
+    /// The guard asserts shape, not taste: no dismiss option's RU value
+    /// contains a whole word ending in a past-tense verb suffix
+    /// (`-л`/`-ла`/`-ло`/`-ли`), and the subtitle carries no form of
+    /// «отклонени». A future fix must change the shape again, never pick a
+    /// "better" gendered verb or a synonym that still collides.
+    func testDismissSheetRussianShapesAreGenderlessAndDomainSafe() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-seedHomeAnomaly", "-anomalyDismissalReset"])
+        XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
+
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
+        XCTAssertTrue(app.buttons["homeAnomalyDismissButton"].waitForExistence(timeout: 5))
+        app.buttons["homeAnomalyDismissButton"].tap()
+
+        // The four options as the sheet renders them: the identifiers pin the
+        // rows, the labels are the RU values under test.
+        let reasonIDs = ["anomalyDismissReasonWinter", "anomalyDismissReasonTyres",
+                         "anomalyDismissReasonTowing", "anomalyDismissReasonOther"]
+        let pastTenseEndings = ["л", "ла", "ло", "ли"]
+        for id in reasonIDs {
+            let button = app.buttons[id]
+            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(id) never appeared")
+            let words = button.label.split(separator: " ").map { $0.lowercased() }
+            for word in words {
+                for ending in pastTenseEndings where word.hasSuffix(ending) {
+                    XCTFail("\(id) = «\(button.label)» contains «\(word)», a gendered past-tense verb form")
+                }
+            }
+        }
+
+        // The subtitle rides in the combined header (title + explanation).
+        let header = app.descendants(matching: .any)
+            .matching(identifier: "anomalyDismissHeader").firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 5), "anomalyDismissHeader never appeared")
+        XCTAssertFalse(header.label.isEmpty,
+                       "the dismiss subtitle must render, or the negative check is vacuous")
+        XCTAssertFalse(header.label.lowercased().contains("отклонени"),
+                       "«отклонение» collides with the anomaly card's deviation vocabulary: \(header.label)")
+    }
 }
