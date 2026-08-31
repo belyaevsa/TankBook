@@ -16,9 +16,13 @@ final class TrendsUITests: XCTestCase {
 
     /// Every test lands on the Trends tab at launch (`-selectTrendsTab`) and
     /// resets the database first so the states are isolated from each other.
+    /// The language is explicit (EN) for the same reason as HomeUITests: a
+    /// prior RU launch persists `-AppleLanguages` in the app's UserDefaults
+    /// and would otherwise run this whole suite in Russian (P6.13).
     private func launch(args: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-selectTrendsTab"] + args
+        app.launchArguments = ["-homeResetDatabase", "-selectTrendsTab",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"] + args
         app.launch()
         return app
     }

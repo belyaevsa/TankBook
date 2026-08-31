@@ -25,9 +25,15 @@ final class HomeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(args: [String]) -> XCUIApplication {
+    /// Every launch sets the language explicitly (EN by default): `-AppleLanguages`
+    /// writes to the app's UserDefaults and survives across launches, so a test
+    /// that launches RU (the P6.13 tile gate) would otherwise leave the whole
+    /// suite running in Russian (P6.13 run, 2026-08-31).
+    private func launch(args: [String],
+                        language: [String] = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + args
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + language + args
         app.launch()
         return app
     }
@@ -413,6 +419,79 @@ final class HomeUITests: XCTestCase {
                       "a backfill must never show an alert (S8)")
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].exists,
                       "nothing covered Home - no banner, no modal (S8)")
+    }
+
+    // MARK: - P6.13 Dynamic Type XL: wrap, never clip
+
+    /// RU's stat-tile label ("РАСХОДЫ ЗА АВГУСТ") runs longer than EN's
+    /// "AUGUST SPEND" and clipped at the large Dynamic Type of P5.3's "-xl"
+    /// captures (which used `UICTContentSizeCategoryXXXL` - the category whose
+    /// caption2 renders the same 18pt those screenshots measured). The fix lets
+    /// the label wrap to two lines.
+    ///
+    /// The gate is GEOMETRY, not text: asserting the label's string proves
+    /// nothing, because the accessibility tree reads the text the view was
+    /// GIVEN, not the pixels it drew - a clipped label passes a text check
+    /// (docs/TESTING.md -> the vacuous trap). So the test measures the two
+    /// tiles' VALUE lines (both fixed-height DIN): a wrapped month title pushes
+    /// its value a full caption line BELOW the still-single-line price title's
+    /// value. Under the old single-line limit both values align. This runs in
+    /// RU, the case that actually breaks; EN's short title fits on one line
+    /// even at XXXL.
+    func testMonthSpendTileTitleWrapsToTwoLinesAtXLInRussian() {
+        let app = launch(args: ["-seedHomeFullHistory",
+                                "-UIPreferredContentSizeCategoryName",
+                                "UICTContentSizeCategoryXXXL"],
+                         language: ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"])
+        let monthValue = app.staticTexts.matching(identifier: "homeMonthSpendTile")
+            .matching(NSPredicate(format: "label CONTAINS %@", "€")).firstMatch
+        let priceValue = app.staticTexts.matching(identifier: "homeLastPriceTile")
+            .matching(NSPredicate(format: "label CONTAINS %@", "€")).firstMatch
+        XCTAssertTrue(monthValue.waitForExistence(timeout: 10),
+                      "the month-spend tile's value must be exposed")
+        XCTAssertTrue(priceValue.exists,
+                      "the price tile's value must be exposed")
+
+        XCTAssertGreaterThan(monthValue.frame.minY, priceValue.frame.minY + 8,
+                             "the RU month-spend title must wrap, pushing its value "
+                             + "below the price tile's: \(monthValue.frame.minY) vs "
+                             + "\(priceValue.frame.minY)")
+
+        // Restore the app's persisted language: `-AppleLanguages` writes to
+        // UserDefaults, which survives launches, so a suite running after this
+        // RU launch must not inherit Russian (P6.13 run, 2026-08-31).
+        app.terminate()
+        let reset = XCUIApplication()
+        reset.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        reset.launch()
+        reset.terminate()
+    }
+
+    /// The entry row's subtitle clips its odometer and date in BOTH languages
+    /// (`123 6… · Aug…`). The fix flows the subtitle onto a second line, so the
+    /// first entry row's date must sit a full caption line BELOW its odometer
+    /// instead of sharing one clipped line. Geometry again, never text - the
+    /// odometer and date elements carry identifiers so their frames can be
+    /// compared.
+    func testEntryRowSubtitleWrapsToTwoLinesAtXL() {
+        let app = launch(args: ["-seedHomeFullHistory",
+                                "-UIPreferredContentSizeCategoryName",
+                                "UICTContentSizeCategoryXXXL"])
+        let odometer = app.staticTexts["logEntryOdometer"].firstMatch
+        XCTAssertTrue(odometer.waitForExistence(timeout: 10),
+                      "the entry subtitle's odometer must be exposed as its own element")
+
+        // The newest fill's subtitle ("42.0 L · 95 · 123 600 km · Aug 17") is
+        // the longest row; its date is the first date element at or below the
+        // odometer's line. Wrapped, it sits one caption line down.
+        let date = app.staticTexts.matching(identifier: "logEntryDate")
+            .allElementsBoundByIndex
+            .first { $0.frame.minY >= odometer.frame.minY - 1 }
+        XCTAssertNotNil(date,
+                        "the first entry row must carry a date after its odometer")
+        XCTAssertGreaterThan(date!.frame.minY, odometer.frame.minY + 8,
+                             "the entry subtitle must wrap to two lines, "
+                             + "odometer at \(odometer.frame.minY), date at \(date!.frame.minY)")
     }
 
     // MARK: - Helpers

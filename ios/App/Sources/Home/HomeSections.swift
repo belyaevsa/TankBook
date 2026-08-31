@@ -476,7 +476,8 @@ struct HomeRecentEntries: View {
     /// segment the stream decided to show, in order (docs/DESIGN.md). Inside a
     /// purchase group the attachment is omitted - the shared receipt is already
     /// marked once on the group header, and three paperclips on one slip would
-    /// be noise.
+    /// be noise. Rendered through `SubtitleFlow`, which wraps the segments to a
+    /// second line at Dynamic Type XL instead of clipping (P6.13).
     private func subtitleLine(_ entry: LogStream.LogEntry,
                               includeAttachment: Bool = true) -> some View {
         let segments = includeAttachment
@@ -484,18 +485,21 @@ struct HomeRecentEntries: View {
             : entry.subtitleSegments.filter { segment in
                 if case .attachment = segment { return false } else { return true }
             }
-        return HStack(spacing: 3) {
+        return SubtitleFlow(spacing: 3, lineSpacing: 2) {
             ForEach(Array(segments.enumerated()), id: \.offset) { index, segment in
-                if index > 0 {
-                    Text("·")
-                        .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
+                // Each segment carries its own trailing "·" so a separator is
+                // glued to the segment it follows and never starts a line.
+                HStack(spacing: 3) {
+                    segmentView(segment)
+                    if index < segments.count - 1 {
+                        Text("·")
+                            .foregroundStyle(Theme.Palette.inkSoft.opacity(0.6))
+                    }
                 }
-                segmentView(segment)
             }
         }
         .font(.caption)
         .foregroundStyle(Theme.Palette.inkSoft)
-        .lineLimit(1)
     }
 
     @ViewBuilder
@@ -510,6 +514,7 @@ struct HomeRecentEntries: View {
                 .accessibilityIdentifier("logEntryFuelKind")
         case .odometer(let value):
             Text("\(OdometerFormat.grouped(value)) \(L10n.distanceUnit(distanceUnit))")
+                .accessibilityIdentifier("logEntryOdometer")
         case .attachment:
             Image(systemName: "paperclip")
                 .font(.caption2)
@@ -517,6 +522,7 @@ struct HomeRecentEntries: View {
                 .accessibilityIdentifier("logEntryAttachment")
         case .date(let date):
             Text(HomeFormat.day(date))
+                .accessibilityIdentifier("logEntryDate")
         }
     }
 
