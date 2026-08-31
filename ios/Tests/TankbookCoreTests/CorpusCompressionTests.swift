@@ -35,7 +35,7 @@ struct CorpusCompressionTests {
     /// The recorded high-water mark for receipts - the number the uncompressed
     /// ratchet measures (Spike/ReceiptSpike/fixtures/high-water.json). The
     /// compression step must not move it.
-    private static let recordedReceipts = (hits: 88, total: 185)
+    private static let recordedReceipts = (hits: 95, total: 190)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {

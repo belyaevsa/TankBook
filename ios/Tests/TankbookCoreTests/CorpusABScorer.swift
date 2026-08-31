@@ -302,6 +302,9 @@ enum PostSweepCorpusAdditions {
             // 2026-08-30: the matched half of pump-030 - same fill, same
             // minute, a Tver fuel card. Declared, not swept.
             "receipt-041-zolotaya-seredina-tver-95-fuelcard-ru.jpg",
+            // 2026-08-31: the matched half of pump-034 - Circle K Jarvevana,
+            // Tallinn, 87.29 L of D B0 at 1.839. Declared, not swept.
+            "receipt-042-circlek-jarvevana-tallinn-db0-pump7-ee.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -323,6 +326,17 @@ enum PostSweepCorpusAdditions {
             // 2026-08-30: the corpus's first TOKHEIM, and the matched half
             // of receipt-041. Declared, not swept.
             "pump-030-tokheim-zolotaya-seredina-tver-ru-comma.jpg",
+            // 2026-08-31: eight Estonian Circle K displays - two Gilbarco and
+            // six Dresser Wayne, including the matched half of receipt-042.
+            // Declared, not swept.
+            "pump-031-gilbarco-circlek-ee-discount-mismatch.jpg",
+            "pump-032-gilbarco-circlek-ee-clean.jpg",
+            "pump-033-dresser-wayne-circlek-ee-fourprice-95.jpg",
+            "pump-034-dresser-wayne-circlek-tallinn-ee-db0-pair.jpg",
+            "pump-035-dresser-wayne-circlek-ee-rain-pump8.jpg",
+            "pump-036-dresser-wayne-circlek-ee-pump4-95.jpg",
+            "pump-037-dresser-wayne-circlek-ee-pump3-diesel.jpg",
+            "pump-038-dresser-wayne-circlek-ee-reflection-95.jpg",
         ],
     ]
 

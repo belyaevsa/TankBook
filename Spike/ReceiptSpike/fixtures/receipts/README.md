@@ -679,3 +679,25 @@ Two properties worth naming:
 - **A corporate fuel-card slip with no VAT line**, like `receipt-035`. It carries
   «Бескарточное завершение операции» and an unavailable limit, so the total is
   the only money figure that can be trusted.
+
+## 2026-08-31: receipt-042, the Estonian half of the third matched pair
+
+Circle K Jarvevana teenindusjaam, Tallinn, 31/08/2026 10:12, pump 7: **D B0 miles, 87,29 L at
+1,839 EUR/L = 160,53**, 24% VAT, contactless. The matched half of `pump-034` - same fill, same
+minute.
+
+Three things it carries:
+
+1. **The receipt is the ONLY source of the unit price.** The pump's board shows four prices and
+   none is 1.839, because the product is D B0 and the board prices another diesel. This is a
+   counter-example to resolving an operand pair against the displayed candidates.
+2. **It prints an odometer** (`Labisoit: 123000`), which few receipts in this corpus do.
+3. `D B0 miles` is the same product string that `screenshot-*` fixtures miss on `fuelKind` - it is
+   still not normalised to diesel, and here it is asserted as `diesel`, so the gate now sees the
+   gap on a photographed receipt too.
+
+Measured, three runs agreeing: receipts **91/185 -> 94/190** (the fixture scores 3 of its 5 cells).
+**The recorded mark was stale**: the live score without this fixture was 91 against a recorded 88,
+so the parser had improved by 3 since the last re-baseline and the floor hid it - `hits` is a
+`>=` floor, so a rise never fails anything. Worth re-measuring at each corpus change rather than
+trusting the number in the file.

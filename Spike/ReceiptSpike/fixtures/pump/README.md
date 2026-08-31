@@ -475,3 +475,32 @@ images; a re-compression would have moved the marks silently.
 re-encoding, which is lossy and would perturb the very scores the ratchet
 guards. Converting them to JPEG is a deliberate corpus change with a ratchet
 re-baseline attached, not a cleanup - it needs its own decision.
+
+## 2026-08-31: eight Circle K Estonia displays (pump-031..038)
+
+Two Gilbarco Veeder-Root and six Dresser Wayne, all Circle K EE. Converted from HEIC to JPEG at
+full resolution (3024x4032) with EXIF stripped - **orientation was baked into the pixels first**
+(all nine were EXIF orientation 6; dropping the tag without applying it would have left every
+fixture rotated, which measures a different problem than the app has).
+
+What they add that the corpus did not have:
+
+- **pump-034 is half of a matched pair** with `receipt-042` - the same fill, 87.29 L of D B0 at
+  1.839 EUR/L = 160.53, pump 7, Jarvevana Tallinn. It is the corpus's **third** matched pair and
+  its first Estonian one, and it carries a counter-example worth more than the pair itself: the
+  pump's four-price board reads 1.934 / 1.834 / 1.819 / 1.759 and **none of them is the price
+  charged**, because the product was D B0 while the board prices another diesel. Resolving a fill
+  by picking the boarded price nearest the arithmetic would be **wrong here**. Its `unitPrice`
+  cell is therefore EMPTY: the photo does not carry it, and the receipt is its only source.
+- **pump-035** has the same shape, unresolved: 82.01 / 44.96 = 1.824, on no board. Also empty.
+- **pump-031 is a cross-check MISMATCH by design**: 16.80 x 1.939 = 32.575 against a printed total
+  of **32.50**. The Circle K extra discount lands between the board price and the charged price,
+  so the three printed numbers do not multiply out. It is a real receipt, not a misread.
+- **pump-033 / 036 / 038** each show four prices at once and resolve to 95 by arithmetic
+  (42.87 / 12.73 / 44.03 L at 1.759); **pump-037** resolves to diesel (11.05 x 1.834 = 20.27).
+- **pump-038** has a photographer reflection across the total and **pump-035** was shot in rain,
+  with droplets over the digits; **pump-028's** fibre-on-glass problem repeats on pump-038's D price.
+
+Gate moved **26/116 -> 29/151**: the eight scored 3 of 35 new cells, so accuracy fell 22.4% ->
+19.2%. That is correct and expected - the ratchet guards absolute hits so that adding hard
+fixtures cannot be punished. Pump mode still ships off; the gate is 95%.
