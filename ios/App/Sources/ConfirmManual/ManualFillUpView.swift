@@ -273,7 +273,7 @@ struct ManualFillUpView: View {
             form.currency = vehicle.homeCurrency
             form.fuelKind = vehicle.fuelKinds.first ?? .petrol95
             lastKnown = OdometerLastKnown.lastKnown(in: existingEntries, vehicle: vehicle)
-            form.odometer = lastKnown?.odometer.map(String.init) ?? ""
+            form.odometer = lastKnown?.odometer.map(OdometerFormat.grouped) ?? ""
             if let prefill {
                 apply(prefill, vehicle: vehicle)
                 detectMixedReceipt(prefill)
