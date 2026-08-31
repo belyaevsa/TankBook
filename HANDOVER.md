@@ -154,6 +154,34 @@ Two things worth carrying:
 - **A green suite is not a green suite until it is green alone.** Worth spot-checking one suite in
   isolation per phase.
 
+## The v1.1 priority queue, and what P3 actually shipped (2026-08-31)
+
+The product owner pulled **eleven rows** out of the v1.1 bucket and ordered them
+(`docs/TASKS.md` -> "The v1.1 priority queue"). Markers are unchanged - they are still
+`[v1.1]`/`[v1.x]`; this is sequencing, not scope.
+
+Seven are the **J7 cluster** (`PJ.22`-`PJ.28`). The finding behind them is worth carrying:
+**P3 built the nouns and skipped most of the verbs.** Service entries, parts, tire sets and
+reminders all exist as data and as screens; nearly every action that connects one to another does
+not. That is how a phase reads COMPLETE while the journey does not hold together, and it is the
+same shape as the enum whose cases nothing produces.
+
+The two a TestFlight tester meets first:
+
+- **`PJ.28`**: Expense capture photographs the receipt and **discards it** - the shutter behaves
+  normally and `ExpenseEntryView` saves `attachments: []`. No error, nothing kept. Verified in the
+  source, not taken from the row.
+- **`PJ.22`**: the service log **never proposes the next service**. `proposedReminderId` is always
+  nil because there is nowhere to enter a lifetime. J7's whole promise is the proposal.
+
+The other four are the cheap ones, and they share one shape - **the mechanism exists, is tested,
+and no user can reach it**: `PJ.19` (station suggestion logic written, never called), `PJ.34` (F9a
+ranks suggestions the UI discards), `PJ.35` (`.blobPrefetch` is a `PowerWorkKind` case nothing
+produces - P6.20 again), `PJ.45` (`paceLimitKmPerDay` edited nowhere).
+
+**Ask what PRODUCES a case, not only what handles it.** That question found P6.20, and it found
+these four.
+
 ## The Tier 2 session (2026-08-30, evening) - six lanes, and what each cost
 
 Committed, each verified in the orchestrator's own hands (build + `xcodebuild` + lint + the whole
