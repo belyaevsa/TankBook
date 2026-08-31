@@ -6,7 +6,10 @@ set -euo pipefail
 
 POSTGRES_NAME="tankbook-postgres"
 POSTGRES_IMAGE="postgres:17"
-POSTGRES_PORT="5432"
+# 5432 is routinely taken on this machine by other projects' Postgres, and a port
+# mapping is baked in at `docker run` time - so a collision means the container
+# exits and cannot simply be restarted. 5434 is ours (2026-08-31).
+POSTGRES_PORT="5434"
 POSTGRES_DB="tankbook"
 POSTGRES_USER="tankbook"
 POSTGRES_PASSWORD="tankbook"
@@ -26,8 +29,14 @@ docker info >/dev/null 2>&1 || { echo "ERROR: docker is not running or not insta
 echo "==> Tankbook local infrastructure (dev-up)"
 
 # --- Postgres 17 ---------------------------------------------------------
-if docker container inspect "$POSTGRES_NAME" >/dev/null 2>&1; then
+# `docker container inspect` succeeds for a STOPPED container too, so the old
+# check reported "already running" while Postgres was down. Ask for the running
+# state, and start an existing-but-stopped container rather than claiming it is fine.
+if [ "$(docker inspect -f '{{.State.Running}}' "$POSTGRES_NAME" 2>/dev/null)" = "true" ]; then
     echo "Postgres 17 container '$POSTGRES_NAME' already running - leaving it alone."
+elif docker container inspect "$POSTGRES_NAME" >/dev/null 2>&1; then
+    echo "Postgres 17 container '$POSTGRES_NAME' exists but is stopped - starting it..."
+    docker start "$POSTGRES_NAME" >/dev/null
 else
     echo "Starting Postgres 17 on port $POSTGRES_PORT (db/user/password: $POSTGRES_DB/$POSTGRES_USER/$POSTGRES_PASSWORD)..."
     docker run -d \
@@ -55,8 +64,11 @@ else
 fi
 
 # --- MinIO -----------------------------------------------------------------
-if docker container inspect "$MINIO_NAME" >/dev/null 2>&1; then
+if [ "$(docker inspect -f '{{.State.Running}}' "$MINIO_NAME" 2>/dev/null)" = "true" ]; then
     echo "MinIO container '$MINIO_NAME' already running - leaving it alone."
+elif docker container inspect "$MINIO_NAME" >/dev/null 2>&1; then
+    echo "MinIO container '$MINIO_NAME' exists but is stopped - starting it..."
+    docker start "$MINIO_NAME" >/dev/null
 else
     echo "Starting MinIO (API $MINIO_API_PORT, console $MINIO_CONSOLE_PORT, root $MINIO_ROOT_USER)..."
     docker run -d \

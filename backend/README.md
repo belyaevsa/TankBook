@@ -5,7 +5,7 @@ ASP.NET Core minimal API implementing `docs/API.md`, backed by Postgres (opaque 
 ## Run locally
 
 ```sh
-./backend/scripts/dev-up.sh      # start Postgres 17 (:5432) + MinIO (:9000 API, :9001 console)
+./backend/scripts/dev-up.sh      # start Postgres 17 (:5434) + MinIO (:9000 API, :9001 console)
 dotnet run --project backend/src/Tankbook.Api
 curl localhost:5000/health       # {"status":"ok","version":"0.1.0"}
 ./backend/scripts/dev-down.sh    # stop and remove the containers
