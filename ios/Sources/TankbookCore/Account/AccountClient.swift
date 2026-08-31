@@ -73,9 +73,6 @@ public struct AccountClient: Sendable {
     public func devices() async throws -> [AccountDevice] {
         let url = endpoint("account/devices")
         let response = try await send(TankbookHTTPRequest(url: url))
-        guard (200...299).contains(response.status) else {
-            throw Self.error(for: response.status)
-        }
         guard let body = response.body else { throw AccountClientError.invalidResponse }
         do {
             let payload = try decoder.decode(DevicesPayload.self, from: body)
@@ -90,10 +87,7 @@ public struct AccountClient: Sendable {
     /// too - revoke stops syncing, it erases nothing).
     public func revoke(deviceID: UUID) async throws {
         let url = endpoint("account/devices/\(deviceID.uuidString.lowercased())")
-        let response = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
-        guard response.status == 204 || (200...299).contains(response.status) else {
-            throw Self.error(for: response.status)
-        }
+        _ = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
     }
 
     /// `DELETE /account` - tombstones the account. The server purges its copy
@@ -101,10 +95,7 @@ public struct AccountClient: Sendable {
     /// this phone is untouched** (docs/SYNC.md, site/delete-account.md).
     public func deleteAccount() async throws {
         let url = endpoint("account")
-        let response = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
-        guard response.status == 204 || (200...299).contains(response.status) else {
-            throw Self.error(for: response.status)
-        }
+        _ = try await send(TankbookHTTPRequest(url: url, method: "DELETE"))
     }
 
     // MARK: - Plumbing
@@ -125,6 +116,11 @@ public struct AccountClient: Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw AccountClientError.unauthorized
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a non-2xx account status - a response,
+            // never a transport failure - mapped per status below.
+            await director.report(.response(status: status))
+            throw Self.error(for: status)
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.

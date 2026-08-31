@@ -4,10 +4,14 @@ namespace Tankbook.Api.Logging;
 
 /// <summary>
 /// Trace correlation (docs/LOGGING.md §2): reads X-Tankbook-Trace (generating
-/// one when absent), echoes it in the response header, pushes it into the log
-/// scope for the whole request, times the request, and emits the per-request
+/// a UUIDv7 when absent), echoes it in the response header, pushes it into the
+/// log scope for the whole request, times the request, and emits the per-request
 /// line with the route template (never the raw path, so ids stay out of logged
-/// paths). Health routes log at DEBUG only so they do not drown the stream.
+/// paths). The request line also carries the client-supplied correlation fields
+/// (clientVersion, accountHash, deviceId, schemaVersion) that
+/// <see cref="LogScopeEnrichmentMiddleware"/> wrote into context.Items - its
+/// own scope is disposed before this finally runs. Health routes log at DEBUG
+/// only so they do not drown the stream.
 /// </summary>
 public sealed class TraceCorrelationMiddleware
 {
@@ -28,7 +32,9 @@ public sealed class TraceCorrelationMiddleware
         var traceId = context.Request.Headers[Header].FirstOrDefault();
         if (string.IsNullOrWhiteSpace(traceId))
         {
-            traceId = "tr_" + Guid.NewGuid().ToString("N");
+            // PR.8: the fallback is a UUIDv7 too, so the server-generated id has
+            // the same time-ordered shape as the client's (docs/LOGGING.md §2).
+            traceId = Guid.CreateVersion7().ToString();
         }
 
         context.Items[TraceIdItemKey] = traceId;
@@ -61,6 +67,8 @@ public sealed class TraceCorrelationMiddleware
             var isHealth = routeTemplate.StartsWith("/health", StringComparison.OrdinalIgnoreCase);
             var level = isHealth ? LogLevel.Debug : LogLevel.Information;
 
+            var enrichment = context.Items[LogScopeEnrichmentMiddleware.EnrichmentItemKey] as IReadOnlyDictionary<string, object?>;
+
             TankbookLog.HttpRequest(
                 _logger,
                 level,
@@ -69,7 +77,8 @@ public sealed class TraceCorrelationMiddleware
                 context.Response.StatusCode,
                 stopwatch.Elapsed.TotalMilliseconds,
                 context.Request.ContentLength ?? 0,
-                counting.BytesWritten);
+                counting.BytesWritten,
+                enrichment);
         }
     }
 }

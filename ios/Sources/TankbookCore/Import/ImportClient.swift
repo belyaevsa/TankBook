@@ -75,10 +75,7 @@ public struct ImportClient: Sendable {
         var request = TankbookHTTPRequest(url: url, method: "POST", body: body,
                                           timeoutInterval: TransportTimeouts.upload)
         request.headers["Content-Type"] = "multipart/form-data; boundary=\(boundary)"
-        let response = try await send(request)
-        guard (200...299).contains(response.status) else {
-            throw Self.error(for: response.status, declaredDisplayName: format.displayName)
-        }
+        let response = try await send(request, declaredDisplayName: format.displayName)
         guard let body = response.body else { throw ImportClientError.invalidResponse }
         do {
             return try decoder.decode(ImportParseResponse.self, from: body)
@@ -105,7 +102,8 @@ public struct ImportClient: Sendable {
 
     // MARK: - Plumbing
 
-    private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+    private func send(_ request: TankbookHTTPRequest,
+                      declaredDisplayName: String? = nil) async throws -> TankbookHTTPResponse {
         var request = request
         if request.headers["X-Device-Id"] == nil, let deviceID {
             request.headers["X-Device-Id"] = deviceID
@@ -114,6 +112,12 @@ public struct ImportClient: Sendable {
             let response = try await httpClient.send(request)
             await director.report(.response(status: response.status))
             return response
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a non-2xx import status - a response, never
+            // a transport failure - mapped per status below (a 422 carries the
+            // declared format's display name so the message is specific, F7).
+            await director.report(.response(status: status))
+            throw Self.error(for: status, declaredDisplayName: declaredDisplayName)
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.

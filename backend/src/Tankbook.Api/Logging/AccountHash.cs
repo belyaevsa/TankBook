@@ -19,4 +19,14 @@ public static class AccountHash
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(salt + ":" + normalized));
         return "acct_" + Convert.ToHexString(bytes)[..HexChars].ToLowerInvariant();
     }
+
+    /// <summary>
+    /// The per-request stand-in for the email hash (docs/LOGGING.md §2). An
+    /// access token carries the account id, not the email, so a bearer request
+    /// cannot recompute the email hash; this hashes the account id instead - a
+    /// stable, salted identifier that still joins a support lookup, and never
+    /// a raw id in the log.
+    /// </summary>
+    public static string ForAccount(Guid accountId, string salt)
+        => Compute(accountId.ToString("N"), salt);
 }

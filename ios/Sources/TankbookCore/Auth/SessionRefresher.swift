@@ -87,15 +87,14 @@ public actor SessionRefresher: SessionRefreshing {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(request)
-        } catch {
-            throw SessionRefresherError.transportUnavailable
-        }
-
-        guard (200...299).contains(response.status) else {
-            // The refresh token is dead. Sign out locally - the chain is gone
-            // server-side and can never be used again.
+        } catch TankbookHTTPClientError.httpError {
+            // The refresh token is dead - the server answered with a non-2xx.
+            // Sign out locally - the chain is gone server-side and can never
+            // be used again.
             try? sessionStore.clear()
             throw SessionRefresherError.authExpired
+        } catch {
+            throw SessionRefresherError.transportUnavailable
         }
 
         guard let pair = try? Self.decodeTokenPair(response.body) else {

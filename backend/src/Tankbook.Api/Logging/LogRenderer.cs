@@ -10,7 +10,8 @@ namespace Tankbook.Api.Logging;
 /// docs/LOGGING.md §2 common fields, §3 per-operation shape, and the redactor
 /// meet: every named property is classified, the message is rendered from
 /// redacted values only, and the correlation fields (traceId, accountHash,
-/// deviceId, appVersion, platform) ride on every line.
+/// deviceId, clientVersion, serverVersion, schemaVersion, platform) ride on
+/// every line.
 /// </summary>
 public sealed class LogRenderer
 {
@@ -20,13 +21,13 @@ public sealed class LogRenderer
         new(@"\{(@|\$)?([A-Za-z0-9_\.]+)(,([^}:]+))?\}", RegexOptions.Compiled);
 
     private readonly TankbookRedactor _redactor;
-    private readonly string _appVersion;
+    private readonly string _serverVersion;
     private readonly bool _json;
 
-    public LogRenderer(TankbookRedactor redactor, string appVersion, bool json)
+    public LogRenderer(TankbookRedactor redactor, string serverVersion, bool json)
     {
         _redactor = redactor;
-        _appVersion = appVersion;
+        _serverVersion = serverVersion;
         _json = json;
     }
 
@@ -44,7 +45,8 @@ public sealed class LogRenderer
         var ordered = new List<KeyValuePair<string, object?>>();
 
         // Correlation fields: scope properties first (the middleware pushes
-        // TraceId/AccountHash/DeviceId), state properties may override.
+        // TraceId/AccountHash/DeviceId/ClientVersion/ClientPlatform/SchemaVersion),
+        // state properties may override.
         var correlation = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var (name, value) in scopeProperties)
         {
@@ -91,7 +93,9 @@ public sealed class LogRenderer
         ordered.Add(new KeyValuePair<string, object?>("traceId", correlation.GetValueOrDefault("TraceId")));
         ordered.Add(new KeyValuePair<string, object?>("accountHash", correlation.GetValueOrDefault("AccountHash")));
         ordered.Add(new KeyValuePair<string, object?>("deviceId", correlation.GetValueOrDefault("DeviceId")));
-        ordered.Add(new KeyValuePair<string, object?>("appVersion", _appVersion));
+        ordered.Add(new KeyValuePair<string, object?>("clientVersion", correlation.GetValueOrDefault("ClientVersion")));
+        ordered.Add(new KeyValuePair<string, object?>("clientPlatform", correlation.GetValueOrDefault("ClientPlatform")));
+        ordered.Add(new KeyValuePair<string, object?>("serverVersion", _serverVersion));
         ordered.Add(new KeyValuePair<string, object?>("platform", "server"));
         ordered.Add(new KeyValuePair<string, object?>("schemaVersion", correlation.GetValueOrDefault("SchemaVersion")));
         ordered.Add(new KeyValuePair<string, object?>("message", RenderMessage(template, eventName, redactedFields)));
@@ -170,6 +174,8 @@ public sealed class LogRenderer
         name.Equals("TraceId", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("AccountHash", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("DeviceId", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("ClientVersion", StringComparison.OrdinalIgnoreCase) ||
+        name.Equals("ClientPlatform", StringComparison.OrdinalIgnoreCase) ||
         name.Equals("SchemaVersion", StringComparison.OrdinalIgnoreCase);
 
     private static string RenderMessage(string? template, string eventName, IReadOnlyList<RedactedField> fields)

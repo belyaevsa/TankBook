@@ -32,19 +32,22 @@ Two structural helps: the server *cannot* accidentally log domain fields because
 
 ## 2 · Correlation: one thread through both tiers
 
-- The **client generates a `traceId`** (UUIDv7) per API request and sends it as `X-Tankbook-Trace`.
-- The **server echoes it** in every log line for that request, in the `X-Tankbook-Trace` response header on success, and in the `problem+json` body of any error. Known behaviour: on an unhandled 500 the framework's exception handler calls `Response.Clear()`, which wipes the response header – so on that path the body is the only carrier. Clients must read the traceId from the body when a request fails.
+- The **client generates a `traceId`** (UUIDv7) per API request and sends it as `X-Tankbook-Trace`. One id per **logical** request: redirect hops and a 401-refresh replay keep the same id, two calls never share one. The client stamps the header (and the app headers below) at the single chokepoint inside `TankbookHTTPClient`, so no owner can miss it.
+- Every request also carries **`X-Tankbook-App: <version>+<build>`** (marketing version + `CFBundleVersion`, `1.0.0+1` today), **`X-Tankbook-Platform`** (`ios`) and **`X-Tankbook-Schema-Version`** (the client's payload contract version). A support report therefore says which build produced the line.
+- The **server echoes the traceId** in every log line for that request, in the `X-Tankbook-Trace` response header on success, and in the `problem+json` body of any error. Known behaviour: on an unhandled 500 the framework's exception handler calls `Response.Clear()`, which wipes the response header – so on that path the body is the only carrier. **On a non-2xx the client reads the `traceId` from the body onto the thrown error**, so the error handler (and the diagnostics bundle) always has it. The server's own fallback when the header is absent is also a UUIDv7.
+- The server **pushes `clientVersion`, `clientPlatform`, `accountHash`, `deviceId`, `schemaVersion` into the log scope** for every request (PR.8): `clientVersion`/`clientPlatform`/`schemaVersion` come from the headers above, `deviceId` from the bearer token, and `accountHash` on an authenticated request is the **salted hash of the account id** – the JWT carries the account id, not the email, so the scope hash is over that (a stable, salted identifier that still joins a support lookup; the email-based hash still appears on `auth.session`). Public routes carry the client fields and leave `accountHash`/`deviceId` null.
+- The server's own version field is **`serverVersion`**, and its platform is `server` – distinct from the client's `clientVersion`/`clientPlatform`, so a line says both who served it and what called it.
 - A **`syncSessionId`** groups one pull→merge→push cycle across many requests.
 - The user-visible surface: when an error is shown from a failed request, the diagnostics bundle (§5) carries its traceId. A support message therefore maps to exact server lines without the user describing anything.
 
-Every log line on both tiers carries: `timestamp, level, event, traceId?, accountHash?, deviceId?, appVersion, platform`.
+Every log line on both tiers carries: `timestamp, level, event, traceId?, accountHash?, deviceId?, clientVersion?, clientPlatform?, serverVersion, schemaVersion?, platform`.
 
 ## 3 · Backend (ASP.NET Core, structured JSON to stdout)
 
 Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one JSON object per line**. Human-readable console only in Development.
 
 ### Always, per request (one line)
-`method, path (route template, not the raw URL – ids stay out of paths in logs), status, durationMs, traceId, accountHash, deviceId, appVersion, schemaVersion, requestBytes, responseBytes`
+`method, path (route template, not the raw URL – ids stay out of paths in logs), status, durationMs, traceId, accountHash, deviceId, clientVersion, clientPlatform, serverVersion, schemaVersion, requestBytes, responseBytes`
 
 ### Per operation – the "who / what / changed / outcome" record
 

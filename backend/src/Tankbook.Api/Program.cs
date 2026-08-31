@@ -323,6 +323,13 @@ app.UseMiddleware<TraceCorrelationMiddleware>();
 // identity via AuthContext. Public endpoints simply see no identity.
 app.UseMiddleware<BearerAuthenticationMiddleware>();
 
+// Log-scope enrichment (docs/LOGGING.md §2, PR.8): the client version, platform,
+// schema version and authenticated account/device ride every log line of the
+// request. Registered after bearer so AuthContext is populated; its scope is
+// active for everything below, and the outer trace middleware reads its
+// context.Items for the per-request line.
+app.UseMiddleware<LogScopeEnrichmentMiddleware>();
+
 // Routing must run before the rate limiter so the per-endpoint policies are
 // visible; the rate limiter must run after bearer auth so per-device policies
 // can key on the authenticated device (docs/API.md "Rate limits", PR.17).

@@ -58,6 +58,12 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
         do {
             response = try await client.send(http)
             await director.report(.response(status: response.status))
+        } catch TankbookHTTPClientError.httpError(let status, _, let retryAfterSeconds) {
+            // The host answered with a non-2xx extract status - a response,
+            // never a transport failure - classified as SyncServerError below
+            // (the classification this client CONSUMES, P6.11).
+            await director.report(.response(status: status))
+            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds)
         } catch {
             // The allowlist refusal and any socket-level failure are the same
             // survival shape: the on-device result stands (F4, S7) - and both
@@ -66,25 +72,30 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
             throw SyncServerError.transportUnavailable
         }
 
-        switch response.status {
-        case 200...299:
-            guard let body = response.body else { throw GatewayExtractError.invalidResponse }
-            return try GatewayExtraction.decode(body)
+        guard let body = response.body else { throw GatewayExtractError.invalidResponse }
+        return try GatewayExtraction.decode(body)
+    }
+
+    /// The P6.11 classification (docs/API.md -> LLM gateway): 402 -> tier,
+    /// 429 -> rate limited with the server's own wait, 426 -> upgrade, unknown
+    /// 4xx -> refusal, 5xx -> transport (so the one silent retry in `extract`
+    /// fires only on the transient class).
+    private static func error(for status: Int, retryAfterSeconds: Int?) -> SyncServerError {
+        switch status {
         case 402:
-            throw SyncServerError.tierRefused
+            return .tierRefused
         case 429:
-            throw SyncServerError.rateLimited(
-                retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init))
+            return .rateLimited(retryAfterSeconds: retryAfterSeconds)
         case 426:
-            throw SyncServerError.upgradeRequired
+            return .upgradeRequired
         case 400...499:
             // A gate this client version does not know about (P6.11): reported
             // as what it is, never as a generic failure (JOURNEYS F7).
-            throw SyncServerError.refused(status: response.status)
+            return .refused(status: status)
         default:
             // 5xx and anything non-HTTP-shaped: the server is having a
             // problem, which is the F4 fallback - the on-device result stands.
-            throw SyncServerError.transportUnavailable
+            return .transportUnavailable
         }
     }
 

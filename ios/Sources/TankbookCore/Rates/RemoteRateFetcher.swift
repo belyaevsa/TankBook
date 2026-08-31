@@ -46,24 +46,23 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
     // MARK: - HTTP
 
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
-        let response: TankbookHTTPResponse
         do {
-            response = try await client.send(request)
+            let response = try await client.send(request)
             await director.report(.response(status: response.status))
+            return response
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // A 400 problem+json (bad range), a 500, and any other non-2xx all
+            // leave the cache unchanged: a miss is never an error (F9). The
+            // host answered, so this is a response, never evidence the URL is
+            // wrong.
+            await director.report(.response(status: status))
+            throw RateFetchError.invalidResponse
         } catch {
             // Every transport failure - allowlist refusal, socket error - is
             // one silent miss to the caller (RateStore.refresh swallows it),
             // and evidence the host was unreachable.
             await director.report(.transportFailure)
             throw RateFetchError.transportUnavailable
-        }
-        switch response.status {
-        case 200...299:
-            return response
-        default:
-            // A 400 problem+json (bad range), a 500, and any other non-2xx all
-            // leave the cache unchanged: a miss is never an error (F9).
-            throw RateFetchError.invalidResponse
         }
     }
 

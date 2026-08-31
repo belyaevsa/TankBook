@@ -66,6 +66,11 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
         do {
             response = try await client.send(request)
             await director.report(.response(status: response.status))
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a non-2xx/non-304 status - one silent miss;
+            // the previous pack stands.
+            await director.report(.response(status: status))
+            throw CatalogFetchError.badStatus(status)
         } catch {
             // Every transport failure - allowlist refusal, socket error - is
             // one silent miss to the caller, and evidence the host was unreachable.
@@ -84,7 +89,8 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
                 throw CatalogFetchError.invalidResponse
             }
         default:
-            // A 4xx/5xx is one silent miss; the previous pack stands.
+            // Unreachable - the client throws every other non-2xx above - but
+            // kept as a defensive floor.
             throw CatalogFetchError.badStatus(response.status)
         }
     }

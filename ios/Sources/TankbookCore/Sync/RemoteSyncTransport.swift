@@ -47,16 +47,21 @@ public struct RemoteSyncTransport: SyncTransport {
     // MARK: - HTTP
 
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
-        let response: TankbookHTTPResponse
         do {
-            response = try await client.send(request)
+            let response = try await client.send(request)
             await director.report(.response(status: response.status))
+            return response
         } catch SessionRefresherError.authExpired {
             // The host answered - the 401 that triggered the refresh, then the
             // refresh's own non-2xx. The session is gone; the base URL is fine,
             // so this is a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw SyncServerError.authExpired
+        } catch TankbookHTTPClientError.httpError(let status, _, let retryAfterSeconds) {
+            // The host answered with a non-2xx sync status - a response, never
+            // a transport failure - mapped per status below.
+            await director.report(.response(status: status))
+            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds)
         } catch {
             // hostNotAllowlisted, tooManyRedirects, a transport error, or a
             // refresh that could not reach the host: none of them is "the host
@@ -65,40 +70,36 @@ public struct RemoteSyncTransport: SyncTransport {
             await director.report(.transportFailure)
             throw SyncServerError.offline
         }
-        return try Self.requireSuccess(response)
     }
 
-    /// Maps a non-2xx status to its `SyncServerError`. A 401 is an auth event,
-    /// never an unknown gate from a newer server (PR.1 - the honest next step is
-    /// "sign in again", never "update the app").
-    private static func requireSuccess(_ response: TankbookHTTPResponse) throws -> TankbookHTTPResponse {
-        switch response.status {
-        case 200...299:
-            return response
+    /// Maps a non-2xx status to its `SyncServerError` (the same mapping the
+    /// transport used to do by inspecting the response; the client now throws
+    /// it). A 401 is an auth event, never an unknown gate from a newer server
+    /// (PR.1 - the honest next step is "sign in again", never "update the app").
+    private static func error(for status: Int, retryAfterSeconds: Int?) -> SyncServerError {
+        switch status {
         case 401:
             // Unreachable with a wired refresher (the client intercepts 401
             // first); without one, a 401 is still an auth event.
-            throw SyncServerError.authExpired
+            return .authExpired
         case 410:
-            throw SyncServerError.deviceRevoked
+            return .deviceRevoked
         case 426:
-            throw SyncServerError.upgradeRequired
+            return .upgradeRequired
         case 402:
-            throw SyncServerError.tierRefused
+            return .tierRefused
         case 429:
-            throw SyncServerError.rateLimited(
-                retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init)
-            )
+            return .rateLimited(retryAfterSeconds: retryAfterSeconds)
         case 400...499:
             // An unknown gate from a server newer than this client. Reported as
             // what it is - a refusal carrying its status - never as "could not
             // decode" and never as a generic failure (JOURNEYS F7).
-            throw SyncServerError.refused(status: response.status)
+            return .refused(status: status)
         default:
             // 5xx and anything non-HTTP-shaped: the host answered, so the
             // device is online and the service is down - S7 - rows return to
             // dirty and the cycle retries.
-            throw SyncServerError.serverUnavailable
+            return .serverUnavailable
         }
     }
 

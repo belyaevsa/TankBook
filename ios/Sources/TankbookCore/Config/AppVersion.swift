@@ -41,6 +41,19 @@ public struct AppVersion: Sendable, Equatable, Hashable, Comparable, CustomStrin
         self.patch = patch
     }
 
+    /// Parses the bundle's marketing version (`CFBundleShortVersionString` -
+    /// `1.0.0` in this product, docs/PRACTICES.md -> constants). A bundle with
+    /// no plist value, or a value that is not `major.minor.patch`, is nil - the
+    /// same fail-don't-guess rule as the string parser. Defaults to the main
+    /// bundle, which is what the running app wants; tests pass a crafted one.
+    public init?(bundle: Bundle = .main) {
+        guard let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              let parsed = AppVersion(version) else { return nil }
+        self.major = parsed.major
+        self.minor = parsed.minor
+        self.patch = parsed.patch
+    }
+
     public var description: String {
         "\(major).\(minor).\(patch)"
     }

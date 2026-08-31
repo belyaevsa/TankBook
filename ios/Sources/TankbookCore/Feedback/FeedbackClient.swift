@@ -54,18 +54,17 @@ public struct FeedbackClient: Sendable {
         do {
             response = try await httpClient.send(request)
             await director.report(.response(status: response.status))
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a non-202 status: a response, never a
+            // transport failure. 429 -> rate limited, anything else -> server.
+            await director.report(.response(status: status))
+            throw status == 429 ? FeedbackClientError.rateLimited : FeedbackClientError.server(status: status)
         } catch is TankbookHTTPClientError {
             await director.report(.transportFailure)
             throw FeedbackClientError.client
         } catch {
             await director.report(.transportFailure)
             throw FeedbackClientError.transportUnreachable
-        }
-
-        switch response.status {
-        case 202: return
-        case 429: throw FeedbackClientError.rateLimited
-        default: throw FeedbackClientError.server(status: response.status)
         }
     }
 }

@@ -32,18 +32,7 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         var request = TankbookHTTPRequest(url: endpoint("blobs/begin"), method: "POST", body: body)
         request.headers["Content-Type"] = "application/json"
         let response = try await send(request)
-        switch response.status {
-        case 200:
-            return try decodeBegin(response.body)
-        case 401:
-            throw BlobSyncError.authExpired
-        case 413:
-            throw BlobSyncError.sizeExceeded
-        case 429:
-            throw BlobSyncError.quotaExceeded
-        default:
-            throw BlobSyncError.invalidResponse
-        }
+        return try decodeBegin(response.body)
     }
 
     public func put(_ data: Data, to url: URL, contentType: String) async throws {
@@ -65,11 +54,7 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         let body = try JSONValue.object(["sha256": .string(sha256)]).jsonData()
         var request = TankbookHTTPRequest(url: endpoint("blobs/commit"), method: "POST", body: body)
         request.headers["Content-Type"] = "application/json"
-        let response = try await send(request)
-        guard (200...299).contains(response.status) else {
-            if response.status == 401 { throw BlobSyncError.authExpired }
-            throw BlobSyncError.invalidResponse
-        }
+        _ = try await send(request)
     }
 
     public func download(sha256: String) async throws -> Data {
@@ -77,17 +62,8 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
         // The client follows the 302 to the short-lived presigned GET; the
         // redirect hop carries no bearer token (docs/SECURITY.md).
         let response = try await send(request)
-        switch response.status {
-        case 200:
-            guard let body = response.body else { throw BlobSyncError.invalidResponse }
-            return body
-        case 401:
-            throw BlobSyncError.authExpired
-        case 404:
-            throw BlobSyncError.notFound
-        default:
-            throw BlobSyncError.invalidResponse
-        }
+        guard let body = response.body else { throw BlobSyncError.invalidResponse }
+        return body
     }
 
     // MARK: - HTTP
@@ -102,9 +78,24 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw BlobSyncError.authExpired
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a non-2xx blob status - a response, never
+            // a transport failure; the per-status error is docs/API.md's.
+            await director.report(.response(status: status))
+            throw Self.error(for: status)
         } catch {
             await director.report(.transportFailure)
             throw BlobSyncError.transportUnavailable
+        }
+    }
+
+    private static func error(for status: Int) -> BlobSyncError {
+        switch status {
+        case 401: return .authExpired
+        case 404: return .notFound
+        case 413: return .sizeExceeded
+        case 429: return .quotaExceeded
+        default: return .invalidResponse
         }
     }
 

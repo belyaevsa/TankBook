@@ -64,6 +64,45 @@ public struct TankbookHTTPResponse: Sendable, Equatable {
     }
 }
 
+/// The app identity every request announces (docs/API.md -> "Request headers",
+/// PR.8): the marketing version + build, the platform, and the payload schema
+/// version the client speaks. Built from the bundle by `current`; tests inject
+/// a fixed value because a plain `swift test` process has no Info.plist.
+public struct TankbookAppInfo: Sendable, Equatable {
+    public let version: AppVersion
+    public let build: String
+    public let platform: String
+    public let schemaVersion: Int
+
+    public init(version: AppVersion, build: String, platform: String = "ios",
+                schemaVersion: Int = PayloadCodec.currentSchemaVersion) {
+        self.version = version
+        self.build = build
+        self.platform = platform
+        self.schemaVersion = schemaVersion
+    }
+
+    /// The `X-Tankbook-App` value: `<version>+<build>` (docs/API.md).
+    public var appHeader: String {
+        "\(version)+\(build)"
+    }
+
+    /// The `X-Tankbook-Schema-Version` value.
+    public var schemaVersionHeader: String {
+        String(schemaVersion)
+    }
+
+    /// Reads the running bundle; nil when there is none (a plain `swift test`
+    /// process), in which case the client omits the app headers rather than
+    /// announcing a guessed version.
+    public static func current(bundle: Bundle = .main) -> TankbookAppInfo? {
+        guard let version = AppVersion(bundle: bundle),
+              let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+              !build.isEmpty else { return nil }
+        return TankbookAppInfo(version: version, build: build)
+    }
+}
+
 /// Errors surfaced by `TankbookHTTPClient`.
 public enum TankbookHTTPClientError: Error, Sendable, Equatable {
     /// The request host is not on the allowlist. Raised before any I/O and
@@ -73,6 +112,12 @@ public enum TankbookHTTPClientError: Error, Sendable, Equatable {
     case hostNotAllowlisted
     /// A redirect chain exceeded `maxRedirects`.
     case tooManyRedirects
+    /// The server answered with a non-2xx, non-304 status. `traceId` is read
+    /// from the problem+json body so a support report maps to the exact server
+    /// line (docs/LOGGING.md §2); `retryAfterSeconds` comes from the Retry-After
+    /// header so a 429 keeps the server's own wait. Owners translate this into
+    /// their own errors - a real response, never a transport failure.
+    case httpError(status: Int, traceId: String?, retryAfterSeconds: Int?)
 }
 
 /// The host-bound HTTP client: the **second**, independent checkpoint
@@ -95,37 +140,60 @@ public struct TankbookHTTPClient: Sendable {
     private let tokenProvider: any AuthorizationTokenProvider
     private let refresher: (any SessionRefreshing)?
     private let maxRedirects: Int
+    /// The app identity announced on every request (PR.8). nil only in a
+    /// process without a bundle (a plain `swift test`), where the app headers
+    /// are omitted; the trace header is always sent.
+    private let appInfo: TankbookAppInfo?
 
     public init(
         transport: any TankbookHTTPTransport,
         tokenProvider: any AuthorizationTokenProvider,
         refresher: (any SessionRefreshing)? = nil,
-        maxRedirects: Int = 10
+        maxRedirects: Int = 10,
+        appInfo: TankbookAppInfo? = TankbookAppInfo.current()
     ) {
         self.transport = transport
         self.tokenProvider = tokenProvider
         self.refresher = refresher
         self.maxRedirects = maxRedirects
+        self.appInfo = appInfo
     }
 
     /// Sends a request, following redirects while re-checking the allowlist at
     /// every hop. A request to a non-allowlisted host is refused before any I/O.
+    ///
+    /// Every outgoing request is stamped with a fresh `X-Tankbook-Trace`
+    /// (UUIDv7) plus the app headers at this chokepoint, so no caller - auth,
+    /// sync, blobs, import, feedback, the gateway - can miss them (PR.8; the
+    /// PR.3b lesson: one transport outside the fence ships unconverted).
     ///
     /// A `401` is an auth event, not a gate from a newer server (PR.1): when a
     /// refresher is wired, the client refreshes once and replays the request
     /// with the rotated bearer; a failed refresh propagates as
     /// `SessionRefresherError`, so no transport ever maps a 401 to an
     /// "update the app" refusal again.
+    ///
+    /// A final non-2xx, non-304 response is thrown as
+    /// `TankbookHTTPClientError.httpError` carrying the status and the `traceId`
+    /// read from the problem+json body - the client is the only layer that sees
+    /// the raw body, so it reads the trace id here, once, for every owner.
     public func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         guard HostAllowlist.allows(url: request.url) else {
             throw TankbookHTTPClientError.hostNotAllowlisted
         }
-        var response = try await follow(request, remainingRedirects: maxRedirects, overrideToken: nil)
+        var traced = request
+        attachHeaders(&traced)
+        var response = try await follow(traced, remainingRedirects: maxRedirects, overrideToken: nil)
         if response.status == 401, let refresher {
             let token = try await refresher.refresh()
-            response = try await follow(request, remainingRedirects: maxRedirects, overrideToken: token)
+            response = try await follow(traced, remainingRedirects: maxRedirects, overrideToken: token)
         }
-        return response
+        guard Self.isError(response.status) else { return response }
+        throw TankbookHTTPClientError.httpError(
+            status: response.status,
+            traceId: Self.traceId(fromBody: response.body),
+            retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init)
+        )
     }
 
     /// Executes one hop, then follows a redirect if present and allowed.
@@ -170,7 +238,57 @@ public struct TankbookHTTPClient: Sendable {
         return out
     }
 
+    /// Stamps the trace and app headers onto the request. The trace id is one
+    /// UUIDv7 per `send` call, so the whole chain - redirects and a 401 replay -
+    /// is one logical request to support, and two calls never share an id.
+    private func attachHeaders(_ request: inout TankbookHTTPRequest) {
+        request.headers["X-Tankbook-Trace"] = UUID.uuidV7().uuidString.lowercased()
+        guard let appInfo else { return }
+        request.headers["X-Tankbook-App"] = appInfo.appHeader
+        request.headers["X-Tankbook-Platform"] = appInfo.platform
+        request.headers["X-Tankbook-Schema-Version"] = appInfo.schemaVersionHeader
+    }
+
+    /// True for a status that is neither a 2xx success nor a 304 "not modified"
+    /// (a legitimate outcome for config/catalog fetches that must not throw).
+    private static func isError(_ status: Int) -> Bool {
+        !(200...299).contains(status) && status != 304
+    }
+
+    /// Reads `traceId` from a problem+json body (docs/API.md conventions); nil
+    /// when the body is absent, not JSON, or carries no traceId.
+    private static func traceId(fromBody body: Data?) -> String? {
+        guard let body,
+              let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+              let value = object["traceId"] as? String, !value.isEmpty else { return nil }
+        return value
+    }
+
     private func isRedirect(_ status: Int) -> Bool {
         (300...399).contains(status)
+    }
+}
+
+extension UUID {
+    /// A version-7 (time-ordered) UUID: its leading 48 bits are the Unix
+    /// millisecond timestamp, so ids sort by creation and the server can read
+    /// them without a lookup table (docs/LOGGING.md §2: `X-Tankbook-Trace` is
+    /// a UUIDv7).
+    static func uuidV7() -> UUID {
+        var bytes = (0..<16).map { _ in UInt8.random(in: 0...255) }
+        let timestamp = UInt64(Date().timeIntervalSince1970 * 1000)
+        bytes[0] = UInt8((timestamp >> 40) & 0xFF)
+        bytes[1] = UInt8((timestamp >> 32) & 0xFF)
+        bytes[2] = UInt8((timestamp >> 24) & 0xFF)
+        bytes[3] = UInt8((timestamp >> 16) & 0xFF)
+        bytes[4] = UInt8((timestamp >> 8) & 0xFF)
+        bytes[5] = UInt8(timestamp & 0xFF)
+        bytes[6] = (bytes[6] & 0x0F) | 0x70
+        bytes[8] = (bytes[8] & 0x3F) | 0x80
+        return UUID(uuid: (
+            bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5],
+            bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[12], bytes[13], bytes[14], bytes[15]
+        ))
     }
 }

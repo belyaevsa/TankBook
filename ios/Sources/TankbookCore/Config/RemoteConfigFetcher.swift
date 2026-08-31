@@ -34,7 +34,13 @@ public struct RemoteConfigFetcher: ConfigFetcher {
             request.headers["If-None-Match"] = etag
         }
 
-        let response = try await client.send(request)
+        let response: TankbookHTTPResponse
+        do {
+            response = try await client.send(request)
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            // The host answered with a status that is neither 2xx nor 304.
+            throw RemoteConfigFetcherError.unexpectedStatus(status)
+        }
 
         if response.status == 304 {
             return nil

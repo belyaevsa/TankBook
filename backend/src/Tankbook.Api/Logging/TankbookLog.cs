@@ -10,7 +10,11 @@ namespace Tankbook.Api.Logging;
 /// </summary>
 public static class TankbookLog
 {
-    /// <summary>The per-request line (docs/LOGGING.md §3 "Always, per request").</summary>
+    /// <summary>The per-request line (docs/LOGGING.md §3 "Always, per request").
+    /// <paramref name="correlation"/> carries the scope-enrichment fields
+    /// (clientVersion, accountHash, deviceId, schemaVersion) that the outer
+    /// trace middleware reads from context.Items after the enrichment scope is
+    /// disposed, so this one line carries the same correlation as the rest.</summary>
     public static void HttpRequest(
         ILogger logger,
         LogLevel level,
@@ -19,14 +23,28 @@ public static class TankbookLog
         int status,
         double durationMs,
         long requestBytes,
-        long responseBytes)
-        => Emit(logger, level, "http.request",
+        long responseBytes,
+        IReadOnlyDictionary<string, object?>? correlation = null)
+    {
+        var fields = new List<(string Key, object? Value)>
+        {
             ("Method", method),
             ("Path", routeTemplate),
             ("Status", status),
             ("DurationMs", durationMs),
             ("RequestBytes", requestBytes),
-            ("ResponseBytes", responseBytes));
+            ("ResponseBytes", responseBytes),
+        };
+        if (correlation is not null)
+        {
+            foreach (var (key, value) in correlation)
+            {
+                fields.Add((key, value));
+            }
+        }
+
+        Emit(logger, level, "http.request", fields.ToArray());
+    }
 
     public static void AuthSession(
         ILogger logger,

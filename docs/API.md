@@ -4,6 +4,19 @@
 
 Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7807 problem+json: `{ type, title, status, detail }`. All endpoints are TLS-only. Rate limits return `429` with `Retry-After`; oversize bodies return `413` with the `traceId` (see "Rate limits and request body caps").
 
+## Request headers (every request, PR.8)
+
+Every request from the native app carries these; the server puts them into the log scope (docs/LOGGING.md §2):
+
+| Header | Value | Notes |
+|---|---|---|
+| `X-Tankbook-Trace` | a UUIDv7, fresh per logical request | Correlates a support report to exact server lines; echoed in the response header and in the `problem+json` body of any error. Absent → the server generates one. |
+| `X-Tankbook-App` | `<version>+<build>` (e.g. `1.0.0+1`) | Marketing version + `CFBundleVersion`. |
+| `X-Tankbook-Platform` | `ios` | The client platform. |
+| `X-Tankbook-Schema-Version` | the client's payload contract version (int) | Logged as `schemaVersion`. |
+
+On a **non-2xx** response the client reads `traceId` from the problem+json body onto the thrown error, so an error handler always has the correlation id even when the response header was lost (the unhandled-500 path).
+
 ## Auth
 
 | Endpoint | Auth | Purpose |

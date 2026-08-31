@@ -79,18 +79,12 @@ public struct RemoteAuthService: AuthService {
             "device": ["name": device.name, "platform": device.platform],
         ]
         let response = try await post(path: "auth/session", body: body)
-        guard (200...299).contains(response.status) else {
-            throw Self.error(for: response.status)
-        }
         return try Self.decodeSession(response.body, provider: identity.provider, email: identity.email)
     }
 
     public func refresh(_ session: AuthSession) async throws -> AuthSession {
         let body: [String: Any] = ["refreshToken": session.refreshToken]
         let response = try await post(path: "auth/refresh", body: body)
-        guard (200...299).contains(response.status) else {
-            throw Self.error(for: response.status)
-        }
         let pair = try Self.decodeTokenPair(response.body)
         return session.rotated(accessToken: pair.accessToken, refreshToken: pair.refreshToken)
     }
@@ -99,10 +93,7 @@ public struct RemoteAuthService: AuthService {
         let url = endpoint("auth/session")
         var request = TankbookHTTPRequest(url: url, method: "DELETE")
         request.headers["Authorization"] = "Bearer \(session.accessToken)"
-        let response = try await send(request)
-        guard (200...299).contains(response.status) || response.status == 204 else {
-            throw Self.error(for: response.status)
-        }
+        _ = try await send(request)
     }
 
     // MARK: - Requests
@@ -117,11 +108,16 @@ public struct RemoteAuthService: AuthService {
     /// Sends a request and reports its outcome to the config layer
     /// (docs/CONFIG.md -> "Auto-revert on sustained failure"). A response of any
     /// status means the host answered; a thrown transport error means it did not.
+    /// A non-2xx is thrown by the client as `httpError` and mapped here to the
+    /// per-status `AuthError` (docs/API.md -> Auth -> "Failure statuses").
     private func send(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         do {
             let response = try await client.send(request)
             await director.report(.response(status: response.status))
             return response
+        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+            await director.report(.response(status: status))
+            throw Self.error(for: status)
         } catch {
             await director.report(.transportFailure)
             throw error

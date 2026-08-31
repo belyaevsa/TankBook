@@ -80,6 +80,9 @@ internal static class LoggingTestHelpers
                 json: true));
             builder.Services.AddSingleton<ILogWriter>(writer);
         });
+        // The log-scope enrichment middleware resolves LoggingOptions for the
+        // account-hash salt, exactly as Program.cs registers it.
+        services.AddSingleton(new LoggingOptions { HashSalt = "test-salt" });
 
         return (services, writer);
     }

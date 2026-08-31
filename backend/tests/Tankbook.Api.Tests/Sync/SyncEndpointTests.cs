@@ -397,6 +397,42 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(id, record.Id);
     }
 
+    // ---- 9. PR.8: the request line carries the client's version and identity
+
+    [SkippableFact]
+    public async Task AuthenticatedPull_RequestLine_CarriesClientVersionAccountHashAndDeviceId()
+    {
+        var signer = new TestIdTokenSigner();
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, writer);
+        var (token, _, deviceId) = await CreateSessionAsync(app, signer, "scope-sub", "scope@example.com");
+
+        // docs/LOGGING.md §2 L2 gate: an authenticated sync/pull request line
+        // carries non-null clientVersion, accountHash, deviceId, schemaVersion.
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/v1/sync/pull?since=0&limit=10");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        request.Headers.Add(LogScopeEnrichmentMiddleware.AppVersionHeader, "1.0.0+1");
+        request.Headers.Add(LogScopeEnrichmentMiddleware.PlatformHeader, "ios");
+        request.Headers.Add(LogScopeEnrichmentMiddleware.SchemaVersionHeader, "1");
+        var response = await app.Client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var line = writer.JsonLines().RequestLine("/v1/sync/pull");
+        Assert.Equal("1.0.0+1", line.Prop("clientVersion"));
+        Assert.Equal("ios", line.Prop("clientPlatform"));
+        Assert.False(string.IsNullOrWhiteSpace(line.Prop("accountHash")),
+            "an authenticated request must resolve an accountHash");
+        Assert.Equal(deviceId.ToString(), line.Prop("deviceId"));
+        Assert.Equal("1", line.Prop("schemaVersion"));
+        Assert.False(string.IsNullOrWhiteSpace(line.Prop("serverVersion")),
+            "the server's own version field is renamed and populated");
+
+        // The email must never appear anywhere, including this new path
+        // (hard rule 12; the existing redaction sweep still applies).
+        Assert.DoesNotContain("scope@example.com", string.Join('\n', lines), StringComparison.Ordinal);
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private async Task<TestApp> StartAsync(TestIdTokenSigner signer, InMemoryLogWriter? writer = null)
