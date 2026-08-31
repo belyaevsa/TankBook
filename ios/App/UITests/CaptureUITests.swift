@@ -1,14 +1,9 @@
 import XCTest
 
-/// P2.1 Capture camera screen tests. The five behaviours that carry the task:
-/// the F8 denied-permission fallback (manual form + permission card + all
-/// three next steps), the "Type it" path to the manual form with permission
-/// granted, the four-mode row with Fill-up default and live selection, the X
-/// closing the cover, and the denied state never being a dead end (a savable
-/// manual form - hard rule 7).
-///
-/// The camera status is forced per test with `-cameraStatus
-/// denied|authorized` so nothing depends on the simulator's (absent) camera.
+/// P2.1 Capture camera screen tests: the F8 denied-permission fallback (manual
+/// form + card + the three next steps), the "Type it" path with permission
+/// granted, the four-mode row, the X closing the cover, and denied never being
+/// a dead end (hard rule 7). Camera status is forced with `-cameraStatus`.
 @MainActor
 final class CaptureUITests: XCTestCase {
 
@@ -29,7 +24,6 @@ final class CaptureUITests: XCTestCase {
     }
 
     // MARK: - F8: denied permission
-
 
     /// Scroll a number field clear of the keyboard and the pinned save bar, then
     /// tap it. `app.scrollViews.firstMatch` is the screen BEHIND a presented
@@ -124,11 +118,8 @@ final class CaptureUITests: XCTestCase {
 
     // MARK: - P2.7 pump photo, flag off
 
-    /// The pump path with the flag off is the ordinary manual door, pre-filled
-    /// with nothing and with no message implying failure (hard rule 15): the
-    /// feature is simply not offered, so there is no error to show. Asserting
-    /// the ordinary empty form - blank fields, the standard save hint - is the
-    /// proof that no error state was injected in its place.
+    /// The flag-off pump path is the ordinary manual door: no pre-fill, no
+    /// failure message (hard rule 15) - the feature is simply not offered.
     func testPumpCaptureWithFlagOffOpensEmptyManualFormAndSavesWithNoError() {
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
@@ -154,12 +145,10 @@ final class CaptureUITests: XCTestCase {
 
         // Savable, so it is never a dead end.
         //
-        // Each field is scrolled clear before it is tapped: since the
-        // 2026-08-25 field reorder (docs/DESIGN.md - entry form order) the
-        // three-number card sits below Date, Odometer, Station and Fuel, so the
-        // keyboard raised by TOTAL can cover LITERS. A tap on a covered field
-        // silently misses and `typeText` fails with "Neither element nor any
-        // descendant has keyboard focus", which reads like a broken field.
+        // Each field is scrolled clear before it is tapped: the numbers card
+        // sits below Date/Odometer/Fuel, so the keyboard raised by TOTAL can
+        // cover LITERS, and a covered tap misses silently (typeText then fails
+        // with a focus error that reads like a broken field).
         focusNumberField(app, "manualFillUpTotalField").typeText("71.02")
         focusNumberField(app, "manualFillUpLitersField").typeText("42.30")
         let save = app.buttons["manualFillUpSaveButton"]
@@ -172,9 +161,7 @@ final class CaptureUITests: XCTestCase {
     // MARK: - Mode row
 
     /// The mode row is a function of the selected car's powertrain
-    /// (`CaptureMode.modes(for:)`), not a fixed set of four: a petrol car can
-    /// never log a charging session, so offering the chip invites an entry the
-    /// vehicle cannot have.
+    /// (`CaptureMode.modes(for:)`), never a fixed set of four.
     func testModeRowOffersOnlyWhatThePowertrainCanLog() {
         let app = launch(args: ["-homeResetDatabase",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
@@ -206,9 +193,8 @@ final class CaptureUITests: XCTestCase {
         XCTAssertFalse(app.buttons["captureMode_fillUpAuto"].isSelected)
     }
 
-    /// An EV's mirror image, plus the PJ.12 dead chip: EV charging is v1.x
-    /// (docs/TASKS.md -> PJ.12), so no Charge chip is offered and the EV opens
-    /// on Service - the first mode whose shutter and "Type it" actually work.
+    /// An EV's mirror image, plus the PJ.12 dead chip: EV charging is v1.x, so
+    /// no Charge chip is offered and the EV opens on Service - a working mode.
     func testAnEVShowsNoChargeAndOpensOnService() {
         let app = launch(args: ["-homeResetDatabase",
                                 "-presentScreen", "capture", "-cameraStatus", "authorized",
@@ -378,8 +364,8 @@ final class CaptureUITests: XCTestCase {
     // MARK: - PJ.1: the capture pipeline (shutter + Photos -> Confirm prefill)
 
     /// The corpus fixtures live on the host; the simulator shares the host
-    /// filesystem, so the app under test can read a fixture image by its host
-    /// path - passed through `-captureFixtureImage` - and OCR it for real.
+    /// filesystem, so the app under test reads one by host path via
+    /// `-captureFixtureImage` and OCRs it for real.
     private var fixturesRoot: String {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()  // CaptureUITests.swift
@@ -394,10 +380,10 @@ final class CaptureUITests: XCTestCase {
         (app.textFields[identifier].value as? String) ?? ""
     }
 
-    /// The shutter takes a real frame (here the injected fixture, since the
-    /// simulator has no camera) and opens the Confirm sheet with the litres the
-    /// scan resolved, pre-filled and dimmed. NO `-seedConfirmPrefill` argument -
-    /// the value must come from the real pipeline, or this test proves nothing.
+    /// The shutter takes a real frame (here the injected fixture - the
+    /// simulator has no camera) and opens Confirm with the scan's litres
+    /// pre-filled and dimmed. No `-seedConfirmPrefill`: the value must come
+    /// from the real pipeline, or this test proves nothing.
     func testShutterOpensConfirmWithLitresPrefilledAndDimmed() {
         let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
@@ -426,9 +412,9 @@ final class CaptureUITests: XCTestCase {
                       "the scanned litres must carry its crop for tap-to-verify")
     }
 
-    /// The Photos door feeds the SAME path as the shutter: pick an image (here
-    /// the injected fixture, since the out-of-process picker cannot be driven)
-    /// and the identical Confirm sheet opens.
+    /// The Photos door feeds the SAME path as the shutter: the injected
+    /// fixture (the out-of-process picker cannot be driven) and the identical
+    /// Confirm sheet opens.
     func testPhotosDoorFeedsTheSamePipeline() {
         let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
@@ -448,8 +434,7 @@ final class CaptureUITests: XCTestCase {
     }
 
     /// Hard rule 15: a scan that resolves nothing opens the ordinary empty
-    /// manual form, never an error and never a dead end. receipt-034 is the
-    /// contract-zero-price fixture the parser resolves nothing from.
+    /// manual form, never an error (receipt-034 is that fixture).
     func testAResolvedNothingScanOpensTheEmptyFormNotAnError() {
         let fixture = fixturesRoot + "/receipts/receipt-034-lukoil-m11-ekto95-contract-zero-price-ru.jpeg"
         let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
@@ -536,10 +521,8 @@ final class CaptureUITests: XCTestCase {
 
         // The notice is structurally part of the capture surface, which stays
         // mounted beneath the sheet - so `exists` is not the guard. What must
-        // hold is that the sheet itself does not carry it: the notice must be
-        // absent from the sheet's own hierarchy and unreachable in the
-        // foreground. SwiftUI pages expose their sheet as `app.sheets`; if that
-        // lookup is unavailable the fallback is non-hittability of the copy.
+        // hold is that the sheet itself does not carry it. SwiftUI pages expose
+        // their sheet as `app.sheets`; the fallback is non-hittability.
         let sheetCount = app.sheets.count
         if sheetCount > 0 {
             let sheet = app.sheets.firstMatch
@@ -612,27 +595,16 @@ final class CaptureUITests: XCTestCase {
 
 // MARK: - PJ.6: "Type it" opens the form for the selected mode
 
-/// The PJ.6 tests live in an extension of `CaptureUITests` (not inside the
-/// class body) so the class stays under SwiftLint's `type_body_length` floor
-/// while `-only-testing:TankbookUITests/CaptureUITests` still picks them up.
-///
-/// The shape of the assertion matters: each mode asserts the identifier of the
-/// sheet that opens, never that "a sheet appeared" (the P6.20 shape). A
-/// mutation that sends every mode to the fill-up form fails Service and
-/// Expense; one that only breaks the permission card's "Type it" fails the
-/// denied test. The mode -> form mapping itself is pinned at L1 in
-/// `CaptureModeTests.manualEntryFormIsPinnedForEveryMode`.
+/// PJ.6 tests live in an extension (not the class body) so the class stays
+/// under SwiftLint's `type_body_length` while `-only-testing:` still picks
+/// them up. Each mode asserts the identifier of the sheet that opens, never
+/// that "a sheet appeared"; the mode -> form mapping is pinned at L1.
 @MainActor
 extension CaptureUITests {
 
-    /// PJ.6 launch helper: the capture cover with a seeded car. The camera
-    /// status defaults to authorized; the denied test overrides it, and
-    /// `-captureMode` pins the mode where the denied layout has no mode row.
-    ///
-    /// `-seedVehicleForUITests` seeds when a Manual fill-up or Service entry
-    /// form loads; the Expense entry alone never triggers it (it only ever ran
-    /// nested inside a Service entry, which seeded first), so the expense test
-    /// passes `-seedHomeEmptyVehicle`, which Home's own task seeds.
+    /// PJ.6 launch helper: the capture cover with a seeded car, camera status
+    /// authorized by default. `-seedVehicleForUITests` seeds when a Manual or
+    /// Service form loads; the Expense test passes `-seedHomeEmptyVehicle`.
     private func captureApp(_ status: String = "authorized",
                             _ extraArgs: [String] = [],
                             seed: String = "-seedVehicleForUITests") -> XCUIApplication {
@@ -695,5 +667,29 @@ extension CaptureUITests {
         typeIt.tap()
         XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
                       "the permission card's Type it must open the form for the selected mode")
+    }
+}
+
+// MARK: - PJ.12b: the caption reads true per powertrain and per gate
+
+/// The capture caption (CaptureView.captureCaption) must read true for each
+/// powertrain and gate state - the vacuous trap is asserting "a caption
+/// renders", which it always does. These assert WHICH sentence renders.
+@MainActor
+extension CaptureUITests {
+    func testICECaptionDoesNotClaimPumpWhileTheGateFails() {
+        let app = captureApp("authorized", ["-powertrain", "ice"])
+        XCTAssertTrue(app.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
+                      "ICE must read 'Receipts are detected automatically' while the gate fails")
+        XCTAssertFalse(app.staticTexts["Receipts and pump displays are detected automatically"].exists,
+                       "the pump claim must not render while the gate fails")
+    }
+
+    func testEVCaptionNeverClaimsPumpDetection() {
+        let app = captureApp("authorized", ["-powertrain", "ev"])
+        XCTAssertTrue(app.staticTexts["Receipts are detected automatically"].waitForExistence(timeout: 5),
+                      "an EV must read 'Receipts are detected automatically'")
+        XCTAssertFalse(app.staticTexts["Receipts and pump displays are detected automatically"].exists,
+                       "an EV has no pump display - the claim must never reach it")
     }
 }

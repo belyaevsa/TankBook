@@ -334,7 +334,7 @@ struct CaptureView: View {
     private var liveLayout: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
-            Text("Receipts and pump displays are detected automatically")
+            Text(captureCaption)
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
@@ -360,6 +360,22 @@ struct CaptureView: View {
     /// sees Charge and an EV never sees Fill-up (`CaptureMode.modes(for:)`).
     private var offeredModes: [CaptureMode] {
         CaptureMode.modes(for: powertrain)
+    }
+
+    /// The caption under the mode row, tailored per powertrain and per the
+    /// pump-photo accuracy gate (PJ.12b). "Receipts and pump displays" is true
+    /// only for a fuel-tank car AND only while `PumpPhotoGate` lets pump photo
+    /// ship - so the pump claim is the gate's answer, never a constant, and a
+    /// future build that turns the gate on gets the copy it has earned. An EV
+    /// (no `.fillUpAuto` mode) is never offered the pump claim at all: there is
+    /// no fuel tank and no pump display to read. `offeredModes` is the same
+    /// source of truth as the mode row, so the screen decides what it offers
+    /// and what it promises in one place.
+    private var captureCaption: LocalizedStringKey {
+        if offeredModes.contains(.fillUpAuto), PumpPhotoGate.allowsPumpPhoto {
+            return "Receipts and pump displays are detected automatically"
+        }
+        return "Receipts are detected automatically"
     }
 
     /// One line that **scrolls** rather than wrapping. The powertrain filter

@@ -7725,6 +7725,23 @@
         }
       }
     },
+    "Receipts are detected automatically": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipts are detected automatically"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чеки определяются автоматически"
+          }
+        }
+      }
+    },
     "Recent first · a foreign amount converts to %@ automatically": {
       "extractionState": "manual",
       "localizations": {
