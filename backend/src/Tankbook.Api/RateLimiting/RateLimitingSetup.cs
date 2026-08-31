@@ -25,6 +25,7 @@ public static class RateLimitingSetup
     public const string Extract = "extract";
     public const string SyncPush = "sync-push";
     public const string BlobBegin = "blob-begin";
+    public const string Feedback = "feedback";
 
     /// <summary>Registers the rate limiter and its named policies.</summary>
     public static IServiceCollection AddTankbookRateLimiting(this IServiceCollection services, RateLimitOptions limits)
@@ -41,6 +42,7 @@ public static class RateLimitingSetup
             options.AddPolicy(Extract, PerDevice(limits.ExtractPerMinute));
             options.AddPolicy(SyncPush, PerDevice(limits.SyncPushPerMinute));
             options.AddPolicy(BlobBegin, PerDevice(limits.BlobBeginPerMinute));
+            options.AddPolicy(Feedback, PerDevice(limits.FeedbackPerMinute));
         });
 
         return services;

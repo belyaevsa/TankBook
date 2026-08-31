@@ -298,6 +298,30 @@ public static class TankbookLog
         => Emit(logger, LogLevel.Information, "import.purge",
             ("Purged", purged));
 
+    /// <summary>
+    /// A feedback case was accepted (docs/API.md "Feedback", docs/LOGGING.md
+    /// hard rule 12). Shape only: the category code, the text length (a count),
+    /// the presence flags for the optional fields and the account. The feedback
+    /// text, a replyTo address and a device-model string have no route into this
+    /// event by construction - never the text, never a contact address, never a
+    /// model string (docs/LOGGING.md -> Feedback).
+    /// </summary>
+    public static void FeedbackAccepted(
+        ILogger logger,
+        Guid id,
+        string category,
+        int textLength,
+        bool hasReplyTo,
+        bool hasDeviceModel,
+        bool hasAccount)
+        => Emit(logger, LogLevel.Information, "feedback.accepted",
+            ("Id", id),
+            ("Category", category),
+            ("TextLength", textLength),
+            ("HasReplyTo", hasReplyTo),
+            ("HasDeviceModel", hasDeviceModel),
+            ("HasAccount", hasAccount));
+
     /// <summary>Unhandled-exception ERROR line from the exception handler.</summary>
     public static void UnhandledException(ILogger logger, Exception exception, string? endpoint)
         => logger.Log(

@@ -45,6 +45,17 @@ public static class BodySizeLimits
     public const long DefaultBytes = 64L * 1024;
 
     /// <summary>
+    /// Feedback (docs/API.md: text &lt;= 4 KB). The composer caps the text at
+    /// 4,000 characters; 4,000 UTF-8 characters are at most 16 KB (a
+    /// supplementary-plane character is 4 bytes), so the cap is the character
+    /// bound as bytes plus 1 KB of envelope for category/appVersion/deviceModel/
+    /// replyTo - a legal maximal client text is never refused. A body over this
+    /// is a 413 problem+json carrying its traceId (PR.17), never a bare
+    /// connection reset.
+    /// </summary>
+    public const long FeedbackBytes = 16 * 1024 + 1024;
+
+    /// <summary>
     /// Declares the endpoint's request-body cap. Carried as endpoint metadata and
     /// read by <see cref="BodySizeLimitMiddleware"/> after routing - the same
     /// mechanism the rate limiter uses, so it works regardless of how the

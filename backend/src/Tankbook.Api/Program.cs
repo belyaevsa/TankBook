@@ -12,6 +12,7 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Catalog;
 using Tankbook.Api.Config;
 using Tankbook.Api.Data;
+using Tankbook.Api.Feedback;
 using Tankbook.Api.Http;
 using Tankbook.Api.Import;
 using Tankbook.Api.Llm;
@@ -184,6 +185,13 @@ if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<ImportPurgeHostedService>();
 }
+
+// Feedback intake (docs/API.md "Feedback"): a public POST that stores one case.
+// Bearer is optional - a user with no account can complain too. The service
+// logs shape only (hard rule 12); the text, replyTo and deviceModel never reach
+// a log line.
+builder.Services.AddScoped<FeedbackRepository>();
+builder.Services.AddScoped<FeedbackService>();
 
 // Auth (docs/API.md Auth, docs/SECURITY.md). The idToken verifier fetches and
 // caches Apple/Google JWKS behind IIdTokenVerifier - the seam L2 tests swap for
@@ -460,6 +468,14 @@ auth.MapPost("/refresh", AuthEndpoints.Refresh)
     .RequireRateLimiting(RateLimitingSetup.AuthRefresh)
     .WithBodySizeLimit(BodySizeLimits.DefaultBytes);
 auth.MapDelete("/session", AuthEndpoints.SignOut);
+
+// Feedback (docs/API.md "Feedback"): public POST, bearer optional - feedback
+// must work for a user with no account. 202 means accepted; the row is written
+// before the response. Rate-limited per device (falling back to X-Device-Id,
+// then IP); an oversize body is the PR.17 body-cap 413 problem+json.
+v1.MapPost("/feedback", FeedbackEndpoints.Submit)
+    .RequireRateLimiting(RateLimitingSetup.Feedback)
+    .WithBodySizeLimit(BodySizeLimits.FeedbackBytes);
 
 // Sync (docs/API.md Sync, docs/SYNC.md): push and pull over the record stream.
 // Both bearer endpoints; fetching the latest data is pulling from 0.

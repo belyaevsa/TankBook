@@ -155,6 +155,47 @@ public class RedactionTests
     }
 
     [Fact]
+    public void FeedbackAccepted_LoggedThroughPipeline_LeaksNoTextReplyToOrDeviceModel()
+    {
+        var (services, writer) = LoggingTestHelpers.BuildPipeline();
+        var logger = services.GetRequiredService<ILoggerFactory>().CreateLogger("RedactionTests");
+
+        // A fully-populated case. If the acceptance event had a route for the
+        // payload's domain values, these would appear in the rendered output.
+        const string text = "REDACT-FB-EVENT the log book overflows again";
+        const string replyTo = "redact-probe-7b@example.com";
+        const string deviceModel = "RedactProbe 7b";
+
+        TankbookLog.FeedbackAccepted(
+            logger,
+            Guid.Parse("7b3f1a2e-9c8d-4e5f-b0a1-223344556677"),
+            "problem",
+            text.Length,
+            hasReplyTo: true,
+            hasDeviceModel: true,
+            hasAccount: true);
+
+        var output = string.Join('\n', writer.Lines).WithoutMachineFields();
+
+        // Shape survives: the category code, a length count, the presence flags.
+        Assert.Contains("feedback.accepted", output, StringComparison.Ordinal);
+        Assert.Contains("problem", output, StringComparison.Ordinal);
+        Assert.Contains("TextLength", output, StringComparison.Ordinal);
+        Assert.Contains("HasReplyTo", output, StringComparison.Ordinal);
+        Assert.Contains("HasDeviceModel", output, StringComparison.Ordinal);
+
+        // Hard rule 12: never the feedback text, never a replyTo address, never
+        // a device-model string - the event type carries shape only by
+        // construction (docs/LOGGING.md -> Feedback, the capture.pipeline
+        // discipline).
+        Assert.DoesNotContain(text, output, StringComparison.Ordinal);
+        Assert.DoesNotContain("REDACT-FB-EVENT", output, StringComparison.Ordinal);
+        Assert.DoesNotContain(replyTo, output, StringComparison.Ordinal);
+        Assert.DoesNotContain("redact-probe-7b", output, StringComparison.Ordinal);
+        Assert.DoesNotContain(deviceModel, output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SensitiveValueInsideAnExceptionMessage_IsMasked()
     {
         var (services, writer) = LoggingTestHelpers.BuildPipeline();

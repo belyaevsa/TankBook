@@ -57,5 +57,12 @@ public sealed class RateLimitOptions
     /// </summary>
     public int BlobBeginPerMinute { get; set; } = 120;
 
+    /// <summary>
+    /// Per-device. Feedback is a rare, deliberate act (the About screen's
+    /// form); even a user filing several cases in a row stays far below this.
+    /// 10/min leaves a busy reporter 10x headroom.
+    /// </summary>
+    public int FeedbackPerMinute { get; set; } = 10;
+
     public static readonly TimeSpan Window = TimeSpan.FromMinutes(1);
 }
