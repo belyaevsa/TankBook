@@ -291,8 +291,21 @@ final class ImportUITests: XCTestCase {
                       "the 9 row lands in the review list, never silently in the ready set")
         XCTAssertTrue(app.staticTexts["Breaks the timeline"].exists,
                       "the timeline-conflict badge names the violation")
-        XCTAssertTrue(app.descendants(matching: .any)["importReviewTimelineDetail"].firstMatch.exists,
+        let detail = app.descendants(matching: .any)["importReviewTimelineDetail"].firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 5),
                       "the amber detail renders under the badge (the F9a warning)")
+        // P1.13b: the quote names the previous neighbour (120 559) GROUPED
+        // through the shared OdometerFormat (U+00A0) - never the raw digits.
+        // The identifier sits on the warning icon (its aggregate label is
+        // "Warning"), so the quote is matched as the screen-level static text
+        // that carries the phrase AND the grouped figure.
+        let quote = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                                  "already recorded", "120\u{00A0}559")).firstMatch
+        XCTAssertTrue(quote.waitForExistence(timeout: 5),
+                      "the quote must name the grouped neighbour inside the detail cell")
+        XCTAssertFalse(quote.label.contains("120559"),
+                       "the quote must not print the raw ungrouped figure, was '\(quote.label)'")
         XCTAssertTrue(app.staticTexts["Fix"].exists,
                       "Fix is the next step - the odometer is the field to correct (hard rule 7)")
         XCTAssertTrue(app.staticTexts["Import as-is"].exists,
@@ -306,6 +319,16 @@ final class ImportUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Нарушает хронологию"].waitForExistence(timeout: 5),
                       "the RU badge names the timeline break")
+        let detail = app.descendants(matching: .any)["importReviewTimelineDetail"].firstMatch
+        XCTAssertTrue(detail.waitForExistence(timeout: 5),
+                      "the RU amber detail renders under the badge")
+        let quote = app.staticTexts
+            .matching(NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                                  "зафиксирован", "120\u{00A0}559")).firstMatch
+        XCTAssertTrue(quote.waitForExistence(timeout: 5),
+                      "the RU quote must name the grouped neighbour inside the detail cell")
+        XCTAssertFalse(quote.label.contains("120559"),
+                       "the RU quote must not print the raw ungrouped figure, was '\(quote.label)'")
         XCTAssertTrue(app.staticTexts["Исправить"].exists,
                       "Fix is localised in Russian")
     }

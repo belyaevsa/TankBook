@@ -188,19 +188,19 @@
         }
       }
     },
-    "%@ already recorded %d km.": {
+    "%@ already recorded %@ km.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%@ already recorded %d km."
+            "value": "%@ already recorded %@ km."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "«%@» уже зафиксирован пробег %d км."
+            "value": "«%@» уже зафиксирован пробег %@ км."
           }
         }
       }

@@ -181,7 +181,8 @@ extension ServiceEntryFormState {
         case .order(let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
                 let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-                let quote = String(format: L10n.localize("%@ already recorded %d km."), day, previousOdometer)
+                let quote = String(format: L10n.localize("%@ already recorded %@ km."),
+                                   day, OdometerFormat.grouped(previousOdometer))
                 return OdometerConflict(quote: quote, flagKind: flag.kind)
             }
             return OdometerConflict(quote: nil, flagKind: flag.kind)

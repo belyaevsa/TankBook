@@ -50,7 +50,8 @@ struct ImportTimelineDetail: View {
             return nil
         }
         let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-        return String(format: L10n.localize("%@ already recorded %d km."), day, previousOdometer)
+        return String(format: L10n.localize("%@ already recorded %@ km."),
+                      day, OdometerFormat.grouped(previousOdometer))
     }
 }
 

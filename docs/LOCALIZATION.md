@@ -54,7 +54,7 @@ rows like `%@ %@`) were found the same way and cost nothing to include.
 | `%1$@ – done` | title, nominative head | No | `Замена масла – выполнено`. No change |
 | `%@ %@` | formatted number + localized unit (`42,3 л`) | No | interpolated-literal row; numbers/units. No change |
 | `%@ %@ · %@` | number + unit + relative-day | No | same. No change |
-| `%@ already recorded %d km.` | `%@` app-formatted day; `%d` odometer | No | `«17 авг.» уже зафиксирован пробег 119 486 км` - the day is quoted, the subject is `пробег`. No change |
+| `%@ already recorded %@ km.` | `%@` app-formatted day; `%@` app-grouped odometer (`119 486`, U+00A0) | No | `«17 авг.» уже зафиксирован пробег 119 486 км` - the day is quoted, the subject is `пробег`, and the second slot receives a grouped NUMBER, which does not decline. P1.13b changed `%d` → `%@` so the caller formats the figure with `OdometerFormat.grouped`; the grouped figure is what the rendered quote must show |
 | `%@ came back with 1 new entry – stays archived.` | **car name** (user text) | No (nominative subject), but the verb `вернулся` agrees in masculine | **Fixed**: `«%@» вернулся с 1 новой записью – остаётся в архиве.` - quotes make the name a cited nominative; the masculine default is the accepted convention for an undeclinable car name |
 | `%@ spend` | month name (app-localized, wide) | `за` governs accusative = nominative for all Russian months | `Расходы за август`. No change |
 | `%@ this month` | amount (`€212`) | No | `212 € за месяц`. No change |

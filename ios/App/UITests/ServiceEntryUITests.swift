@@ -193,3 +193,66 @@ final class ServiceEntryUITests: XCTestCase {
                       "the saved service carries its amber conflict badge - the save stamped it")
     }
 }
+
+// MARK: - P1.13b the F9a quote names the grouped neighbour
+
+/// P1.13b: the F9a quote on the service odometer card must render the
+/// neighbour's odometer GROUPED (U+00A0, the shared `OdometerFormat`),
+/// never the raw digits - the same P1.13 class, one layer down: the shared
+/// formatter is correct and this call site used to bypass it with a raw
+/// `%d`. Asserted on the RENDERED quote in EN and RU; a composer test only
+/// proves a string, and the user reads pixels.
+extension ServiceEntryUITests {
+
+        /// Types a titled item, then replaces the pre-filled odometer with the
+        /// F9a typo (119 486 -> 11 948) - the state the quote renders in.
+        private func typeTimelineBreakingOdometer(_ app: XCUIApplication) {
+            let add = app.buttons["serviceEntryAddItemButton"]
+            XCTAssertTrue(add.waitForExistence(timeout: 10))
+            add.tap()
+            let title = app.textFields["serviceEntryItemTitle"].firstMatch
+            XCTAssertTrue(title.waitForExistence(timeout: 5))
+            title.tap()
+            title.typeText("Oil service")
+
+            let odometer = app.textFields["serviceEntryOdometerField"]
+            XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+            odometer.tap()
+            let digits = (odometer.value as? String) ?? "119486"
+            odometer.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: digits.count))
+            odometer.typeText("11948")
+        }
+
+        private func f9aQuoteLabel(_ app: XCUIApplication) -> String {
+            let warning = app.staticTexts["serviceEntryOdometerConflictWarning"]
+            XCTAssertTrue(warning.waitForExistence(timeout: 5),
+                          "the amber F9a warning must name the conflict on the odometer card")
+            return warning.label
+        }
+
+        func testOdometerConflictQuoteNamesTheGroupedNeighbour() {
+            let app = launch()
+            typeTimelineBreakingOdometer(app)
+
+            let label = f9aQuoteLabel(app)
+            XCTAssertTrue(label.contains("119\u{00A0}486"),
+                          "the quote must name the grouped neighbour, was '\(label)'")
+            XCTAssertFalse(label.contains("119486"),
+                           "the quote must not print the raw ungrouped figure, was '\(label)'")
+        }
+
+        func testOdometerConflictQuoteNamesTheGroupedNeighbourInRussian() {
+            let app = XCUIApplication()
+            app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests",
+                                   "-presentScreen", "serviceEntry",
+                                   "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+            app.launch()
+            typeTimelineBreakingOdometer(app)
+
+            let label = f9aQuoteLabel(app)
+            XCTAssertTrue(label.contains("119\u{00A0}486"),
+                          "the RU quote must name the grouped neighbour, was '\(label)'")
+            XCTAssertFalse(label.contains("119486"),
+                           "the RU quote must not print the raw ungrouped figure, was '\(label)'")
+        }
+}

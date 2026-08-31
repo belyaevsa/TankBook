@@ -460,6 +460,68 @@ struct LocalizationGateP53Tests {
         #expect(!russian.lowercased().contains("подписк"))
         #expect(!key.lowercased().contains("pro"))
     }
+
+    // MARK: - P1.13b the F9a conflict quote renders the grouped odometer
+
+    /// The F9a quote's odometer slot changed `%d` -> `%@` so the caller formats
+    /// the figure with `OdometerFormat.grouped` (the P1.13 class: the shared
+    /// formatter is correct and a call site bypasses it). This pins the
+    /// CATALOGUE half: the new key carries the exact EN/RU shapes, the RU slot
+    /// receives a grouped NUMBER (which does not decline - docs/LOCALIZATION.md),
+    /// no governing preposition sits before the slot, and the old `%d` key is
+    /// gone (it and the new key normalise to the same template, so leaving it
+    /// beside the new one would trip the collision guard
+    /// `catalogueKeysDoNotCollideAfterNormalisation` - the guard's job, not a
+    /// problem to route around). The RENDERED half is the three UI suites (L4):
+    /// the composed quote is drawn there, and only pixels prove the group
+    /// separator is visible.
+    @Test("the F9a conflict quote composes the grouped figure in EN and RU")
+    func f9aConflictQuoteComposesTheGroupedFigure() throws {
+        let key = "%@ already recorded %@ km."
+        let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
+
+        // EN: the key's value is itself; composing 119486 must render the
+        // grouped figure, never the raw digits.
+        let english = try #require(catalogue.value(for: key, language: "en"),
+                                   "\(key) has no EN value")
+        var composedEN = english
+        if let range = composedEN.range(of: "%@") { composedEN.replaceSubrange(range, with: "Aug 17") }
+        if let range = composedEN.range(of: "%@") { composedEN.replaceSubrange(range, with: "119\u{00A0}486") }
+        #expect(composedEN == "Aug 17 already recorded 119\u{00A0}486 km.",
+                "EN composed: '\(composedEN)'")
+
+        // RU: the day is quoted, the subject is `пробег`, and the second slot
+        // receives the grouped figure - a number, which does not decline.
+        let expectedRU = "«%@» уже зафиксирован пробег %@ км."
+        let russian = try #require(catalogue.value(for: key, language: "ru"),
+                                   "\(key) has no RU value")
+        #expect(russian == expectedRU, "RU drifted: '\(russian)'")
+        var composedRU = russian
+        if let range = composedRU.range(of: "%@") { composedRU.replaceSubrange(range, with: "17 авг.") }
+        if let range = composedRU.range(of: "%@") { composedRU.replaceSubrange(range, with: "119\u{00A0}486") }
+        #expect(composedRU == "«17 авг.» уже зафиксирован пробег 119\u{00A0}486 км.",
+                "RU composed: '\(composedRU)'")
+
+        // No governing preposition may sit immediately before a runtime slot
+        // (docs/LOCALIZATION.md - the P4.7 lesson). The odometer slot follows
+        // `пробег`; the quoted day is preceded by nothing but the quote mark.
+        let prepositionPattern = #"\b(?:с|на|в|от|до|у|под|за|для|про|о)\s+"#
+        let full = try NSRegularExpression(pattern: prepositionPattern
+            + NSRegularExpression.escapedPattern(for: "%@"))
+        let range = NSRange(russian.startIndex..., in: russian)
+        #expect(full.firstMatch(in: russian, options: [], range: range) == nil,
+                "\(key) RU governs a slot with a preposition: '\(russian)'")
+
+        // The old `%d` key is gone from the RAW catalogue, not just shadowed by
+        // normalisation. Re-adding it next to the new key fails the collision
+        // guard; removing it here documents that the guard is respected.
+        let data = try Data(contentsOf: Self.catalogueURL)
+        let root = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        let strings = (root?["strings"] as? [String: Any]) ?? [:]
+        #expect(strings["%@ already recorded %d km."] == nil,
+                "the old %d key must be gone - it collides with the %@ key after normalisation")
+        #expect(strings[key] != nil, "the new key must be present in the raw catalogue")
+    }
 }
 
 /// PJ.13 (docs/JOURNEYS.md J11a -> First push): the account card's
