@@ -46,16 +46,11 @@ public struct FileBackedBlobStore: BlobStore, Sendable {
 
     public func save(_ data: Data, for sha256: String) throws {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        #if os(iOS)
-        // Docs/SECURITY.md promises the same Data Protection class as the
+        // docs/SECURITY.md promises the same Data Protection class as the
         // database on attachments; applied to the directory so files written
-        // into it inherit it. Compiled out on macOS, where the attribute does
-        // not exist (the core package runs its tests there).
-        try? FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: directory.path
-        )
-        #endif
+        // into it inherit it. Routed through the FileProtection seam so the
+        // class is applied on iOS and observable by tests on macOS (PR.16b).
+        FileProtection.protect(directory)
         try data.write(to: url(for: sha256), options: .atomic)
     }
 

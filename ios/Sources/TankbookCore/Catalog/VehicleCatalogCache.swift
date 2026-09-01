@@ -60,11 +60,6 @@ enum VehicleCatalogCacheFile {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
-        #if os(iOS)
-        try? FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: url.path
-        )
-        #endif
+        FileProtection.protect(url)
     }
 }

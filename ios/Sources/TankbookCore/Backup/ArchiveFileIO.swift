@@ -52,10 +52,7 @@ enum ArchiveFileIO {
         var values = URLResourceValues()
         values.isExcludedFromBackup = true
         try? url.setResourceValues(values)
-        try? FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: url.path
-        )
         #endif
+        FileProtection.protect(url)
     }
 }

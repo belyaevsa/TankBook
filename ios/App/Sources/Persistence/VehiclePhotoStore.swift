@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import TankbookCore
 
 /// Persists a picked car photo as a content-addressed attachment blob
 /// (docs/SCHEMA.md, Attachment.file: sha256 + local relative path). The
@@ -17,10 +18,7 @@ enum VehiclePhotoStore {
                  appropriateFor: nil, create: true)
             .appendingPathComponent("Tankbook/Attachments", isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try? FileManager.default.setAttributes(
-            [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-            ofItemAtPath: directory.path
-        )
+        FileProtection.protect(directory)
         return directory
     }
 

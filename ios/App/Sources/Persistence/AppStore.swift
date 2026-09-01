@@ -70,10 +70,26 @@ enum AppStore {
     /// `TankbookTests/FileProtectionTests`.
     private static func applyFileProtection(to databaseURL: URL) {
         for suffix in ["", "-wal", "-shm"] {
-            try? FileManager.default.setAttributes(
-                [.protectionKey: FileProtectionType.completeUntilFirstUserAuthentication],
-                ofItemAtPath: databaseURL.path + suffix
-            )
+            FileProtection.protect(URL(fileURLWithPath: databaseURL.path + suffix))
         }
     }
+
+    #if DEBUG
+    /// Test seam for PR.16b. The TankbookTests bundle loads the app but does not
+    /// link TankbookCore directly, so it cannot reach `FileProtection.applier`
+    /// to install a recorder. This forwarder exposes the shared seam so the
+    /// app-target FileProtectionTests can observe what `AppStore` and
+    /// `VehiclePhotoStore` apply. Production never touches it.
+    static var fileProtectionApplier: (@Sendable (FileProtection.Class, URL) -> Void) {
+        get { FileProtection.applier }
+        set { FileProtection.applier = newValue }
+    }
+
+    /// Drops the cached repository so a test can run `makeRepository` again and
+    /// observe its file-protection calls (PR.16b). The database file is left in
+    /// place; GRDB reopens it.
+    static func dropCachedRepositoryForTests() {
+        cached = nil
+    }
+    #endif
 }
