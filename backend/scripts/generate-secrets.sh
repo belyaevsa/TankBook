@@ -12,7 +12,8 @@
 #                         into the binary. This script also prints that PUBLIC key
 #                         and its keyId, derived exactly as `ConfigSigner` does
 #                         (raw 32-byte public key, base64; keyId = first 16 hex
-#                         chars of its SHA-256).
+#                         chars of its SHA-256). The public half goes into
+#                         ConfigSigningKey.swift's RELEASE arm.
 #   TANKBOOK_HASH_SALT    The pepper for the accountHash in logs (docs/LOGGING.md).
 #   AUTH_JWT_SIGNING_KEY  PKCS#8 RSA-2048 private key, base64, for access tokens.
 #
@@ -80,8 +81,8 @@ public = Ed25519PrivateKey.from_private_bytes(seed).public_key().public_bytes(
 
 print()
 print("# Public - goes into the iOS bundle, not the secret store:")
-print("#   ios/Sources/TankbookCore/Config/AppConfigService.bundledConfigPublicKey")
-print("#   and Config.default.json, per docs/CONFIG.md")
+print("#   ios/Sources/TankbookCore/Config/ConfigSigningKey.swift -> the RELEASE arm")
+print("#   (NOT Config.default.json - that file carries config VALUES, no key)")
 print(f"CONFIG_PUBLIC_KEY_BASE64={base64.b64encode(public).decode()}")
 print(f"CONFIG_KEY_ID={hashlib.sha256(public).hexdigest()[:16]}")
 PY
