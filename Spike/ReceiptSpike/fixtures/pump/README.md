@@ -504,3 +504,33 @@ What they add that the corpus did not have:
 Gate moved **26/116 -> 29/151**: the eight scored 3 of 35 new cells, so accuracy fell 22.4% ->
 19.2%. That is correct and expected - the ratchet guards absolute hits so that adding hard
 fixtures cannot be punished. Pump mode still ships off; the gate is 95%.
+
+## 2026-09-01: five more Circle K Estonia displays (pump-039..043)
+
+Two Gilbarco, three Dresser Wayne. Same conversion as the last batch: HEIC to JPEG at full
+resolution, **orientation baked into the pixels first** (all five were EXIF orientation 6), EXIF
+stripped, ICC profile kept. Verified per file: zero EXIF keys, no GPS IFD.
+
+Two shapes the corpus did not have:
+
+- **pump-042 is the first PRESET-AMOUNT fill.** SUMMA is a round **20.00** and the volume (11.34 L)
+  is what that bought. 20.00 / 11.34 = **1.764**, which matches **none** of the four board prices
+  (1.814 / 1.914 / 1.844 / 1.784) - a discount sits between the boarded and the charged price. Its
+  `unitPrice` cell is EMPTY: the photograph does not carry it. Note the direction of inference is
+  reversed here - on an ordinary fill the volume is measured and the total derived; on a preset the
+  total is chosen and the volume derived, so a parser that assumes the total is the computed
+  quantity has it backwards.
+- **pump-041's total is destroyed by sun glare.** 30.62 L at the boarded 1.784 computes 54.63, but
+  the SUMMA digits cannot be read from the photograph, so the `total` cell is EMPTY rather than
+  guessed - the pump-012 / -014 / -021 convention for a value the photo does not carry. The
+  arithmetic is recorded here, not in `expected.csv`, so the fixture measures reading rather than
+  computing.
+
+The other three reconcile exactly: pump-039 (11.47 x 1.839 = 21.09), pump-040 (8.07 x 1.849 =
+14.92), pump-043 (60.58 x 1.784 = 108.07). pump-039 charges **1.839** - the same D B0 price
+`receipt-042` records at Jarvevana - but this Gilbarco display carries no grade label, so
+`fuelKind` stays empty rather than inferred from a price seen elsewhere.
+
+Gate moved **29/151 -> 32/171**: the five added 20 scored cells and 3 hits, so accuracy fell 19.2%
+-> 18.7%. Correct and expected - the ratchet guards absolute hits so that adding hard fixtures
+cannot be punished. Pump mode still ships off; the gate is 95%.

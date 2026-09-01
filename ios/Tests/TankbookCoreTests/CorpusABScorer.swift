@@ -337,6 +337,15 @@ enum PostSweepCorpusAdditions {
             "pump-036-dresser-wayne-circlek-ee-pump4-95.jpg",
             "pump-037-dresser-wayne-circlek-ee-pump3-diesel.jpg",
             "pump-038-dresser-wayne-circlek-ee-reflection-95.jpg",
+            // 2026-09-01: five more Circle K Estonia displays. pump-042 is the
+            // corpus's first PRESET-AMOUNT fill (a round 20.00 total, the
+            // volume derived), and pump-041's total is destroyed by sun glare -
+            // both leave a cell EMPTY rather than guess. Declared, not swept.
+            "pump-039-gilbarco-circlek-ee-1839-clean.jpg",
+            "pump-040-gilbarco-circlek-ee-pump4-wide.jpg",
+            "pump-041-dresser-wayne-circlek-ee-glare-total.jpg",
+            "pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg",
+            "pump-043-dresser-wayne-circlek-ee-pump8-95.jpg",
         ],
     ]
 
