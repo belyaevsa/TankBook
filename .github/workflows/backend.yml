@@ -27,11 +27,29 @@ jobs:
 
       # appsettings.json is gitignored and generated from its committed
       # template (2026-09-01). This step is not optional bookkeeping: measured,
-      # with the file absent `dotnet test` ABORTS after 117 of 295 tests. No
-      # secrets are supplied here - CI runs the suite in the "Testing"
-      # environment and needs the structure, not the credentials.
+      # with the file absent `dotnet test` ABORTS after 117 of 295 tests.
+      #
+      # The secrets are mapped here so one step serves both this job and any
+      # later deploy job, but THIS job does not need them: the suite runs in the
+      # "Testing" environment and passes 295/295 with every value blank. That is
+      # what keeps a fork's pull request green - fork PRs receive no secrets, and
+      # the generator leaves unset values as the template has them.
+      #
+      # The variable names are the script's, and `backend/scripts/
+      # generate-appsettings.sh` is the single source of truth for the list -
+      # docs/SECURITY.md points at it rather than repeating it, because a list
+      # kept in two places drifts.
       - name: Generate appsettings from templates
         run: bash scripts/generate-appsettings.sh
+        env:
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          TANKBOOK_HASH_SALT: ${{ secrets.TANKBOOK_HASH_SALT }}
+          CONFIG_SIGNING_KEY: ${{ secrets.CONFIG_SIGNING_KEY }}
+          AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
+          CATALOG_ADMIN_TOKEN: ${{ secrets.CATALOG_ADMIN_TOKEN }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
 
       - name: Build
         run: dotnet build Tankbook.slnx --configuration Release

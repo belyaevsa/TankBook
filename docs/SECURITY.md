@@ -58,8 +58,51 @@ protection, and it is never synced, never uploaded except through `POST /feedbac
 | Secret | Where |
 |---|---|
 | Postgres connection string | Environment / platform secret store, injected at runtime |
-| S3 access key + secret | Same. Never in `appsettings*.json` |
+| S3 access key + secret | Same. Never in a **committed** file – see the generation rule below |
 | Apple/Google public key endpoints | Not secret; token signatures verified against fetched JWKS with caching |
+
+### The runtime config files are generated, never committed (2026-09-01)
+
+`backend/src/Tankbook.Api/appsettings.json` and `appsettings.Development.json` are **gitignored**.
+What is committed is `appsettings.template.json` and `appsettings.Development.template.json` – the
+full structure with every secret value blank – and `backend/scripts/generate-appsettings.sh`, which
+renders the real files from those templates plus the environment. This repo is public, and a
+credential committed to it stays in history after it is deleted: the fix for a leak is revocation,
+not a follow-up commit.
+
+Two things about it were **measured**, and both shaped the design:
+
+- **`appsettings.json` is load bearing for the test suite, not just for a running server.** With the
+  file absent, `dotnet test` **aborts after 117 of 295 tests**. So CI cannot check out and build – the
+  `backend` workflow generates first, and the full sequence was verified on a tree with both files
+  removed.
+- **`appsettings.Development.json` is not** (295/295 without it, because the suite runs in the
+  `Testing` environment). It is generated anyway so a fresh clone works in one command.
+
+An unset variable leaves the template's blank value rather than inventing one. That is safe because
+`Program.cs`'s startup guard **refuses to start outside Development** with an unset or placeholder
+secret – so a half-filled file fails loudly at boot instead of serving traffic with a key printed in
+this repo. **The guard does not yet cover `S3:AccessKey`/`S3:SecretKey`**: a server with wrong
+credentials starts and fails at the first attachment upload instead.
+
+**The GitHub Actions secrets** the pipeline reads, mapped in `.github/workflows/backend.yml`:
+
+| GitHub secret | Fills | Source |
+|---|---|---|
+| `S3_ACCESS_KEY` / `S3_SECRET_KEY` | `S3:AccessKey` / `S3:SecretKey` | `yc iam access-key create --service-account-name tankbook-storage` |
+| `TANKBOOK_HASH_SALT` | `Tankbook:Logging:HashSalt` | Generated once; rotating it re-anonymises every account id (`LOGGING.md`) |
+| `CONFIG_SIGNING_KEY` | `Config:SigningKey` | The Ed25519 seed signing config documents (`CONFIG.md`) |
+| `AUTH_JWT_SIGNING_KEY` | `Auth:JwtSigningKeyBase64` | Base64 PKCS#8 RSA; tokens carry `kid`, so rotation does not invalidate live sessions |
+| `CATALOG_ADMIN_TOKEN` | `Catalog:AdminToken` | The vehicle-catalog publish token |
+| `LLM_API_KEY` | `LlmGateway:ApiKey` | The provider key that is precisely why the gateway is server-side |
+| `POSTGRES_CONNECTION` | `ConnectionStrings:Postgres` | The deployed database |
+
+The **script is the source of truth for that list**; this table names the same variables and must be
+corrected with it. None is needed by the build-and-test job – it passes with every value blank, which
+is what keeps a fork's pull request green, since fork PRs receive no secrets.
+
+`Auth:AppleAudiences` / `Auth:GoogleAudiences` are deliberately **not** secrets – they are public
+identifiers – but they are deploy-blocking, because the audience check fails closed.
 
 **A verified signature is not a verified identity.** Apple's and Google's JWKS sign identity tokens
 for *every* client on their platforms, so a signature proves only that the provider minted the
