@@ -701,3 +701,44 @@ Measured, three runs agreeing: receipts **91/185 -> 94/190** (the fixture scores
 so the parser had improved by 3 since the last re-baseline and the floor hid it - `hits` is a
 `>=` floor, so a rise never fails anything. Worth re-measuring at each corpus change rather than
 trusting the number in the file.
+
+## 2026-09-01: receipt-043, the first fixture with a watermark over the text
+
+ООО "Артемовск-Газсервис", АЗС № 1, г. Артемовский, Свердловская обл., 30.08.26 18:18, ТРК 1:
+**АИ-95, 40 л at 120.00 RUB = 4800.00**, НДС 22% (`4800 × 22/122 = 865.57`, which the paper
+prints), paid by card `****5933`.
+
+**Provenance: not the maintainer's photograph.** It reached us through a public Telegram news
+channel, and the channel's rounded `e1_news` badge is composited **over the product line** – like
+`receipt-017` and `receipt-019`–`022`, it is kept because it adds a shape the corpus lacked, not
+because it is clean.
+
+That badge is the point of the fixture. It is not a defect of the photograph; it is what a receipt
+looks like when a user forwards one from a chat, and every prior receipt fixture is either a direct
+photograph or a clean web capture.
+
+Three things it carries:
+
+1. **The unit marker is stranded from both operands.** The line reads `АИ-95 (1 ТРК), л`, then the
+   badge, then `40 X 120.00` well to the right. `loneMarkers` – the path P2.9 was rewritten around
+   on 2026-08-30 – has no adjacency to work with here. This is the marker being present, readable
+   and still useless.
+2. **The operand order is the exact mirror of `receipt-037`.** `40 X 120.00` is volume first with
+   **fewer** decimals; `receipt-037` prints `99.99 X 25 Л`, price first with **more**. Across the
+   two, decimal count and operand position each carry the opposite signal – the third independent
+   falsification of both as rules, and further evidence for the marker-and-band reading P2.9 now
+   asks for.
+3. **No `.qr.txt`.** The QR is present but cropped and defocused at the frame's edge, so the total's
+   only source is the printed line – where it appears three times (item extension, `ИТОГ`,
+   `безналичными`). The receipt redundancy that pumps do not have, tested against an **occlusion**
+   rather than a misread.
+
+Measured three runs agreeing: receipts **94/190 → 95/195**, the fixture scoring 1 of its 5 cells.
+**Which cell was measured, not assumed:** asserting only `fuelKind` and `currency` gives 94/192
+(both miss), asserting only the total gives 95/191. So the hit is the **total**, and the operand
+pair, the fuel kind and the currency all miss.
+
+The `fuelKind` miss is the one worth chasing. It is **not** the known unnormalised-product-string
+gap (`D B0 miles`): the paper plainly prints `АИ-95`, and `receipt-034` resolves that same grade
+today. The badge breaks the line the grade sits on, so this is a new miss shape – occlusion
+defeating a mapping that works, rather than a mapping that does not exist.

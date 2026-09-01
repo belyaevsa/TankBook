@@ -305,6 +305,10 @@ enum PostSweepCorpusAdditions {
             // 2026-08-31: the matched half of pump-034 - Circle K Jarvevana,
             // Tallinn, 87.29 L of D B0 at 1.839. Declared, not swept.
             "receipt-042-circlek-jarvevana-tallinn-db0-pump7-ee.jpg",
+            // 2026-09-01: a Sverdlovsk AI-95 receipt reposted through a news
+            // channel, so a watermark is composited OVER the product line.
+            // Declared, not swept.
+            "receipt-043-artemovsk-gazservis-95-vat22-watermark-ru.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
