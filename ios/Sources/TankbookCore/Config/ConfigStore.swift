@@ -121,6 +121,14 @@ public final class ConfigStore: @unchecked Sendable {
     /// the document, the seeder or the schema, and adding it spans both tiers
     /// and three bundled copies (that is PR.3c). A user-initiated refresh
     /// bypasses this throttle; a background/foreground one does not.
+    ///
+    /// **Six hours is chosen for HIBERNATION** (product owner, 2026-09-01), not
+    /// to save requests: iOS suspends and eventually terminates a backgrounded
+    /// app, so what this interval actually spaces is *foregrounds*, not
+    /// wall-clock ticks. A shorter value would not deliver a fresher config -
+    /// the app is not running to honour it - it would only add fetches to the
+    /// launches the user already makes. The number is a property of the
+    /// platform's lifecycle, which is why it is compiled rather than remote.
     static let automaticRefreshInterval: TimeInterval = 6 * 60 * 60
 
     private let fetcher: (any ConfigFetcher)?
