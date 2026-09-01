@@ -25,6 +25,14 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # appsettings.json is gitignored and generated from its committed
+      # template (2026-09-01). This step is not optional bookkeeping: measured,
+      # with the file absent `dotnet test` ABORTS after 117 of 295 tests. No
+      # secrets are supplied here - CI runs the suite in the "Testing"
+      # environment and needs the structure, not the credentials.
+      - name: Generate appsettings from templates
+        run: bash scripts/generate-appsettings.sh
+
       - name: Build
         run: dotnet build Tankbook.slnx --configuration Release
 

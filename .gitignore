@@ -42,3 +42,17 @@ Spike/ReceiptSpike/fixtures/vision-ab/.raw/
 site/public/
 site/resources/_gen/
 
+
+# Backend runtime configuration: generated, never committed (2026-09-01).
+# These carry real credentials - the S3 static key, the hash salt, the config
+# signing seed - and this repo is public, where a committed secret stays in
+# history after it is deleted. The committed *.template.json files beside them
+# hold the full structure with the secret values blank, and
+# `backend/scripts/generate-appsettings.sh` fills them from the environment.
+#
+# Measured, and the reason CI generates them rather than assuming they exist:
+# with appsettings.json absent, `dotnet test` ABORTS after 117 of 295 tests.
+# appsettings.Development.json is not load bearing (295/295 without it) but is
+# generated too so a fresh clone works in one command.
+backend/src/Tankbook.Api/appsettings.json
+backend/src/Tankbook.Api/appsettings.Development.json
