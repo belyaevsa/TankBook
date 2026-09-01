@@ -90,6 +90,37 @@ public sealed class AppleGoogleIdTokenVerifier : IIdTokenVerifier
                 return IdTokenVerificationResult.Failed(IdTokenOutcome.InvalidSignature);
             }
 
+            // Audience and issuer, checked BEFORE anything is read out of the
+            // payload. A valid signature only proves the provider minted the
+            // token - not that it was minted for US. Apple and Google sign for
+            // every client on their platform, so without this an attacker who
+            // runs any Apple- or Google-signed app can replay their own users'
+            // id tokens here and take over the matching Tankbook account.
+            var expectedAudiences = provider == "apple" ? _options.AppleAudiences : _options.GoogleAudiences;
+            if (expectedAudiences is null || expectedAudiences.Length == 0)
+            {
+                // Fail CLOSED. An empty allowlist means "no token can be
+                // attributed to this app", never "any token will do" - the
+                // whole point of the check is that it cannot be turned off by
+                // forgetting to configure it.
+                return IdTokenVerificationResult.Failed(IdTokenOutcome.AudienceNotConfigured);
+            }
+
+            if (!TryGetAudiences(payload.RootElement, out var tokenAudiences) ||
+                !tokenAudiences.Any(a => expectedAudiences.Contains(a, StringComparer.Ordinal)))
+            {
+                return IdTokenVerificationResult.Failed(IdTokenOutcome.WrongAudience);
+            }
+
+            var expectedIssuers = provider == "apple" ? _options.AppleIssuers : _options.GoogleIssuers;
+            var issuer = payload.RootElement.TryGetProperty("iss", out var issElement)
+                ? issElement.GetString()
+                : null;
+            if (issuer is null || !expectedIssuers.Contains(issuer, StringComparer.Ordinal))
+            {
+                return IdTokenVerificationResult.Failed(IdTokenOutcome.WrongIssuer);
+            }
+
             var now = _time.GetUtcNow();
             if (!TryGetUnixSeconds(payload.RootElement, "exp", out var exp) ||
                 exp <= now.AddSeconds(-_options.ClockSkewSeconds).ToUnixTimeSeconds())
@@ -158,6 +189,47 @@ public sealed class AppleGoogleIdTokenVerifier : IIdTokenVerifier
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// The token's `aud` claim. RFC 7519 allows it to be a single string OR an
+    /// array of strings, and both providers have used both forms - reading only
+    /// the string case would make an array-shaped token fail as "wrong
+    /// audience" for a reason that has nothing to do with who it was minted for.
+    /// </summary>
+    private static bool TryGetAudiences(JsonElement payload, out List<string> audiences)
+    {
+        audiences = [];
+        if (!payload.TryGetProperty("aud", out var value))
+        {
+            return false;
+        }
+
+        switch (value.ValueKind)
+        {
+            case JsonValueKind.String:
+                var single = value.GetString();
+                if (!string.IsNullOrEmpty(single))
+                {
+                    audiences.Add(single);
+                }
+
+                break;
+            case JsonValueKind.Array:
+                foreach (var element in value.EnumerateArray())
+                {
+                    if (element.ValueKind == JsonValueKind.String && element.GetString() is { Length: > 0 } item)
+                    {
+                        audiences.Add(item);
+                    }
+                }
+
+                break;
+            default:
+                return false;
+        }
+
+        return audiences.Count > 0;
     }
 
     private static bool IsEmailVerified(JsonElement payload)

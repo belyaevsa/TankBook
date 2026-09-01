@@ -92,7 +92,14 @@ struct SignInView: View {
                     titleBlock
                     providerButtons
                     reassurances
-                    amberNotice
+                    // "Apple and Google create separate accounts" is a warning
+                    // about a choice. With one provider there is no choice, and
+                    // an amber notice about a second provider the screen does
+                    // not offer is noise that trains the user past amber
+                    // (docs/ERRORS.md - amber is attention, hard rule 5).
+                    if SignInView.offersGoogle {
+                        amberNotice
+                    }
                 }
                 .padding(.horizontal, 30)
                 .padding(.top, 8)
@@ -163,9 +170,17 @@ struct SignInView: View {
     private var providerButtons: some View {
         VStack(spacing: 11) {
             providerButton(provider: .apple, identifier: "signInAppleButton")
-            providerButton(provider: .google, identifier: "signInGoogleButton")
+            if SignInView.offersGoogle {
+                providerButton(provider: .google, identifier: "signInGoogleButton")
+            }
         }
     }
+
+    /// Whether this build can actually run the Google flow (SH.4). Derived from
+    /// the provisioned client id rather than set by hand, so the button and the
+    /// capability can never disagree - the defect this replaces was a button
+    /// that threw on tap.
+    static var offersGoogle: Bool { GoogleOAuth.Configuration.fromBundle() != nil }
 
     private func providerButton(provider: AuthProvider, identifier: String) -> some View {
         let isSigningIn = flow.phase == .signingIn(provider)

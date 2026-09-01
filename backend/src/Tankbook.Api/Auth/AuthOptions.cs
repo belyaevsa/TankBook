@@ -44,4 +44,36 @@ public sealed class AuthOptions
 
     /// <summary>Reject identity tokens whose email_verified is not true.</summary>
     public bool RequireEmailVerified { get; set; } = true;
+
+    /// <summary>
+    /// The audiences an **incoming Apple** identity token may carry - the app's
+    /// bundle id (`app.tankbook.Tankbook`), plus any Services ID used for a web
+    /// or Android sign-in.
+    /// </summary>
+    /// <remarks>
+    /// This is NOT <see cref="Audience"/>. That one is stamped on the access
+    /// tokens this server mints; these are checked on the tokens Apple and
+    /// Google mint. Conflating them is easy and dangerous, because Apple's and
+    /// Google's JWKS sign tokens for **every** client on their platform: without
+    /// this check any developer can collect id tokens from their own app's users
+    /// and replay them here to take over the matching Tankbook account.
+    /// Environment form: Auth__AppleAudiences__0.
+    /// </remarks>
+    public string[] AppleAudiences { get; set; } = [];
+
+    /// <summary>
+    /// The audiences an **incoming Google** identity token may carry - the iOS
+    /// OAuth client id, plus any web/Android client ids that sign in to the same
+    /// account. Environment form: Auth__GoogleAudiences__0.
+    /// </summary>
+    public string[] GoogleAudiences { get; set; } = [];
+
+    /// <summary>Accepted `iss` values for an Apple identity token.</summary>
+    public string[] AppleIssuers { get; set; } = ["https://appleid.apple.com"];
+
+    /// <summary>
+    /// Accepted `iss` values for a Google identity token. Google mints both
+    /// forms and documents both as valid.
+    /// </summary>
+    public string[] GoogleIssuers { get; set; } = ["https://accounts.google.com", "accounts.google.com"];
 }

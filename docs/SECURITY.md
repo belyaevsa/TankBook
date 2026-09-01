@@ -60,6 +60,31 @@ protection, and it is never synced, never uploaded except through `POST /feedbac
 | Postgres connection string | Environment / platform secret store, injected at runtime |
 | S3 access key + secret | Same. Never in `appsettings*.json` |
 | Apple/Google public key endpoints | Not secret; token signatures verified against fetched JWKS with caching |
+
+**A verified signature is not a verified identity.** Apple's and Google's JWKS sign identity tokens
+for *every* client on their platforms, so a signature proves only that the provider minted the
+token – never that it was minted for **us**. `POST /auth/session` therefore checks the token's
+`aud` against a per-provider allowlist (`Auth:AppleAudiences`, `Auth:GoogleAudiences`) and its
+`iss` against the provider's issuers, **before** reading any other claim. Without that check,
+anyone shipping an app with Google or Apple sign-in can collect their own users' id tokens and
+replay them here to take over the matching Tankbook account – the confused-deputy takeover.
+
+The allowlist **fails closed**: an unconfigured audience refuses every token
+(`IdTokenOutcome.AudienceNotConfigured`) rather than accepting any, so the control cannot be
+switched off by forgetting to deploy a setting. `Auth:AppleAudiences` is the app's **bundle id**;
+`Auth:GoogleAudiences` is the Google **OAuth client id**. Neither is `Auth:Audience`, which is a
+different thing entirely – the audience stamped on the access tokens this server mints.
+
+**Google sign-in carries no SDK** (decided 2026-09-01). The app runs OAuth 2.0 authorization-code
+with PKCE through `ASWebAuthenticationSession`: `GoogleOAuth` (core, pure, unit-tested) builds the
+request and validates the callback, `GoogleWebAuthenticator` (app) presents the browser and runs
+the exchange. A Google iOS OAuth client is a **public client with no secret**, so nothing here
+touches the no-secrets-in-the-bundle rule; the client id ships in `Info.plist` as the public
+identifier it is. Two properties are load-bearing and pinned by tests: the `code_challenge` is the
+SHA-256 of the verifier (not the verifier), and a callback whose `state` does not match the one
+minted is refused. The token exchange deliberately uses a bare `URLSession` rather than
+`TankbookHTTPClient` – it goes to Google, which `HostAllowlist` refuses by design, and it must
+carry no Tankbook bearer.
 | JWT signing key | Platform secret store, rotatable; tokens carry `kid` so rotation does not invalidate live sessions |
 | Account-hash salt (`LOGGING.md`) | Platform secret store, dev default only in `appsettings.Development.json` |
 | LLM provider API key | Platform secret store; never leaves the gateway process |

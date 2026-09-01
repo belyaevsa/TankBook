@@ -25,7 +25,14 @@ On a **non-2xx** response the client reads `traceId` from the problem+json body 
 | `POST /auth/refresh` | refresh token | `{ refreshToken }` → new token pair. Refresh tokens rotate; reuse of a rotated token revokes the chain (theft signal). |
 | `DELETE /auth/session` | bearer | Sign out this device (revokes its refresh chain; local data stays local). |
 
-Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
+**The identity token is checked for who it was minted FOR, not only for who signed it.** `aud` must
+be in the provider's configured audience allowlist and `iss` must be one of the provider's issuers,
+both checked before any other claim is read; an unconfigured allowlist refuses every token rather
+than accepting any (`docs/SECURITY.md` → "A verified signature is not a verified identity"). A
+token minted for another OAuth client is a `401` like any other verification failure – the client
+cannot tell, and must not be able to.
+
+Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email, wrong audience, wrong issuer) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
 
 **The client's half of the token lifecycle (PR.1/PR.2).** A `401` on any bearer endpoint is an
 auth event, never a gate from a newer server: the client refreshes **once** through a single shared

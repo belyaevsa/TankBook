@@ -12,6 +12,20 @@ public enum IdTokenOutcome
     ClockSkew,
     MissingEmail,
     EmailNotVerified,
+    /// <summary>
+    /// The token is genuine and correctly signed, but was minted for a
+    /// different OAuth client - somebody else's app. Accepting it is the
+    /// confused-deputy takeover this check exists to stop.
+    /// </summary>
+    WrongAudience,
+    /// <summary>The token was not issued by the provider it claims.</summary>
+    WrongIssuer,
+    /// <summary>
+    /// No audience is configured for this provider, so no token can be
+    /// attributed to this app. Refused rather than accepted: an unconfigured
+    /// audience must fail closed.
+    /// </summary>
+    AudienceNotConfigured,
 }
 
 /// <summary>

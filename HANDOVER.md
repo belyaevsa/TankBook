@@ -2,15 +2,94 @@
 
 *Updated 2026-09-01. **The agent-shaped v1 work is done.** Tier 2 is 24/24 and the six small v1
 rows filed from the work itself are closed (`PJ.12b`, `P6.17`, `P1.13b`, `PJ.2b`, `PR.16b`;
-`PR.3c` deferred with reason, below). **What is left for v1 is the product owner's**: `SH.1` deploy
-the backend, `SH.3` the launch-readiness walk on a device, `SH.4` the Sign-in screen offering
-"Continue with Google" whose provider throws `unsupported` - a dead control a tester meets in the
-first minute - and `P6.5`'s manual VoiceOver walkthrough of J3. Plus `T.3`, one intermittent UI
-test that needs two consecutive clean full suites rather than a fix. Measured: **iOS 1127 unit,
-274 UI** (1 intermittent), **backend 281**, lint 0, Debug *and* Release builds green. Corpus: 43
-pump / 42 receipt / 8 screenshot / 3 fiscal. Ledger **149 done, 65 open** - beyond v1: 13
+`PR.3c` deferred with reason, below). **`SH.4` is now closed too - Google sign-in is wired without
+the SDK - and it turned up `PR.35`, a live account-takeover vector in `POST /auth/session` that
+existed for Apple with no Google involved (read that section first).** **What is left for v1 is the
+product owner's**: `SH.1` deploy the backend - which now also has to set the two audience settings,
+because they fail closed - `SH.3` the launch-readiness walk on a device, and `P6.5`'s manual
+VoiceOver walkthrough of J3. Plus `T.3`, one intermittent UI
+test that needs two consecutive clean full suites rather than a fix. Measured: **iOS 1152 unit,
+274 UI** (1 intermittent), **backend 295**, lint 0, Debug *and* Release builds green. Corpus: 43
+pump / **43** receipt / 8 screenshot / 3 fiscal. Ledger **151 done, 63 open** - beyond v1: 13
 `[v1.0.x]`, 32 `[v1.1]` (eleven an ordered owner-set priority queue), 15 `[v2]`. The marketing site
 is LIVE. Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog.*
+
+## Google sign-in is wired without an SDK, and it uncovered an account-takeover vector (2026-09-01)
+
+`SH.4` is closed and `PR.35` was filed and fixed from the same work. The security finding outranks
+the feature.
+
+### `POST /auth/session` verified the SIGNATURE and never the AUDIENCE
+
+`AppleGoogleIdTokenVerifier` checked `alg`, `kid`, the JWKS signature, `exp`/`iat`/`nbf`, `sub`,
+`email` and `email_verified` - and **not `aud`, not `iss`**. Apple's and Google's JWKS sign identity
+tokens for *every* client on their platforms, so a valid signature proves the provider minted the
+token, never that it was minted for **us**. Any developer shipping an app with Apple or Google
+sign-in could collect their own users' id tokens and replay them here to take over the matching
+Tankbook account. **This was live for Apple, with no Google involved.**
+
+Three things about it are worth carrying:
+
+- **`Auth:Audience` is not that setting, and a doc said it was.** `docs/STORE.md` §4.3 read *"`Auth:Audience`
+  must equal the bundle id for Apple id tokens"*. It is the audience the server **stamps on its own
+  access tokens**, read nowhere as a check - so following that line would have changed our token
+  audience and validated nothing. The exact "stale sentence faithfully implemented" failure this
+  file keeps recording. Now `Auth:AppleAudiences` / `Auth:GoogleAudiences`, and the sentence is fixed.
+- **It fails CLOSED.** An unconfigured allowlist refuses every token rather than accepting any -
+  otherwise the whole control switches off by forgetting to deploy one setting, and looks fine doing
+  it. That makes it **deploy-blocking for `SH.1`**: unset audiences means every sign-in refuses.
+- **The class had no tests, in the way that is easy to miss.** Every L2 endpoint test injects
+  `TestIdTokenSigner.Verifier` - a *reimplementation* that checks the signature and the expiry and
+  nothing else - while its own comment says the tests "exercise the real auth pipeline". They
+  exercise a double standing where the code under test should be. 14 tests now hit the real class.
+  **Ask which tests touch the production type, not which tests cover the feature.**
+
+### Google without the SDK
+
+Authorization-code + PKCE through `ASWebAuthenticationSession`. `GoogleOAuth` (core) is pure and
+carries every decision - URL building, PKCE, callback validation, token-request shape, the response
+- so 25 L1 tests pin it; `GoogleWebAuthenticator` (app) is only presentation and I/O. That split is
+the P3.7 lesson applied up front rather than after a mutation pinned nothing.
+
+- **The token exchange uses a bare `URLSession` on purpose.** It goes to `oauth2.googleapis.com`,
+  which `HostAllowlist` refuses by design, and it must carry no Tankbook bearer. A test asserts the
+  endpoint is outside the allowlist, so nobody "fixes" a failure by widening it.
+- **No `CFBundleURLTypes` entry.** `ASWebAuthenticationSession` intercepts its own callback scheme;
+  registering it app-wide would let any other app on the device hand us a crafted callback.
+- **The dead button is gone by construction.** The Google button renders exactly when a client id is
+  provisioned, so the capability and the affordance cannot disagree. The J11a wrong-provider
+  question ("did you sign in with Google?") is gated the same way - it is not an honest question in
+  a build that never offered Google.
+
+### An assumption I wrote into three comments, and the measurement that killed it
+
+I wrote that Xcode leaves an unset build setting in the plist as the literal `$(NAME)`. **Measured:
+it expands to an EMPTY string** - so on this project it is the emptiness check that covers Release,
+not the `$(` guard. Both are kept (a hand-edited plist can still carry the literal) but the comments
+now say what was measured. Writing the mechanism down is how the wrong mechanism gets inherited.
+
+Debug ships a well-formed placeholder client id so the UI suite and the screenshots see the real
+two-provider layout; Release ships empty unless `TANKBOOK_GOOGLE_CLIENT_ID` is set. That is SH.4's
+recommendation reached by construction: a build with no OAuth client offers Apple alone.
+
+### I stashed the tree while a test run was in flight
+
+`git stash push -u` to check whether a backend failure reproduced on clean HEAD - with a background
+`swift test` running against that tree. `git stash pop` restored everything and nothing was lost,
+but the running suite's "exit code 0" was measuring a tree that changed underneath it, and I nearly
+read it as a pass. **The same rule as never staging a directory mid-run: do not move the tree while
+anything is reading it** - and a background job's completion is not evidence about the code you
+think it ran on. The backend failure was `Extract_NothingIsPersisted`, which scans the filesystem
+for a sentinel; it failed once during a run concurrent with my own file writes and has passed twice
+since, alone and in a full 295-test run on a quiet tree.
+
+### A corpus addition trips THREE gates, not one
+
+`receipt-043` moved the ratchet (`high-water.json`), `CorpusCompressionTests`' own recorded pair,
+**and** `CorpusScorerFuelKindCurrencyTests`' per-class row count. The first full run caught the
+second; the row count only surfaced on the run after that. The compression arm has to be measured
+separately - it scores **96/195** where the uncompressed ratchet scores **95/195**, and it was
+already one ahead before this fixture.
 
 ## Start here (paste this to open a new session)
 

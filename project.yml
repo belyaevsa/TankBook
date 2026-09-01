@@ -43,6 +43,15 @@ targets:
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
         ITSAppUsesNonExemptEncryption: false
+        # Google sign-in's iOS client id (SH.4). A PUBLIC identifier, not a
+        # secret - docs/SECURITY.md says so explicitly, and hard rule 11 is
+        # about keys, not identities. Unset here on purpose: until SH.1
+        # registers a real OAuth client, the build ships without it and the
+        # Sign in screen offers no Google button at all. Measured: with the
+        # setting undefined, Xcode expands this to an EMPTY string rather than
+        # leaving the literal, and GoogleOAuth.Configuration.provisioned refuses
+        # both shapes.
+        GoogleClientID: "$(TANKBOOK_GOOGLE_CLIENT_ID)"
         NSCameraUsageDescription: "Tankbook uses the camera to scan receipts and pump displays so you do not have to type them."
         NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
     entitlements:
@@ -74,6 +83,22 @@ targets:
         # tinted, iOS 18 single-size). Rendered from site/static/icon.svg - the
         # DESIGN.md mark - so the store page and the home screen show one logo.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+      configs:
+        # Google sign-in in a DEBUG build uses a well-formed placeholder client
+        # id, so the Sign in screen renders its real two-provider layout for the
+        # UI suite and the screenshots, and the J11a wrong-provider question -
+        # which only makes sense when a second provider exists - stays
+        # reachable. The browser flow itself would fail at Google's end with
+        # this id, which is correct: a developer build has no OAuth client, and
+        # the UI tests inject a stub provider rather than driving the browser.
+        #
+        # RELEASE defines no such setting, so GoogleClientID ships EMPTY unless
+        # the environment supplies one - a shipped build with no registered
+        # OAuth client offers **Apple alone** rather than a button that fails -
+        # which is SH.4's recommendation, reached by construction instead of by
+        # remembering. SH.1 sets the variable when the client is registered.
+        debug:
+          TANKBOOK_GOOGLE_CLIENT_ID: "000000000000-debugplaceholder.apps.googleusercontent.com"
 
   TankbookUITests:
     type: bundle.ui-testing

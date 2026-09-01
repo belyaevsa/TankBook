@@ -8,22 +8,37 @@ import TankbookCore
 /// token, so the client's job is to obtain it and hand it over"). Apple's
 /// private-relay address is passed through as the display email.
 ///
-/// Google sign-in requires the Google Sign-In SDK, which is not yet a
-/// dependency, so `.google` throws `AuthError.unsupportedProvider` - the flow
-/// surfaces it as a next-step message rather than a dead button (hard rule 7).
+/// Google sign-in runs the OAuth 2.0 authorization-code + PKCE flow directly
+/// through `ASWebAuthenticationSession` (SH.4, 2026-09-01) - see
+/// `GoogleWebAuthenticator` and the pure `GoogleOAuth` it drives. It throws
+/// `AuthError.unsupportedProvider` only when no client id is provisioned for the
+/// build, which is a state the Sign in screen never offers a button for.
 /// Tests and screenshots inject `SignInTestSeed.StubIDTokenProvider` instead, so
 /// this type is never exercised in CI (there is no Apple ID there).
 @MainActor
 final class AppIDTokenProvider: NSObject, IDTokenProvider {
     private var continuation: CheckedContinuation<ProviderIdentity, Error>?
+    /// Retained across the flow: `GoogleWebAuthenticator` owns the
+    /// `ASWebAuthenticationSession`, which dies with its owner.
+    private var googleAuthenticator: GoogleWebAuthenticator?
 
     func signIn(provider: AuthProvider) async throws -> ProviderIdentity {
         switch provider {
         case .apple:
             return try await signInWithApple()
         case .google:
+            return try await signInWithGoogle()
+        }
+    }
+
+    private func signInWithGoogle() async throws -> ProviderIdentity {
+        guard let configuration = GoogleOAuth.Configuration.fromBundle() else {
             throw AuthError.unsupportedProvider
         }
+        let authenticator = GoogleWebAuthenticator(configuration: configuration)
+        googleAuthenticator = authenticator
+        defer { googleAuthenticator = nil }
+        return try await authenticator.signIn()
     }
 
     private func signInWithApple() async throws -> ProviderIdentity {

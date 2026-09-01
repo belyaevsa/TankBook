@@ -253,6 +253,13 @@ final class SignInFlow {
             }
 
             runRestore(accountId: session.accountId)
+        } catch GoogleOAuth.Failure.cancelled {
+            // The user dismissed the browser sheet. Nothing failed, so nothing
+            // is reported: an error that names a next step the user did not need
+            // is still a false alarm (hard rule 7). This path is routine with a
+            // web sheet in a way it never was with the Apple dialog.
+            errorMessage = nil
+            phase = .choosing
         } catch {
             errorMessage = L10n.localize("Couldn't sign in. Check your connection and try again, or keep using the app without an account.")
             phase = .choosing
@@ -275,7 +282,12 @@ final class SignInFlow {
             phase = .restoring(RestoreSnapshot(
                 stats: stats, email: signedInEmail, provider: signedInProvider ?? .apple))
         case .empty:
-            if arrivedViaRestore {
+            // The wrong-provider question asks "did you sign in with Google?" -
+            // which is only an honest question when this build offers Google
+            // (SH.4). With one provider there is no other account to have used,
+            // so the empty account is simply empty, and F7's recovery screen is
+            // the truthful destination.
+            if arrivedViaRestore && SignInView.offersGoogle {
                 // The account is empty and the user expected their data: the
                 // honest question - never the first push, because this account
                 // has not been accepted. `complete(.wrongProvider)` pins that
