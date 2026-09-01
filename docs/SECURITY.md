@@ -101,6 +101,19 @@ The **script is the source of truth for that list**; this table names the same v
 corrected with it. None is needed by the build-and-test job – it passes with every value blank, which
 is what keeps a fork's pull request green, since fork PRs receive no secrets.
 
+`LLM_BASE_URL` and `LLM_MODEL_ID` are read by the same script but are **not secrets** – a public API
+host and a model name. They are defaulted in the committed template the way `Apns:Endpoint` is, and
+stay overridable so a deploy can change provider or model without a commit. Do not add them to the
+secret list; a value in the secret store that nobody needs to hide is a value nobody can review.
+
+**`CONFIG_SIGNING_KEY` is deliberately NOT set in GitHub Secrets.** The value sitting in a local
+`appsettings.json` is `ConfigSigningOptions.DevPlaceholderSeed` – the committed dev placeholder,
+printed in this repo. Uploading it would let a production boot sail past the startup guard using a
+keypair anyone reading the repo can reproduce and forge config documents with, which is precisely
+the failure the guard exists to prevent. It needs a **freshly generated** keypair whose public half
+is bundled into the app (`AppConfigService.bundledConfigPublicKey`), and until that exists a Release
+build's config signature fails open to bundled defaults – the open ops item `SH.1` carries.
+
 `Auth:AppleAudiences` / `Auth:GoogleAudiences` are deliberately **not** secrets – they are public
 identifiers – but they are deploy-blocking, because the audience check fails closed.
 

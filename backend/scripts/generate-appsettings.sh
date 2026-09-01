@@ -45,8 +45,30 @@ template, output = sys.argv[1], sys.argv[2]
 with open(template) as handle:
     settings = json.load(handle)
 
+# Whatever the output file already holds. Re-running the generator must never
+# DESTROY a value that is only in the local file - which is exactly what an
+# earlier version did: a run that supplied only the S3 variables silently blanked
+# a hand-entered LlmGateway:ApiKey, and the value was unrecoverable because the
+# only other copy was write-only in GitHub Secrets. Precedence is therefore
+# environment > what the file already had > the template's blank.
+try:
+    with open(output) as handle:
+        existing = json.load(handle)
+except (FileNotFoundError, json.JSONDecodeError):
+    existing = {}
+
+def existing_value(path):
+    node = existing
+    for key in path:
+        if not isinstance(node, dict) or key not in node:
+            return None
+        node = node[key]
+    return node if isinstance(node, str) else None
+
 def put(path, value):
-    """Set a dotted path only when the environment supplied something."""
+    """Environment wins; otherwise keep what the file already had."""
+    if not value:
+        value = existing_value(path)
     if not value:
         return
     node = settings
@@ -61,6 +83,11 @@ put(["Config", "SigningKey"], os.environ.get("CONFIG_SIGNING_KEY"))
 put(["Auth", "JwtSigningKeyBase64"], os.environ.get("AUTH_JWT_SIGNING_KEY"))
 put(["Catalog", "AdminToken"], os.environ.get("CATALOG_ADMIN_TOKEN"))
 put(["LlmGateway", "ApiKey"], os.environ.get("LLM_API_KEY"))
+# Not secrets - a public API host and a model name, defaulted in the template
+# the way Apns:Endpoint is. Overridable so a deploy can move provider or model
+# without a commit, which is the same reason CONFIG.md keeps such values remote.
+put(["LlmGateway", "BaseUrl"], os.environ.get("LLM_BASE_URL"))
+put(["LlmGateway", "ModelId"], os.environ.get("LLM_MODEL_ID"))
 put(["ConnectionStrings", "Postgres"], os.environ.get("POSTGRES_CONNECTION"))
 
 with open(output, "w") as handle:
