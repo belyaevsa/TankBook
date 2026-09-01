@@ -149,7 +149,7 @@ Server-side this is static curated data - **no domain logic, no query parameters
 the server interpret meaning** (hard rule 9). The client downloads the pack and does the
 matching itself; the endpoint only serves rows.
 
-### `GET /catalog` and `POST /catalog/publish` (vehicle catalog)
+### `GET /catalog` (vehicle catalog)
 
 `GET /catalog` is **public** - no auth, no account - because a signed-out user's Add-car
 autocomplete needs the dictionary too (docs/SYNC.md → Reference data). The server is the
@@ -200,21 +200,23 @@ GET /catalog[?since_version=<n>]
 > Backward tolerance is therefore deliberate: an older client degrades to the
 > status quo, never to data loss.
 
-`POST /catalog/publish` is an **operator surface**, not a public one - **never** a user
-endpoint. It is gated on the `Catalog:AdminToken` server-side secret (docs/SECURITY.md),
-sent as `X-Admin-Token`; a server with no token configured answers `503` (curation
-disabled). The body is a pack of the same entry shape wrapped in
-`{ packVersion, entries, removedIds? }` (schema: `catalog.schema.json`). A pack is
-validated against its schema **at publish time, whole or not at all**: a pack that fails
-its schema (`400`) or whose `packVersion` is not greater than the current one (`409` -
-`<=` is a rollback and is refused) is never served, and the previously published pack
-keeps serving untouched. **`removedIds`** (optional) withdraws catalog rows: those ids
-are **deleted**, so the subsequent full pack lacks them - this is how a removal becomes
-expressible on the wire (docs/SYNC.md "Applying an update"). A withdrawal is a physical
-delete, never a tombstone, so the server never remembers what it withdrew; an id in both
-`removedIds` and `entries` is a contradiction resolved in the removal's favour. Success is
-`200` `{ packVersion, entriesPublished }`. This is server-owned reference data that the
-server itself curates, so validating it is required - it is not a hard-rule-9 violation.
+**There is no publish endpoint.** `POST /catalog/publish` was removed on 2026-09-01 (product
+owner): catalog packs are written **directly to the database**, so the catalog has no write surface
+on the API at all and the `Catalog:AdminToken` secret it was gated on is gone. `GET /catalog` is the
+whole contract.
+
+What the removed endpoint enforced still applies, because it lived in `CatalogPublishService` rather
+than in the route, and that service is still the in-process write path: a pack is validated against
+`catalog.schema.json` **whole or not at all**, and a `packVersion` not greater than the current one
+is refused (`<=` is a rollback). **A write that bypasses that service bypasses both guarantees** –
+a hand-written `INSERT` can publish a malformed entry or roll the version backwards, and nothing
+will stop it. **`removedIds`** withdraws catalog rows: those ids are **deleted**, so the subsequent
+full pack lacks them - this is how a removal becomes expressible on the wire (docs/SYNC.md
+"Applying an update"). A withdrawal is a physical delete, never a tombstone, so the server never
+remembers what it withdrew.
+
+Curating server-owned reference data was never a hard-rule-9 violation; that question is now moot,
+since the server exposes no endpoint that reads what a catalog field means.
 
 ## Feedback
 
@@ -377,7 +379,6 @@ Every limit here is a flood guard, chosen so a real user can never hit it – a 
 | `POST /auth/session` | client IP | 30/min |
 | `POST /auth/refresh` | client IP | 60/min |
 | `POST /import/parse` | client IP | 20/min |
-| `POST /catalog/publish` | client IP | 30/min |
 | `POST /extract` | device | 30/min |
 | `POST /sync/push` | device | 120/min |
 | `POST /blobs/begin` | device | 120/min |
@@ -392,7 +393,6 @@ Per-device limits key on the authenticated device id (the bearer token's `device
 | `POST /sync/push` | 200 × 256 KB payloads + envelope (~52 MB) – the maximal legal batch |
 | `POST /extract` | 6 MB (4 MB base64 image + envelope) |
 | `POST /import/parse` | 8 MB file + multipart envelope |
-| `POST /catalog/publish` | 8 MB (a full operator pack; the 64 KB default deliberately does not apply) |
 | `POST /feedback` | 17 KB (4 000 characters at 4 bytes worst case + 1 KB envelope) |
 | everything else (auth, blobs begin/commit, account push-token) | 64 KB |
 

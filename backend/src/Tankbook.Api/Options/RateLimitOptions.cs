@@ -32,12 +32,6 @@ public sealed class RateLimitOptions
     public int ImportParsePerMinute { get; set; } = 20;
 
     /// <summary>
-    /// Per-IP. POST /catalog/publish is the operator surface, not a user one.
-    /// 30/min.
-    /// </summary>
-    public int CatalogPublishPerMinute { get; set; } = 30;
-
-    /// <summary>
     /// Per-device. A capture-driven extract is about one per entry; the
     /// per-period LLM quota (docs/API.md, default 200/day for pro) is the real
     /// budget - this is only the flood guard. 30/min.

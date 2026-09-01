@@ -5,16 +5,23 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Npgsql;
+using Microsoft.Extensions.DependencyInjection;
+using Tankbook.Api.Catalog;
 using Tankbook.Api.Data;
 
 namespace Tankbook.Api.Tests.Catalog;
 
 /// <summary>
-/// L2 tests for GET /v1/catalog and POST /v1/catalog/publish (docs/API.md
+/// L2 tests for GET /v1/catalog (docs/API.md
 /// "Vehicle catalog", docs/SYNC.md "Reference data") against real Postgres via
 /// Testcontainers. The database, the endpoint wiring, the cache headers and the
-/// ETag flow are all real - only the admin token and the delta threshold are
-/// test-scaled via configuration.
+/// ETag flow are all real - only the delta threshold is test-scaled via
+/// configuration.
+///
+/// Packs are seeded through <see cref="CatalogPublishService"/>, which is how
+/// they are written now that the publish endpoint is gone (2026-09-01): straight
+/// into the database. The schema and monotonic-version guarantees are asserted
+/// against that service, so they still hold for the path that actually runs.
 /// </summary>
 public class CatalogEndpointTests : IClassFixture<PostgresFixture>
 {
@@ -42,9 +49,9 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         var b = new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", TankCapacityL: 50m);
         var c = new CatalogTestData.Entry(Guid.NewGuid(), "Renault", "Clio", TankCapacityL: 45m);
 
-        await PublishAsync(client, CatalogTestData.Pack(1, a, b, c));
-        await PublishAsync(client, CatalogTestData.Pack(2, b with { TankCapacityL = 52m }));
-        await PublishAsync(client, CatalogTestData.Pack(3, c with { TankCapacityL = 44m }));
+        await SeedAsync(app, CatalogTestData.Pack(1, a, b, c));
+        await SeedAsync(app, CatalogTestData.Pack(2, b with { TankCapacityL = 52m }));
+        await SeedAsync(app, CatalogTestData.Pack(3, c with { TankCapacityL = 44m }));
 
         // since=1: exactly B and C changed (B at v2, C at v3), never A, never
         // anything else. Asserted by identity AND by the correct version's value.
@@ -96,8 +103,8 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         var e4 = new CatalogTestData.Entry(Guid.NewGuid(), "Skoda", "Octavia", TankCapacityL: 60m);
         var e5 = new CatalogTestData.Entry(Guid.NewGuid(), "Kia", "Rio", TankCapacityL: 43m);
 
-        await PublishAsync(client, CatalogTestData.Pack(1, e1, e2, e3, e4, e5));
-        await PublishAsync(client, CatalogTestData.Pack(2, e1 with { TankCapacityL = 72m }));
+        await SeedAsync(app, CatalogTestData.Pack(1, e1, e2, e3, e4, e5));
+        await SeedAsync(app, CatalogTestData.Pack(2, e1 with { TankCapacityL = 72m }));
 
         // Side one of the threshold: 1 changed entry ≤ 2, so a delta (only e1).
         var delta = await GetAsync(client, "/v1/catalog?since_version=1");
@@ -107,7 +114,7 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(new[] { e1.Id }, deltaEntries.Keys.ToArray());
 
         // Side two: 4 changed entries > 2, so a full pack (all five).
-        await PublishAsync(client, CatalogTestData.Pack(3, e2 with { TankCapacityL = 51m }, e3 with { TankCapacityL = 46m }, e4 with { TankCapacityL = 61m }));
+        await SeedAsync(app, CatalogTestData.Pack(3, e2 with { TankCapacityL = 51m }, e3 with { TankCapacityL = 46m }, e4 with { TankCapacityL = 61m }));
         var full = await GetAsync(client, "/v1/catalog?since_version=1");
         var fullBody = JsonDocument.Parse(await full.Content.ReadAsStringAsync()).RootElement;
         Assert.Equal(3, fullBody.GetProperty("packVersion").GetInt32());
@@ -131,8 +138,8 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
         var toyota = new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", TankCapacityL: 50m);
         var clio = new CatalogTestData.Entry(Guid.NewGuid(), "Renault", "Clio", TankCapacityL: 45m);
-        await PublishAsync(client, CatalogTestData.Pack(1, volvo, toyota));
-        await PublishAsync(client, CatalogTestData.Pack(2, clio));
+        await SeedAsync(app, CatalogTestData.Pack(1, volvo, toyota));
+        await SeedAsync(app, CatalogTestData.Pack(2, clio));
 
         // Full pack (no since_version): marked "full". A test of only this side
         // would pass an implementation that hard-codes the marker - the delta
@@ -169,14 +176,13 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
 
         var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
         var toyota = new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", TankCapacityL: 50m);
-        await PublishAsync(client, CatalogTestData.Pack(1, volvo, toyota));
+        await SeedAsync(app, CatalogTestData.Pack(1, volvo, toyota));
 
         // A pack that withdraws the Volvo (removedIds) and corrects the Toyota
         // in the same publish: removal IS expressible on the wire.
         var correctedToyota = toyota with { TankCapacityL = 51m };
-        using var response = await PostPackAsync(client,
-            CatalogTestData.Pack(2, [correctedToyota], [volvo.Id]));
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var withdrawal = await PublishAsync(app, CatalogTestData.Pack(2, [correctedToyota], [volvo.Id]));
+        Assert.True(withdrawal.IsSuccess);
 
         // The subsequent full pack lacks the withdrawn entry entirely - the row
         // is physically gone, not merely unpresented for one client.
@@ -201,7 +207,7 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var app = await StartAsync(db.ConnectionString);
         using var client = app.Client;
 
-        await PublishAsync(client, CatalogTestData.Pack(1,
+        await SeedAsync(app, CatalogTestData.Pack(1,
             new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m)));
 
         var first = await GetAsync(client, "/v1/catalog");
@@ -244,16 +250,17 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var client = app.Client;
 
         var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
-        await PublishAsync(client, CatalogTestData.Pack(1, volvo));
+        await SeedAsync(app, CatalogTestData.Pack(1, volvo));
 
         // A pack missing the required fuelKinds on its entry fails the schema.
         var invalid = CatalogTestData.Pack(2,
             new CatalogTestData.Entry(Guid.NewGuid(), "Toyota", "Corolla", FuelKinds: []));
-        using var refused = await PostPackAsync(client, invalid);
-        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        var refused = await PublishAsync(app, invalid);
+        Assert.False(refused.IsSuccess);
+        Assert.Equal(CatalogPublishErrorKind.SchemaValidationFailed, refused.Error!.Kind);
 
-        // The refusal is at publish time AND the endpoint still serves the
-        // previously published pack untouched - asserting the publish call alone
+        // The refusal is at WRITE time AND the endpoint still serves the
+        // previously published pack untouched - asserting the write call alone
         // would prove nothing about what is served.
         var after = await GetAsync(client, "/v1/catalog");
         var body = JsonDocument.Parse(await after.Content.ReadAsStringAsync()).RootElement;
@@ -273,18 +280,20 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var client = app.Client;
 
         var volvo = new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m);
-        await PublishAsync(client, CatalogTestData.Pack(1, volvo));
-        await PublishAsync(client, CatalogTestData.Pack(2, volvo with { TankCapacityL = 72m }));
+        await SeedAsync(app, CatalogTestData.Pack(1, volvo));
+        await SeedAsync(app, CatalogTestData.Pack(2, volvo with { TankCapacityL = 72m }));
 
         // The lower version (1 < current 2) is refused...
-        using var lower = await PostPackAsync(client, CatalogTestData.Pack(1, volvo with { TankCapacityL = 73m }));
-        Assert.Equal(HttpStatusCode.Conflict, lower.StatusCode);
+        var lower = await PublishAsync(app, CatalogTestData.Pack(1, volvo with { TankCapacityL = 73m }));
+        Assert.False(lower.IsSuccess);
+        Assert.Equal(CatalogPublishErrorKind.VersionNotMonotonic, lower.Error!.Kind);
 
         // ...and so is the equal version (2 == current 2). The >= vs > slip is
         // exactly the likely bug: if the check were >= instead of >, the equal
         // case would slip through and re-publish version 2 as a "rollback".
-        using var equal = await PostPackAsync(client, CatalogTestData.Pack(2, volvo with { TankCapacityL = 73m }));
-        Assert.Equal(HttpStatusCode.Conflict, equal.StatusCode);
+        var equal = await PublishAsync(app, CatalogTestData.Pack(2, volvo with { TankCapacityL = 73m }));
+        Assert.False(equal.IsSuccess);
+        Assert.Equal(CatalogPublishErrorKind.VersionNotMonotonic, equal.Error!.Kind);
 
         // Both refusals left the stored pack unchanged: still one row, version 2.
         var stored = await db.QueryAsync<(Guid Id, int PackVersion, decimal Capacity)>(
@@ -300,7 +309,7 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
     }
 
     [SkippableFact]
-    public async Task PublicEndpoint_ReachableWithoutBearer_CurationPathIsGated()
+    public async Task PublicEndpoint_ReachableWithoutBearer()
     {
         _fixture.RequireAvailable();
         await using var db = await OpenAndMigrateAsync();
@@ -308,52 +317,28 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var client = app.Client;
 
         // GET /catalog carries no Authorization header at all - it must serve.
+        // A signed-out user's Add-car autocomplete depends on it (hard rule 1).
         using var publicRequest = new HttpRequestMessage(HttpMethod.Get, "/v1/catalog");
         Assert.Null(publicRequest.Headers.Authorization);
         var publicResponse = await client.SendAsync(publicRequest);
         Assert.Equal(HttpStatusCode.OK, publicResponse.StatusCode);
-
-        var pack = CatalogTestData.Pack(1,
-            new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m));
-
-        // The curation path is NOT public: no token, then a wrong token.
-        using var noToken = new HttpRequestMessage(HttpMethod.Post, "/v1/catalog/publish")
-        {
-            Content = new StringContent(pack, Encoding.UTF8, "application/json"),
-        };
-        var noTokenResponse = await client.SendAsync(noToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, noTokenResponse.StatusCode);
-
-        using var wrongToken = new HttpRequestMessage(HttpMethod.Post, "/v1/catalog/publish")
-        {
-            Content = new StringContent(pack, Encoding.UTF8, "application/json"),
-        };
-        wrongToken.Headers.Add("X-Admin-Token", "not-the-token");
-        var wrongTokenResponse = await client.SendAsync(wrongToken);
-        Assert.Equal(HttpStatusCode.Unauthorized, wrongTokenResponse.StatusCode);
-
-        // The right token publishes.
-        using var rightToken = new HttpRequestMessage(HttpMethod.Post, "/v1/catalog/publish")
-        {
-            Content = new StringContent(pack, Encoding.UTF8, "application/json"),
-        };
-        rightToken.Headers.Add("X-Admin-Token", CatalogTestData.AdminToken);
-        var rightTokenResponse = await client.SendAsync(rightToken);
-        Assert.Equal(HttpStatusCode.OK, rightTokenResponse.StatusCode);
     }
 
     [SkippableFact]
-    public async Task Publish_WithNoAdminTokenConfigured_IsDisabled()
+    public async Task CatalogHasNoWriteSurface_PublishRouteIsGone()
     {
         _fixture.RequireAvailable();
         await using var db = await OpenAndMigrateAsync();
-        // No Catalog:AdminToken in configuration: curation answers 503, never 401.
-        using var app = await StartAsync(db.ConnectionString, adminToken: null);
+        using var app = await StartAsync(db.ConnectionString);
         using var client = app.Client;
 
+        // The publish endpoint was removed (2026-09-01): packs are written
+        // directly to the database. Asserted as 404 rather than left untested,
+        // because "the route is gone" is the security property that replaced the
+        // admin token - an unauthenticated POST must not find anything to reach.
         var response = await client.PostAsync("/v1/catalog/publish",
             new StringContent(CatalogTestData.Pack(1), Encoding.UTF8, "application/json"));
-        Assert.Equal(HttpStatusCode.ServiceUnavailable, response.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
     [SkippableFact]
@@ -364,7 +349,7 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var app = await StartAsync(db.ConnectionString);
         using var client = app.Client;
 
-        await PublishAsync(client, CatalogTestData.Pack(3,
+        await SeedAsync(app, CatalogTestData.Pack(3,
             new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m)));
 
         // since == current: an empty delta carrying the current packVersion -
@@ -398,7 +383,7 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var app = await StartAsync(db.ConnectionString);
         using var client = app.Client;
 
-        await PublishAsync(client, CatalogTestData.Pack(1,
+        await SeedAsync(app, CatalogTestData.Pack(1,
             new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", TankCapacityL: 71m)));
 
         var response = await GetAsync(client, "/v1/catalog");
@@ -446,13 +431,12 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         using var app = await StartAsync(db.ConnectionString);
         using var client = app.Client;
 
-        using var response = await PostPackAsync(client, CatalogTestData.Pack(4,
+        var result = await PublishAsync(app, CatalogTestData.Pack(4,
             new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", Years: [2018, 2025], FuelKinds: ["petrol95", "diesel"], TankCapacityL: 71m),
             new CatalogTestData.Entry(Guid.NewGuid(), "Tesla", "Model 3", Powertrain: "ev", FuelKinds: ["electricity"], BatteryCapacityKwh: 60m)));
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
-        Assert.Equal(4, body.GetProperty("packVersion").GetInt32());
-        Assert.Equal(2, body.GetProperty("entriesPublished").GetInt32());
+        Assert.True(result.IsSuccess);
+        Assert.Equal(4, result.Version);
+        Assert.Equal(2, result.EntriesPublished);
 
         // The full round trip: years and the offer set survive exactly.
         var full = await GetAsync(client, "/v1/catalog");
@@ -479,20 +463,25 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         return await client.SendAsync(request);
     }
 
-    private static async Task<HttpResponseMessage> PostPackAsync(HttpClient client, string packJson)
+    /// <summary>
+    /// Seeds a pack the way packs are now written: straight through
+    /// <see cref="CatalogPublishService"/> against the real database. There is no
+    /// publish endpoint any more (removed 2026-09-01), so these tests exercise
+    /// the write path that actually exists rather than an HTTP surface that does
+    /// not - and the schema and monotonic-version guards are still the ones
+    /// running, because they live in the service.
+    /// </summary>
+    private static async Task<CatalogPublishResult> PublishAsync(CatalogTestApp app, string packJson)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, "/v1/catalog/publish")
-        {
-            Content = new StringContent(packJson, Encoding.UTF8, "application/json"),
-        };
-        request.Headers.Add("X-Admin-Token", CatalogTestData.AdminToken);
-        return await client.SendAsync(request);
+        using var scope = app.Services.CreateScope();
+        var service = scope.ServiceProvider.GetRequiredService<CatalogPublishService>();
+        return await service.PublishAsync(packJson, CancellationToken.None);
     }
 
-    private static async Task PublishAsync(HttpClient client, string packJson)
+    private static async Task SeedAsync(CatalogTestApp app, string packJson)
     {
-        using var response = await PostPackAsync(client, packJson);
-        Assert.True(response.IsSuccessStatusCode, $"publish {response.StatusCode}: {await response.Content.ReadAsStringAsync()}");
+        var result = await PublishAsync(app, packJson);
+        Assert.True(result.IsSuccess, $"seed refused: {result.Error?.Kind} {result.Error?.Detail}");
     }
 
     private static Dictionary<Guid, JsonElement> EntriesById(JsonElement body)
@@ -506,18 +495,13 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         return result;
     }
 
-    private static async Task<CatalogTestApp> StartAsync(string connectionString, string? adminToken = CatalogTestData.AdminToken, int? maxDeltaEntries = null)
+    private static async Task<CatalogTestApp> StartAsync(string connectionString, int? maxDeltaEntries = null)
     {
         var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(b =>
             {
                 b.UseEnvironment("Testing");
                 b.UseSetting("ConnectionStrings:Postgres", connectionString);
-                if (adminToken is not null)
-                {
-                    b.UseSetting("Catalog:AdminToken", adminToken);
-                }
-
                 if (maxDeltaEntries is not null)
                 {
                     b.UseSetting("Catalog:MaxDeltaEntries", maxDeltaEntries.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
@@ -538,6 +522,9 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         }
 
         public HttpClient Client { get; }
+
+        /// <summary>The host's services - how a test reaches the write path now.</summary>
+        public IServiceProvider Services => _factory.Services;
 
         public void Dispose()
         {

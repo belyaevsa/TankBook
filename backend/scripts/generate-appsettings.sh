@@ -21,7 +21,7 @@
 #   TANKBOOK_HASH_SALT             docs/LOGGING.md account-id hashing
 #   CONFIG_SIGNING_KEY             the Ed25519 seed that signs config documents
 #   AUTH_JWT_SIGNING_KEY           base64 PKCS#8 RSA access-token key
-#   CATALOG_ADMIN_TOKEN, LLM_API_KEY, POSTGRES_CONNECTION
+#   LLM_API_KEY, POSTGRES_CONNECTION
 #
 # Anything unset is left as the template has it - blank. That is deliberate and
 # safe: `Program.cs`'s PR.34 guard refuses to start outside Development with an
@@ -81,7 +81,6 @@ put(["S3", "SecretKey"], os.environ.get("S3_SECRET_KEY"))
 put(["Tankbook", "Logging", "HashSalt"], os.environ.get("TANKBOOK_HASH_SALT"))
 put(["Config", "SigningKey"], os.environ.get("CONFIG_SIGNING_KEY"))
 put(["Auth", "JwtSigningKeyBase64"], os.environ.get("AUTH_JWT_SIGNING_KEY"))
-put(["Catalog", "AdminToken"], os.environ.get("CATALOG_ADMIN_TOKEN"))
 put(["LlmGateway", "ApiKey"], os.environ.get("LLM_API_KEY"))
 # Not secrets - a public API host and a model name, defaulted in the template
 # the way Apns:Endpoint is. Overridable so a deploy can move provider or model

@@ -3,13 +3,10 @@ using System.Text.Json;
 namespace Tankbook.Api.Tests.Catalog;
 
 /// <summary>
-/// Shared fixtures for the catalog tests: a dev admin token (mirroring
-/// appsettings.Development.json) and a builder for schema-valid packs.
+/// Shared fixtures for the catalog tests: a builder for schema-valid packs.
 /// </summary>
 internal static class CatalogTestData
 {
-    public const string AdminToken = "test-catalog-admin-token";
-
     private static readonly JsonSerializerOptions WireJson = new(JsonSerializerDefaults.Web);
 
     /// <summary>One catalog entry in the wire shape (docs/API.md "Vehicle catalog").</summary>

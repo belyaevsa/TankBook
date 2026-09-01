@@ -251,7 +251,8 @@ A user's override is theirs permanently.
   **overlays** only the entries it mentions by identity and never removes anything. The bundled seed stays
   layer 1 underneath both, so Add-car suggestions work with no cache and no network (hard rule 1).
 - **Removals travel in full packs.** A withdrawal is a physical delete at publish time - the operator
-  names the dropped ids in `removedIds` on `POST /catalog/publish` (`API.md`), the rows are deleted (never
+  names the dropped ids in `removedIds` on the catalog write (`API.md`; the publish endpoint was removed
+  2026-09-01 and packs go straight to the database), the rows are deleted (never
   tombstoned - the server does not remember what it withdrew), and the subsequent full pack simply lacks
   them. A delta cannot express a removal; a client close behind the server that never pulls a full pack
   may retain a withdrawn entry until it does, which is exactly the trade the "dropped on a full pack"

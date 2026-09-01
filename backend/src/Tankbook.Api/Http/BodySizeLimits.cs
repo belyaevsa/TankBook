@@ -34,12 +34,6 @@ public static class BodySizeLimits
     /// </summary>
     public const long ImportBytes = 8L * 1024 * 1024 + 1024 * 1024;
 
-    /// <summary>
-    /// The operator publishes a full catalog pack; a region's dictionary is far
-    /// larger than any user request body. The "everything else is 64 KB" rule
-    /// (docs/API.md) deliberately does not apply here.
-    /// </summary>
-    public const long CatalogPublishBytes = 8L * 1024 * 1024;
 
     /// <summary>Everything else (auth, blobs begin/commit, account push-token): tiny bodies.</summary>
     public const long DefaultBytes = 64L * 1024;

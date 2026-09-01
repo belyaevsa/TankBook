@@ -93,7 +93,6 @@ credentials starts and fails at the first attachment upload instead.
 | `TANKBOOK_HASH_SALT` | `Tankbook:Logging:HashSalt` | Generated once; rotating it re-anonymises every account id (`LOGGING.md`) |
 | `CONFIG_SIGNING_KEY` | `Config:SigningKey` | The Ed25519 seed signing config documents (`CONFIG.md`) |
 | `AUTH_JWT_SIGNING_KEY` | `Auth:JwtSigningKeyBase64` | Base64 PKCS#8 RSA; tokens carry `kid`, so rotation does not invalidate live sessions |
-| `CATALOG_ADMIN_TOKEN` | `Catalog:AdminToken` | The vehicle-catalog publish token |
 | `LLM_API_KEY` | `LlmGateway:ApiKey` | The provider key that is precisely why the gateway is server-side |
 | `POSTGRES_CONNECTION` | `ConnectionStrings:Postgres` | The deployed database |
 

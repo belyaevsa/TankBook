@@ -47,7 +47,6 @@ jobs:
           TANKBOOK_HASH_SALT: ${{ secrets.TANKBOOK_HASH_SALT }}
           CONFIG_SIGNING_KEY: ${{ secrets.CONFIG_SIGNING_KEY }}
           AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
-          CATALOG_ADMIN_TOKEN: ${{ secrets.CATALOG_ADMIN_TOKEN }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
 

@@ -165,9 +165,11 @@ builder.Services.AddScoped<IConfigReadService, ConfigReadService>();
 builder.Services.AddScoped<ConfigPublishService>();
 
 // Vehicle catalog (docs/SYNC.md "Reference data", docs/API.md "Vehicle catalog").
-// The publish service validates a pack against its schema and enforces the
-// monotonic packVersion before anything is written; the endpoint gates it on the
-// Catalog:AdminToken secret, never on a user account. The read side is public.
+// CatalogPublishService validates a pack against its schema and enforces the
+// monotonic packVersion before anything is written. It is no longer reachable
+// over HTTP - packs go straight into the database - but it stays registered as
+// the in-process write path, so those two guarantees belong to the write itself
+// rather than to a route that no longer exists.
 builder.Services.AddSingleton<CatalogSchemaValidator>();
 builder.Services.AddScoped<CatalogRepository>();
 builder.Services.AddScoped<CatalogPublishService>();
@@ -434,13 +436,11 @@ rates.MapGet("/pack", RateEndpoints.GetRatesPack);
 
 // Vehicle catalog (docs/API.md "Vehicle catalog", docs/SYNC.md "Reference data").
 // GET is public - no auth, no account - because a signed-out user's Add-car
-// autocomplete needs the dictionary too. POST /publish is an OPERATOR surface
-// gated on the Catalog:AdminToken secret, never on a user account.
+// autocomplete needs the dictionary too. There is no publish endpoint: packs are
+// written directly to the database (2026-09-01, product owner), so the catalog
+// has no write surface on the API at all.
 var catalog = v1.MapGroup("/catalog");
 catalog.MapGet("", CatalogEndpoints.GetCatalog);
-catalog.MapPost("/publish", CatalogEndpoints.Publish)
-    .RequireRateLimiting(RateLimitingSetup.CatalogPublish)
-    .WithBodySizeLimit(BodySizeLimits.CatalogPublishBytes);
 
 // Import parsing (docs/API.md "Import parsing"): the one endpoint that reads
 // what a field means, plus the public format list and the stored-parse read and

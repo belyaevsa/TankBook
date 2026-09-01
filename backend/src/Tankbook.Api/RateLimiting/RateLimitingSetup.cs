@@ -21,7 +21,6 @@ public static class RateLimitingSetup
     public const string AuthSession = "auth-session";
     public const string AuthRefresh = "auth-refresh";
     public const string ImportParse = "import-parse";
-    public const string CatalogPublish = "catalog-publish";
     public const string Extract = "extract";
     public const string SyncPush = "sync-push";
     public const string BlobBegin = "blob-begin";
@@ -38,7 +37,6 @@ public static class RateLimitingSetup
             options.AddPolicy(AuthSession, PerIp(limits.AuthSessionPerMinute));
             options.AddPolicy(AuthRefresh, PerIp(limits.AuthRefreshPerMinute));
             options.AddPolicy(ImportParse, PerIp(limits.ImportParsePerMinute));
-            options.AddPolicy(CatalogPublish, PerIp(limits.CatalogPublishPerMinute));
             options.AddPolicy(Extract, PerDevice(limits.ExtractPerMinute));
             options.AddPolicy(SyncPush, PerDevice(limits.SyncPushPerMinute));
             options.AddPolicy(BlobBegin, PerDevice(limits.BlobBeginPerMinute));
