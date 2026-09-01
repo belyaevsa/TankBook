@@ -352,3 +352,67 @@ struct ScannedSavePersistenceTests {
         #expect(saved.extraction == nil)
     }
 }
+
+// MARK: - PJ.2b the Expense rows the plan emits (one shared id, L1-reachable)
+
+@Suite("Scanned save: the plan emits Expense rows sharing the ONE attachment id")
+struct ScannedSaveExpenseRowsTests {
+
+    private func decimal(_ string: String) -> Decimal {
+        Decimal(string: string)!
+    }
+
+    /// A mixed-receipt group plan through the production path: the detector and
+    /// the group planner, never a hand-built `ReceiptGroupPlan`.
+    private func groupPlan() -> ReceiptGroupPlan? {
+        let detection = MixedReceiptDetection.mixed(
+            lines: [
+                ReceiptLineItem(title: "Мойка кузова", amount: decimal("8.00"),
+                                category: .parking, isCarRelated: true),
+                ReceiptLineItem(title: "Кофе американо", amount: decimal("4.80"),
+                                category: .other("coffee"), isCarRelated: false)
+            ],
+            fuelLine: decimal("71.02"), grandTotal: decimal("83.82"))
+        return ReceiptGroupPlanner.plan(detection: detection,
+                                        fillUpAmount: decimal("71.02"),
+                                        acceptedLineIDs: Set(detection.lines.map(\.id)))
+    }
+
+    @Test("the fill-up and every expense reference the SAME attachment id, not merely one each")
+    func everyExpenseSharesTheFillUpsId() {
+        let scanned = ScannedSavePlanner.plan(
+            extraction: FuelExtraction(liters: 42.30, unitPrice: decimal("1.679"),
+                                       total: decimal("71.02"), currency: .eur, fuelKind: .petrol95),
+            hasPhoto: true,
+            saved: ScannedSaveValues(total: decimal("71.02"), volumeL: 42.30,
+                                     unitPrice: decimal("1.679"), currency: .eur,
+                                     fuelKind: .petrol95))
+        guard let attachmentID = scanned.attachmentID else {
+            Issue.record("a scanned save must plan an attachment")
+            return
+        }
+        guard let group = groupPlan() else {
+            Issue.record("a mixed-receipt group plan must build")
+            return
+        }
+
+        // The production path: the plan builds the rows, the test does not
+        // arrange them itself (that would assert its own setup, not the code).
+        let rows = scanned.expenses(from: group, vehicleId: UUID.v7(),
+                                    date: Date(), createdAt: Date()) { amount in
+            Money(amount: amount, currency: .eur, homeCurrency: .eur)
+        }
+
+        #expect(rows.count == 2, "every accepted line becomes an expense")
+        // THE assertion that matters: each row references the SAME id the fill
+        // references. A per-row mint (each expense its own fresh id) makes every
+        // `attachments` list differ from `sharedAttachmentIDs` and fails here.
+        #expect(rows.allSatisfy { $0.attachments == scanned.sharedAttachmentIDs },
+                "every expense must reference the plan's ONE shared id")
+        #expect(scanned.sharedAttachmentIDs == [attachmentID])
+        #expect(rows.allSatisfy { $0.attachments == [attachmentID] })
+        // The rest of the shared shape: provenance and group id come from the plan too.
+        #expect(rows.allSatisfy { $0.provenance == scanned.provenance })
+        #expect(rows.allSatisfy { $0.purchaseGroupId == group.purchaseGroupId })
+    }
+}

@@ -557,17 +557,17 @@ private extension ManualFillUpView {
                 // Grouped save (P2.4): the FillUp and every accepted Expense
                 // share one purchaseGroupId AND the same receipt photo
                 // (PJ.2: one photograph of one receipt, never a copy per row).
+                // PJ.2b: the Expense rows are built by the core plan, which
+                // stamps each one with the SAME shared attachment id - the app
+                // applies what the plan decided, it does not decide the id.
                 toSave.purchaseGroupId = plan.purchaseGroupId
                 let now = Date()
-                for expense in plan.expenses {
-                    let row = Expense(
-                        id: expense.id, createdAt: now, updatedAt: now, deletedAt: nil,
-                        vehicleId: vehicle.id, date: form.date, odometer: nil,
-                        money: convertForSave(Money(amount: expense.amount, currency: form.currency,
-                                                    homeCurrency: vehicle.homeCurrency)),
-                        note: nil, attachments: attachmentIDs, provenance: scanned.provenance,
-                        conflict: .none, purchaseGroupId: plan.purchaseGroupId,
-                        category: expense.category, title: expense.title)
+                let rows = scanned.expenses(from: plan, vehicleId: vehicle.id,
+                                            date: form.date, createdAt: now) { amount in
+                    convertForSave(Money(amount: amount, currency: form.currency,
+                                         homeCurrency: vehicle.homeCurrency))
+                }
+                for row in rows {
                     try repository.upsertExpense(row)
                 }
             }

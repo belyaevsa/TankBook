@@ -219,3 +219,46 @@ public enum ScannedSavePlanner {
         return left == right
     }
 }
+
+// MARK: - The Expense rows the grouped save writes (PJ.2b)
+
+extension ScannedSavePlan {
+    /// Builds the `Expense` rows a grouped save writes, one per accepted
+    /// mixed-receipt line, each referencing THIS plan's single shared attachment
+    /// id and provenance. This is the construction that used to live in the
+    /// Confirm sheet's save loop (`ios/App`), where no unit-test target could
+    /// reach it - so the PJ.2 guarantee ("one photograph of one receipt, never a
+    /// copy per row") was asserted nowhere and a per-row id mutation passed both
+    /// L1 and L4. Moved into core (the P3.7 lesson): the app writes what the
+    /// plan decided, it does not decide the shared id itself.
+    ///
+    /// The fill-up's own attachment list is `sharedAttachmentIDs`; every expense
+    /// produced here carries that SAME list, so the receipt photo is written
+    /// once and referenced by the fill-up and by every accepted expense alike.
+    ///
+    /// - Parameters:
+    ///   - group: the grouped-save plan (`ReceiptGroupPlanner.plan`); its
+    ///     `purchaseGroupId` and accepted `expenses` are what the rows inherit.
+    ///   - vehicleId: the selected car, shared by the whole group.
+    ///   - date: the entry date, shared by the whole group.
+    ///   - createdAt: the write timestamp (both `createdAt` and `updatedAt`).
+    ///   - money: turns a line's receipt amount into the `Money` pair the row
+    ///     stores. The app supplies this because conversion is a form concern
+    ///     (manual rate, feed snapshot, low-confidence), never a plan concern.
+    public func expenses(from group: ReceiptGroupPlan,
+                         vehicleId: UUID,
+                         date: Date,
+                         createdAt: Date,
+                         money: (Decimal) -> Money) -> [Expense] {
+        let attachments = sharedAttachmentIDs
+        return group.expenses.map { receipt in
+            Expense(
+                id: receipt.id, createdAt: createdAt, updatedAt: createdAt, deletedAt: nil,
+                vehicleId: vehicleId, date: date, odometer: nil,
+                money: money(receipt.amount),
+                note: nil, attachments: attachments, provenance: provenance,
+                conflict: .none, purchaseGroupId: group.purchaseGroupId,
+                category: receipt.category, title: receipt.title)
+        }
+    }
+}
