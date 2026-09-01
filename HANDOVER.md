@@ -1,14 +1,16 @@
 # Tankbook – Session Handover
 
-*Updated 2026-08-31. **Tier 2 is COMPLETE (24/24)** and the UI suite is **274 tests** with one
-intermittent (`T.3`). Phases 4-6 complete. **Tier 1 is 14/17**: `SH.1` (deploy the backend),
-`SH.3` (launch-readiness walk on a device, by a human) and `SH.4` (the Sign-in screen offers
-"Continue with Google" and the provider throws `unsupported` - a dead control on the auth screen)
-are the product owner's, not an agent's; `SH.2` and `P6.6` are `[~]`. **Ten rows block v1 and only
-six are agent work**: `PJ.12b`, `P6.17`, `P1.13b`, `PJ.2b`, `PR.16b`, `PR.3c`, plus `T.3`. Beyond
-v1: 13 `[v1.0.x]`, 32 `[v1.1]` (eleven of them an ordered priority queue set by the owner on
-2026-08-31), 15 `[v2]`. Counts: **144 done, 68 open**. The marketing site is LIVE. Read this first,
-then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog with live status marks.*
+*Updated 2026-09-01. **The agent-shaped v1 work is done.** Tier 2 is 24/24 and the six small v1
+rows filed from the work itself are closed (`PJ.12b`, `P6.17`, `P1.13b`, `PJ.2b`, `PR.16b`;
+`PR.3c` deferred with reason, below). **What is left for v1 is the product owner's**: `SH.1` deploy
+the backend, `SH.3` the launch-readiness walk on a device, `SH.4` the Sign-in screen offering
+"Continue with Google" whose provider throws `unsupported` - a dead control a tester meets in the
+first minute - and `P6.5`'s manual VoiceOver walkthrough of J3. Plus `T.3`, one intermittent UI
+test that needs two consecutive clean full suites rather than a fix. Measured: **iOS 1127 unit,
+274 UI** (1 intermittent), **backend 281**, lint 0, Debug *and* Release builds green. Corpus: 43
+pump / 42 receipt / 8 screenshot / 3 fiscal. Ledger **149 done, 65 open** - beyond v1: 13
+`[v1.0.x]`, 32 `[v1.1]` (eleven an ordered owner-set priority queue), 15 `[v2]`. The marketing site
+is LIVE. Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog.*
 
 ## Start here (paste this to open a new session)
 
@@ -184,6 +186,92 @@ produces - P6.20 again), `PJ.45` (`paceLimitKmPerDay` edited nowhere).
 
 **Ask what PRODUCES a case, not only what handles it.** That question found P6.20, and it found
 these four.
+
+## Closing out v1's agent work (2026-09-01)
+
+Six small rows, each filed FROM the work rather than from the backlog, all verified in the
+orchestrator's own hands before commit.
+
+| Row | What it actually was |
+|---|---|
+| **PJ.12b** `79b451c` | The capture caption promised automatic pump detection **to EVs**, while `PumpPhotoGate` measured 19% against a 95% threshold. Now the claim is the **gate's answer**, not a constant - it would earn the pump sentence the day the gate passes |
+| **P6.17** `8d93c87` | «Поменял шины» is **masculine past tense** - the app misgendered half its users on a routine tap - and «отклонение» means *deviation*, sitting under a card about a consumption deviation |
+| **P1.13b** `5da134d` | The F9a quote printed `119486` beside a field showing `121 727`. Three composers bypassed `OdometerFormat`, each with a comment claiming the grouped form |
+| **PJ.2b** `a64c33f` | The shared-attachment guarantee was pinned by **nothing** - per-row ids passed 13 L1 and 28 L4 tests |
+| **PR.16b** `77f8e5f` | The file-protection test **could not fail** on the only runtime CI has |
+| **PR.3c** | Deferred with a reason - see below |
+
+### The two that are worth more than their rows
+
+**PJ.2b was fixed by moving code, not by adding a test.** The guarantee fell in the gap between
+tiers: the shared id lived in core, but the loop that COPIED it onto each expense sat in
+`ManualFillUpView` inside `ios/App`, which no unit test can import - and no L4 drove a
+mixed-receipt scanned save. So the fix is the **P3.7 lesson**: the loop moved into
+`ScannedSavePlan.expenses(from:)` where the existing L1 already reaches, and the app now applies
+what the plan decided. Money conversion correctly stayed app-side - manual rate, feed snapshot and
+low-confidence are form concerns, not plan concerns.
+
+**The assertion is identity, not existence**: `$0.attachments == scanned.sharedAttachmentIDs`.
+"Each expense has an attachment" passes under the defect; that is the whole row.
+
+**PR.16b's warning generalises**: *a replacement that also cannot fail is worse than none*, because
+it looks like the gap is closed. Its device-truth tests were **kept**, with a comment saying
+plainly that they are worthless on a simulator and correct on hardware - deleting a test that
+cannot fail here would have traded one blind spot for another.
+
+### A guard can only assert shape, and that is enough
+
+P6.17's defects are legal Russian that means the wrong thing - no test can judge taste. So the
+guard asserts the **shape**: no dismiss option ending in a past-tense suffix, no form of
+«отклонени» in the subtitle, with the class named in a comment. A "better" gendered verb or a
+domain-colliding synonym still fails. **Russian has no genderless past tense**, so a verb in a
+user-selectable option is a defect of sentence shape, not of word choice - that is now in
+`docs/LOCALIZATION.md`.
+
+### The 6 h config throttle is about HIBERNATION, and that killed PR.3c
+
+`CONFIG.md` and the code both justified it as economics - "config changes are rare; polling is
+nearly free". The real reason (product owner, 2026-09-01) is the platform lifecycle: **iOS suspends
+and eventually terminates a backgrounded app, so six hours spaces FOREGROUNDS, not wall-clock
+ticks.** A shorter remote value could not be honoured by an app that is not running; it would only
+add fetches to launches the user already makes.
+
+That reframed `PR.3c` from tuning to **not worth doing**: the number is a property of the platform,
+which is why it belongs compiled rather than remote. Deferred to `[v1.1]` with `PR.23`, which
+unifies the three hand-kept config copies it would otherwise have edited by hand. **Recorded in
+three places** because an unwritten rationale gets relitigated - this repo has already paid for a
+resolved question filed as open, and for a stale doc sentence implemented faithfully.
+
+### Corpus: 13 pump fixtures added across two batches
+
+`pump-031..043`, all Circle K Estonia. Every constant **measured three times**, never guessed:
+gate `26/116 -> 29/151 -> 32/171`, receipts `88/185 -> 94/190`. Accuracy FALLS each time (22.4% ->
+19.2% -> 18.7%) and that is correct - the ratchet guards absolute hits so hard fixtures cannot be
+punished.
+
+Four shapes the corpus did not have:
+
+- **A third matched pair** (`pump-034` / `receipt-042`) whose pump board does **not** contain the
+  transaction price, because the product was `D B0` while the board prices another diesel. So
+  resolving a fill by picking the boarded price nearest the arithmetic is **wrong**.
+- **The first preset-amount fill** (`pump-042`): a round `20.00` total with the volume derived - the
+  **direction of inference is reversed** from an ordinary fill, so a parser assuming the total is
+  the computed quantity has it backwards.
+- **A cross-check mismatch by design** (`pump-031`): `16.80 x 1.939 = 32.575` against a printed
+  `32.50`, a discount sitting between board and charged price.
+- **A glare-destroyed total** (`pump-041`) left EMPTY, so the fixture measures **reading** rather
+  than computing.
+
+**Conversion rule worth repeating**: all 14 photos were EXIF orientation 6, so orientation must be
+**baked into the pixels before EXIF is stripped** - otherwise every fixture is silently rotated and
+measures a different problem than the app has.
+
+### The ledger drifted four times in two days
+
+`PJ.7g`, `PJ.20a`, `P6.5`, then five more rows were committed and verified while `docs/TASKS.md`
+still showed them open. The orchestrator ticks at merge; skipping it makes the backlog lie about
+what is left, and the lie is only visible when someone asks "what is next". **Tick in the same
+action as the commit.**
 
 ## Tier 2 is COMPLETE, and the day the suite was hardened (2026-08-31)
 
