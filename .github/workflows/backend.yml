@@ -260,7 +260,7 @@ jobs:
     # the state in /opt/tankbook/api and the blue/green containers. A second
     # runner carrying `tankbook-api` would be an eligible target and would deploy
     # into a machine holding none of that, while nginx kept proxying here.
-    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
+    runs-on: [self-hosted, tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
