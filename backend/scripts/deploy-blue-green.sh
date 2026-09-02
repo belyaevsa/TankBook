@@ -28,7 +28,12 @@
 set -euo pipefail
 
 IMAGE_TAG="${1:?usage: deploy-blue-green.sh <image-tag>}"
-IMAGE="tankbook-api:${IMAGE_TAG}"
+# The image is BUILT ON ANOTHER HOST and pulled from the registry (2026-09-02:
+# build and deploy were split onto separate runners). TANKBOOK_IMAGE_REPO is the
+# registry path; left unset, the script falls back to a local `tankbook-api` tag
+# so it can still be driven by hand on a machine that built its own image.
+IMAGE_REPO="${TANKBOOK_IMAGE_REPO:-tankbook-api}"
+IMAGE="${IMAGE_REPO}:${IMAGE_TAG}"
 
 # Deliberately uncommon ports. This host runs other containers, and 8080/8090
 # are the first thing anything else grabs - a collision would either fail the
@@ -56,7 +61,17 @@ wait_healthy() { # <port> <attempts>
 }
 
 command -v docker >/dev/null 2>&1 || fail "docker is not on this runner"
-docker image inspect "$IMAGE" >/dev/null 2>&1 || fail "image ${IMAGE} was not built"
+
+# Pull before anything else. The image is built elsewhere now, so "it exists
+# locally" is no longer the question - and a pull that fails must stop the deploy
+# here, with the old colour still serving, rather than at the handover.
+if [ "$IMAGE_REPO" != "tankbook-api" ]; then
+    log "pulling ${IMAGE}"
+    docker pull "$IMAGE" >/dev/null \
+        || fail "could not pull ${IMAGE} - is this host authenticated to the registry, and did the build job push this tag?"
+fi
+docker image inspect "$IMAGE" >/dev/null 2>&1 \
+    || fail "image ${IMAGE} is not present after the pull"
 mkdir -p "$STATE_DIR" || fail "cannot create ${STATE_DIR}"
 
 # Refuse to deploy if either port is held by something that is not ours. Without
@@ -223,7 +238,7 @@ log "${target_colour} is serving ${IMAGE} on ${SERVE_PORT}"
 
 # Keep the three most recent images. A runner that never prunes fills its disk,
 # and that surfaces weeks later as an unrelated build failure.
-docker images tankbook-api --format '{{.Tag}} {{.ID}}' \
+docker images "$IMAGE_REPO" --format '{{.Tag}} {{.ID}}' \
     | grep -v '^latest ' \
     | tail -n +4 \
     | awk '{print $2}' \

@@ -61,10 +61,20 @@ Configuration: `ConnectionStrings:Postgres` and `S3` options bind from appsettin
 `.github/workflows/backend.yml` splits by event, and the split is a security
 boundary rather than a preference:
 
-| Event | Runner | What runs |
-|---|---|---|
-| `pull_request` | `ubuntu-latest` | build, test, format, image build - no host access |
-| `push` | `self-hosted` | the same gate, then the image build, then the deploy on `main` |
+| Job | Event | Runner | What runs |
+|---|---|---|---|
+| `pr-gate` | `pull_request` | `ubuntu-latest` | build, test, format, image build - no host access |
+| `build` | `push` | `self-hosted` | the gate, then the image build (and push, if a registry is configured) |
+| `deploy` | `push` to `main` | `self-hosted` | pulls or reuses that image and hands it the serving port |
+
+**Build and deploy are separate jobs on one host today, and the registry is
+optional.** With both on the same machine the image never has to leave it, so an
+unset `YC_REGISTRY_ID` simply builds a local tag. Set it - plus `YC_CI_SA_KEY`
+and `YC_DEPLOY_SA_KEY` - and the same jobs push and pull through Yandex
+Container Registry instead. Moving the build onto its own machine is then a
+label change and nothing else. The registry (`tankbook`) and two service
+accounts already exist: `tankbook-ci` can push, `tankbook-deployer` can only
+pull, so a compromised deploy host cannot poison the registry.
 
 **Pull requests never touch the self-hosted runner.** This repository is public,
 so a `pull_request` job there would execute a stranger's code on the deploy host,

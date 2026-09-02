@@ -72,18 +72,23 @@ jobs:
         run: docker build -f backend/Dockerfile -t tankbook-api:pr .
 
   # ---------------------------------------------------------------------------
-  # Push builds, gates AND deploys in ONE job on the self-hosted runner - the
-  # shape deploy-landing.yml already uses. Same machine, so there is no artifact
-  # round-trip and the bytes that passed the suite are literally the bytes that
-  # get run; a build/deploy split across runners can ship an artifact nobody
-  # re-checked.
+  # BUILD HOST. Gates the code and pushes an image to Yandex Container Registry.
+  # It never touches production - no database credential, no serving port, no
+  # deploy directory - which is the point of the split (2026-09-02).
   #
-  # The deploy steps are gated on main. A push to any other branch builds and
-  # tests here and stops - which is safe, because a branch of THIS repo is our
-  # own code, unlike a fork's pull request.
+  # The cost of splitting, stated because it was the argument against: the bytes
+  # that passed the suite are no longer trivially the bytes that run. The image
+  # DIGEST is what closes that gap - the deploy pulls by the tag this job pushed
+  # and prints the digest, so the two can be compared rather than assumed.
+  #
+  # The full suite runs HERE rather than on the deploy host. That is not only
+  # tidiness: on 2026-09-02 the suite took 6m21s on the deploy host and two tests
+  # timed out against Postgres, because ~20 test classes run in parallel, each
+  # creating a database and applying all 12 migrations, while the host was also
+  # serving. Nothing was wrong with the code.
   # ---------------------------------------------------------------------------
-  build-and-deploy:
-    name: Build, gate and deploy
+  build:
+    name: Build, gate and push
     if: github.event_name != 'pull_request'
     # PINNED TO ONE MACHINE, deliberately, and it takes all three labels.
     #
@@ -101,7 +106,12 @@ jobs:
     # Moving hosts means changing this line and the runner's labels together;
     # backend/scripts/install-runner.sh registers the name as a label for exactly
     # this purpose.
-    runs-on: [self-hosted, tankbook-api]
+    # ONE HOST FOR NOW (2026-09-02): build and deploy are separate JOBS but the
+    # same machine, so this carries the same host-specific label as the deploy.
+    # Splitting onto a dedicated builder later is a one-line change here plus a
+    # label on that runner - nothing else, because the image already travels
+    # through the registry when one is configured.
+    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
@@ -122,11 +132,6 @@ jobs:
           done
           docker info >/dev/null 2>&1 || {
             echo "::error::the runner user cannot talk to docker - add it to the docker group"
-            fail=1
-          }
-          # The suite uses Testcontainers for Postgres and the deploy writes here.
-          mkdir -p /opt/tankbook/api 2>/dev/null || {
-            echo "::error::/opt/tankbook/api is not writable by the runner user"
             fail=1
           }
           [ "$fail" -eq 0 ] || exit 1
@@ -151,7 +156,15 @@ jobs:
         # Postgres-backed tests SKIP rather than fail, so the count is checked
         # below rather than trusting a green run.
         working-directory: backend
-        run: dotnet test Tankbook.slnx --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+        # MaxParallelThreads is capped. ~20 test classes each create a database
+        # and apply all 12 migrations; unbounded, that starved Postgres on a
+        # shared host and produced Npgsql read timeouts after 3-4 minutes - a red
+        # suite with nothing wrong in it. Raise it on a bigger builder; do not
+        # remove it without measuring.
+        run: >
+          dotnet test Tankbook.slnx --configuration Release --no-build
+          --logger "trx;LogFileName=results.trx"
+          -- xUnit.MaxParallelThreads=${XUNIT_THREADS:-4}
 
       - name: Assert the database-backed tests actually ran
         # A suite that skips its 153 Postgres tests still prints "Passed!". That
@@ -175,24 +188,82 @@ jobs:
         working-directory: backend
         run: dotnet format --verify-no-changes
 
-      - name: Build the image on this host
+      - name: Build and push the image
         # Tagged with the commit, never `latest`: the running container then
-        # names the commit it came from, and the previous image stays on disk as
-        # the rollback target. Context is the REPO ROOT - the csproj embeds files
-        # outside backend/.
-        run: docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
+        # names the commit it came from, and the previous tag stays in the
+        # registry as the rollback target. Context is the REPO ROOT - the csproj
+        # embeds files outside backend/.
+        #
+        # Registry auth uses the service account's authorized key as the
+        # `json_key` docker user, which is Yandex's documented CI path and needs
+        # no yc CLI on the runner. The key is piped on stdin, never in argv.
+        env:
+          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
+          YC_CI_SA_KEY: ${{ secrets.YC_CI_SA_KEY }}
+        run: |
+          set -euo pipefail
+          # The registry is OPTIONAL, and that is what lets one workflow serve
+          # both topologies. With build and deploy on one host the image never
+          # has to leave it, so an unset YC_REGISTRY_ID simply builds a local
+          # tag; set it, and the same jobs push and pull instead - which is all
+          # that has to change to move the build onto its own machine.
+          if [ -n "$YC_REGISTRY_ID" ] && [ -n "$YC_CI_SA_KEY" ]; then
+            image="cr.yandex/${YC_REGISTRY_ID}/tankbook-api:${GITHUB_SHA::7}"
+            printf '%s' "$YC_CI_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
+            docker build -f backend/Dockerfile -t "$image" .
+            docker push "$image"
+            # The digest makes the handoff checkable: the deploy prints what it
+            # pulled, so "the tested bytes ran" is verifiable rather than assumed
+            # - the one thing the single-JOB shape used to give for free.
+            echo "pushed $(docker inspect --format '{{index .RepoDigests 0}}' "$image")" >> "$GITHUB_STEP_SUMMARY"
+            docker logout cr.yandex
+          else
+            echo "::notice::no registry configured - building a local image (build and deploy share this host)"
+            docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
+          fi
+
+
+  # ---------------------------------------------------------------------------
+  # DEPLOY HOST. Pulls the image the build job pushed and hands it the serving
+  # port. It never compiles anything - no SDK needed, no source build - so the
+  # only thing that reaches production is an image that already passed the gate.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # PINNED TO ONE MACHINE. `runs-on` cannot name a runner - GitHub matches on
+    # labels only - so the host-specific label is what makes this "that runner
+    # and no other". This job is not portable: it owns the serving port 17080,
+    # the state in /opt/tankbook/api and the blue/green containers. A second
+    # runner carrying `tankbook-api` would be an eligible target and would deploy
+    # into a machine holding none of that, while nginx kept proxying here.
+    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assert the deploy host has what it needs
+        run: |
+          set -euo pipefail
+          fail=0
+          for tool in docker curl; do
+            command -v "$tool" >/dev/null 2>&1 || { echo "::error::${tool} is not installed on this runner"; fail=1; }
+          done
+          docker info >/dev/null 2>&1 || { echo "::error::the runner user cannot talk to docker - add it to the docker group"; fail=1; }
+          mkdir -p /opt/tankbook/api 2>/dev/null || { echo "::error::/opt/tankbook/api is not writable by the runner user"; fail=1; }
+          [ "$fail" -eq 0 ] || exit 1
 
       - name: Deploy
-        if: github.ref == 'refs/heads/main'
         # Migrations run as their own step inside this script, before any
-        # container is replaced, and the new image is health-checked on a scratch
+        # container is replaced, and the image is health-checked on a scratch
         # port before the serving port changes hands. A failure at either point
         # leaves the current version serving.
         #
         # nginx is external and unmanaged: it proxies to a fixed port on this
-        # host and is never touched here. The handover therefore refuses
-        # connections for roughly half a second - measured, not estimated.
+        # host and is never touched here. The handover refuses connections for
+        # roughly half a second - measured, not estimated.
         env:
+          YC_REGISTRY_ID: ${{ secrets.YC_REGISTRY_ID }}
           POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
           S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
           S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
@@ -202,10 +273,22 @@ jobs:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
           APPLE_AUDIENCE: ${{ vars.APPLE_AUDIENCE }}
           GOOGLE_AUDIENCE: ${{ vars.GOOGLE_AUDIENCE }}
-        run: bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
+          YC_DEPLOY_SA_KEY: ${{ secrets.YC_DEPLOY_SA_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "${YC_REGISTRY_ID:-}" ] && [ -n "${YC_DEPLOY_SA_KEY:-}" ]; then
+            printf '%s' "$YC_DEPLOY_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
+            export TANKBOOK_IMAGE_REPO="cr.yandex/${YC_REGISTRY_ID}/tankbook-api"
+          else
+            # Same host as the build: the image is already here, and the deploy
+            # script falls back to the local `tankbook-api` repository.
+            unset TANKBOOK_IMAGE_REPO
+          fi
+          bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
+          docker logout cr.yandex 2>/dev/null || true
 
       - name: Report what is serving
-        if: always() && github.ref == 'refs/heads/main'
+        if: always()
         run: |
           {
             echo "### Backend deploy"
