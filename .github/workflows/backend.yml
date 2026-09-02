@@ -101,7 +101,7 @@ jobs:
     # Moving hosts means changing this line and the runner's labels together;
     # backend/scripts/install-runner.sh registers the name as a label for exactly
     # this purpose.
-    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
+    runs-on: [self-hosted, tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
