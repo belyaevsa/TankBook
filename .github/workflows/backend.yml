@@ -111,7 +111,7 @@ jobs:
     # Splitting onto a dedicated builder later is a one-line change here plus a
     # label on that runner - nothing else, because the image already travels
     # through the registry when one is configured.
-    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
+    runs-on: [self-hosted, tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
