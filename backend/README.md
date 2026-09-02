@@ -55,3 +55,37 @@ cd backend && dotnet build && dotnet test
 ```
 
 Configuration: `ConnectionStrings:Postgres` and `S3` options bind from appsettings + environment variables (`ConnectionStrings__Postgres`, `S3__Endpoint`, ...). Local dev defaults live in `appsettings.Development.json`; never commit real credentials.
+
+## CI and the self-hosted runner
+
+`.github/workflows/backend.yml` splits by event, and the split is a security
+boundary rather than a preference:
+
+| Event | Runner | What runs |
+|---|---|---|
+| `pull_request` | `ubuntu-latest` | build, test, format, image build - no host access |
+| `push` | `self-hosted` | the same gate, then the image build, then the deploy on `main` |
+
+**Pull requests never touch the self-hosted runner.** This repository is public,
+so a `pull_request` job there would execute a stranger's code on the deploy host,
+next to the runner token and the containers holding the production database
+credential. `deploy-landing.yml` splits the same way and for the same reason.
+
+Push builds, gates and deploys in **one** job on that host, so the bytes that
+passed the suite are the bytes that run - a build/deploy split across runners can
+ship an artifact nobody re-checked.
+
+**What the runner must provide** (the job asserts all of it up front and names
+the fix rather than failing three steps later):
+
+- `dotnet` 10, `docker`, `curl`
+- the runner user in the `docker` group - the suite uses Testcontainers for
+  Postgres, and the deploy drives docker directly
+- a writable `/opt/tankbook/api`
+- an external nginx proxying to `127.0.0.1:8080` on that host
+
+The suite is also checked for **skips**, not just for green: without working
+docker the 153 Postgres-backed tests report as skipped and `dotnet test` still
+prints `Passed!`. The job reads `notExecuted` out of the TRX and fails the deploy
+if it is non-zero, so the gate cannot silently shrink to the half that needs no
+database.

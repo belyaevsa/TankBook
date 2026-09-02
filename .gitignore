@@ -56,3 +56,8 @@ site/resources/_gen/
 # generated too so a fresh clone works in one command.
 backend/src/Tankbook.Api/appsettings.json
 backend/src/Tankbook.Api/appsettings.Development.json
+
+# `dotnet test --logger trx` output. The backend CI writes results.trx on the
+# self-hosted runner to assert the Postgres-backed tests actually RAN - a suite
+# that skips them still prints "Passed!" - and that artifact is never committed.
+backend/**/TestResults/

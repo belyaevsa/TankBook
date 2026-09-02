@@ -19,23 +19,30 @@ on:
       - '.github/workflows/backend.yml'
   workflow_dispatch:
 
-# Deploys must not overlap: two runs racing the handover would fight over the
-# serving port. `cancel-in-progress: false` because cancelling mid-handover
-# could leave neither colour holding the port.
+# One run at a time on the deploy host: two runs racing the handover would fight
+# over the serving port, and the suite's Testcontainers would fight over the
+# machine. `cancel-in-progress: false` because cancelling mid-handover could
+# leave neither colour holding the port.
 concurrency:
   group: backend-deploy
   cancel-in-progress: false
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Build and test on a GITHUB-HOSTED runner, always - including for pull
-  # requests. belyaevsa/TankBook is PUBLIC: a `pull_request` job on the
-  # self-hosted runner would execute a stranger's code on the deploy host, with
-  # access to the runner token and every secret it can reach. Same reasoning as
-  # deploy-landing.yml.
+  # PULL REQUESTS RUN ON A GITHUB-HOSTED RUNNER, NEVER THE SELF-HOSTED ONE.
+  #
+  # belyaevsa/TankBook is PUBLIC. A `pull_request` job on the self-hosted runner
+  # executes the PR author's code on the deploy host - any stranger could open a
+  # PR whose build step reads the runner token, the deploy directory, or the
+  # containers holding the production database credential. GitHub's own guidance
+  # is not to pair self-hosted runners with public repos for exactly this reason,
+  # and deploy-landing.yml already splits the same way.
+  #
+  # So a PR gets the full gate on disposable infrastructure, and no host access.
   # ---------------------------------------------------------------------------
-  build-and-test:
-    name: Build and test
+  pr-gate:
+    name: Build and gate (PR)
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,11 +55,6 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
-      # appsettings.json is gitignored and generated from its committed
-      # template. Not optional: measured, with the file absent `dotnet test`
-      # ABORTS after 117 of 295 tests. No secrets are supplied - the suite runs
-      # in the "Testing" environment and passes 295/295 with every value blank,
-      # which is what keeps a fork's pull request green.
       - name: Generate appsettings from templates
         run: bash scripts/generate-appsettings.sh
 
@@ -65,45 +67,115 @@ jobs:
       - name: Verify formatting
         run: dotnet format --verify-no-changes
 
-      # Builds the image the deploy will build, on disposable infrastructure, so
-      # a broken Dockerfile fails in a PR rather than on the deploy host. Context
-      # is the REPO ROOT - the csproj embeds files outside backend/.
       - name: Build the container image
         working-directory: .
-        run: docker build -f backend/Dockerfile -t tankbook-api:ci .
+        run: docker build -f backend/Dockerfile -t tankbook-api:pr .
 
   # ---------------------------------------------------------------------------
-  # Deploy on the self-hosted runner: build the image locally (no registry),
-  # migrate as an explicit step, then hand the serving port to the new colour.
-  # Same machine as the build, so the bytes that were built are the bytes that
-  # run - there is no artifact round-trip and nothing to re-verify.
+  # Push builds, gates AND deploys in ONE job on the self-hosted runner - the
+  # shape deploy-landing.yml already uses. Same machine, so there is no artifact
+  # round-trip and the bytes that passed the suite are literally the bytes that
+  # get run; a build/deploy split across runners can ship an artifact nobody
+  # re-checked.
+  #
+  # The deploy steps are gated on main. A push to any other branch builds and
+  # tests here and stops - which is safe, because a branch of THIS repo is our
+  # own code, unlike a fork's pull request.
   # ---------------------------------------------------------------------------
-  deploy:
-    name: Build locally and deploy
-    needs: build-and-test
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+  build-and-deploy:
+    name: Build, gate and deploy
+    if: github.event_name != 'pull_request'
     runs-on: self-hosted
-    environment: production
     steps:
       - uses: actions/checkout@v4
+
+      - name: Assert the runner has what this job needs
+        # Asserted, never assumed. The runner is a machine somebody configured by
+        # hand; a missing tool otherwise surfaces as a confusing failure three
+        # steps later, and a missing `docker` would surface as a failed DEPLOY
+        # after a green test run. Each message names the fix (hard rule 7 applies
+        # to operators too).
+        run: |
+          set -euo pipefail
+          fail=0
+          for tool in dotnet docker curl; do
+            if ! command -v "$tool" >/dev/null 2>&1; then
+              echo "::error::${tool} is not installed on this runner"
+              fail=1
+            fi
+          done
+          docker info >/dev/null 2>&1 || {
+            echo "::error::the runner user cannot talk to docker - add it to the docker group"
+            fail=1
+          }
+          # The suite uses Testcontainers for Postgres and the deploy writes here.
+          mkdir -p /opt/tankbook/api 2>/dev/null || {
+            echo "::error::/opt/tankbook/api is not writable by the runner user"
+            fail=1
+          }
+          [ "$fail" -eq 0 ] || exit 1
+          dotnet --version
+          docker --version
+
+      - name: Generate appsettings from templates
+        # Gitignored and generated. Measured: with appsettings.json absent
+        # `dotnet test` ABORTS after 117 of 295 tests. No secrets here - the
+        # suite runs in the "Testing" environment and passes with every value
+        # blank; the real values reach the CONTAINER, not this checkout.
+        working-directory: backend
+        run: bash scripts/generate-appsettings.sh
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build Tankbook.slnx --configuration Release
+
+      - name: Test
+        # The full suite on the deploy host, before anything is built or shipped.
+        # Testcontainers needs the docker access asserted above; without it the
+        # Postgres-backed tests SKIP rather than fail, so the count is checked
+        # below rather than trusting a green run.
+        working-directory: backend
+        run: dotnet test Tankbook.slnx --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Assert the database-backed tests actually ran
+        # A suite that skips its 153 Postgres tests still prints "Passed!". That
+        # is the failure this checks for: on a runner without working docker the
+        # gate would quietly shrink to the half that needs no database, and the
+        # deploy below would proceed on it.
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          trx=$(find . -name results.trx | head -1)
+          [ -n "$trx" ] || { echo "::error::no test results file"; exit 1; }
+          skipped=$(grep -o 'total="[0-9]*" executed="[0-9]*" passed="[0-9]*"[^>]*' "$trx" | head -1 || true)
+          echo "counters: ${skipped:-unknown}"
+          notexecuted=$(grep -o 'notExecuted="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*' || echo 0)
+          if [ "${notexecuted:-0}" -gt 0 ]; then
+            echo "::error::${notexecuted} tests were skipped - Testcontainers could not start Postgres on this runner, so the database half of the suite did not run"
+            exit 1
+          fi
+
+      - name: Verify formatting
+        working-directory: backend
+        run: dotnet format --verify-no-changes
 
       - name: Build the image on this host
         # Tagged with the commit, never `latest`: the running container then
         # names the commit it came from, and the previous image stays on disk as
-        # the rollback target.
-        run: |
-          docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
+        # the rollback target. Context is the REPO ROOT - the csproj embeds files
+        # outside backend/.
+        run: docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
 
       - name: Deploy
-        # Migrations run as their own step INSIDE this script, before any
+        if: github.ref == 'refs/heads/main'
+        # Migrations run as their own step inside this script, before any
         # container is replaced, and the new image is health-checked on a scratch
         # port before the serving port changes hands. A failure at either point
         # leaves the current version serving.
         #
         # nginx is external and unmanaged: it proxies to a fixed port on this
         # host and is never touched here. The handover therefore refuses
-        # connections for roughly half a second - measured, not estimated. It is
-        # a deliberate trade, not zero-downtime.
+        # connections for roughly half a second - measured, not estimated.
         env:
           POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
           S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
@@ -117,12 +189,12 @@ jobs:
         run: bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
 
       - name: Report what is serving
-        if: always()
+        if: always() && github.ref == 'refs/heads/main'
         run: |
-          echo "### Backend deploy" >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          cat /opt/tankbook/api/active 2>/dev/null || echo "no active marker"
-          cat /opt/tankbook/api/active 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
-          docker ps --filter 'name=tankbook-api-' --format '{{.Names}} {{.Status}} {{.Ports}}' \
-            | tee -a "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "### Backend deploy"
+            echo '```'
+            cat /opt/tankbook/api/active 2>/dev/null || echo "no active marker"
+            docker ps --filter 'name=tankbook-api-' --format '{{.Names}} {{.Status}} {{.Ports}}'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
