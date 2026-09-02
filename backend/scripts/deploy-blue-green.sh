@@ -120,6 +120,38 @@ Database__AutoMigrate=false
 Tankbook__Logging__Format=${TANKBOOK_LOG_FORMAT:-text}
 EOF
 
+# --- 0. sanity-check the credentials we are about to deploy -----------------
+# Nothing checks S3 at startup, so a wrong key surfaces only when a user's first
+# photo fails to sync - which is how a 6-character access key sat in production
+# unnoticed (2026-09-02: the values had been truncated in a copy/paste, and the
+# bucket answered SignatureDoesNotMatch). A shape check cannot prove a key is
+# VALID, but it catches the failure that actually happened, at the moment it can
+# still be fixed for free.
+#
+# Yandex static keys: the id begins YCAJE and runs ~25 characters, the secret
+# ~39. The bounds below are deliberately loose - the point is to reject a
+# truncated paste, not to encode a provider's format as a rule that breaks the
+# day it changes.
+check_len() { # <name> <value> <min> <what>
+    local name="$1" value="$2" min="$3" what="$4"
+    if [ -z "$value" ]; then
+        log "::warning::${name} is empty - ${what} will not work"
+    elif [ "${#value}" -lt "$min" ]; then
+        fail "${name} is ${#value} characters, which is too short to be a real ${what}.
+  This is what a truncated copy/paste looks like; deploying it would fail
+  silently at the first upload. Re-mint and re-set it:
+    yc iam access-key create --service-account-name tankbook-storage"
+    fi
+}
+check_len "S3_ACCESS_KEY" "${S3_ACCESS_KEY:-}" 20 "S3 access key id"
+check_len "S3_SECRET_KEY" "${S3_SECRET_KEY:-}" 30 "S3 secret key"
+
+# The same class of mistake, different blast radius: an empty audience makes the
+# identity-token check fail CLOSED, so every sign-in is refused (docs/SECURITY.md).
+if [ -z "${APPLE_AUDIENCE:-}" ]; then
+    log "::warning::APPLE_AUDIENCE is empty - every Apple sign-in will be refused. It is a repository VARIABLE (vars.*), not a secret."
+fi
+
 # --- 1. migrate, as its own step -------------------------------------------
 # Before any container is touched. The schema moves at one known moment with its
 # own exit code, rather than as a side effect of whichever container starts
