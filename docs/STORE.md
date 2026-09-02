@@ -27,7 +27,7 @@ is checked for uniqueness across the whole store; **nothing else about the produ
 
 | Field | Value | Chars |
 |---|---|---|
-| **Name** | `Tankbook: Fuel & Cost Log` | 25 / 30 |
+| **Name** | `Tankbook: Car Costs & Fuel` | 26 / 30 |
 | **Subtitle** | `Snap the receipt or type it` | 27 / 30 |
 
 Why this costs nothing: the store name is independent of the bundle id
@@ -36,9 +36,16 @@ still reads **Tankbook**, and only the *listing* name must be unique. Measured b
 app's string catalogue contains the name **zero times**, so the app never prints it anywhere. No
 code, no docs and no site copy change.
 
-Both strings obey the copy rule above. The name repeats the site's own eyebrow ("Fuel & cost log for
-iPhone") rather than inventing a claim, and the subtitle states hard rule 15's two doors - snap **or**
-type, as peers - with no automation verb and no promise the corpus cannot support.
+Both strings obey the copy rule above: no automation verb, no promise the corpus cannot support. The
+name leads with **car costs** rather than fuel, which is the wider and truer scope - the app logs
+service, parts, tyres and expenses as well as fill-ups (`docs/VISION.md`), and a fuel-only name would
+undersell what P3 actually built. The subtitle states hard rule 15's two doors - snap **or** type, as
+peers.
+
+Note this makes the store name and the site's eyebrow ("Fuel & cost log for iPhone") lead with
+different halves of the same thing. That is a deliberate difference, not drift: a store name competes
+for a browse listing while the site is read by someone who already arrived. If the site is ever
+re-worded, they should be reconciled rather than allowed to diverge further.
 
 Renaming the product outright was considered and rejected as far more expensive: the domain, 26 site
 files and the docs. Worth recording that **this was the last cheap moment to change the bundle id**,
