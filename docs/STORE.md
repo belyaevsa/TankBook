@@ -20,6 +20,31 @@ What the repository controls is narrow and exact:
 
 Everything else below is prepared text to paste into App Store Connect.
 
+## The listing NAME is not "Tankbook" (2026-09-02)
+
+App Store Connect refused it: *"The app name you entered is already being used."* The listing name
+is checked for uniqueness across the whole store; **nothing else about the product changes.**
+
+| Field | Value | Chars |
+|---|---|---|
+| **Name** | `Tankbook: Fuel & Cost Log` | 25 / 30 |
+| **Subtitle** | `Snap the receipt or type it` | 27 / 30 |
+
+Why this costs nothing: the store name is independent of the bundle id
+(`app.tankbook.Tankbook`), the domain (`tankbook.live`), and `CFBundleDisplayName` - the home screen
+still reads **Tankbook**, and only the *listing* name must be unique. Measured before deciding: the
+app's string catalogue contains the name **zero times**, so the app never prints it anywhere. No
+code, no docs and no site copy change.
+
+Both strings obey the copy rule above. The name repeats the site's own eyebrow ("Fuel & cost log for
+iPhone") rather than inventing a claim, and the subtitle states hard rule 15's two doors - snap **or**
+type, as peers - with no automation verb and no promise the corpus cannot support.
+
+Renaming the product outright was considered and rejected as far more expensive: the domain, 26 site
+files and the docs. Worth recording that **this was the last cheap moment to change the bundle id**,
+since nothing had been uploaded yet and it is immutable afterwards - the name was kept deliberately,
+not by default.
+
 ## URLs - all live as of 2026-08-28
 
 | App Store Connect field | Value |
