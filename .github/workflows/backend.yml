@@ -167,21 +167,34 @@ jobs:
           -- xUnit.MaxParallelThreads=${XUNIT_THREADS:-4}
 
       - name: Assert the database-backed tests actually ran
-        # A suite that skips its 153 Postgres tests still prints "Passed!". That
-        # is the failure this checks for: on a runner without working docker the
-        # gate would quietly shrink to the half that needs no database, and the
-        # deploy below would proceed on it.
+        # The failure this exists for: without working docker the ~153
+        # Postgres-backed tests report as skipped and `dotnet test` still prints
+        # "Passed!" - the gate silently shrinks to the half that needs no
+        # database, and the deploy proceeds on it.
+        #
+        # It is a TOLERANCE, not zero, and that is the correction of an earlier
+        # version. Failing on any skip at all made this fire on a single
+        # transient one (2026-09-02: one SkippableFact skipped while the other
+        # 294 ran, because Testcontainers was briefly unreachable under load) -
+        # a red deploy with nothing wrong. A wholesale skip is ~153; a handful is
+        # noise. The tolerance separates them, and the count is always printed so
+        # a creeping number is visible before it reaches the limit.
         working-directory: backend
         run: |
           set -euo pipefail
           trx=$(find . -name results.trx | head -1)
           [ -n "$trx" ] || { echo "::error::no test results file"; exit 1; }
-          skipped=$(grep -o 'total="[0-9]*" executed="[0-9]*" passed="[0-9]*"[^>]*' "$trx" | head -1 || true)
-          echo "counters: ${skipped:-unknown}"
-          notexecuted=$(grep -o 'notExecuted="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*' || echo 0)
-          if [ "${notexecuted:-0}" -gt 0 ]; then
-            echo "::error::${notexecuted} tests were skipped - Testcontainers could not start Postgres on this runner, so the database half of the suite did not run"
+          counters=$(grep -o '<Counters[^>]*' "$trx" | head -1)
+          echo "$counters"
+          skipped=$(printf '%s' "$counters" | grep -o 'notExecuted="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          executed=$(printf '%s' "$counters" | grep -o ' executed="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          tolerance=10
+          if [ "${skipped:-0}" -gt "$tolerance" ]; then
+            echo "::error::${skipped} tests were skipped (tolerance ${tolerance}). That is the shape of Testcontainers failing to start Postgres, so the database half of the suite did not run and this deploy would ship on an untested gate."
             exit 1
+          fi
+          if [ "${skipped:-0}" -gt 0 ]; then
+            echo "::warning::${skipped} test(s) skipped of ${executed} executed - under the tolerance, but worth watching."
           fi
 
       - name: Verify formatting
