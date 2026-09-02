@@ -111,7 +111,15 @@ jobs:
     # Splitting onto a dedicated builder later is a one-line change here plus a
     # label on that runner - nothing else, because the image already travels
     # through the registry when one is configured.
-    runs-on: [self-hosted, tankbook-api]
+    # ITS OWN HOST (2026-09-03), and a DIFFERENT ARCHITECTURE: this builder is
+    # aarch64 while the deploy host is x86_64, which is why the image build below
+    # is explicitly --platform linux/amd64.
+    #
+    # It moved off the deploy machine because that machine OOM-killed its runner
+    # and timed tests out three times while also serving api.tankbook.live. The
+    # suite creates 178 databases and runs ~2,100 migrations per pass; that does
+    # not belong on the box answering production traffic.
+    runs-on: [self-hosted, tankbook-build]
     steps:
       - uses: actions/checkout@v4
 
@@ -224,24 +232,28 @@ jobs:
           YC_CI_SA_KEY: ${{ secrets.YC_CI_SA_KEY }}
         run: |
           set -euo pipefail
-          # The registry is OPTIONAL, and that is what lets one workflow serve
-          # both topologies. With build and deploy on one host the image never
-          # has to leave it, so an unset YC_REGISTRY_ID simply builds a local
-          # tag; set it, and the same jobs push and pull instead - which is all
-          # that has to change to move the build onto its own machine.
+          # The registry is REQUIRED now: build and deploy are different hosts,
+          # so the image has to travel. It is also built for linux/amd64
+          # explicitly - the builder is aarch64 and the deploy host is x86_64,
+          # and a natively-built image fails at `docker run` with `exec format
+          # error` AFTER a green build and a successful push.
+          #
+          # --push rather than build-then-push: buildx cross-platform output does
+          # not land in the local image store, so `docker push` afterwards would
+          # not find it.
           if [ -n "$YC_REGISTRY_ID" ] && [ -n "$YC_CI_SA_KEY" ]; then
             image="cr.yandex/${YC_REGISTRY_ID}/tankbook-api:${GITHUB_SHA::7}"
             printf '%s' "$YC_CI_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
-            docker build -f backend/Dockerfile -t "$image" .
-            docker push "$image"
+            docker buildx build --platform linux/amd64 \
+              -f backend/Dockerfile -t "$image" --push .
             # The digest makes the handoff checkable: the deploy prints what it
             # pulled, so "the tested bytes ran" is verifiable rather than assumed
             # - the one thing the single-JOB shape used to give for free.
             echo "pushed $(docker inspect --format '{{index .RepoDigests 0}}' "$image")" >> "$GITHUB_STEP_SUMMARY"
             docker logout cr.yandex
           else
-            echo "::notice::no registry configured - building a local image (build and deploy share this host)"
-            docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
+            echo "::error::YC_REGISTRY_ID and YC_CI_SA_KEY are required now that build and deploy are on DIFFERENT hosts - the image has nowhere to travel otherwise."
+            exit 1
           fi
 
 
@@ -260,7 +272,10 @@ jobs:
     # the state in /opt/tankbook/api and the blue/green containers. A second
     # runner carrying `tankbook-api` would be an eligible target and would deploy
     # into a machine holding none of that, while nginx kept proxying here.
-    runs-on: [self-hosted, tankbook-api]
+    # The DEPLOY host: x86_64, owns port 17080, /opt/tankbook/api and the
+    # blue/green containers. Pinned by its own label so no other runner can be
+    # chosen for it.
+    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
@@ -302,9 +317,8 @@ jobs:
             printf '%s' "$YC_DEPLOY_SA_KEY" | docker login --username json_key --password-stdin cr.yandex
             export TANKBOOK_IMAGE_REPO="cr.yandex/${YC_REGISTRY_ID}/tankbook-api"
           else
-            # Same host as the build: the image is already here, and the deploy
-            # script falls back to the local `tankbook-api` repository.
-            unset TANKBOOK_IMAGE_REPO
+            echo "::error::YC_REGISTRY_ID and YC_DEPLOY_SA_KEY are required - the image is built on another host and can only arrive through the registry."
+            exit 1
           fi
           bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
           docker logout cr.yandex 2>/dev/null || true

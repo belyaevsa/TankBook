@@ -4,7 +4,9 @@
 #
 # BUILD FROM THE REPOSITORY ROOT, not from backend/:
 #
-#   docker build -f backend/Dockerfile -t tankbook-api:<tag> .
+#   docker buildx build --platform linux/amd64 -f backend/Dockerfile -t tankbook-api:<tag> .
+#
+# NOTE the --platform: the deploy host is x86_64 and the builder may not be.
 #
 # That is not a preference. Tankbook.Api.csproj embeds
 # ../../../docs/schemas/v1/*.schema.json - the canonical payload schemas that
@@ -25,14 +27,27 @@
 # to the "Config:SigningKey" this repo's docs name everywhere.
 
 # --- build ------------------------------------------------------------------
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+# CROSS-COMPILES, because the build host and the deploy host are different
+# architectures (2026-09-03): the builder is aarch64 and the server is x86_64.
+# An image built natively on the builder simply does not run there - and the
+# failure is `exec format error` at `docker run`, after a green build and a
+# successful push, which reads as a broken image rather than a wrong platform.
+#
+# `--platform=$BUILDPLATFORM` pins the SDK stage to the BUILDER's native
+# architecture and `dotnet publish -r $TARGETARCH` emits code for the TARGET.
+# The alternative - running the whole SDK stage under QEMU emulation - produces
+# the same bytes several times slower, which on a shared builder is the
+# difference between a two-minute and a twenty-minute deploy.
+FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG TARGETARCH
 WORKDIR /src
 
 # Project files first, so `restore` is cached and only re-runs when a dependency
 # changes - editing a .cs file must not re-download the NuGet graph.
 COPY backend/Tankbook.slnx ./
 COPY backend/src/Tankbook.Api/Tankbook.Api.csproj src/Tankbook.Api/
-RUN dotnet restore src/Tankbook.Api/Tankbook.Api.csproj
+# The runtime identifier must be restored for too, or publish re-restores it.
+RUN dotnet restore src/Tankbook.Api/Tankbook.Api.csproj -r linux-$TARGETARCH
 
 COPY backend/src/ src/
 # Outside backend/, and required: the csproj embeds these by relative path.
@@ -52,12 +67,19 @@ RUN cp src/Tankbook.Api/appsettings.template.json src/Tankbook.Api/appsettings.j
     rm -f src/Tankbook.Api/appsettings.Development.json \
           src/Tankbook.Api/appsettings.Development.template.json
 
+# --self-contained false: the runtime image already carries the .NET runtime,
+# so this ships IL plus a target-architecture apphost, not a second copy of the
+# framework.
 RUN dotnet publish src/Tankbook.Api/Tankbook.Api.csproj \
     --configuration Release \
+    -r linux-$TARGETARCH \
+    --self-contained false \
     --no-restore \
     --output /app
 
 # --- runtime ----------------------------------------------------------------
+# No --platform here on purpose: this stage IS the target, so buildx resolves it
+# from --platform on the command line (linux/amd64 for our deploy host).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 

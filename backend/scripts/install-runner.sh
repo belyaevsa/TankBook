@@ -40,20 +40,44 @@
 # backend.yml asks for all three, so both directions are pinned.
 set -euo pipefail
 
+# ROLE decides what this host is for (2026-09-03, two machines):
+#
+#   deploy  (default)  x86_64, serves api.tankbook.live. Owns port 17080,
+#                      /opt/tankbook/api and the blue/green containers.
+#   build              aarch64. Runs the suite and cross-builds the image for
+#                      the deploy host's amd64. Needs NO deploy directory and no
+#                      production secrets - which is the point of moving it here.
+#
+#   RUNNER_ROLE=build sudo -E bash backend/scripts/install-runner.sh
+ROLE="${RUNNER_ROLE:-deploy}"
+case "$ROLE" in
+  deploy|build) ;;
+  *) printf 'error: RUNNER_ROLE must be deploy or build\n' >&2; exit 1 ;;
+esac
+
 REPO="${RUNNER_REPO:-belyaevsa/TankBook}"
 RUNNER_USER="${RUNNER_USER:-tankbook-runner}"
 # Runner-SPECIFIC, not the generic /opt/actions-runner. That path is what every
 # other runner on a host also picks, and this script would then reconfigure
 # somebody else's runner - on this host, plausibly the landing-site one, which
 # `--replace` could unregister.
-RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner-tankbook-api}"
-RUNNER_NAME="${RUNNER_NAME:-$(hostname)-tankbook-api}"
+RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner-tankbook-${ROLE}}"
+RUNNER_NAME="${RUNNER_NAME:-$(hostname)-tankbook-${ROLE}}"
 # The runner's own NAME is also registered as a label, and that is what pins the
 # workflow to this one machine. `runs-on` cannot address a runner by name -
 # GitHub matches on labels only - so a label unique to this host is the only way
 # to say "this runner and no other". Without it, `tankbook-api` on a second
 # runner would silently become an eligible target for the deploy.
-RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,tankbook-api,${RUNNER_NAME}}"
+# The architecture label is REPORTED, not assumed: this repo now spans x86_64
+# and aarch64 hosts, and a wrong arch label would route a job to a machine that
+# cannot run what it produces.
+case "$(dpkg --print-architecture)" in
+  amd64) ARCH_LABEL="x64" ;;
+  arm64) ARCH_LABEL="arm64" ;;
+  *)     ARCH_LABEL="$(dpkg --print-architecture)" ;;
+esac
+ROLE_LABEL="$([ "$ROLE" = build ] && echo tankbook-build || echo tankbook-api)"
+RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,${ARCH_LABEL},${ROLE_LABEL},${RUNNER_NAME}}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/tankbook/api}"
 
 log()  { printf '\n== %s\n' "$*"; }
@@ -113,9 +137,15 @@ usermod -aG docker "$RUNNER_USER"
 # inherent to a runner that deploys containers, and it is the reason PULL
 # REQUESTS MUST NEVER RUN HERE (backend.yml keeps them on ubuntu-latest).
 
-log "preparing ${DEPLOY_DIR}"
-mkdir -p "$DEPLOY_DIR"
-chown -R "$RUNNER_USER":"$RUNNER_USER" "$(dirname "$DEPLOY_DIR")"
+if [ "$ROLE" = deploy ]; then
+    log "preparing ${DEPLOY_DIR}"
+    mkdir -p "$DEPLOY_DIR"
+    chown -R "$RUNNER_USER":"$RUNNER_USER" "$(dirname "$DEPLOY_DIR")"
+else
+    # A build host never deploys, so it gets no deploy directory and needs none
+    # of the production secrets. That separation is the reason it exists.
+    log "build role: skipping ${DEPLOY_DIR}"
+fi
 
 # --- 3. the runner itself ---------------------------------------------------
 # A directory holding a runner configured for ANOTHER repository is somebody
@@ -218,6 +248,16 @@ sudo -u "$RUNNER_USER" --preserve-env=RUNNER_TOKEN \
 # --- 5. run it as a service -------------------------------------------------
 # So it survives a reboot. Without this the runner lives only as long as the
 # shell that started it, and the first reboot silently stops all deploys.
+# The build host cross-compiles for another architecture, so buildx must be
+# present and usable. Asserted rather than assumed: without it the build fails
+# at `docker buildx`, which reads as a docker problem rather than a missing
+# plugin.
+if [ "$ROLE" = build ]; then
+    docker buildx version >/dev/null 2>&1 \
+        || fail "docker buildx is not available - the build host cross-compiles for linux/amd64 and needs it"
+    echo "buildx: $(docker buildx version | head -1)"
+fi
+
 log "installing the service"
 # FROM INSIDE THE DIRECTORY, like config.sh. svc.sh checks its working directory
 # and refuses with "Must run from runner root or install is corrupt" when called

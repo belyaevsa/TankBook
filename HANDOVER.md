@@ -134,6 +134,49 @@ by my own regenerate before I committed it. Nothing catches this: no test reads 
 simulator does not enforce them. It would have failed at runtime on the first real build, in Sign in
 with Apple, which is the app's only working provider.
 
+## Two runners, TWO ARCHITECTURES - read this before touching the image (2026-09-03)
+
+| Host | Arch | Label | Does |
+|---|---|---|---|
+| `secondary` | **x86_64** | `tankbook-api`, `secondary-tankbook-api` | serves `api.tankbook.live`, owns port 17080, `/opt/tankbook/api`, blue/green |
+| `it-strategy` | **aarch64** | `tankbook-build` | the suite, and the image |
+
+**The builder is ARM and the server is x86.** An image built natively on the builder does not run
+on the deploy host, and the failure is `exec format error` at `docker run` - *after* a green build
+and a successful push. It reads as a corrupt image, not as a wrong platform.
+
+The Dockerfile cross-compiles rather than emulating: `FROM --platform=$BUILDPLATFORM` pins the SDK
+stage to the builder's own architecture and `dotnet publish -r linux-$TARGETARCH` emits target code.
+Running the SDK stage under QEMU instead produces the same bytes several times slower. Verified on an
+arm64 machine: `docker buildx build --platform linux/amd64` yields `Architecture: amd64`.
+
+Two consequences that are easy to get wrong:
+
+- **`--push` on the buildx command, not a separate `docker push`.** Cross-platform output does not
+  land in the local image store, so a later `docker push` finds nothing.
+- **The registry is now REQUIRED.** With one host the image never had to travel and an unset
+  `YC_REGISTRY_ID` just built a local tag; with two, both jobs fail loudly instead of silently
+  deploying something stale.
+
+### Why the build moved off the deploy host
+
+Three failures on the same machine, all the same cause and none of them looking like it:
+
+| Run | Symptom |
+|---|---|
+| suite | **6m21s**, two Postgres read timeouts |
+| next | runner **OOM-killed**, 1.2 GB peak, and it did NOT restart - the generated systemd unit sets no `Restart=` |
+| next | one import test timed out after **3m34s** |
+
+The same suite is ~15 s on a laptop. Measured where the cost is, after confirming it is **not**
+container sprawl - a run holds exactly two containers, one shared Postgres and Testcontainers' ryuk:
+**178 database-backed tests, each creating a database and applying all 12 migrations, ~2,100
+migration executions per pass**, plus up to 2 full in-memory ASP.NET hosts at once. That is a
+builder's job, not something to run beside production traffic.
+
+**A timeout is indistinguishable from a real failure in the log**, which is its own cost: a CI that
+is usually the machine trains you to re-run instead of read.
+
 ## Start here (paste this to open a new session)
 
 > Read `HANDOVER.md`, then `CLAUDE.md`, then `docs/TASKS.md`. You are orchestrating opencode
