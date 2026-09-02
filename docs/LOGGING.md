@@ -44,7 +44,11 @@ Every log line on both tiers carries: `timestamp, level, event, traceId?, accoun
 
 ## 3 · Backend (ASP.NET Core, structured JSON to stdout)
 
-Serilog (or `Microsoft.Extensions.Logging` with a JSON formatter) writing **one JSON object per line**. Human-readable console only in Development.
+`Microsoft.Extensions.Logging` through `LogRenderer`, which emits either **one JSON object per line** or a human-readable line, selected by `Tankbook:Logging:Format` (`json` | `text`). The default is `text` in Development and `json` elsewhere.
+
+**The deployed server runs `text` (changed 2026-09-02, product owner).** The original rule here was JSON everywhere outside Development, and it is the right default *once logs are shipped somewhere that parses them*. Today they are read by eye with `docker logs` on the deploy host, where one JSON object per line is markedly harder to scan than the same fields on a labelled line - and a format nobody can read is not observability. `backend/scripts/deploy-blue-green.sh` sets `Tankbook__Logging__Format`, defaulting to `text` and overridable with `TANKBOOK_LOG_FORMAT=json`.
+
+**Switch it back to `json` the day a log aggregator exists.** Nothing else changes - the same fields, the same redaction, the same `traceId`; only the rendering differs, and `RenderText`/`RenderJson` share one field-ordering path so neither can carry a value the other does not.
 
 ### Always, per request (one line)
 `method, path (route template, not the raw URL – ids stay out of paths in logs), status, durationMs, traceId, accountHash, deviceId, clientVersion, clientPlatform, serverVersion, schemaVersion, requestBytes, responseBytes`

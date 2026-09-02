@@ -117,6 +117,7 @@ Auth__AppleAudiences__0=${APPLE_AUDIENCE:-}
 Auth__GoogleAudiences__0=${GOOGLE_AUDIENCE:-}
 LlmGateway__ApiKey=${LLM_API_KEY:-}
 Database__AutoMigrate=false
+Tankbook__Logging__Format=${TANKBOOK_LOG_FORMAT:-text}
 EOF
 
 # --- 1. migrate, as its own step -------------------------------------------
