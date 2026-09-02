@@ -104,13 +104,23 @@ mkdir -p "$DEPLOY_DIR"
 chown -R "$RUNNER_USER":"$RUNNER_USER" "$(dirname "$DEPLOY_DIR")"
 
 # --- 3. the runner itself ---------------------------------------------------
-# A directory that already holds a CONFIGURED runner is somebody's - possibly
-# another repo's. Refuse rather than --replace it into ours.
+# A directory holding a runner configured for ANOTHER repository is somebody
+# else's - refuse rather than --replace it into ours. One already configured for
+# THIS repository is our own previous run, and re-registering it is exactly what
+# --replace is for, so that case proceeds: the script has to be re-runnable, and
+# an earlier version of this guard blocked the very runner it had just
+# registered.
 if [ -f "${RUNNER_HOME}/.runner" ] && [ "${RUNNER_ADOPT:-0}" != "1" ]; then
-    existing="$(jq -r '.gitHubUrl // .serverUrl // "unknown"' "${RUNNER_HOME}/.runner" 2>/dev/null || echo unknown)"
-    fail "${RUNNER_HOME} already holds a runner configured for ${existing}.
+    existing="$(jq -r '.gitHubUrl // .serverUrl // ""' "${RUNNER_HOME}/.runner" 2>/dev/null || echo "")"
+    ours="https://github.com/${REPO}"
+    # Trailing slash and case are not differences worth refusing over.
+    normalise() { printf '%s' "${1%/}" | tr '[:upper:]' '[:lower:]'; }
+    if [ -n "$existing" ] && [ "$(normalise "$existing")" != "$(normalise "$ours")" ]; then
+        fail "${RUNNER_HOME} already holds a runner configured for ${existing}, not ${ours}.
   Re-registering would take it over. Use a different RUNNER_HOME, or
   RUNNER_ADOPT=1 if you are certain this runner is meant to be replaced."
+    fi
+    echo "re-registering the existing runner for ${ours}"
 fi
 
 # `config.sh` existing is NOT proof the runner is usable: an interrupted download
