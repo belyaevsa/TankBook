@@ -85,6 +85,15 @@ the fix rather than failing three steps later):
 - an external nginx proxying to `127.0.0.1:17080` on that host
   (`backend/deploy/nginx/api.tankbook.live.conf`)
 
+**The deploy is pinned to one machine.** `runs-on` is
+`[self-hosted, tankbook-api, secondary-tankbook-api]`: `runs-on` cannot address a
+runner by name, so the host-specific label is the only way to say "this runner
+and no other". That matters because the job is not portable - it owns port 17080,
+`/opt/tankbook/api` and the blue/green containers, and a second runner carrying
+`tankbook-api` would deploy into a machine holding none of it while nginx kept
+proxying to the old host. Moving hosts means changing the workflow line and the
+runner's labels together.
+
 Register the runner with `sudo bash backend/scripts/install-runner.sh`. It
 installs docker, the .NET 10 SDK and curl, creates an unprivileged `tankbook-runner`
 user in the docker group, prepares `/opt/tankbook/api`, and registers the runner

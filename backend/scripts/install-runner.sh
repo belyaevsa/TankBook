@@ -24,11 +24,20 @@
 #   sudo ls /opt/actions-runner            # a .runner file means it is registered
 #   sudo rm -rf /opt/actions-runner        # only if it holds nothing you need
 #
-# THE LABEL MATTERS. The runner is registered with `tankbook-api`, and the
-# backend workflow asks for `[self-hosted, tankbook-api]`. Without a distinct
-# label, this runner would also match deploy-landing.yml's bare `self-hosted`
-# and the site deploy could land here - on a host with no Hugo - failing in a way
-# that reads as a broken site build rather than a misrouted job.
+# THE LABELS MATTER, and there are two of them for two different reasons.
+#
+#   tankbook-api            keeps OTHER workflows off this host. deploy-landing.yml
+#                           asks for bare `self-hosted`, so without a distinct
+#                           label the site deploy could land here - on a machine
+#                           with no Hugo - failing in a way that reads as a broken
+#                           site build rather than a misrouted job.
+#   <hostname>-tankbook-api keeps THIS workflow on this host and no other. The
+#                           backend deploy owns a fixed port, a state directory
+#                           and the blue/green containers; a second runner
+#                           carrying `tankbook-api` would be an eligible target
+#                           and would deploy into a machine holding none of that.
+#
+# backend.yml asks for all three, so both directions are pinned.
 set -euo pipefail
 
 REPO="${RUNNER_REPO:-belyaevsa/TankBook}"
@@ -38,8 +47,13 @@ RUNNER_USER="${RUNNER_USER:-tankbook-runner}"
 # somebody else's runner - on this host, plausibly the landing-site one, which
 # `--replace` could unregister.
 RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner-tankbook-api}"
-RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,tankbook-api}"
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)-tankbook-api}"
+# The runner's own NAME is also registered as a label, and that is what pins the
+# workflow to this one machine. `runs-on` cannot address a runner by name -
+# GitHub matches on labels only - so a label unique to this host is the only way
+# to say "this runner and no other". Without it, `tankbook-api` on a second
+# runner would silently become an eligible target for the deploy.
+RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,tankbook-api,${RUNNER_NAME}}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/tankbook/api}"
 
 log()  { printf '\n== %s\n' "$*"; }

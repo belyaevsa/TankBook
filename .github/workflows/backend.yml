@@ -85,12 +85,23 @@ jobs:
   build-and-deploy:
     name: Build, gate and deploy
     if: github.event_name != 'pull_request'
-    # A LABEL, not bare `self-hosted`. deploy-landing.yml also asks for
-    # `self-hosted`, so with two runners registered a bare label would let the
-    # site deploy land on the API host - a machine with no Hugo - failing in a way
-    # that reads as a broken site build rather than a misrouted job.
-    # backend/scripts/install-runner.sh registers exactly this label.
-    runs-on: [self-hosted, tankbook-api]
+    # PINNED TO ONE MACHINE, deliberately, and it takes all three labels.
+    #
+    # `runs-on` cannot name a runner - GitHub matches on labels only - so the
+    # host-specific `secondary-tankbook-api` label is what makes this "that
+    # runner and no other". It matters because this job is not portable: it owns
+    # the serving port 17080, the state in /opt/tankbook/api and the blue/green
+    # containers. A second runner carrying `tankbook-api` would be an eligible
+    # target and would deploy into a machine holding none of that, while nginx
+    # kept proxying to the old host.
+    #
+    # `tankbook-api` points the other way - it keeps deploy-landing.yml's bare
+    # `self-hosted` from landing HERE, on a machine with no Hugo.
+    #
+    # Moving hosts means changing this line and the runner's labels together;
+    # backend/scripts/install-runner.sh registers the name as a label for exactly
+    # this purpose.
+    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
     steps:
       - uses: actions/checkout@v4
 
