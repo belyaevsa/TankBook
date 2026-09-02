@@ -273,9 +273,16 @@ jobs:
     # runner carrying `tankbook-api` would be an eligible target and would deploy
     # into a machine holding none of that, while nginx kept proxying here.
     # The DEPLOY host: x86_64, owns port 17080, /opt/tankbook/api and the
-    # blue/green containers. Pinned by its own label so no other runner can be
-    # chosen for it.
-    runs-on: [self-hosted, tankbook-api, secondary-tankbook-api]
+    # blue/green containers. `tankbook-api` is what distinguishes it - from the
+    # build runner, which carries `tankbook-build`, and from deploy-landing.yml's
+    # bare `self-hosted`, which would otherwise land the site deploy here.
+    #
+    # No host-specific label: with exactly one runner carrying `tankbook-api`
+    # there is nothing to disambiguate, and a hostname in the workflow is a
+    # rename waiting to break it. Re-add one the day a SECOND deploy runner
+    # exists, because this job is not portable - it owns a fixed port and the
+    # blue/green containers on one machine.
+    runs-on: [self-hosted, tankbook-api]
     steps:
       - uses: actions/checkout@v4
 

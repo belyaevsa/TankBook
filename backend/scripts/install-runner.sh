@@ -31,7 +31,11 @@
 #                           label the site deploy could land here - on a machine
 #                           with no Hugo - failing in a way that reads as a broken
 #                           site build rather than a misrouted job.
-#   <hostname>-tankbook-api keeps THIS workflow on this host and no other. The
+#   <hostname>-<role>      addresses ONE machine. The workflow does not ask for
+#                          it while there is a single runner per role - a
+#                          hostname in a workflow is a rename waiting to break
+#                          it - but it is registered so a second runner of the
+#                          same role can be disambiguated the day one exists. The
 #                           backend deploy owns a fixed port, a state directory
 #                           and the blue/green containers; a second runner
 #                           carrying `tankbook-api` would be an eligible target
