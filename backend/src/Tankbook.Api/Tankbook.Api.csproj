@@ -36,4 +36,12 @@
     <EmbeddedResource Include="..\..\..\docs\schemas\v1\*.schema.json" Link="PayloadSchemas\v1\%(Filename)%(Extension)" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The test project drives RatesHostedService.RunOnePassAsync directly
+         (RV.7): the startup pass must be provable without waiting out a timer
+         interval. InternalsVisibleTo rather than making the method public -
+         it is an implementation detail of the hosted service, not API. -->
+    <InternalsVisibleTo Include="Tankbook.Api.Tests" />
+  </ItemGroup>
+
 </Project>

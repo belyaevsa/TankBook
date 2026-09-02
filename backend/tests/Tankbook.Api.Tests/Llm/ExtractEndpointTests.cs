@@ -78,9 +78,19 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         var provider = new RecordingLlmProvider();
         await using var app = await StartAsync(signer, provider);
 
-        // A free-tier account has no allowance at all -> 402.
-        var (freeToken, freeAccount, _) = await CreateSessionAsync(app, signer, "free-user", "free@example.com");
-        var freeResponse = await ExtractAsync(app.Client, freeToken, "receipt", SmallImage(), null);
+        // An UNENTITLED tier - one absent from TierRequestsPerPeriod - has no
+        // allowance at all -> 402.
+        //
+        // This used to use the free tier, which had an allowance of 0 until
+        // 2026-09-03 (RV.4). Free now gets the 50/day the config document
+        // advertises, so it is no longer an example of "no entitlement" - but the
+        // DISTINCTION this test exists for is unchanged, and still worth pinning:
+        // 402 means "your tier cannot do this at all" while 429 means "you have
+        // used up this period", and a client shows different next steps for each
+        // (docs/ERRORS.md).
+        var (noneToken, noneAccount, _) = await CreateSessionAsync(app, signer, "none-user", "none@example.com");
+        await app.SetTierAsync(noneAccount, "unentitled");
+        var freeResponse = await ExtractAsync(app.Client, noneToken, "receipt", SmallImage(), null);
         Assert.Equal(HttpStatusCode.PaymentRequired, freeResponse.StatusCode);
 
         // A pro account whose period allowance is already spent -> 429.
