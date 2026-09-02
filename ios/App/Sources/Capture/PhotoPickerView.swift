@@ -38,13 +38,28 @@ struct PhotoPickerView: UIViewControllerRepresentable {
             isPresented.wrappedValue = false
             guard let provider = results.first?.itemProvider,
                   provider.canLoadObject(ofClass: UIImage.self) else { return }
+
+            // The Coordinator is kept ALIVE across the load. Setting isPresented above
+            // dismisses the sheet, which tears down the representable and
+            // releases this Coordinator - so a `[weak self]` here is very often
+            // already nil by the time the load finishes, and the pick is
+            // silently dropped. That shipped: on a real device, choosing a photo
+            // from the library did nothing at all and the app stayed on capture.
+            //
+            // It is a RACE, which is why it survived review and the simulator: a
+            // small local image can finish before the teardown, while an iCloud
+            // photo that has to be downloaded never does. Holding a strong
+            // reference makes the outcome independent of how long the load takes,
+            // and there is no cycle: the closure is released once it runs.
             // The load completes on its own queue; the result is handed to the
             // main actor through a Sendable box. The image is freshly created
             // by the load and owned by no one else, so the hand-off is safe.
-            provider.loadObject(ofClass: UIImage.self) { [weak self] object, _ in
+            // `self` is captured STRONGLY - a @MainActor class is Sendable, and
+            // holding it for the duration of the load is the whole point.
+            provider.loadObject(ofClass: UIImage.self) { object, _ in
                 let box = PickedImage(image: object as? UIImage)
-                Task { @MainActor [weak self] in
-                    self?.onPick(box.image)
+                Task { @MainActor in
+                    self.onPick(box.image)
                 }
             }
         }

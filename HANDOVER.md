@@ -91,6 +91,49 @@ second; the row count only surfaced on the run after that. The compression arm h
 separately - it scores **96/195** where the uncompressed ratchet scores **95/195**, and it was
 already one ahead before this fixture.
 
+## The first TestFlight build found seven things, and the pattern is one thing (2026-09-02/03)
+
+Build **1.0.0+466** installed on a real device against the live backend. It worked: a genuine Apple
+sign-in created an account, a 4 MB receipt went `blob.begin` -> `blob.commit` -> `sync.push`, pull
+returned it, feedback posted. The photo is in `tankbook-blobs` under `{account}/{sha256}` - checked
+in the bucket, not inferred from the log.
+
+It also produced seven defects in one session, filed as `docs/TASKS.md` -> **RV**. Every one sits in
+a seam the suites do not span:
+
+- **The rate pack 400'd on every launch.** The client asked for two years, the server caps at 400
+  days. The client tests use a fetcher double that accepts any range; the server tests pick their
+  own. **Both sides were tested and the contract between them was not** - which is the whole family.
+- **A library photo did nothing.** The picker dismissed the sheet first, which released the
+  Coordinator, so the `[weak self]` in the async load was nil and the pick was dropped. A race: a
+  small local image beats the teardown, an iCloud photo never does. The simulator never showed it.
+- **`/extract` is 402 for every v1 user** - by design (Pro is cut) while the served config advertises
+  `cloudFallback: 50`. Not a bug to fix: a decision to make, with the docs then agreeing.
+- **The rates job has never run.** `PeriodicTimer(6h)` awaits its first tick, so there is no startup
+  pass and **every deploy resets it** - deploy more often than six-hourly and it never runs.
+
+### I reported a production defect that was my own test harness
+
+I ran a probe verifying the live config signature against `ConfigSigningKey.bundledPublicKeyBase64`
+and reported that remote config was inert fleet-wide. It was not: `swift test` runs **DEBUG**, where
+that property returns the **dev** key. Under `-c release` the same document verifies, and the C#
+verifier agreed all along.
+
+What made it convincing was that I had "ruled out" the probe twice - it validated the repo's parity
+fixture and a locally-served document. Both passed for a reason I had not noticed: they read the key
+from a FILE, while the production check read it from the BUNDLE. **A control that exercises a
+different code path than the case under test is not a control.** When a check and a production system
+disagree, suspect the check's inputs before the system.
+
+### Things that are only true on hardware
+
+The entitlements file shipped EMPTY for months. `STORE.md` named
+`ios/App/Tankbook.entitlements` as the file to edit, but XcodeGen **generates** it from
+`project.yml`, so every `xcodegen generate` wrote `<dict/>` over it - and my first fix was reverted
+by my own regenerate before I committed it. Nothing catches this: no test reads entitlements and the
+simulator does not enforce them. It would have failed at runtime on the first real build, in Sign in
+with Apple, which is the app's only working provider.
+
 ## Start here (paste this to open a new session)
 
 > Read `HANDOVER.md`, then `CLAUDE.md`, then `docs/TASKS.md`. You are orchestrating opencode
