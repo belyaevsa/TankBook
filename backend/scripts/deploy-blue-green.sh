@@ -30,8 +30,12 @@ set -euo pipefail
 IMAGE_TAG="${1:?usage: deploy-blue-green.sh <image-tag>}"
 IMAGE="tankbook-api:${IMAGE_TAG}"
 
-SERVE_PORT="${TANKBOOK_SERVE_PORT:-8080}"     # what external nginx proxies to
-SCRATCH_PORT="${TANKBOOK_SCRATCH_PORT:-8090}" # verification only, never public
+# Deliberately uncommon ports. This host runs other containers, and 8080/8090
+# are the first thing anything else grabs - a collision would either fail the
+# deploy confusingly or, worse, have nginx proxy to somebody else's service.
+# Bound to 127.0.0.1 only; nginx is the sole public entrance.
+SERVE_PORT="${TANKBOOK_SERVE_PORT:-17080}"     # what external nginx proxies to
+SCRATCH_PORT="${TANKBOOK_SCRATCH_PORT:-17081}" # verification only, never public
 STATE_DIR="${TANKBOOK_API_DIR:-/opt/tankbook/api}"
 STATE_FILE="${STATE_DIR}/active"
 HEALTH_ATTEMPTS="${TANKBOOK_HEALTH_ATTEMPTS:-40}"
@@ -54,6 +58,23 @@ wait_healthy() { # <port> <attempts>
 command -v docker >/dev/null 2>&1 || fail "docker is not on this runner"
 docker image inspect "$IMAGE" >/dev/null 2>&1 || fail "image ${IMAGE} was not built"
 mkdir -p "$STATE_DIR" || fail "cannot create ${STATE_DIR}"
+
+# Refuse to deploy if either port is held by something that is not ours. Without
+# this, a foreign container on the serving port makes `docker run` fail with a
+# bind error AFTER the old colour has already been stopped - the one moment in
+# this script where a confusing failure costs real downtime. The scratch port
+# matters too: verifying against somebody else's service would "pass".
+port_owner() { # <port> -> container name, or empty
+    docker ps --format '{{.Names}} {{.Ports}}' \
+        | awk -v p=":$1->" '$0 ~ p {print $1; exit}'
+}
+for port in "$SERVE_PORT" "$SCRATCH_PORT"; do
+    owner="$(port_owner "$port")"
+    case "$owner" in
+        ""|tankbook-api-*) ;;
+        *) fail "port ${port} is held by container '${owner}', which is not ours - set TANKBOOK_SERVE_PORT/TANKBOOK_SCRATCH_PORT to free ports and point nginx at the new serving port" ;;
+    esac
+done
 
 # Which colour currently holds the serving port. Read from docker rather than
 # only from the state file: docker is what actually owns the port, and a state

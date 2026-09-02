@@ -85,7 +85,12 @@ jobs:
   build-and-deploy:
     name: Build, gate and deploy
     if: github.event_name != 'pull_request'
-    runs-on: self-hosted
+    # A LABEL, not bare `self-hosted`. deploy-landing.yml also asks for
+    # `self-hosted`, so with two runners registered a bare label would let the
+    # site deploy land on the API host - a machine with no Hugo - failing in a way
+    # that reads as a broken site build rather than a misrouted job.
+    # backend/scripts/install-runner.sh registers exactly this label.
+    runs-on: [self-hosted, tankbook-api]
     steps:
       - uses: actions/checkout@v4
 

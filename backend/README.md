@@ -82,7 +82,20 @@ the fix rather than failing three steps later):
 - the runner user in the `docker` group - the suite uses Testcontainers for
   Postgres, and the deploy drives docker directly
 - a writable `/opt/tankbook/api`
-- an external nginx proxying to `127.0.0.1:8080` on that host
+- an external nginx proxying to `127.0.0.1:17080` on that host
+  (`backend/deploy/nginx/api.tankbook.live.conf`)
+
+Register the runner with `sudo bash backend/scripts/install-runner.sh`. It
+installs docker, the .NET 10 SDK and curl, creates an unprivileged `tankbook-runner`
+user in the docker group, prepares `/opt/tankbook/api`, and registers the runner
+as a **service** so it survives a reboot. The label is `tankbook-api`, not bare
+`self-hosted`: `deploy-landing.yml` also asks for `self-hosted`, so a bare label
+would let the site deploy land on this host and fail for want of Hugo.
+
+**Ports are 17080 (serving) and 17081 (verification), not 8080/8090.** The host
+runs other containers, and the deploy refuses to start when either port is held
+by a container that is not ours - proxying to somebody else's service would be
+worse than failing. Change them together with the nginx upstream.
 
 The suite is also checked for **skips**, not just for green: without working
 docker the 153 Postgres-backed tests report as skipped and `dotnet test` still
