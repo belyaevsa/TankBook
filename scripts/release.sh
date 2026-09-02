@@ -8,7 +8,9 @@
 #       scripts/release.sh --upload                            # ...and upload
 #
 # Every step is judged by exit code. Nothing here is a secret: the team id is an
-# identity, the API key stays outside the repo and is referenced by path.
+# identity, and the API key stays outside the repo - ASC_KEY_PATH is validated,
+# never copied and never printed. The .p8 downloads ONCE from App Store Connect
+# and cannot be retrieved again; losing it means revoking and re-issuing.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -59,7 +61,28 @@ IPA="$(ls "${OUT}"/export/*.ipa | head -1)"; echo "release: ${IPA} ($(du -h "${I
 ls "${OUT}/Tankbook.xcarchive/dSYMs" >/dev/null
 
 if [ "$UPLOAD" -eq 1 ]; then
-  : "${ASC_KEY_ID:?}" "${ASC_ISSUER_ID:?}" "${ASC_KEY_PATH:?}"
+  : "${ASC_KEY_ID:?set ASC_KEY_ID to the App Store Connect API key id}"
+  : "${ASC_ISSUER_ID:?set ASC_ISSUER_ID to the App Store Connect issuer id}"
+  : "${ASC_KEY_PATH:?set ASC_KEY_PATH to the downloaded AuthKey_<KEYID>.p8}"
+
+  # altool --apiKey does NOT take a path: it searches a fixed set of
+  # directories for AuthKey_<id>.p8. So ASC_KEY_PATH cannot be passed through -
+  # it is validated instead. Before this check the variable was REQUIRED and
+  # then ignored, so a key stored anywhere else passed here and failed inside
+  # altool with "could not find the API key", which points at the key rather
+  # than at its location.
+  [ -f "$ASC_KEY_PATH" ] || { echo "release: no such key file: ${ASC_KEY_PATH}" >&2; exit 2; }
+  case "$(basename "$ASC_KEY_PATH")" in
+    "AuthKey_${ASC_KEY_ID}.p8") ;;
+    *) echo "release: ${ASC_KEY_PATH} must be named AuthKey_${ASC_KEY_ID}.p8 - altool locates the key by that exact filename" >&2; exit 2 ;;
+  esac
+  key_dir="$(cd "$(dirname "$ASC_KEY_PATH")" && pwd)"
+  case "$key_dir" in
+    "$PWD/private_keys"|"$HOME/private_keys"|"$HOME/.private_keys"|"$HOME/.appstoreconnect/private_keys") ;;
+    *) echo "release: altool only searches ./private_keys, ~/private_keys, ~/.private_keys and ~/.appstoreconnect/private_keys." >&2
+       echo "  Move the key there:  mkdir -p ~/.private_keys && mv '${ASC_KEY_PATH}' ~/.private_keys/" >&2
+       exit 2 ;;
+  esac
   xcrun altool --upload-app --type ios --file "${IPA}" \
     --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}" 2>&1 | tail -3
   echo "UPLOAD_EXIT=${PIPESTATUS[0]}"; [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
