@@ -6,10 +6,11 @@ import UIKit
 /// whole product thesis on one screen: capture replaces typing.
 ///
 /// The shutter now takes a real frame and the Photos pick feeds the same path:
-/// image -> `CapturePipeline` (Vision OCR + fiscal-QR detection -> the core
-/// `ExtractionAssembler`) -> the existing `ManualFillUpView` with a
-/// `ConfirmPrefill`. A scan that resolves nothing lands the ordinary empty
-/// manual form, never an error (hard rule 15).
+/// image -> the RV.5 **review step** (`CaptureReviewView`: see the photo, Use
+/// this / Re-take / Type it) -> `CapturePipeline` (Vision OCR + fiscal-QR
+/// detection -> the core `ExtractionAssembler`) -> the existing
+/// `ManualFillUpView` with a `ConfirmPrefill`. A scan that resolves nothing
+/// lands the ordinary empty manual form, never an error (hard rule 15).
 ///
 /// F8 (docs/ERRORS.md -> Capture): camera permission denied opens the manual
 /// form with the top card "Scanning needs the camera – enable in Settings."
@@ -24,6 +25,9 @@ struct CaptureView: View {
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     @State private var mode: CaptureMode = .fillUpAuto
     @State private var activeSheet: CaptureSheet?
+    /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
+    /// review step is up; the capture pipeline has NOT run yet.
+    @State private var reviewSubject: CaptureReviewSubject?
     @State private var hasUnsavedChanges = false
     @State private var resolved = false
     /// Guards against a double shutter tap starting two pipelines.
@@ -69,7 +73,10 @@ struct CaptureView: View {
             }
         }
         .task { await resolvePermission() }
-        .onAppear { loadPowertrain(); loadAlphaNotice(); presentTypeItIfRequested() }
+        .onAppear {
+            loadPowertrain(); loadAlphaNotice()
+            presentTypeItIfRequested(); presentReviewIfRequested()
+        }
         .onChange(of: scenePhase) { _, phase in
             // Coming back from Settings after a denial: re-read the status so
             // a grant in Settings resumes the camera surface without a relaunch.
@@ -102,6 +109,15 @@ struct CaptureView: View {
             case .scanned(let prefill):
                 ScannedFillUpSheet(prefill: prefill)
             }
+        }
+        // RV.5. A cover, not a second `.sheet`: two `.sheet` modifiers on one
+        // view is the known SwiftUI pitfall the enum above exists to avoid,
+        // and the review needs the whole screen anyway (see CaptureReviewView).
+        .fullScreenCover(item: $reviewSubject) { subject in
+            CaptureReviewView(image: subject.image,
+                              onUse: { acceptReview(subject.image) },
+                              onRetake: { reviewSubject = nil },
+                              onTypeIt: { typeItAfterReview() })
         }
     }
 
@@ -165,6 +181,21 @@ struct CaptureView: View {
         #endif
     }
 
+    /// DEBUG/test-only: `-captureAutoReview` (with `-captureFixtureImage`)
+    /// presents the RV.5 review step a beat after the surface appears, so
+    /// `simctl` - which cannot tap - can screenshot it. Production never
+    /// passes the argument; it routes through the exact call the shutter makes.
+    private func presentReviewIfRequested() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-captureAutoReview"),
+              let image = fixtureImage() else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            processScanned(image)
+        }
+        #endif
+    }
+
     // MARK: - Alpha notice (P6.10)
 
     /// Seeds first (the `-presentScreen capture` screenshots and tests open the
@@ -197,11 +228,24 @@ struct CaptureView: View {
 
     // MARK: - The capture path (PJ.1)
 
-    /// One image in, one `ConfirmPrefill` out, whichever door it came through.
-    /// The shutter's frame and the Photos pick land here identically.
+    /// One image in, one review step, whichever door it came through. The
+    /// shutter's frame and the Photos pick land here identically.
+    ///
+    /// RV.5: the pipeline deliberately does NOT run here. The user sees the
+    /// raw image immediately and decides; OCR runs in `acceptReview` only once
+    /// they have accepted, so a re-take costs nothing.
     private func processScanned(_ image: UIImage) {
+        reviewSubject = CaptureReviewSubject(image: image)
+    }
+
+    /// "Use this": exactly where the flow went before the review existed - the
+    /// pipeline, then the Confirm sheet. The cover is dismissed FIRST and the
+    /// sheet presented after the pipeline's await, because SwiftUI will not
+    /// present a sheet in the same runloop turn it dismisses a cover.
+    private func acceptReview(_ image: UIImage) {
         guard !isProcessing else { return }
         isProcessing = true
+        reviewSubject = nil
         Task {
             defer { isProcessing = false }
             let prefill = await CapturePipeline.process(image, source: .receipt)
@@ -209,9 +253,34 @@ struct CaptureView: View {
         }
     }
 
+    /// The pause between dismissing the review cover and presenting a sheet.
+    /// SwiftUI will not present a sheet in the same runloop turn it dismisses a
+    /// cover, and `acceptReview` gets that separation for free from the
+    /// pipeline's await; this path has no await, so it needs one explicitly.
+    ///
+    /// A COMPILED constant (docs/PRACTICES.md): it is coupled to the system's
+    /// cover-dismissal animation, so it is not a knob for a user or a remote
+    /// flag to turn - it belongs next to the code whose timing it matches.
+    private static let coverDismissBeat: Duration = .milliseconds(350)
+
+    /// "Type it" from the review: the manual door for the selected mode, the
+    /// same call the capture surface's own affordance makes (hard rule 15 -
+    /// one door, not a lesser copy of it). The photo is dropped, exactly as a
+    /// re-take drops it; nothing is silently carried into a typed entry.
+    private func typeItAfterReview() {
+        let form = mode.manualEntryForm
+        reviewSubject = nil
+        Task {
+            // Same cover-then-sheet ordering as `acceptReview`, without a
+            // pipeline await to separate them, so the beat is explicit.
+            try? await Task.sleep(for: Self.coverDismissBeat)
+            activeSheet = .manualForm(form)
+        }
+    }
+
     /// The shutter: takes a real frame (or, under `-captureFixtureImage`, a
-    /// test-injected one) and feeds the pipeline. In Service mode it is still
-    /// the door into the document camera (J7).
+    /// test-injected one) and hands it to the RV.5 review step. In Service
+    /// mode it is still the door into the document camera (J7).
     private func captureFrame() {
         guard !isProcessing else { return }
         isProcessing = true
@@ -224,8 +293,7 @@ struct CaptureView: View {
                 image = await camera.capture()
             }
             guard let image else { return }
-            let prefill = await CapturePipeline.process(image, source: .receipt)
-            activeSheet = .scanned(prefill)
+            processScanned(image)
         }
     }
 

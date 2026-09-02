@@ -26,8 +26,8 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 |---|---|---|---|
 | Open | Skips a 1-screen promise ("Point. Scan. Done.") | "Show me, don't pitch me" – impatient | ⚠ Every extra onboarding screen loses users → one screen, skippable *(PJ.3: the Welcome root and its three paths – "Add your car", "Import from another app", "Already use Tankbook? Sign in" – are real since 2026-08-30, behind no `-force*` fixture.)* |
 | Add car | Types make/model or plate, picks powertrain, home currency pre-filled from locale | "That was quick" | → RU locale defaults to ₽ + RU fuel grades; photo of car optional, adds emotional ownership |
-| First entry | Prompted: "Have a receipt from your last fill-up? Scan it" | Curious – this is the promised magic | → The first scan IS onboarding; a bundled demo receipt if they have none |
-| Payoff | Sees the Pump Card lock ✓, entry saved | Delight or disappointment – nothing in between | ⚠ A failed first scan kills trust permanently → confidence gating, instant manual fallback without losing the photo |
+| First entry | Prompted: "Have a receipt from your last fill-up? Scan it" | Curious – this is the promised magic | → The first scan IS onboarding; a bundled demo receipt if they have none. **RV.5:** the very first shot is reviewed before anything is read from it - on a first capture the user has no idea what the app does with a photo, and seeing their own receipt on screen with "Use this" is the cheapest possible proof that it went somewhere |
+| Payoff | Sees the Pump Card lock ✓, entry saved | Delight or disappointment – nothing in between | ⚠ A failed first scan kills trust permanently → confidence gating, instant manual fallback without losing the photo. The review step is also where a *bad frame* is caught before it can be mistaken for bad recognition |
 
 **Success metric:** ≥70% of installs log a first entry in session 1; time-to-first-entry < 3 min.
 
@@ -56,6 +56,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 |---|---|---|---|
 | Open | Lock-screen widget / app opens on capture | In a hurry; one hand holds the receipt | → Camera ready in <1s; auto-shutter on document detect |
 | Scan | Points at crumpled thermal receipt | "Will it read this?" | ⚠ Glare, dark canopy → torch auto-suggest; keep the photo regardless of OCR result *(PJ.1: shutter and Photos now feed one pipeline into `ConfirmPrefill` – a real image becomes the prefill, no `-seedConfirmPrefill` fixture in the path.)* |
+| Review | Sees the shot filling the screen; "Use this" / "Re-take" / "Type it" | "That's readable – go" *(or: "that's a blur, again")* | → **RV.5**: the missing beat the device walk found - the shutter used to fire and move on with nothing shown, so the frame could be neither seen nor refused. The photo appears **immediately**, before any recognition: OCR runs only on *Use this*, so a re-take costs nothing and the wait is spent on a picture the user accepted. Re-take is the back path (nothing kept); "Type it" is a peer on the same row, never the failure branch (hard rule 15) |
 | Confirm | Pump Card pre-filled; cross-check line locks ✓; types odometer, sees "+907 km since last" | Trust building with each correct field | ⚠ One wrong digit typed in odometer ruins consumption → live delta as sanity check; low-confidence fields dimmed until tapped. *(PJ.14: the delta is LIVE – typed > last shows "+N km since last", typed < last warns amber "went backwards", an implied pace over the vehicle's `paceLimitKmPerDay` warns amber "over the limit", equal shows neutral "Same as last"; none of them ever blocks the save, hard rule 13.)* |
 | Done | Save → haptic → "6.8 L/100km – best this year" | Micro-reward; closes phone | → The insight one-liner is the habit hook, not the stored row |
 
@@ -63,7 +64,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 **AdBlue variant (2026-08-30):** the diesel receipt also lists 10 L of AdBlue. The Pump Card shows the diesel fill as usual; "Also on this receipt" lists the AdBlue line as a **second fill-up**, pre-kinded `.adBlue`, one tap to add - it joins the purchase group and the Log shows one grouped moment with two fills. It never touches L/100 km; Trends shows the car's AdBlue rate (L / 1000 km) once two such fills exist. A standalone AdBlue top-up (a can from the shop) is just a fill-up whose fuel chip reads AdBlue - same door, same sheet (hard rule 15). `SCHEMA.md` → AdBlue.
 
-**Success metric:** median capture-to-save < 15s; ≥80% of fill-ups logged via capture (not manual form); D30 retention of users with ≥3 captures; mixed receipts with correctly isolated fuel totals ≥95% (wrong grand-total attribution is a stats-poisoning bug).
+**Success metric:** median capture-to-save < 15s; ≥80% of fill-ups logged via capture (not manual form); D30 retention of users with ≥3 captures; mixed receipts with correctly isolated fuel totals ≥95% (wrong grand-total attribution is a stats-poisoning bug). The review step (RV.5) adds one tap to this journey and is worth it: an unreadable frame caught here costs a second, and caught on the Confirm sheet costs a re-shoot after a wasted OCR - so the metric to watch is the **re-take rate**, which should be non-zero (the step is catching real blurs) without exceeding the share of captures that used to arrive at Confirm with nothing resolved.
 
 ### J4 · No receipt – pump display photo
 **Trigger:** station prints no receipt / receipt skipped; the pump still shows liters, price, total.
@@ -99,7 +100,7 @@ points, a corporate fuel-card slip with no QR, or simply a preference.
 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
-| Reach it | Taps "Type it" - present next to capture on Home, both empty states, the guest layout and inside Capture | "I don't have to fight the camera" | → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15) |
+| Reach it | Taps "Type it" - present next to capture on Home, both empty states, the guest layout, inside Capture and on the **capture review step** (RV.5) | "I don't have to fight the camera" | → **Never behind a failed scan.** Reaching manual entry must not require attempting a capture first (hard rule 15). On the review step it sits beside Re-take at the same size, so a user looking at a bad photo picks between two equals rather than being handed a consolation prize |
 | Fill | Types total and litres; price derives; odometer pre-filled from last known | Fast, predictable | → Same `ConfirmManual` sheet the capture paths land in - one screen, not a lesser one. Inside Capture, "Type it" opens the form for the **selected mode** (PJ.6): Service → ServiceEntry, Expense → ExpenseEntry, Fill-up → ConfirmManual |
 | Save | Saves | "That was quicker than scanning" | → The cross-check locks exactly as it does for a scan |
 | Later (PJ.48, **[v1.1]**) | Finds the receipt in a pocket, opens the entry, taps "Add receipt" | "I can still keep the paper" | → The typed door is a peer, so its entries can carry the receipt too: attach from camera or Photos on Edit entry; OCR may then **fill blank fields only**, never overwrite a typed value (hard rule 13). The paperclip appears in the Log like a scanned entry's |

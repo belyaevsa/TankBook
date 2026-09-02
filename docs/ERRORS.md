@@ -64,6 +64,28 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Nothing detected for ~4s | Hint: "Fill the frame with the receipt – or type it instead." | Keep trying · Type it |
 | Storage full (can't save photo) | Warn sheet: "No space to keep the photo. The entry can still be saved without it." | Save without photo · manage storage (deep link) |
 
+#### The capture review step (RV.5)
+
+The shot is shown before anything is read from it, with one question - "Can you read the total
+on it?" - and three actions: **Use this**, **Re-take**, **Type it**.
+
+| Condition | Shows | Next step |
+|---|---|---|
+| A shot has been taken (every shot, no condition) | The photo fitted to the screen under "Check the photo" / "Can you read the total on it?" | Use this (runs the recognition, then Confirm) · Re-take (back to the camera, nothing kept) · Type it (the form for the selected mode) |
+| The photo is unreadable - blurred, glared, half a receipt | **Nothing.** The app makes no judgement about the frame here | Re-take · Type it - both already on screen, so the "error" has no message because it needs none: the user can see the problem and both fixes are one tap away |
+
+Three things this screen is deliberately not:
+
+- **It is not an error surface.** Nothing on it is amber and nothing says a scan failed - at
+  this point nothing has been read. The severity vocabulary does not apply because there is no
+  condition to report.
+- **It does not frame typing as the failure branch** (hard rule 15). "Type it" sits on the same
+  row as "Re-take", the same size and the same weight, and its copy never says typing is what
+  you do when the photo is bad.
+- **It cannot become a dead end** (hard rule 7). Every state of it carries three next steps, and
+  Re-take is itself the back path, so there is no state in which the only option is to stare at
+  a bad photo.
+
 #### The alpha-testing disclosure (P6.10)
 
 Recognition is honest about itself: the corpus measures **receipts 88/175** and **pump 21/84** today, and Vision returned a **wrong digit at confidence 1.00** on `pump-004` (`docs/EXTRACTION.md`) - which is why pump mode ships off (`PumpPhotoGate`). So the capture surface carries a passive disclosure:

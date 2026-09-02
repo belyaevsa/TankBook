@@ -59,10 +59,13 @@ flowchart TD
     Home -->|All entries → entry| EditEntry
 
     subgraph CaptureFlow["Capture (modal)"]
-        Capture -->|auto: receipt| Confirm
-        Capture -->|auto: foreign currency| ConfirmForeign
-        Capture -->|auto: mixed receipt| ConfirmMixed
-        Capture -->|OCR declined to guess| ConfirmManual
+        Capture -->|shutter / Photos| CaptureReview
+        CaptureReview -.->|Re-take| Capture
+        CaptureReview -->|Type it| ConfirmManual
+        CaptureReview -->|Use this · auto: receipt| Confirm
+        CaptureReview -->|Use this · auto: foreign currency| ConfirmForeign
+        CaptureReview -->|Use this · auto: mixed receipt| ConfirmMixed
+        CaptureReview -->|Use this · OCR declined to guess| ConfirmManual
         Capture -->|Type it · Fill-up mode| ConfirmManual
         Capture -->|Type it · Service mode| ServiceEntry
         Capture -->|Type it · Expense mode| ExpenseEntry
@@ -138,8 +141,9 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
-| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · scan → Confirm/ServiceEntry | X → opener |
-| Confirm / Foreign / Mixed / Manual | Capture result · Capture "Type it" (Fill-up mode) | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
+| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry | X → opener |
+| **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
+| Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
 | Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
 | Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · ServiceEntry's Parts/Other mode row | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
@@ -158,6 +162,28 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Settings | Home gear | account, import, export (system), recently deleted, Pro, About | back → Home |
 | Account & devices (P6.4) | Settings account card (signed in) | device list (revoke) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
 | About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) | back → Settings |
+
+### The capture review step (RV.5)
+
+Between the shutter (or the Photos pick) and any Confirm sheet sits one screen with one
+question: **can you read the total on this photo?** It is a full-screen cover over Capture -
+a page sheet would crop the top of a tall thermal receipt, which is the shape that suffers
+most - showing the image **fitted, never cropped**, and three actions: **Use this**, **Re-take**
+and **Type it**.
+
+- The **recognition pipeline has not run yet** when this screen appears. The raw image is shown
+  the instant it exists and OCR runs only on *Use this*, so the photo is immediate and a re-take
+  costs no recognition at all.
+- **Re-take is the back path.** It returns to the live camera keeping nothing, so the step
+  cannot strand anyone; there is no separate X, because a second dismissal control on a screen
+  whose whole content is "keep or shoot again" is noise.
+- **Type it is a peer, not a consolation** (hard rule 15): same row as Re-take, same height,
+  same weight, and it opens the form for the selected mode - the identical door the capture
+  surface offers. Its copy never says typing is what you do when the photo is bad.
+- **Service mode does not pass through it**: that shutter opens the document camera, which
+  carries Apple's own retake affordance (J7).
+- It is **not an error surface**. Nothing on it is amber, and it carries no message about the
+  scan having failed - at this point nothing has been read (`docs/ERRORS.md` → Capture).
 
 ### The Capture surface's alpha notice (P6.10)
 
@@ -195,8 +221,9 @@ The map names screens that exist as nodes but have no artboard yet – listed so
 - **Save never strands**: all save actions land on Home/Log with the result visible – capture opened from Trends still exits to Log, showing what was created. ✓
 - **Failure states are forks, not ends** (JOURNEYS F-series): OCR failure → ConfirmManual is the same sheet, same back paths; denied camera → Capture's "Type it" path still works. ✓
 - **Manual entry is a peer path, not a failure branch** (hard rule 15). "Type it" is offered
-  next to capture at every entry point - Home's header, both empty states, the guest layout and
-  the Capture screen itself - and reaching it never requires first attempting a scan. Outside
+  next to capture at every entry point - Home's header, both empty states, the guest layout,
+  the Capture screen itself and the **capture review step** (RV.5), where it sits on the same
+  row as Re-take at the same size - and reaching it never requires first attempting a scan. Outside
   Capture it is the `ConfirmManual` sheet; **inside Capture it opens the form for the selected
   mode** (PJ.6): Fill-up → `ConfirmManual`, Service → ServiceEntry, Expense → ExpenseEntry. A
   user who starts manually and one whose scan came back thin end up in the identical screen for

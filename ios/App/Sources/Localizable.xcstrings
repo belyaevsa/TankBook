@@ -2364,6 +2364,23 @@
         }
       }
     },
+    "Can you read the total on it?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Can you read the total on it?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Итог на снимке читается?"
+          }
+        }
+      }
+    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -2632,6 +2649,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Проверьте литры на чеке"
+          }
+        }
+      }
+    },
+    "Check the photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check the photo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте снимок"
           }
         }
       }
@@ -7572,6 +7606,23 @@
         }
       }
     },
+    "Re-take": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-take"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переснять"
+          }
+        }
+      }
+    },
     "Reading file…": {
       "extractionState": "manual",
       "localizations": {
@@ -9932,6 +9983,23 @@
         }
       }
     },
+    "The photo to check": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The photo to check"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снимок для проверки"
+          }
+        }
+      }
+    },
     "The server couldn't read the file right now – try again.": {
       "extractionState": "manual",
       "localizations": {
@@ -10612,6 +10680,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Использовать %@ вместо этого"
+          }
+        }
+      }
+    },
+    "Use this": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use this"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Использовать"
           }
         }
       }

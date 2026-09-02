@@ -552,6 +552,17 @@ capture PJ.14-odometer-warn-ru  ru -seedVehicleForUITests -presentScreen confirm
 capture PJ.20-import-sendfile     en -presentScreen importWizard -importStubFormats one -seedSendFile
 capture PJ.20-import-sendfile-ru  ru -presentScreen importWizard -importStubFormats one -seedSendFile
 
+# RV.5: the capture review step - the shot, "Use this", "Re-take" and "Type it".
+# `-captureAutoReview` presents it a beat after the surface appears, because
+# `simctl` cannot tap a shutter; the image is a real corpus receipt read from
+# the host path, so the screenshot shows what a user actually sees. RU is where
+# the two peers are tightest: "Переснять" beside "Ввести вручную" on one row.
+RV5_FIXTURE="$PWD/Spike/ReceiptSpike/fixtures/receipts/receipt-011-samara-diesel-ru.png"
+capture RV.5-capture-review    en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized \
+  -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+capture RV.5-capture-review-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized \
+  -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
