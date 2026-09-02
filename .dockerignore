@@ -1,0 +1,27 @@
+# Build context for backend/Dockerfile, which builds from the REPOSITORY ROOT
+# because Tankbook.Api.csproj embeds ../../../docs/schemas/v1/*.schema.json.
+#
+# Written as an ALLOWLIST - ignore everything, then re-include the few paths the
+# build reads. A denylist would have to be extended every time the repo grows a
+# directory, and the cost of forgetting is silent: the context here is 3.1 GB
+# unfiltered (ios/.build alone is 2 GB, .git 533 MB, the OCR corpus 152 MB), and
+# every byte is uploaded to the daemon on every build.
+*
+
+# The backend sources, and only the sources.
+!backend/Tankbook.slnx
+!backend/src/
+
+# Embedded by the csproj at build time: the canonical payload schemas that
+# migration 002 inserts into payload_schemas. Not optional - restore fails
+# without them.
+!docs/schemas/
+
+# Never worth sending even from inside the allowed paths: build output, and the
+# gitignored runtime config whose committed *.template.json sibling is what the
+# image renders instead (a real appsettings.json here would bake a developer's
+# local credentials into the image).
+backend/src/**/bin/
+backend/src/**/obj/
+backend/src/Tankbook.Api/appsettings.json
+backend/src/Tankbook.Api/appsettings.Development.json

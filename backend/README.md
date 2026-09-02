@@ -26,6 +26,28 @@ Nothing needs to be exported for local work: the generated `appsettings.Developm
 the localhost Postgres and MinIO defaults, and `dotnet run` picks the Development environment up
 automatically.
 
+## Docker
+
+```sh
+docker build -f backend/Dockerfile -t tankbook-api:dev .   # from the REPO ROOT
+docker run --rm -p 8080:8080 \
+  -e "ConnectionStrings__Postgres=Host=host.docker.internal;Port=5434;Database=tankbook;Username=tankbook;Password=tankbook" \
+  -e ASPNETCORE_ENVIRONMENT=Development \
+  tankbook-api:dev
+curl 127.0.0.1:8080/health
+```
+
+**Build from the repository root, not from `backend/`.** `Tankbook.Api.csproj` embeds
+`../../../docs/schemas/v1/*.schema.json`, so those files must be in the context; a `backend/`
+context fails at restore. The root `.dockerignore` keeps that context at ~12 kB - unfiltered it is
+3.1 GB, mostly `ios/.build`.
+
+The image is the API only; Postgres and the S3 store are external. It runs as the non-root `app`
+user, listens on 8080, and ships the *template* config - every secret blank, the non-secret
+defaults kept - so credentials arrive as environment variables (`Section__Key`) and are never baked
+into a layer. Outside Development the startup guard refuses to boot without the real secrets, in
+the container exactly as on a host.
+
 ## Test
 
 ```sh
