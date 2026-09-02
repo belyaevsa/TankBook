@@ -16,6 +16,14 @@
 #
 #   RUNNER_TOKEN=AXXXX... sudo -E bash backend/scripts/install-runner.sh
 #
+# IF A PREVIOUS ATTEMPT LEFT A BROKEN /opt/actions-runner, that directory is not
+# used any more - this installs to /opt/actions-runner-tankbook-api instead. The
+# old one can simply be removed once you have confirmed no other runner lives
+# there:
+#
+#   sudo ls /opt/actions-runner            # a .runner file means it is registered
+#   sudo rm -rf /opt/actions-runner        # only if it holds nothing you need
+#
 # THE LABEL MATTERS. The runner is registered with `tankbook-api`, and the
 # backend workflow asks for `[self-hosted, tankbook-api]`. Without a distinct
 # label, this runner would also match deploy-landing.yml's bare `self-hosted`
@@ -25,7 +33,11 @@ set -euo pipefail
 
 REPO="${RUNNER_REPO:-belyaevsa/TankBook}"
 RUNNER_USER="${RUNNER_USER:-tankbook-runner}"
-RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner}"
+# Runner-SPECIFIC, not the generic /opt/actions-runner. That path is what every
+# other runner on a host also picks, and this script would then reconfigure
+# somebody else's runner - on this host, plausibly the landing-site one, which
+# `--replace` could unregister.
+RUNNER_HOME="${RUNNER_HOME:-/opt/actions-runner-tankbook-api}"
 RUNNER_LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,tankbook-api}"
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)-tankbook-api}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/tankbook/api}"
@@ -92,9 +104,30 @@ mkdir -p "$DEPLOY_DIR"
 chown -R "$RUNNER_USER":"$RUNNER_USER" "$(dirname "$DEPLOY_DIR")"
 
 # --- 3. the runner itself ---------------------------------------------------
-if [ -f "${RUNNER_HOME}/config.sh" ]; then
+# A directory that already holds a CONFIGURED runner is somebody's - possibly
+# another repo's. Refuse rather than --replace it into ours.
+if [ -f "${RUNNER_HOME}/.runner" ] && [ "${RUNNER_ADOPT:-0}" != "1" ]; then
+    existing="$(jq -r '.gitHubUrl // .serverUrl // "unknown"' "${RUNNER_HOME}/.runner" 2>/dev/null || echo unknown)"
+    fail "${RUNNER_HOME} already holds a runner configured for ${existing}.
+  Re-registering would take it over. Use a different RUNNER_HOME, or
+  RUNNER_ADOPT=1 if you are certain this runner is meant to be replaced."
+fi
+
+# `config.sh` existing is NOT proof the runner is usable: an interrupted download
+# leaves the scripts without bin/, and the failure then reads as a permissions or
+# ldd error deep inside config.sh rather than as a broken unpack. Check for the
+# actual binary, and re-extract when it is missing.
+if [ -x "${RUNNER_HOME}/bin/Runner.Listener" ]; then
     echo "runner already unpacked at ${RUNNER_HOME}"
+elif [ -d "$RUNNER_HOME" ] && [ -f "${RUNNER_HOME}/config.sh" ]; then
+    log "${RUNNER_HOME} is incomplete (no bin/Runner.Listener) - re-extracting"
+    rm -rf "${RUNNER_HOME:?}"/*
+    NEEDS_DOWNLOAD=1
 else
+    NEEDS_DOWNLOAD=1
+fi
+
+if [ "${NEEDS_DOWNLOAD:-0}" = "1" ]; then
     log "downloading the runner"
     mkdir -p "$RUNNER_HOME"
     version="$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest \
@@ -111,8 +144,17 @@ else
         "https://github.com/actions/runner/releases/download/v${version}/actions-runner-linux-${rid}-${version}.tar.gz"
     tar xzf /tmp/runner.tar.gz -C "$RUNNER_HOME"
     rm -f /tmp/runner.tar.gz
-    chown -R "$RUNNER_USER":"$RUNNER_USER" "$RUNNER_HOME"
+    [ -x "${RUNNER_HOME}/bin/Runner.Listener" ] \
+        || fail "the runner archive extracted without bin/Runner.Listener - the download was truncated"
 fi
+
+# ALWAYS, not only after a download. The first version chowned inside the
+# download branch alone, so a run that skipped the download left the directory
+# owned by root - and every write then failed: `.path: Permission denied`,
+# `_diag/...log' is denied`, and an aborted config.sh. The runner writes .path,
+# .env, _diag and _work in here every time it starts, so ownership is not a
+# one-off setup detail.
+chown -R "$RUNNER_USER":"$RUNNER_USER" "$RUNNER_HOME"
 
 # --- 4. registration token --------------------------------------------------
 # Minted here rather than pasted where possible: a token typed into a shell ends
@@ -129,15 +171,25 @@ if [ -z "${RUNNER_TOKEN:-}" ]; then
 fi
 
 log "registering ${RUNNER_NAME} with labels ${RUNNER_LABELS}"
-sudo -u "$RUNNER_USER" env RUNNER_ALLOW_RUNASROOT=0 \
-    "${RUNNER_HOME}/config.sh" \
-    --unattended \
-    --replace \
-    --url "https://github.com/${REPO}" \
-    --token "$RUNNER_TOKEN" \
-    --name "$RUNNER_NAME" \
-    --labels "$RUNNER_LABELS" \
-    --work _work
+# Run from INSIDE the directory: config.sh sources ./env.sh, which writes `.path`
+# relative to the working directory - that is what produced
+# `./env.sh: line 37: .path: Permission denied`.
+#
+# The token travels in the ENVIRONMENT, never in argv. A `--token X` on a command
+# line is visible in `ps` to every user on the host, and this one can register a
+# runner against the repository. Everything else is positional, so no value is
+# interpolated into the shell string either.
+export RUNNER_TOKEN
+sudo -u "$RUNNER_USER" --preserve-env=RUNNER_TOKEN \
+    bash -c 'cd "$1" && ./config.sh \
+        --unattended \
+        --replace \
+        --url "$2" \
+        --token "$RUNNER_TOKEN" \
+        --name "$3" \
+        --labels "$4" \
+        --work _work' \
+    _ "$RUNNER_HOME" "https://github.com/${REPO}" "$RUNNER_NAME" "$RUNNER_LABELS"
 
 # --- 5. run it as a service -------------------------------------------------
 # So it survives a reboot. Without this the runner lives only as long as the
