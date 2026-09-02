@@ -195,9 +195,14 @@ sudo -u "$RUNNER_USER" --preserve-env=RUNNER_TOKEN \
 # So it survives a reboot. Without this the runner lives only as long as the
 # shell that started it, and the first reboot silently stops all deploys.
 log "installing the service"
-"${RUNNER_HOME}/svc.sh" install "$RUNNER_USER"
-"${RUNNER_HOME}/svc.sh" start
-"${RUNNER_HOME}/svc.sh" status || true
+# FROM INSIDE THE DIRECTORY, like config.sh. svc.sh checks its working directory
+# and refuses with "Must run from runner root or install is corrupt" when called
+# by absolute path - which says "corrupt" and means "wrong cwd", so it reads as a
+# broken download. Run as root: it writes a systemd unit and enables it.
+cd "$RUNNER_HOME"
+./svc.sh install "$RUNNER_USER"
+./svc.sh start
+./svc.sh status || true
 
 cat <<EOF
 
