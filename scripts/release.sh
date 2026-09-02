@@ -27,6 +27,19 @@ esac
 validate_upload_credentials() {
 : "${ASC_KEY_ID:?set ASC_KEY_ID to the App Store Connect API key id}"
 : "${ASC_ISSUER_ID:?set ASC_ISSUER_ID to the App Store Connect issuer id}"
+
+# The issuer id is a UUID. Checked because a malformed one fails as a 401
+# "Authentication credentials are missing or invalid", which reads as a bad KEY
+# - and sends you to regenerate a key that was fine. A stray character is the
+# realistic way to get here: `--apiIssuer $ASC_ISSUER_ID=` (trailing =) produced
+# exactly that on 2026-09-02.
+case "$ASC_ISSUER_ID" in
+  [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]) ;;
+  *) echo "release: ASC_ISSUER_ID is not a UUID: '${ASC_ISSUER_ID}'" >&2
+     echo "  It is the UUID shown ABOVE the keys table in App Store Connect ->" >&2
+     echo "  Users and Access -> Integrations, not the key id from the row." >&2
+     exit 2 ;;
+esac
 : "${ASC_KEY_PATH:?set ASC_KEY_PATH to the downloaded AuthKey_<KEYID>.p8}"
 
 # altool --apiKey does NOT take a path: it searches a fixed set of
