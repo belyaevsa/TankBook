@@ -4,21 +4,44 @@ on:
   push:
     paths:
       - 'backend/**'
+      # The API embeds ../../../docs/schemas/v1/*.schema.json (migration 002
+      # inserts them into payload_schemas), so a schema change alters the built
+      # image without touching backend/. Without this line the deploy silently
+      # ships the previous schema registry.
+      - 'docs/schemas/**'
+      - '.dockerignore'
       - '.github/workflows/backend.yml'
   pull_request:
     paths:
       - 'backend/**'
+      - 'docs/schemas/**'
+      - '.dockerignore'
       - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+# Deploys must not overlap: two runs racing the handover would fight over the
+# serving port. `cancel-in-progress: false` because cancelling mid-handover
+# could leave neither colour holding the port.
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false
 
 jobs:
+  # ---------------------------------------------------------------------------
+  # Build and test on a GITHUB-HOSTED runner, always - including for pull
+  # requests. belyaevsa/TankBook is PUBLIC: a `pull_request` job on the
+  # self-hosted runner would execute a stranger's code on the deploy host, with
+  # access to the runner token and every secret it can reach. Same reasoning as
+  # deploy-landing.yml.
+  # ---------------------------------------------------------------------------
   build-and-test:
+    name: Build and test
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -26,32 +49,80 @@ jobs:
           dotnet-version: '10.0.x'
 
       # appsettings.json is gitignored and generated from its committed
-      # template (2026-09-01). This step is not optional bookkeeping: measured,
-      # with the file absent `dotnet test` ABORTS after 117 of 295 tests.
-      #
-      # The secrets are mapped here so one step serves both this job and any
-      # later deploy job, but THIS job does not need them: the suite runs in the
-      # "Testing" environment and passes 295/295 with every value blank. That is
-      # what keeps a fork's pull request green - fork PRs receive no secrets, and
-      # the generator leaves unset values as the template has them.
-      #
-      # The variable names are the script's, and `backend/scripts/
-      # generate-appsettings.sh` is the single source of truth for the list -
-      # docs/SECURITY.md points at it rather than repeating it, because a list
-      # kept in two places drifts.
+      # template. Not optional: measured, with the file absent `dotnet test`
+      # ABORTS after 117 of 295 tests. No secrets are supplied - the suite runs
+      # in the "Testing" environment and passes 295/295 with every value blank,
+      # which is what keeps a fork's pull request green.
       - name: Generate appsettings from templates
         run: bash scripts/generate-appsettings.sh
-        env:
-          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
-          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
-          TANKBOOK_HASH_SALT: ${{ secrets.TANKBOOK_HASH_SALT }}
-          CONFIG_SIGNING_KEY: ${{ secrets.CONFIG_SIGNING_KEY }}
-          AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-          POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
 
       - name: Build
         run: dotnet build Tankbook.slnx --configuration Release
 
       - name: Test
         run: dotnet test Tankbook.slnx --configuration Release --no-build
+
+      - name: Verify formatting
+        run: dotnet format --verify-no-changes
+
+      # Builds the image the deploy will build, on disposable infrastructure, so
+      # a broken Dockerfile fails in a PR rather than on the deploy host. Context
+      # is the REPO ROOT - the csproj embeds files outside backend/.
+      - name: Build the container image
+        working-directory: .
+        run: docker build -f backend/Dockerfile -t tankbook-api:ci .
+
+  # ---------------------------------------------------------------------------
+  # Deploy on the self-hosted runner: build the image locally (no registry),
+  # migrate as an explicit step, then hand the serving port to the new colour.
+  # Same machine as the build, so the bytes that were built are the bytes that
+  # run - there is no artifact round-trip and nothing to re-verify.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Build locally and deploy
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: self-hosted
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the image on this host
+        # Tagged with the commit, never `latest`: the running container then
+        # names the commit it came from, and the previous image stays on disk as
+        # the rollback target.
+        run: |
+          docker build -f backend/Dockerfile -t "tankbook-api:${GITHUB_SHA::7}" .
+
+      - name: Deploy
+        # Migrations run as their own step INSIDE this script, before any
+        # container is replaced, and the new image is health-checked on a scratch
+        # port before the serving port changes hands. A failure at either point
+        # leaves the current version serving.
+        #
+        # nginx is external and unmanaged: it proxies to a fixed port on this
+        # host and is never touched here. The handover therefore refuses
+        # connections for roughly half a second - measured, not estimated. It is
+        # a deliberate trade, not zero-downtime.
+        env:
+          POSTGRES_CONNECTION: ${{ secrets.POSTGRES_CONNECTION }}
+          S3_ACCESS_KEY: ${{ secrets.S3_ACCESS_KEY }}
+          S3_SECRET_KEY: ${{ secrets.S3_SECRET_KEY }}
+          TANKBOOK_HASH_SALT: ${{ secrets.TANKBOOK_HASH_SALT }}
+          CONFIG_SIGNING_KEY: ${{ secrets.CONFIG_SIGNING_KEY }}
+          AUTH_JWT_SIGNING_KEY: ${{ secrets.AUTH_JWT_SIGNING_KEY }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          APPLE_AUDIENCE: ${{ vars.APPLE_AUDIENCE }}
+          GOOGLE_AUDIENCE: ${{ vars.GOOGLE_AUDIENCE }}
+        run: bash backend/scripts/deploy-blue-green.sh "${GITHUB_SHA::7}"
+
+      - name: Report what is serving
+        if: always()
+        run: |
+          echo "### Backend deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat /opt/tankbook/api/active 2>/dev/null || echo "no active marker"
+          cat /opt/tankbook/api/active 2>/dev/null >> "$GITHUB_STEP_SUMMARY" || true
+          docker ps --filter 'name=tankbook-api-' --format '{{.Names}} {{.Status}} {{.Ports}}' \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

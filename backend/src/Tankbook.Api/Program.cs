@@ -120,7 +120,20 @@ builder.Services.AddScoped<IDbConnection>(static sp =>
 // Apply pending SQL migrations (docs/TASKS.md P0.9) at startup. Idempotent,
 // self-healing: skips when no connection string is configured, retries with
 // backoff until the database accepts the schema.
-builder.Services.AddHostedService<MigrationHostedService>();
+//
+// Off by configuration for a blue-green deploy (`Database__AutoMigrate=false`),
+// where migrations are an EXPLICIT step (`dotnet Tankbook.Api.dll --migrate`)
+// run once before either colour starts. The reason is the blue-green window:
+// both colours run against one database, so a container that migrates as it
+// boots changes the schema under the version still serving. Making it a step
+// means the schema moves at one known moment, with its own pass/fail, rather
+// than as a side effect of whichever container happened to start.
+//
+// Default TRUE, so local runs, `dotnet run` and the test hosts are unchanged.
+if (builder.Configuration.GetValue("Database:AutoMigrate", true))
+{
+    builder.Services.AddHostedService<MigrationHostedService>();
+}
 
 // Payload contract services (docs/SYNC.md "Payload contract and versioning").
 // The validator reads the schema registry from the database, so the server
@@ -286,6 +299,42 @@ builder.Services.AddTankbookRateLimiting(
     builder.Configuration.GetSection(RateLimitOptions.SectionName).Get<RateLimitOptions>() ?? new RateLimitOptions());
 
 var app = builder.Build();
+
+// `dotnet Tankbook.Api.dll --migrate`: apply pending migrations, complete the
+// signed config baseline, and exit. The deploy-time half of the AutoMigrate
+// switch above - one known moment for the schema to move, with its own exit
+// code, instead of a side effect of a container starting.
+//
+// It exits NON-ZERO on failure, which is the whole value: a blue-green deploy
+// stops here and never starts a container against a database it could not
+// migrate. The same code path as the hosted service (MigrationHostedService.
+// RunAsync), so the two cannot drift.
+if (args.Contains("--migrate", StringComparer.Ordinal))
+{
+    var migrationLogger = app.Services
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("Tankbook.Migrate");
+
+    // Bounded, unlike the startup path. The hosted service retries for ~13
+    // minutes because a server that boots before its database should wait for
+    // it; a DEPLOY step that waits that long is just a stalled deploy holding
+    // the release. Two minutes is long enough for a database that is restarting
+    // and short enough that an unreachable one fails while someone is watching.
+    var timeout = TimeSpan.FromSeconds(
+        builder.Configuration.GetValue("Database:MigrateTimeoutSeconds", 120));
+    using var migrateTimeout = new CancellationTokenSource(timeout);
+
+    var migrated = await Tankbook.Api.Data.MigrationHostedService.RunAsync(
+        app.Services, migrationLogger, migrateTimeout.Token);
+    if (!migrated)
+    {
+        migrationLogger.LogError(
+            "--migrate did not complete within {Timeout}; the deploy must stop here rather than start a container against an unmigrated database.",
+            timeout);
+    }
+
+    return migrated ? 0 : 1;
+}
 
 // Startup secrets guard (docs/SECURITY.md, PR.34): a production-like host must
 // refuse to start with any committed placeholder or unset secret. A warning is
@@ -511,6 +560,10 @@ v1.MapPost("/extract", ExtractEndpoints.Extract)
     .WithBodySizeLimit(BodySizeLimits.ExtractBytes);
 
 app.Run();
+
+// Top-level statements return an int because the --migrate path above exits with
+// one; the normal serving path only reaches here after app.Run() returns.
+return 0;
 
 static string AssemblyVersion()
 {

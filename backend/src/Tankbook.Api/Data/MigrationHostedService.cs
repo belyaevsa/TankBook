@@ -26,14 +26,35 @@ public sealed class MigrationHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var connectionString = _services
+        await RunAsync(_services, _logger, stoppingToken);
+    }
+
+    /// <summary>
+    /// Applies pending migrations and completes the signed config baseline.
+    /// </summary>
+    /// <remarks>
+    /// Shared by the startup hosted service and the explicit <c>--migrate</c>
+    /// entry point, so the deploy-time step and the boot-time one cannot drift.
+    /// The config baseline is part of this on purpose: migration 003 seeds the
+    /// baseline document with an EMPTY signature because SQL cannot compute
+    /// Ed25519, so a run that applied the schema and skipped this would leave
+    /// GET /config serving a document no client can verify - a "successful"
+    /// migration that quietly breaks remote config.
+    /// </remarks>
+    /// <returns>True when the schema is present and the baseline is signed.</returns>
+    public static async Task<bool> RunAsync(
+        IServiceProvider services,
+        ILogger logger,
+        CancellationToken stoppingToken)
+    {
+        var connectionString = services
             .GetRequiredService<IOptions<ConnectionStringsOptions>>()
             .Value.Postgres;
 
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            _logger.LogWarning("ConnectionStrings:Postgres is not configured; skipping database migrations.");
-            return;
+            logger.LogWarning("ConnectionStrings:Postgres is not configured; skipping database migrations.");
+            return false;
         }
 
         var delay = TimeSpan.FromSeconds(1);
@@ -43,27 +64,27 @@ public sealed class MigrationHostedService : BackgroundService
             {
                 await using var connection = new NpgsqlConnection(connectionString);
                 await connection.OpenAsync(stoppingToken);
-                await SchemaMigrator.ApplyPendingAsync(connection, stoppingToken, _logger);
+                await SchemaMigrator.ApplyPendingAsync(connection, stoppingToken, logger);
                 // Migration 003 seeds the baseline config document with an empty
                 // signature (SQL cannot compute Ed25519); complete it here, with
                 // the configured signing key, so GET /config serves a document
                 // clients can verify (docs/CONFIG.md signed payload).
                 await Tankbook.Api.Config.ConfigBaselineSeeder.SeedAsync(
                     connection,
-                    _services.GetRequiredService<Tankbook.Api.Config.ConfigSigner>(),
-                    _services.GetRequiredService<Tankbook.Api.Config.ConfigSchemaValidator>(),
-                    _logger,
+                    services.GetRequiredService<Tankbook.Api.Config.ConfigSigner>(),
+                    services.GetRequiredService<Tankbook.Api.Config.ConfigSchemaValidator>(),
+                    logger,
                     stoppingToken);
-                _logger.LogInformation("Database migrations applied.");
-                return;
+                logger.LogInformation("Database migrations applied.");
+                return true;
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {
-                return;
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(
+                logger.LogWarning(
                     "Database migration attempt {Attempt}/{MaxAttempts} failed ({Reason}); retrying in {Delay}.",
                     attempt, MaxAttempts, ex.Message, delay);
                 try
@@ -72,12 +93,13 @@ public sealed class MigrationHostedService : BackgroundService
                 }
                 catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
                 {
-                    return;
+                    return false;
                 }
                 delay = TimeSpan.FromSeconds(Math.Min(delay.TotalSeconds * 2, MaxRetryDelay.TotalSeconds));
             }
         }
 
-        _logger.LogError("Database migrations did not apply after {MaxAttempts} attempts; the API will run without a schema.", MaxAttempts);
+        logger.LogError("Database migrations did not apply after {MaxAttempts} attempts.", MaxAttempts);
+        return false;
     }
 }

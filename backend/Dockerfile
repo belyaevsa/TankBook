@@ -61,6 +61,17 @@ RUN dotnet publish src/Tankbook.Api/Tankbook.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Npgsql probes for GSSAPI while opening a connection, and without this library
+# it prints `Error: libgssapi_krb5.so.2: cannot open shared object file` on
+# every run. It is harmless - password auth succeeds and the migrations apply -
+# but it appears on stderr as "Error:" at the top of every deploy, and a deploy
+# that always prints an error is a deploy where nobody reads the errors. One
+# package, installed as root before dropping to the app user.
+USER root
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
+
 # The runtime image ships a non-root `app` user (UID 1654). Used rather than
 # root because this process holds the database credential and the S3 key: a
 # container escape should not also be a root shell.
