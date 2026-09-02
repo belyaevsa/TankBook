@@ -13,14 +13,26 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 : "${TANKBOOK_TEAM_ID:?set TANKBOOK_TEAM_ID to the Apple Developer team id (docs/STORE.md)}"
-UPLOAD=0; [ "${1:-}" = "--upload" ] && UPLOAD=1
+UPLOAD=0
+case "${1:-}" in
+  "")        ;;
+  --upload)  UPLOAD=1 ;;
+  *) echo "release: unknown argument '${1}'. The only flag is --upload;" >&2
+     echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
+     exit 2 ;;
+esac
 
 # Build number: the commit count on the archived commit - monotonic on main, and
 # App Store Connect rejects a reused number. The marketing version stays in project.yml.
 BUILD_NUMBER="$(git rev-list --count HEAD)"
 COMMIT="$(git rev-parse --short HEAD)"
+# `git status --porcelain` skips IGNORED files, and build/ is ignored - otherwise
+# this script's own output (build/release-<n>-<sha>/) would make the tree dirty
+# and refuse the NEXT run, which is what happened after build 463.
 if [ -n "$(git status --porcelain)" ]; then
-  echo "release: the tree is dirty - archive a committed state so the build number means something" >&2; exit 2
+  echo "release: the tree is dirty - archive a committed state so the build number means something" >&2
+  git status --short >&2
+  exit 2
 fi
 
 OUT="build/release-${BUILD_NUMBER}-${COMMIT}"; mkdir -p "$OUT"

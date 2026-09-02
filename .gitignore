@@ -61,3 +61,10 @@ backend/src/Tankbook.Api/appsettings.Development.json
 # self-hosted runner to assert the Postgres-backed tests actually RAN - a suite
 # that skips them still prints "Passed!" - and that artifact is never committed.
 backend/**/TestResults/
+
+# Release archives and exported IPAs (scripts/release.sh writes build/release-<n>-<sha>/).
+# Ignored because the script REFUSES a dirty tree - the build number comes from
+# the commit count, so archiving uncommitted work would produce a number that
+# names nothing. Without this line the script's own output makes the tree dirty
+# and blocks the next run, which is what happened on build 463.
+build/
