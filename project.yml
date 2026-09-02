@@ -55,7 +55,22 @@ targets:
         NSCameraUsageDescription: "Tankbook uses the camera to scan receipts and pump displays so you do not have to type them."
         NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
     entitlements:
+      # The file at this path is GENERATED from `properties` on every
+      # `xcodegen generate` - it is not a file to hand-edit. Editing
+      # ios/App/Tankbook.entitlements directly looks like it works (plutil
+      # confirms the key, the app builds) and is silently reverted by the next
+      # generate, which is how it sat empty until 2026-09-02.
       path: ios/App/Tankbook.entitlements
+      properties:
+        # Sign in with Apple. Must match the capability enabled on the App ID in
+        # the developer portal; without it ASAuthorizationController fails at
+        # RUNTIME on a real build, and Apple is currently the app's only working
+        # provider (Google ships unprovisioned, SH.4). The failure reads as
+        # "sign-in is broken", nowhere near a missing entitlement - and neither
+        # the test suite nor the simulator enforces entitlements, so nothing
+        # else catches it.
+        com.apple.developer.applesignin:
+          - Default
     settings:
       base:
         SWIFT_VERSION: "6.0"
