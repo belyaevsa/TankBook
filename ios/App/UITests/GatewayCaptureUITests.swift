@@ -75,6 +75,54 @@ final class GatewayCaptureUITests: XCTestCase {
     /// The exact copy (see also the localization gate test that pins EN and RU).
     private static let timeoutCopy = "Cloud reading continues in the background – keep going with what was read here."
 
+    // MARK: - RV.8 the wait is visible from the first moment
+
+    /// The bug this pins: production measured a 10.2 s cloud read, and the
+    /// Confirm sheet showed NOTHING for the first 3 s of it and a motionless
+    /// hourglass for the rest.
+    ///
+    /// `-seedGatewayBudget 25` widens the UI budget for this test only. Without
+    /// it the `.running` state is unobservable: the budget starts when the sheet
+    /// appears, and XCUITest's launch plus its first query routinely take longer
+    /// than the product's 3 s, so the test would look for the in-flight banner
+    /// after it had already been replaced - and would fail with the fix present.
+    ///
+    /// The assertion is on the RUNNING banner's own identifier and copy, never
+    /// on "some banner exists": the timeout banner shares this flow, so a check
+    /// against a shared identifier would pass with the bug fully in place.
+    func testTheCloudReadIsVisibleWhileItRuns() {
+        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
+                                "-seedConfirmPrefillSparse", "-seedGateway",
+                                "-seedGatewayDelay", "30", "-seedGatewayBudget", "25"])
+        openSheet(app)
+
+        let running = app.descendants(matching: .any)["gatewayReadingMessage"]
+        XCTAssertTrue(running.waitForExistence(timeout: 10),
+                      "the in-flight banner must be on screen while the request runs, not only at the budget")
+        let copy = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
+                                                        "Reading this in the cloud")).firstMatch
+        XCTAssertTrue(copy.exists, "the running banner must render its copy")
+
+        // And the timeout banner is NOT up yet - which is what makes this a test
+        // of the running state rather than of "a banner exists at some point".
+        XCTAssertFalse(timeoutMessage(app).exists,
+                       "the budget has not expired, so the timeout message must not be on screen")
+    }
+
+    /// The two states are one banner, not two: when the budget expires the
+    /// running banner must be GONE, not stacked above the timeout one. Split
+    /// from the test above so a failure names which half broke.
+    func testTheRunningBannerGivesWayToTheBudgetMessage() {
+        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
+                                "-seedConfirmPrefillSparse", "-seedGateway", "-seedGatewayDelay", "30"])
+        openSheet(app)
+
+        XCTAssertTrue(timeoutMessage(app).waitForExistence(timeout: 10),
+                      "the budget message must appear at the 3 s budget")
+        XCTAssertFalse(app.descendants(matching: .any)["gatewayReadingMessage"].exists,
+                       "the running banner must not remain beside the budget message")
+    }
+
     // MARK: - The 3 s budget message (hard rule 7: it names its next step)
 
     func testGatewayTimeoutMessageNamesItsNextStep() {

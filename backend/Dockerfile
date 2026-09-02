@@ -89,6 +89,17 @@ WORKDIR /app
 # but it appears on stderr as "Error:" at the top of every deploy, and a deploy
 # that always prints an error is a deploy where nobody reads the errors. One
 # package, installed as root before dropping to the app user.
+# NOTE for the cross-architecture build: this is the ONE instruction in the
+# runtime stage that EXECUTES anything. Everything else here (COPY, WORKDIR,
+# USER, ENV, EXPOSE) is metadata and needs no emulation - so this single RUN is
+# what makes an amd64-on-aarch64 build require QEMU/binfmt on the builder.
+# Without it registered the build dies here with
+#   exec /bin/sh: exec format error
+# which names neither architecture nor emulation. The workflow registers binfmt
+# before building (`Register QEMU so the amd64 stage can execute here`). Deleting
+# this RUN would remove the emulation requirement entirely - and re-introduce the
+# GSSAPI error line on every deploy, which is the trade this comment exists to
+# make visible.
 USER root
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libgssapi-krb5-2 \

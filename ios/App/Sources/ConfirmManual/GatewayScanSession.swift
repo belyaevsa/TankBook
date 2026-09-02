@@ -50,6 +50,26 @@ final class GatewayScanSession {
     private var saved = false
     private var onAnswer: ((GatewayExtraction) -> Void)?
 
+    /// The UI budget. Product value 3 s (`GatewayBudget.duration`, docs/API.md
+    /// rule 2); overridable ONLY by `-seedGatewayBudget <seconds>`, in the same
+    /// family as `-seedGatewayDelay` beneath it.
+    ///
+    /// It exists because the `.running` state is otherwise UNOBSERVABLE from a
+    /// UI test: the budget starts when the sheet appears, and XCUITest's launch
+    /// plus its first query routinely take longer than 3 s, so a test looking
+    /// for the in-flight banner reliably arrives after it is gone. Without this
+    /// seam the RV.8 test could only be written as "the timeout banner appears",
+    /// which passes with the whole in-flight state missing - which is exactly
+    /// the bug RV.8 was.
+    private let budget: Duration = GatewayScanSession.budget()
+
+    static func budget(arguments: [String] = ProcessInfo.processInfo.arguments) -> Duration {
+        guard let index = arguments.firstIndex(of: "-seedGatewayBudget"),
+              arguments.indices.contains(index + 1),
+              let seconds = Double(arguments[index + 1]) else { return GatewayBudget.duration }
+        return .seconds(seconds)
+    }
+
     /// Starts the request and the budget monitor. `onAnswer` is called on the
     /// main actor with the answer when (and only when) it may still be applied.
     func start(transport: any GatewayExtractTransport,
@@ -82,7 +102,7 @@ final class GatewayScanSession {
     private func monitor(_ work: Task<GatewayExtraction, Error>) async {
         let outcome: GatewayWait<GatewayExtraction>
         do {
-            outcome = try await GatewayWaiter.wait(work)
+            outcome = try await GatewayWaiter.wait(work, timeout: budget)
         } catch {
             // The transport refused or failed within the budget (402/429/426/
             // 5xx/offline). The on-device result stands (F4) - there is no

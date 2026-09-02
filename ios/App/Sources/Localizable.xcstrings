@@ -7623,6 +7623,23 @@
         }
       }
     },
+    "Reading this in the cloud… you can keep typing.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading this in the cloud… you can keep typing."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознаём в облаке… можно продолжать вводить."
+          }
+        }
+      }
+    },
     "Reason (optional)": {
       "extractionState": "manual",
       "localizations": {

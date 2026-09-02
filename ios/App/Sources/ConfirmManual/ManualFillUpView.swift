@@ -118,9 +118,8 @@ struct ManualFillUpView: View {
                     if cloudExtractSurface && !config.allowsServerBacked {
                         UpdateRequiredNotice()
                     }
-                    if gatewaySession.phase == .budgetExpired {
-                        gatewayTimeoutBanner
-                    }
+                    GatewayReadingBanner(phase: gatewaySession.phase,
+                                         reduceMotion: reduceMotion)
                     ManualFillUpOdometerCard(form: $form, focus: $focus, distanceUnit: distanceUnit,
                                              conflict: odometerConflict,
                                              onFixDate: { showDatePicker = true },
@@ -492,28 +491,6 @@ struct ManualFillUpView: View {
         }
     }
 
-    /// The 3 s budget message (docs/API.md rule 2, hard rule 7): it names the
-    /// next step - carry on with what was read on-device - and it carries no
-    /// upsell (the Pro tier is deferred; monetization appears in no error
-    /// surface here, and an upsell mid-capture is explicitly forbidden).
-    private var gatewayTimeoutBanner: some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "hourglass.bottomhalf.filled")
-                .font(.footnote)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Text("Cloud reading continues in the background – keep going with what was read here.")
-                .font(.footnote)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Theme.Palette.dash)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("gatewayTimeoutMessage")
-    }
 }
 
 // MARK: - Save

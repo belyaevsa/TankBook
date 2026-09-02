@@ -111,6 +111,17 @@ as a **service** so it survives a reboot. The label is `tankbook-api`, not bare
 `self-hosted`: `deploy-landing.yml` also asks for `self-hosted`, so a bare label
 would let the site deploy land on this host and fail for want of Hugo.
 
+**The builder and the deploy host are different architectures** (aarch64 and
+x86_64), so the image is built with `docker buildx build --platform linux/amd64`
+and the builder needs **binfmt registered**. The runtime stage contains exactly
+one instruction that executes anything - the `apt-get` installing
+`libgssapi-krb5-2` - and on 2026-09-03 that one line stopped the first
+cross-arch build with `exec /bin/sh: exec format error`, a message that names
+neither architecture nor emulation. The workflow registers the handlers itself
+(one privileged `tonistiigi/binfmt` run, skipped once they are present) rather
+than relying on the marketplace action, so a self-hosted runner needs nothing
+configured by hand.
+
 **Ports are 17080 (serving) and 17081 (verification), not 8080/8090.** The host
 runs other containers, and the deploy refuses to start when either port is held
 by a container that is not ours - proxying to somebody else's service would be

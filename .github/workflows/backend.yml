@@ -218,6 +218,39 @@ jobs:
         working-directory: backend
         run: dotnet format --verify-no-changes
 
+      - name: Register QEMU so the amd64 stage can execute here
+        # The builder is aarch64 and the image is linux/amd64. Almost every
+        # instruction in the runtime stage is metadata (COPY, WORKDIR, USER, ENV)
+        # and needs no emulation - but ONE, the apt-get that installs
+        # libgssapi-krb5-2, is a RUN, and a RUN in a foreign-architecture stage
+        # has to execute an amd64 /bin/sh on an arm64 kernel.
+        #
+        # Without binfmt registered that fails as:
+        #
+        #   #9 0.182 exec /bin/sh: exec format error
+        #
+        # which names neither architecture nor emulation and reads like a corrupt
+        # base image (2026-09-03: it stopped the first cross-arch build).
+        #
+        # tonistiigi/binfmt is what docker/setup-qemu-action runs underneath; it
+        # is invoked directly so this works on a self-hosted runner with no
+        # marketplace action and no network to GitHub's action cache.
+        #
+        # PRIVILEGED, and only just: registering an interpreter is a kernel-wide
+        # change, so it needs the capability. It is a builder-only step - the
+        # deploy host runs nothing of the sort - and it is idempotent, so the
+        # probe below skips it on every run after the first (including after a
+        # reboot only if the registration survived; it re-runs if it did not).
+        run: |
+          set -euo pipefail
+          if docker run --rm --platform linux/amd64 busybox:1.36 true 2>/dev/null; then
+            echo "amd64 binaries already execute here - binfmt is registered"
+          else
+            echo "registering binfmt handlers for cross-architecture builds"
+            docker run --privileged --rm tonistiigi/binfmt --install amd64
+            docker run --rm --platform linux/amd64 busybox:1.36 true
+          fi
+
       - name: Build and push the image
         # Tagged with the commit, never `latest`: the running container then
         # names the commit it came from, and the previous tag stays in the
