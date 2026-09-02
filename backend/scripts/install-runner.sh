@@ -303,20 +303,48 @@ cat <<EOF
 Runner registered.
 
   name    ${RUNNER_NAME}
+  role    ${ROLE}
+  arch    ${ARCH_LABEL}
   labels  ${RUNNER_LABELS}
   user    ${RUNNER_USER}
+EOF
+
+if [ "$ROLE" = build ]; then
+    cat <<EOF
+
+This is a BUILD host. It runs the suite and cross-builds the image for the
+deploy host's amd64; it never touches production, so it needs none of the
+database, S3 or signing secrets.
+
+Still required:
+
+  1. Repository secrets, so the image can travel to the deploy host:
+       YC_REGISTRY_ID   crp6ds5aer2bn72891ih
+       YC_CI_SA_KEY     yc iam key create --service-account-name tankbook-ci --output k.json
+                        gh secret set YC_CI_SA_KEY < k.json && rm k.json
+  2. Nothing else. If this host is asked for a production secret, something is
+     wired wrong - that separation is why the build moved off the deploy box.
+
+EOF
+else
+    cat <<EOF
   deploy  ${DEPLOY_DIR}
 
 Still required before a deploy can succeed:
 
   1. Repository secrets: POSTGRES_CONNECTION, S3_ACCESS_KEY, S3_SECRET_KEY,
-     TANKBOOK_HASH_SALT, CONFIG_SIGNING_KEY, AUTH_JWT_SIGNING_KEY, LLM_API_KEY
+     TANKBOOK_HASH_SALT, CONFIG_SIGNING_KEY, AUTH_JWT_SIGNING_KEY, LLM_API_KEY,
+     YC_REGISTRY_ID, YC_DEPLOY_SA_KEY
      (backend/scripts/generate-secrets.sh --gh-set mints three of them)
   2. Repository variables: APPLE_AUDIENCE, GOOGLE_AUDIENCE - these FAIL CLOSED,
      so sign-in refuses every token until they are set
-  3. nginx proxying to 127.0.0.1:8080 - see backend/deploy/nginx/
+  3. nginx proxying to 127.0.0.1:17080 - see backend/deploy/nginx/
   4. The database: backend/scripts/provision-database.sql
 
+EOF
+fi
+
+cat <<EOF
 Verify the runner appears at:
   https://github.com/${REPO}/settings/actions/runners
 EOF
