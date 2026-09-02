@@ -106,7 +106,11 @@ twice, and nothing that lives in this repo is re-declared on the portal by hand.
 | **Devices**: add your iPhone 12 (the iOS 18 floor device) and the phone you test on | Devices | Development builds and ad-hoc installs need the UDID registered; TestFlight builds do not |
 | **Keys**: one **App Store Connect API key** (role App Manager), stored in the platform secret store – never in the repo | Keys | Lets `xcodebuild -exportArchive` / `altool` upload without a session; needed the day CI uploads builds. Not needed for a first manual upload from Xcode |
 
-Repo side of this section: `project.yml` gets `DEVELOPMENT_TEAM: <team id>`, `CODE_SIGN_STYLE: Automatic`, and an entitlements file `ios/App/Tankbook.entitlements` carrying `com.apple.developer.applesignin = [Default]`. All three are committed – an IPA is a zip and none of these is a secret.
+Repo side of this section, corrected 2026-09-02 to match what the project actually does:
+
+- `DEVELOPMENT_TEAM` is **`${TANKBOOK_TEAM_ID}`, an environment variable**, not a committed literal. XcodeGen substitutes it at *generate* time, so it must be exported before `xcodegen generate` - and `scripts/release.sh` runs one internally, so exporting before the script is enough. **Unset, XcodeGen leaves the literal `"${TANKBOOK_TEAM_ID}"` in the project** rather than an empty value, so the archive fails complaining about a team of that name - which reads like a portal problem rather than a missing export. The team id is not a secret (it is in every IPA); keeping it out of the repo is a choice about what a public repo advertises, not a security control.
+- `CODE_SIGN_STYLE: Automatic`, committed.
+- The entitlement lives in **`project.yml` under `entitlements.properties`**, NOT in `ios/App/Tankbook.entitlements`. That file is GENERATED from those properties on every `xcodegen generate`; editing it directly looks like it works and is silently reverted by the next generate, which is how it shipped empty until 2026-09-02.
 
 ### 2 · App Store Connect (the listing and the builds)
 
