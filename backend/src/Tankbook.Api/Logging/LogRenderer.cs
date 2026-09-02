@@ -102,6 +102,13 @@ public sealed class LogRenderer
 
         foreach (var field in redactedFields)
         {
+            // Summary became the message above; emitting it again as a field
+            // would print the same text twice on every line.
+            if (string.Equals(field.Name, "Summary", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             ordered.Add(new KeyValuePair<string, object?>(field.Name, field.Value));
         }
 
@@ -182,7 +189,15 @@ public sealed class LogRenderer
     {
         if (template is null)
         {
-            return eventName;
+            // A call site may supply a human summary ("GET /v1/sync/pull -> 200
+            // in 693ms"). It is preferred over the bare event name because the
+            // event name alone makes every request line identical, which is what
+            // made the production log unreadable. The structured fields are
+            // untouched, so a parser loses nothing.
+            var summary = fields
+                .FirstOrDefault(f => string.Equals(f.Name, "Summary", StringComparison.OrdinalIgnoreCase))
+                ?.Value as string;
+            return string.IsNullOrEmpty(summary) ? eventName : summary;
         }
 
         var byName = fields.ToDictionary(f => f.Name, f => f.Value, StringComparer.OrdinalIgnoreCase);

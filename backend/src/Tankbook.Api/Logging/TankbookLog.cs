@@ -43,7 +43,13 @@ public static class TankbookLog
             }
         }
 
-        Emit(logger, level, "http.request", fields.ToArray());
+        // A readable summary rather than the bare event name: "GET /v1/sync/pull
+        // -> 200 in 693ms" says at a glance what a wall of key=value pairs does
+        // not. The structured fields are unchanged underneath, so a parser sees
+        // exactly what it saw before.
+        Emit(logger, level, "http.request",
+             $"{method} {routeTemplate} -> {status} in {durationMs:F0}ms",
+             fields.ToArray());
     }
 
     public static void AuthSession(
@@ -341,8 +347,21 @@ public static class TankbookLog
             });
 
     private static void Emit(ILogger logger, LogLevel level, string eventName, params (string Key, object? Value)[] fields)
+        => Emit(logger, level, eventName, null, fields);
+
+    /// <summary>
+    /// As above, with a human-readable summary. The summary is what a person
+    /// reads; the fields are what a parser reads. Both are emitted, so making
+    /// the line legible costs a machine consumer nothing.
+    /// </summary>
+    private static void Emit(ILogger logger, LogLevel level, string eventName, string? summary, params (string Key, object? Value)[] fields)
     {
         var state = new Dictionary<string, object?> { ["Event"] = eventName };
+        if (summary is not null)
+        {
+            state["Summary"] = summary;
+        }
+
         foreach (var (key, value) in fields)
         {
             state[key] = value;
@@ -356,7 +375,9 @@ public static class TankbookLog
             static (s, _) =>
             {
                 var map = (IReadOnlyDictionary<string, object?>)s;
-                return map.GetValueOrDefault("Event") as string ?? "log";
+                return map.GetValueOrDefault("Summary") as string
+                    ?? map.GetValueOrDefault("Event") as string
+                    ?? "log";
             });
     }
 }

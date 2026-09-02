@@ -502,6 +502,11 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
             {
                 b.UseEnvironment("Testing");
                 b.UseSetting("ConnectionStrings:Postgres", connectionString);
+                // A SUCCESSFUL request line is Debug since 2026-09-02 (only
+                // failures are Information). The log-assertion tests read that
+                // line for its correlation fields, so the test host captures at
+                // Debug - the guarantee is unchanged, its level is not.
+                b.UseSetting("Logging:LogLevel:Default", "Debug");
                 if (maxDeltaEntries is not null)
                 {
                     b.UseSetting("Catalog:MaxDeltaEntries", maxDeltaEntries.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));

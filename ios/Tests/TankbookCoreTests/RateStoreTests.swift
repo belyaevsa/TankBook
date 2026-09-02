@@ -282,3 +282,45 @@ private final class StubRateFetcher: RateFetcher, @unchecked Sendable {
         _ = try RateSeedStore.decode(data: Data(bad.utf8), calendar: utcCalendar)
     }
 }
+
+// MARK: - The window the refresh actually asks the server for
+
+/// Records the range `RateStore.refresh` requests, so the client's window can be
+/// checked against the server's cap.
+private final class RangeRecordingFetcher: RateFetcher, @unchecked Sendable {
+    let lock = OSAllocatedUnfairLock(initialState: (from: Date?.none, to: Date?.none))
+
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+        lock.withLock { $0 = (from, to) }
+        return []
+    }
+}
+
+/// The server rejects a span wider than `Rates:MaxPackDays` with a 400, and its
+/// comparison is inclusive: `to - from + 1 > maxDays`.
+///
+/// This existed as a real production failure before it existed as a test. The
+/// client asked for TWO YEARS while the server capped at 400 days, so every
+/// refresh 400'd - seen on the first device build, five in one session. Neither
+/// suite could catch it: the client tests use a `RateFetcher` double that accepts
+/// any range, and the server tests choose their own. Both sides were tested; the
+/// contract between them was not, which is exactly where this class of bug lives.
+private let serverMaxPackDays = 400
+
+@Test func refreshRequestsAWindowTheServerWillAccept() async {
+    let fetcher = RangeRecordingFetcher()
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar)
+
+    await store.refresh()
+
+    let (from, to) = fetcher.lock.withLock { $0 }
+    let start = try! #require(from)
+    let end = try! #require(to)
+
+    let inclusiveDays = utcCalendar.dateComponents([.day], from: start, to: end).day! + 1
+    #expect(inclusiveDays <= serverMaxPackDays,
+            "the client asks for \(inclusiveDays) days; the server rejects anything over \(serverMaxPackDays)")
+    // Not merely "small enough": asking for far less than the cap would silently
+    // shrink the history available for backfilling older entries.
+    #expect(inclusiveDays == serverMaxPackDays)
+}

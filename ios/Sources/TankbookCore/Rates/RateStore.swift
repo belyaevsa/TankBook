@@ -118,7 +118,24 @@ public final class RateStore: @unchecked Sendable {
         lock.withLock { $0.rates }
     }
 
-    /// Fetches a ~2-year rolling pack (base EUR) when a fetcher is present;
+    /// How many days of rates one `/rates/pack` refresh asks for, INCLUSIVE of
+    /// both ends.
+    ///
+    /// It must not exceed the server's `Rates:MaxPackDays` (400,
+    /// `docs/API.md` -> Exchange rates), which rejects a wider span with a 400.
+    /// This asked for **two years** until 2026-09-02 and therefore failed on
+    /// every single refresh - seen in production on the first device build,
+    /// five 400s in one session, and never caught because the client tests use
+    /// a `RateFetcher` double and the server tests choose their own ranges. Both
+    /// sides were tested; the contract between them was not.
+    ///
+    /// The server's comparison is `to - from + 1 > maxDays`, so 400 inclusive
+    /// days is accepted and 401 is not - hence the `- 1` at the call site.
+    /// A miss is not an error (F9): entries save rate-pending and backfill
+    /// later, so a shorter window costs a backfill, never a wrong number.
+    static let packWindowDays = 400
+
+    /// Fetches a rolling `packWindowDays` pack (base EUR) when a fetcher is present;
     /// otherwise a no-op. A fetch failure is silent - a miss is not an error
     /// (docs/SCHEMA.md -> Exchange rates, F9).
     ///
@@ -137,7 +154,7 @@ public final class RateStore: @unchecked Sendable {
             return false
         }
         let now = clock()
-        let from = calendar.date(byAdding: .year, value: -2, to: now) ?? now
+        let from = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
         do {
             let rates = try await fetcher.fetchPack(from: from, to: now, base: .eur)
             merge(rates)

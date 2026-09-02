@@ -447,6 +447,11 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
             .WithWebHostBuilder(b => b
                 .UseEnvironment("Testing")
                 .UseSetting("ConnectionStrings:Postgres", connectionString)
+                // A SUCCESSFUL request line is Debug since 2026-09-02 (only
+                // failures are Information). This test reads that line for its
+                // correlation fields - the PR.8 guarantee is unchanged, only its
+                // level moved - so the host captures at Debug.
+                .UseSetting("Logging:LogLevel:Default", "Debug")
                 .ConfigureServices(services =>
                 {
                     services.Replace(ServiceDescriptor.Singleton<IIdTokenVerifier>(signer.Verifier));

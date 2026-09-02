@@ -46,6 +46,19 @@ Every log line on both tiers carries: `timestamp, level, event, traceId?, accoun
 
 `Microsoft.Extensions.Logging` through `LogRenderer`, which emits either **one JSON object per line** or a human-readable line, selected by `Tankbook:Logging:Format` (`json` | `text`). The default is `text` in Development and `json` elsewhere.
 
+**The per-request line is levelled by OUTCOME (changed 2026-09-02).** §3's rule was one
+`http.request` line at Information for every request. In production that buried the lines that say
+what actually *happened* - `auth.session`, `sync.push`, `blob.commit`, `llm.extract` - under one
+`http.request` per call, several per screen; a log nobody can read is not observability. So a
+**successful** request is `Debug`, a **4xx** is `Information`, and a **5xx** is `Warning`. `/health`
+stays `Debug` as before.
+
+**Re-levelled, not removed.** `Logging:LogLevel:Default=Debug` brings every request back with its
+correlation fields intact, and a test pins that the successful line is still emitted there - so
+"quieter" cannot quietly become "gone". The line also carries a human summary now
+(`GET /v1/sync/pull -> 200 in 693ms`) alongside the unchanged structured fields, because the bare
+event name made every request line identical.
+
 **The deployed server runs `text` (changed 2026-09-02, product owner).** The original rule here was JSON everywhere outside Development, and it is the right default *once logs are shipped somewhere that parses them*. Today they are read by eye with `docker logs` on the deploy host, where one JSON object per line is markedly harder to scan than the same fields on a labelled line - and a format nobody can read is not observability. `backend/scripts/deploy-blue-green.sh` sets `Tankbook__Logging__Format`, defaulting to `text` and overridable with `TANKBOOK_LOG_FORMAT=json`.
 
 **Switch it back to `json` the day a log aggregator exists.** Nothing else changes - the same fields, the same redaction, the same `traceId`; only the rendering differs, and `RenderText`/`RenderJson` share one field-ordering path so neither can carry a value the other does not.

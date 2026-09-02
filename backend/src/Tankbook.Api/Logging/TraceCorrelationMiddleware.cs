@@ -64,8 +64,25 @@ public sealed class TraceCorrelationMiddleware
                 ? "/" + route.RoutePattern.RawText.TrimStart('/')
                 : "unmatched";
 
+            // A SUCCESSFUL request is Debug; anything else is worth reading
+            // (2026-09-02). The per-request line was Information for every
+            // request, which buried the lines that say what actually happened -
+            // auth.session, sync.push, blob.commit, llm.extract - under one
+            // http.request per call, several per screen. The domain events are
+            // the information; http.request is the audit trail underneath them.
+            //
+            // Nothing is lost, it is re-levelled: set Logging:LogLevel:Default
+            // to Debug to get every request back. Failures stay visible - 4xx at
+            // Information, 5xx at Warning - so the log still shows what went
+            // wrong without showing everything that went right.
             var isHealth = routeTemplate.StartsWith("/health", StringComparison.OrdinalIgnoreCase);
-            var level = isHealth ? LogLevel.Debug : LogLevel.Information;
+            var level = (isHealth, status: context.Response.StatusCode) switch
+            {
+                (true, _) => LogLevel.Debug,
+                (_, >= 500) => LogLevel.Warning,
+                (_, >= 400) => LogLevel.Information,
+                _ => LogLevel.Debug,
+            };
 
             var enrichment = context.Items[LogScopeEnrichmentMiddleware.EnrichmentItemKey] as IReadOnlyDictionary<string, object?>;
 
