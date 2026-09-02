@@ -156,15 +156,24 @@ jobs:
         # Postgres-backed tests SKIP rather than fail, so the count is checked
         # below rather than trusting a green run.
         working-directory: backend
-        # MaxParallelThreads is capped. ~20 test classes each create a database
-        # and apply all 12 migrations; unbounded, that starved Postgres on a
-        # shared host and produced Npgsql read timeouts after 3-4 minutes - a red
-        # suite with nothing wrong in it. Raise it on a bigger builder; do not
-        # remove it without measuring.
+        # Capped for MEMORY as much as for time. On 2026-09-02 this host
+        # OOM-killed the runner mid-job (unit peak 1.2 GB) while also serving the
+        # API and running Postgres; an earlier run had timed out against Postgres
+        # for the same underlying reason. Each parallel thread carries a
+        # WebApplicationFactory, its own connection pools and a fresh migrated
+        # database.
+        #
+        # DOTNET_gcServer=0 is the bigger lever: server GC allocates a heap per
+        # logical core and holds memory for throughput, which is the wrong trade
+        # for a test run on a shared box. Neither setting is a fix for the real
+        # problem - the full suite does not belong on the machine that serves
+        # production - they buy room until the build moves to its own host.
+        env:
+          DOTNET_gcServer: '0'
         run: >
           dotnet test Tankbook.slnx --configuration Release --no-build
           --logger "trx;LogFileName=results.trx"
-          -- xUnit.MaxParallelThreads=${XUNIT_THREADS:-4}
+          -- xUnit.MaxParallelThreads=${XUNIT_THREADS:-2}
 
       - name: Assert the database-backed tests actually ran
         # The failure this exists for: without working docker the ~153

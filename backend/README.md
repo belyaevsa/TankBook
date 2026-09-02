@@ -116,6 +116,16 @@ runs other containers, and the deploy refuses to start when either port is held
 by a container that is not ours - proxying to somebody else's service would be
 worse than failing. Change them together with the nginx upstream.
 
+**This host is memory-constrained, and that has bitten twice.** On 2026-09-02 the
+runner was OOM-killed mid-job (unit peak 1.2 GB) while the same machine served the
+API and ran Postgres; an earlier run had timed out against Postgres for the same
+underlying reason. Three mitigations are in place - `xUnit.MaxParallelThreads=2`,
+`DOTNET_gcServer=0` for the test run, and workstation GC in the runtime image -
+plus a systemd drop-in that restarts the runner and throttles it with
+`MemoryHigh`. **None of them is the fix.** The full suite does not belong on the
+machine that serves production; moving the `build` job to its own runner is, and
+the workflow is already shaped for it.
+
 The suite is also checked for **skips**, not just for green: without working
 docker the 153 Postgres-backed tests report as skipped and `dotnet test` still
 prints `Passed!`. The job reads `notExecuted` out of the TRX and fails the deploy

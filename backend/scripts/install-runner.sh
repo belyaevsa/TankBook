@@ -225,6 +225,32 @@ log "installing the service"
 # broken download. Run as root: it writes a systemd unit and enables it.
 cd "$RUNNER_HOME"
 ./svc.sh install "$RUNNER_USER"
+
+# RESTART ON FAILURE. GitHub's generated unit does not set Restart=, so a runner
+# killed by the OOM killer exits and stays dead - which is what happened on
+# 2026-09-02: the listener was OOM-killed mid-job, logged "no retry needed", and
+# the host went on serving with no runner at all until someone noticed. A deploy
+# pipeline that silently stops accepting jobs is worse than one that fails loudly.
+#
+# MemoryHigh is a THROTTLE, not a kill: past it the kernel reclaims harder and
+# the job slows down, which is the behaviour we want on a box that also serves
+# production. It deliberately does not set MemoryMax, because a hard cap turns a
+# slow build into a failed one, and the unit already peaked at 1.2 GB legitimately.
+unit="actions.runner.$(sed 's|/|-|g' <<< "${REPO}").${RUNNER_NAME}.service"
+dropin="/etc/systemd/system/${unit}.d"
+mkdir -p "$dropin"
+cat > "${dropin}/override.conf" <<EOF
+[Service]
+Restart=always
+RestartSec=15
+# Soft memory ceiling: throttle this unit before the kernel starts choosing
+# victims elsewhere on the host - the API container is the one thing that must
+# not be chosen.
+MemoryHigh=${RUNNER_MEMORY_HIGH:-2G}
+EOF
+systemctl daemon-reload
+echo "  wrote ${dropin}/override.conf (Restart=always, MemoryHigh=${RUNNER_MEMORY_HIGH:-2G})"
+
 ./svc.sh start
 ./svc.sh status || true
 

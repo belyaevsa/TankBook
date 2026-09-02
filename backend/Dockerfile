@@ -77,9 +77,16 @@ RUN apt-get update \
 # container escape should not also be a root shell.
 USER $APP_UID
 
+# Workstation GC, not server GC (changed 2026-09-02 after an OOM kill).
+# Server GC allocates a heap PER LOGICAL CORE and holds on to memory to trade it
+# for throughput - a good deal on a machine that exists to serve, a bad one here,
+# where the API shares a host with a runner, Postgres and other containers, and
+# where the blue-green handover briefly runs TWO of these at once. Throughput is
+# not this app's constraint; a few dozen requests a minute is.
+# Set DOTNET_gcServer=1 again on a host dedicated to the API.
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production \
-    DOTNET_gcServer=1
+    DOTNET_gcServer=0
 EXPOSE 8080
 
 COPY --from=build /app .
