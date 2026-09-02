@@ -93,9 +93,34 @@ IPA="$(ls "${OUT}"/export/*.ipa | head -1)"; echo "release: ${IPA} ($(du -h "${I
 ls "${OUT}/Tankbook.xcarchive/dSYMs" >/dev/null
 
 if [ "$UPLOAD" -eq 1 ]; then
+  upload_log="${OUT}/altool.log"
+  set +e
   xcrun altool --upload-app --type ios --file "${IPA}" \
-    --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}" 2>&1 | tail -3
-  echo "UPLOAD_EXIT=${PIPESTATUS[0]}"; [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
+    --apiKey "${ASC_KEY_ID}" --apiIssuer "${ASC_ISSUER_ID}" > "$upload_log" 2>&1
+  upload_exit=$?
+  set -e
+  tail -3 "$upload_log"
+  echo "UPLOAD_EXIT=${upload_exit}"
+
+  if [ "$upload_exit" -ne 0 ]; then
+    # altool's failures are accurate and unreadable. Translating the ones that
+    # actually happen is the same rule the app follows for users: an error names
+    # its next step (hard rule 7 applies to operators too).
+    if grep -q "Cannot determine the Apple ID from Bundle ID" "$upload_log"; then
+      echo "release: there is no App Store Connect APP RECORD for this bundle id yet." >&2
+      echo "  Registering the App ID in Certificates, IDs & Profiles is a DIFFERENT step." >&2
+      echo "  App Store Connect -> Apps -> + -> New App, bundle id app.tankbook.Tankbook," >&2
+      echo "  then re-run. The archive at ${IPA} is fine and can be uploaded as-is." >&2
+    elif grep -qi "Authentication credentials are missing or invalid\|401" "$upload_log"; then
+      echo "release: the API key was rejected. Check ASC_ISSUER_ID (it is the UUID ABOVE the" >&2
+      echo "  keys table, not in the key's row) and that the key still has App Manager access." >&2
+    elif grep -qi "redundant binary\|already exists" "$upload_log"; then
+      echo "release: build ${BUILD_NUMBER} was already uploaded. The build number is the commit" >&2
+      echo "  count, so commit something (or re-archive a later commit) before re-uploading." >&2
+    fi
+    echo "  full log: ${upload_log}" >&2
+    exit 1
+  fi
   echo "release: uploaded build ${BUILD_NUMBER}; internal TestFlight testers get it after processing"
 else
   echo "release: not uploaded (pass --upload with the App Store Connect API key in the environment)"
