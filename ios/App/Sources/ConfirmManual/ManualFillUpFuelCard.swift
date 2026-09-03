@@ -54,17 +54,21 @@ struct ManualFillUpFuelFullCard: View {
 
     /// The multi-kind chooser: chips for the likely offer set plus the "+"
     /// correction menu (P2.3c). It wraps - a petrol + LPG car is six items -
-    /// so the offer set can be honest instead of truncated. The grid fills the
+    /// so the offer set can be honest instead of truncated. The flow fills the
     /// row's trailing space and right-aligns, keeping the Fuel label on the
     /// same line for the common four-grade car.
     private var chooser: some View {
-        // `minimum: 44` squeezed "100" and "LPG" until their labels wrapped
-        // INSIDE the capsule ("10"/"0", "LP"/"G") - caught in a screenshot, not
-        // by any test. The grid must wrap chips onto the next row instead of
-        // compressing them, so the minimum is the widest chip, and each label
-        // is pinned to one line below.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 58), spacing: 6)],
-                  alignment: .trailing, spacing: 6) {
+        // RV.28: `.adaptive` DISTRIBUTES - it computed how many columns fit and
+        // stretched them to fill the width, so "92 95 98" gained growing gaps
+        // and "100 +" wrapped onto a second row while all five chips would fit
+        // on one line at their natural size (product owner, with screenshot).
+        // A chip keeps its label's intrinsic width and the block packs at the
+        // trailing edge, so the chips line up with the Full-tank toggle and the
+        // other right-hand values on the card. `FuelChipFlow` wraps only when a
+        // chip genuinely does not fit, and never compresses a label - the
+        // `minimum: 44` regression that squeezed "100"/"LPG" until they broke
+        // INSIDE the capsule is what the wrap exists to prevent, not repeat.
+        FuelChipFlow(spacing: 6, rowSpacing: 6) {
             ForEach(visibleKinds, id: \.self) { kind in
                 chip(kind)
             }
@@ -177,5 +181,85 @@ struct ManualFillUpFuelFullCard: View {
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 12)
+    }
+}
+
+// MARK: - The fuel chips' trailing-aligned wrapping flow (RV.28)
+
+/// Packs its children at their intrinsic widths, left-to-right, wrapping a chip
+/// onto the next row only when it genuinely does not fit the available width -
+/// the behaviour `LazyVGrid(.adaptive)` could not deliver because adaptive
+/// DISTRIBUTES (it stretches each column to fill the row, inflating the gaps)
+/// and so wrapped chips even when space remained (RV.28). Each row is aligned
+/// to the container's TRAILING edge, so the chip block lines up with the
+/// Full-tank toggle and the card's other right-hand values; a wrapped row keeps
+/// that edge flush. Children are never compressed: a chip keeps the width its
+/// label measures at (the `minimum: 44` regression that broke "100"/"LPG"
+/// inside their capsules is exactly what wrapping exists to prevent).
+private struct FuelChipFlow: Layout {
+    var spacing: CGFloat
+    var rowSpacing: CGFloat
+
+    private struct Row {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews,
+                      cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+        let maxWidth = proposal.width ?? .infinity
+        let rows = rows(of: subviews, maxWidth: maxWidth)
+        let height = rows.reduce(0) { $0 + $1.height }
+            + rowSpacing * CGFloat(max(0, rows.count - 1))
+        let width = rows.map(\.width).max() ?? 0
+        return CGSize(width: proposal.width ?? width, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize,
+                       subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+        let maxWidth = proposal.width ?? bounds.width
+        let rows = rows(of: subviews, maxWidth: maxWidth)
+        var y = bounds.minY
+        for row in rows {
+            // Each row packs from the trailing edge inward (`bounds.maxX`),
+            // which is what right-aligns the block and keeps a wrapped row's
+            // chips flush with the card's right-hand values.
+            var x = bounds.maxX
+            for index in row.indices.reversed() {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                x -= size.width
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y + (row.height - size.height) / 2),
+                    proposal: ProposedViewSize(size))
+                x -= spacing
+            }
+            y += row.height + rowSpacing
+        }
+    }
+
+    /// The single layout decision, shared by the size and placement passes so
+    /// they can never disagree: a chip that does not fit the current row wraps
+    /// to the next one, whole, at its intrinsic width.
+    private func rows(of subviews: Subviews, maxWidth: CGFloat) -> [Row] {
+        var result: [Row] = []
+        var row = Row()
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+            let gap = row.indices.isEmpty ? 0 : spacing
+            if maxWidth.isFinite, !row.indices.isEmpty,
+               row.width + gap + size.width > maxWidth {
+                result.append(row)
+                row = Row()
+            }
+            let nextGap = row.indices.isEmpty ? 0 : spacing
+            row.indices.append(index)
+            row.width += nextGap + size.width
+            row.height = max(row.height, size.height)
+        }
+        if !row.indices.isEmpty { result.append(row) }
+        return result
     }
 }

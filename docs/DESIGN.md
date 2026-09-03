@@ -112,6 +112,17 @@ All three degrade to crossfades under Reduce Motion.
     Confirm sheet came to show a `95 / Diesel` toggle. Note `fuelGrade` is a separate field and
     stays free even for a single-kind car: a diesel driver really does choose between
     `ДТ-Е-К5 Танеко` and `АТ-Л-К5 Ультра`.
+  - **Chip rows pack at the trailing edge and never compress a label (RV.28).** A row of
+    multi-value chips (the fuel-kind chooser) is a wrapping flow: each chip takes the width its
+    label measures at, chips pack against the row's trailing edge so they line up with the
+    Full-tank toggle and the card's other right-hand values, and a chip wraps to the next row
+    only when it genuinely does not fit. A flow must never use an `.adaptive` grid to lay chips
+    out - adaptive DISTRIBUTES, stretching each column to fill the row so gaps grow and chips
+    wrap early, and a grid that instead caps columns tight enough to stop the gaps compresses
+    the widest labels ("100", "LPG") until they break inside their capsule. Both defects were
+    shipped and caught by screenshot before the rule landed: the first is RV.28, the second is
+    the `minimum: 44` regression the chooser's own comment records. The same contract governs
+    any future chip row (currency, tire sets, reminders), not just fuel kinds.
   - **AdBlue rows** (2026-08-30): the kind label is always shown (it always differs from the car's usual), the leading glyph is a droplet, the accent stays `taillight` - it is a pump purchase; colour is never the only channel (the glyph is). In Trends, an AdBlue tile (`L / 1000 km`, `SCHEMA.md` → AdBlue) appears only when the car has two or more AdBlue fills, and never as a fifth tile competing with the four - it sits under them, small.
   - **Fuel kind is shown only when it tells the user something**: when the vehicle accepts more than one fuel kind, or when this entry's kind differs from the car's usual. A diesel-only car printing "Diesel" on every row is noise dressed as information – it costs a column and never varies. The rule is *conditional*, not "never": a petrol + LPG car, or a PHEV alternating fuel and electricity, genuinely needs it.
   - **The odometer takes that place**, because it is the one field that changes every entry, that the user is most likely to want to check against the dashboard, and that makes a mis-typed reading obvious in the stream instead of only in Trends. An entry with no odometer (optional on non-FillUp entries) simply omits the segment – no dash, no zero.
