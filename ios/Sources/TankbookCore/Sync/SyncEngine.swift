@@ -219,9 +219,6 @@ public struct SyncEngine {
             // RV.14: a live `Vehicle` whose field-level merge equaled the local
             // record is already correct here - record the server's SCN and leave
             // its sync state alone (a pending edit stays dirty and still pushes).
-            // The raw-payload comparison below is deliberately untouched: it
-            // remains for record-level LWW (entries, tombstones, undecodable
-            // records), where the vehicle never reaches it.
             if remote.entityType == Vehicle.entityType, !local.record.deleted, !remote.deleted {
                 if isLocalEdit(local.syncState) { return [] }
                 try repository.markSynced(id: remote.id, entityType: remote.entityType, scn: remote.scn)
@@ -230,8 +227,14 @@ public struct SyncEngine {
             // The local version is newer. A pending local edit stays dirty to
             // push; an already-synced row that "wins" on device-clock is clock
             // skew and is re-dirtied only if its content actually differs.
+            // RV.35: "differs" is judged at the decoded level (`RecordMerge.
+            // recordsEqual`), never the raw payload bytes, which do not converge
+            // across a lossy round-trip - re-dirtying on those bytes was the
+            // echo loop. A genuinely different decoded record (or a differing
+            // `deleted` flag) still re-dirties and pushes (hard rule 8).
             if isLocalEdit(local.syncState) { return [] }
-            if local.record.payload != remote.payload || local.record.deleted != remote.deleted {
+            if !RecordMerge.recordsEqual(local.record, remote.asRecord())
+                || local.record.deleted != remote.deleted {
                 try repository.markDirty(id: remote.id, entityType: remote.entityType)
             }
             return []
