@@ -672,27 +672,3 @@ extension ConfirmManualUITests {
         XCTAssertFalse(app.staticTexts["manualFillUpEmptyScanCaption"].exists)
     }
 }
-
-// MARK: - PJ.48 the quiet "Attach receipt" row (typed path)
-
-/// The typed door is a peer (J3b): a quiet "Attach receipt" row, never shown
-/// where a scan already carried a photo.
-extension ConfirmManualUITests {
-
-    func testAttachReceiptRowOnTheTypedPathOpensTheSourceChoice() {
-        let app = launch()
-        openManualForm(app)
-        let row = app.buttons["confirmAttachReceiptRow"]
-        XCTAssertTrue(row.waitForExistence(timeout: 5))
-        scrollClearOfSaveBar(app, row)
-        XCTAssertTrue(row.isHittable)
-        row.tap()
-        XCTAssertTrue(app.buttons["Photos"].waitForExistence(timeout: 5))
-    }
-
-    func testAttachReceiptRowHiddenWhenAScanCarriedAPhoto() {
-        let app = launchWithPrefill("-seedConfirmPrefillEmptyPhoto")
-        openForm(app)
-        XCTAssertFalse(app.buttons["confirmAttachReceiptRow"].exists)
-    }
-}

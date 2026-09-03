@@ -94,9 +94,6 @@ struct EditEntryView: View {
                     .navigationBarTitleDisplayMode(.inline)
             }
         }
-        .receiptAttachSource(isPresented: $showAttachSource, title: "Add receipt") { image in
-            attachReceipt(image)
-        }
         .alert("Delete this entry?",
                isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -509,9 +506,18 @@ private extension EditEntryView {
                 } else if attachImage != nil {
                     pendingReceiptCard
                 } else {
+                    // RV.11: the chooser hangs off the CARD that carries the
+                    // "Add receipt" button, not off the screen. iOS 26 renders
+                    // a confirmationDialog as a popover anchored to the view it
+                    // is attached to, so a screen-level attachment pointed its
+                    // arrow at the middle of the form.
                     EditEntryRows.receiptCard(attachments: attachments, entry: fill,
                                               pendingBlobIDs: pendingBlobIDs,
                                               onAddReceipt: { showAttachSource = true })
+                        .receiptAttachSource(isPresented: $showAttachSource,
+                                             title: "Add receipt") { image in
+                            attachReceipt(image)
+                        }
                 }
                 if attachFailed {
                     attachFailedWarn

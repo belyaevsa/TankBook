@@ -27,4 +27,12 @@
     <ProjectReference Include="..\..\src\Tankbook.Api\Tankbook.Api.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- RV.15: the real cbr.ru response, captured 2026-09-03, windows-1251 and
+         all. Copied rather than embedded so a reader can open it and see the
+         encoding declaration that broke the feed. -->
+    <None Update="Rates/Fixtures/cbr-xml-daily-windows1251.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 </Project>

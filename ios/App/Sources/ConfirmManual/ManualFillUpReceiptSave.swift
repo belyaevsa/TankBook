@@ -48,6 +48,16 @@ extension ManualFillUpView {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("confirmAttachReceiptRow")
+        // RV.11: the source chooser is presented FROM THIS ROW, not from the
+        // screen. Under iOS 26 a `confirmationDialog` renders as a popover
+        // anchored to the view it is attached to; attached to the ScrollView -
+        // where it lived until 2026-09-03 - the arrow pointed at the middle of
+        // the form while the button the user had just tapped was at the bottom.
+        // On iOS 18 the same modifier is a bottom action sheet and the anchor is
+        // ignored, so this is correct on both and only observable on one.
+        .receiptAttachSource(isPresented: $showAttachSource, title: "Attach receipt") { image in
+            attachReceipt(image)
+        }
     }
 
     /// One image in, one set of blank-fields-only suggestions out (the same

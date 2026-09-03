@@ -196,9 +196,6 @@ struct ManualFillUpView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
-        .receiptAttachSource(isPresented: $showAttachSource, title: "Attach receipt") { image in
-            attachReceipt(image)
-        }
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
                 TankLevelSheet(tankLevelAfterPct: $form.tankLevelAfterPct,

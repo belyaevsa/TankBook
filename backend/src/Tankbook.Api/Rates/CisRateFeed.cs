@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using System.Xml.Linq;
 
 namespace Tankbook.Api.Rates;
@@ -15,6 +16,29 @@ namespace Tankbook.Api.Rates;
 public sealed class CisRateFeed : IRateFeed
 {
     private const string DailyUrl = "https://www.cbr.ru/scripts/XML_daily.asp";
+
+    /// <summary>
+    /// RV.15: cbr.ru serves the daily rates as **windows-1251**, and says so in
+    /// its own XML declaration. .NET Core dropped the legacy codepages from the
+    /// default encoding set, so `XDocument` cannot resolve that name and throws
+    /// `XmlException` before reading a single rate.
+    ///
+    /// Measured in production: `SourcesFailed=1` on EVERY pass since the feed
+    /// was added - the source had never once succeeded, and the other 23 covered
+    /// for it, so the only symptom was a Warning that fired every time and that
+    /// nobody read any more.
+    ///
+    /// Registered here rather than in Program.cs on purpose: this feed is the
+    /// only thing in the app that needs a legacy codepage, and a registration
+    /// that lives at startup is one a test constructing `CisRateFeed` directly
+    /// does not get - which is exactly how this would come back.
+    /// `RegisterProvider` is idempotent, so the static constructor running once
+    /// per process is the whole cost.
+    /// </summary>
+    static CisRateFeed()
+    {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
 
     private readonly IHttpClientFactory _httpClientFactory;
 

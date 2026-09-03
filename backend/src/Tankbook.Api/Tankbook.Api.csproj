@@ -13,6 +13,11 @@
     <PackageReference Include="Dapper" Version="2.1.79" />
     <PackageReference Include="JsonSchema.Net" Version="4.1.8" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
+    <!-- RV.15: cbr.ru serves its daily rates as windows-1251. .NET Core dropped
+         the legacy codepages from the default encoding set, so without this
+         package XDocument cannot resolve the encoding named in the feed's own
+         XML declaration and every fetch throws XmlException. -->
+    <PackageReference Include="System.Text.Encoding.CodePages" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>
