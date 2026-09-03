@@ -205,6 +205,15 @@ capture P5.2b-trends-pending-footnote-ru    ru -seedHomePendingRates -selectTren
 capture P5.2b-home-pending-footnote         en -seedHomePendingRates
 capture P5.2b-home-pending-footnote-ru      ru -seedHomePendingRates
 
+# RV.29: the fix for a foreign price wearing the home symbol. A RUB-home car
+# whose most recent fill was paid in EUR and carries its conversion snapshot -
+# the price tile shows the CONVERTED home figure (`168.333 ₽`), never the raw
+# `1.919` the old code stamped `₽` on. The RU shot is the same number (the
+# decimal separator is pinned), so it is the tile label lengths that stay in
+# frame, not the figure.
+capture RV.29-home-vitals         en -seedHomeRV29Foreign
+capture RV.29-home-vitals-ru      ru -seedHomeRV29Foreign
+
 # P2.3c (correcting P2.3b): the Fuel row offers a LIKELY set, never a limit -
 # petrol grades share a tank, so a car whose kinds include any petrol grade is
 # offered ALL petrol grades plus its other kinds, and the "+" menu reaches every

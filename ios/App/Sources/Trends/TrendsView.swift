@@ -140,11 +140,15 @@ struct TrendsView: View {
                          seriesColor: Theme.Palette.taillight,
                          bars: true)
             }
+            // The tile's figure is the converted-home value (RV.29): same
+            // derivation as Home's vital, and the series' final point - so the
+            // unit printed is the figure's own currency, and its sparkline is
+            // comparable across foreign and home fills.
             if let lastPrice = stats.home.lastUnitPrice {
                 StatTile(title: L10n.localize("Price / L"),
-                         value: ManualFillUpFormat.decimal(lastPrice, fractionDigits: 3),
+                         value: ManualFillUpFormat.decimal(lastPrice.amount, fractionDigits: 3),
                          identifier: "trendsPriceTile",
-                         unit: symbol,
+                         unit: AddVehicleSupport.currencySymbol(for: lastPrice.currency),
                          caption: TrendsFormat.priceCaption(series: stats.priceSeries),
                          series: stats.priceSeries.map(\.value))
             }

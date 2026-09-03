@@ -193,6 +193,52 @@ struct TrendsLabelTests {
         #expect(trends.home.headline?.label.honestText() == home.headline?.label.honestText())
     }
 
+    // MARK: - RV.29: the price sparkline is home-denominated too
+
+    private static func pricedFill(_ date: Date, litres: Double, odometer: Int,
+                                   unitPrice: Decimal, money: Money) -> FillUp {
+        FillUp(
+            id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
+            vehicleId: UUID.v7(), date: date, odometer: odometer,
+            money: money, note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil, volumeL: litres,
+            unitPrice: unitPrice, fuelKind: .petrol95, fuelGrade: nil,
+            isFull: true, tankLevelAfterPct: 100, stationId: nil,
+            crossCheck: .verified, extraction: nil)
+    }
+
+    /// The Trends half of RV.29: a sparkline must plot one currency, so a
+    /// foreign fill lands at its CONVERTED home value (its own snapshot rate),
+    /// never at its raw original number among home figures. A rate-pending fill
+    /// has no home figure and is absent from the series - the same exclusion as
+    /// Home's vital, so the series' final point is always the tile's figure.
+    @Test func priceSeriesConvertsForeignFillsAndSkipsPendingOnes() {
+        let plnHome = Money(amount: Decimal(string: "50")!, currency: .eur, homeCurrency: .eur)
+        let f1 = Self.pricedFill(Self.asOf - 10 * Self.day, litres: 40, odometer: 118_000,
+                                 unitPrice: Decimal(string: "1.5")!, money: plnHome)
+        // A PLN fill converted at its own snapshot rate (4.5 PLN/EUR): 6.75 PLN/L
+        // is 1.50 EUR/L. Plotting the raw 6.75 among ~1.5 figures is the RV.29 lie.
+        let convertedDate = Self.asOf - 5 * Self.day
+        let foreign = Money(amount: Decimal(string: "60")!, currency: .pln, homeCurrency: .eur)
+            .converted(using: RateSnapshot(rate: Decimal(string: "4.5")!, rateDate: convertedDate, source: .ecb))
+        let f2 = Self.pricedFill(convertedDate, litres: 40, odometer: 118_800,
+                                 unitPrice: Decimal(string: "6.75")!, money: foreign)
+        // The newest fill is rate-pending: it must be ABSENT, not plotted raw.
+        let pending = Money(amount: Decimal(string: "289.50")!, currency: .pln, homeCurrency: .eur)
+        let f3 = Self.pricedFill(Self.asOf - 1 * Self.day, litres: 47.3, odometer: 119_600,
+                                 unitPrice: Decimal(string: "6.120")!, money: pending)
+
+        let stats = TrendsStats(vehicle: Self.vehicle(), entries: [f1, f2, f3], asOf: Self.asOf)
+
+        #expect(stats.priceSeries.count == 2)
+        #expect(abs((stats.priceSeries[0].value) - 1.5) < 0.0001)
+        #expect(abs((stats.priceSeries[1].value) - 1.5) < 0.0001,
+                "6.75 PLN/L must be plotted at its converted 1.50 EUR/L, never raw (RV.29)")
+        #expect(stats.home.lastUnitPrice == UnitPriceFigure(amount: Decimal(string: "1.5")!,
+                                                           currency: .eur),
+                "the tile's figure must be the series' final point")
+    }
+
     @Test func costPerKmSpanReportsTheRealDataSpanNotTheWindow() {
         // Two weeks of odometer data: the honest label is "last month", never
         // the full 90-day window.

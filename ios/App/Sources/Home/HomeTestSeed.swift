@@ -48,6 +48,7 @@ enum HomeTestSeed {
             ("-seedHomeConflict", seedConflict),
             ("-seedHomeEditHistory", seedEditHistory),
             ("-seedHomePendingRates", seedPendingRates),
+            ("-seedHomeRV29Foreign", seedForeignConverted),
             ("-seedHomeDuplicate", seedDuplicate),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
@@ -257,6 +258,52 @@ enum HomeTestSeed {
         ] {
             try? repository.upsertFillUp(makeFill(vehicleID: vehicle.id, spec))
         }
+    }
+
+    // MARK: - RV.29: a foreign price on a home-currency car
+
+    /// The RV.29 lie made visible, then fixed: a RUB-home car whose most recent
+    /// fill was paid in EUR. The EUR fill carries its conversion snapshot
+    /// (immutable, hard rule 3), so the Home price tile renders the CONVERTED
+    /// home price with the home symbol (`168.333 ₽`), never the raw `1.919` the
+    /// old code stamped `₽` on - and the log rows show their converted home
+    /// amounts the same way. Screenshot seed: it exists so the fix has a visual
+    /// record, not because the state is exotic.
+    private static func seedForeignConverted(_ repository: TankbookRepository) {
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: Date(), updatedAt: Date(), deletedAt: nil,
+            name: "Škoda Octavia", make: "Škoda", model: "Octavia", year: 2020,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 50, batteryCapacityKWh: nil, homeCurrency: .rub,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_000)
+        try? repository.upsertVehicle(vehicle)
+
+        for spec in [
+            FillSpec(daysAgo: 34, odometer: 118_400, litres: 40.0,
+                     amount: "2336.00", price: "58.40", stationID: nil),
+            FillSpec(daysAgo: 18, odometer: 118_900, litres: 41.5,
+                     amount: "2402.85", price: "57.90", stationID: nil)
+        ] {
+            let money = Money(amount: Decimal(string: spec.amount)!,
+                              currency: .rub, homeCurrency: .rub)
+            try? repository.upsertFillUp(makeFill(vehicleID: vehicle.id, spec, money: money))
+        }
+
+        // The most recent fill is foreign and CONVERTED (its snapshot rate 0.0114
+        // EUR/RUB ~ 87.7 RUB/EUR rides with it; the price tile must show the
+        // home figure, never the raw EUR number).
+        let foreignDate = Date().addingTimeInterval(-3 * 86_400)
+        let eurFill = Money(amount: Decimal(string: "76.76")!, currency: .eur, homeCurrency: .rub)
+            .converted(using: RateSnapshot(rate: Decimal(string: "0.0114")!,
+                                           rateDate: foreignDate, source: .ecb))
+        try? repository.upsertFillUp(makeFill(
+            vehicleID: vehicle.id,
+            FillSpec(daysAgo: 3, odometer: 119_300, litres: 40.0,
+                     amount: "76.76", price: "1.919", stationID: nil),
+            date: foreignDate, money: eurFill))
     }
 
     // MARK: - Fixture builders

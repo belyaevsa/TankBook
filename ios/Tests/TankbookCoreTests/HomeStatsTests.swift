@@ -12,12 +12,12 @@ struct HomeStatsTests {
     private static let asOf = Date(timeIntervalSince1970: 1_752_000_000)
     private static let day: TimeInterval = 86_400
 
-    private static func vehicle() -> Vehicle {
+    private static func vehicle(homeCurrency: CurrencyCode = .eur) -> Vehicle {
         Vehicle(
             id: UUID.v7(), createdAt: asOf - 40 * day, updatedAt: asOf - 40 * day,
             deletedAt: nil, name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: [.petrol95, .diesel],
-            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: homeCurrency,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
@@ -26,11 +26,12 @@ struct HomeStatsTests {
 
     private static func fill(date: Date, odometer: Int, litres: Double, isFull: Bool,
                              unitPrice: Decimal? = nil,
+                             money: Money? = nil,
                              conflict: ConflictState = .none) -> FillUp {
         FillUp(
             id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
             vehicleId: UUID.v7(), date: date, odometer: odometer,
-            money: Money(amount: Decimal(string: "50")!, currency: .eur, homeCurrency: .eur),
+            money: money ?? Money(amount: Decimal(string: "50")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: conflict,
             purchaseGroupId: nil, volumeL: litres, unitPrice: unitPrice,
             fuelKind: .petrol95, fuelGrade: nil, isFull: isFull,
@@ -71,7 +72,9 @@ struct HomeStatsTests {
         #expect(stats.needsAnotherFullTank == true)
         #expect(stats.hasEntries == true)
         // The vitals that DO have data are present...
-        #expect(stats.lastUnitPrice == Decimal(string: "1.679"))
+        #expect(stats.lastUnitPrice == UnitPriceFigure(amount: Decimal(string: "1.679")!,
+                                                       currency: .eur),
+                "a same-currency fill keeps its price and its own currency")
         #expect(stats.monthSpend != nil)
         #expect(stats.odometer == 118_000)
         #expect(stats.updatedAt == single.date)
@@ -154,5 +157,68 @@ struct HomeStatsTests {
         #expect(stats.headline == ConsumptionEngine.headline(segments: segments, asOf: Self.asOf))
         #expect(stats.lifetime == ConsumptionEngine.lifetime(segments: segments))
         #expect(stats.costPerKm == ConsumptionEngine.costPerKm(entries: entries, asOf: Self.asOf))
+    }
+
+    // MARK: - RV.29: a foreign price never wears the home symbol
+
+    /// The reported defect: a RUB-home car's foreign EUR fill with NO rate yet
+    /// (F9). The old code returned the raw `1.919` and Home stamped `₽` on it -
+    /// a number and a symbol from two different currencies (hard rule 3). There
+    /// is no converted home price while the rate is pending, so the vital must
+    /// be `nil`: the tile is omitted (the F9 footnote explains why), it is
+    /// never a home-currency lie.
+    @Test func foreignFillWithNoRateProducesNoHomeCurrencyPrice() {
+        let pendingEUR = Money(amount: Decimal(string: "51.81")!, currency: .eur, homeCurrency: .rub)
+        let foreign = Self.fill(date: Self.asOf - 2 * Self.day, odometer: 118_000,
+                                litres: 27, isFull: true,
+                                unitPrice: Decimal(string: "1.919")!,
+                                money: pendingEUR)
+        let stats = HomeStats(vehicle: Self.vehicle(homeCurrency: .rub),
+                              entries: [foreign], asOf: Self.asOf)
+
+        #expect(stats.pendingRateCount == 1)
+        #expect(stats.lastUnitPrice == nil,
+                "a rate-pending foreign fill must not produce a home-currency price (was the RV.29 bug)")
+    }
+
+    /// A foreign fill WITH its rate snapshot converts by its own immutable rate
+    /// into the vehicle's home currency - the number AND the symbol change
+    /// together, so `1.919 EUR` reads `191.9 ₽` (rate 0.01 EUR/RUB), never a
+    /// bare original under a RUB stamp.
+    @Test func foreignFillWithRateConvertsToHomeCurrencyFigure() {
+        let date = Self.asOf - 2 * Self.day
+        let foreign = Money(amount: Decimal(string: "50")!, currency: .eur, homeCurrency: .rub)
+            .converted(using: RateSnapshot(rate: Decimal(string: "0.01")!, rateDate: date, source: .ecb))
+        #expect(foreign.isRatePending == false, "the snapshot must land for the test to mean anything")
+        let fill = Self.fill(date: date, odometer: 118_000, litres: 26.05, isFull: true,
+                             unitPrice: Decimal(string: "1.919")!, money: foreign)
+        let stats = HomeStats(vehicle: Self.vehicle(homeCurrency: .rub),
+                              entries: [fill], asOf: Self.asOf)
+
+        let expected = UnitPriceFigure(amount: Decimal(string: "191.9")!, currency: .rub)
+        #expect(stats.lastUnitPrice == expected)
+    }
+
+    /// The monthSpend-shaped pending treatment: a rate-pending fill is skipped
+    /// (it has no home figure), so the tile keeps showing the most recent price
+    /// that IS expressible in home currency - exactly as `monthSpend` keeps
+    /// summing the entries whose home amount exists.
+    @Test func newestPendingForeignFillFallsBackToMostRecentHomePrice() {
+        let olderHome = Self.fill(date: Self.asOf - 10 * Self.day, odometer: 118_000,
+                                  litres: 40, isFull: true,
+                                  unitPrice: Decimal(string: "58.4")!,
+                                  money: Money(amount: Decimal(string: "2336")!,
+                                               currency: .rub, homeCurrency: .rub))
+        let pendingEUR = Money(amount: Decimal(string: "51.81")!, currency: .eur, homeCurrency: .rub)
+        let newestPending = Self.fill(date: Self.asOf - 1 * Self.day, odometer: 119_600,
+                                      litres: 27, isFull: true,
+                                      unitPrice: Decimal(string: "1.919")!,
+                                      money: pendingEUR)
+        let stats = HomeStats(vehicle: Self.vehicle(homeCurrency: .rub),
+                              entries: [olderHome, newestPending], asOf: Self.asOf)
+
+        let expected = UnitPriceFigure(amount: Decimal(string: "58.4")!, currency: .rub)
+        #expect(stats.lastUnitPrice == expected,
+                "the pending foreign fill contributes no figure; the last home price stands")
     }
 }

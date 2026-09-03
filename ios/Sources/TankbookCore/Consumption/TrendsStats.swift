@@ -43,7 +43,11 @@ public struct TrendsStats: Equatable, Sendable {
     public let costTrend: TrendDirection?
     /// Total spend per calendar month (all entry types), trailing 12 months.
     public let spendSeries: [TrendPoint]
-    /// Unit price per fill by date, most recent 12 fills.
+    /// Unit price per fill by date, most recent 12 fills, each expressed in the
+    /// fill's home currency (RV.29: a sparkline of raw originals would plot
+    /// foreign litres against home litres and manufacture a crash where a trip
+    /// began). Converted via the same derivation as Home's vital, so the
+    /// series' final point IS the tile's figure.
     public let priceSeries: [TrendPoint]
     /// The honest span of the cost/km figure in months: the time its km span
     /// actually covers, never the full window when the data is younger
@@ -85,7 +89,7 @@ public struct TrendsStats: Equatable, Sendable {
         self.costSeries = Self.monthlyCostSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
         self.costTrend = TrendDirection.lowerIsBetter(costSeries.map(\.value))
         self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
-        self.priceSeries = Self.priceSeries(entries: countingEntries)
+        self.priceSeries = Self.priceSeries(entries: countingEntries, vehicleHome: vehicle.homeCurrency)
         self.costPerKmSpanMonths = Self.costPerKmSpanMonths(entries: countingEntries, asOf: asOf)
     }
 
@@ -137,19 +141,12 @@ public struct TrendsStats: Equatable, Sendable {
             .sorted { $0.date < $1.date }
     }
 
-    private static func priceSeries(entries: [any Entry]) -> [TrendPoint] {
-        let prices = entries
-            .compactMap { entry -> TrendPoint? in
-                if let fill = entry as? FillUp, let price = fill.unitPrice {
-                    return TrendPoint(date: fill.date, value: (price as NSDecimalNumber).doubleValue)
-                }
-                if let charge = entry as? ChargeSession, let price = charge.unitPrice {
-                    return TrendPoint(date: charge.date, value: (price as NSDecimalNumber).doubleValue)
-                }
-                return nil
-            }
-            .sorted { $0.date < $1.date }
-        return Array(prices.suffix(12))
+    private static func priceSeries(entries: [any Entry],
+                                    vehicleHome: CurrencyCode) -> [TrendPoint] {
+        let points = HomeStats.unitPriceHistory(entries: entries, vehicleHome: vehicleHome)
+            .map { TrendPoint(date: $0.date,
+                              value: ($0.price.amount as NSDecimalNumber).doubleValue) }
+        return Array(points.suffix(12))
     }
 
     private static func costPerKmSpanMonths(entries: [any Entry], asOf: Date) -> Int? {

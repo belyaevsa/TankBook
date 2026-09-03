@@ -134,6 +134,25 @@ final class HomeUITests: XCTestCase {
                        "the thin space has no glyph in DIN and must never come back: \(odometer.label)")
     }
 
+    /// RV.29: the price tile of a foreign fill on a home-currency car must
+    /// render the CONVERTED home figure with the home symbol - `1.919 EUR` on a
+    /// RUB-home car reads `168.333 ₽` (the snapshot rate 0.0114 EUR/RUB rides
+    /// with the fill), never the raw EUR number stamped `₽`. The label is
+    /// asserted WHOLE: a substring `₽` check passes on the old `1.919 ₽` lie,
+    /// and a substring `€` check passes on nothing useful (RV.29 traps).
+    func testForeignFillPriceRendersConvertedHomeFigureWhole() {
+        let app = launch(args: ["-seedHomeRV29Foreign"])
+
+        let priceTile = app.staticTexts.matching(identifier: "homeLastPriceTile")
+            .matching(NSPredicate(format: "label CONTAINS %@", "₽")).firstMatch
+        XCTAssertTrue(priceTile.waitForExistence(timeout: 10),
+                      "the price tile's value must be exposed")
+        XCTAssertEqual(priceTile.label, "168.333\u{00A0}₽",
+                       "the price must be the converted home figure, never the raw original: \(priceTile.label)")
+        XCTAssertFalse(priceTile.label.contains("1.919"),
+                       "the raw EUR number must never appear under the home symbol: \(priceTile.label)")
+    }
+
     func testConflictBadgeRoutesToEditEntry() {
         let app = launch(args: ["-seedHomeConflict"])
 

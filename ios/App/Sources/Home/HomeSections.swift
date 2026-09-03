@@ -232,6 +232,9 @@ struct HomeVitalsRow: View {
     let stats: HomeStats
     let vehicle: Vehicle
 
+    /// The month-spend symbol: spend is always the home figure, so the symbol
+    /// is the vehicle's home currency. The price tile BELOW does NOT use this -
+    /// it renders with the figure's own currency (RV.29).
     private var symbol: String { AddVehicleSupport.currencySymbol(for: vehicle.homeCurrency) }
 
     var body: some View {
@@ -241,9 +244,21 @@ struct HomeVitalsRow: View {
                          value: HomeFormat.spend(monthSpend, symbol: symbol),
                          identifier: "homeMonthSpendTile")
             }
+            // RV.29 display decision (converted home, never the raw original):
+            // the price per litre is a money figure, and every money figure on
+            // this screen is home-denominated - a foreign fill is converted by
+            // its own immutable rate snapshot (hard rule 3), never shown as its
+            // original number under a home symbol. A fill whose rate is pending
+            // has no home figure yet: it is skipped exactly as `monthSpend`
+            // skips one (the F9 footnote below explains), so this tile shows
+            // the most recent price expressible in home currency. `HomeStats`
+            // already carried out both the conversion and the currency, so the
+            // symbol printed here is the figure's own - never the vehicle's by
+            // default.
             if let lastPrice = stats.lastUnitPrice {
                 StatTile(title: L10n.localize("Last price/L"),
-                         value: HomeFormat.unitPrice(lastPrice, symbol: symbol),
+                         value: HomeFormat.unitPrice(lastPrice.amount,
+                                                     symbol: AddVehicleSupport.currencySymbol(for: lastPrice.currency)),
                          identifier: "homeLastPriceTile")
             }
         }

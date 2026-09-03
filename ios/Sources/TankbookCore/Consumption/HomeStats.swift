@@ -1,5 +1,26 @@
 import Foundation
 
+/// A per-unit price ready to render (RV.29): the amount already expressed in
+/// `currency`, and `currency` the symbol to print beside it.
+///
+/// Before this type existed the last-price vital was a bare `Decimal`, and Home
+/// stamped the *vehicle's* home symbol on it. But a fill's `unitPrice` is
+/// stored in the currency it was paid in (docs/SCHEMA.md, FillUp - "per liter,
+/// original currency"), so a foreign fill on a home-currency car rendered its
+/// EUR number under a RUB symbol - the money pair at its most direct lie (hard
+/// rule 3). Carrying the currency makes the mismatch impossible to render.
+public struct UnitPriceFigure: Equatable, Sendable {
+    /// The per-unit price, denominated in `currency`.
+    public let amount: Decimal
+    /// The currency `amount` is in - the symbol the renderer must print beside it.
+    public let currency: CurrencyCode
+
+    public init(amount: Decimal, currency: CurrencyCode) {
+        self.amount = amount
+        self.currency = currency
+    }
+}
+
 /// Everything Home renders, computed once from the vehicle and its entries and
 /// handed to the view unchanged (hard rule 2: stats are derived, never stored -
 /// this is the derivation, recomputed on any entry change). All figures come
@@ -26,8 +47,17 @@ public struct HomeStats: Equatable, Sendable {
     public let costPerKm: Double?
     /// Sum of home-currency spend in the calendar month containing `asOf`.
     public let monthSpend: Decimal?
-    /// The most recent fill's price per unit; `nil` with no fill.
-    public let lastUnitPrice: Decimal?
+    /// The most recent fill's price per unit in the currency the vehicle's
+    /// money figures are kept in (the fill's money-pair home side - hard rule 3),
+    /// NOT the raw original a bare `Decimal` used to smuggle out (RV.29).
+    ///
+    /// A foreign fill converts with its OWN immutable rate snapshot, so this
+    /// figure never shifts when rates move. A fill still waiting on a rate has
+    /// no home figure yet and is skipped exactly as `monthSpend` skips it
+    /// (docs/ERRORS.md -> Home, F9) - the tile then shows the most recent price
+    /// that IS expressible in home currency. `nil` when no counting entry has a
+    /// unit price expressible in home currency at all.
+    public let lastUnitPrice: UnitPriceFigure?
     /// Best (lowest) per100 among segments closing in the calendar year of
     /// `asOf` - the artboard's "Best this year".
     public let bestThisYear: Double?
@@ -87,7 +117,8 @@ public struct HomeStats: Equatable, Sendable {
         self.lifetime = ConsumptionEngine.lifetime(segments: segments)
         self.costPerKm = ConsumptionEngine.costPerKm(entries: countingEntries, asOf: asOf)
         self.monthSpend = Self.monthSpend(entries: countingEntries, asOf: asOf, calendar: calendar)
-        self.lastUnitPrice = Self.lastUnitPrice(entries: countingEntries)
+        self.lastUnitPrice = Self.lastUnitPrice(entries: countingEntries,
+                                                 vehicleHome: vehicle.homeCurrency)
         self.bestThisYear = Self.bestThisYear(segments: segments, asOf: asOf, calendar: calendar)
 
         self.odometer = countingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
@@ -126,19 +157,64 @@ public struct HomeStats: Equatable, Sendable {
         }
     }
 
-    private static func lastUnitPrice(entries: [any Entry]) -> Decimal? {
+    // MARK: - The unit-price figure (RV.29)
+
+    /// The unit price of every counting entry that has one, oldest first, each
+    /// expressed in the currency of its money pair's home side (see
+    /// `unitPriceFigure`). Home takes the last of this list for its vital;
+    /// Trends plots the whole list as its price sparkline. ONE derivation, so
+    /// the tile's figure is always the series' final point and the two screens
+    /// can never disagree (hard rule 2 - derived in core, never in the view).
+    static func unitPriceHistory(entries: [any Entry],
+                                 vehicleHome: CurrencyCode) -> [(date: Date, price: UnitPriceFigure)] {
         entries
-            .compactMap { entry -> (date: Date, price: Decimal)? in
-                if let fill = entry as? FillUp, let price = fill.unitPrice {
-                    return (fill.date, price)
+            .compactMap { entry -> (date: Date, price: UnitPriceFigure)? in
+                guard let price = Self.unitPriceFigure(of: entry, vehicleHome: vehicleHome) else {
+                    return nil
                 }
-                if let charge = entry as? ChargeSession, let price = charge.unitPrice {
-                    return (charge.date, price)
-                }
-                return nil
+                return (entry.date, price)
             }
-            .max { $0.date < $1.date }?
-            .price
+            .sorted { $0.date < $1.date }
+    }
+
+    /// The per-unit price of an entry in the currency of its money pair's home
+    /// side, when that figure exists.
+    ///
+    /// - A same-currency fill's snapshot rate is 1, so its stored price is
+    ///   already home and is returned unchanged.
+    /// - A foreign fill converts its stored original unit price by its OWN
+    ///   immutable snapshot rate (`home = original / rate`, docs/SCHEMA.md
+    ///   conversion semantics) - display-only arithmetic, nothing is written.
+    /// - A foreign fill whose rate is still pending has no home figure: `nil`,
+    ///   the same honesty `monthSpend` applies when it skips a pending entry
+    ///   (docs/ERRORS.md -> Home, F9). Rendering a *converted* value that does
+    ///   not exist is not an option (RV.29 decision - see HomeVitalsRow).
+    /// - An entry with no money pair at all (a tariff-priced home charge) has
+    ///   no rate because none is needed: its unit price is already in the
+    ///   vehicle's home currency.
+    static func unitPriceFigure(of entry: any Entry,
+                                vehicleHome: CurrencyCode) -> UnitPriceFigure? {
+        let price: Decimal?
+        if let fill = entry as? FillUp {
+            price = fill.unitPrice
+        } else if let charge = entry as? ChargeSession {
+            price = charge.unitPrice
+        } else {
+            return nil
+        }
+        guard let price else { return nil }
+
+        guard let money = entry.money else {
+            // No money pair, no rate: the price is home already.
+            return UnitPriceFigure(amount: price, currency: vehicleHome)
+        }
+        guard let rate = money.rate, rate > 0 else { return nil }
+        return UnitPriceFigure(amount: price / rate, currency: money.homeCurrency)
+    }
+
+    private static func lastUnitPrice(entries: [any Entry],
+                                      vehicleHome: CurrencyCode) -> UnitPriceFigure? {
+        unitPriceHistory(entries: entries, vehicleHome: vehicleHome).last?.price
     }
 
     private static func bestThisYear(segments: [Segment], asOf: Date,
