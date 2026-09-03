@@ -122,10 +122,58 @@ public enum RecordMerge {
     }
 
     private static func decodeVehicle(_ record: SyncRecord) throws -> Vehicle {
-        let envelope = PayloadEnvelope(entityType: record.entityType,
-                                       schemaVersion: record.schemaVersion,
-                                       payload: record.payload)
-        return try PayloadCodec.decode(envelope, as: Vehicle.self).entity
+        try decodedEntity(record, as: Vehicle.self)
+    }
+
+    // MARK: - Record-level equivalence (RV.35)
+
+    /// True when two records for the same non-`Vehicle` entity type decode to
+    /// equal entities. Record-level LWW keeps a whole record, so "nothing
+    /// changed" is judged at the decoded level - never the raw payload bytes,
+    /// which do not converge across a lossy round-trip (a normalised number
+    /// token `1.0` vs `1`, a decimal string with a dropped trailing zero
+    /// `289.50` vs `289.5`, a date re-serialised without fractional seconds).
+    /// Re-dirtying on those bytes is the echo loop RV.35 fixes. When either side
+    /// cannot be decoded the comparison falls back to payload bytes, so a
+    /// genuinely unreadable divergence is still treated as a difference (the
+    /// same fallback the field merge uses) - hard rule 8, nothing lost silently.
+    static func recordsEqual(_ local: SyncRecord, _ remote: SyncRecord) -> Bool {
+        switch local.entityType {
+        case FillUp.entityType: return equivalent(local, remote, FillUp.self)
+        case ChargeSession.entityType: return equivalent(local, remote, ChargeSession.self)
+        case ServiceRecord.entityType: return equivalent(local, remote, ServiceRecord.self)
+        case Expense.entityType: return equivalent(local, remote, Expense.self)
+        case Reminder.entityType: return equivalent(local, remote, Reminder.self)
+        case Station.entityType: return equivalent(local, remote, Station.self)
+        case Tariff.entityType: return equivalent(local, remote, Tariff.self)
+        case TireSet.entityType: return equivalent(local, remote, TireSet.self)
+        case Attachment.entityType: return equivalent(local, remote, Attachment.self)
+        case Preferences.entityType: return equivalent(local, remote, Preferences.self)
+        default:
+            // An entity type this build does not understand has no typed decode
+            // to reason at; the record is opaque, so bytes are the honest
+            // comparison.
+            return local.payload == remote.payload
+        }
+    }
+
+    private static func equivalent<E: SyncedEntity & Equatable>(
+        _ local: SyncRecord, _ remote: SyncRecord, _ type: E.Type
+    ) -> Bool {
+        guard let lhs = try? decodedEntity(local, as: type),
+              let rhs = try? decodedEntity(remote, as: type) else {
+            return local.payload == remote.payload
+        }
+        return lhs == rhs
+    }
+
+    private static func decodedEntity<E: SyncedEntity>(_ record: SyncRecord, as type: E.Type) throws -> E {
+        try PayloadCodec.decode(
+            PayloadEnvelope(entityType: record.entityType,
+                            schemaVersion: record.schemaVersion,
+                            payload: record.payload),
+            as: E.self
+        ).entity
     }
 
     /// The per-field versions the merge would fall back to for a record: each
