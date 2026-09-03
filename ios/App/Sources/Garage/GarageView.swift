@@ -53,7 +53,6 @@ struct GarageView: View {
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.top, 4)
             .padding(.bottom, 28)
         }
         .scrollContentBackground(.hidden)
