@@ -549,28 +549,36 @@ struct ManualFillUpDateRow: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Text("Date")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                Spacer(minLength: 8)
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { showDatePicker.toggle() }
-                } label: {
+            // RV.10: the WHOLE header row is the toggle, not just the date text
+            // at the far end - the eye lands on the row's left half once a
+            // calendar is on screen, and only that half answered a tap before.
+            // The chevron flips while the picker is open, so the one collapse
+            // cue ("pointing up = collapse me") sits right above the calendar.
+            // Dismissing never touches the date binding: the value the user did
+            // not choose is never written (hard rule 13).
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) { showDatePicker.toggle() }
+            } label: {
+                HStack {
+                    Text("Date")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                    Spacer(minLength: 8)
                     HStack(spacing: 6) {
                         Text(date.formatted(.dateTime.month(.abbreviated).day().year()))
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(Theme.Palette.ink)
-                        Image(systemName: "chevron.down")
+                        Image(systemName: showDatePicker ? "chevron.up" : "chevron.down")
                             .font(.caption2)
                             .foregroundStyle(Theme.Palette.inkSoft)
                     }
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("entryDateButton")
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
             .padding(.horizontal, Theme.Spacing.cardPadding)
             .padding(.vertical, 12)
+            .accessibilityIdentifier("entryDateButton")
             if showDatePicker {
                 DatePicker("", selection: $date, in: ...Date(), displayedComponents: .date)
                     .datePickerStyle(.graphical)

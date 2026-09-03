@@ -381,6 +381,56 @@ final class EditEntryUITests: XCTestCase {
                       "the device name renders in RU too")
     }
 
+    // MARK: - RV.10 the date picker dismisses without changing the date
+
+    /// RV.10: the collapse affordance must be discoverable, and dismissing the
+    /// picker WITHOUT touching the calendar must leave the date byte-identical -
+    /// the reported bug was that a user who found no exit tapped a date, because
+    /// tapping a date visibly does something. Two halves or it is not a test of
+    /// this bug: the header row is asserted hittable while the picker is open
+    /// (the affordance exists), and the date the row shows is asserted unchanged
+    /// after the no-change exit (nothing was written). The chevron glyph itself
+    /// cannot be read by XCUITest - it is verified by screenshot.
+    func testDatePickerDismissesWithoutChangingTheDate() {
+        let app = launch()
+        openNewestFill(app)
+
+        // Tap the ROW, not the date text, and specifically its LEFT-MIDDLE:
+        // RV.10 made the whole header row the toggle. The anchor is the "Date"
+        // eyebrow (layout-stable whether or not it sits inside the button) and
+        // the tap lands ~30 pt into the empty stretch between it and the value
+        // - a point that was dead before the fix (only the far-end text
+        // answered) and is live now, so the mutation check bites.
+        let dateButton = app.buttons["entryDateButton"]
+        XCTAssertTrue(dateButton.waitForExistence(timeout: 5),
+                      "the date row must render on Edit entry")
+        let before = dateButton.label
+        XCTAssertFalse(before.isEmpty, "the date row must carry its formatted date")
+        let eyebrow = app.staticTexts["Date"]
+        XCTAssertTrue(eyebrow.exists, "the date row's 'Date' label must render")
+        let rowTap = app.coordinate(withNormalizedOffset: .zero)
+            .withOffset(CGVector(dx: eyebrow.frame.maxX + 30, dy: eyebrow.frame.midY))
+
+        rowTap.tap()
+        let picker = app.descendants(matching: .any)
+            .matching(identifier: "entryDatePicker").firstMatch
+        XCTAssertTrue(picker.waitForExistence(timeout: 5),
+                      "tapping the left half of the date row must expand the graphical picker")
+        XCTAssertTrue(dateButton.isHittable,
+                      "the header row (the dismiss affordance) must stay tappable while the picker is open")
+
+        // Dismiss WITHOUT touching a calendar day, again through the row's left
+        // half - the side the eye is on once a calendar is on screen. The pause
+        // lets the picker's 0.2 s expand settle: a re-tap synthesised mid-layout
+        // is swallowed by the settling scroll view, not by the button.
+        Thread.sleep(forTimeInterval: 0.6)
+        rowTap.tap()
+        XCTAssertFalse(picker.waitForExistence(timeout: 2),
+                       "tapping the header row again must collapse the picker")
+        XCTAssertEqual(dateButton.label, before,
+                       "dismissing the picker without touching the calendar must leave the date unchanged")
+    }
+
     // MARK: - PR.14 the post-batch toast names the real flagged count
 
     /// The toast's N comes from `SyncOutcome.flaggedEntries`: the sync pulls an

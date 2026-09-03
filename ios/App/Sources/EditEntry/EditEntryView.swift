@@ -84,6 +84,9 @@ struct EditEntryView: View {
         .task {
             await load()
             await fetchPendingBlobs()
+            #if DEBUG
+            openDatePickerIfRequested()
+            #endif
         }
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
@@ -167,6 +170,17 @@ struct EditEntryView: View {
         #endif
         await reloadData()
     }
+
+    /// RV.10 screenshot hook `-openDatePicker`: expands the date row's picker so
+    /// a capture shows the flipped chevron and the collapse affordance. simctl
+    /// cannot tap, so the state a screenshot needs is driven here, exactly like
+    /// `-presentReminderComplete` and the other DEBUG hooks.
+    #if DEBUG
+    private func openDatePickerIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-openDatePicker") else { return }
+        showDatePicker = true
+    }
+    #endif
 
     /// Reads the entry, its attachments and its overwrite log row from the
     /// repository. Runs on first load and again after "Restore my version" so

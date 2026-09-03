@@ -384,6 +384,15 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.2-edit-entry-receipt    en -seedEditEntry -presentScreen editEntry
 capture PJ.2-edit-entry-receipt-ru ru -seedEditEntry -presentScreen editEntry
 
+# RV.10: the date row's picker OPEN on the Edit-entry screen - the flipped
+# (up) chevron and the whole-row collapse affordance above the calendar, the
+# two cues that make the no-change exit discoverable. `-openDatePicker` drives
+# the state simctl cannot tap. The typed history's newest fill has no receipt
+# card, so the date row is the top card and fills the frame. RU is where the
+# picker's month/controls copy runs longest.
+capture RV.10-date-picker-open    en -seedHomeEditHistory -presentScreen editEntry -openDatePicker
+capture RV.10-date-picker-open-ru ru -seedHomeEditHistory -presentScreen editEntry -openDatePicker
+
 # PJ.48: the "Add receipt" affordance on a TYPED entry's empty receipt card, and
 # the post-attach state - the receipt linked and the OCR's unitPrice suggestion
 # sitting on the blank price field, dimmed until confirmed (hard rule 13). RU is
