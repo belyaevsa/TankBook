@@ -125,7 +125,12 @@ can still change (a late publish or a correction), so it is served revalidatable
 immutable. A date with no data answers `200` with an empty `quotes` array - never a
 neighbouring date's value (carry-forward is a stored row with its own date, `SCHEMA.md`).
 `/rates/pack` rejects a range wider than the server's bound (`400`) rather than streaming an
-unbounded span.
+unbounded span. `/rates/pack` is also the **backfill trigger** (`SCHEMA.md` → Exchange rates):
+a request for a range queues any date in it that has no rate yet, and a background job fetches
+those dates so the device's next refresh gets them; the response itself returns only what is
+already stored, so it never waits on an upstream fetch. This is a side effect on a read
+endpoint, but it is an idempotent queue write and the only way the server learns what a device
+actually needs - the backfill horizon is the demand, not a fixed window.
 
 
 ### `GET /reference/fuel-price-bands`

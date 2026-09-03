@@ -57,6 +57,7 @@ public static class RateEndpoints
         string? to,
         string? @base,
         RateRepository repository,
+        RateBackfillService backfill,
         TimeProvider time,
         IOptions<RateOptions> options,
         HttpContext httpContext,
@@ -90,6 +91,13 @@ public static class RateEndpoints
             @base!,
             rows.Select(r => new RatePackItem(r.Date, r.Quote, r.Rate, r.Source)).ToList()),
             WireJson);
+
+        // The request is the trigger (docs/SCHEMA.md "Exchange rates"): queue any
+        // date in this range that has no rate yet, so the background backfill
+        // fetches it. The response returns what exists NOW - it never waits on the
+        // fetch, which could be hundreds of upstream requests. A device still
+        // missing a rate re-asks on its next foreground refresh and picks it up.
+        await backfill.RecordRequestAsync(fromDay, toDay, @base!, cancellationToken);
 
         // A range fully in the past can never change; a range reaching today is provisional.
         httpContext.Response.Headers.CacheControl = toDay < Today(time) ? ImmutableCacheControl : ProvisionalCacheControl;

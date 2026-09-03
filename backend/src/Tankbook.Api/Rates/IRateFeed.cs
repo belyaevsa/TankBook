@@ -20,6 +20,10 @@ public static class RateSources
 
     /// <summary>True when the source tag marks a carried-forward row rather than a published one.</summary>
     public static bool IsCarried(string source) => source.Contains(CarriedSuffix, StringComparison.Ordinal);
+
+    /// <summary>The publisher a row's source tag belongs to, with any <c>:carried-forward</c> suffix stripped - so <c>cis:carried-forward</c> and <c>cis</c> both name the CIS publisher.</summary>
+    public static string Family(string source)
+        => IsCarried(source) ? source[..source.IndexOf(CarriedSuffix, StringComparison.Ordinal)] : source;
 }
 
 /// <summary>

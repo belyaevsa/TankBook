@@ -279,9 +279,11 @@ builder.Services.AddSingleton<IRateFeed>(sp => new CisRateFeed(sp.GetRequiredSer
 builder.Services.AddSingleton<IRateFeed>(sp => new NbkRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
 builder.Services.AddScoped<RateRepository>();
 builder.Services.AddScoped<RatesJobService>();
+builder.Services.AddScoped<RateBackfillService>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<RatesHostedService>();
+    builder.Services.AddHostedService<RateBackfillHostedService>();
 }
 
 // LLM gateway (docs/API.md "LLM gateway (Pro)", docs/EXTRACTION.md). ILlmProvider

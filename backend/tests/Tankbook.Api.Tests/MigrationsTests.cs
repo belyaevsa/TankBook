@@ -31,6 +31,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "blob_pending",
         "catalog_pack_state",
         "import_parses",
+        "rate_backfill",
     };
 
     [SkippableFact]
@@ -58,7 +59,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(12, applied.Single());
+        Assert.Equal(13, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -92,6 +93,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("blob_pending", tables);
         Assert.DoesNotContain("catalog_pack_state", tables);
         Assert.DoesNotContain("import_parses", tables);
+        Assert.DoesNotContain("rate_backfill", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
@@ -287,6 +289,35 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'import_parses'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '012'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration013_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The backfill queue exists after apply, keyed (base, date), and a row
+        // round-trips (the signed-out demand shape).
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill'"));
+        await db.ExecuteAsync(
+            "INSERT INTO rate_backfill (base, date) VALUES ('EUR', '2026-09-02')");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
+
+        // A second insert of the same demand is a no-op (idempotent trigger).
+        await db.ExecuteAsync(
+            "INSERT INTO rate_backfill (base, date) VALUES ('EUR', '2026-09-02') ON CONFLICT DO NOTHING");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '013'"));
     }
 
     [SkippableFact]

@@ -191,6 +191,91 @@ public sealed class RateRepository
         }
     }
 
+    /// <summary>
+    /// Records the backfill demand (docs/SCHEMA.md "Exchange rates"): every date a
+    /// device asked for but that has no rate yet, keyed (base, date). Idempotent -
+    /// a date already queued is left alone, so a re-request adds nothing.
+    /// </summary>
+    public async Task<int> RecordPendingAsync(IReadOnlyList<DateOnly> dates, string baseCurrency, CancellationToken cancellationToken)
+    {
+        if (dates.Count == 0)
+        {
+            return 0;
+        }
+
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            // Npgsql maps DateTime[] to a timestamp array; the cast folds it to
+            // the table's date column. One round trip for the whole gap, not one
+            // per date.
+            var stamps = dates.Select(d => d.ToDateTime(TimeOnly.MinValue)).ToArray();
+            return await _db.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO rate_backfill (date, base)
+                SELECT d, @Base FROM unnest(@Dates::date[]) AS d
+                ON CONFLICT DO NOTHING
+                """,
+                new { Dates = stamps, Base = baseCurrency },
+                cancellationToken: cancellationToken));
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>The oldest pending (date, base) rows for a base, up to <paramref name="batchSize"/> - the bounded burst one pass fetches.</summary>
+    public async Task<IReadOnlyList<DateOnly>> GetPendingBatchAsync(string baseCurrency, int batchSize, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            var rows = await _db.QueryAsync<DateOnly>(new CommandDefinition(
+                """
+                SELECT date FROM rate_backfill
+                WHERE base = @Base
+                ORDER BY date
+                LIMIT @BatchSize
+                """,
+                new { Base = baseCurrency, BatchSize = batchSize },
+                cancellationToken: cancellationToken));
+            return rows.ToList();
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>Removes a (date, base) from the queue once the backfill has attempted it - filled or honestly absent, it is no longer pending.</summary>
+    public async Task<int> SettleAsync(DateOnly date, string baseCurrency, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            return await _db.ExecuteAsync(new CommandDefinition(
+                """
+                DELETE FROM rate_backfill WHERE base = @Base AND date = @Date
+                """,
+                new { Base = baseCurrency, Date = date },
+                cancellationToken: cancellationToken));
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
     private async Task<bool> OpenIfNeededAsync()
     {
         if (_db.State == ConnectionState.Open)
