@@ -98,7 +98,12 @@ final class WelcomeUITests: XCTestCase {
 
         let signIn = app.buttons["welcomeSignInButton"]
         XCTAssertTrue(signIn.waitForExistence(timeout: 10))
-        XCTAssertTrue(signIn.label.contains("Cloud receipt reading, sync and backup"),
+        // The exact sentence is the product owner's (2026-09-03) and this
+        // assertion follows it rather than leading it: the previous wording was
+        // hard-coded here, so a copy change turned the suite red without any
+        // behaviour changing. What is load-bearing is that the benefit lives ON
+        // the door - assert that, and quote the label when it does not.
+        XCTAssertTrue(signIn.label.contains("Smart receipt scanning, backups and sync"),
                       "the benefit must live ON the door, not somewhere on the screen: \(signIn.label)")
 
         // The local-first promise survives, two-sided (hard rule 1).
@@ -169,9 +174,9 @@ final class WelcomeUITests: XCTestCase {
         let signIn = app.buttons["welcomeSignInButton"]
         XCTAssertTrue(signIn.label.contains("Войти в Tankbook"),
                       "the door is a verb in RU, not the noun \"Вход\": \(signIn.label)")
-        XCTAssertTrue(signIn.label.contains("Облачное распознавание чеков"),
+        XCTAssertTrue(signIn.label.contains("Умное распознавание чеков"),
                       "the benefit is localised too: \(signIn.label)")
-        XCTAssertFalse(signIn.label.contains("Cloud receipt"),
+        XCTAssertFalse(signIn.label.contains("Smart receipt"),
                        "no English leaks into the RU door: \(signIn.label)")
 
         XCTAssertTrue(app.staticTexts[
