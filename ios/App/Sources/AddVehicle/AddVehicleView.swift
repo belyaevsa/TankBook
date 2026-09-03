@@ -10,6 +10,7 @@ import UIKit
 /// three ERRORS.md states (empty name, implausible odometer, catalog offline).
 struct AddVehicleView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(AppToastCenter.self) private var toastCenter
 
     @State private var form = AddVehicleFormState()
     @FocusState private var focus: AddVehicleFocus?
@@ -139,6 +140,11 @@ struct AddVehicleView: View {
                 try repository.upsertAttachment(attachment)
             }
             try repository.upsertVehicle(result.vehicle)
+            // RV.25: a saved car must reach every listener (Garage especially) -
+            // the tab roots stay mounted, so only this revision bump tells them
+            // a car was added; without it a new car never appears in Garage
+            // until a relaunch (reads as data loss).
+            toastCenter.noteEntryChanged()
             dismiss()
         } catch {
             AppLog.error(operation: "addVehicle.save", category: .ui, error: error)

@@ -30,6 +30,18 @@ final class GarageUITests: XCTestCase {
         app.buttons.matching(identifier: "garageCarRow")
     }
 
+    /// The rows load (and reload) in async `load()` tasks; poll rather than
+    /// assert a snapshot that can race the first paint.
+    private func waitForLiveRowCount(_ expected: Int, in app: XCUIApplication,
+                                     timeout: TimeInterval = 5) {
+        let deadline = Date().addingTimeInterval(timeout)
+        while liveRows(app).count != expected, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertEqual(liveRows(app).count, expected,
+                       "expected \(expected) live garage rows after \(timeout)s")
+    }
+
     // MARK: - The vehicle grid renders every car
 
     /// The artboard garage (the Car switcher seed's state, shared): two live
@@ -135,5 +147,55 @@ final class GarageUITests: XCTestCase {
         addCar.tap()
         XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5),
                       "with a free slot, Add car opens the form")
+    }
+
+    // MARK: - RV.25: a car added in-session must appear in Garage
+
+    /// RV.25 regression: a car added from the Car switcher appears in Garage
+    /// WITHOUT relaunching the app. The bug was two missing halves - Add car
+    /// never raised a reload signal and Garage never listened - and a relaunch
+    /// between the steps masked it (a cold start re-runs `.task`). This test is
+    /// one continuous session and asserts the live-row COUNT rises, not a name
+    /// (a name assertion could pass on a seeded fixture that already contained
+    /// it).
+    func testCarAddedFromPickerAppearsInGarageInTheSameSession() {
+        let app = launch(["-seedHomeCarSwitcher"])
+
+        // Warm the tab first: the roots stay mounted, so Garage's `.task` fires
+        // once and the stale list the bug produced needs an already-loaded
+        // Garage - not a first cold visit that would re-run `.task`.
+        openGarage(app)
+        waitForLiveRowCount(2, in: app)
+
+        // Add a third car through the top-left picker (the reported path).
+        let logTab = app.buttons["tabbar.log"]
+        XCTAssertTrue(logTab.waitForExistence(timeout: 5))
+        logTab.tap()
+        let picker = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5))
+        picker.tap()
+        XCTAssertTrue(app.navigationBars["My garage"].waitForExistence(timeout: 5))
+        let addCar = app.buttons["carSwitcherAddCar"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 5), "carSwitcherAddCar never appeared")
+        addCar.tap()
+
+        // The switcher dismisses and the Add car form pushes onto the Log tab.
+        let name = app.textFields["addVehicleNameField"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("Added in session")
+        let save = app.buttons["addVehicleSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        save.tap()
+
+        // Back on Log with the save done; return to Garage - the new car must
+        // be listed without any relaunch.
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10),
+                      "save returns to the Log tab")
+        let garageTab = app.buttons["tabbar.garage"]
+        XCTAssertTrue(garageTab.waitForExistence(timeout: 5))
+        garageTab.tap()
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
+        waitForLiveRowCount(3, in: app)
     }
 }

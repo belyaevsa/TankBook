@@ -29,11 +29,12 @@ struct GarageView: View {
     let onNavigate: (Route) -> Void
 
     @Environment(AppCarSelection.self) private var selection
+    @Environment(AppToastCenter.self) private var toastCenter
 
     @State private var rows: [GarageRow] = []
     @State private var selectedID: UUID?
     @State private var showsLimitSheet = false
-    @State private var didLoad = false
+    @State private var didSeed = false
 
     var body: some View {
         ScrollView {
@@ -58,6 +59,21 @@ struct GarageView: View {
         .scrollContentBackground(.hidden)
         .background(Theme.Palette.midnight)
         .task { await load() }
+        // RV.25: the tab roots stay mounted across a switch (only visibility
+        // changes - AppRootView), so `.task` fires once and never again when the
+        // user returns to this tab. A car added from the picker (or a car
+        // switched) therefore needs the same reload signals Home and Trends
+        // carry, or Garage shows a stale list that reads as data loss.
+        .onChange(of: selection.selectedID) { _, _ in
+            // A car switch (or the picker selecting the newly added car):
+            // reload so the grid and its selected marker show the new state.
+            Task { await load() }
+        }
+        .onChange(of: toastCenter.revision) { _, _ in
+            // A car saved (with or without a toast) changed the garage:
+            // reload so the new car appears without relaunching the app.
+            Task { await load() }
+        }
         .sheet(isPresented: $showsLimitSheet) { limitSheet }
     }
 
@@ -276,11 +292,15 @@ struct GarageView: View {
     // MARK: - Loading
 
     private func load() async {
-        guard !didLoad else { return }
-        didLoad = true
-        #if DEBUG
-        GarageTestSeed.seedIfRequested()
-        #endif
+        // Seeding runs once (idempotent anyway); the data reloads every time
+        // the view appears, a car is switched or a save revision lands, so
+        // Garage never shows a stale list after a vehicle change (RV.25).
+        if !didSeed {
+            didSeed = true
+            #if DEBUG
+            GarageTestSeed.seedIfRequested()
+            #endif
+        }
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
