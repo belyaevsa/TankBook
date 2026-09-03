@@ -70,9 +70,10 @@ struct HomeView: View {
                                       now: Date())
     }
 
-    /// Title and settings gear on ONE row (docs/DESIGN.md: "The Home header is
-    /// ONE row") - since RV.21 the shared `TabRootHeader`, drawn by all three
-    /// tab roots so the gear sits in the same place on Log, Trends and Garage.
+    /// Title and settings gear on ONE row (docs/DESIGN.md: "The tab-root
+    /// header is ONE row") - since RV.21 the shared `TabRootHeader`, drawn by
+    /// all three tab roots so the gear sits in the same place on Log, Trends
+    /// and Garage.
     /// Not `.navigationTitle` + `.toolbar`: SwiftUI's large-title layout puts
     /// toolbar items on the bar ABOVE the title by construction, so two rows
     /// went to chrome before any of the user's data appeared - on a screen

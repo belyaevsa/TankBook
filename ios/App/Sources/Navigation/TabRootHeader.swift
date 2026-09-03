@@ -5,7 +5,7 @@ import TankbookCore
 /// Trends and Garage are peer tab roots with no back button
 /// (docs/SCREENMAP.md "Tab roots (no back)"), so each draws the same row: the
 /// screen's `.largeTitle.bold()` title on the left and the Settings gear on the
-/// same line on the right (docs/DESIGN.md -> "The Home header is ONE row", now
+/// same line on the right (docs/DESIGN.md -> "The tab-root header is ONE row", now
 /// the shared tab-root header). The gear is `taillight` on `dash` with a 44 pt
 /// hit circle, in the identical place on every root - reachability and
 /// consistency are one fix.
