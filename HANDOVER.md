@@ -2,12 +2,12 @@
 
 *Updated 2026-09-03. **The app is on TestFlight and the backend is deployed**, and the day was spent
 on what a real device found. A `RV` (reviewer) section now carries **38 rows filed from production
-logs, device walks and screenshots**; 19 are closed. The big ones: the CIS rate feed had **never once
+logs, device walks and screenshots**; **23 are closed, 15 open**. The big ones: the CIS rate feed had **never once
 parsed** (windows-1251, RV.15) and fixing it exposed every rate being **10,000x too large** (a
 Russian decimal comma read as a thousands separator, RV.19); the device was **pushing its own records
 back forever** on two separate merge paths (RV.14, RV.35); and a foreign entry dated before today
 **can never resolve its home amount**, because nothing ever fetches a past date (RV.32, open).
-Measured after the day: **iOS 1165 unit**, **backend 336** (0 skipped), lint 0. Corpus: **56 pump /
+Measured after the day: **iOS 1165 unit**, **backend 339** (0 skipped), lint 0. Corpus: **56 pump /
 45 receipt** / 8 screenshot / 3 fiscal, after 15 fixtures added - including the corpus's first
 **non-fiscal terminal slip** and a matched pair that proves the printed total is a cent above
 litres x price. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
@@ -39,6 +39,63 @@ of the same record being pushed twelve times, or 29 rates all carrying the wrong
 verified; there were three, and the third (`load()` opened with `guard !didLoad else { return }`)
 would have made a fix for the other two do nothing at all. Briefs now say "fix both halves" *and*
 ask the agent to report what it actually found.
+
+## The rate system had FOUR defects stacked on each other (2026-09-03)
+
+Worth reading in order, because each one hid the next and no test saw any of them.
+
+1. **The `cis` feed had never once parsed, since the day it was written** (`RV.15`). `cbr.ru` serves
+   `windows-1251` and says so in its own XML declaration; .NET Core dropped the legacy codepages, so
+   `XDocument` threw `XmlException` before reading a rate. `SourcesFailed=1` on every pass, forever.
+   Nothing looked broken: the other feed covered, `/v1/rates` answered 200, and the warning fired so
+   often nobody read it.
+2. **Fixing that exposed every rate being 10,000x too large** (`RV.19`). CBR writes `100,8287` with a
+   Russian decimal comma; the parse used `NumberStyles.Number` with `InvariantCulture`, where a comma
+   is a **group separator**, so the euro parsed as `1008287`. RV.15's own test asserted `rate > 0`
+   and passed happily. The two defects had been hiding each other - the bad number never reached the
+   database only because the feed never parsed.
+3. **The feed ignored the date it was asked for** (`RV.20`). It fetched the default document and
+   discarded it unless the document's own date matched. Latent, because the job only ever asks for
+   today - and RV.32 is the moment it stops being latent.
+4. **A carried-forward placeholder permanently displaced the real rate** (`RV.36`). `ON CONFLICT DO
+   NOTHING` could not tell a placeholder from real data, so once one occupied a slot the genuine rate
+   published later that day could never replace it. Found from a single query the product owner ran:
+   29 of 34 rows for 2026-09-03 were `ecb:carried-forward`, all holding the 2nd's rates.
+
+**Still open: `RV.32`.** A foreign entry dated before 2026-09-03 **can never** resolve its home
+amount - there is no CIS history at all before that date, `RatesJobService` only ever fetches
+`today`, and `CarryForwardAsync` fills forward and never backwards. Demand-driven backfill, keyed on
+`GET /v1/rates/pack?from=&to=`, with a **14-day** carry-back window - and 14 is measured, not chosen:
+CBR's New Year gap runs `31.12.2025` to `13.01.2026`, thirteen days, so a 7-day window would leave
+six days of January unresolved in RUB.
+
+## The device was pushing its own records back forever, on two paths (2026-09-03)
+
+One vehicle pushed **12 times in three hours** on an idle account, `Accepted` and `Conflicts=0` every
+time, each pull returning what the previous push had written.
+
+- `RV.14` - `mergeVehicle` had three exits and none of them was "nothing changed", so two identical
+  live vehicles still came out `.fieldMerge`, and `applyPull` wrote that `.dirty` unconditionally.
+- `RV.35` - the same shape on the *other* path. `preferences` is not a `Vehicle`, so it took
+  record-level LWW, whose `case .local` arm re-dirtied on a **raw byte comparison of two JSON
+  payloads** - which cannot converge across a key reordering or a decimal reformat.
+
+Both now compare **decoded** values. Both were mutation-checked **in both directions**, and that
+matters more than the fix: over-correcting here fails *silently*, because a record that never pushes
+looks exactly like a record with nothing to push (hard rule 8). The evidence to look for is the
+pattern - the loop test goes red with the old behaviour restored, while the "still pushes" tests stay
+green.
+
+## What is waiting on the product owner
+
+- **`RV.33`/`RV.34`** - recording every LLM call in a table **reverses a signed-off decision**:
+  `CLAUDE.md` rule 9 says `/extract` never stores an image and calls the asymmetry with
+  `/import/parse` deliberate. Storage shape is agreed (S3 + references, content purged on account
+  delete, references kept); the **rule amendment is not yet made**, and it belongs in the same commit
+  as the migration.
+- **`RV.23`** - shipped but its row is open on purpose: its two UI suites were run by the agent and
+  never re-run here.
+- **`RV.6`** - `/v1/account/devices` polled four times in 14 seconds; untouched since it was filed.
 
 ## Google sign-in is wired without an SDK, and it uncovered an account-takeover vector (2026-09-01)
 
