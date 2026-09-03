@@ -5770,6 +5770,23 @@
         }
       }
     },
+    "Language changes the next time you open Tankbook": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Language changes the next time you open Tankbook"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык изменится при следующем открытии Tankbook"
+          }
+        }
+      }
+    },
     "Last 90 days": {
       "extractionState": "manual",
       "localizations": {
@@ -9858,6 +9875,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Синхронизировано. 2 записи требуют внимания"
+          }
+        }
+      }
+    },
+    "System default": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "System default"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Язык системы"
           }
         }
       }

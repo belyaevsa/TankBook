@@ -85,6 +85,7 @@ enum SettingsTestSeed {
         // only there would race it). It has no `-seedSettings*` argument, so it
         // must run before the state guard below returns early for `.none`.
         PhotoSyncingTestSeed.seedSessionAtLaunchIfRequested()
+        resetLanguageForTestsIfRequested(arguments)
         let state = Self.state(arguments)
         // The auth-expired seed is deliberately NOT planted at launch: the
         // launch opportunistic sync must see no session (a no-op), so the
@@ -97,6 +98,16 @@ enum SettingsTestSeed {
         let store = KeychainSessionStore()
         try? store.clear()
         try? store.save(stubSession())
+    }
+
+    /// Test-only: `-languageReset` removes any stored AppleLanguages preference
+    /// so a language UI test starts from "follow the system" (UserDefaults
+    /// survive `-homeResetDatabase`, which wipes only the database). Called at
+    /// launch, before any view reads the store.
+    static func resetLanguageForTestsIfRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard arguments.contains("-languageReset") else { return }
+        UserDefaults.standard.removeObject(forKey: LanguagePreferenceStore.storedLanguageKey)
+        UserDefaults.standard.removeObject(forKey: LanguagePreference.appleLanguagesKey)
     }
 
     @MainActor

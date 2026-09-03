@@ -24,6 +24,9 @@ struct SettingsView: View {
     @State private var isExporting = false
     @State private var shareable: ExportShareable?
     @State private var exportFailure: ExportFailure?
+    @State private var showsLanguagePicker = false
+    @State private var languageStore = LanguagePreferenceStore()
+    @State private var selectedLanguage: String?
 
     var body: some View {
         ScrollView {
@@ -50,8 +53,10 @@ struct SettingsView: View {
                 SettingsTestSeed.seedIfRequested(sync: sync)
                 #endif
             }
+            selectedLanguage = languageStore.selectedLanguage
             await sync.refresh()
             presentExportShareIfRequested()
+            presentLanguagePickerIfRequested()
         }
         .sheet(isPresented: $showsSignIn,
                onDismiss: {
@@ -64,6 +69,13 @@ struct SettingsView: View {
                    Task { await sync.refresh() }
                },
                content: { SignInFlowHost() })
+        .sheet(isPresented: $showsLanguagePicker,
+               content: {
+                   LanguagePickerView(store: languageStore,
+                                      selection: $selectedLanguage,
+                                      promptOnOpen: ProcessInfo.processInfo.arguments
+                                          .contains("-languagePickerShowPrompt"))
+               })
         .exportFlow(shareable: $shareable, failure: $exportFailure,
                     retry: buildAccountExport)
     }
@@ -224,11 +236,25 @@ struct SettingsView: View {
         VStack(spacing: 0) {
             valueRow("Appearance", value: "Dark", identifier: "settingsAppearanceRow")
             CardDivider()
-            valueRow("Language", value: "English", identifier: "settingsLanguageRow")
+            languageRow
             CardDivider()
             valueRow("Notifications", value: "Reminders only", identifier: "settingsNotificationsRow")
         }
         .formCard()
+    }
+
+    /// The language row (docs/TASKS.md RV.24): a real picker, not a placeholder.
+    private var languageRow: some View {
+        LanguageRow(value: languageValue) { showsLanguagePicker = true }
+    }
+
+    /// The language the row displays: the user's stored choice wins; without one
+    /// the app follows the system (docs/TASKS.md RV.24 - the L1 rule, resolved).
+    private var languageValue: String {
+        if let code = selectedLanguage {
+            return LanguageDisplay.name(code)
+        }
+        return LanguageDisplay.name(LanguageDisplay.currentCode)
     }
 
     /// A static value row (its destination screen is another task). The value
@@ -331,6 +357,20 @@ struct SettingsView: View {
         Task {
             try? await Task.sleep(for: .milliseconds(600))
             buildAccountExport()
+        }
+    }
+
+    /// DEBUG/screenshot only: `-presentLanguagePicker` opens the language picker
+    /// a beat after Settings appears (simctl cannot tap). `-languagePickerShowPrompt`
+    /// preselects a language so the restart prompt renders.
+    private func presentLanguagePickerIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentLanguagePicker") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            if ProcessInfo.processInfo.arguments.contains("-languagePickerShowPrompt") {
+                selectedLanguage = LanguageDisplay.offered.first
+            }
+            showsLanguagePicker = true
         }
     }
 

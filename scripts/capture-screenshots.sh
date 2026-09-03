@@ -589,6 +589,19 @@ capture RV.5-capture-review    en -seedVehicleForUITests -presentScreen capture 
 capture RV.5-capture-review-ru ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized \
   -captureFixtureImage "${RV5_FIXTURE}" -captureAutoReview
 
+# RV.24: the Settings language picker (Option B, docs/TASKS.md RV.24) - the row's
+# destination. The picker lists the app's real localizations plus "System
+# default" (the way back to following the system); choosing one shows the restart
+# prompt below, which names its next step (open the app again, never a
+# programmatic exit - hard rule 7). `-presentLanguagePicker` opens the sheet
+# (simctl cannot tap); `-languagePickerShowPrompt` preselects a language so the
+# prompt renders. RU is where the prompt copy overflows ("Язык изменится при
+# следующем открытии Tankbook").
+capture RV.24-language            en -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker
+capture RV.24-language-ru         ru -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker
+capture RV.24-language-prompt     en -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker -languagePickerShowPrompt
+capture RV.24-language-prompt-ru  ru -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker -languagePickerShowPrompt
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

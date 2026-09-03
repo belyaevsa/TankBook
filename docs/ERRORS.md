@@ -207,6 +207,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | **Update required (`.required`, docs/CONFIG.md)** | The sync surface (the "Sync now" row and its cards) is replaced by a non-dismissible notice: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The App Store button renders only when a compiled-in app id exists - none today | **Update the app.** Everything local keeps working (hard rule 1); a paused push leaves the queue dirty (S7) |
 | Export fails (disk) | Alert: "Not enough space to build the export." | Free some space · **Try again** (the alert's button re-runs the export). Never a crash - the app stays usable (hard rule 7) |
 | Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
+| **Language changed (RV.24)** | In the language picker, below the list: "Language changes the next time you open Tankbook" | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
 ### Import wizard (planned screen; F6 rules)
 | Condition | Shows | Next step |
