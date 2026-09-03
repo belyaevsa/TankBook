@@ -143,6 +143,10 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Entry was changed by sync (S1) | Quiet row: "Changed by sync · iPad, Aug 21" | Restore my version · keep |
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |
 | Edit shifts stats | Toast on save: "Consumption updated: 6.9 → 6.8 L/100km" | Informational; tap → Trends |
+| Receipt chip tapped, the full rendition is on the device (RV.9) | The attachment viewer: the photo full-screen and fitted, pinch or double-tap to zoom and drag to pan; a PDF opens in the PDF viewer, which brings its own zoom and paging | Close (or swipe-down) → back to the entry, unchanged and still editable |
+| Receipt chip tapped, the full rendition has not downloaded and there is no account on this device (RV.9) | The inline thumbnail from the payload (so the viewer is never blank) under "The full photo is not on this device yet" | "Sign in from Settings to download the original. This preview came with the entry." – the entry stays open and editable throughout (hard rule 1) |
+| Receipt chip tapped, the fetch failed – offline, or the bytes did not verify (RV.9) | The same thumbnail and headline, with the failure named rather than a spinner that never ends | "Check your connection and tap Try again." plus the **Try again** control on the card |
+| The attachment's bytes are not readable – not a photo, or a PDF that will not open (RV.9) | "This file could not be opened" over the placeholder, never a silent blank frame | "Attach the receipt again from the entry to replace it." |
 
 | Add receipt to an existing entry (PJ.48): photo could not be saved (disk full, permission) | `warn` line under the receipt card | "Couldn't save the photo – the entry is unchanged." | Try again · free up space (Settings deep link); the entry's fields are never touched by a failed attach |
 | Add receipt: OCR read values that disagree with what was typed (PJ.48) | none – no amber, no dialog | – | Typed values win silently; only blank fields are offered a pre-fill, each dimmed until tapped (hard rule 13). The photo is kept either way |

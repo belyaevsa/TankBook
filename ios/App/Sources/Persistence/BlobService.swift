@@ -20,4 +20,21 @@ enum BlobService {
         let local = directory.appendingPathComponent(attachment.file.relativePath)
         return FileManager.default.fileExists(atPath: local.path)
     }
+
+    /// The full rendition's bytes if they are already on this device - the
+    /// content-addressed cache first, then the capturing device's own file
+    /// (RV.9: the attachment viewer's "is it here?" question). Synchronous and
+    /// network-free: nil simply means "not local yet", never an error.
+    static func localData(for attachment: Attachment) -> Data? {
+        guard let directory = try? VehiclePhotoStore.attachmentsDirectory() else {
+            return nil
+        }
+        let store = FileBackedBlobStore(directory: directory)
+        if let cached = try? store.data(for: attachment.file.sha256) {
+            return cached
+        }
+        let local = directory.appendingPathComponent(attachment.file.relativePath)
+        guard FileManager.default.fileExists(atPath: local.path) else { return nil }
+        return try? Data(contentsOf: local)
+    }
 }

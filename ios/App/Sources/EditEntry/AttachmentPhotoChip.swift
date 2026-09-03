@@ -4,18 +4,25 @@ import TankbookCore
 /// The receipt strip's photo chip (P4.6). Renders the inline thumbnail carried
 /// inside the Attachment payload - zero blob fetches - and, while the full
 /// rendition blob has not landed, overlays a "photo syncing" veil with a
-/// spinner. The chip is decorative: the entry stays openable and editable
-/// throughout, because nothing is ever blocked on a photo (hard rule 1).
+/// spinner. The chip renders only - `ReceiptCardView` wraps it in the button
+/// that opens the full-size viewer (RV.9). The entry stays openable and
+/// editable throughout, because nothing is ever blocked on a photo (rule 1).
 struct AttachmentPhotoChip: View {
     let attachment: Attachment
     let blobAvailable: Bool
+
+    /// The syncing test, shared with `ReceiptCardView` so the chip and the
+    /// button wrapping it never disagree about which state they are in.
+    static func isSyncing(_ attachment: Attachment, blobAvailable: Bool) -> Bool {
+        attachment.kind == .photo && attachment.thumbnailBase64 != nil && !blobAvailable
+    }
 
     private var showShimmer: Bool {
         // The shimmer is specifically "the thumbnail arrived (in the payload)
         // but the full rendition has not landed" (docs/SYNC.md). No thumbnail
         // means a local capture whose blob is either present or simply has no
         // chip to shimmer over - never the syncing state.
-        attachment.kind == .photo && attachment.thumbnailBase64 != nil && !blobAvailable
+        Self.isSyncing(attachment, blobAvailable: blobAvailable)
     }
 
     var body: some View {
@@ -41,9 +48,7 @@ struct AttachmentPhotoChip: View {
         }
         .frame(width: 44, height: 56)
         .clipShape(RoundedRectangle(cornerRadius: 6))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(showShimmer ? L10n.localize("Photo syncing") : L10n.localize("Receipt photo"))
-        .accessibilityIdentifier(showShimmer ? "attachmentPhotoSyncing" : "attachmentPhotoChip")
+        .accessibilityHidden(true)
     }
 
     private var thumbnailImage: UIImage? {

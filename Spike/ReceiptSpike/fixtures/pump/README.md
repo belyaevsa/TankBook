@@ -534,3 +534,86 @@ The other three reconcile exactly: pump-039 (11.47 x 1.839 = 21.09), pump-040 (8
 Gate moved **29/151 -> 32/171**: the five added 20 scored cells and 3 hits, so accuracy fell 19.2%
 -> 18.7%. Correct and expected - the ratchet guards absolute hits so that adding hard fixtures
 cannot be punished. Pump mode still ships off; the gate is 95%.
+
+
+## pump-044 + receipt-044 - a matched pair, and the price the pump rounds away
+
+`pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru.jpeg` - АО "РН-Тверь", АЗК Чкаловская
+TN250 (Роснефть, Tver, RU). **The same transaction as
+`../receipts/receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg`**, added
+2026-09-03 - the fourth deliberate pair in this corpus, and the reason pairs are worth collecting
+is on display here.
+
+The pump reads `Стоимость 1707,5 рублей`, `Количество 25,00 литров`, `Цена за 1 литр 68,3 рублей`.
+The paper for the same fill reads `68.30`. Two things follow:
+
+- **The pump truncates the price to one decimal**, and the receipt does not. Numerically 68,3 and
+  68.30 are the same, so `expected.csv` carries 68.30 for both - but a parser that assumes a pump
+  price always has two decimals will read this display wrong, and only the paired receipt shows
+  that the display is the lossy one. This is the failure the pairing exists to catch.
+- **The total is also truncated**: `1707,5` on the display against `1707.50` on the paper.
+  25.00 x 68.30 = 1707.50 exactly, so the cross-check reconciles - but it reconciles *because*
+  trailing-zero loss is numerically harmless, not because the strings agree. A parser comparing
+  text would call this a mismatch.
+
+Comma decimals throughout the display, dot decimals throughout the receipt - the same transaction
+disagreeing with itself about the separator, which is why `docs/EXTRACTION.md` treats the separator
+as a per-image property and never a per-locale one.
+
+
+## pump-045 .. pump-056 - one Circle K forecourt, two pump vendors, two separator conventions
+
+Twelve displays added 2026-09-03 from a single Estonian Circle K site, deliberately shot across
+both vendors on the forecourt. The set exists for one observation the corpus could not make before:
+**the decimal separator is a property of the pump, not of the country.**
+
+- The six **Gilbarco Veeder-Root** units (`pump-045`..`pump-050`) print `0029,31` / `0016,29` /
+  `1,799` - zero-padded, comma decimals.
+- The six **Dresser Wayne** units (`pump-051`..`pump-056`) print `30.42` / `15.61` / `1.884` - not
+  padded, dot decimals, under Estonian labels `SUMMA` / `LIITRIT`.
+
+Same brand, same forecourt, same hour. A parser that picks a separator from the locale gets half of
+this site wrong whichever way it guesses.
+
+**The Wayne units also carry four grade prices at once** (`95 miles`, `98 miles+`, `D miles`,
+`D miles+`), and on five of the six the transaction's own price is **not one of them**:
+
+| fixture | total / litres | implied price | nearest board price |
+|---|---|---|---|
+| pump-051 | 30.42 / 15.61 | 1.9488 | 1.944 (98 miles+) |
+| pump-055 | 108.68 / 56.05 | 1.9390 | 1.944 (98 miles+) |
+| pump-056 | 72.00 / 38.32 | 1.8789 | 1.884 (95 miles) |
+
+So `unitPrice` is **empty** in `expected.csv` for those - the display does not carry the number the
+transaction used, and inventing it from division would make the fixture measure arithmetic instead
+of reading (the `pump-012` / `-014` / `-021` convention). `pump-056` is additionally a **preset**:
+`72.00` exactly, the shape `pump-042` records at 20 EUR.
+
+**Glare takes the total outright on two of them.** `pump-052` and `pump-053` have a readable litres
+count and a total that is partly behind a reflection, so their `total` is empty too. They are worth
+keeping precisely because the litres survive: a capture that yields one operand and not the other is
+the ordinary outcome on a sunlit forecourt, and hard rule 15's "a head start, not an answer" is
+exactly this case.
+
+`pump-046` is the only one of the twelve whose **grade is legible** (a green `95` badge beside the
+nozzle), so it is the only one carrying `fuelKind`. `pump-049` is the faintest LCD in the corpus -
+`0005,81` at very low contrast - and `pump-048` stops at `19,99`, a hair under a round preset.
+
+### pump-054 + receipt-045, and why `expected.csv` records reading rather than arithmetic
+
+`pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg` is the same transaction as
+`../receipts/receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg` - Circle K Jarvevana, Tallinn,
+pump 7, `D B0 miles`, 03/09/2026 10:26. The fifth deliberate pair here, and it settles a question
+the other pairs only raised.
+
+Sun flare hides the total's last digit on the display; the litres (`26.94`) and the price
+(`1.919`, `D miles`) are both readable. The obvious move is to compute the missing total:
+
+    26.94 x 1.919 = 51.6997  ->  51.70
+
+**The paper says `51,71`.** The pump rounds the product of its own rounded operands, and one cent
+falls out of the difference. So `expected.csv` carries `51.71` - established by the *paired
+receipt*, which is reading, not by the multiplication, which would have been wrong. This is the
+concrete reason the fixtures record what is on the image and the arithmetic lives in this README:
+a cross-check that recomputes a total will disagree with the paper by a cent on fills of this shape,
+and it is the paper that is right.

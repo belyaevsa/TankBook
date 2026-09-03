@@ -108,6 +108,8 @@ flowchart TD
     ReminderForm -->|Save| Reminders
     EditEntry -->|Save / Delete| Home
     EditEntry -.->|X| Back4[return to opener]
+    EditEntry -->|receipt chip| AttachmentViewer
+    AttachmentViewer -.->|Close / swipe-down| EditEntry
 
     Settings -->|account card, guest| SignIn
     Settings -->|account card, signed in| AccountDevices
@@ -148,6 +150,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
 | Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · ServiceEntry's Parts/Other mode row | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
+| **Attachment viewer** (RV.9, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | none – viewing only: no delete, rotate, crop, share or save-to-Photos, each of which is its own decision with its own error rows | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
 | Trends | tab root | insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
 | Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due) | back → Garage (or opener) |

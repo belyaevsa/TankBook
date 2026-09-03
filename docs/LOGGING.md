@@ -69,6 +69,36 @@ getting an answer it may need help with. Three tests hold the pair apart (unmatc
 `Debug`, matched 404 at `Information`, unmatched 5xx still `Warning` - that last one pins the ORDER
 of the arms). Mutation-checked: deleting the unmatched arm fails exactly the first two.
 
+**The OUTBOUND `HttpClient` lines are `Warning` (added 2026-09-03, RV.13).** The same noise from the
+other direction: `System.Net.Http.HttpClient` was in no `Logging:LogLevel` entry, so it fell through
+to `Default: Information` and every outbound call emitted **four** lines - `RequestPipelineStart` and
+`RequestPipelineEnd` from the `...LogicalHandler` category, `RequestStart` and `RequestEnd` from
+`...ClientHandler`. One `/extract` cost eight, on top of the inbound line for the request that
+triggered it. They also read as a broken logger: `{Uri}` printed as a literal placeholder and
+`HttpMethod` as `{"Method":"GET"}`.
+
+**`{Uri}` not rendering is correct, and stays that way.** An outbound URI is a domain value - the
+rate-feed and LLM-gateway hosts say which provider a user's receipt went to - so hard rule 12 forbids
+logging it "at any level, in any build", and the redactor drops it. The fix is therefore to stop
+emitting the lines, never to supply the value.
+
+**What is deliberately still loud.** The category also narrates a *failed* call
+(`RequestFailed`/`RequestPipelineFailed`, with the exception) - and does so at Information, so raising
+the category to Warning takes those with it. That was checked before the change, caller by caller,
+and every outbound caller logs its own outcome: the rate job logs `Rate feed {Source} failed ...` at
+Warning, `LlmService` logs `llm.extract` with `provider_failed` at Error, an APNs failure is counted
+onto `sync.nudge` (with a Warning if the client throws at all), and a JWKS fetch that throws
+propagates to the global handler as `error.unhandled` at Error. Not one of them depended on an
+HttpClient line to be visible. `Logging:LogLevel:System.Net.Http.HttpClient=Information` brings the
+narration back for a debugging session.
+
+The entry lives in the committed **templates** (`appsettings.template.json` and
+`appsettings.Development.template.json`); `appsettings.json` is gitignored and generated from them,
+so editing the generated file would change nothing that ships. The base template also covers the
+`Testing` environment, which has no settings file of its own. Two L2 tests pin both halves against
+that shipped template - a 200 emits no HttpClient line while `rates.fetch` still appears, and a
+refused connection still surfaces the caller's Warning - and both go red when the entry is removed.
+
 **Re-levelled, not removed.** `Logging:LogLevel:Default=Debug` brings every request back with its
 correlation fields intact, and a test pins that the successful line is still emitted there - so
 "quieter" cannot quietly become "gone". The line also carries a human summary now

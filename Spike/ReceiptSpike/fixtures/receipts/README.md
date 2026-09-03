@@ -742,3 +742,53 @@ The `fuelKind` miss is the one worth chasing. It is **not** the known unnormalis
 gap (`D B0 miles`): the paper plainly prints `АИ-95`, and `receipt-034` resolves that same grade
 today. The badge breaks the line the grade sits on, so this is a new miss shape – occlusion
 defeating a mapping that works, rather than a mapping that does not exist.
+
+
+## receipt-044 - a NON-FISCAL terminal slip, so there is no QR to fall back on
+
+`receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg` - АО "РН-Тверь", АЗК
+Чкаловская TN250, added 2026-09-03. **The same transaction as
+`../pump/pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru.jpeg`** (see that README for
+what the pairing catches).
+
+Its header says it plainly, twice: `******* Нефискальный отчет *******`. This is the **payment
+terminal's** slip, not the fiscal receipt - a class the corpus had not represented, and one a
+Russian driver is routinely handed. Three consequences:
+
+- **No fiscal QR, and none is coming.** The 9-of-16 QR presence rate measured on fiscal receipts
+  does not apply to this class at all; the QR path is simply absent. Hard rule 15's "a capture is a
+  head start, not an answer" is the whole story here.
+- **The line items are terminal-shaped, not till-shaped**: `Товар / единиц / сумма` with
+  `АИ-95  25.00  1707.50`, then `Итого 1707.50`. The unit price is NOT on that line - it appears
+  further down under `--------Справочная информация--------` as `Цена за ед.  68.30`, a section
+  whose whole purpose is that it is *informational*. A parser looking for the price near the
+  product line will not find it.
+- **Two timestamps that disagree by six minutes**: `Дата (хост-МСК): 03/09/26 07:34:12` and
+  `Дата (терминал): 03/09/26 07:40:25`. Neither is labelled "the fill". `docs/SCHEMA.md` makes the
+  entry date the user's to confirm (hard rule 13), which is the right answer, but a parser that
+  silently takes the first date it recognises picks the host clock for no reason.
+
+`1 ед. = 1 литр для нефтепродуктов/СУГ` is printed on the slip: the quantity unit is stated, not
+implied - useful, and not something the fiscal receipts in this corpus bother to say.
+
+
+## receipt-045 - the paper half of pump-054, and a one-cent lesson
+
+`receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg` - Circle K Jarvevana teenindusjaam,
+Jarvevana tee 2, Tallinn, added 2026-09-03. **The same transaction as
+`../pump/pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg`**: `D B0 miles`, `Kogus 26,94L`,
+`Summa 51,71`, `Pump 7 Hind 1,919 EUR/L`, 03/09/2026 10:26.
+
+It is the second Jarvevana `D B0` slip in this corpus (`receipt-042` is the first), and the same
+unnormalised product string applies - `D B0 miles` is a loyalty-grade name, not a fuel kind, and
+mapping it to diesel is vocabulary work rather than parsing work.
+
+What is new is the arithmetic. `26,94 x 1,919 = 51,6997`, which rounds to `51,70`; the receipt and
+the pump both say **`51,71`**. The pump multiplies its own already-rounded operands and rounds once
+more, so a cross-check that recomputes `litres x price` and compares to the printed total will be a
+cent out on a fill of this shape - and the printed total is the one that was charged. `docs/SCHEMA.md`'s
+cross-check tolerance has to absorb that; treating it as a mismatch would flag a correct receipt.
+
+The VAT line reads `24% KM` at `24,00%` - Estonia's rate as of 2026-07, one point above the `22%`
+that `receipt-043` records for an earlier fill. A parser that hardcodes an Estonian VAT rate has
+already been wrong once inside this corpus's own time span.

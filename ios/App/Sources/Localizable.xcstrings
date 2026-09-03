@@ -2160,6 +2160,23 @@
         }
       }
     },
+    "Attach the receipt again from the entry to replace it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach the receipt again from the entry to replace it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прикрепите чек к записи заново, чтобы заменить файл."
+          }
+        }
+      }
+    },
     "August: 212 € on the Volvo, on the 1st.": {
       "extractionState": "manual",
       "localizations": {
@@ -2717,6 +2734,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Проверьте значение"
+          }
+        }
+      }
+    },
+    "Check your connection and tap Try again. This preview came with the entry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check your connection and tap Try again. This preview came with the entry."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверьте соединение и нажмите «Повторить». Это превью пришло вместе с записью."
           }
         }
       }
@@ -7045,6 +7079,23 @@
         }
       }
     },
+    "Opens the receipt full size": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Opens the receipt full size"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открывает чек во весь экран"
+          }
+        }
+      }
+    },
     "Optional": {
       "extractionState": "manual",
       "localizations": {
@@ -7415,6 +7466,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Выберите один и не меняйте."
+          }
+        }
+      }
+    },
+    "Pinch or double-tap to zoom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pinch or double-tap to zoom"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увеличьте щипком или двойным касанием"
           }
         }
       }
@@ -9108,6 +9176,23 @@
         }
       }
     },
+    "Sign in from Settings to download the original. This preview came with the entry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in from Settings to download the original. This preview came with the entry."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите в аккаунт в настройках, чтобы загрузить оригинал. Это превью пришло вместе с записью."
+          }
+        }
+      }
+    },
     "Sign in to sync": {
       "extractionState": "manual",
       "localizations": {
@@ -9913,6 +9998,23 @@
         }
       }
     },
+    "The full photo is not on this device yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The full photo is not on this device yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Полное фото ещё не загружено на это устройство"
+          }
+        }
+      }
+    },
     "The original line isn't available.": {
       "extractionState": "manual",
       "localizations": {
@@ -10115,6 +10217,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Это не похоже на экспорт из «%@»."
+          }
+        }
+      }
+    },
+    "This file could not be opened": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file could not be opened"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось открыть файл"
           }
         }
       }

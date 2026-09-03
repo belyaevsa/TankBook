@@ -22,11 +22,11 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
 
     public void SetScopeProvider(IExternalScopeProvider scopeProvider) => _scopeProvider = scopeProvider;
 
-    public ILogger CreateLogger(string categoryName) => new TankbookLogger(this);
+    public ILogger CreateLogger(string categoryName) => new TankbookLogger(this, categoryName);
 
     public void Dispose() { }
 
-    private void Emit(LogLevel level, EventId eventId, object? state, Exception? exception)
+    private void Emit(string category, LogLevel level, EventId eventId, object? state, Exception? exception)
     {
         var scopeProperties = new List<KeyValuePair<string, object?>>();
         _scopeProvider?.ForEachScope((scope, list) =>
@@ -42,7 +42,7 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
             }
         }, scopeProperties);
 
-        var line = _renderer.Render(level, eventId, state, exception, scopeProperties);
+        var line = _renderer.Render(category, level, eventId, state, exception, scopeProperties);
         _writer.WriteLine(line);
     }
 
@@ -50,7 +50,18 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
     {
         private readonly TankbookLoggerProvider _provider;
 
-        public TankbookLogger(TankbookLoggerProvider provider) => _provider = provider;
+        /// <summary>
+        /// The logger's category - the type that logged. It was DISCARDED here
+        /// until 2026-09-03: `CreateLogger` took the name and threw it away, so
+        /// no line could say who wrote it. The text format now leads with it.
+        /// </summary>
+        private readonly string _category;
+
+        public TankbookLogger(TankbookLoggerProvider provider, string category)
+        {
+            _provider = provider;
+            _category = category;
+        }
 
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull
@@ -64,6 +75,6 @@ public sealed class TankbookLoggerProvider : ILoggerProvider, ISupportExternalSc
             TState state,
             Exception? exception,
             Func<TState, Exception?, string> formatter)
-            => _provider.Emit(logLevel, eventId, state, exception);
+            => _provider.Emit(_category, logLevel, eventId, state, exception);
     }
 }

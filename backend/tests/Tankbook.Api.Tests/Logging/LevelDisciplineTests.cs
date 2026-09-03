@@ -1,6 +1,11 @@
+using System.Net;
+using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Configuration;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Rates;
 
 namespace Tankbook.Api.Tests;
 
@@ -163,5 +168,176 @@ public class LevelDisciplineTests
         var requestLine = writer.JsonLines().RequestLine("/v1/regular");
         Assert.Equal("Debug", requestLine.Prop("level"));
         Assert.Equal("/v1/regular", requestLine.Prop("Path"));
+    }
+    // ------------------------------------------------------------------
+    // RV.13: the OUTBOUND HttpClient lines.
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// The four lines every outbound call used to emit at Information -
+    /// and, on a throw, the <c>RequestFailed</c>/<c>RequestPipelineFailed</c>
+    /// pair that replaces the End pair, also at Information -
+    /// <c>RequestPipelineStart</c>/<c>End</c> from
+    /// <c>System.Net.Http.HttpClient.&lt;name&gt;.LogicalHandler</c> and
+    /// <c>RequestStart</c>/<c>End</c> from <c>...ClientHandler</c>. Matched by
+    /// BOTH the event name and the message text, because either alone would let
+    /// a framework rename slip a whole pair back into the stream unnoticed.
+    ///
+    /// The message text is matched as a prefix, deliberately: the templates read
+    /// "Start processing HTTP request {HttpMethod} {Uri}", and <b>{Uri} does not
+    /// render</b> - an outbound URI is a domain value and hard rule 12 forbids
+    /// logging it, so the redactor drops it. That unrendered placeholder is
+    /// correct and must stay unrendered; RV.13 removes the lines, it does not
+    /// fill them in.
+    /// </summary>
+    private static bool IsOutboundHttpClientLine(JsonElement line)
+    {
+        var eventName = line.Prop("event") ?? string.Empty;
+        if (eventName is "RequestPipelineStart" or "RequestPipelineEnd" or "RequestStart" or "RequestEnd"
+            or "RequestPipelineFailed" or "RequestFailed")
+        {
+            return true;
+        }
+
+        var message = line.Prop("message") ?? string.Empty;
+        return message.StartsWith("Start processing HTTP request", StringComparison.Ordinal) ||
+               message.StartsWith("End processing HTTP request", StringComparison.Ordinal) ||
+               message.StartsWith("Sending HTTP request", StringComparison.Ordinal) ||
+               message.StartsWith("Received HTTP response headers", StringComparison.Ordinal) ||
+               message.StartsWith("HTTP request failed after", StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The logging pipeline built over the <b>shipped configuration</b> -
+    /// <c>appsettings.template.json</c>, the committed source of the gitignored
+    /// <c>appsettings.json</c> the server actually reads.
+    ///
+    /// Reading that file is the whole point. RV.13 is a bug in CONFIGURATION,
+    /// not in a call site: nothing in C# emitted those four lines, they fell
+    /// through <c>Logging:LogLevel</c> to <c>Default: Information</c> because no
+    /// entry covered the category. A test that constructed its own filters (or
+    /// called <c>SetMinimumLevel</c>, as the inbound tests above legitimately do)
+    /// would pass forever whatever the template says, which is exactly the
+    /// vacuous assertion this file must not contain.
+    /// </summary>
+    private static (ServiceProvider Services, InMemoryLogWriter Writer) BuildFromShippedConfiguration(
+        Func<HttpRequestMessage, HttpResponseMessage> respond)
+    {
+        var templatePath = Path.Combine(
+            DocPaths.RepositoryRoot, "backend", "src", "Tankbook.Api", "appsettings.template.json");
+        var configuration = new ConfigurationBuilder().AddJsonFile(templatePath, optional: false).Build();
+
+        var writer = new InMemoryLogWriter([]);
+        var services = new ServiceCollection();
+        services.AddLogging(builder =>
+        {
+            builder.ClearProviders();
+            builder.AddConfiguration(configuration.GetSection("Logging"));
+            builder.Services.AddSingleton<ILoggerProvider>(sp => new TankbookLoggerProvider(
+                sp.GetRequiredService<LogRenderer>(),
+                sp.GetRequiredService<ILogWriter>()));
+            builder.Services.AddSingleton(new LogRenderer(
+                new TankbookRedactor("test-salt"),
+                "0.1.0-test",
+                json: true));
+            builder.Services.AddSingleton<ILogWriter>(writer);
+        });
+
+        // The "rates" client exactly as Program.cs registers it, with the network
+        // replaced at the primary handler (docs/TESTING.md "mock the boundary").
+        services.AddHttpClient("rates").ConfigurePrimaryHttpMessageHandler(() => new StubPrimaryHandler(respond));
+
+        return (services.BuildServiceProvider(), writer);
+    }
+
+    /// <summary>
+    /// A SUCCESSFUL outbound call emits none of the four
+    /// <c>System.Net.Http.HttpClient</c> Information lines.
+    ///
+    /// Measured in production on 2026-09-02/03: four per call, so one /extract
+    /// cost eight, and they carried nothing a reader can use - an unrendered
+    /// {Uri}, a serialized HttpMethod object, a duration the caller's own line
+    /// already reports. Same failure as the inbound noise above, from the
+    /// outbound direction.
+    ///
+    /// The app's own rates.fetch line is asserted PRESENT in the same window, so
+    /// the test cannot pass against a pipeline that emits nothing at all - which
+    /// is the only way "quiet" and "broken" look alike here.
+    /// </summary>
+    [Fact]
+    public async Task SuccessfulOutboundCall_EmitsNoHttpClientInformationLine()
+    {
+        var (services, writer) = BuildFromShippedConfiguration(
+            _ => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("<ValCurs/>") });
+        await using var _ = services;
+
+        using var response = await services.GetRequiredService<IHttpClientFactory>()
+            .CreateClient("rates")
+            .GetAsync("https://rates.example/daily", CancellationToken.None);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        TankbookLog.RatesFetch(
+            services.GetRequiredService<ILoggerFactory>().CreateLogger<RatesJobService>(),
+            "2026-09-03",
+            published: 1,
+            carriedForward: 0,
+            sourcesFailed: 0);
+
+        var lines = writer.JsonLines().ToList();
+        Assert.Contains(lines, l => l.Prop("event") == "rates.fetch" && l.Prop("level") == "Information");
+        Assert.DoesNotContain(lines, IsOutboundHttpClientLine);
+    }
+
+    /// <summary>
+    /// The other half, and the half that decides whether silencing the category
+    /// is safe: a FAILED outbound call is still visible, because the caller logs
+    /// its own outcome. This is the assertion that made silencing the category
+    /// safe to do at all: the handlers DO narrate a throw
+    /// (<c>RequestFailed</c>/<c>RequestPipelineFailed</c>, with the exception),
+    /// but they narrate it at Information, so raising the category to Warning
+    /// takes those lines with the rest. Every outbound caller was checked for
+    /// its own failure line before the change - rates logs this Warning, the LLM
+    /// gateway logs llm.extract/provider_failed at Error, APNs failures are
+    /// counted onto sync.nudge, and a JWKS fetch that throws reaches the global
+    /// handler as error.unhandled at Error. Not one of them depended on the
+    /// HttpClient line.
+    ///
+    /// The failure is produced by the real <see cref="CisRateFeed"/> over a
+    /// primary handler that refuses the connection, and the Warning is the one
+    /// RatesJobService emits verbatim for that catch.
+    /// </summary>
+    [Fact]
+    public async Task FailedOutboundCall_StillSurfacesTheCallersOwnWarning()
+    {
+        var (services, writer) = BuildFromShippedConfiguration(
+            _ => throw new HttpRequestException("connection refused"));
+        await using var _ = services;
+
+        var feed = new CisRateFeed(services.GetRequiredService<IHttpClientFactory>());
+        var date = new DateOnly(2026, 9, 3);
+
+        var thrown = await Assert.ThrowsAsync<HttpRequestException>(
+            () => feed.FetchAsync(date, "EUR", CancellationToken.None));
+
+        // Verbatim what Rates/RatesJobService.cs logs when a feed throws.
+        services.GetRequiredService<ILoggerFactory>().CreateLogger<RatesJobService>()
+            .LogWarning(thrown, "Rate feed {Source} failed for {Date} / {Base}.", feed.Source, date, "EUR");
+
+        var lines = writer.JsonLines().ToList();
+        var failure = Assert.Single(lines, l => l.Prop("level") == "Warning");
+        Assert.Equal("cis", failure.Prop("Source"));
+        Assert.DoesNotContain(lines, IsOutboundHttpClientLine);
+    }
+
+    /// <summary>A primary handler that answers - or refuses - without a network.</summary>
+    private sealed class StubPrimaryHandler : HttpMessageHandler
+    {
+        private readonly Func<HttpRequestMessage, HttpResponseMessage> _respond;
+
+        public StubPrimaryHandler(Func<HttpRequestMessage, HttpResponseMessage> respond) => _respond = respond;
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request, CancellationToken cancellationToken)
+            => Task.FromResult(_respond(request));
     }
 }

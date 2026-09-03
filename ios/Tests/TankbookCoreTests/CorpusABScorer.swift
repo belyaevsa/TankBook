@@ -309,6 +309,12 @@ enum PostSweepCorpusAdditions {
             // channel, so a watermark is composited OVER the product line.
             // Declared, not swept.
             "receipt-043-artemovsk-gazservis-95-vat22-watermark-ru.jpg",
+            // 2026-09-03: a Russian NON-FISCAL terminal slip (the matched half
+            // of pump-044, and the corpus's first of that class - no fiscal QR
+            // exists on one), and the paper half of pump-054, whose printed
+            // total is a cent above litres x price. Declared, not swept.
+            "receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg",
+            "receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -350,6 +356,28 @@ enum PostSweepCorpusAdditions {
             "pump-041-dresser-wayne-circlek-ee-glare-total.jpg",
             "pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg",
             "pump-043-dresser-wayne-circlek-ee-pump8-95.jpg",
+            // 2026-09-03: thirteen more. pump-044 is a Roснефть display whose
+            // price is truncated to one decimal where its paired receipt prints
+            // two. pump-045..pump-056 are one Circle K forecourt shot across
+            // BOTH vendors - Gilbarco with comma decimals, Wayne with dots -
+            // which is why the separator is a per-pump property, not a
+            // per-locale one. Five Wayne displays charge a price that is not
+            // any of the four on the board, and two lose their total to glare;
+            // all of those leave a cell EMPTY rather than guess. Declared, not
+            // swept.
+            "pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru.jpeg",
+            "pump-045-gilbarco-circlek-ee-1799-zeropad.jpg",
+            "pump-046-gilbarco-circlek-ee-pump7-95-badge.jpg",
+            "pump-047-gilbarco-circlek-ee-pump8-outdoor.jpg",
+            "pump-048-gilbarco-circlek-ee-1889-near-preset.jpg",
+            "pump-049-gilbarco-circlek-ee-faint-lcd-small-fill.jpg",
+            "pump-050-gilbarco-circlek-ee-1929.jpg",
+            "pump-051-wayne-circlek-ee-fourprice-none-matches.jpg",
+            "pump-052-wayne-circlek-ee-glare-total-lost.jpg",
+            "pump-053-wayne-circlek-ee-pump1-glare-total-digit.jpg",
+            "pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg",
+            "pump-055-wayne-circlek-ee-liitrid-variant.jpg",
+            "pump-056-wayne-circlek-ee-preset-72eur.jpg",
         ],
     ]
 

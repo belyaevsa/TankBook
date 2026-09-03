@@ -180,6 +180,7 @@ Presigned upload means the ASP.NET server never proxies file bytes – it stays 
 ### Delivery (storage → other devices)
 
 - After a pull, the client fetches missing blobs **lazily**: thumbnails are already in payloads; the full rendition downloads when the user opens the entry (or eagerly on Wi-Fi, a setting).
+- **Opening the attachment viewer (RV.9) is the second lazy trigger.** It reads the content-addressed cache first (synchronous, network-free), and only a miss goes through the same `LazyBlobFetcher` with its verify-on-download – unverified bytes are never cached and never displayed. A signed-out device has no fetcher at all: the viewer then shows the payload's inline thumbnail and names the next step (`docs/ERRORS.md` → Edit entry) rather than blocking or failing silently. Nothing about the viewer gates the entry (hard rule 1).
 - `GET /blobs/{sha256}` (authenticated) → `302` redirect to a short-lived presigned GET (TTL ~10 min, single object). The device caches the file locally forever after – content addressing means no revalidation, ever.
 - New-device restore: text records first (the garage is usable in seconds), blobs trickle in background by recency. Restore never blocks on photos.
 

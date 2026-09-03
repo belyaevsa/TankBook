@@ -32,14 +32,14 @@ public enum PumpPhotoGate {
     /// fields and 1 hit - 25/111 -> 26/116, 22.5% -> 22.4%. A new fixture that
     /// scores 1 of 5 moves the ratio DOWN, which is the corpus working as
     /// intended: the gate tracks reality, it does not flatter it.
-    public static let measuredHits: Int = 32
+    public static let measuredHits: Int = 41
 
     /// Pump fields scored at build time. Not 23 x 3: the blank numeric cells
     /// stay skipped (glare on a total, the two idle pumps have no meaningful
     /// unit price, and pump-021/022/023 show a grade price BOARD rather than
     /// the transaction's unit price), and `fuelKind` is never asserted for a
     /// pump at all. The 23 currency cells are what raised 61 -> 84.
-    public static let measuredTotal: Int = 171
+    public static let measuredTotal: Int = 219
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95

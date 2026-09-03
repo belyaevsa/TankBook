@@ -197,6 +197,12 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
+### J8b · Look at the receipt again (RV.9)
+**Trigger:** a figure is questioned weeks later – "did that fill really cost 71.02?" – or the paper is gone and the photo is the only record.
+**Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). Close or swipe down and the entry is exactly as it was, still editable.
+
+**Success metric:** the receipt can be read without leaving the app or hunting for the paper; opening a photo never ends in a blank screen.
+
 ### J9 · Anomaly nudge
 **Trigger:** app-detected consumption drift ("+12% over 3 months").
 **Journey:** gentle `warn`-amber card in the Log (never a push alarm) → tap explains the evidence (chart of the drift, possible causes: tire pressure, air filter, winter) → dismiss ("it's winter") teaches the model, or act → creates a service reminder. ⚠ False alarms erode trust fastest → thresholds conservative, seasonality-aware, always dismissible with a reason.

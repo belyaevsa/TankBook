@@ -32,6 +32,7 @@ public sealed class LogRenderer
     }
 
     public string Render(
+        string category,
         LogLevel level,
         EventId eventId,
         object? state,
@@ -124,7 +125,7 @@ public sealed class LogRenderer
             ordered.Add(new KeyValuePair<string, object?>("stackTrace", RedactOrNull("stackTrace", exception?.ToString())));
         }
 
-        return _json ? RenderJson(ordered) : RenderText(ordered);
+        return _json ? RenderJson(ordered) : RenderText(category, ordered);
     }
 
     private object? RedactOrNull(string fieldName, object? value) =>
@@ -238,26 +239,126 @@ public sealed class LogRenderer
         return buffer.ToString();
     }
 
-    private static string RenderText(IReadOnlyList<KeyValuePair<string, object?>> fields)
+    /// <summary>
+    /// The human-readable line (changed 2026-09-03, product owner):
+    ///
+    ///   2026-09-03 07:36:39 | INFORMATION | [Tankbook.Api.Sync] [01a06427-...] sync.pull -&gt; 200 in 693ms · SinceScn=14
+    ///
+    /// A fixed head - timestamp, level, category, correlation id - then the
+    /// message, then whatever structured fields that line actually carries. The
+    /// head is column-aligned by construction, so the eye finds the level and
+    /// the writer without reading the line.
+    ///
+    /// Two deliberate differences from the JSON, which is UNCHANGED (a parser
+    /// loses nothing):
+    ///
+    /// - **Null fields are dropped.** Every line used to carry
+    ///   `traceId=null accountHash=null deviceId=null clientVersion=null
+    ///   clientPlatform=null schemaVersion=null` whether or not it had them -
+    ///   six dead fields on a startup line, which is most of its width.
+    /// - **Constants are dropped**: `platform` is always "server" and
+    ///   `serverVersion` is fixed for the life of the process, so in a stream
+    ///   read by eye they are noise on every line. Both stay in the JSON, where
+    ///   a collector needs them on each record.
+    ///
+    /// The timestamp is UTC, as the JSON's is - the deploy host and its readers
+    /// are not necessarily in the same zone, and a log that silently switches
+    /// zone between formats is worse than one that is always UTC.
+    /// </summary>
+    private static string RenderText(string category, IReadOnlyList<KeyValuePair<string, object?>> fields)
     {
+        var lookup = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var (name, value) in fields)
+        {
+            lookup[name] = value;
+        }
+
         var buffer = new StringBuilder();
         foreach (var (name, value) in fields)
         {
-            if (name == "message")
+            // Rendered in the head, or deliberately dropped (see the remarks).
+            if (HeadField(name) || value is null)
             {
                 continue;
             }
 
-            if (buffer.Length > 0)
+            // "log" is the placeholder ResolveEventName returns when a call site
+            // named no event - an ordinary LogInformation. Printing `event=log`
+            // on every such line says nothing and costs a column.
+            if (name == "event" && (value as string) == "log")
             {
-                buffer.Append(' ');
+                continue;
             }
 
-            buffer.Append(name).Append('=').Append(FormatValue(value));
+            buffer.Append(buffer.Length > 0 ? " " : string.Empty)
+                  .Append(name).Append('=').Append(FormatValue(value));
         }
 
-        var message = fields.FirstOrDefault(f => f.Key == "message").Value as string;
-        return $"{fields.First(f => f.Key == "level").Value}: {message} [{buffer}]";
+        var level = lookup.GetValueOrDefault("level")?.ToString()?.ToUpperInvariant() ?? "LOG";
+        var message = lookup.GetValueOrDefault("message") as string;
+        var trace = lookup.GetValueOrDefault("traceId")?.ToString();
+
+        var line = new StringBuilder()
+            .Append(TextTimestamp(lookup.GetValueOrDefault("timestamp") as string))
+            .Append(" | ").Append(level)
+            .Append(" | [").Append(ShortCategory(category)).Append(']');
+
+        if (!string.IsNullOrEmpty(trace))
+        {
+            line.Append(" [").Append(trace).Append(']');
+        }
+
+        line.Append(' ').Append(message);
+
+        if (buffer.Length > 0)
+        {
+            line.Append(" · ").Append(buffer);
+        }
+
+        return line.ToString();
+    }
+
+    /// <summary>Fields the head renders itself, or that are dropped from text.</summary>
+    private static bool HeadField(string name) =>
+        name is "timestamp" or "level" or "message" or "traceId" or "platform" or "serverVersion";
+
+    /// <summary>
+    /// `2026-09-03T07:36:39.123Z` -> `2026-09-03 07:36:39`. Seconds are enough
+    /// for a line read by eye; the millisecond precision stays in the JSON, and
+    /// every line that measures something already carries its own DurationMs.
+    /// </summary>
+    private static string TextTimestamp(string? isoTimestamp)
+    {
+        if (isoTimestamp is null)
+        {
+            return DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+        }
+
+        return DateTime.TryParse(
+            isoTimestamp,
+            CultureInfo.InvariantCulture,
+            DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+            out var parsed)
+            ? parsed.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+            : isoTimestamp;
+    }
+
+    /// <summary>
+    /// Trims the framework's noisiest category prefixes so the column stays
+    /// narrow. `Microsoft.AspNetCore.Hosting.Diagnostics` is left whole - the
+    /// reference style keeps full names, and a truncated foreign category is
+    /// harder to search for, not easier. Only this app's own namespace is
+    /// shortened, because every one of its lines would otherwise start with the
+    /// same 13 characters.
+    /// </summary>
+    private static string ShortCategory(string category)
+    {
+        const string ownPrefix = "Tankbook.Api.";
+        return string.IsNullOrEmpty(category)
+            ? "Tankbook"
+            : category.StartsWith(ownPrefix, StringComparison.Ordinal)
+                ? category[ownPrefix.Length..]
+                : category;
     }
 
     private static void WriteField(Utf8JsonWriter writer, string name, object? value)
