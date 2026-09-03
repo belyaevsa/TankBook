@@ -15,6 +15,11 @@ import TankbookCore
 /// to itemize (J7).
 struct ServiceEntryView: View {
     @Binding var hasUnsavedChanges: Bool
+    /// RV.12: the presenter's after-a-successful-save hook. Capture passes a
+    /// closure that closes its own modal so the "Type it" door does not
+    /// uncover the camera on Save; every other presenter leaves it empty and
+    /// nothing changes. Never called for a cancel or a save that threw.
+    var onSaved: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
@@ -408,6 +413,7 @@ struct ServiceEntryView: View {
             // surfacing.
             toastCenter.noteEntryChanged()
             dismiss()
+            onSaved()
         } catch {
             AppLog.error(operation: "serviceEntry.save", category: .ui, error: error)
         }

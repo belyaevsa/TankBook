@@ -158,6 +158,57 @@ final class CaptureUITests: XCTestCase {
                       "saving from the pump path must leave capture")
     }
 
+    // MARK: - RV.12: a save leaves capture
+
+    /// The typed door through capture has the same shape as the scan door and
+    /// had the same bug: `ManualFillUpView`'s `dismiss()` closed the Confirm
+    /// sheet and uncovered the camera underneath it. The camera surface is
+    /// proven present before the save, so its absence afterwards means
+    /// something; and Save is proven enabled before it is tapped, so the save
+    /// really happened.
+    func testSavingFromTheTypeItDoorLeavesCapture() {
+        let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                "-presentScreen", "capture", "-cameraStatus", "authorized"])
+        openCapture(app)
+
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10),
+                      "the camera surface must be on screen before the save")
+        // `exists` is NOT the check here: XCUITest still reports the covered
+        // tab's elements as existing under a `fullScreenCover`, so an
+        // existence assertion on Home passes whether or not the modal was ever
+        // torn down. Hit-testing is what tells the two apart.
+        XCTAssertFalse(app.staticTexts["homeHeaderTitle"].isHittable,
+                       "the capture modal must cover the tab it was opened from")
+
+        let typeIt = app.buttons["captureTypeItButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 10))
+        typeIt.tap()
+
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
+                      "Type it must present the manual form")
+        focusNumberField(app, "manualFillUpTotalField").typeText("71.02")
+        focusNumberField(app, "manualFillUpLitersField").typeText("42.30")
+
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled,
+                      "Save must be enabled - a tap on a disabled button saves nothing")
+        save.tap()
+
+        let home = app.staticTexts["homeHeaderTitle"]
+        XCTAssertTrue(home.waitForExistence(timeout: 10))
+        // Hittable, not merely existing: the covered tab exists throughout.
+        let landed = expectation(for: NSPredicate(format: "isHittable == true"),
+                                 evaluatedWith: home)
+        XCTAssertEqual(XCTWaiter().wait(for: [landed], timeout: 10), .completed,
+                       "saving from the typed door must land back on the tab it started from")
+        XCTAssertFalse(app.buttons["captureShutterButton"].exists,
+                       "saving must not drop the user back in the camera")
+        XCTAssertFalse(app.buttons["captureCloseButton"].exists,
+                       "the capture modal must be torn down, not merely uncovered")
+    }
+
     // MARK: - Mode row
 
     /// The mode row is a function of the selected car's powertrain

@@ -44,11 +44,18 @@ extension CaptureSheet: Equatable {
 /// presents an error state.
 struct ScannedFillUpSheet: View {
     let prefill: ConfirmPrefill
+    /// RV.12: what the capture screen wants done once the entry is safely
+    /// written - tear the capture modal down, so Save does not uncover the
+    /// camera. Opt-in from the presenter; the sheet itself knows nothing about
+    /// tabs or covers. Never called for a cancel or a save that threw.
+    var onSaved: () -> Void = {}
     @State private var hasUnsavedChanges = false
 
     var body: some View {
         DiscardAwareSheet(policy: .askBeforeDiscarding, hasUnsavedChanges: $hasUnsavedChanges) {
-            ManualFillUpView(prefill: prefill, hasUnsavedChanges: $hasUnsavedChanges)
+            ManualFillUpView(prefill: prefill,
+                             hasUnsavedChanges: $hasUnsavedChanges,
+                             onSaved: onSaved)
                 .navigationTitle("Manual fill-up")
                 .navigationBarTitleDisplayMode(.inline)
         }

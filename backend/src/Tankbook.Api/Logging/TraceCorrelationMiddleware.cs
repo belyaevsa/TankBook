@@ -18,6 +18,14 @@ public sealed class TraceCorrelationMiddleware
     public const string Header = "X-Tankbook-Trace";
     public const string TraceIdItemKey = "Tankbook.TraceId";
 
+    /// <summary>
+    /// The route value logged when no endpoint matched. A named constant rather
+    /// than a repeated literal because the log LEVEL now turns on it (RV.16):
+    /// a typo would silently restore the Information-level flood it exists to
+    /// stop, and nothing would fail.
+    /// </summary>
+    public const string UnmatchedRoute = "unmatched";
+
     private readonly RequestDelegate _next;
     private readonly ILogger<TraceCorrelationMiddleware> _logger;
 
@@ -62,7 +70,7 @@ public sealed class TraceCorrelationMiddleware
             var endpoint = context.GetEndpoint();
             var routeTemplate = endpoint is RouteEndpoint route && !string.IsNullOrWhiteSpace(route.RoutePattern.RawText)
                 ? "/" + route.RoutePattern.RawText.TrimStart('/')
-                : "unmatched";
+                : UnmatchedRoute;
 
             // A SUCCESSFUL request is Debug; anything else is worth reading
             // (2026-09-02). The per-request line was Information for every
@@ -75,12 +83,35 @@ public sealed class TraceCorrelationMiddleware
             // to Debug to get every request back. Failures stay visible - 4xx at
             // Information, 5xx at Warning - so the log still shows what went
             // wrong without showing everything that went right.
+            //
+            // RV.16 (2026-09-03): an UNMATCHED route is Debug, even though it is
+            // a 4xx. The rule above is right for a client getting a real
+            // endpoint wrong; it was wrong for "no endpoint exists", which on a
+            // public IP is not a client at all but internet scanning. Measured
+            // in production: ~250 Information lines in 90 seconds, sustained -
+            // POSTs of 5 KB and 67 KB bodies to routes this app has never had,
+            // with no accountHash, deviceId or clientVersion on any of them.
+            // That is ~260k lines a day of pure noise, and for those 90 seconds
+            // it buried sync.push, blob.commit and llm.extract completely -
+            // exactly the failure the re-levelling above exists to prevent,
+            // arriving from a direction it did not cover.
+            //
+            // The distinction is real and the middleware already knows it:
+            // `routeTemplate` is the literal "unmatched" when no endpoint
+            // matched. A 404 from a REAL endpoint - a blob that is not there, an
+            // account that does not exist - still logs at Information, because
+            // that one is a client of ours getting an answer it may need help
+            // with. Nothing is lost either way: Logging:LogLevel:Default at
+            // Debug brings the scanning back when someone is actually looking
+            // for it.
             var isHealth = routeTemplate.StartsWith("/health", StringComparison.OrdinalIgnoreCase);
-            var level = (isHealth, status: context.Response.StatusCode) switch
+            var isUnmatched = routeTemplate == UnmatchedRoute;
+            var level = (isHealth, isUnmatched, status: context.Response.StatusCode) switch
             {
-                (true, _) => LogLevel.Debug,
-                (_, >= 500) => LogLevel.Warning,
-                (_, >= 400) => LogLevel.Information,
+                (true, _, _) => LogLevel.Debug,
+                (_, _, >= 500) => LogLevel.Warning,
+                (_, true, _) => LogLevel.Debug,
+                (_, _, >= 400) => LogLevel.Information,
                 _ => LogLevel.Debug,
             };
 

@@ -10,7 +10,7 @@
    - **Tab roots** (Log/Home, Trends, Garage) – no back button; switching tabs preserves each tab's stack.
    - **Pushed screens** (Settings, About, Reminders, Recently deleted, Edit entry) – back chevron top-left + iOS edge-swipe. Back never discards saved data.
    - **Sheets** (Confirm variants, Car switcher, Tank level, Reminder complete, Sign in) – drag handle, swipe-down to dismiss, plus an explicit close/"Not now". A sheet with unsaved *typed* input asks before discarding ("Keep editing / Discard"); a sheet with only scanned data discards silently – the photo is never lost, it re-offers from the camera roll.
-2. **Capture is modal full-screen** (camera): X closes back to wherever it was opened from. Saving from any confirm sheet lands on the **Log tab** with the new entry visible (and the after-save toast) – regardless of where capture started. This is deliberate: save always shows its result.
+2. **Capture is modal full-screen** (camera): X closes back to wherever it was opened from, and so does a **successful save** – see "Saving inside capture" below. A save inside capture tears the modal down (RV.12); it does **not** switch tabs, so it lands wherever capture was opened from, with the new entry visible there (Home reloads on `noteEntryChanged`). The earlier wording here promised the **Log tab regardless of where capture started**; that cross-tab jump was never built, and RV.12 deliberately did not add it – a save that moves the user to a tab they did not choose is a second surprise on top of the one it fixes. Recorded here as the shape that ships; changing it is a product decision, not a bug fix.
 3. **System surfaces** (photo viewer, share sheet for export, App Store rating, system delete-confirmation alerts) are leaves that return automatically – listed once here, not repeated below.
 
 ## The map
@@ -143,7 +143,7 @@ Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is rea
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry | X → opener |
 | **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
-| Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → Home + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
+| Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
 | Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
 | Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · ServiceEntry's Parts/Other mode row | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
@@ -185,6 +185,27 @@ and **Type it**.
 - It is **not an error surface**. Nothing on it is amber, and it carries no message about the
   scan having failed - at this point nothing has been read (`docs/ERRORS.md` → Capture).
 
+### Saving inside capture (RV.12)
+
+Capture is a modal presented over the current tab, not a tab root, so the Confirm sheet's own
+dismissal only uncovers the camera. Until RV.12 that is exactly what a device walk saw: capture a
+receipt, Save, and the camera is on screen again – a completed entry looking like a failed one,
+and a second tap starting a second entry.
+
+- **A successful save closes both**: the entry sheet dismisses as it always did, and the capture
+  modal is torn down a beat later, so the user lands back on the tab they started from. Nothing
+  navigates and no tab is switched; `toastCenter.noteEntryChanged()` already makes Home reload,
+  so the new entry is simply there.
+- **Only a success.** A cancel, a swipe-down, or a save that throws leaves the capture modal
+  exactly where it is, with the photo and the typing intact (hard rule 8). The discard guard on
+  the sheet is unchanged.
+- **Both doors, and every mode.** The scan door (review → Use this → Confirm) and the typed door
+  ("Type it" → ConfirmManual / ServiceEntry / ExpenseEntry) behave identically – manual entry is
+  a peer path, so it cannot be the one that still strands (hard rule 15).
+- **The signal is opt-in from the presenter.** Capture hands the sheet a closure to call after a
+  successful save; the entry forms know nothing about tabs, covers or the navigation graph, and
+  reached from anywhere else they behave exactly as before.
+
 ### The Capture surface's alpha notice (P6.10)
 
 Capture carries one non-navigational element: the alpha-testing disclosure
@@ -218,7 +239,7 @@ The map names screens that exist as nodes but have no artboard yet – listed so
 
 - Every sheet dismisses (swipe + explicit control); every pushed screen has chevron + edge-swipe; tab roots are roots by definition. ✓
 - **Restoring** was the one screen that could trap (mid-restore, wrong account): it gets an explicit *Cancel = sign out → Welcome*. ✓
-- **Save never strands**: all save actions land on Home/Log with the result visible – capture opened from Trends still exits to Log, showing what was created. ✓
+- **Save never strands**: every save leaves its sheet, and a save reached through capture leaves the capture modal with it (RV.12), landing on the tab capture was opened from with the entry visible. Capture opened from Trends returns to Trends – it does not jump to the Log; the entry is there when the user next opens it. ✓
 - **Failure states are forks, not ends** (JOURNEYS F-series): OCR failure → ConfirmManual is the same sheet, same back paths; denied camera → Capture's "Type it" path still works. ✓
 - **Manual entry is a peer path, not a failure branch** (hard rule 15). "Type it" is offered
   next to capture at every entry point - Home's header, both empty states, the guest layout,

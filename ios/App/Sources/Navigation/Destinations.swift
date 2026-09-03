@@ -52,6 +52,11 @@ struct SheetDestinationView: View {
     /// tab's stack. The sheet's own NavigationStack cannot push tab-stack
     /// routes, so the host owns the transition.
     var onNavigate: (Route) -> Void = { _ in }
+    /// RV.12: what the presenter wants done after this sheet's entry form saves
+    /// successfully. Capture passes a closure that closes its own modal, so a
+    /// save from the "Type it" door does not uncover the camera; every other
+    /// presenter leaves it at the default and nothing changes for them.
+    var onSaved: () -> Void = {}
     @State private var hasUnsavedChanges = false
 
     var body: some View {
@@ -65,13 +70,16 @@ struct SheetDestinationView: View {
     @ViewBuilder
     private var sheetContent: some View {
         switch route {
-        case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges)
+        case .confirmManual: ManualFillUpView(hasUnsavedChanges: $hasUnsavedChanges,
+                                             onSaved: onSaved)
         case .tankLevel: TankLevelStandaloneHost()
         case .carSwitcher: CarSwitcherView(onNavigate: onNavigate)
         case .signIn: SignInFlowHost()
         case .reminderComplete: SheetPlaceholderContent()
-        case .serviceEntry: ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges)
-        case .expenseEntry: ExpenseEntryView(hasUnsavedChanges: $hasUnsavedChanges)
+        case .serviceEntry: ServiceEntryView(hasUnsavedChanges: $hasUnsavedChanges,
+                                            onSaved: onSaved)
+        case .expenseEntry: ExpenseEntryView(hasUnsavedChanges: $hasUnsavedChanges,
+                                            onSaved: onSaved)
         case .partsShelf: PartsShelfView()
         }
     }
@@ -147,7 +155,12 @@ struct ModalDestinationView: View {
     private var content: some View {
         switch route {
         case .capture:
-            CaptureView(onServiceEntry: onServiceEntry)
+            // RV.12: a successful save inside capture closes the cover, so the
+            // user lands back on the tab they started from with the new entry
+            // visible - `toastCenter.noteEntryChanged()` has already told Home
+            // to reload. The cover owns its own dismissal; `CaptureView` is
+            // handed a closure and never touches the navigation graph.
+            CaptureView(onServiceEntry: onServiceEntry, onEntrySaved: { dismiss() })
         }
     }
 }

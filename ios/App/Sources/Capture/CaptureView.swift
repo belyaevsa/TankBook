@@ -54,13 +54,21 @@ struct CaptureView: View {
     /// invoice has been scanned and processed, so the presenting tab can close
     /// this cover and open the ServiceEntry sheet.
     private let onServiceEntry: () -> Void
+    /// RV.12: called once an entry started here has been written. The capture
+    /// screen is a MODAL over the tab the user was on, not a tab root, so the
+    /// Confirm sheet's own `dismiss()` only uncovers the camera again - a
+    /// completed entry looked like a failed one. The host closes the cover;
+    /// this screen only says when.
+    private let onEntrySaved: () -> Void
 
     init(authorizer: CameraAuthorizing = SystemCameraAuthorizer(),
          injectedPowertrain: Powertrain? = nil,
-         onServiceEntry: @escaping () -> Void = {}) {
+         onServiceEntry: @escaping () -> Void = {},
+         onEntrySaved: @escaping () -> Void = {}) {
         self.authorizer = authorizer
         self.injectedPowertrain = injectedPowertrain
         self.onServiceEntry = onServiceEntry
+        self.onEntrySaved = onEntrySaved
     }
 
     var body: some View {
@@ -89,7 +97,9 @@ struct CaptureView: View {
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .manualForm(let form):
-                SheetDestinationView(route: form.sheetRoute)
+                // The typed door has the same shape and had the same bug: its
+                // save dismissed the sheet and left the camera underneath.
+                SheetDestinationView(route: form.sheetRoute, onSaved: leaveCaptureAfterSave)
             case .photoPicker:
                 PhotoPickerView(isPresented: Binding(
                     get: { activeSheet == .photoPicker },
@@ -107,7 +117,7 @@ struct CaptureView: View {
                         scanServiceInvoice(images)
                     })
             case .scanned(let prefill):
-                ScannedFillUpSheet(prefill: prefill)
+                ScannedFillUpSheet(prefill: prefill, onSaved: leaveCaptureAfterSave)
             }
         }
         // RV.5. A cover, not a second `.sheet`: two `.sheet` modifiers on one
@@ -275,6 +285,27 @@ struct CaptureView: View {
             // pipeline await to separate them, so the beat is explicit.
             try? await Task.sleep(for: Self.coverDismissBeat)
             activeSheet = .manualForm(form)
+        }
+    }
+
+    /// RV.12: a successful save inside capture closes the capture modal, so the
+    /// user lands back on the tab they came from with the new entry visible
+    /// (`toastCenter.noteEntryChanged()` has already told Home to reload). Only
+    /// the success path calls this: a cancel or a save that threw leaves the
+    /// modal exactly where it is, with the photo and the typing intact (hard
+    /// rule 8 - nothing lost silently).
+    ///
+    /// The cover is closed a beat AFTER the Confirm sheet's own `dismiss()`,
+    /// for the same reason `typeItAfterReview` waits: SwiftUI does not
+    /// reliably act on a dismissal in the same runloop turn as the one above
+    /// it. The reload, the gateway seal and the odometer-reconcile `Task` have
+    /// all already run by the time the save calls this, so nothing here can
+    /// cancel them.
+    private func leaveCaptureAfterSave() {
+        activeSheet = nil
+        Task {
+            try? await Task.sleep(for: Self.coverDismissBeat)
+            onEntrySaved()
         }
     }
 

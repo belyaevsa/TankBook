@@ -69,9 +69,23 @@ struct ManualFillUpView: View {
     @State var attachedPrefill: ConfirmPrefill?
     @State var showAttachSource = false
 
-    init(prefill: ConfirmPrefill? = nil, hasUnsavedChanges: Binding<Bool>) {
+    /// RV.12: what the PRESENTER wants done after a successful save, on top of
+    /// this sheet's own `dismiss()`. Capture passes a closure that tears its
+    /// modal down, so a saved scan lands back on the tab the user started from
+    /// instead of uncovering the camera. `nil` - the typed door, Edit entry and
+    /// the F8 embedded form - keeps today's behaviour exactly. The sheet never
+    /// reaches into the navigation graph itself; it only calls what it was
+    /// handed, and only on the success path (a throw or a cancel leaves the
+    /// presenter alone, hard rule 8: a failed save must not destroy the photo
+    /// and the typing behind it).
+    private let onSaved: (() -> Void)?
+
+    init(prefill: ConfirmPrefill? = nil,
+         hasUnsavedChanges: Binding<Bool>,
+         onSaved: (() -> Void)? = nil) {
         self.injectedPrefill = prefill
         self._hasUnsavedChanges = hasUnsavedChanges
+        self.onSaved = onSaved
     }
 
     var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
@@ -564,6 +578,11 @@ private extension ManualFillUpView {
             // window; reconcile arms the notification at write time.
             Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
             dismiss()
+            // RV.12, last: everything the save owes the app - the toast
+            // reload, the gateway seal, the odometer reconcile Task - has
+            // already happened, so a presenter that tears its own modal down
+            // here cannot cancel any of it.
+            onSaved?()
         } catch {
             AppLog.error(operation: "confirmManual.save", category: .ui, error: error)
         }

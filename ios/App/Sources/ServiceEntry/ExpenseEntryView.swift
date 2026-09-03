@@ -58,6 +58,11 @@ struct ExpenseEntryFormState: Equatable {
 /// are the same form.
 struct ExpenseEntryView: View {
     @Binding var hasUnsavedChanges: Bool
+    /// RV.12: the presenter's after-a-successful-save hook. Capture passes a
+    /// closure that closes its own modal so the "Type it" door does not
+    /// uncover the camera on Save; every other presenter leaves it empty and
+    /// nothing changes. Never called for a cancel or a save that threw.
+    var onSaved: () -> Void = {}
     @Environment(\.dismiss) private var dismiss
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
@@ -209,6 +214,7 @@ struct ExpenseEntryView: View {
             // manual refresh (the Manual fill-up / Edit entry convention).
             toastCenter.noteEntryChanged()
             dismiss()
+            onSaved()
         } catch {
             AppLog.error(operation: "expenseEntry.save", category: .ui, error: error)
         }

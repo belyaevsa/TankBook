@@ -53,6 +53,22 @@ what actually *happened* - `auth.session`, `sync.push`, `blob.commit`, `llm.extr
 **successful** request is `Debug`, a **4xx** is `Information`, and a **5xx** is `Warning`. `/health`
 stays `Debug` as before.
 
+**An UNMATCHED route is `Debug`, whatever its 4xx (added 2026-09-03, RV.16).** The rule above is
+right for a client getting a *real* endpoint wrong; it was wrong for "no endpoint exists", which on
+a public IP is not a client at all. Measured in production: **~250 Information lines in 90 seconds**,
+sustained - `POST` bodies of 5 KB and 67 KB to routes this app has never had, `accountHash`,
+`deviceId` and `clientVersion` all null on every one. Internet scanning, answered correctly in
+0.08 ms, and it buried `sync.push`, `blob.commit` and `llm.extract` for the whole window - the same
+failure this section's first rule exists to prevent, arriving from a direction that rule did not
+cover. At ~260k lines a day it is also a real cost on a host that has OOM-killed its runner once.
+
+The distinction is **the route, not the status**: `TraceCorrelationMiddleware.UnmatchedRoute` is
+already what the line carries when nothing matched. A 404 from a **matched** endpoint - a blob that
+is not there, an account that does not exist - stays `Information`, because that is a client of ours
+getting an answer it may need help with. Three tests hold the pair apart (unmatched 404 *and* 405 at
+`Debug`, matched 404 at `Information`, unmatched 5xx still `Warning` - that last one pins the ORDER
+of the arms). Mutation-checked: deleting the unmatched arm fails exactly the first two.
+
 **Re-levelled, not removed.** `Logging:LogLevel:Default=Debug` brings every request back with its
 correlation fields intact, and a test pins that the successful line is still emitted there - so
 "quieter" cannot quietly become "gone". The line also carries a human summary now
