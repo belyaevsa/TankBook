@@ -1,18 +1,44 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-01. **The agent-shaped v1 work is done.** Tier 2 is 24/24 and the six small v1
-rows filed from the work itself are closed (`PJ.12b`, `P6.17`, `P1.13b`, `PJ.2b`, `PR.16b`;
-`PR.3c` deferred with reason, below). **`SH.4` is now closed too - Google sign-in is wired without
-the SDK - and it turned up `PR.35`, a live account-takeover vector in `POST /auth/session` that
-existed for Apple with no Google involved (read that section first).** **What is left for v1 is the
-product owner's**: `SH.1` deploy the backend - which now also has to set the two audience settings,
-because they fail closed - `SH.3` the launch-readiness walk on a device, and `P6.5`'s manual
-VoiceOver walkthrough of J3. Plus `T.3`, one intermittent UI
-test that needs two consecutive clean full suites rather than a fix. Measured: **iOS 1152 unit,
-274 UI** (1 intermittent), **backend 295**, lint 0, Debug *and* Release builds green. Corpus: 43
-pump / **43** receipt / 8 screenshot / 3 fiscal. Ledger **151 done, 63 open** - beyond v1: 13
-`[v1.0.x]`, 32 `[v1.1]` (eleven an ordered owner-set priority queue), 15 `[v2]`. The marketing site
-is LIVE. Read this first, then `CLAUDE.md` for the rules and `docs/TASKS.md` for the backlog.*
+*Updated 2026-09-03. **The app is on TestFlight and the backend is deployed**, and the day was spent
+on what a real device found. A `RV` (reviewer) section now carries **38 rows filed from production
+logs, device walks and screenshots**; 19 are closed. The big ones: the CIS rate feed had **never once
+parsed** (windows-1251, RV.15) and fixing it exposed every rate being **10,000x too large** (a
+Russian decimal comma read as a thousands separator, RV.19); the device was **pushing its own records
+back forever** on two separate merge paths (RV.14, RV.35); and a foreign entry dated before today
+**can never resolve its home amount**, because nothing ever fetches a past date (RV.32, open).
+Measured after the day: **iOS 1165 unit**, **backend 336** (0 skipped), lint 0. Corpus: **56 pump /
+45 receipt** / 8 screenshot / 3 fiscal, after 15 fixtures added - including the corpus's first
+**non-fiscal terminal slip** and a matched pair that proves the printed total is a cent above
+litres x price. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+
+## What today changed about HOW to work (2026-09-03)
+
+Four lessons, each of which cost something.
+
+**`git add -A` while an agent is dispatched scatters its work.** It happened **twice**: RV.23's
+change landed inside commits titled for RV.19/RV.20 and the brief backlog; RV.21's landed inside
+three commits registering RV.24, RV.28 and RV.32. Nothing was lost, but the history stopped saying
+which change belongs to which task, and **RV.21 could not run its own before/after check** because
+the baseline moved underneath it. `CLAUDE.md` already said "never commit while an agent is mid-run";
+the narrower rule that actually prevents it is **stage explicit paths, never `-A`**. Registering a
+task row mid-run is fine; staging everything is not.
+
+**A test can be green and prove nothing, and the cheapest tell is an assertion with no expected
+value.** RV.15's test asserted `rate > 0`. The RUB rate was **1008287** instead of `100.8287` and it
+sailed through. The fix was a `NumberFormatInfo` change; the lesson is that `> 0`, `!= nil` and
+`.exists` are not assertions. Every new test this session was mutation-checked, and two of them
+(RV.14, RV.35) were checked in **both** directions, because over-correcting a sync merge fails
+silently: a record that never pushes looks exactly like one with nothing to push.
+
+**Production logs out-yielded every other source.** RV.14, RV.35 and RV.36 came from log lines, not
+from tests or code review, and none of them was visible in the code alone - each needed the evidence
+of the same record being pushed twelve times, or 29 rates all carrying the wrong day. Ask for logs.
+
+**A two-cause diagnosis can still be short a cause.** RV.25 was filed with two gaps named and
+verified; there were three, and the third (`load()` opened with `guard !didLoad else { return }`)
+would have made a fix for the other two do nothing at all. Briefs now say "fix both halves" *and*
+ask the agent to report what it actually found.
 
 ## Google sign-in is wired without an SDK, and it uncovered an account-takeover vector (2026-09-01)
 
