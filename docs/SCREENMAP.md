@@ -53,6 +53,8 @@ flowchart TD
     Home <-->|tab switch| Garage
 
     Home -->|gear| Settings
+    Trends -->|gear| Settings
+    Garage -->|gear| Settings
     Home -->|car card / chip| CarSwitcher
     Home -->|reminder banner| Reminders
     Home -->|entry tap| EditEntry
@@ -119,7 +121,7 @@ flowchart TD
     Settings -->|Recently deleted| RecentlyDeleted
     Settings -->|Pro| Paywall
     Settings -->|About| About
-    Settings -.->|back| Home
+    Settings -.->|back| OpenerTabRoot[return to the tab root that pushed it]
     About -.->|back| Settings
     RecentlyDeleted -->|Restore| RecentlyDeleted   (row removed; entry back in Log)
     RecentlyDeleted -.->|back| Settings
