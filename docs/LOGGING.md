@@ -53,6 +53,8 @@ what actually *happened* - `auth.session`, `sync.push`, `blob.commit`, `llm.extr
 **successful** request is `Debug`, a **4xx** is `Information`, and a **5xx** is `Warning`. `/health`
 stays `Debug` as before.
 
+**`auth.refresh` carries `ChainId`, not `RotationId` (renamed 2026-09-03, RV.27).** The value is the refresh-token **family** id and is deliberately **stable across every rotation of the same chain** - that is what lets a replayed token be traced back to the chain it came from, which is the whole mechanism behind `ReuseDetected`. Under the old name, three refreshes hours apart logging one value read as "the rotation id is not rotating", i.e. as a broken security control, when it was the correct one working. A stable `ChainId` across rotations is the expected reading; a **changing** one would be the anomaly.
+
 **An UNMATCHED route is `Debug`, whatever its 4xx (added 2026-09-03, RV.16).** The rule above is
 right for a client getting a *real* endpoint wrong; it was wrong for "no endpoint exists", which on
 a public IP is not a client at all. Measured in production: **~250 Information lines in 90 seconds**,

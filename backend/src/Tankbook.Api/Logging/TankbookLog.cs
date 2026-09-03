@@ -64,16 +64,27 @@ public static class TankbookLog
             ("FailureReason", failureReason),
             ("AccountHash", accountHash));
 
-    /// <summary>Refresh rotation; replay of a rotated token is a security event.</summary>
+    /// <summary>
+    /// Refresh rotation; replay of a rotated token is a security event.
+    ///
+    /// <c>chainId</c> identifies the token FAMILY, not the individual rotation,
+    /// and is therefore **stable across every refresh of the same chain** - that
+    /// stability is what makes reuse detection possible, because a replayed
+    /// token has to resolve to the chain it came from. The field was called
+    /// <c>RotationId</c> until 2026-09-03, which read in production as "the
+    /// rotation id is not rotating" and cost a round of investigation: three
+    /// refreshes hours apart logged the same value, which looks exactly like a
+    /// broken security control and is in fact the correct one working.
+    /// </summary>
     public static void AuthRefresh(
         ILogger logger,
         string outcome,
-        string? rotationId = null,
+        string? chainId = null,
         bool reuseDetected = false,
         string? deviceId = null)
         => Emit(logger, reuseDetected ? LogLevel.Warning : LogLevel.Information, "auth.refresh",
             ("Outcome", outcome),
-            ("RotationId", rotationId),
+            ("ChainId", chainId),
             ("ReuseDetected", reuseDetected),
             ("DeviceId", deviceId));
 
