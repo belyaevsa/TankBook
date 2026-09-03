@@ -1,16 +1,18 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-03. **The app is on TestFlight and the backend is deployed**, and the day was spent
-on what a real device found. A `RV` (reviewer) section now carries **38 rows filed from production
-logs, device walks and screenshots**; **23 are closed, 15 open**. The big ones: the CIS rate feed had **never once
-parsed** (windows-1251, RV.15) and fixing it exposed every rate being **10,000x too large** (a
-Russian decimal comma read as a thousands separator, RV.19); the device was **pushing its own records
-back forever** on two separate merge paths (RV.14, RV.35); and a foreign entry dated before today
-**can never resolve its home amount**, because nothing ever fetches a past date (RV.32, open).
-Measured after the day: **iOS 1165 unit**, **backend 339** (0 skipped), lint 0. Corpus: **56 pump /
-45 receipt** / 8 screenshot / 3 fiscal, after 15 fixtures added - including the corpus's first
-**non-fiscal terminal slip** and a matched pair that proves the printed total is a cent above
-litres x price. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-03 (evening pass). **The app is on TestFlight and the backend is deployed**. The `RV`
+(reviewer) backlog now carries **38 rows filed from production logs, device walks and screenshots**;
+**30 are closed, 8 open**. Since the morning pass: `RV.32` (demand-driven exchange-rate backfill,
+closing the "a foreign entry before today can never resolve its home amount" gap), `RV.37` (receipt
+delete/replace with the re-read ask), `RV.18` (measured sync cadence - a scripted session showed 5
+cycles across launch + 3 foregrounds, gated the launch double-fire only), `RV.29` (a foreign fill's
+price-per-litre no longer wears the home currency symbol), `RV.24` (a working language picker,
+follow-system until overridden) and `RV.31` (re-tapping the active tab pops it to root, through the
+same discard guard a sheet already uses) all landed and were independently verified - build/test by
+exit code, the relevant UI suites re-run, every load-bearing fix mutation-checked personally, every
+screenshot opened personally. `RV.28` (fuel chips must pack, not distribute) is in flight. Measured
+now: **iOS 1189 unit / 110 suites**, **backend 347** (0 skipped), lint 0 (both tiers). Read this
+first, then `CLAUDE.md`, then `docs/TASKS.md`.*
 
 ## What today changed about HOW to work (2026-09-03)
 
@@ -96,6 +98,23 @@ green.
 - **`RV.23`** - shipped but its row is open on purpose: its two UI suites were run by the agent and
   never re-run here.
 - **`RV.6`** - `/v1/account/devices` polled four times in 14 seconds; untouched since it was filed.
+- **`RV.38`** - notification inbox (bell icon), registered but not yet briefed - depends on `RV.33`
+  for durability and its placement collides with `RV.22`'s chip layout, so it is blocked behind both.
+
+## Two more things this session's parallel dispatch taught (2026-09-03 evening)
+
+**Every remaining ready task this round was iOS-only**, so two agents sharing the default simulator
+would fight over the device exactly as `capture-screenshots.sh` warns. The fix cost nothing: pin each
+agent's brief to a **different named simulator** (`iPhone 17` / `iPhone 17 Pro`) instead of reaching
+for a worktree - both exist on the machine already, `xcodebuild -destination` takes the name as a
+plain parameter, and the two builds/UI-test runs never touched each other's derived data or device
+state. True parallelism, no worktree, no `CLAUDE.md` exception needed.
+
+**`RV.31`'s discard guard is exactly the kind of fix that needs its own mutation-check, not just the
+agent's.** The stakes are hard rule 8 (nothing lost silently) on a brand-new code path with no prior
+test coverage to lean on. Reverting the guard to always-pop and re-running `TabReselectUITests`
+failed exactly the one test that proves Cancel preserves a typed value - worth the ~90 seconds every
+time a fix touches data loss, even when the dispatched agent already ran the same check itself.
 
 ## Google sign-in is wired without an SDK, and it uncovered an account-takeover vector (2026-09-01)
 
