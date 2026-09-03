@@ -272,6 +272,11 @@ if (!builder.Environment.IsEnvironment("Testing"))
 // WebApplicationFactory - the same reason the purge timer is gated).
 builder.Services.AddSingleton<IRateFeed>(sp => new EcbRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
 builder.Services.AddSingleton<IRateFeed>(sp => new CisRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
+// RV.19: KZT comes from the National Bank of Kazakhstan, not from a CBR
+// cross-rate through RUB - the two disagree by ~0.8%. Its own IRateFeed (and its
+// own source tag) so a failure in one feed cannot take the other down;
+// CisRateFeed deliberately omits KZT so the two never write the same slot.
+builder.Services.AddSingleton<IRateFeed>(sp => new NbkRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
 builder.Services.AddScoped<RateRepository>();
 builder.Services.AddScoped<RatesJobService>();
 if (!builder.Environment.IsEnvironment("Testing"))

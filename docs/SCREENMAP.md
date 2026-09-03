@@ -20,7 +20,8 @@ flowchart TD
     subgraph Onboarding
         Welcome -->|Add your car| AddVehicle
         Welcome -->|Import from another app| ImportWizard
-        Welcome -->|Already use Tankbook? Sign in| SignIn
+        Welcome -->|Sign in to Tankbook| SignIn
+        Welcome -->|Already use Tankbook? Restore your garage| SignIn
         SignIn -->|existing account| Restoring
         SignIn -->|new account, local log uploads| Home
         SignIn -.->|Not now| Welcome
@@ -132,14 +133,16 @@ flowchart TD
 
 Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is reachable from several places and back always returns to the specific opener (standard stack behavior), never to a hardcoded screen.
 
-**The Welcome root (PJ.3).** One screen (`design/screens/Welcome.dc.html` / `LightWelcome.dc.html`), no tab bar, shown only while the log holds **no vehicle and no session** – decided at launch, never again once a car exists. Its three paths are equal doors (hard rule 15): Add your car, Import from another app, and "Already use Tankbook? Sign in" – the last carrying the restore intent, which is the whole difference between a reinstall/Android migrant being offered their account and being funnelled into "Add your car" as if new. The **guest Home** is that Add-car path's landing state (`GuestHome`): the Home tab rendered for a session-less user, real since PJ.3 – no longer the `-forceGuestHome` presentation fixture.
+**The Welcome root (PJ.3, re-argued in RV.23).** One screen (`design/screens/Welcome.dc.html` / `LightWelcome.dc.html`), no tab bar, shown only while the log holds **no vehicle and no session** – decided at launch, never again once a car exists. Its three paths are equal doors (hard rule 15): Add your car, Import from another app, and "Sign in to Tankbook" – the last a full-width button like the other two, carrying the one benefit hardest to guess ("Cloud receipt reading, sync and backup"; `/extract` is bearer-only, so a guest never gets the cloud model). **Add your car stays a peer**: it continues with no account, first and in taillight, and nothing on the screen frames the user who never signs in as having chosen the lesser path (hard rule 1).
+
+Beneath the three doors sits a fourth affordance that is **not** a peer door but a returning user's line: "Already use Tankbook? Restore your garage." It is the only thing on the screen that claims "I am coming back", so it – and only it – carries the restore intent into the sign-in sheet (`arrivedViaRestore: true`, RV.23). That split is the whole difference between a reinstall/Android migrant being offered their account and being funnelled into "Add your car" as if new, and in the other direction it keeps J11a's wrong-provider question away from a brand-new user whose account is empty because it is new. The **guest Home** is that Add-car path's landing state (`GuestHome`): the Home tab rendered for a session-less user, real since PJ.3 – no longer the `-forceGuestHome` presentation fixture.
 
 ## Per-screen index
 
 | Screen | Reached from | Forward exits | Back path |
 |---|---|---|---|
-| Welcome | first launch only – shown while there is **no vehicle AND no session**; never again once a car exists | Add car → AddVehicle · Import from another app → ImportWizard · "Already use Tankbook? Sign in" → SignIn with the restore intent (`arrivedViaRestore: true`) | none – it IS the root before data exists |
-| Sign in | Welcome (the third path carries the restore intent), Settings (a running app – no restore intent) | provider → Restoring (existing) or Home (new, uploads local log) | "Not now" / swipe → opener |
+| Welcome | first launch only – shown while there is **no vehicle AND no session**; never again once a car exists | Add car → AddVehicle · Import from another app → ImportWizard · "Sign in to Tankbook" → SignIn with **no** restore intent (`arrivedViaRestore: false`) · "Already use Tankbook? Restore your garage." → SignIn with the restore intent (`arrivedViaRestore: true`) | none – it IS the root before data exists |
+| Sign in | Welcome (the restore line carries the restore intent; the peer "Sign in to Tankbook" button does not), Settings (a running app – no restore intent) | provider → Restoring (existing) or Home (new, uploads local log) | "Not now" / swipe → opener |
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear, car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |

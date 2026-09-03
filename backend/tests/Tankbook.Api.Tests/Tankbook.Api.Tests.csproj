@@ -34,5 +34,22 @@
     <None Update="Rates/Fixtures/cbr-xml-daily-windows1251.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- RV.20: the same endpoint asked for a past date and for a New Year
+         holiday (which answers with the document dated 31.12.2025). Both are
+         windows-1251 too, and the tests assert that. -->
+    <None Update="Rates/Fixtures/cbr-xml-daily-2026-08-15-windows1251.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Rates/Fixtures/cbr-xml-daily-2026-01-04-holiday-windows1251.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- RV.19: the National Bank of Kazakhstan's own responses - UTF-8, and the
+         reason KZT does not come from a CBR cross-rate. -->
+    <None Update="Rates/Fixtures/nbk-rates-2026-09-03.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Rates/Fixtures/nbk-rates-2026-08-15.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

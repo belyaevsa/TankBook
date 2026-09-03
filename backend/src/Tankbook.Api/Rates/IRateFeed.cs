@@ -9,6 +9,9 @@ public static class RateSources
     public const string Ecb = "ecb";
     public const string Cis = "cis";
 
+    /// <summary>The National Bank of Kazakhstan - the authoritative publisher of KZT (RV.19). See <see cref="NbkRateFeed"/>.</summary>
+    public const string Nbk = "nbk";
+
     private const string CarriedSuffix = ":carried-forward";
 
     /// <summary>The source tag for a row that carries the last published value forward across a non-publishing day.</summary>
