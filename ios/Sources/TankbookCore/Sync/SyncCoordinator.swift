@@ -16,6 +16,21 @@ import os
 /// whether data eventually arrives. The trigger and the transport live here;
 /// nothing else in the app may construct a second `SyncEngine`.
 ///
+/// The number of cycles a `SyncCoordinator` has actually fired, split by the
+/// trigger that asked for them (RV.18). Counts only - hard rule 12: how often
+/// sync fires is observable, what it moved is not. A deferred cycle (Low Power
+/// Mode, `PowerWorkTrigger.background`) and an inert one (a cycle already in
+/// flight) are deliberately **not** counted: neither fired.
+public struct SyncCycleCounts: Equatable, Sendable {
+    public var background = 0
+    public var userInitiated = 0
+
+    public init() {}
+
+    /// The total number of cycles that fired, whatever door they came through.
+    public var total: Int { background + userInitiated }
+}
+
 /// A lock-guarded class rather than an actor because `SyncEngine` and its
 /// `TankbookRepository` are not `Sendable` (the GRDB writer is not a Sendable
 /// existential), and the idempotency gate is a single boolean - `@unchecked
@@ -25,6 +40,9 @@ public final class SyncCoordinator: @unchecked Sendable {
         var inFlight = false
         var lastSyncDate: Date?
         var lastOutcome: SyncOutcome?
+        // RV.18: the per-trigger cycle count - how often sync actually fired,
+        // by which door asked. Counts only, never what the cycle moved.
+        var cycles = SyncCycleCounts()
         // PR.7 retry state: how many consecutive retryable failures have been
         // seen (drives the backoff exponent), the scheduled retry task, and the
         // delay that task is currently sleeping for.
@@ -82,6 +100,13 @@ public final class SyncCoordinator: @unchecked Sendable {
         state.withLock { $0.pendingRetryDelay }
     }
 
+    /// How many cycles have actually fired, per trigger, since this coordinator
+    /// was created (RV.18). Deferred and inert cycles are not counted - only a
+    /// cycle that reached the engine.
+    public func cycleCounts() -> SyncCycleCounts {
+        state.withLock { $0.cycles }
+    }
+
     /// Runs one sync cycle. Inert while a cycle is already in flight: the
     /// returned outcome is the previous one (or an empty one on first call) and
     /// no transport call is made. Offline is not an error - the engine maps a
@@ -116,6 +141,15 @@ public final class SyncCoordinator: @unchecked Sendable {
         }
         guard shouldRun else {
             return state.withLock { $0.lastOutcome ?? SyncOutcome() }
+        }
+
+        // RV.18: the cycle is about to reach the engine, so it counts. A
+        // deferred or in-flight (inert) trigger never gets here.
+        state.withLock { snapshot in
+            switch trigger {
+            case .background: snapshot.cycles.background += 1
+            case .userInitiated: snapshot.cycles.userInitiated += 1
+            }
         }
 
         let outcome = await engine.synchronize(trigger: trigger)

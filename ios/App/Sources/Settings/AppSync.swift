@@ -139,6 +139,12 @@ final class AppSync {
     /// surface refresh; nil while unknown (guest, offline, a fetch failure) -
     /// the card then shows the ordinary status line without the count.
     private var fetchedDeviceCount: Int?
+    /// RV.18: when the last opportunistic (launch/foreground) cycle started, so
+    /// a burst of `.active` transitions is one cycle, not one each. Only the
+    /// launch/foreground door reads it - the Settings "Sync now" tap, the retry
+    /// backoff and the Low Power drain never consult it, so a forced cycle is
+    /// always available.
+    private var lastOpportunisticSyncAt: Date?
 
     /// DEBUG/test fixtures for states a real transport never produces in a
     /// screenshot (410 device revoked, blob-quota 429, offline with a queue).
@@ -350,9 +356,19 @@ final class AppSync {
     /// callers are app-scheduled events; a sync the user tapped goes through
     /// `syncNow()`. A guest has nothing to sync, so the cycle is a no-op until
     /// there is an account.
+    ///
+    /// RV.18: rate-limited by `OpportunisticSyncPolicy` - a burst of `.active`
+    /// transitions (the launch double-fire, a permission-alert dismissal, the
+    /// Photos picker) is one cycle, not one each. The Settings "Sync now" tap,
+    /// the retry backoff and the Low Power resumer drain never come through
+    /// this door, so a forced cycle is always available.
     func runOpportunisticSync() async {
         session = try? sessionStore.load()
         guard signedIn else { return }
+        let now = Date()
+        guard OpportunisticSyncPolicy.shouldRun(lastOpportunisticSyncAt: lastOpportunisticSyncAt,
+                                                now: now) else { return }
+        lastOpportunisticSyncAt = now
         await runSync(trigger: .background)
     }
 
@@ -364,6 +380,14 @@ final class AppSync {
         if outcome.deferred {
             registerDeferredSync()
         }
+        // RV.18: observe that the door was knocked and how many cycles have
+        // actually fired per trigger. Shape-only - the trigger name and running
+        // counts are loggable, domain values are not (hard rule 12).
+        let counts = coordinator.cycleCounts()
+        AppLog.shared.emit(SyncCycleFired(
+            trigger: trigger.name,
+            backgroundCount: counts.background,
+            userInitiatedCount: counts.userInitiated))
         await refresh()
         // PR.14: the post-batch toast count. A batch that flagged nothing
         // clears any earlier count; the toast is about what just arrived.

@@ -269,6 +269,25 @@ public struct SyncCycleEnd: LogEvent {
     }
 }
 
+/// RV.18: a sync cycle actually fired. Emitted once per non-inert cycle with
+/// the trigger that asked and the running per-trigger totals, so "how often
+/// sync fires, and by which door" is observable in the field. Counts and a
+/// trigger name only - hard rule 12, never a domain value.
+public struct SyncCycleFired: LogEvent {
+    public let eventName = "sync.cycle.fired"
+    public let category = LogCategory.sync
+    public let level = LogLevel.info
+    public let fields: [LogField]
+
+    public init(trigger: String, backgroundCount: Int, userInitiatedCount: Int) {
+        fields = [
+            .safe("trigger", trigger),
+            .safe("backgroundCount", backgroundCount),
+            .safe("userInitiatedCount", userInitiatedCount),
+        ]
+    }
+}
+
 public struct SyncMerge: LogEvent {
     public let eventName = "sync.merge"
     public let category = LogCategory.sync

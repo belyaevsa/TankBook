@@ -217,4 +217,68 @@ struct SyncCoordinatorTests {
         #expect(SyncSurface.status(state).isAttention == false,
                 "the Low Power reason is never amber")
     }
+
+    // MARK: - 6. The per-trigger cycle count (RV.18)
+
+    @Test func cycleCountsAttributeEachTriggerToItsBucket() async throws {
+        // RV.18: how often sync actually fires, by which door asked. The counter
+        // is the measurement; the assertion pins the attribution, not the
+        // increment alone - a wrong bucket is the defect this catches.
+        let repo = try makeSyncRepository()
+        let vehicle = makeSyncVehicle()
+        try repo.upsertVehicle(vehicle, syncState: .synced(scn: 1))
+        let transport = SyncTransportDouble()
+        let coordinator = SyncCoordinator(engine: makeSyncEngine(repository: repo, transport: transport))
+
+        _ = await coordinator.syncNow(trigger: .background)
+        _ = await coordinator.syncNow(trigger: .background)
+        _ = await coordinator.syncNow(trigger: .userInitiated)
+
+        let counts = coordinator.cycleCounts()
+        #expect(counts.background == 2)
+        #expect(counts.userInitiated == 1)
+        #expect(counts.total == 3)
+    }
+
+    @Test func cycleCountsDoNotCountInertRepeatsWhileInFlight() async throws {
+        // A cycle that never reaches the engine (a trigger while one is already
+        // in flight) is inert, not fired - it must not inflate the count, or the
+        // measurement would over-report how often sync actually runs.
+        let repo = try makeSyncRepository()
+        let vehicle = makeSyncVehicle()
+        try repo.upsertVehicle(vehicle, syncState: .synced(scn: 1))
+        try repo.upsertFillUp(makeSyncFillUp(vehicleId: vehicle.id), syncState: .dirty)
+        let transport = BlockingPullTransport()
+        let coordinator = SyncCoordinator(engine: makeSyncEngine(repository: repo, transport: transport))
+
+        let first = Task { await coordinator.syncNow(trigger: .background) }
+        await transport.waitUntilPulling()
+        _ = await coordinator.syncNow(trigger: .background)   // inert
+        transport.releasePull()
+        _ = await first.value
+
+        #expect(coordinator.cycleCounts().background == 1,
+                "an in-flight repeat must not count as a fired cycle")
+        #expect(transport.recordedPullCount == 1)
+    }
+
+    @Test func cycleCountsDoNotCountDeferredCycles() async throws {
+        // A deferred cycle (Low Power Mode + a background trigger) is postponed,
+        // not fired - it must not count, or a Low Power session would read as a
+        // busy one.
+        let repo = try makeSyncRepository()
+        let vehicle = makeSyncVehicle()
+        try repo.upsertVehicle(vehicle, syncState: .synced(scn: 1))
+        let power = MutablePowerState(lowPower: true)
+        let transport = SyncTransportDouble()
+        let coordinator = SyncCoordinator(
+            engine: makeSyncEngine(repository: repo, transport: transport, powerState: power),
+            powerState: power)
+
+        _ = await coordinator.syncNow(trigger: .background)
+
+        #expect(coordinator.cycleCounts().total == 0,
+                "a deferred cycle must not count as fired")
+        #expect(transport.recordedPullRequests.isEmpty)
+    }
 }

@@ -49,6 +49,15 @@ public enum PowerWorkTrigger: Sendable, Equatable {
     case background
     /// A sync, restore, export or retry the user explicitly asked for.
     case userInitiated
+
+    /// The stable name for observation surfaces (RV.18). A trigger name is
+    /// loggable - hard rule 12, counts and codes only, never domain values.
+    public var name: String {
+        switch self {
+        case .background: return "background"
+        case .userInitiated: return "userInitiated"
+        }
+    }
 }
 
 /// The pure deferral policy: everything the Low Power Mode rule IS. A value in
