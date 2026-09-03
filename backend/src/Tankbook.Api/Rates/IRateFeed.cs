@@ -12,7 +12,8 @@ public static class RateSources
     /// <summary>The National Bank of Kazakhstan - the authoritative publisher of KZT (RV.19). See <see cref="NbkRateFeed"/>.</summary>
     public const string Nbk = "nbk";
 
-    private const string CarriedSuffix = ":carried-forward";
+    /// <summary>The suffix a carried-forward source tag bears (RV.36: a carried row is a replaceable placeholder, not a permanent one).</summary>
+    public const string CarriedSuffix = ":carried-forward";
 
     /// <summary>The source tag for a row that carries the last published value forward across a non-publishing day.</summary>
     public static string Carried(string source) => source + CarriedSuffix;

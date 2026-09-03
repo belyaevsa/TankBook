@@ -12,12 +12,16 @@ public sealed record RateInsert(DateOnly Date, string Base, string Quote, decima
 
 /// <summary>
 /// Database access for <c>exchange_rates</c> (docs/SCHEMA.md "Reference data ->
-/// Exchange rates"). Rows are append-only: <see cref="UpsertAsync"/> inserts only
-/// into a free (date, base, quote) slot and never rewrites a live row, so a
-/// re-fetch with a different value leaves the published value intact. The manual
-/// correction path is <see cref="SoftDeleteAsync"/> (mark a bad day's rows
-/// deleted) followed by a re-fetch, which inserts a fresh live row beside the
-/// soft-deleted one (migration 009's partial unique index frees the slot).
+/// Exchange rates"). Published rows are append-only: <see cref="UpsertAsync"/>
+/// never rewrites one published row with another, so a re-fetch with a different
+/// value leaves the published value intact. The one exception is a
+/// <c>:carried-forward</c> placeholder: a published row may supersede it for the
+/// same (date, base, quote), because the placeholder held a previous day's value
+/// and must not permanently displace the genuine rate published later that day
+/// (RV.36). The manual correction path is <see cref="SoftDeleteAsync"/> (mark a
+/// bad day's rows deleted) followed by a re-fetch, which inserts a fresh live
+/// row beside the soft-deleted one (migration 009's partial unique index frees
+/// the slot).
 /// </summary>
 public sealed class RateRepository
 {
@@ -29,22 +33,37 @@ public sealed class RateRepository
     }
 
     /// <summary>
-    /// Inserts a published or carried-forward row only if no live row already
-    /// occupies (date, base, quote). Returns 1 when a row was inserted, 0 when
-    /// the slot was already live - the append-only guarantee.
+    /// Inserts a published or carried-forward row. A published row may supersede
+    /// a <c>:carried-forward</c> placeholder for the same (date, base, quote),
+    /// because the placeholder is not real data; a published row never overwrites
+    /// another published row, and a carried row never overwrites another carried
+    /// row. Returns 1 when a row was inserted or superseded, 0 when the slot
+    /// already held a row that wins.
     /// </summary>
     public async Task<int> UpsertAsync(RateInsert row, CancellationToken cancellationToken)
     {
         var opened = await OpenIfNeededAsync();
         try
         {
+            var isCarried = RateSources.IsCarried(row.Source);
             return await _db.ExecuteAsync(new CommandDefinition(
                 """
                 INSERT INTO exchange_rates (date, base, quote, rate, source)
                 VALUES (@Date, @Base, @Quote, @Rate, @Source)
-                ON CONFLICT (date, base, quote) WHERE deleted_at IS NULL DO NOTHING
+                ON CONFLICT (date, base, quote) WHERE deleted_at IS NULL
+                DO UPDATE SET rate = EXCLUDED.rate, source = EXCLUDED.source
+                WHERE exchange_rates.source LIKE @CarriedLike AND NOT @IsCarried
                 """,
-                new { row.Date, Base = row.Base, Quote = row.Quote, row.Rate, row.Source },
+                new
+                {
+                    row.Date,
+                    Base = row.Base,
+                    Quote = row.Quote,
+                    row.Rate,
+                    row.Source,
+                    IsCarried = isCarried,
+                    CarriedLike = "%" + RateSources.CarriedSuffix,
+                },
                 cancellationToken: cancellationToken));
         }
         finally
