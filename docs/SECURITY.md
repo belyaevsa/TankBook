@@ -255,6 +255,41 @@ here because they are commitments:
   durations, model ids and outcome codes - never a prompt, a response body, a station, an amount
   or an image.
 
+## The delivery outbox (added 2026-09-04)
+
+Hard rule 9's third amendment. A result the gateway computed but could not hand back - the client
+vanished mid-request, which production shows as nginx `499` - is queued for the device that asked
+for it and deleted once collected. It exists **because** the ledger must stay write-only: the
+obvious fix is to let the device read its answer back from `llm_calls`, and RV.33's amendment
+says the ledger is *"written by the gateway and read by no endpoint"* - turning the audit record
+into a delivery channel reverses that days after it was written. The outbox is a separate, opaque,
+per-device queue instead.
+
+The terms, written here because they are commitments:
+
+- **Opaque bytes addressed to a device.** The row is `{ id, account_id, device_id, payload,
+  created_at }`, and `payload` is the extract response plus the device's own correlation token,
+  stored as `bytea`. The server never reads a field of it, never queries by meaning, and offers
+  no search or stats over it - the same shape as `GET /blobs/{sha256}`: retrieve-what-you-are-
+  entitled-to.
+- **Drain-and-ack, at-least-once.** `GET /v1/outbox` drains without deleting; `DELETE
+  /v1/outbox/{id}` acks one collected row. A device that dies between read and ack re-drains the
+  same rows and dedupes by row id, so a redelivered answer never becomes a second item. A row is
+  deleted once collected, never re-delivered forever.
+- **Retention is 30 days**, the same number as the tombstone/undo window, `/import/parse`'s file
+  and the call ledger's content, so one number governs "how long can I get it back". Purge is a
+  job, not a hope - the same hosted-service pattern as the other purges, asserted by a test on
+  both sides of the cutoff.
+- **Requires an account** (so does `/extract`): a guest never has an outbox. **`DELETE /account`
+  purges it**, like every other content store - the `account_id` foreign key cascades, and the
+  account purge also deletes the rows explicitly, which is the tested guarantee.
+- **Nothing is logged but shape** (hard rule 12): counts, ids, outcome codes, a byte count.
+  Never a payload, never a domain value. The three log events are `outbox.enqueue`,
+  `outbox.drain` and `outbox.purge`.
+- **It licenses nothing further.** A result that arrives here is a *suggestion* - the device
+  feeds it through the same inbox policy as any in-process late answer, and an answer whose entry
+  was never saved is acked and dropped. No screen is gated on the outbox (hard rule 1).
+
 ## Passphrase-protected exports (added 2026-08-27)
 
 A user-held per-car archive (`docs/SCHEMA.md` -> Backup format) can be passphrase-protected at

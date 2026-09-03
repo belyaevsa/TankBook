@@ -1,7 +1,13 @@
 namespace Tankbook.Api.Llm;
 
-/// <summary>POST /extract request body (docs/API.md "LLM gateway (Pro)").</summary>
-public sealed record ExtractRequest(string? Kind, string? Image, ExtractHints? Hints);
+/// <summary>
+/// POST /extract request body (docs/API.md "LLM gateway (Pro)"). CaptureId is
+/// the device's own correlation token, echoed opaquely into the delivery-outbox
+/// payload when the answer cannot be handed back (RV.44) - the server never
+/// reads its meaning, only echoes it so the device can match the answer to the
+/// entry it belongs to.
+/// </summary>
+public sealed record ExtractRequest(string? Kind, string? Image, ExtractHints? Hints, string? CaptureId);
 
 /// <summary>The document kinds the gateway accepts (docs/API.md). Anything else is a 400.</summary>
 public static class ExtractKinds

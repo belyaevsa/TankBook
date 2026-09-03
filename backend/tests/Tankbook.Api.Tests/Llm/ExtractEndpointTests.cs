@@ -231,9 +231,12 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         var expectedSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(imageBytes)).ToLowerInvariant();
         Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(account, expectedSha)));
 
-        // No image-carrying column exists anywhere in the schema.
+        // No image-carrying column exists anywhere in the schema. The one bytea
+        // column that DOES exist is delivery_outbox.payload (RV.44) - the opaque
+        // result the gateway could not hand back, never an image, so it is
+        // excluded from the image check.
         Assert.Equal(0, await app.ScalarAsync<long>(
-            "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND (column_name ILIKE '%image%' OR data_type = 'bytea')"));
+            "SELECT count(*) FROM information_schema.columns WHERE table_schema = 'public' AND (column_name ILIKE '%image%' OR (data_type = 'bytea' AND NOT (table_name = 'delivery_outbox' AND column_name = 'payload')))"));
 
         // The filesystem: no file in the temp root or the app's own directory
         // tree carries the sentinel bytes or the base64 envelope.

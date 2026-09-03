@@ -11,14 +11,13 @@ import TankbookCore
 // 13). The decision lives in core (`GatewayInboxPolicy`); this store owns the
 // items, their persistence, and the resolution writes.
 //
-// BEST-EFFORT, device-local, and honest about it: the extraction lives on the
-// device (rule 9 - the gateway holds no conversation), so an app killed
-// mid-request loses the answer. A durable re-read would mean a read endpoint
-// over RV.33's ledger, and RV.33's own amendment says the ledger is "written by
-// the gateway and read by no endpoint" - adding one is a second rule-9 reversal
-// that belongs to the product owner, not an agent. So an answer that DID arrive
-// is persisted here (UserDefaults, JSON) and survives relaunch; an answer that
-// never arrived is simply absent, and the inbox never promises otherwise.
+// Durability is now a backend matter (RV.44): an answer the device never
+// received is queued in the per-device delivery outbox and drained here on
+// launch/foreground (`drainOutbox`), through the SAME `GatewayInboxPolicy.item`
+// the in-process path uses - one policy, not two. An answer that DID arrive is
+// persisted here (UserDefaults, JSON) and survives relaunch; the drain is
+// at-least-once and dedupes by row id, so a redelivered answer never becomes a
+// second item.
 @MainActor
 @Observable
 final class AppInbox {
@@ -58,10 +57,68 @@ final class AppInbox {
     /// not work.
     func recordLateGatewayAnswer(_ extraction: GatewayExtraction, entryID: UUID) {
         guard let repository = try? AppStore.repository(),
-              let entry = try? repository.fillUp(id: entryID) else { return }
-        guard GatewayInboxPolicy.shouldOffer(extraction: extraction, entry: entry) else { return }
-        let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
-                                    createdAt: Date(), extraction: extraction)
+              let entry = try? repository.fillUp(id: entryID),
+              let item = GatewayInboxPolicy.item(extraction: extraction, entry: entry) else { return }
+        insert(item)
+    }
+
+    // MARK: - The delivery outbox (RV.44)
+
+    /// Drains the device's delivery outbox and feeds each row through the SAME
+    /// inbox path the in-process late answer uses (`GatewayInboxPolicy.item` -
+    /// one policy, not two). Best-effort: signed-in only, and a failure is
+    /// swallowed so the next launch retries - no screen is gated on this (hard
+    /// rule 1). Each drained row is acked after processing, so a row that
+    /// produced no item (its entry was never saved) does not accumulate forever.
+    func drainOutbox() async {
+        guard let client = Self.makeOutboxClient() else { return }
+        let entries: [GatewayOutboxEntry]
+        do {
+            entries = try await client.drain()
+        } catch {
+            return
+        }
+        for entry in entries {
+            ingestOutboxEntry(entry)
+        }
+        for entry in entries {
+            try? await client.ack(id: entry.id)
+        }
+    }
+
+    /// Feeds one drained outbox entry into the inbox. The payload's captureId is
+    /// the entry id; the item is the same shape the in-process path produces.
+    /// The item keeps the outbox row's id, so a re-drained row (at-least-once
+    /// delivery) dedupes to the same item instead of a second one.
+    private func ingestOutboxEntry(_ entry: GatewayOutboxEntry) {
+        guard !items.contains(where: { $0.id == entry.id }),
+              let repository = try? AppStore.repository(),
+              let entryID = entry.payload.captureId,
+              let fillUp = try? repository.fillUp(id: entryID),
+              var item = GatewayInboxPolicy.item(extraction: entry.payload.extraction, entry: fillUp) else {
+            return
+        }
+        item.id = entry.id
+        insert(item)
+    }
+
+    /// Builds the outbox client, signed-in only (the outbox requires an account,
+    /// so a guest has nothing to drain). nil also when the session is
+    /// auth-expired - the same arming gate the gateway capture uses (RV.26).
+    /// The transport goes through `makeAppTransport`, so a seeded DEBUG launch
+    /// drains against the offline transport (and finds nothing) instead of a
+    /// real network call, exactly like sync.
+    private static func makeOutboxClient() -> GatewayOutboxClient? {
+        let store = KeychainSessionStore()
+        guard GatewayArming.shouldArm(sessionStore: store) else { return nil }
+        let httpClient = TankbookHTTPClient(
+            transport: makeAppTransport(),
+            tokenProvider: KeychainTokenProvider(sessionStore: store),
+            refresher: AppSessionRefresher.shared)
+        return GatewayOutboxClient(httpClient: httpClient, director: AppConfigStore.shared.director)
+    }
+
+    private func insert(_ item: GatewayInboxItem) {
         items.insert(item, at: 0)
         persist()
     }

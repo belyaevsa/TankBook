@@ -35,10 +35,14 @@ public static class ExtractEndpoints
         }
 
         var hints = request.Hints ?? new ExtractHints(null, null, null);
-        var outcome = await service.ExtractAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Kind!, request.Image, hints, cancellationToken);
+        var outcome = await service.ExtractAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Kind!, request.Image, hints, request.CaptureId, cancellationToken);
         return outcome.Status switch
         {
             ExtractStatus.Ok => Results.Ok(outcome.Response),
+            // RV.44: the answer was queued in the outbox because the client is
+            // gone. There is nobody to answer, so return 204 rather than write a
+            // response into a void; the device drains the outbox on next launch.
+            ExtractStatus.DeliveredViaOutbox => Results.NoContent(),
             ExtractStatus.ImageMissing => Problem(
                 StatusCodes.Status400BadRequest,
                 "Missing image.",

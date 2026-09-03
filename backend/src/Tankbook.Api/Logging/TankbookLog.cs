@@ -224,6 +224,25 @@ public static class TankbookLog
         => Emit(logger, LogLevel.Information, "llm.call_purge",
             ("Purged", purged));
 
+    /// <summary>A gateway result could not be delivered and was queued for the device (docs/SECURITY.md "The delivery outbox"). Ids and a byte count only - never a payload (hard rule 12).</summary>
+    public static void OutboxEnqueue(ILogger logger, Guid accountId, Guid deviceId, int payloadBytes)
+        => Emit(logger, LogLevel.Information, "outbox.enqueue",
+            ("AccountId", accountId),
+            ("DeviceId", deviceId),
+            ("PayloadBytes", payloadBytes));
+
+    /// <summary>A device drained its pending outbox rows. Counts only - never a payload (hard rule 12).</summary>
+    public static void OutboxDrain(ILogger logger, Guid accountId, Guid deviceId, int returned)
+        => Emit(logger, LogLevel.Information, "outbox.drain",
+            ("AccountId", accountId),
+            ("DeviceId", deviceId),
+            ("Returned", returned));
+
+    /// <summary>The outbox retention/account purge dropped some rows. Count only (hard rule 12).</summary>
+    public static void OutboxPurge(ILogger logger, int purged)
+        => Emit(logger, LogLevel.Information, "outbox.purge",
+            ("Purged", purged));
+
     public static void MigrationDdl(ILogger logger, string version, string direction, TimeSpan duration)
         => Emit(logger, LogLevel.Information, "migration.ddl",
             ("Version", version),

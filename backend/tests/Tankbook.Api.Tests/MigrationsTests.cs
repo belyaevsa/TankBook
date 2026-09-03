@@ -35,6 +35,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "llm_settings",
         "llm_models",
         "llm_calls",
+        "delivery_outbox",
     };
 
     [SkippableFact]
@@ -62,7 +63,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(15, applied.Single());
+        Assert.Equal(16, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -100,6 +101,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("llm_settings", tables);
         Assert.DoesNotContain("llm_models", tables);
         Assert.DoesNotContain("llm_calls", tables);
+        Assert.DoesNotContain("delivery_outbox", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
@@ -398,6 +400,48 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_calls'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '015'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration016_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The outbox table exists after apply, with the retention-scan,
+        // account-purge and per-device drain indexes.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'delivery_outbox'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_delivery_outbox_created_at'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_delivery_outbox_account'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_delivery_outbox_device'"));
+
+        // A row round-trips: opaque bytes, required account + device.
+        var accountId = Guid.NewGuid();
+        var deviceId = Guid.NewGuid();
+        await db.ExecuteAsync(
+            "INSERT INTO accounts (id, email) VALUES (@account, 'outbox@example.com')",
+            new { account = accountId });
+        await db.ExecuteAsync(
+            "INSERT INTO delivery_outbox (id, account_id, device_id, payload) VALUES (gen_random_uuid(), @account, @device, convert_to('{\"opaque\":1}', 'UTF8'))",
+            new { account = accountId, device = deviceId });
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM delivery_outbox"));
+
+        // The account foreign key cascades: deleting the account removes the row.
+        await db.ExecuteAsync("DELETE FROM accounts WHERE id = @account", new { account = accountId });
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM delivery_outbox"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'delivery_outbox'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '016'"));
     }
 
     [SkippableFact]

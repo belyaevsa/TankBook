@@ -13,10 +13,11 @@ import Foundation
 // cannot disagree about the boundary, exactly like `GatewaySuggestionPolicy`.
 
 /// One pending inbox item: a gateway reading that arrived after the entry was
-/// saved. Device-local and best-effort (docs/JOURNEYS.md F4): the extraction
-/// lives on the device (rule 9 - the gateway holds no conversation), so an app
-/// killed mid-request loses the answer; an answer that DID arrive is persisted
-/// (Codable) and cleared by resolution, never silently.
+/// saved. The extraction lives on the device (rule 9 - the gateway holds no
+/// conversation); an answer the device never received is queued server-side in
+/// the delivery outbox and drained into an item of this same shape (RV.44). An
+/// answer that DID arrive is persisted (Codable) and cleared by resolution,
+/// never silently.
 public struct GatewayInboxItem: Codable, Sendable, Equatable, Identifiable {
     /// The item's own id.
     public var id: UUID
@@ -47,6 +48,16 @@ public enum GatewayInboxPolicy {
     public static func shouldOffer(extraction: GatewayExtraction, entry: FillUp) -> Bool {
         !fillableFields(extraction: extraction, entry: entry).isEmpty
             || hasDifference(extraction: extraction, entry: entry)
+    }
+
+    /// The one way an answer becomes an inbox item (RV.44): a fresh item for the
+    /// entry the answer is about, or nil when the answer is not worth an item.
+    /// Both the in-process late answer (`AppInbox.recordLateGatewayAnswer`) and
+    /// the delivery-outbox drain feed through this single function, so the two
+    /// paths cannot disagree about the boundary - one policy, not two.
+    public static func item(extraction: GatewayExtraction, entry: FillUp, now: Date = Date()) -> GatewayInboxItem? {
+        guard shouldOffer(extraction: extraction, entry: entry) else { return nil }
+        return GatewayInboxItem(id: UUID.v7(), entryId: entry.id, createdAt: now, extraction: extraction)
     }
 
     /// The subset of a gateway answer that may fill a SAVED entry: fields the

@@ -100,6 +100,16 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    window and `/import/parse`'s file; the ledger is **written by the gateway and read by no
    endpoint** - there is no query, search or stats API over it; and it **licenses nothing else**. A
    third place that stores user content needs its own decision, written here.
+   **The delivery outbox (amended 2026-09-04, product owner).** A result the gateway computed but
+   could not hand back - the client vanished mid-request, which production shows as `499` - is
+   queued for the device that asked for it and deleted once collected. This is the **third** place
+   that stores user content, and it is bounded the same way as the other two: **retention is 30
+   days**, it **requires an account**, `DELETE /account` purges it, and **nothing is logged but
+   shape**. What keeps it from being a domain server is that the payload is **opaque**: the outbox
+   is addressed delivery, like `GET /blobs/{sha256}` - the server never reads a field, never queries
+   by meaning, and exposes no search or stats over it. It exists **because** the ledger must stay
+   write-only: reading answers back out of `llm_calls` would turn the audit record into a delivery
+   channel, and that is explicitly not licensed. It licenses nothing further.
    **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
    /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
    (the device holds the conversation) except what the LLM call ledger amendment above records,

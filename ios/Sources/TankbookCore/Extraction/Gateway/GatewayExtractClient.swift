@@ -148,6 +148,7 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
             "kind": .string(request.kind),
             "image": .string(base64)
         ]
+        if let captureId = request.captureId { object["captureId"] = .string(captureId) }
         if !hintsObject.isEmpty { object["hints"] = .object(hintsObject) }
         return try JSONValue.object(object).jsonData()
     }

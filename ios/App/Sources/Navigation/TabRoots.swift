@@ -318,6 +318,11 @@ struct AppRootView: View {
             if !Self.freezesSyncState {
                 await sync.runOpportunisticSync()
             }
+            // RV.44: drain the delivery outbox - a gateway answer that landed
+            // while the app was gone becomes an inbox suggestion, never a silent
+            // rewrite (hard rule 13). Signed-in only and best-effort: a guest
+            // has no outbox and a failure just retries next launch.
+            await inbox.drainOutbox()
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -335,6 +340,9 @@ struct AppRootView: View {
                 // arrived while the app was backgrounded fills rate-pending
                 // entries (silently). `refresh` fetches, merges and backfills.
                 Task { await AppRates.refresh() }
+                // RV.44: foreground drains the delivery outbox too - same
+                // signed-in, best-effort shape as the launch drain.
+                Task { await inbox.drainOutbox() }
             }
         }
         // PJ.5: a tapped notification (real, or replayed by a test) drives the

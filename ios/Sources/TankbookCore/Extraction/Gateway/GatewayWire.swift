@@ -87,11 +87,22 @@ public struct GatewayExtractRequest: Sendable, Equatable {
     public var imageJPEG: Data
     /// The optional context hints the server forwards to the provider.
     public var hints: GatewayExtractHints
+    /// The device's own correlation token (RV.44): echoed opaquely into the
+    /// delivery-outbox payload when the answer cannot be handed back, so the
+    /// device can match a drained answer to the entry it belongs to. nil for a
+    /// caller that has nothing to correlate (an older path).
+    public var captureId: String?
 
-    public init(kind: String, imageJPEG: Data, hints: GatewayExtractHints = GatewayExtractHints()) {
+    public init(
+        kind: String,
+        imageJPEG: Data,
+        hints: GatewayExtractHints = GatewayExtractHints(),
+        captureId: String? = nil
+    ) {
         self.kind = kind
         self.imageJPEG = imageJPEG
         self.hints = hints
+        self.captureId = captureId
     }
 }
 

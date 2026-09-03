@@ -3,6 +3,7 @@ using Tankbook.Api.Blobs;
 using Tankbook.Api.Import;
 using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Outbox;
 
 namespace Tankbook.Api.Account;
 
@@ -24,6 +25,7 @@ public sealed class AccountPurgeService
     private readonly BlobService _blobs;
     private readonly ImportService _imports;
     private readonly LlmCallPurgeService _llmCalls;
+    private readonly OutboxService _outbox;
     private readonly AccountOptions _options;
     private readonly LoggingOptions _loggingOptions;
     private readonly ILogger<AccountPurgeService> _logger;
@@ -34,6 +36,7 @@ public sealed class AccountPurgeService
         BlobService blobs,
         ImportService imports,
         LlmCallPurgeService llmCalls,
+        OutboxService outbox,
         IOptions<AccountOptions> options,
         LoggingOptions loggingOptions,
         ILogger<AccountPurgeService> logger,
@@ -43,6 +46,7 @@ public sealed class AccountPurgeService
         _blobs = blobs;
         _imports = imports;
         _llmCalls = llmCalls;
+        _outbox = outbox;
         _options = options.Value;
         _loggingOptions = loggingOptions;
         _logger = logger;
@@ -73,6 +77,10 @@ public sealed class AccountPurgeService
             // but the rows survive - per-account cost history outlives the account
             // (docs/SECURITY.md "LLM call ledger").
             await _llmCalls.PurgeAccountAsync(account.Id, cancellationToken);
+            // The delivery outbox is purged wholesale - it does not survive the
+            // account (docs/SECURITY.md "The delivery outbox"). The cascade FK
+            // also removes it, but the explicit purge is the tested guarantee.
+            await _outbox.PurgeAccountAsync(account.Id, cancellationToken);
             await _repository.DeleteAccountAsync(account.Id, cancellationToken);
 
             var accountHash = AccountHash.Compute(account.Email, _loggingOptions.HashSalt);

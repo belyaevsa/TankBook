@@ -375,6 +375,31 @@ A late answer is bound by hard rule 13 and by F4:
 Retries are the device's business, not the user's: one silent retry at most, never a dialog, and
 never a second 3 s wait imposed on someone who has already moved on.
 
+### `POST /extract` delivery, and the outbox when it fails (RV.44)
+
+`POST /extract` answers only when the client is still there. When the client vanishes mid-request
+- production shows nginx `499` after 33 s - the model call **still completes and is still paid
+for**, but the answer would be lost. So when the gateway cannot hand the result back, it enqueues
+the result into a small **per-device outbox** and the device drains it on next launch. The request
+body gains an optional `captureId` (the device's own correlation token, e.g. the entry id it is
+about to save); the gateway echoes it opaquely into the queued payload, never reading its meaning.
+
+**This is not a read endpoint over the call ledger.** RV.33's amendment says the ledger is
+"written by the gateway and read by no endpoint"; the outbox keeps it that way - it is opaque
+bytes addressed to a device, the same shape as `GET /blobs/{sha256}` (retrieve-what-you-are-
+entitled-to), and the server never reads a field, never queries by meaning, and offers no search
+or stats over it (hard rule 9, `docs/SECURITY.md` "The delivery outbox").
+
+| Endpoint | Auth | Contract |
+|---|---|---|
+| `GET /outbox` | bearer | Drain this device's pending rows, oldest first: `200 { items: [ { id, payload } ] }`. `payload` is the queued result, base64-encoded, never decoded server-side. Read-only - it does **not** delete. |
+| `DELETE /outbox/{id}` | bearer | Ack one collected row, idempotently (`204`). Scoped to the caller's own device, so a foreign id deletes nothing (no existence leak). |
+
+The ack is a separate call on purpose: a device that dies between read and ack drains the same
+rows again on its next launch (at-least-once), dedupes by row id, and then acks them. Retention is
+30 days (the one number shared with the tombstone/undo window, `/import/parse` and the ledger);
+`DELETE /account` purges the outbox with the account.
+
 ## Account & devices
 
 | Endpoint | Auth | Contract |

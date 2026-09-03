@@ -1,9 +1,11 @@
 using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Tankbook.Api.Blobs;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Outbox;
 
 namespace Tankbook.Api.Llm;
 
@@ -17,6 +19,8 @@ public enum ExtractStatus
     TierLacksQuota,
     QuotaSpent,
     ProviderFailed,
+    /// <summary>The answer was computed but could not be handed back - the client vanished - so it was queued in the delivery outbox (RV.44).</summary>
+    DeliveredViaOutbox,
 }
 
 /// <summary>POST /extract outcome with the response body when extraction succeeded.</summary>
@@ -44,6 +48,14 @@ public sealed record ExtractOutcome(ExtractStatus Status, ExtractResponse? Respo
 /// nothing was spent, so they write no row. The prompt rendition (the image,
 /// the prompt for /extract) is stored in blob storage and referenced by sha256,
 /// never in a column (docs/SECURITY.md "LLM call ledger").
+///
+/// Delivery (RV.44): the paid call runs to completion against a SERVER-side
+/// token, not the request's abort token - the whole point of the outbox is that
+/// an answer survives the client vanishing mid-request, which production shows
+/// as nginx 499. When the answer is ready, the request's own token is consulted:
+/// if the client is gone, the result is queued in the delivery outbox (opaque
+/// bytes addressed to the device) instead of being handed back into a void. The
+/// outbox never reads the payload's fields (hard rule 9).
 /// </summary>
 public sealed class LlmService
 {
@@ -52,14 +64,18 @@ public sealed class LlmService
 
     private const string OutcomeOk = "ok";
     private const string OutcomeProviderFailed = "provider_failed";
+    private const string OutcomeOutboxed = "outboxed";
     private const string CategorySuccess = "success";
     private const string CategoryError = "error";
+
+    private static readonly JsonSerializerOptions WireJson = new(JsonSerializerDefaults.Web);
 
     private readonly LlmRepository _repository;
     private readonly LlmModelResolver _modelResolver;
     private readonly LlmCallRepository _callRepository;
     private readonly IBlobStorage _storage;
     private readonly ILlmProvider _provider;
+    private readonly OutboxService _outbox;
     private readonly LlmGatewayOptions _options;
     private readonly ILogger<LlmService> _logger;
     private readonly TimeProvider _time;
@@ -70,6 +86,7 @@ public sealed class LlmService
         LlmCallRepository callRepository,
         IBlobStorage storage,
         ILlmProvider provider,
+        OutboxService outbox,
         IOptions<LlmGatewayOptions> options,
         ILogger<LlmService> logger,
         TimeProvider time)
@@ -79,6 +96,7 @@ public sealed class LlmService
         _callRepository = callRepository;
         _storage = storage;
         _provider = provider;
+        _outbox = outbox;
         _options = options.Value;
         _logger = logger;
         _time = time;
@@ -90,6 +108,7 @@ public sealed class LlmService
         string kind,
         string? imageBase64,
         ExtractHints hints,
+        string? captureId,
         CancellationToken cancellationToken)
     {
         // Envelope first, before any paid call. The 4 MB cap is on the base64
@@ -117,13 +136,21 @@ public sealed class LlmService
 
         var stopwatch = Stopwatch.StartNew();
 
+        // Everything from the model resolution down runs against a server-side
+        // token, never the request's abort token: once the quota gate passes the
+        // call is going to be paid for, and the answer must exist to deliver -
+        // inline when the client is still there, or in the outbox when it is
+        // not (RV.44). The request token is consulted only at the end, for the
+        // delivery decision.
+        var serverToken = CancellationToken.None;
+
         // Resolve the model for this kind (migration 014). A missing or unknown
         // setting falls back to the compiled default and logs at Warning; it
         // never throws, so one bad row cannot take extraction down.
-        var model = await _modelResolver.ResolveAsync(kind, cancellationToken);
+        var model = await _modelResolver.ResolveAsync(kind, serverToken);
 
         // Quota: read the tier (what allowance, if any) and the period's usage.
-        var tier = await _repository.GetTierAsync(accountId, cancellationToken);
+        var tier = await _repository.GetTierAsync(accountId, serverToken);
         var allowance = _options.AllowanceFor(tier);
         if (allowance is null)
         {
@@ -132,7 +159,7 @@ public sealed class LlmService
         }
 
         var period = DateOnly.FromDateTime(_time.GetUtcNow().UtcDateTime);
-        var usedBefore = (await _repository.GetUsageAsync(accountId, period, cancellationToken))?.Requests ?? 0;
+        var usedBefore = (await _repository.GetUsageAsync(accountId, period, serverToken))?.Requests ?? 0;
         if (usedBefore >= allowance.Value)
         {
             TankbookLog.LlmExtract(_logger, LogLevel.Warning, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "quota_spent");
@@ -146,22 +173,37 @@ public sealed class LlmService
         LlmExtraction extraction;
         try
         {
-            extraction = await _provider.ExtractAsync(kind, imageBytes, hints, model, cancellationToken);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
+            extraction = await _provider.ExtractAsync(kind, imageBytes, hints, model, serverToken);
         }
         catch
         {
-            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, imageBytes, OutcomeProviderFailed, CategoryError, stopwatch.Elapsed, cancellationToken);
+            await RecordCallAsync(accountId, deviceId, kind, model, extraction: null, imageBytes, OutcomeProviderFailed, CategoryError, stopwatch.Elapsed, serverToken);
             TankbookLog.LlmExtract(_logger, LogLevel.Error, kind, usedBefore, usedBefore, string.Empty, stopwatch.Elapsed, "provider_failed");
             return new ExtractOutcome(ExtractStatus.ProviderFailed, null);
         }
 
-        // Meter the successful call, then record it and answer.
-        var usedAfter = await _repository.IncrementUsageAsync(accountId, period, extraction.TotalTokens, cancellationToken);
-        await RecordCallAsync(accountId, deviceId, kind, model, extraction, imageBytes, OutcomeOk, CategorySuccess, stopwatch.Elapsed, cancellationToken);
+        // Meter the successful call, then record it. Both run on the server
+        // token, so a client that vanished mid-call still gets a metered,
+        // recorded, deliverable answer (the ledger is the audit of a call that
+        // really happened; the outbox is the delivery).
+        var usedAfter = await _repository.IncrementUsageAsync(accountId, period, extraction.TotalTokens, serverToken);
+        await RecordCallAsync(accountId, deviceId, kind, model, extraction, imageBytes, OutcomeOk, CategorySuccess, stopwatch.Elapsed, serverToken);
+
+        var fields = extraction.Fields.ToDictionary(
+            pair => pair.Key,
+            pair => new ExtractFieldResponse(pair.Value.Value, pair.Value.Confidence),
+            StringComparer.Ordinal);
+        var response = new ExtractResponse(fields, Pipeline);
+
+        // Delivery decision (RV.44). The answer is ready; if the client is gone
+        // (the request was aborted), hand it to the outbox instead of a void.
+        if (cancellationToken.IsCancellationRequested)
+        {
+            var payload = BuildOutboxPayload(captureId, response);
+            await _outbox.EnqueueAsync(accountId, deviceId, payload, serverToken);
+            TankbookLog.LlmExtract(_logger, LogLevel.Information, kind, usedBefore, usedAfter.Requests, extraction.Model, stopwatch.Elapsed, OutcomeOutboxed);
+            return new ExtractOutcome(ExtractStatus.DeliveredViaOutbox, null);
+        }
 
         TankbookLog.LlmExtract(
             _logger,
@@ -173,11 +215,30 @@ public sealed class LlmService
             stopwatch.Elapsed,
             "ok");
 
-        var fields = extraction.Fields.ToDictionary(
-            pair => pair.Key,
-            pair => new ExtractFieldResponse(pair.Value.Value, pair.Value.Confidence),
-            StringComparer.Ordinal);
-        return new ExtractOutcome(ExtractStatus.Ok, new ExtractResponse(fields, Pipeline));
+        return new ExtractOutcome(ExtractStatus.Ok, response);
+    }
+
+    /// <summary>
+    /// The opaque outbox payload: the extract response plus the device's
+    /// correlation token, serialized as JSON bytes. The server reads
+    /// <paramref name="captureId"/> only to echo it (an opaque token, never a
+    /// domain value) and never reads a field of the response - the bytes are
+    /// stored and returned as-is (hard rule 9).
+    /// </summary>
+    private static byte[] BuildOutboxPayload(string? captureId, ExtractResponse response)
+    {
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream))
+        {
+            writer.WriteStartObject();
+            writer.WriteString("captureId", captureId);
+            writer.WritePropertyName("fields");
+            JsonSerializer.Serialize(writer, response.Fields, WireJson);
+            writer.WriteString("pipeline", response.Pipeline);
+            writer.WriteEndObject();
+        }
+
+        return stream.ToArray();
     }
 
     /// <summary>

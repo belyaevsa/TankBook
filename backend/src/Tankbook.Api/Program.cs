@@ -19,6 +19,7 @@ using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Notifications;
 using Tankbook.Api.Options;
+using Tankbook.Api.Outbox;
 using Tankbook.Api.RateLimiting;
 using Tankbook.Api.Rates;
 using Tankbook.Api.Sync;
@@ -54,6 +55,8 @@ builder.Services.Configure<LlmGatewayOptions>(
     builder.Configuration.GetSection(LlmGatewayOptions.SectionName));
 builder.Services.Configure<LlmCallOptions>(
     builder.Configuration.GetSection(LlmCallOptions.SectionName));
+builder.Services.Configure<OutboxOptions>(
+    builder.Configuration.GetSection(OutboxOptions.SectionName));
 builder.Services.Configure<CatalogOptions>(
     builder.Configuration.GetSection(CatalogOptions.SectionName));
 builder.Services.Configure<ImportOptions>(
@@ -308,6 +311,19 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<LlmCallPurgeHostedService>();
 }
 builder.Services.AddScoped<LlmService>();
+
+// Delivery outbox (docs/API.md "Delivery outbox", docs/SECURITY.md "The delivery
+// outbox"): the gateway queues an answer it could not hand back, and the device
+// drains its own rows on next launch. The payload is opaque bytes - no search,
+// no stats, no read-by-meaning (hard rule 9). The retention purge runs on the
+// same hosted-service pattern as the account/import/ledger purges, registered
+// only outside test hosts so L2 tests drive OutboxService directly.
+builder.Services.AddScoped<OutboxRepository>();
+builder.Services.AddScoped<OutboxService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<OutboxPurgeHostedService>();
+}
 
 // Rate limiting (docs/API.md "Rate limits", PR.17): per-IP on the unauth
 // mutating surfaces, per-device on the bearer mutating surfaces. A rejection is
@@ -575,6 +591,13 @@ account.MapDelete("", AccountEndpoints.DeleteAccount);
 v1.MapPost("/extract", ExtractEndpoints.Extract)
     .RequireRateLimiting(RateLimitingSetup.Extract)
     .WithBodySizeLimit(BodySizeLimits.ExtractBytes);
+
+// Delivery outbox (docs/API.md "Delivery outbox"): GET drains (read-only) and
+// DELETE acks one collected row, both bearer. The ack is a separate call so a
+// device that dies between read and ack re-drains the same rows (at-least-once).
+var outbox = v1.MapGroup("/outbox");
+outbox.MapGet("", OutboxEndpoints.Drain);
+outbox.MapDelete("/{id:guid}", OutboxEndpoints.Ack);
 
 app.Run();
 

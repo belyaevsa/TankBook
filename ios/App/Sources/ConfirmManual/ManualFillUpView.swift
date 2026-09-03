@@ -39,6 +39,11 @@ struct ManualFillUpView: View {
     // Non-private so EmptyScanCaption.swift can focus Total on appear.
     @FocusState var focus: ManualFillUpFocus?
     @State var vehicle: Vehicle?
+    /// RV.44: the entry id, generated once for this sheet and reused as the
+    /// gateway's captureId. The same id the save writes, so a drained outbox
+    /// answer (whose payload carries the captureId) maps straight back to the
+    /// entry - no separate capture->entry mapping to keep in sync.
+    @State private var entryId = UUID.v7()
     @State private var existingEntries: [any Entry] = []
     /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
     @State private var lastKnown: OdometerLastKnown?
@@ -432,7 +437,8 @@ struct ManualFillUpView: View {
         let request = GatewayExtractRequest(
             kind: "receipt",
             imageJPEG: jpeg,
-            hints: gatewayHints())
+            hints: gatewayHints(),
+            captureId: entryId.uuidString)
         gatewaySession.start(transport: transport, request: request) { extraction in
             // A value-captured view struct: `@State` wraps shared storage, so
             // mutating `form` through the copy lands in the box the live view
@@ -607,7 +613,7 @@ private extension ManualFillUpView {
         let money = convertForSave(Money(amount: derived.total, currency: form.currency,
                                          homeCurrency: vehicle.homeCurrency))
         var candidate = FillUp(
-            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            id: entryId, createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicle.id, date: form.date, odometer: form.odometerValue,
             money: money, note: nil, attachments: attachments, provenance: provenance,
             conflict: .none, purchaseGroupId: nil,
