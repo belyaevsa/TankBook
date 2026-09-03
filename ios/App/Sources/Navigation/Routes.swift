@@ -42,6 +42,9 @@ enum Route: Hashable {
     /// The Log filtered to flagged entries (docs/SYNC.md -> Settings shows a
     /// count and a link only; resolution lives where the data lives).
     case flaggedEntries
+    /// RV.38: the in-app notification inbox (the bell on the tab-root header) -
+    /// work that finished after the user moved on, plus later reminders.
+    case inbox
 
     /// Navigation title, resolved through the String Catalog (EN + RU).
     var title: LocalizedStringKey {
@@ -61,6 +64,7 @@ enum Route: Hashable {
         case .paywall: "Tankbook Pro"
         case .importWizard: "Import"
         case .flaggedEntries: "Needs a look"
+        case .inbox: "Inbox"
         }
     }
 }

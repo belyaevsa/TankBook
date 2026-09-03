@@ -19,6 +19,7 @@ struct HomeView: View {
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(AppSync.self) private var sync
+    @Environment(AppInbox.self) private var inbox
     @State private var vehicle: Vehicle?
     @State private var vehicles: [Vehicle] = []
     @State private var entries: [any Entry] = []
@@ -212,6 +213,7 @@ struct HomeView: View {
                               excludedEntryCount: stats.excludedEntryCount,
                               pendingRateCount: stats.pendingRateCount,
                               duplicateResolutions: resolvedDuplicateKeys,
+                              pendingInboxEntryIDs: inbox.pendingEntryIDs,
                               onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
                               onMerge: { group in mergeDuplicate(group) })
         } else {

@@ -2,13 +2,16 @@
 
 *How anything reaches the user outside the app, and the scenario catalog. Companion to `JOURNEYS.md` (J7c, J9), `ERRORS.md` (permission-off states), `SYNC.md` (nudges), `SCHEMA.md` (Preferences), `API.md` (device endpoints).*
 
-## Two delivery mechanisms, deliberately unbalanced
+## Three delivery mechanisms, deliberately unbalanced
 
 **1 · Local notifications (`UNUserNotificationCenter`) – carry ~everything the user ever reads.**
 Scheduled on-device, work with no account and no network, cost nothing server-side. Date-based reminders schedule directly. **Odometer-based reminders can't fire by km in the background** – they arm at data-write time: every save recomputes distance-to-due, and when a threshold is crossed ("within 500 km of the oil change") the device schedules the local notification then. A car that isn't driven never notifies – correct behavior for free.
 
 **2 · Remote push (APNs via our backend) – carries only silence.**
 One use in v1.x: the **silent sync nudge** (`content-available`, no alert, no sound, no text – the payload says only "pull"). The device syncs in the background; anything user-visible that results (a conflict badge, a reminder completed elsewhere) surfaces through the normal in-app mechanics. This resolves SYNC.md's open question: **ship silent nudges at v1.x** (the backend exists anyway), with foreground polling as the always-there fallback – nudges are an optimization, never a dependency. **No user-visible remote push exists at all in v1**, and no marketing push will ever exist – written as a hard rule.
+
+**3 · The in-app inbox (the bell on the tab-root header, RV.38) – for work that finished after the user moved on.**
+Not a push at all: it is a **home for delayed results**, device-local and best-effort. The first producer is a cloud reading that lands **after** the entry was saved (`docs/JOURNEYS.md` F4, amended): the answer becomes an inbox item the user accepts, edits or declines – "leave it as it is" is the default, and an accepted update fills blank fields only (hard rule 13). The entry keeps its own badge, so the bell is a second route, never the only place a problem is visible (hard rule 8). Later producers (a due reminder surfaced here too) are planned, not shipped; the Reminders screen remains the management home and the inbox **links** to it, never replaces it. Durability is explicit: the extraction lives on the device (rule 9), so an app killed mid-request loses the answer – a durable re-read would need a read endpoint over RV.33's ledger, a second rule-9 reversal the product owner decides.
 
 Device tokens register via `PUT /account/devices/{id}/push-token` (API.md); token invalidation (APNs feedback) just clears the row – the device falls back to polling.
 
@@ -24,6 +27,7 @@ Device tokens register via `PUT /account/devices/{id}/push-token` (API.md); toke
 | Sync nudge | Silent APNs | Invisible, throttled server-side (max ~1/15 min per device) | – (background pull) | none – it's invisible |
 | Config nudge | Silent APNs (`config: true` hint on the same payload) | Invisible; used to propagate an urgent change such as a kill switch in minutes rather than the normal 6-hour poll | – (background config fetch, `CONFIG.md`) | none – it's invisible |
 | Post-outage batch result (S7) | In-app toast, not a notification | "Synced. 2 entries need a look" on next open | Log filtered to flagged | – |
+| Cloud reading lands after save (RV.38) | **In-app inbox** (the bell) | Quiet badge on the bell AND on the entry; the item asks "update from the receipt · leave it as it is · replace the receipt" with leave the default | The inbox → the entry (Edit entry) | none – it is in-app, never a push |
 | Shared-vehicle activity (v2) | Silent nudge only | Partner's fill-up just appears via sync; no "X logged a fill-up" alert unless v2 research says otherwise | – | (v2) |
 
 Explicit non-scenarios: no "you haven't logged in a while" re-engagement, no feature announcements, no rating prompts via push, nothing from the LLM/quota system. The notification channel spends trust; only the user's own deadlines may draw on it.

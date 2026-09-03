@@ -40,6 +40,7 @@ struct DestinationView: View {
         case .paywall: LeafContent()
         case .importWizard: ImportWizardView()
         case .flaggedEntries: FlaggedEntriesView()
+        case .inbox: InboxView()
         }
     }
 }

@@ -14,7 +14,11 @@ import Foundation
 /// One field value from the gateway plus its confidence. The confidence is
 /// carried and shown, never used to decide - the corpus proved a wrong digit at
 /// confidence 1.00 (docs/EXTRACTION.md -> pump-004).
-public struct GatewayFieldValue<Value: Sendable & Equatable>: Sendable, Equatable {
+///
+/// `Codable` (RV.38) so a late answer can be persisted into the device-local
+/// inbox and re-read on relaunch - the inbox is best-effort, but an answer that
+/// DID arrive must not be lost because the app happened to close.
+public struct GatewayFieldValue<Value: Sendable & Equatable & Codable>: Sendable, Equatable, Codable {
     public var value: Value
     public var confidence: Double
 
@@ -26,7 +30,12 @@ public struct GatewayFieldValue<Value: Sendable & Equatable>: Sendable, Equatabl
 
 /// The decoded `/extract` response: the fields the model read, each a
 /// suggestion the user may accept, edit or reject.
-public struct GatewayExtraction: Sendable, Equatable {
+///
+/// `Codable` (RV.38) so a late answer can live in the device-local inbox
+/// (`GatewayInboxItem`) and survive a relaunch; the inbox is best-effort about
+/// answers that never arrive, but an arrived answer is retained (30-day-style
+/// tombstone not needed - inbox items are cleared by resolution, not age).
+public struct GatewayExtraction: Sendable, Equatable, Codable {
     public var total: GatewayFieldValue<Decimal>?
     public var volume: GatewayFieldValue<Double>?
     public var unitPrice: GatewayFieldValue<Decimal>?

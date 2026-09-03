@@ -296,6 +296,7 @@ struct HomeRecentEntries: View {
     /// them as two normal rows, never as a duplicate card again
     /// (docs/SYNC.md S2).
     let duplicateResolutions: Set<DuplicateDetector.PairKey>
+    var pendingInboxEntryIDs: Set<UUID> = []
     /// The two ways an unresolved duplicate card can be decided (docs/SYNC.md
     /// S2; docs/ERRORS.md -> Home). The view renders the affordances; the
     /// resolution is a repository write the parent owns.
@@ -478,6 +479,9 @@ struct HomeRecentEntries: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("conflictBadgeButton")
+            }
+            if pendingInboxEntryIDs.contains(entry.id) {
+                InboxEntryBadge(entryID: entry.id)
             }
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)

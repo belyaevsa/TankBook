@@ -28,6 +28,7 @@ struct ManualFillUpView: View {
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(AppConfigService.self) private var config
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppInbox.self) private var inbox
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     /// The scanned-path input (P2.3). `nil` is the manual form with nothing
@@ -437,6 +438,11 @@ struct ManualFillUpView: View {
             // mutating `form` through the copy lands in the box the live view
             // reads. The session's `deliver` already guards the saved state.
             self.applyGatewayAnswer(extraction)
+        } onSavedAnswer: { extraction, entryID in
+            // RV.38 (F4 amended): the answer arrived after the entry was saved.
+            // It is a suggestion, never a rewrite - the inbox records it and the
+            // user decides (hard rule 13).
+            self.inbox.recordLateGatewayAnswer(extraction, entryID: entryID)
         }
     }
 
@@ -568,9 +574,10 @@ private extension ManualFillUpView {
             // after the sheet dismisses (a `.sheet` never re-triggers the
             // presenter's `.task` on iOS 26).
             toastCenter.noteEntryChanged()
-            // P6.3 (F4): a saved entry is corrected by its owner alone -
-            // nothing arrives after save, whatever the background request does.
-            gatewaySession.markSaved()
+            // P6.3 (F4, amended RV.38): a saved entry is corrected by its owner
+            // alone - a late answer becomes an inbox suggestion keyed to this
+            // entry, never a silent rewrite (hard rule 13).
+            gatewaySession.markSaved(entryID: toSave.id)
             // Odometer arming (P3.6): a save can cross a reminder's dueOdometer
             // window; reconcile arms the notification at write time.
             Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }

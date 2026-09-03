@@ -15,7 +15,10 @@ import TankbookCore
 //   is about the user's next step, never an abort);
 // - a late answer may fill only fields that are still blank and untouched, and
 //   renders as a suggestion (hard rule 13);
-// - once the entry is saved, nothing arrives at all (F4).
+// - once the entry is saved, the answer is NOT dropped (RV.38 amends F4): it
+//   lands in the inbox as a suggestion the user accepts, edits or declines -
+//   "leave it as it is" is the default, and an accepted update fills blank
+//   fields only, never overwriting a value the user saved.
 //
 // The session owns the timing; the view owns the form. The policy that decides
 // which fields may fill lives in core (`GatewaySuggestionPolicy`), so the sheet
@@ -49,6 +52,15 @@ final class GatewayScanSession {
     private var started = false
     private var saved = false
     private var onAnswer: ((GatewayExtraction) -> Void)?
+    /// RV.38: what to do with an answer that lands AFTER the entry was saved.
+    /// F4 used to drop it; now it becomes an inbox item, so the app asks instead
+    /// of silently rewriting (hard rule 13). Receives the entry id the answer is
+    /// about.
+    private var onSavedAnswer: ((GatewayExtraction, UUID) -> Void)?
+    /// The in-flight request, retained so `markSaved` can hand its delivery to
+    /// a task that survives the sheet's dismissal (the monitor's `[weak self]`
+    /// cannot - the session is deallocated with the sheet).
+    private var work: Task<GatewayExtraction, Error>?
 
     /// The UI budget. Product value 3 s (`GatewayBudget.duration`, docs/API.md
     /// rule 2); overridable ONLY by `-seedGatewayBudget <seconds>`, in the same
@@ -71,18 +83,23 @@ final class GatewayScanSession {
     }
 
     /// Starts the request and the budget monitor. `onAnswer` is called on the
-    /// main actor with the answer when (and only when) it may still be applied.
+    /// main actor with the answer when (and only when) it may still be applied;
+    /// `onSavedAnswer` is called instead once the entry is saved (RV.38) so the
+    /// answer lands in the inbox rather than dying in `markSaved()`.
     func start(transport: any GatewayExtractTransport,
                request: GatewayExtractRequest,
-               onAnswer: @escaping (GatewayExtraction) -> Void) {
+               onAnswer: @escaping (GatewayExtraction) -> Void,
+               onSavedAnswer: @escaping (GatewayExtraction, UUID) -> Void) {
         guard !started else { return }
         started = true
         saved = false
         self.onAnswer = onAnswer
+        self.onSavedAnswer = onSavedAnswer
         phase = .running
         let work = Task.detached { [transport] in
             try await transport.extract(request)
         }
+        self.work = work
         Task { [weak self] in await self?.monitor(work) }
     }
     /// The user engaged a field; from now on no late answer may touch it.
@@ -91,10 +108,26 @@ final class GatewayScanSession {
         touched.insert(ref)
     }
 
-    /// The entry was saved; from now on no answer may arrive at all (F4).
-    func markSaved() {
+    /// The entry was saved. From now on no answer may silently arrive (hard
+    /// rule 13) - a late answer is routed to the inbox instead (RV.38, F4
+    /// amended), keyed by the saved entry's id.
+    ///
+    /// The delivery is handed to a task that captures the request and the
+    /// delivery closure STRONGLY, because the sheet (and this session) are torn
+    /// down on save: the monitor's `[weak self]` cannot deliver a saved answer.
+    /// Only the request that is still in flight is delivered - an answer that
+    /// already landed within the budget went to the form (and into the save),
+    /// so it must not become a second inbox item.
+    func markSaved(entryID: UUID) {
         saved = true
+        let wasAlreadyAnswered = phase == .answered
         phase = .saved
+        guard let work, !wasAlreadyAnswered else { return }
+        let onSavedAnswer = self.onSavedAnswer
+        Task { [work, onSavedAnswer] in
+            guard let extraction = try? await work.value else { return }
+            onSavedAnswer?(extraction, entryID)
+        }
     }
 
     // MARK: - The budget monitor
@@ -126,7 +159,10 @@ final class GatewayScanSession {
         }
     }
 
-    /// Hands the answer to the form, unless the entry was saved meanwhile.
+    /// Hands the answer to the form, unless the entry was saved meanwhile - in
+    /// which case the saved answer is the `markSaved` task's job, so this drops
+    /// it (a saved entry is corrected by its owner alone, never silently; the
+    /// inbox item is created by the strongly-held `markSaved` task, RV.38).
     private func deliver(_ extraction: GatewayExtraction) {
         guard !saved else { return }
         onAnswer?(extraction)

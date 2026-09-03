@@ -209,7 +209,28 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
 | **Language changed (RV.24)** | In the language picker, below the list: "Language changes the next time you open Tankbook" | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
+### Inbox (RV.38)
+
+The bell's screen: work that finished after the user moved on. The first case is a cloud
+reading that landed **after** the entry was saved (`docs/JOURNEYS.md` F4, amended). It is a
+**home for suggestions, never a rewrite** - the app asks, and "leave it as it is" is the
+default (hard rule 13).
+
+| Condition | Shows | Next step |
+|---|---|---|
+| Nothing pending (the normal case) | Reassuring empty state: "Nothing needs your attention" (the Recently-deleted sibling - the screen existing at all is the reassurance) | Nothing to do |
+| A cloud reading landed after save | An item: "Receipt reading ready · Finished after you saved." with three actions. The entry keeps its own badge (hard rule 8), so the bell is a second route, never the only place this is visible | **Update from the receipt** (fills blank fields only, never a typed/derived value) · **Leave it as it is** (the default - nothing changes) · **Replace the receipt** (routes to Edit entry, where the receipt lives) |
+| The reading agrees with what was saved | **Nothing.** An answer that adds no blank and disagrees with nothing is noise, not work - no item is created | Nothing to do; the answer is silently absorbed |
+| The entry the item is about no longer exists | The item routes to the entry; a deleted entry has nothing to update | Leave it as it is - the item clears and nothing is written |
+
+**Durability, stated plainly.** The inbox is device-local and best-effort: the extraction lives
+on the device (rule 9 - the gateway holds no conversation), so an app killed mid-request loses
+the answer, and the inbox never shows an item that vanished. An answer that DID arrive is
+persisted and cleared by resolution, never by age. A durable re-read (from RV.33's ledger) is a
+second rule-9 reversal and the product owner's call, not an agent's.
+
 ### Import wizard (planned screen; F6 rules)
+
 | Condition | Shows | Next step |
 |---|---|---|
 | File partially parses | "214 of 220 imported – 6 rows need a look" + row list. **Rows render as parsed, labelled fields - never raw CSV** (`JOURNEYS.md` F6b): the server mapped most of the row, so only the field that is actually wrong is marked, and a blank stays blank rather than becoming `0`. The original line stays available behind "Original row" for the rarer case where the *mapping* is wrong rather than a value | Fix inline · skip rows |

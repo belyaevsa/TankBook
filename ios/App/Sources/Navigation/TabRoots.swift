@@ -34,6 +34,10 @@ struct AppRootView: View {
     /// The app's single sync surface (P4.9b): the Settings status, "Sync now"
     /// trigger and the derived flagged count all read from here.
     @State private var sync: AppSync
+    /// RV.38: the app's one inbox for work that finished after the user moved
+    /// on (a late cloud reading, later reminders). Owned here and injected, so
+    /// the bell on the header and the entry badge read one store.
+    @State private var inbox: AppInbox
     @State private var tabSelection: AppTab
     /// The navigation a tapped notification asks for (PJ.5): the delegate
     /// resolves the tap to a `NotificationRoute`, this router holds the pending
@@ -111,6 +115,14 @@ struct AppRootView: View {
                            powerState: power.powerState,
                            resumer: power.resumer)
         _sync = State(initialValue: sync)
+        // RV.38: `-inboxReset` clears the inbox before it loads, so a UI test
+        // starts from the same place (UserDefaults survive `-homeResetDatabase`).
+        #if DEBUG
+        AppInbox.resetForTestsIfRequested()
+        InboxTestSeed.seedIfRequested()
+        #endif
+        let inbox = AppInbox(noteEntryChanged: { toastCenter.noteEntryChanged() })
+        _inbox = State(initialValue: inbox)
         #if DEBUG
         // RV.22: force the sync chip's presentation state at launch, before the
         // tab roots render it (the chip reads `forcedChipState`, and the roots
@@ -265,6 +277,7 @@ struct AppRootView: View {
         .environment(notificationCoordinator)
         .environment(configService)
         .environment(sync)
+        .environment(inbox)
         .task {
             runPurgeIfNeeded()
             #if DEBUG

@@ -7,7 +7,7 @@
 0. **Version scope**: nodes and sections without a marker are v1; **[v2]** marks screens v1 does not ship (the Ask tab and its sheets, the Paywall). `CLAUDE.md` → Version scope.
 
 1. **Three navigation kinds, three gestures:**
-   - **Tab roots** (Log/Home, Trends, Garage) – no back button; switching tabs preserves each tab's stack. The three share ONE header treatment (RV.21): a one-row custom header – screen title + the Settings gear on the same line – drawn by the shared `TabRootHeader` (docs/DESIGN.md). Each root's gear pushes Settings onto that root's OWN stack, so back returns to the root that pushed it, never to a hardcoded tab.
+   - **Tab roots** (Log/Home, Trends, Garage) – no back button; switching tabs preserves each tab's stack. The three share ONE header treatment (RV.21): a one-row custom header – screen title + the Settings gear on the same line – drawn by the shared `TabRootHeader` (docs/DESIGN.md). RV.22 added the sync state chip beside the gear; **RV.38 added the inbox bell** between them, so the trailing corner now holds three 44 pt circular controls (chip · bell · gear) in one family – `dash` fill, hairline stroke, `.title3` glyph. Each root's gear pushes Settings onto that root's OWN stack, so back returns to the root that pushed it, never to a hardcoded tab.
    - **Tab roots reload on signals, not on reappearance.** The roots stay mounted across a switch (only visibility changes, `AppRootView`), so a root's `.task` fires once and never again for a tab the user returns to. Each root therefore reloads on the same three triggers – its first `.task`, a change to `carSelection.selectedID`, and a bump of `toastCenter.revision` – and every save that changes a tab root's data raises `noteEntryChanged()` (RV.25: a car added from the picker showed in Garage only after a relaunch because Add car raised no signal and Garage listened to none; a root with a `.task`-only load is a stale-list bug).
    - **Pushed screens** (Settings, About, Reminders, Recently deleted, Edit entry) – back chevron top-left + iOS edge-swipe. Back never discards saved data.
    - **Re-tapping the active tab returns that tab to its root** (RV.31): the standard iOS escape when the back chevron is not where the thumb is. It pops that tab's OWN `NavigationStack` path – immediate when the pushed top screen holds nothing unsaved; through the SAME "Keep editing / Discard" confirmation a sheet uses when a pushed Edit entry has unsaved edits, and Cancel leaves the entry open and unchanged (hard rule 8). A tap on a DIFFERENT tab is an ordinary switch and never pops. Each tab's dirty signal is its own, so a half-typed entry left open on one tab never makes re-tapping ANOTHER tab ask.
@@ -57,6 +57,11 @@ flowchart TD
     Home -->|gear| Settings
     Trends -->|gear| Settings
     Garage -->|gear| Settings
+    Home -->|bell| Inbox
+    Trends -->|bell| Inbox
+    Garage -->|bell| Inbox
+    Inbox -->|item → entry| EditEntry
+    Inbox -.->|reminders (planned)| Reminders
     Home -->|car card / chip| CarSwitcher
     Home -->|reminder banner| Reminders
     Home -->|entry tap| EditEntry
@@ -151,6 +156,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear → Settings (the shared tab-root header), car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
+| **Inbox** (RV.38) | the bell on the shared tab-root header (Log, Trends and Garage alike) | an item → Edit entry (the entry the reading is about) · an item's three actions resolve it in place – **update from the receipt** (fills blank fields only, hard rule 13), **leave it as it is** (the default), **replace the receipt** (routes to Edit entry) · Reminders (planned, links, never replaces that screen) | back chevron + edge-swipe → the tab root that pushed it |
 | Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry | X → opener |
 | **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
 | Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |

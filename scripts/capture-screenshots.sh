@@ -626,6 +626,16 @@ capture RV.22-chip-synced-ru    ru -seedSettingsSignedIn -seedHomeFullHistory -s
 capture RV.22-chip-flagged      en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced -seedSyncChipFlagged
 capture RV.22-chip-flagged-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced -seedSyncChipFlagged
 
+# RV.38: the inbox bell and its item. The bell shot shows the count riding the
+# header beside the chip and gear (the three-control placement this task had to
+# justify with a measurement); the item shot shows the item's three actions.
+# RU is the real test - "Обновить по чеку" / "Оставить как есть" / "Заменить
+# чек" are where the 20-30% expansion lands in a crowded corner.
+capture RV.38-bell           en -seedSettingsSignedIn -seedInboxItem -inboxReset
+capture RV.38-bell-ru        ru -seedSettingsSignedIn -seedInboxItem -inboxReset
+capture RV.38-inbox-item     en -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
+capture RV.38-inbox-item-ru  ru -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

@@ -49,6 +49,7 @@ struct TabRootHeader: View {
             Spacer(minLength: 12)
             if isActive {
                 syncChip
+                inboxBell
                 settingsLink
             }
         }
@@ -63,6 +64,15 @@ struct TabRootHeader: View {
         if let onSignIn {
             SyncStateChip(onSignIn: onSignIn)
         }
+    }
+
+    /// RV.38: the inbox bell, between the chip and the gear. Same 44 pt circle
+    /// treatment, so the three read as one set of controls. Always rendered (not
+    /// gated on a session like the chip): a guest can still have a late cloud
+    /// reading? No - but the inbox is also the future home for reminders, which
+    /// work without an account (hard rule 1), so the bell stays regardless.
+    private var inboxBell: some View {
+        InboxBell()
     }
 
     private var settingsLink: some View {
