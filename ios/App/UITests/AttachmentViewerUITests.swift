@@ -278,4 +278,154 @@ final class AttachmentViewerUITests: XCTestCase {
                       "share must appear once the full rendition is local")
         XCTAssertTrue(share.isHittable)
     }
+
+    // MARK: - RV.37 delete and replace
+
+    /// The corpus fixtures live on the host; the simulator shares the host
+    /// filesystem, so the app under test reads a fixture by its host path -
+    /// passed through `-attachReceiptFixtureImage` - and OCRs it for real.
+    private var fixturesRoot: String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // AttachmentViewerUITests.swift
+            .deletingLastPathComponent()  // UITests
+            .deletingLastPathComponent()  // App
+            .deletingLastPathComponent()  // ios
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures")
+            .path
+    }
+
+    /// Delete removes the receipt from the entry: the viewer is dismissed and
+    /// the strip falls back to "Add receipt" with no chip left behind. The
+    /// 30-day recoverability of the tombstone is pinned at L1; this is the
+    /// user-visible half of the delete (hard rule 8).
+    func testDeleteRemovesTheReceiptFromTheEntry() {
+        let app = launch("-seedPhotoLocal")
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let delete = app.buttons["attachmentViewerDeleteButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 10))
+        XCTAssertTrue(delete.isHittable, "delete must be a control the user can hit")
+        delete.tap()
+
+        // The system confirmation is the one place red lives.
+        let alert = app.alerts["Delete this receipt?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "deleting must ask for confirmation (destructive)")
+        XCTAssertTrue(alert.buttons["Delete"].exists)
+        alert.buttons["Delete"].tap()
+
+        // The viewer closes and the entry is left with no receipt.
+        XCTAssertTrue(app.buttons["editAddReceiptButton"].waitForExistence(timeout: 10),
+                      "deleting the receipt must leave the entry offering Add receipt again")
+        XCTAssertFalse(app.descendants(matching: .any)["attachmentPhotoChip"].exists,
+                       "the receipt chip must be gone after delete")
+    }
+
+    /// Replace swaps the photo and the ask appears - the whole feature. The
+    /// three options are present, with "Leave it as it is" the default.
+    func testReplaceSwapsThePhotoAndAsksToReRead() {
+        let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
+        let app = launch("-seedPhotoLocal", extra: ["-attachReceiptFixtureImage", fixture])
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let replace = app.buttons["attachmentViewerReplaceButton"]
+        XCTAssertTrue(replace.waitForExistence(timeout: 10))
+        XCTAssertTrue(replace.isHittable, "replace must be a control the user can hit")
+        replace.tap()
+
+        // The "Photos" door resolves the fixture directly (the out-of-process
+        // picker cannot be driven), so this is the real replace path.
+        let photos = app.buttons["Photos"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 5))
+        photos.tap()
+
+        XCTAssertTrue(app.buttons["Leave it as it is"].waitForExistence(timeout: 15),
+                      "after the swap the re-read ask must appear")
+        XCTAssertTrue(app.buttons["Update entry"].exists,
+                      "the ask must offer updating the entry")
+        XCTAssertTrue(app.buttons["Use a different receipt"].exists,
+                      "the ask must offer replacing with another receipt")
+    }
+
+    /// Declining the re-read leaves every field byte-identical. The seed leaves
+    /// total and price BLANK and liters typed at 42.30; the fixture's OCR reads
+    /// a total and a price. Asserting the VALUES - the blank total is still
+    /// blank, the typed liters unchanged - is what catches a decline that
+    /// overwrote anyway (a dialog that only showed would pass a weaker check).
+    func testDecliningTheReReadLeavesEveryFieldByteIdentical() {
+        let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
+        let app = launch("-seedEditEntryTypedAttached",
+                         extra: ["-attachReceiptFixtureImage", fixture])
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        app.buttons["attachmentViewerReplaceButton"].tap()
+        let photos = app.buttons["Photos"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 5))
+        photos.tap()
+
+        let leave = app.buttons["Leave it as it is"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 15))
+        leave.tap()
+
+        let total = app.textFields["manualFillUpTotalField"]
+        XCTAssertTrue(total.waitForExistence(timeout: 10))
+        XCTAssertTrue((total.value as? String ?? "").isEmpty,
+                      "declining the re-read must leave the blank total blank")
+        XCTAssertEqual(app.textFields["manualFillUpLitersField"].value as? String, "42.30",
+                       "declining the re-read must leave the typed liters byte-identical")
+    }
+
+    /// Accepting the re-read fills only fields that were blank and leaves a
+    /// user-typed value untouched: the blank total is filled from the receipt,
+    /// the typed liters stay exactly as the user entered them.
+    func testAcceptingTheReReadFillsOnlyBlankFields() {
+        let fixture = fixturesRoot + "/receipts/receipt-011-samara-diesel-ru.png"
+        let app = launch("-seedEditEntryTypedAttached",
+                         extra: ["-attachReceiptFixtureImage", fixture])
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        app.buttons["attachmentViewerReplaceButton"].tap()
+        let photos = app.buttons["Photos"]
+        XCTAssertTrue(photos.waitForExistence(timeout: 5))
+        photos.tap()
+
+        let update = app.buttons["Update entry"]
+        XCTAssertTrue(update.waitForExistence(timeout: 15))
+        update.tap()
+
+        let total = app.textFields["manualFillUpTotalField"]
+        XCTAssertTrue(total.waitForExistence(timeout: 10))
+        XCTAssertFalse((total.value as? String ?? "").isEmpty,
+                       "accepting the re-read must fill the blank total from the receipt")
+        XCTAssertEqual(app.textFields["manualFillUpLitersField"].value as? String, "42.30",
+                       "accepting the re-read must never overwrite a typed value")
+    }
+
+    /// The `-openAttachmentViewerReplaceAsk` screenshot seam presents the ask
+    /// over the viewer (simctl cannot drive the replace flow). It reaches the
+    /// SAME state a real replace does, so the committed screenshot shows the
+    /// real ask - this pins that the seam works.
+    func testTheReplaceAskScreenshotSeamPresentsTheAsk() {
+        let app = launch("-seedPhotoLocal",
+                         extra: ["-openAttachmentViewer", "-openAttachmentViewerReplaceAsk"])
+
+        XCTAssertTrue(app.buttons["Leave it as it is"].waitForExistence(timeout: 10),
+                      "the screenshot seam must present the re-read ask")
+        XCTAssertTrue(app.buttons["Update entry"].exists,
+                      "the ask must offer updating the entry")
+        XCTAssertTrue(app.buttons["Use a different receipt"].exists,
+                      "the ask must offer replacing with another receipt")
+    }
 }

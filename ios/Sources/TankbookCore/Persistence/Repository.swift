@@ -663,7 +663,7 @@ extension TankbookRepository {
         return services
     }
 
-    private func tombstone(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
+    func tombstone(table: String, id: UUID, at stamp: TimeInterval, in db: Database) throws {
         try db.execute(sql: """
             UPDATE \(table)
             SET deletedAt = ?, updatedAt = ?, syncState = 'dirty'

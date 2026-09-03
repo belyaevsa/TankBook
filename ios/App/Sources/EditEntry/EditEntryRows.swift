@@ -13,9 +13,11 @@ enum EditEntryRows {
     /// this one builder, so neither form forks a second copy of the card.
     static func receiptCard(attachments: [Attachment], entry: any Entry,
                             pendingBlobIDs: Set<UUID> = [],
-                            onAddReceipt: (() -> Void)? = nil) -> some View {
+                            onAddReceipt: (() -> Void)? = nil,
+                            onAttachmentChanged: @escaping (FuelExtraction?) -> Void = { _ in }) -> some View {
         ReceiptCardView(attachments: attachments, entry: entry,
-                        pendingBlobIDs: pendingBlobIDs, onAddReceipt: onAddReceipt)
+                        pendingBlobIDs: pendingBlobIDs, onAddReceipt: onAddReceipt,
+                        onAttachmentChanged: onAttachmentChanged)
     }
 
     static func noteRow(text: Binding<String>, identifier: String) -> some View {

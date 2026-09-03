@@ -197,9 +197,11 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
-### J8b · Look at the receipt again (RV.9, RV.17)
+### J8b · Look at the receipt again (RV.9, RV.17, RV.37)
 **Trigger:** a figure is questioned weeks later – "did that fill really cost 71.02?" – or the paper is gone and the photo is the only record.
 **Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). If the receipt carried anything recognised, a second page beside the photo shows what was read (the OCR lines and the scan timestamp) – a swipe away, not chrome over the photo, and absent when there was nothing. The Share affordance (RV.17) hands the **full** rendition to the system share sheet – Save Image, Save to Files, share to apps – and is offered only once that rendition is local, never over the thumbnail; sharing is the user's deliberate act. Close or swipe down and the entry is exactly as it was, still editable.
+
+**Delete and replace (RV.37):** the viewer also offers **Delete** – system-confirmed, which removes the receipt from this entry and tombstones the attachment record for the 30-day window (the blob itself is left alone; reclamation is a separate concern) – and **Replace photo**, which opens the same camera/Photos door as "Add receipt", writes a **new** attachment and tombstones the old one (never an in-place mutation, so the 30-day undo has something to restore). The replace then asks – *"Re-read this and update the entry?"* – and "Leave it as it is" is the default: a silent re-read would overwrite values the user already confirmed, which hard rule 13 forbids. On an explicit "Update entry" the extracted values are still suggestions filling **blank fields only**, each dimmed until tapped. "Use a different receipt" is just replace again.
 
 **Success metric:** the receipt can be read without leaving the app or hunting for the paper; opening a photo never ends in a blank screen.
 

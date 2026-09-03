@@ -153,6 +153,10 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 
 | Add receipt to an existing entry (PJ.48): photo could not be saved (disk full, permission) | `warn` line under the receipt card | "Couldn't save the photo – the entry is unchanged." | Try again · free up space (Settings deep link); the entry's fields are never touched by a failed attach |
 | Add receipt: OCR read values that disagree with what was typed (PJ.48) | none – no amber, no dialog | – | Typed values win silently; only blank fields are offered a pre-fill, each dimmed until tapped (hard rule 13). The photo is kept either way |
+| Delete receipt tapped (RV.37) | System confirmation (the one place red lives): "Delete this receipt?" | Delete (removes the receipt from this entry; the attachment is tombstoned for the 30-day window like any other record, never a file quietly unlinked – hard rule 8) · cancel |
+| Replace photo tapped (RV.37) | The camera/Photos choice – the same door "Add receipt" uses (hard rule 15) | Camera · Photos → the new photo is written and the old one tombstoned, never mutated in place (the 30-day undo has something to restore) |
+| The replacement landed (RV.37) | The ask: "Re-read this and update the entry?" – "Leave it as it is" is the default; the photo is already swapped, and the entry's values change only on an explicit "Update entry" | Leave it as it is · Update entry (re-reads and fills blank fields only, each dimmed until tapped – hard rule 13) · Use a different receipt (replace again) |
+| The replacement could not be written – disk full, the photo would not encode (RV.37) | `warn` line: "Couldn't replace the photo – the entry is unchanged." | Try again; the entry's fields are never touched by a failed replace |
 
 ### Recently deleted
 | Condition | Shows | Next step |

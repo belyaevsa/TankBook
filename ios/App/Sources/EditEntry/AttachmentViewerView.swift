@@ -35,14 +35,38 @@ import UIKit
 /// Never logs a byte, a station or an amount - ids and operation names only;
 /// the share is logged shape-only (that it happened and its outcome, never what
 /// was shared, its hash or its size) (hard rule 12).
+///
+/// RV.37 adds the two mutating surfaces on top: Delete (tombstone + unlink,
+/// system-confirmed) and Replace (a new attachment plus a tombstone for the old,
+/// never an in-place mutation). Replace then ASKS whether to re-read the new
+/// photo and update the entry - "Leave it as it is" is the default, and even an
+/// accepted re-read fills blank fields only (hard rule 13). The entry is passed
+/// in so the viewer can unlink/relink it, and the parent is told through
+/// `onAttachmentChanged` so it can refresh the receipt strip and, on an accepted
+/// re-read, apply the blank-field suggestions to the form.
 struct AttachmentViewerView: View {
     let attachment: Attachment
+    let entry: any Entry
+    var onAttachmentChanged: (FuelExtraction?) -> Void = { _ in }
 
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss) var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var state: ViewerState = .loading
     @State private var shareable: AttachmentShareable?
     @State private var page = 0
+
+    // RV.37: the attachment the entry links RIGHT NOW. It starts at the one the
+    // viewer opened and advances to each replacement, so "Use a different
+    // receipt" replaces the fresh attachment - never the already-tombstoned
+    // original. Internal (not private) so AttachmentViewerActions.swift, the
+    // extension that holds the delete/replace handlers, can reach them.
+    @State var currentID: AttachmentID?
+    @State var showDeleteConfirm = false
+    @State var showReplaceSource = false
+    @State var showReplaceAsk = false
+    @State var replaceExtraction: FuelExtraction?
+    @State var replaceFailed = false
+    @State var replaceProcessing = false
 
     /// What the viewer is showing right now.
     enum ViewerState: Equatable {
@@ -64,6 +88,7 @@ struct AttachmentViewerView: View {
             }
             .navigationTitle(Text("Receipt photo"))
             .navigationBarTitleDisplayMode(.inline)
+            .safeAreaInset(edge: .bottom) { actionBar }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     HStack(spacing: 20) {
@@ -94,6 +119,18 @@ struct AttachmentViewerView: View {
             }
             #endif
         }
+        .task {
+            #if DEBUG
+            // Screenshot seam: simctl cannot drive the replace flow (source
+            // chooser, then OCR), so the RV.37 ask capture opens the ask
+            // directly over the viewer. Delayed a beat so the sheet is fully
+            // presented before the dialog tries to present over it.
+            if ProcessInfo.processInfo.arguments.contains("-openAttachmentViewerReplaceAsk") {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                showReplaceAsk = true
+            }
+            #endif
+        }
         .sheet(item: $shareable) { item in
             ActivityView(items: item.items) { completed in
                 // Shape only: that the share ended and how - never what was
@@ -101,6 +138,41 @@ struct AttachmentViewerView: View {
                 AppLog.info(operation: "attachmentViewer.share", category: .ui,
                             outcome: completed ? "completed" : "cancelled")
             }
+        }
+        .alert("Delete this receipt?", isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) { performDelete() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The receipt is removed from this entry.")
+        }
+        .confirmationDialog("Re-read this and update the entry?",
+                            isPresented: $showReplaceAsk,
+                            titleVisibility: .visible) {
+            // "Leave it as it is" is the DEFAULT answer (hard rule 13): the
+            // photo is swapped either way, but the entry's values change only
+            // if the user actively picks "Update entry" - and even then, blank
+            // fields only. It is a plain button, not `.cancel`, because SwiftUI
+            // drops a `.cancel`-role button from a titled confirmationDialog on
+            // iOS (leaving the ask with no visible default) - and tapping
+            // outside the dialog still dismisses it, which is the same no-op.
+            Button("Leave it as it is") {
+                onAttachmentChanged(nil)
+                dismiss()
+            }
+            Button("Update entry") {
+                onAttachmentChanged(replaceExtraction)
+                dismiss()
+            }
+            Button("Use a different receipt") {
+                showReplaceSource = true
+            }
+        }
+        // Without this the dialog inherits TabRoots' ambient taillight tint and
+        // reads as a destructive action sheet, though nothing here destroys data.
+        .tint(Theme.Palette.action)
+        .receiptAttachSource(isPresented: $showReplaceSource,
+                             title: "Replace photo") { image in
+            handleReplace(image)
         }
     }
 
@@ -148,7 +220,6 @@ struct AttachmentViewerView: View {
         if attachment.kind == .pdf {
             if let document = PDFDocument(data: data) {
                 AttachmentPDFView(document: document)
-                    .ignoresSafeArea(edges: .bottom)
                     .accessibilityIdentifier("attachmentViewerPDF")
             } else {
                 pendingContent(message: .unreadable, downloading: false)

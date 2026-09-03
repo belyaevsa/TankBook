@@ -28,19 +28,19 @@ struct EditEntryView: View {
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     // FillUp form (reuses the ConfirmManual components).
-    @State private var fillForm = ManualFillUpFormState()
+    @State var fillForm = ManualFillUpFormState()
     @FocusState private var fillFocus: ManualFillUpFocus?
     // The other three entry types.
     @State private var nonFillForm = EditEntryNonFillForm()
 
-    @State private var vehicle: Vehicle?
-    @State private var fillUp: FillUp?
-    @State private var charge: ChargeSession?
-    @State private var service: ServiceRecord?
-    @State private var expense: Expense?
+    @State var vehicle: Vehicle?
+    @State var fillUp: FillUp?
+    @State var charge: ChargeSession?
+    @State var service: ServiceRecord?
+    @State var expense: Expense?
     @State private var otherEntries: [any Entry] = []
     @State private var stations: [Station] = []
-    @State private var attachments: [Attachment] = []
+    @State var attachments: [Attachment] = []
     @State private var selectedStation: Station?
     @State private var note = ""
     @State private var showDatePicker = false
@@ -49,7 +49,7 @@ struct EditEntryView: View {
     @State private var syncOverwrite: SyncOverwrite?
     @State private var didLoad = false
     @State private var loadFailed = false
-    @State private var pendingBlobIDs: Set<UUID> = []
+    @State var pendingBlobIDs: Set<UUID> = []
 
     // PJ.48: the "Add receipt" attach flow. The photo, its OCR lines and the
     // extraction are held until Save writes them; a failed write flips
@@ -62,7 +62,7 @@ struct EditEntryView: View {
     @State private var attachFailed = false
     @State private var attachProcessing = false
 
-    private var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
+    var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
     private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
@@ -155,7 +155,8 @@ struct EditEntryView: View {
                              showDatePicker: $showDatePicker,
                              syncOverwrite: syncOverwrite,
                              onRestore: restoreSyncOverwrite,
-                             pendingBlobIDs: pendingBlobIDs)
+                             pendingBlobIDs: pendingBlobIDs,
+                             onAttachmentChanged: handleAttachmentChanged)
             .safeAreaInset(edge: .bottom) { saveBar }
     }
 
@@ -516,7 +517,8 @@ private extension EditEntryView {
             VStack(spacing: 9) {
                 if !attachments.isEmpty {
                     EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                              pendingBlobIDs: pendingBlobIDs)
+                                              pendingBlobIDs: pendingBlobIDs,
+                                              onAttachmentChanged: handleAttachmentChanged)
                 } else if attachImage != nil {
                     pendingReceiptCard
                 } else {

@@ -3197,6 +3197,23 @@
         }
       }
     },
+    "Couldn't replace the photo – the entry is unchanged.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't replace the photo – the entry is unchanged."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось заменить фото – запись не изменена."
+          }
+        }
+      }
+    },
     "Couldn't save the photo – the entry is unchanged.": {
       "extractionState": "manual",
       "localizations": {
@@ -3637,6 +3654,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить этот автомобиль?"
+          }
+        }
+      }
+    },
+    "Delete this receipt?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this receipt?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить этот чек?"
           }
         }
       }
@@ -5804,6 +5838,23 @@
         }
       }
     },
+    "Leave it as it is": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave it as it is"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставить как есть"
+          }
+        }
+      }
+    },
     "Leave out": {
       "extractionState": "manual",
       "localizations": {
@@ -7670,6 +7721,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Переснять"
+          }
+        }
+      }
+    },
+    "Re-read this and update the entry?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-read this and update the entry?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перечитать чек и обновить запись?"
           }
         }
       }
@@ -10153,6 +10221,23 @@
         }
       }
     },
+    "The receipt is removed from this entry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The receipt is removed from this entry."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чек будет удалён из этой записи."
+          }
+        }
+      }
+    },
     "The server couldn't read the file right now – try again.": {
       "extractionState": "manual",
       "localizations": {
@@ -10803,6 +10888,23 @@
         }
       }
     },
+    "Update entry": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить запись"
+          }
+        }
+      }
+    },
     "Update in the App Store": {
       "extractionState": "manual",
       "localizations": {
@@ -10833,6 +10935,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Обновлено %@"
+          }
+        }
+      }
+    },
+    "Use a different receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a different receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать другой чек"
           }
         }
       }

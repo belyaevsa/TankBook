@@ -15,6 +15,7 @@ struct EditEntryNonFillView: View {
     let syncOverwrite: SyncOverwrite?
     let onRestore: () -> Void
     let pendingBlobIDs: Set<UUID>
+    let onAttachmentChanged: (FuelExtraction?) -> Void
 
     @FocusState private var odometerFocused: Bool
 
@@ -25,7 +26,8 @@ struct EditEntryNonFillView: View {
             VStack(spacing: 9) {
                 if !attachments.isEmpty {
                     EditEntryRows.receiptCard(attachments: attachments, entry: entry,
-                                              pendingBlobIDs: pendingBlobIDs)
+                                              pendingBlobIDs: pendingBlobIDs,
+                                              onAttachmentChanged: onAttachmentChanged)
                 }
                 typeCard
                 moneyCard

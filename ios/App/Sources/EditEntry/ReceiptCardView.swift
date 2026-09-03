@@ -14,6 +14,7 @@ struct ReceiptCardView: View {
     let entry: any Entry
     let pendingBlobIDs: Set<UUID>
     let onAddReceipt: (() -> Void)?
+    let onAttachmentChanged: (FuelExtraction?) -> Void
 
     @State private var showViewer = false
 
@@ -62,7 +63,8 @@ struct ReceiptCardView: View {
         }
         .sheet(isPresented: $showViewer) {
             if let first {
-                AttachmentViewerView(attachment: first)
+                AttachmentViewerView(attachment: first, entry: entry,
+                                     onAttachmentChanged: onAttachmentChanged)
             }
         }
     }
