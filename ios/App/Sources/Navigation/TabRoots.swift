@@ -194,6 +194,11 @@ struct AppRootView: View {
     private func tabRoot(_ tab: AppTab, @ViewBuilder content: () -> some View) -> some View {
         let isActive = tabSelection == tab
         content()
+            // The header's gear renders only on the active root (`TabRootHeader`
+            // reads this), so `settingsButton` is a single match in the a11y
+            // tree - inactive roots stay queryable to XCUITest, and a duplicate
+            // gear id would stop the button resolving.
+            .environment(\.isTabRootActive, isActive)
             .opacity(isActive ? 1 : 0)
             .allowsHitTesting(isActive)
             .accessibilityHidden(!isActive)

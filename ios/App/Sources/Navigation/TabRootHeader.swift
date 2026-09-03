@@ -24,6 +24,16 @@ struct TabRootHeader: View {
     /// root exposes no `navigationBars["X"]` element to assert against.
     let titleIdentifier: String
 
+    /// Whether this header's tab is the one on screen (`AppRootView` sets it).
+    /// The three tab roots all stay mounted - their stacks and scroll positions
+    /// survive a tab switch - and an inactive root's content is still visible to
+    /// XCUITest element queries (opacity + `accessibilityHidden` do not remove
+    /// it, documented in CarSwitcherUITests). So without this gate every tab's
+    /// gear would exist in the query tree at once: `app.buttons["settingsButton"]`
+    /// stops resolving to a single match, and VoiceOver would announce three
+    /// Settings buttons for one screen. Only the active root renders its gear.
+    @Environment(\.isTabRootActive) private var isActive
+
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
@@ -32,17 +42,37 @@ struct TabRootHeader: View {
                 .accessibilityIdentifier(titleIdentifier)
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
-            NavigationLink(value: Route.settings) {
-                Image(systemName: "gearshape")
-                    .font(.title3)
-                    .foregroundStyle(Theme.Palette.taillight)
-                    .frame(width: 44, height: 44)          // tap target >= 44pt
-                    .background(Circle().fill(Theme.Palette.dash))
-                    .overlay(Circle().stroke(Theme.Palette.hairline, lineWidth: 1))
+            if isActive {
+                settingsLink
             }
-            .accessibilityIdentifier("settingsButton")
-            .accessibilityLabel("Settings")
         }
         .padding(.top, 4)
+    }
+
+    private var settingsLink: some View {
+        NavigationLink(value: Route.settings) {
+            Image(systemName: "gearshape")
+                .font(.title3)
+                .foregroundStyle(Theme.Palette.taillight)
+                .frame(width: 44, height: 44)          // tap target >= 44pt
+                .background(Circle().fill(Theme.Palette.dash))
+                .overlay(Circle().stroke(Theme.Palette.hairline, lineWidth: 1))
+        }
+        .accessibilityIdentifier("settingsButton")
+        .accessibilityLabel("Settings")
+    }
+}
+
+/// Whether the enclosing tab root is the active tab (see `TabRootHeader`).
+/// Defaults to `true` so a header rendered outside the three-tab shell (a
+/// preview, a future surface) always shows its gear.
+private struct TabRootActiveKey: EnvironmentKey {
+    static let defaultValue = true
+}
+
+extension EnvironmentValues {
+    var isTabRootActive: Bool {
+        get { self[TabRootActiveKey.self] }
+        set { self[TabRootActiveKey.self] = newValue }
     }
 }
