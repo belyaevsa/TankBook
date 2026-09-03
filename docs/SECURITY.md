@@ -190,14 +190,16 @@ TLS 1.2+ everywhere, ATS enforced with no per-domain exceptions. **Certificate p
 ## Import files at rest (added 2026-08-27)
 
 Hard rule 9's named exception, `POST /import/parse`, is the one endpoint that reads domain
-meaning - and unlike the LLM gateway it **stores what it is given**. That asymmetry is deliberate
-and signed off, so the terms are written here rather than left to the implementation.
+meaning - and it **stores what it is given**. That asymmetry with the LLM gateway was deliberate
+and signed off until 2026-09-03, when the LLM call ledger amendment reversed it: both now store
+(see "LLM call ledger" below). The import terms are written here rather than left to the
+implementation.
 
 | | `/extract` (LLM gateway) | `/import/parse` |
 |---|---|---|
 | Uploaded artifact | image | third-party export file (CSV etc.) |
-| Written to storage | **never** | **yes** - blob storage, so a review can be resumed |
-| Retention | none (transient) | **30 days**, then purged |
+| Written to storage | **yes, as the call ledger's prompt rendition** (amended 2026-09-03) | **yes** - blob storage, so a review can be resumed |
+| Retention | **30 days** (the row survives; only the content is purged) | **30 days**, then purged |
 
 **Why 30 days and not less.** It matches the tombstone and undo window already in the product, so
 a user has one number to remember for "how long can I get it back", and a broken import reported
@@ -217,6 +219,41 @@ quietly stops being true.
 
 **Deleting the account deletes these too.** They are the account's data and fall under the
 signed-off delete-account-deletes-everything stance.
+
+## LLM call ledger (added 2026-09-03)
+
+Hard rule 9's amendment: every call to an LLM gate (`/extract` today, `/agent/turn` when v2
+lands) is recorded in a table, because the gateway spends real money per call on the user's behalf
+and no other record of what was sent, what came back, or what it cost exists anywhere. An
+unmetered, unauditable spend path was judged worse than the storage it avoids. The terms, written
+here because they are commitments:
+
+- **One row per provider call - success and failure.** The row carries caller (account and
+  device), model, vendor, outcome, a success/error category, prompt and completion token counts,
+  whether thinking was enabled and its response, and the cost. The unit prices are **snapshotted
+  onto the row** (hard rule 3's rate-snapshot logic applied to a second kind of money): a vendor
+  price rise must never silently rewrite what an earlier call cost.
+- **The prompt for `/extract` is the image - measured ~774 KB on the wire, so it does not live in
+  a column.** The rendition is stored in blob storage and referenced by `sha256` from the row.
+  `sha256` is content-addressed, so an identical image uploaded again dedupes to the same hash -
+  a weak re-identification path, accepted deliberately rather than redesigned around.
+- **Retention is 30 days**, the same number as the tombstone/undo window and `/import/parse`'s
+  file, so one number governs "how long can I get it back". The retention purge deletes the
+  prompt/response/thinking bodies and the rendition blob; the row - the spend ledger - survives.
+  Purge is a job, not a hope: it runs on the account/import purge pattern and is asserted by a
+  test on both sides of the cutoff.
+- **`DELETE /account` purges the content and keeps the references.** The rendition blob and the
+  prompt/response/thinking bodies go; the row survives carrying timestamps, model, vendor,
+  tokens, cost, outcome and the `sha256`. **`accountId` stays on the surviving row on purpose**
+  (product owner, 2026-09-03): per-account cost history survives deletion, so the spend ledger
+  stays intact while nothing of the user's receipt remains. This is a deliberate choice, written
+  here rather than implied - the surviving row's `accountId` references an account that no longer
+  exists, and that is the point.
+- **No endpoint reads the ledger.** It is written by the gateway and read by no query, search or
+  stats API - the ledger exists for auditing, not for serving. Hard rule 12 still governs the
+  logs: the table stores content by this explicit amendment, but the logs carry only ids, counts,
+  durations, model ids and outcome codes - never a prompt, a response body, a station, an amount
+  or an image.
 
 ## Passphrase-protected exports (added 2026-08-27)
 

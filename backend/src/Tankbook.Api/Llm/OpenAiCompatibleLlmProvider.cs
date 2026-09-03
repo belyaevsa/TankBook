@@ -19,7 +19,10 @@ namespace Tankbook.Api.Llm;
 /// tests drive the seam with a recording double, so no paid call and no real key
 /// is ever used. The API key stays inside this class and is never logged
 /// (docs/SECURITY.md, hard rule 12). The image bytes live only for the request's
-/// duration; nothing is written to disk, blob storage, or a log line.
+/// duration; the provider itself writes nothing to disk, blob storage, or a log
+/// line. The response body and thinking trace it returns are captured by the
+/// gateway into the call ledger (migration 015), which is the one place they are
+/// stored - never a log line.
 /// </summary>
 public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
 {
@@ -36,18 +39,32 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
         string kind,
         byte[] imageBytes,
         ExtractHints hints,
+        LlmModelChoice model,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_options.BaseUrl) ||
-            string.IsNullOrWhiteSpace(_options.ApiKey) ||
-            string.IsNullOrWhiteSpace(_options.ModelId))
+            string.IsNullOrWhiteSpace(_options.ApiKey))
         {
-            throw new InvalidOperationException("The LLM provider is not configured (LlmGateway:BaseUrl/ApiKey/ModelId).");
+            throw new InvalidOperationException("The LLM provider is not configured (LlmGateway:BaseUrl/ApiKey).");
         }
 
+        var modelId = string.IsNullOrWhiteSpace(model.ModelId) ? _options.ModelId : model.ModelId;
+        if (string.IsNullOrWhiteSpace(modelId))
+        {
+            throw new InvalidOperationException("No model is configured (LlmGateway:ModelId or a llm_settings row).");
+        }
+
+        // Thinking: when the dictionary says the model supports it, request it
+        // and capture the trace. The request and response shapes below are the
+        // OpenAI-compatible convention (a reasoning request flag and a reasoning
+        // field on the message); a vendor with a different wire shape would
+        // extend this, but the seam - the dictionary flag through the choice
+        // into the extraction's ThinkingBody - is the part the ledger depends
+        // on, and that part is provider-agnostic.
         var requestBody = JsonSerializer.Serialize(new
         {
-            model = _options.ModelId,
+            model = modelId,
+            reasoning = model.SupportsThinking ? new { enabled = true } : null,
             messages = new object[]
             {
                 new { role = "system", content = SystemPrompt(kind, hints) },
@@ -78,9 +95,10 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
         using var response = await _http.SendAsync(request, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var responseText = await response.Content.ReadAsStringAsync(cancellationToken);
+        using var document = JsonDocument.Parse(responseText);
         var root = document.RootElement;
-        var model = root.TryGetProperty("model", out var modelElement) ? modelElement.GetString() ?? _options.ModelId : _options.ModelId;
+        var servedModel = root.TryGetProperty("model", out var modelElement) ? modelElement.GetString() ?? modelId : modelId;
 
         long promptTokens = 0;
         long completionTokens = 0;
@@ -91,7 +109,8 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
         }
 
         var fields = ParseFields(root);
-        return new LlmExtraction(fields, model, promptTokens, completionTokens);
+        var thinking = ReadThinking(root);
+        return new LlmExtraction(fields, servedModel, promptTokens, completionTokens, responseText, thinking);
     }
 
     private static string SystemPrompt(string kind, ExtractHints hints)
@@ -172,6 +191,31 @@ public sealed class OpenAiCompatibleLlmProvider : ILlmProvider
     /// a throw - the gateway then answers 200 with no fields and the client falls
     /// back to what it read on-device (JOURNEYS F4).
     /// </summary>
+    /// <summary>
+    /// The model's thinking trace, captured only when thinking was requested. The
+    /// OpenAI-compatible convention returns it on the assistant message as a
+    /// reasoning field; an absent field means "no thinking", never an error.
+    /// </summary>
+    private static string? ReadThinking(JsonElement root)
+    {
+        if (root.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0)
+        {
+            var message = choices[0].TryGetProperty("message", out var m) ? m : default;
+            if (message.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var name in new[] { "reasoning", "reasoning_content", "thinking" })
+                {
+                    if (message.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String)
+                    {
+                        return value.GetString();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static string ExtractJsonObject(string text)
     {
         var trimmed = text.Trim();

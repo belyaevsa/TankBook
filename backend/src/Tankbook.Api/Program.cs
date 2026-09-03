@@ -52,6 +52,8 @@ builder.Services.Configure<RateOptions>(
     builder.Configuration.GetSection(RateOptions.SectionName));
 builder.Services.Configure<LlmGatewayOptions>(
     builder.Configuration.GetSection(LlmGatewayOptions.SectionName));
+builder.Services.Configure<LlmCallOptions>(
+    builder.Configuration.GetSection(LlmCallOptions.SectionName));
 builder.Services.Configure<CatalogOptions>(
     builder.Configuration.GetSection(CatalogOptions.SectionName));
 builder.Services.Configure<ImportOptions>(
@@ -297,6 +299,14 @@ builder.Services.AddSingleton<ILlmProvider>(sp =>
         sp.GetRequiredService<IHttpClientFactory>(),
         sp.GetRequiredService<IOptions<LlmGatewayOptions>>()));
 builder.Services.AddScoped<LlmRepository>();
+builder.Services.AddScoped<LlmModelRepository>();
+builder.Services.AddScoped<LlmModelResolver>();
+builder.Services.AddScoped<LlmCallRepository>();
+builder.Services.AddScoped<LlmCallPurgeService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<LlmCallPurgeHostedService>();
+}
 builder.Services.AddScoped<LlmService>();
 
 // Rate limiting (docs/API.md "Rate limits", PR.17): per-IP on the unauth

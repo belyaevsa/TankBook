@@ -35,7 +35,7 @@ public static class ExtractEndpoints
         }
 
         var hints = request.Hints ?? new ExtractHints(null, null, null);
-        var outcome = await service.ExtractAsync(identity.Value.AccountId, request.Kind!, request.Image, hints, cancellationToken);
+        var outcome = await service.ExtractAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Kind!, request.Image, hints, cancellationToken);
         return outcome.Status switch
         {
             ExtractStatus.Ok => Results.Ok(outcome.Response),

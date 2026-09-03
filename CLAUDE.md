@@ -77,8 +77,9 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
      edits and writes; the server owns no user data and no account state changes.
    - **Stored, deliberately, and unlike the LLM gateway.** The uploaded file and its parse result
      live in blob storage so the row-by-row review can be resumed and a bad parse can be
-     re-examined (product owner, 2026-08-27). This is a **deliberate asymmetry**: `/extract` never
-     stores an image, `/import/parse` does store a file. Both are signed off; neither licenses the
+     re-examined (product owner, 2026-08-27). This was a **deliberate asymmetry** - `/extract` never
+     stored an image, `/import/parse` does store a file - **reversed by the LLM call ledger
+     amendment below** (both now store). Both are signed off; neither licenses the
      other. **Retention is 30 days**, matching the tombstone/undo window so one number governs "how long
      can I get it back" - a written commitment in `docs/SECURITY.md`, not an implementation detail.
    - **Commits nothing, account or not.** No sign-in required: import must work for a user with no
@@ -88,11 +89,23 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
      note, an amount or a coordinate (hard rule 12).
    - **It does not spread.** This exception licenses import parsing and nothing else. A second
      endpoint that reads domain meaning needs its own decision, written here.
+   **The LLM call ledger (amended 2026-09-03, product owner).** Every call to an LLM gate is
+   recorded: caller, model, vendor, tokens, thinking, outcome, cost, and the prompt and response
+   bodies - with the image kept in blob storage and referenced by `sha256`, never in a column. This
+   **reverses** the asymmetry recorded above: `/extract` now stores, and so will `/agent/turn`. The
+   reason is that an unmetered, unauditable spend path is worse than the storage it avoids - the
+   gateway spends real money per call on the user's behalf, and no other record of what was sent,
+   what came back, or what it cost exists anywhere. The bounding properties are unchanged and are
+   what keep this from spreading: **retention is 30 days**, the same number as the tombstone/undo
+   window and `/import/parse`'s file; the ledger is **written by the gateway and read by no
+   endpoint** - there is no query, search or stats API over it; and it **licenses nothing else**. A
+   third place that stores user content needs its own decision, written here.
    **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
    /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
-   (the device holds the conversation), it **requires an account** because it is Pro-metered
-   per turn, and it reads only what the device's own tools returned for that turn. Pure
-   function; shape-only logging; it does not spread – no server-side search, stats or memory.
+   (the device holds the conversation) except what the LLM call ledger amendment above records,
+   it **requires an account** because it is Pro-metered per turn, and it reads only what the
+   device's own tools returned for that turn. Pure function; shape-only logging; it does not
+   spread – no server-side search, stats or memory.
 10. **All user-facing strings** go through String Catalogs (EN + RU from day one), traced to the copy glossary once it exists; no hardcoded text. (`docs/VISION.md` localization)
 11. **No secrets in the app bundle, ever** – an IPA is a zip. Tokens and `deviceId` live in the Keychain as `AfterFirstUnlockThisDeviceOnly`; the database and attachments use `completeUntilFirstUserAuthentication` file protection (including `-wal`/`-shm`). API keys stay server-side, which is why the LLM gateway exists. (`docs/SECURITY.md`)
 12. **Never log domain values.** Ids, counts, codes, durations and field *names* are loggable; amounts, stations, notes, coordinates, payloads, tokens and images are not – at any level, in any build. (`docs/LOGGING.md`)

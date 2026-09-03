@@ -112,7 +112,7 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         var provider = new RecordingLlmProvider();
-        provider.SetHandler((_, _, _) => new LlmExtraction(
+        provider.SetHandler((_, _, _, _) => new LlmExtraction(
             new Dictionary<string, LlmField>(StringComparer.Ordinal)
             {
                 ["volume"] = new LlmField(43.61, 0.95),
@@ -169,7 +169,7 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
 
         var signer = new TestIdTokenSigner();
         var provider = new RecordingLlmProvider();
-        provider.SetHandler((_, _, _) => new LlmExtraction(
+        provider.SetHandler((_, _, _, _) => new LlmExtraction(
             new Dictionary<string, LlmField>(StringComparer.Ordinal)
             {
                 ["station"] = new LlmField(sentinel, 0.4),
@@ -202,10 +202,10 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("43.61", swept, StringComparison.Ordinal);
     }
 
-    // ---- 6. Nothing is persisted -------------------------------------------
+    // ---- 6. The prompt is stored only as the ledger's rendition, by sha256 --
 
     [SkippableFact]
-    public async Task Extract_NothingIsPersisted()
+    public async Task Extract_StoresThePromptOnlyAsTheLedgerRendition()
     {
         var sentinel = "IMG-PERSIST-SENTINEL-5A1E";
         var imageBytes = Encoding.UTF8.GetBytes(sentinel);
@@ -221,12 +221,15 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         var response = await ExtractAsync(app.Client, token, "receipt", imageBase64, null);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
-        // No blob row, no pending row, no object in storage - the image never
-        // reached any persistence surface.
+        // No blob index row and no pending row - the rendition is NOT part of the
+        // attachment pipeline. It is stored directly in blob storage as the call
+        // ledger's prompt (docs/SECURITY.md "LLM call ledger"), addressed by sha256.
         Assert.Equal(0, await app.CountAsync("blobs"));
         Assert.Equal(0, await app.CountAsync("blob_pending"));
-        Assert.Empty(storage.Objects);
         Assert.Empty(storage.UploadUrls);
+
+        var expectedSha = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(imageBytes)).ToLowerInvariant();
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(account, expectedSha)));
 
         // No image-carrying column exists anywhere in the schema.
         Assert.Equal(0, await app.ScalarAsync<long>(
@@ -244,7 +247,7 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         var provider = new RecordingLlmProvider();
-        provider.SetHandler((_, _, _) => new LlmExtraction(
+        provider.SetHandler((_, _, _, _) => new LlmExtraction(
             new Dictionary<string, LlmField>(StringComparer.Ordinal)
             {
                 ["volume"] = new LlmField(43.61, 0.95),
@@ -319,6 +322,11 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
         var connectionString = db.ConnectionString;
 
+        // The gateway now stores the prompt rendition in blob storage (the call
+        // ledger, migration 015), so every extract test needs a storage double -
+        // otherwise the real S3BlobStorage would be resolved and fail.
+        var storageDouble = storage ?? new RecordingBlobStorage(new MutableTimeProvider(Now));
+
         var factory = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(b =>
             {
@@ -334,20 +342,16 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
                     services.Replace(ServiceDescriptor.Singleton<IIdTokenVerifier>(signer.Verifier));
                     services.Replace(ServiceDescriptor.Singleton<ILlmProvider>(provider));
                     services.Replace(ServiceDescriptor.Singleton<TimeProvider>(new MutableTimeProvider(Now)));
+                    services.Replace(ServiceDescriptor.Singleton<IBlobStorage>(storageDouble));
                     if (writer is not null)
                     {
                         services.Replace(ServiceDescriptor.Singleton<ILogWriter>(writer));
-                    }
-
-                    if (storage is not null)
-                    {
-                        services.Replace(ServiceDescriptor.Singleton<IBlobStorage>(storage));
                     }
                 });
             });
 
         var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        return new TestApp(factory, client, db, signer, provider);
+        return new TestApp(factory, client, db, signer, provider, storageDouble);
     }
 
     private static async Task<(string AccessToken, Guid AccountId, Guid DeviceId)> CreateSessionAsync(
@@ -430,13 +434,14 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         private readonly WebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
 
-        public TestApp(WebApplicationFactory<Program> factory, HttpClient client, NpgsqlConnection db, TestIdTokenSigner signer, RecordingLlmProvider provider)
+        public TestApp(WebApplicationFactory<Program> factory, HttpClient client, NpgsqlConnection db, TestIdTokenSigner signer, RecordingLlmProvider provider, RecordingBlobStorage storage)
         {
             _factory = factory;
             _client = client;
             Db = db;
             Signer = signer;
             Provider = provider;
+            Storage = storage;
         }
 
         public HttpClient Client => _client;
@@ -446,6 +451,8 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         public TestIdTokenSigner Signer { get; }
 
         public RecordingLlmProvider Provider { get; }
+
+        public RecordingBlobStorage Storage { get; }
 
         public async Task SetTierAsync(Guid accountId, string tier)
             => await Db.ExecuteAsync("UPDATE accounts SET llm_tier = @tier WHERE id = @id", new { tier, id = accountId });

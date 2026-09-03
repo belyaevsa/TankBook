@@ -14,12 +14,19 @@ public sealed record LlmField(object? Value, double Confidence);
 /// facts the gateway must record (model id and token counts). The server maps
 /// this straight onto the <c>ExtractionMeta</c> response shape and increments the
 /// <c>llm_usage</c> ledger from the token counts - it never interprets a field.
+/// <see cref="ResponseBody"/> and <see cref="ThinkingBody"/> feed the call
+/// ledger (migration 015): the raw response the model returned and its thinking
+/// trace when thinking was enabled. They are content and are stored only in the
+/// ledger column, purged on account deletion and after 30 days - never logged
+/// (hard rule 12).
 /// </summary>
 public sealed record LlmExtraction(
     IReadOnlyDictionary<string, LlmField> Fields,
     string Model,
     long PromptTokens,
-    long CompletionTokens)
+    long CompletionTokens,
+    string? ResponseBody = null,
+    string? ThinkingBody = null)
 {
     public long TotalTokens => PromptTokens + CompletionTokens;
 }
@@ -34,9 +41,17 @@ public sealed record LlmExtraction(
 /// </summary>
 public interface ILlmProvider
 {
+    /// <summary>
+    /// Extracts fields from one image. <paramref name="model"/> is the resolved
+    /// <see cref="LlmModelChoice"/> for the kind (migration 014) - which model
+    /// id to call, and whether that model supports thinking, so the provider can
+    /// request and capture a thinking trace rather than being told nothing about
+    /// the model it is about to spend money on.
+    /// </summary>
     Task<LlmExtraction> ExtractAsync(
         string kind,
         byte[] imageBytes,
         ExtractHints hints,
+        LlmModelChoice model,
         CancellationToken cancellationToken);
 }

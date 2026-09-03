@@ -32,6 +32,9 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "catalog_pack_state",
         "import_parses",
         "rate_backfill",
+        "llm_settings",
+        "llm_models",
+        "llm_calls",
     };
 
     [SkippableFact]
@@ -59,7 +62,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(13, applied.Single());
+        Assert.Equal(15, applied.Single());
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -94,6 +97,9 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("catalog_pack_state", tables);
         Assert.DoesNotContain("import_parses", tables);
         Assert.DoesNotContain("rate_backfill", tables);
+        Assert.DoesNotContain("llm_settings", tables);
+        Assert.DoesNotContain("llm_models", tables);
+        Assert.DoesNotContain("llm_calls", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
         Assert.Equal(0, remaining.Single());
@@ -318,6 +324,80 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '013'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration014_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The per-kind settings table and the model dictionary exist after apply,
+        // and a model row round-trips (the effective-from pricing shape).
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_settings'"));
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_models'"));
+        await db.ExecuteAsync(
+            "INSERT INTO llm_models (model_id, vendor, input_price, output_price, currency, context_window, supports_thinking, effective_from) VALUES ('m', 'vendor', 0.0000025, 0.00001, 'USD', 128000, true, '2026-09-01')");
+        await db.ExecuteAsync(
+            "INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'm')");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_models"));
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_settings"));
+
+        // A price correction is a NEW row (different effective_from), never an
+        // edit: two rows for one model id coexist.
+        await db.ExecuteAsync(
+            "INSERT INTO llm_models (model_id, vendor, input_price, output_price, currency, context_window, supports_thinking, effective_from) VALUES ('m', 'vendor', 0.000003, 0.000012, 'USD', 128000, true, '2026-09-03')");
+        Assert.Equal(2, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_models WHERE model_id = 'm'"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_settings'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_models'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '014'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration015_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The call ledger exists after apply, with the purge-scan and account
+        // indexes, and a row round-trips including the content columns.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_calls'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_llm_calls_created_at'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_llm_calls_account'"));
+
+        await db.ExecuteAsync(
+            "INSERT INTO llm_calls (id, account_id, kind, model_id, vendor, outcome, category, prompt_tokens, completion_tokens, response_body) VALUES (gen_random_uuid(), gen_random_uuid(), 'receipt', 'm', 'vendor', 'ok', 'success', 100, 50, '{}')");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_calls"));
+
+        // account_id has NO foreign key - the row must survive account deletion.
+        var fk = await db.QuerySingleAsync<int>(
+            """
+            SELECT count(*) FROM pg_constraint
+            WHERE conrelid = 'llm_calls'::regclass AND contype = 'f'
+            """);
+        Assert.Equal(0, fk);
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_calls'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '015'"));
     }
 
     [SkippableFact]

@@ -201,6 +201,29 @@ public static class TankbookLog
             ("DurationMs", duration.TotalMilliseconds),
             ("Outcome", outcome));
 
+    /// <summary>
+    /// Model resolution fell back to a compiled default (migration 014,
+    /// docs/API.md "LLM gateway"). Warning, because a missing or unknown setting
+    /// must be visible without breaking extraction. Shape only - kind and model
+    /// ids are codes, never content (hard rule 12).
+    /// </summary>
+    public static void LlmModelFallback(
+        ILogger logger,
+        string kind,
+        string requestedModelId,
+        string resolvedModelId,
+        string reason)
+        => Emit(logger, LogLevel.Warning, "llm.model_fallback",
+            ("Kind", kind),
+            ("RequestedModelId", requestedModelId),
+            ("ResolvedModelId", resolvedModelId),
+            ("Reason", reason));
+
+    /// <summary>The call-ledger content purge dropped some bodies (docs/SECURITY.md). Count only (hard rule 12).</summary>
+    public static void LlmCallPurge(ILogger logger, int purged)
+        => Emit(logger, LogLevel.Information, "llm.call_purge",
+            ("Purged", purged));
+
     public static void MigrationDdl(ILogger logger, string version, string direction, TimeSpan duration)
         => Emit(logger, LogLevel.Information, "migration.ddl",
             ("Version", version),

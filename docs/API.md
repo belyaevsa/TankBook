@@ -309,8 +309,24 @@ reasoning as the currency chip on Confirm.
 ## LLM gateway (Pro)
 
 ### `POST /extract` – bearer
-`{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**). Images processed transiently – never stored, per the signed-off stance.
+`{ kind: "receipt" | "pump" | "chargeScreenshot" | "invoice", image: <base64 ≤ 4 MB>, hints: { currency?, locale?, vehicleFuelKinds? } }` → `{ fields: { <FieldRef>: { value, confidence } }, pipeline }` per SCHEMA.md `ExtractionMeta`. `402` when the tier lacks quota, `429` per-period quota spent (client falls back to on-device result – JOURNEYS F4; **never an upsell mid-capture**).
 
+**The model is data, not compiled config (amended 2026-09-03, RV.34).** Which model serves which
+kind, and what that model costs, live in two tables written by direct DB write (no admin
+endpoint, the same decision as the vehicle catalog): `llm_settings` keys a model per kind
+(receipt vs pump display are different problems), and `llm_models` is the model dictionary -
+vendor, per-token input/output price, currency, context window, and whether thinking is
+supported, with an `effective_from` date so a price correction is a new row, never an edit. A
+missing or unknown setting falls back to the compiled default and logs the fallback at Warning;
+it never 500s. No API key lives in either table (hard rule 11).
+
+**Every call is recorded (amended 2026-09-03, RV.33).** Each call to the gateway writes one row
+to the call ledger: caller, model, vendor, outcome, a success/error category, token counts,
+whether thinking was enabled and its response, the cost (a snapshot of the dictionary price it
+paid, so a later price change never rewrites it), and the prompt and response. The prompt for
+`/extract` is the image, stored in blob storage and referenced by `sha256` from the row - never
+in a column. The row's content is purged on `DELETE /account` and after 30 days; the row itself
+(the spend ledger, including `accountId`) survives. There is no endpoint that reads the ledger.
 Status codes: `400` unknown `kind` or missing/undecodable `image`; `413` base64 image over the 4 MB cap (enforced at the envelope, before the provider is called); `502` provider failure (not metered – a failed call never bills, and the client falls back to the on-device result). A low-confidence field is returned as a value plus a low confidence – never dropped, which would silently turn "uncertain" into "absent".
 
 #### The device's side of `/extract` (normative)

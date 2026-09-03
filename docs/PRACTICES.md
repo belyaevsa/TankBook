@@ -131,6 +131,14 @@ Rules that follow:
   transport ones (a remote-set 0 s timeout is a remote-triggered outage).
 - **Default currency and units are locale guesses** - tier U from the moment they are shown
   (hard rule 13); the compiled part is only the guess table.
+- **The LLM model choice moved out of compiled config (2026-09-03, RV.34).** `LlmGatewayOptions:ModelId`
+  was tier C (a compiled default). It is now the *fallback only*: which model serves which kind and
+  what a model costs live in `llm_settings` / `llm_models`, written by direct DB write like the
+  vehicle catalog - a fifth, server-authored-reference-data placement outside the four tiers, with
+  the same "change it without a deploy" property as the catalog and the exchange-rate feeds. The
+  compiled `ModelId` survives as the no-row fallback, resolved with a Warning log rather than a
+  500. The call ledger snapshots the dictionary price onto each row (tier F), so a price edit can
+  never rewrite a historical call's cost (hard rule 3's logic).
 
 ### 6.1 · Inventory of constants in the code (2026-08-29)
 

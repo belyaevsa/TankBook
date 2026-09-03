@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using Tankbook.Api.Blobs;
 using Tankbook.Api.Import;
+using Tankbook.Api.Llm;
 using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Account;
@@ -22,6 +23,7 @@ public sealed class AccountPurgeService
     private readonly AccountRepository _repository;
     private readonly BlobService _blobs;
     private readonly ImportService _imports;
+    private readonly LlmCallPurgeService _llmCalls;
     private readonly AccountOptions _options;
     private readonly LoggingOptions _loggingOptions;
     private readonly ILogger<AccountPurgeService> _logger;
@@ -31,6 +33,7 @@ public sealed class AccountPurgeService
         AccountRepository repository,
         BlobService blobs,
         ImportService imports,
+        LlmCallPurgeService llmCalls,
         IOptions<AccountOptions> options,
         LoggingOptions loggingOptions,
         ILogger<AccountPurgeService> logger,
@@ -39,6 +42,7 @@ public sealed class AccountPurgeService
         _repository = repository;
         _blobs = blobs;
         _imports = imports;
+        _llmCalls = llmCalls;
         _options = options.Value;
         _loggingOptions = loggingOptions;
         _logger = logger;
@@ -65,6 +69,10 @@ public sealed class AccountPurgeService
             var records = await _repository.CountRecordsAsync(account.Id, cancellationToken);
             var blobs = await _blobs.PurgeAccountAsync(account.Id, cancellationToken);
             await _imports.PurgeAccountAsync(account.Id, cancellationToken);
+            // The call ledger's content (bodies + rendition blobs) is purged too,
+            // but the rows survive - per-account cost history outlives the account
+            // (docs/SECURITY.md "LLM call ledger").
+            await _llmCalls.PurgeAccountAsync(account.Id, cancellationToken);
             await _repository.DeleteAccountAsync(account.Id, cancellationToken);
 
             var accountHash = AccountHash.Compute(account.Email, _loggingOptions.HashSalt);
