@@ -136,3 +136,79 @@ public enum SyncSurface {
         state.lowPowerModeDeferring && state.dirtyCount > 0
     }
 }
+
+/// The sync state chip's one state (RV.22, docs/SYNC.md -> "The sync state
+/// chip"). The chip is ONE object changing state: the app layer maps each case
+/// to a glyph, a colour and a label, but the decision - the precedence - lives
+/// here so it tests at L1 (`SyncChipTests`). Seven cases, not the table's five
+/// rows, because the three attention reasons need distinct labels and distinct
+/// Settings scroll targets.
+public enum SyncChipState: Equatable, Sendable {
+    /// `!isSignedIn` with no attention reason: staying local is legitimate
+    /// (hard rule 1), so the chip is deliberately colourless and taps to Sign
+    /// in - the only state whose destination is not Settings.
+    case signedOut
+    /// The device was revoked (410): "Device signed out" - sign in again.
+    case deviceRevoked
+    /// The session expired and the refresh was rejected (PR.1): "Sign in again".
+    case authExpired
+    /// Blob storage >= 95% (429): "Storage full".
+    case quotaFull
+    /// A cycle is in flight: the system `ProgressView`, `action` colour.
+    case syncing
+    /// `dirtyCount > 0`: "Waiting to sync · N changes" - never amber, because a
+    /// week of queue looks exactly like an hour of queue.
+    case waiting
+    /// The reassurance default: "Synced".
+    case synced
+
+    /// Whether this state is amber attention. The chip's ONLY amber is the
+    /// three transport-issue states (hard rule 5: amber is attention only);
+    /// age, queue length and a service outage are never amber.
+    public var isAttention: Bool {
+        switch self {
+        case .deviceRevoked, .authExpired, .quotaFull: return true
+        case .signedOut, .syncing, .waiting, .synced: return false
+        }
+    }
+}
+
+extension SyncSurface {
+    /// The chip's state (RV.22). Precedence, first match wins, documented in
+    /// docs/SYNC.md -> "The sync state chip":
+    ///
+    /// 1. `deviceRevoked` / `authExpired` / `quota >= 95` -> attention. These
+    ///    outrank `!isSignedIn` deliberately: an expired session has cleared the
+    ///    Keychain (`isSignedIn` reads false too) but is still an account issue
+    ///    the user must act on, never "staying local".
+    /// 2. `!isSignedIn` -> signedOut.
+    /// 3. `isSyncing` -> syncing.
+    /// 4. `dirtyCount > 0` -> waiting.
+    /// 5. otherwise -> synced.
+    ///
+    /// `offline` and `serverUnavailable` are deliberately NOT states: offline
+    /// with nothing to push is the ordinary synced reassurance ("offline is
+    /// never an error", docs/SYNC.md), and a 5xx is a label variant of
+    /// waiting/synced - never a promotion to warning. This is a SEPARATE
+    /// function from `status()` on purpose: `status()` is the Settings-surface
+    /// verdict and never consults `isSignedIn` or `isSyncing`, while the chip
+    /// needs both (docs/SYNC.md -> "The sync state chip", the resolved
+    /// `isSignedIn` gap).
+    public static func chipState(_ state: SyncSurfaceState) -> SyncChipState {
+        if state.deviceRevoked { return .deviceRevoked }
+        if state.authExpired { return .authExpired }
+        if let quota = state.quotaUsedPercent, quota >= 95 { return .quotaFull }
+        if !state.isSignedIn { return .signedOut }
+        if state.isSyncing { return .syncing }
+        if state.dirtyCount > 0 { return .waiting }
+        return .synced
+    }
+
+    /// Whether the warn dot rides the chip's corner (RV.22): `flaggedCount > 0`.
+    /// Never a sixth state - the dot taps to the Log filtered to flagged entries
+    /// over whatever state is showing (hard rule 8 keeps conflict badges where
+    /// the data lives, docs/ERRORS.md -> Settings).
+    public static func showsChipWarnDot(_ state: SyncSurfaceState) -> Bool {
+        state.flaggedCount > 0
+    }
+}

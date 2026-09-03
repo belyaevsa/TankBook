@@ -453,6 +453,59 @@ Three things live there, and the split between them is what keeps hard rule 8 in
 - **On recovery:** the queues drain (pull → merge → push per device); *only then* do S1–S5 outcomes materialize. This is why domain conflicts must never be modal: they can arrive in a batch, hours after the user did anything – a stack of interrupting dialogs about yesterday would be hostile. Badges absorb a batch gracefully; a single unobtrusive summary toast covers the rest: "Synced. 2 entries need a look" → tapping filters the Log to flagged entries.
 - **Extended outage:** nothing degrades further – a week offline is the same as an hour, just a longer queue. The sin this design refuses to repeat is Мой Авто's "servers disabled; app freezes at login": Tankbook has no sync-gated screen at all.
 
+### The sync state chip (RV.22, normative)
+
+The one-row tab-root header (`docs/DESIGN.md` -> "The tab-root header is ONE row") carries a small
+chip beside the Settings gear, so a user can see at a glance whether their data is in the cloud.
+It is **presentation over the same state model**: the chip reads `SyncSurfaceState` and resolves its
+state through `SyncSurface.chipState(_:)` - it builds no second state machine beside the one the
+Settings surface already uses.
+
+The chip is ONE object changing state: one SF Symbols family (`icloud.*`), and every state has a
+distinct silhouette, so colour makes it findable but never carries the meaning alone (the
+accessibility floor - colour is never the only channel). Precedence, first match wins, in
+`SyncChipState`:
+
+| # | Condition | Glyph | Colour | Label EN / RU | Tap |
+|---|---|---|---|---|---|
+| 1 | `!isSignedIn` | `icloud.slash` | `inkSoft` | "Not signed in" / "Не выполнен вход" | Sign in |
+| 2 | `deviceRevoked` / `authExpired` / `quota >= 95` | `exclamationmark.icloud` | `warn` | "Device signed out" / "Устройство отключено" · "Sign in again" / "Войдите снова" · "Storage full" / "Хранилище заполнено" | Settings, scrolled to the card naming the fix |
+| 3 | `isSyncing` | system `ProgressView(.circular)` | `action` | "Syncing…" / "Синхронизация…" | Settings |
+| 4 | `dirtyCount > 0` | `icloud.and.arrow.up` | `inkSoft` | "Waiting to sync · N changes" | Settings |
+| 5 | otherwise | `checkmark.icloud` | `ok` | "Synced" / "Синхронизировано" | Settings |
+
+The decisions inside that table, not just preferences:
+
+- **State 1 is deliberately colourless.** Staying local is legitimate (hard rule 1); a hue would
+  read as a fault. It is also the only state whose tap destination is not Settings.
+- **State 2 is the only amber the chip can ever show** (hard rule 5: amber is attention only).
+- **State 4 is never amber**, because a week of queue looks exactly like an hour of queue.
+- **`offline` is NOT a state.** Offline with nothing to push is the ordinary synced reassurance
+  ("offline is never an error"), and a 5xx is a label variant of state 4 - never a promotion to
+  warning. Offline is not promoted to make the chip tidier.
+- **`flaggedCount > 0` is not a sixth state.** A `warn` dot rides the chip's corner over whatever
+  state is showing and taps to the Log filtered to flagged entries (`docs/ERRORS.md` -> Settings) -
+  never Settings. Hard rule 8 keeps conflict badges where the data lives; a global "sync issues"
+  screen is what that rule forbids.
+- **The `headlight` correction stands (2026-09-03).** An earlier revision coloured states 3 and 4
+  `headlight`; that is wrong and settled as `action` / `inkSoft`. `docs/DESIGN.md` P6.7 reserves
+  `headlight` for genuinely electric things only (enforced by `PaletteAccentGuardTests`' allowlist).
+  No sync-chip entry was added to that allowlist; do not "fix" the chip back to `headlight`.
+
+**The `isSignedIn` gap, resolved.** `SyncSurface.status()` - the Settings-surface verdict - never
+consults `isSignedIn`, so a signed-out device computes `.synced` today. That is correct *for
+Settings* (the status row only ever renders when signed in), but the chip needs state 1. The chip
+therefore resolves sign-in with its own function, `SyncSurface.chipState(_:)`, rather than growing
+a `signedOut` case on `SyncStatus`. Two consequences of that choice are deliberate and pinned by
+tests:
+
+- `status()` is untouched: its callers (Settings) keep their exhaustive switches and never see a
+  `signedOut` verdict they have no card for.
+- `chipState` evaluates the attention conditions **before** `!isSignedIn`, because an expired
+  session *clears the Keychain* (so `isSignedIn` reads false too) but is still an account issue the
+  user must act on - "Sign in again", never the colourless "Not signed in". This is the precedence
+  the mutation check below guards.
+
 ## Offline & failure behavior (ties to JOURNEYS)
 
 - Every feature works with sync unreachable (F3/F4 unchanged); `dirty` records queue indefinitely.

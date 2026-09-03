@@ -33,9 +33,11 @@ struct GarageRootView: View {
     /// Pushes a route onto the Garage tab's own NavigationStack path (the
     /// "Add car" tile and the limit sheet's exits - Button-driven pushes).
     let onNavigate: (Route) -> Void
+    /// Presents a sheet on the Garage tab (the sync chip's "Sign in" door).
+    let presentSheet: (SheetRoute) -> Void
 
     var body: some View {
-        GarageView(onNavigate: onNavigate)
+        GarageView(onNavigate: onNavigate, presentSheet: presentSheet)
             .navigationTitle("Garage")
             .toolbar(.hidden, for: .navigationBar)
     }

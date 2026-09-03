@@ -29,23 +29,30 @@ struct SettingsView: View {
     @State private var selectedLanguage: String?
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 12) {
-                accountCard
-                if sync.signedIn {
-                    SettingsSyncSurface(showsSignIn: $showsSignIn)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 12) {
+                    accountCard
+                        .id(SettingsScrollTarget.account)
+                    if sync.signedIn {
+                        SettingsSyncSurface(showsSignIn: $showsSignIn)
+                    }
+                    preferencesCard
+                    yourDataSection
+                    proCard
+                    aboutCard
+                    footer
                 }
-                preferencesCard
-                yourDataSection
-                proCard
-                aboutCard
-                footer
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .padding(.top, 4)
+                .padding(.bottom, 32)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.top, 4)
-            .padding(.bottom, 32)
+            .background(Theme.Palette.midnight)
+            .onAppear { scrollToRequestedCard(proxy) }
+            .onChange(of: sync.settingsScrollTarget) { _, _ in
+                scrollToRequestedCard(proxy)
+            }
         }
-        .background(Theme.Palette.midnight)
         .task {
             if !didSeed {
                 didSeed = true
@@ -81,6 +88,20 @@ struct SettingsView: View {
     }
 
     // MARK: - Account card
+
+    /// RV.22: scrolls to the card the sync chip's Settings tap named (state 2
+    /// "Settings, scrolled to the card naming the fix"). A deferred scroll so
+    /// the pushed content has laid out before `scrollTo` runs; clears the target
+    /// after one use so a later gear-open does not re-scroll. A target whose
+    /// card is not in the hierarchy (the chip's forced state diverging from the
+    /// real surface) is a no-op.
+    private func scrollToRequestedCard(_ proxy: ScrollViewProxy) {
+        guard let target = sync.settingsScrollTarget else { return }
+        DispatchQueue.main.async {
+            proxy.scrollTo(target, anchor: .top)
+            sync.settingsScrollTarget = nil
+        }
+    }
 
     @ViewBuilder
     private var accountCard: some View {
@@ -529,6 +550,7 @@ private struct SettingsSyncSurface: View {
                     .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("settingsRevokedSignInButton")
             }
+            .id(SettingsScrollTarget.revokedCard)
         case .authExpired:
             // The expired-session card renders in the account card's signed-out
             // branch, so this status never reaches the signed-in issue cards.
@@ -546,6 +568,7 @@ private struct SettingsSyncSurface: View {
                     .foregroundStyle(Theme.Palette.action)
                     .accessibilityIdentifier("settingsQuotaProButton")
             }
+            .id(SettingsScrollTarget.quotaCard)
         case .serverUnreachable:
             transportCard(
                 icon: "wifi.exclamationmark",

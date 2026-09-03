@@ -107,9 +107,16 @@ struct AppRootView: View {
         }
         #endif
         _configService = State(initialValue: configService)
-        _sync = State(initialValue: AppSync(configService: configService,
-                                            powerState: power.powerState,
-                                            resumer: power.resumer))
+        let sync = AppSync(configService: configService,
+                           powerState: power.powerState,
+                           resumer: power.resumer)
+        _sync = State(initialValue: sync)
+        #if DEBUG
+        // RV.22: force the sync chip's presentation state at launch, before the
+        // tab roots render it (the chip reads `forcedChipState`, and the roots
+        // are on screen before Settings' own `.task` seed runs).
+        SyncChipTestSeed.seedIfRequested(sync: sync)
+        #endif
         // PJ.5: the notification router is created here and the tap delegate
         // wired to it, so a tap - real or replayed - always has a destination.
         // The delegate captures the router (a reference type), not this view
@@ -525,7 +532,8 @@ struct GarageTabView: View {
 
     var body: some View {
         RootedNavigationStack(path: $path) {
-            GarageRootView(onNavigate: { path = [$0] })
+            GarageRootView(onNavigate: { path = [$0] },
+                           presentSheet: { sheet = $0 })
         }
         .sheet(item: $sheet) { SheetDestinationView(route: $0) }
         .fullScreenCover(item: $modal) {

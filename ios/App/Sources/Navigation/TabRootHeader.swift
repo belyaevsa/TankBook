@@ -23,15 +23,20 @@ struct TabRootHeader: View {
     /// can tell WHICH tab root is on screen: with the navigation bar hidden the
     /// root exposes no `navigationBars["X"]` element to assert against.
     let titleIdentifier: String
+    /// Presents the sign-in sheet (the sync chip's signed-out destination). The
+    /// three roots each pass their own `presentSheet(.signIn)`, so the chip's
+    /// one tap is the same door the Settings guest card already uses.
+    var onSignIn: (() -> Void)? = nil
 
     /// Whether this header's tab is the one on screen (`AppRootView` sets it).
     /// The three tab roots all stay mounted - their stacks and scroll positions
     /// survive a tab switch - and an inactive root's content is still visible to
     /// XCUITest element queries (opacity + `accessibilityHidden` do not remove
     /// it, documented in CarSwitcherUITests). So without this gate every tab's
-    /// gear would exist in the query tree at once: `app.buttons["settingsButton"]`
-    /// stops resolving to a single match, and VoiceOver would announce three
-    /// Settings buttons for one screen. Only the active root renders its gear.
+    /// gear and sync chip would exist in the query tree at once:
+    /// `app.buttons["settingsButton"]` stops resolving to a single match, and
+    /// VoiceOver would announce three Settings buttons for one screen. Only the
+    /// active root renders its gear and chip.
     @Environment(\.isTabRootActive) private var isActive
 
     var body: some View {
@@ -43,10 +48,21 @@ struct TabRootHeader: View {
                 .accessibilityAddTraits(.isHeader)
             Spacer(minLength: 12)
             if isActive {
+                syncChip
                 settingsLink
             }
         }
         .padding(.top, 4)
+    }
+
+    /// The sync state chip (RV.22), to the LEFT of the gear so the two read as
+    /// "account state + its settings" on one row (docs/SYNC.md -> "The sync
+    /// state chip"). Shared by the three roots exactly like the gear.
+    @ViewBuilder
+    private var syncChip: some View {
+        if let onSignIn {
+            SyncStateChip(onSignIn: onSignIn)
+        }
     }
 
     private var settingsLink: some View {

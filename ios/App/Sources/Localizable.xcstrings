@@ -3760,6 +3760,23 @@
         }
       }
     },
+    "Device signed out": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Device signed out"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Устройство отключено"
+          }
+        }
+      }
+    },
     "Devices": {
       "extractionState": "manual",
       "localizations": {
@@ -6773,6 +6790,23 @@
         }
       }
     },
+    "Not signed in": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not signed in"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не выполнен вход"
+          }
+        }
+      }
+    },
     "Not yet": {
       "extractionState": "manual",
       "localizations": {
@@ -9261,6 +9295,23 @@
         }
       }
     },
+    "Sign in again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in again"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите снова"
+          }
+        }
+      }
+    },
     "Sign in and your cars, history and photos follow you – to a new phone, an iPad, or Android one day.": {
       "extractionState": "manual",
       "localizations": {
@@ -9618,6 +9669,23 @@
         }
       }
     },
+    "Storage full": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Storage full"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Хранилище заполнено"
+          }
+        }
+      }
+    },
     "Suggestions unavailable offline – you can fill tank size later in Garage.": {
       "extractionState": "manual",
       "localizations": {
@@ -9682,6 +9750,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сервис синхронизации недоступен – ваши данные в безопасности на этом телефоне. Они отправятся автоматически, когда сервис снова заработает."
+          }
+        }
+      }
+    },
+    "Synced": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Synced"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизировано"
           }
         }
       }
@@ -9875,6 +9960,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Синхронизировано. 2 записи требуют внимания"
+          }
+        }
+      }
+    },
+    "Syncing…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Syncing…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Синхронизация…"
           }
         }
       }
@@ -11153,25 +11255,25 @@
               "few": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменения"
+                  "value": "Ожидают отправки: %lld"
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменений"
+                  "value": "Ожидают отправки: %lld"
                 }
               },
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменение"
+                  "value": "Ожидают отправки: %lld"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменений"
+                  "value": "Ожидают отправки: %lld"
                 }
               }
             }
@@ -11206,25 +11308,25 @@
               "few": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменения · включён режим энергосбережения"
+                  "value": "Ожидают отправки: %lld · энергосбережение"
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменений · включён режим энергосбережения"
+                  "value": "Ожидают отправки: %lld · энергосбережение"
                 }
               },
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменение · включён режим энергосбережения"
+                  "value": "Ожидают отправки: %lld · энергосбережение"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "Ожидает синхронизации · %lld изменений · включён режим энергосбережения"
+                  "value": "Ожидают отправки: %lld · энергосбережение"
                 }
               }
             }

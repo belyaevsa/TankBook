@@ -27,6 +27,9 @@ struct GarageView: View {
     /// cap, and the limit sheet's "Archive a car" - can push exactly like the
     /// Car switcher's host does.
     let onNavigate: (Route) -> Void
+    /// Presents a sheet on the Garage tab (the sync chip's "Sign in" door,
+    /// RV.22 - the same `presentSheet(.signIn)` the Log and Trends roots pass).
+    let presentSheet: (SheetRoute) -> Void
 
     @Environment(AppCarSelection.self) private var selection
     @Environment(AppToastCenter.self) private var toastCenter
@@ -42,7 +45,8 @@ struct GarageView: View {
                 // The shared tab-root header (RV.21): same one-row title + gear
                 // treatment as Log and Trends, so Settings sits in the same
                 // place on every tab root.
-                TabRootHeader(title: "Garage", titleIdentifier: "garageHeaderTitle")
+                TabRootHeader(title: "Garage", titleIdentifier: "garageHeaderTitle",
+                              onSignIn: { presentSheet(.signIn) })
                 if rows.isEmpty {
                     emptyGarage
                 } else {

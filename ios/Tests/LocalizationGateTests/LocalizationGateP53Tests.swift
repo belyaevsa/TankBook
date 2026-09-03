@@ -237,11 +237,21 @@ struct LocalizationGateP53Tests {
             ("Synced %lld hours ago", [1: "Синхронизировано 1 час назад", 2: "Синхронизировано 2 часа назад",
                                        5: "Синхронизировано 5 часов назад", 11: "Синхронизировано 11 часов назад",
                                        21: "Синхронизировано 21 час назад"]),
-            ("Waiting to sync · %lld changes", [1: "Ожидает синхронизации · 1 изменение",
-                                                2: "Ожидает синхронизации · 2 изменения",
-                                                5: "Ожидает синхронизации · 5 изменений",
-                                                11: "Ожидает синхронизации · 11 изменений",
-                                                21: "Ожидает синхронизации · 21 изменение"]),
+            // RV.22: the RU form deliberately carries NO agreement - the count
+            // sits after a colon, so every form is identical. That is not
+            // laziness, it is what makes the string fit: this key is rendered
+            // by the sync state CHIP as well as the Settings row, and the
+            // agreeing form ("Ожидает синхронизации · 5 изменений") overflowed
+            // the chip and truncated to "Ожидает синхронизации…", dropping the
+            // count entirely - caught by opening the RU screenshot, never by a
+            // test, because an accessibility label is not truncated. The edges
+            // are still asserted so a future edit cannot reintroduce agreement
+            // without seeing this note.
+            ("Waiting to sync · %lld changes", [1: "Ожидают отправки: 1",
+                                                2: "Ожидают отправки: 2",
+                                                5: "Ожидают отправки: 5",
+                                                11: "Ожидают отправки: 11",
+                                                21: "Ожидают отправки: 21"]),
             ("first estimate · %lld fill cycles", [1: "предварительная оценка · 1 цикл заправки",
                                                    2: "предварительная оценка · 2 цикла заправки",
                                                    5: "предварительная оценка · 5 циклов заправки",

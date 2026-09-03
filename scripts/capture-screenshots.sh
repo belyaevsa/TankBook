@@ -602,6 +602,30 @@ capture RV.24-language-ru         ru -presentScreen settings -seedSettingsGuest 
 capture RV.24-language-prompt     en -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker -languagePickerShowPrompt
 capture RV.24-language-prompt-ru  ru -presentScreen settings -seedSettingsGuest -languageReset -presentLanguagePicker -languagePickerShowPrompt
 
+# RV.22: the sync state chip beside the Settings gear - one shot per state, EN
+# and RU, so each state actually renders (a shot of "Synced" five times proves
+# nothing). The chip state is forced at launch (`-seedSyncChip*`) because it
+# lives on the tab roots, before Settings' own seed runs. RU is the real test:
+# "Ожидают отправки"/"Устройство отключено"/"Синхронизация…" are far longer
+# than their English counterparts and a chip label is exactly where that
+# overflows. The flagged shot is the warn dot riding the corner over "Synced".
+capture RV.22-chip-signedout    en -seedHomeFullHistory -clearSessionAtLaunch -seedSyncChipSignedOut
+capture RV.22-chip-signedout-ru ru -seedHomeFullHistory -clearSessionAtLaunch -seedSyncChipSignedOut
+capture RV.22-chip-revoked      en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipRevoked
+capture RV.22-chip-revoked-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipRevoked
+capture RV.22-chip-authexpired  en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipAuthExpired
+capture RV.22-chip-authexpired-ru ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipAuthExpired
+capture RV.22-chip-quota        en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipQuota
+capture RV.22-chip-quota-ru     ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipQuota
+capture RV.22-chip-syncing      en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSyncing
+capture RV.22-chip-syncing-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSyncing
+capture RV.22-chip-waiting      en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipWaiting
+capture RV.22-chip-waiting-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipWaiting
+capture RV.22-chip-synced       en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced
+capture RV.22-chip-synced-ru    ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced
+capture RV.22-chip-flagged      en -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced -seedSyncChipFlagged
+capture RV.22-chip-flagged-ru   ru -seedSettingsSignedIn -seedHomeFullHistory -seedSyncChipSynced -seedSyncChipFlagged
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

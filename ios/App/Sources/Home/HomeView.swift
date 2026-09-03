@@ -79,7 +79,8 @@ struct HomeView: View {
     /// went to chrome before any of the user's data appeared - on a screen
     /// whose job is "your car, at a glance", the car should come first.
     private var header: some View {
-        TabRootHeader(title: "Log", titleIdentifier: "homeHeaderTitle")
+        TabRootHeader(title: "Log", titleIdentifier: "homeHeaderTitle",
+                      onSignIn: { presentSheet(.signIn) })
     }
 
     var body: some View {

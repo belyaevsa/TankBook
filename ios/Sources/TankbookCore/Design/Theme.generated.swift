@@ -14,6 +14,7 @@ public enum Theme {
         public static let ink = Color(themeHexLight: "#1A2028", themeHexDark: "#EAEDF2")
         public static let inkSoft = Color(themeHexLight: "#55606E", themeHexDark: "#98A2B3")
         public static let midnight = Color(themeHexLight: "#F5F6F8", themeHexDark: "#101318")
+        public static let ok = Color(themeHexLight: "#0E7A46", themeHexDark: "#4FD18C")
         public static let tabBar = Color(themeHexLight: "#EFF1F4", themeHexDark: "#0D1015")
         public static let tabBarBorder = Color(themeHexLight: "#E1E4EA", themeHexDark: "#1C222C")
         public static let taillight = Color(themeHexLight: "#CE3422", themeHexDark: "#F4503A")
@@ -30,6 +31,7 @@ public enum Theme {
             "ink": ink,
             "inkSoft": inkSoft,
             "midnight": midnight,
+            "ok": ok,
             "tabBar": tabBar,
             "tabBarBorder": tabBarBorder,
             "taillight": taillight,

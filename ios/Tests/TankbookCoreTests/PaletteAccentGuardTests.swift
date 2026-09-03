@@ -118,6 +118,12 @@ struct PaletteAccentGuardTests {
         try Self.assertResolves(Theme.Palette.headlight, hex: Self.tokenHex("headlight", "light"), isDark: false)
     }
 
+    @Test("ok resolves to the design/tokens.json value in both themes")
+    func okHexes() throws {
+        try Self.assertResolves(Theme.Palette.ok, hex: Self.tokenHex("ok", "dark"), isDark: true)
+        try Self.assertResolves(Theme.Palette.ok, hex: Self.tokenHex("ok", "light"), isDark: false)
+    }
+
     // MARK: - WCAG AA contrast (W8: computed from tokens.json)
 
     private struct ColorToken: Codable {
@@ -171,7 +177,7 @@ struct PaletteAccentGuardTests {
     func accentContrastClearsAA() throws {
         let tokens = try Self.loadTokens()
 
-        for accent in ["action", "headlight", "warn", "taillight"] {
+        for accent in ["action", "headlight", "warn", "taillight", "ok"] {
             let token = try #require(tokens.color[accent],
                                      "tokens.json has no '\(accent)' colour")
             for ground in ["midnight", "dash"] {

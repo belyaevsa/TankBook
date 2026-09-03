@@ -123,6 +123,13 @@ final class AppSync {
     private(set) var lastSyncDate: Date?
     private(set) var lastOutcome: SyncOutcome?
     private(set) var isSyncing = false
+    /// RV.26: whether the session store carries the persisted `authExpired` mark
+    /// (a rejected refresh). Read in `refresh` and OR-ed into the surface state,
+    /// so an expiry the cloud gateway detected - not only one a sync cycle
+    /// detected - surfaces as "session expired - sign in again" in Settings and
+    /// on RV.22's chip. Distinct from `lastOutcome.authExpired`, which is the
+    /// in-memory outcome of the last sync cycle.
+    private(set) var storedAuthExpired = false
     /// PR.14: the number of entries the last sync batch flagged (docs/SYNC.md
     /// -> the post-batch toast "Synced. N entries need a look"). Nil while no
     /// batch has flagged anything; the Home toast reads it and clears it when
@@ -171,6 +178,15 @@ final class AppSync {
     var forcedUpgradeRequired = false
     var forcedRefused: SyncServerError?
     var forcedRetryAfterSeconds: Int?
+    /// RV.22 fixtures for the sync chip's presentation: force the chip state
+    /// (and its label counts) directly so a screenshot or UI test can show each
+    /// of the five states without reproducing the transport outcome that
+    /// produces it. The mapping itself is L1-tested (`SyncChipTests`); these
+    /// only let the L4 layer and screenshots drive the presentation. Nil/absent
+    /// = derive from the real surface; production never sets them.
+    var forcedChipState: SyncChipState?
+    var forcedChipDirtyCount: Int?
+    var forcedChipFlaggedCount: Int?
 
     init(sessionStore: any SessionStore = KeychainSessionStore(),
          configService: AppConfigService,
@@ -216,7 +232,7 @@ final class AppSync {
             serverUnavailable: forcedServerUnavailable
                 || (lastOutcome?.serverUnavailable ?? false),
             deviceRevoked: forcedRevoked || (lastOutcome?.deviceRevoked ?? false),
-            authExpired: lastOutcome?.authExpired ?? false,
+            authExpired: storedAuthExpired || (lastOutcome?.authExpired ?? false),
             quotaUsedPercent: forcedQuotaPercent,
             flaggedCount: flaggedCount,
             isSyncing: isSyncing,
@@ -228,10 +244,19 @@ final class AppSync {
 
     var status: SyncStatus { SyncSurface.status(surfaceState) }
 
+    /// RV.22: which Settings card the sync chip's Settings tap should scroll to.
+    /// The chip sets this just before it pushes Settings; `SettingsView` scrolls
+    /// to the named card and clears it. Nil for the gear and for states 3-5, so
+    /// only a chip tap on an attention state (the only states with a named fix)
+    /// scrolls. Transient UI intent, not sync state - never persisted, never
+    /// logged.
+    var settingsScrollTarget: SettingsScrollTarget?
+
     /// Whether the last cycle ended with an expired session whose refresh was
-    /// rejected (PR.1). The account card shows the re-sign-in card for this,
-    /// never "update the app".
-    var authExpired: Bool { lastOutcome?.authExpired ?? false }
+    /// rejected (PR.1), or the persisted mark says the session is expired
+    /// (RV.26 - the cloud gateway sets the same mark on its own 401). The
+    /// account card shows the re-sign-in card for this, never "update the app".
+    var authExpired: Bool { storedAuthExpired || (lastOutcome?.authExpired ?? false) }
 
     /// The server-ahead notice the Settings account card surfaces: the forced
     /// fixture when a seed set one, else the coordinator's last outcome. It is
@@ -270,6 +295,7 @@ final class AppSync {
     /// Cheap and pure - called on appear and after every sync.
     func refresh() async {
         session = try? sessionStore.load()
+        storedAuthExpired = (try? sessionStore.isAuthExpired()) ?? false
         if session == nil {
             // The account is gone; the just-signed-in confirmation must not
             // outlive the session it confirmed.
@@ -426,4 +452,15 @@ func makeAppTransport() -> any TankbookHTTPTransport {
     #else
     return URLSessionTransport()
     #endif
+}
+
+/// RV.22: the Settings card the sync chip's Settings tap should scroll to
+/// (docs/SYNC.md -> "The sync state chip", state 2: "Settings, scrolled to the
+/// card naming the fix"). Each attention reason maps to the card that names its
+/// next step; `account` is the auth-expired card (rendered in the account card's
+/// signed-out branch), `revokedCard` and `quotaCard` the two issue cards below.
+enum SettingsScrollTarget: Hashable, Sendable {
+    case account
+    case revokedCard
+    case quotaCard
 }
