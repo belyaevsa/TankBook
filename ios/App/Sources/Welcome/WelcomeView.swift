@@ -12,11 +12,37 @@ import TankbookCore
 /// full-width one-tap buttons of equal standing, and the taillight fill on
 /// "Add your car" is the artboard's hierarchy, not a claim that the other door
 /// is a fallback. A reinstall or an Android migrant is never funnelled into
-/// "Add your car" as if they were new: the third path offers their account.
+/// "Add your car" as if they were new: the restore line offers their account.
+///
+/// RV.23 re-argued the screen without adding one (docs/JOURNEYS.md J1 - "every
+/// extra onboarding screen loses users"). Three things changed:
+/// - the third promise no longer argues AGAINST an account ("No account needed")
+///   before the user knows what one costs them. It is two-sided now: the data
+///   stays on the phone (hard rule 1, still true and still a reason people pick
+///   this app) AND an account adds something.
+/// - sign-in is a **peer door** - a full-width button beside the other two, with
+///   the benefit that is hardest to guess right under it. Cloud receipt reading
+///   leads because it changes what the app can *do*: `/extract` is bearer-only,
+///   so a guest gets on-device Vision (38.3% of receipts) and a signed-in user
+///   gets the cloud model (84/96, P4.12). All four benefits are free (RV.4);
+///   nothing here is monetization copy (hard rule 7).
+/// - "Add your car" stays the peer it was: it continues with no account, first
+///   in the stack and in taillight. A user who never signs in has chosen
+///   correctly, so nothing on this screen calls that the lesser path.
+///
+/// The restore line is a **separate** door from the peer sign-in button, and
+/// that separation is load-bearing: it is the only thing that still says "I am
+/// returning", and it is what carries `arrivedViaRestore` into the sign-in
+/// sheet (docs/JOURNEYS.md J11a). The peer button must NOT carry it - a brand
+/// new account is empty because it is new, and asking that user "did you sign
+/// in with Google last time?" is confusing and faintly alarming.
 struct WelcomeView: View {
     let onAddCar: () -> Void
     let onImport: () -> Void
+    /// The general-purpose door: no restore intent (docs/JOURNEYS.md J11a).
     let onSignIn: () -> Void
+    /// The returning user's door: carries the restore intent.
+    let onRestore: () -> Void
 
     var body: some View {
         ZStack {
@@ -76,7 +102,7 @@ struct WelcomeView: View {
         VStack(alignment: .leading, spacing: 16) {
             featureRow("camera", "Scan receipts and pump displays")
             featureRow("keyboard", "Type it or scan it – seconds either way")
-            featureRow("checkmark.shield", "No account needed – your data stays yours")
+            featureRow("checkmark.shield", "Your data stays on your phone – an account adds cloud features")
         }
         .padding(.horizontal, 44)
     }
@@ -94,7 +120,7 @@ struct WelcomeView: View {
         }
     }
 
-    // MARK: - The three paths
+    // MARK: - The doors (three peers + the returning user's line)
 
     private var actionsSection: some View {
         VStack(spacing: 12) {
@@ -133,17 +159,46 @@ struct WelcomeView: View {
             .accessibilityIdentifier("welcomeImportButton")
 
             Button(action: onSignIn) {
-                (Text("Already use Tankbook? ")
-                    + Text("Sign in").bold().foregroundStyle(Theme.Palette.action)
-                    + Text(" – your garage follows you."))
-                    .font(.system(size: 13))
-                    .foregroundStyle(Theme.Palette.inkSoft)
+                VStack(spacing: 3) {
+                    Text("Sign in to Tankbook")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    // The benefit right at the decision, in the user's terms.
+                    // Cloud receipt reading first (it changes what the app can
+                    // do, not where the data lives); all of it is free.
+                    Text("Cloud receipt reading, sync and backup")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Theme.Palette.dash)
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(Theme.Palette.ink.opacity(0.18), lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("welcomeSignInButton")
+
+            // The returning user's door (docs/JOURNEYS.md J11): one full
+            // localised phrase per language, never concatenated - the P1.4 bug
+            // rendered this line's RU as the noun "Вход" standing where a verb
+            // belongs (hard rule 10).
+            Button(action: onRestore) {
+                Text("Already use Tankbook? Restore your garage.")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.action)
                     .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
                     .padding(.top, 4)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("welcomeSignInButton")
+            .accessibilityIdentifier("welcomeRestoreButton")
         }
     }
 }

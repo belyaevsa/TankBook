@@ -43,15 +43,19 @@ final class SignInUITests: XCTestCase {
 
     // MARK: - The wrong-provider trap (docs/JOURNEYS.md J11a)
 
-    /// The REAL path (PJ.3): the Welcome root's third path carries the restore
+    /// The REAL path (PJ.3): the Welcome root's restore door carries the restore
     /// intent (`arrivedViaRestore: true`), so an empty stub account under it
     /// asks the honest question - no `-signInWrongProvider` fixture remains.
+    /// RV.23 split the doors: the peer "Sign in to Tankbook" button no longer
+    /// claims the user is returning, so the intent lives on "Already use
+    /// Tankbook? Restore your garage." and this test taps that one.
     func testWrongProviderShowsHonestQuestionAndProviderSwitchIsOneTap() {
         let app = launch(["-presentWelcome", "-signInStubAuth"])
 
-        // A fresh install shows Welcome; the third path is the restore door.
+        // A fresh install shows Welcome; the restore line is the returning
+        // user's door.
         XCTAssertTrue(app.staticTexts["Tankbook"].waitForExistence(timeout: 10))
-        let signIn = app.buttons["welcomeSignInButton"]
+        let signIn = app.buttons["welcomeRestoreButton"]
         XCTAssertTrue(signIn.isHittable)
         signIn.tap()
 

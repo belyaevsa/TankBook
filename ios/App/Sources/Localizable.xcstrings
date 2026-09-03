@@ -18,23 +18,6 @@
         }
       }
     },
-    " – your garage follows you.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " – your garage follows you."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": " – гараж поедет за вами."
-          }
-        }
-      }
-    },
     "%": {
       "extractionState": "manual",
       "localizations": {
@@ -1854,19 +1837,19 @@
         }
       }
     },
-    "Already use Tankbook? ": {
+    "Already use Tankbook? Restore your garage.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Already use Tankbook? "
+            "value": "Already use Tankbook? Restore your garage."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Уже пользуетесь Tankbook? "
+            "value": "Уже пользуетесь Tankbook? Восстановите свой гараж."
           }
         }
       }
@@ -2853,6 +2836,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Облачное распознавание продолжается в фоне – продолжайте с тем, что распознано здесь."
+          }
+        }
+      }
+    },
+    "Cloud receipt reading, sync and backup": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cloud receipt reading, sync and backup"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Облачное распознавание чеков, синхронизация и резервные копии"
           }
         }
       }
@@ -6348,23 +6348,6 @@
         }
       }
     },
-    "No account needed – your data stays yours": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No account needed – your data stays yours"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Аккаунт не нужен – данные остаются вашими"
-          }
-        }
-      }
-    },
     "No car yet": {
       "extractionState": "manual",
       "localizations": {
@@ -9193,6 +9176,23 @@
         }
       }
     },
+    "Sign in to Tankbook": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in to Tankbook"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войти в Tankbook"
+          }
+        }
+      }
+    },
     "Sign in to sync": {
       "extractionState": "manual",
       "localizations": {
@@ -11347,6 +11347,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ваши данные"
+          }
+        }
+      }
+    },
+    "Your data stays on your phone – an account adds cloud features": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your data stays on your phone – an account adds cloud features"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Данные остаются на телефоне – аккаунт добавляет облачные возможности"
           }
         }
       }
