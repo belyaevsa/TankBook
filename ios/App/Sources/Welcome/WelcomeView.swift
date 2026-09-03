@@ -166,7 +166,7 @@ struct WelcomeView: View {
                     // The benefit right at the decision, in the user's terms.
                     // Cloud receipt reading first (it changes what the app can
                     // do, not where the data lives); all of it is free.
-                    Text("Cloud receipt reading, sync and backup")
+                    Text("Smart receipt scanning, backups and sync with your other devices")
                         .font(.system(size: 12))
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .multilineTextAlignment(.center)

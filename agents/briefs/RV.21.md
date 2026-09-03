@@ -36,6 +36,14 @@ is worse than what is there now, because it looks like a bug rather than a diffe
 3. `settingsButton` stays the accessibility identifier on all three, and each keeps its
    `accessibilityLabel("Settings")`.
 
+
+## Do not touch `docs/TASKS.md`
+
+The orchestrator marks the row after verifying your work. Editing it from an agent is the conflict
+class that forces iOS dispatch to be sequential: resolving a `TASKS.md` conflict by side silently
+un-ticks a task (`HANDOVER.md`), and it cost a scattered commit on 2026-09-03. Report what you did;
+the row is not yours to tick.
+
 ## Explicitly out of scope
 
 - The Settings screen itself.

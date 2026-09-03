@@ -2840,23 +2840,6 @@
         }
       }
     },
-    "Cloud receipt reading, sync and backup": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Cloud receipt reading, sync and backup"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Облачное распознавание чеков, синхронизация и резервные копии"
-          }
-        }
-      }
-    },
     "Coming from Fuelio, Drivvo or My Fuel Manager? Bring your history along.": {
       "extractionState": "manual",
       "localizations": {
@@ -9325,6 +9308,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Пропустить – просто отметить выполненным"
+          }
+        }
+      }
+    },
+    "Smart receipt scanning, backups and sync with your other devices": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Smart receipt scanning, backups and sync with your other devices"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Умное распознавание чеков, бакапы и синхронизация с другими устройствами"
           }
         }
       }

@@ -55,6 +55,14 @@ function. That makes over-suppression **easy to ship and hard to notice** - noth
 quietly gets staler. Any suppression you add must be defensible from your own numbers, and the user
 must still be able to force a cycle from Settings at any moment.
 
+
+## Do not touch `docs/TASKS.md`
+
+The orchestrator marks the row after verifying your work. Editing it from an agent is the conflict
+class that forces iOS dispatch to be sequential: resolving a `TASKS.md` conflict by side silently
+un-ticks a task (`HANDOVER.md`), and it cost a scattered commit on 2026-09-03. Report what you did;
+the row is not yours to tick.
+
 ## Explicitly out of scope
 
 - **RV.14, the sync echo loop.** A vehicle is pushed on every cycle because

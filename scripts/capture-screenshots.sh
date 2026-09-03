@@ -467,6 +467,14 @@ capture PR.6b-import-cancel-ru ru -presentScreen importWizard -importStubFormats
 # legible in every capture, EN and RU, dark and light.
 capture PJ.3b-welcome         en -presentWelcome
 capture PJ.3b-welcome-ru      ru -presentWelcome
+# RV.23 re-argued the same screen: the third promise is two-sided instead of
+# "No account needed", sign-in is a peer button naming what an account buys,
+# and the returning user's line is one whole localised phrase (it used to be
+# concatenated, which rendered the noun "Вход" where a verb belongs). RU is the
+# frame that proves it - the door's benefit line is where the 20-30% expansion
+# lands, and the restore line is where the old defect was visible.
+capture RV.23-welcome         en -presentWelcome
+capture RV.23-welcome-ru      ru -presentWelcome
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture PJ.3b-welcome-light      en -presentWelcome
 capture PJ.3b-welcome-light-ru   ru -presentWelcome

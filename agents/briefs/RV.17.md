@@ -51,6 +51,14 @@ While the fetch runs in viewer mode, the wait must **look like work**. RV.8 is t
 reasoning applies unchanged: a motionless placeholder reads as a finished statement, and this fetch
 can take seconds on a cellular link. Use the system `ProgressView`; degrade under Reduce Motion.
 
+
+## Do not touch `docs/TASKS.md`
+
+The orchestrator marks the row after verifying your work. Editing it from an agent is the conflict
+class that forces iOS dispatch to be sequential: resolving a `TASKS.md` conflict by side silently
+un-ticks a task (`HANDOVER.md`), and it cost a scattered commit on 2026-09-03. Report what you did;
+the row is not yours to tick.
+
 ## Explicitly out of scope
 
 - Delete, rotate, crop, or edit the image.

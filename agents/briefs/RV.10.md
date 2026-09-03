@@ -43,6 +43,14 @@ Make the exit discoverable, without adding a modal or a second concept:
 **The invariant that defines success: opening the picker and closing it again must leave the date
 byte-identical.** Not "approximately the same day" - the same `Date`.
 
+
+## Do not touch `docs/TASKS.md`
+
+The orchestrator marks the row after verifying your work. Editing it from an agent is the conflict
+class that forces iOS dispatch to be sequential: resolving a `TASKS.md` conflict by side silently
+un-ticks a task (`HANDOVER.md`), and it cost a scattered commit on 2026-09-03. Report what you did;
+the row is not yours to tick.
+
 ## Explicitly out of scope
 
 - The picker's own behaviour, its `in: ...Date()` past-only range, or the date format.
