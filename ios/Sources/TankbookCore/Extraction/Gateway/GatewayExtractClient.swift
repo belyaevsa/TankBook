@@ -22,6 +22,23 @@ public protocol GatewayExtractTransport: Sendable {
     func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction
 }
 
+/// The device-side arming policy for `/extract` (docs/API.md -> "The device's
+/// side of `/extract`", RV.26): the cloud gateway is armed only when the
+/// session can actually authenticate. A guest has no session and correctly
+/// gets no gateway; a session whose refresh was rejected is marked
+/// `authExpired` and must not be armed, because arming it uploads the image
+/// for a guaranteed 401. Existence alone is not enough - that is exactly the
+/// defect RV.26 fixed (`load() != nil` let a dead session through).
+public enum GatewayArming {
+    /// Whether the gateway should be armed for a capture. The `authExpired`
+    /// mark is checked first: it is the authoritative "cannot authenticate"
+    /// signal, and a stale mark must never be outlived by a leftover credential.
+    public static func shouldArm(sessionStore: any SessionStore) -> Bool {
+        guard !((try? sessionStore.isAuthExpired()) ?? false) else { return false }
+        return (try? sessionStore.load()) != nil
+    }
+}
+
 /// The production transport: `POST /v1/extract` over the host-bound
 /// `TankbookHTTPClient`, so the bearer token and allowlist rules
 /// (docs/SECURITY.md) apply exactly as they do for auth and sync.
@@ -31,8 +48,10 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
 
     public init(director: ConfigTransportDirector,
                 transport: any TankbookHTTPTransport,
-                tokenProvider: any AuthorizationTokenProvider) {
-        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider)
+                tokenProvider: any AuthorizationTokenProvider,
+                refresher: (any SessionRefreshing)? = nil) {
+        self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
+                                         refresher: refresher)
         self.director = director
     }
 
@@ -58,6 +77,14 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
         do {
             response = try await client.send(http)
             await director.report(.response(status: response.status))
+        } catch SessionRefresherError.authExpired {
+            // The host answered 401, then the refresh's own non-2xx: the session
+            // is gone for good (RV.26). This is an auth event, never a transient
+            // failure - mapping it to `transportUnavailable` would trigger the
+            // one silent retry against a token the server has already rejected,
+            // and it would hide the "sign in again" next step from the surface.
+            await director.report(.response(status: 401))
+            throw SyncServerError.authExpired
         } catch TankbookHTTPClientError.httpError(let status, _, let retryAfterSeconds) {
             // The host answered with a non-2xx extract status - a response,
             // never a transport failure - classified as SyncServerError below

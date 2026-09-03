@@ -7,9 +7,19 @@ import Foundation
 public protocol SessionStore: Sendable {
     /// The stored session, or nil when signed out.
     func load() throws -> AuthSession?
-    /// Persists a session. A second save replaces the previous one.
+    /// Persists a session. A second save replaces the previous one. Saving
+    /// clears any `authExpired` mark - a fresh sign-in or a successful refresh
+    /// means the session can authenticate again.
     func save(_ session: AuthSession) throws
     /// Removes every stored credential (sign-out; docs/SECURITY.md -> the
     /// sign-out test: the local database is untouched, only sync stops).
     func clear() throws
+    /// Marks the session as having failed authentication (a rejected refresh).
+    /// A marked session must not arm the cloud gateway (RV.26) and reads as
+    /// "session expired - sign in again", never as an ordinary sign-out.
+    func setAuthExpired(_ expired: Bool) throws
+    /// Whether the last session's refresh was rejected and the user must sign
+    /// in again. Survives `clear` so the "expired" distinction is kept even
+    /// after the credentials themselves are removed.
+    func isAuthExpired() throws -> Bool
 }

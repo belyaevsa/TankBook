@@ -90,8 +90,10 @@ public actor SessionRefresher: SessionRefreshing {
         } catch TankbookHTTPClientError.httpError {
             // The refresh token is dead - the server answered with a non-2xx.
             // Sign out locally - the chain is gone server-side and can never
-            // be used again.
+            // be used again - and record the expiry so the surface can name the
+            // next step ("sign in again", never an ordinary sign-out - RV.26).
             try? sessionStore.clear()
+            try? sessionStore.setAuthExpired(true)
             throw SessionRefresherError.authExpired
         } catch {
             throw SessionRefresherError.transportUnavailable

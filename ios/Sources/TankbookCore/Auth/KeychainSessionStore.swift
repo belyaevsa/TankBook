@@ -34,6 +34,12 @@ public struct KeychainSessionStore: SessionStore {
         static let refreshToken = "refresh-token"
         static let deviceId = "device-id"
         static let metadata = "session-metadata"
+        /// Not a credential: a boolean ("1"/"0") recording that the last refresh
+        /// was rejected. Deliberately separate from the three credential items
+        /// and the metadata, so it survives `clear` (which removes credentials
+        /// but is followed by `setAuthExpired(true)` on a rejection) and reads
+        /// back even after the tokens themselves are gone (RV.26).
+        static let authExpired = "auth-expired"
     }
 
     public init(service: String = "live.belyaev.tankbook.auth") {
@@ -68,6 +74,9 @@ public struct KeychainSessionStore: SessionStore {
         if let data = try? JSONEncoder().encode(metadata) {
             writeData(Account.metadata, data)
         }
+        // A saved session is a session that can authenticate again: a fresh
+        // sign-in or a successful refresh clears any prior expiry mark.
+        delete(Account.authExpired)
     }
 
     public func clear() throws {
@@ -75,6 +84,15 @@ public struct KeychainSessionStore: SessionStore {
         delete(Account.refreshToken)
         delete(Account.deviceId)
         delete(Account.metadata)
+        delete(Account.authExpired)
+    }
+
+    public func setAuthExpired(_ expired: Bool) throws {
+        write(Account.authExpired, expired ? "1" : "0")
+    }
+
+    public func isAuthExpired() throws -> Bool {
+        read(Account.authExpired) == "1"
     }
 
     // MARK: - The write path, exposed for the enforcement test

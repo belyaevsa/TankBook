@@ -145,11 +145,23 @@ enum GatewayScanStarter {
         arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> (any GatewayExtractTransport)? {
         if let seed = GatewaySeedTransport.from(arguments: arguments) { return seed }
-        guard (try? KeychainSessionStore().load()) != nil else { return nil }
+        let store = KeychainSessionStore()
+        // The gateway is armed only when the session can actually authenticate
+        // (RV.26). A session that merely exists but has failed its refresh still
+        // passes `load() != nil`; arming it uploads the image for a guaranteed
+        // 401 (docs/JOURNEYS.md F4 made that silent). The decision lives in core
+        // (`GatewayArming.shouldArm`) so it tests at L1; the `authExpired` mark
+        // is the authoritative "cannot authenticate" signal.
+        guard GatewayArming.shouldArm(sessionStore: store) else { return nil }
         return RemoteGatewayExtractTransport(
             director: AppConfigStore.shared.director,
             transport: URLSessionTransport(),
-            tokenProvider: KeychainTokenProvider(sessionStore: KeychainSessionStore()))
+            tokenProvider: KeychainTokenProvider(sessionStore: store),
+            // PR.1: the same single-flight refresher every authenticated
+            // transport shares - a stale (but valid) session refreshes on the
+            // gateway's 401 exactly as sync does, so a cloud reading that can
+            // succeed does instead of being refused silently.
+            refresher: AppSessionRefresher.shared)
     }
 }
 

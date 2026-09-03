@@ -95,6 +95,31 @@ struct SessionRefresherTests {
         #expect(try store.load() == nil, "a rejected refresh token must sign the user out locally")
     }
 
+    @Test func aRejectedRefreshLeavesTheStoreMarkedAuthExpired() async throws {
+        let transport = AuthRecordingTransport()
+        let store = InMemorySessionStore(session: makeSession())
+        let refresher = makeRefresher(transport: transport, store: store)
+        transport.script([TankbookHTTPResponse(status: 401)])
+
+        await #expect(throws: SessionRefresherError.authExpired) {
+            _ = try await refresher.refresh()
+        }
+        #expect(try store.isAuthExpired() == true,
+                "a rejected refresh must leave the store marked authExpired (RV.26)")
+    }
+
+    @Test func aSuccessfulRefreshClearsTheAuthExpiredMark() async throws {
+        let transport = AuthRecordingTransport()
+        let store = InMemorySessionStore(session: makeSession())
+        try store.setAuthExpired(true)
+        let refresher = makeRefresher(transport: transport, store: store)
+        transport.script([TankbookHTTPResponse(status: 200, body: refreshPairBody())])
+
+        _ = try await refresher.refresh()
+        #expect(try store.isAuthExpired() == false,
+                "a successful refresh clears the expiry mark - the session can authenticate again")
+    }
+
     @Test func aRefreshWithNoSessionYieldsAuthExpired() async {
         let transport = AuthRecordingTransport()
         let store = InMemorySessionStore(session: nil)

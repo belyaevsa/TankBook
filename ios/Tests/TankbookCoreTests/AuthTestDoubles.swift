@@ -13,6 +13,7 @@ import os
 final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     private struct State {
         var session: AuthSession?
+        var authExpired = false
         var loadCount = 0
     }
 
@@ -28,11 +29,25 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     }
 
     func save(_ session: AuthSession) throws {
-        lock.withLock { $0.session = session }
+        lock.withLock {
+            $0.session = session
+            $0.authExpired = false
+        }
     }
 
     func clear() throws {
-        lock.withLock { $0.session = nil }
+        lock.withLock {
+            $0.session = nil
+            $0.authExpired = false
+        }
+    }
+
+    func setAuthExpired(_ expired: Bool) throws {
+        lock.withLock { $0.authExpired = expired }
+    }
+
+    func isAuthExpired() throws -> Bool {
+        lock.withLock { $0.authExpired }
     }
 
     var loadCount: Int { lock.withLock { $0.loadCount } }
