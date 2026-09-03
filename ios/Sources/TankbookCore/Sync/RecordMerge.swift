@@ -90,6 +90,23 @@ public enum RecordMerge {
         }
         merged.updatedAt = max(local.clientUpdatedAt, remote.clientUpdatedAt)
 
+        // RV.14: a field merge is only worth reporting when it produced
+        // something new. Compare at the level the merge itself works at - the
+        // decoded `Vehicle` plus the per-field versions - never the raw payload
+        // bytes, which do not converge across a lossy re-encode (JSON key
+        // ordering, decimal formatting, a field the server normalises) and
+        // would swap one infinite push loop for a subtler one.
+        if merged == remoteVehicle,
+           mergedVersions == effectiveVersions(remoteVersions, fallback: remote.clientUpdatedAt) {
+            // Nothing local to push: the merged result is exactly the remote.
+            return Result(keep: remote, winner: .remote, loser: local)
+        }
+        if merged == localVehicle,
+           mergedVersions == effectiveVersions(localVersions, fallback: local.clientUpdatedAt) {
+            // Already correct here: the merged result is exactly the local.
+            return Result(keep: local, winner: .local, loser: remote)
+        }
+
         let domainPayload = (try? PayloadCodec.encode(merged).payload) ?? remote.payload
         let payload = VehicleFieldVersions.write(into: domainPayload, versions: mergedVersions)
         let keep = SyncRecord(
@@ -109,6 +126,20 @@ public enum RecordMerge {
                                        schemaVersion: record.schemaVersion,
                                        payload: record.payload)
         return try PayloadCodec.decode(envelope, as: Vehicle.self).entity
+    }
+
+    /// The per-field versions the merge would fall back to for a record: each
+    /// mergeable field carries its explicit version, or the record's whole
+    /// `clientUpdatedAt` when none is present (the same degradation the merge
+    /// loop itself applies). Used by the RV.14 "did the merge change anything"
+    /// comparison, mirroring the merge's own semantics so the comparison and
+    /// the merge can never disagree about what "new" means.
+    private static func effectiveVersions(_ versions: [String: Date], fallback: Date) -> [String: Date] {
+        var result: [String: Date] = [:]
+        for field in VehicleMergeFields.all {
+            result[field] = versions[field] ?? fallback
+        }
+        return result
     }
 
     private static func applyVehicleField(_ field: String, from source: Vehicle, to target: inout Vehicle) {
