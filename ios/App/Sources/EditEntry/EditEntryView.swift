@@ -30,8 +30,9 @@ struct EditEntryView: View {
     // FillUp form (reuses the ConfirmManual components).
     @State var fillForm = ManualFillUpFormState()
     @FocusState private var fillFocus: ManualFillUpFocus?
-    // The other three entry types.
-    @State private var nonFillForm = EditEntryNonFillForm()
+    // The other three entry types. Internal (not private) so the RV.31 discard
+    // extension in EditEntryView+Discard.swift can read it for the dirty check.
+    @State var nonFillForm = EditEntryNonFillForm()
 
     @State var vehicle: Vehicle?
     @State var fillUp: FillUp?
@@ -42,21 +43,24 @@ struct EditEntryView: View {
     @State private var stations: [Station] = []
     @State var attachments: [Attachment] = []
     @State private var selectedStation: Station?
-    @State private var note = ""
+    // The fill-up's note (the non-fill note lives inside `nonFillForm`). Internal
+    // (not private) so the RV.31 discard extension can read it for the dirty check.
+    @State var note = ""
     @State private var showDatePicker = false
     @State private var showDeleteConfirm = false
     @State private var showTankLevel = false
     @State private var syncOverwrite: SyncOverwrite?
     @State private var didLoad = false
-    @State private var loadFailed = false
+    @State var loadFailed = false
     @State var pendingBlobIDs: Set<UUID> = []
 
     // PJ.48: the "Add receipt" attach flow. The photo, its OCR lines and the
     // extraction are held until Save writes them; a failed write flips
     // `attachFailed` and leaves the entry completely unchanged (ERRORS.md ->
-    // Edit entry, the PJ.48 warn row).
+    // Edit entry, the PJ.48 warn row). `attachImage` is internal (not private)
+    // for the RV.31 discard extension - a held photo is unsaved work too.
     @State private var showAttachSource = false
-    @State private var attachImage: UIImage?
+    @State var attachImage: UIImage?
     @State private var attachOcrLines: [OCRLine] = []
     @State private var attachExtraction: FuelExtraction?
     @State private var attachFailed = false
@@ -104,6 +108,11 @@ struct EditEntryView: View {
         } message: {
             Text("It moves to Recently deleted for 30 days.")
         }
+        // RV.31: report whether this pushed Edit entry holds unsaved work up to
+        // the tab host (`AppRootView`), which consults it when the ACTIVE tab is
+        // re-tapped: a dirty entry makes the pop-to-root ask first (hard rule
+        // 8), a clean one pops immediately. See `PushedFormDirtyPreference`.
+        .preference(key: PushedFormDirtyPreference.self, value: entryHasUnsavedChanges)
     }
 
     private var currencySymbol: String {
@@ -230,28 +239,18 @@ struct EditEntryView: View {
     }
 
     private func loadNonFill(_ entry: any Entry) {
-        nonFillForm.amount = entry.money.map {
-            ManualFillUpFormat.decimal($0.amount, fractionDigits: 2)
-        } ?? ""
-        nonFillForm.currency = entry.money?.currency ?? vehicle?.homeCurrency ?? .eur
-        nonFillForm.date = entry.date
-        nonFillForm.odometer = entry.odometer.map(OdometerFormat.grouped) ?? ""
-        nonFillForm.note = entry.note ?? ""
         switch entry {
-        case let charge as ChargeSession:
-            self.charge = charge
-            nonFillForm.energyKWh = charge.energyKWh == 0
-                ? "" : ManualFillUpFormat.decimal(charge.energyKWh, fractionDigits: 1)
-            nonFillForm.provider = charge.provider ?? ""
-        case let service as ServiceRecord:
-            self.service = service
-            nonFillForm.vendor = service.vendor ?? ""
-        case let expense as Expense:
-            self.expense = expense
-            nonFillForm.title = expense.title
-        default:
-            break
+        case let charge as ChargeSession: self.charge = charge
+        case let service as ServiceRecord: self.service = service
+        case let expense as Expense: self.expense = expense
+        default: break
         }
+        // Single source of truth with the RV.31 discard baseline
+        // (`pristineNonFillForm`, EditEntryView+Discard.swift): the form is
+        // loaded through the same builder the dirty check compares against, so
+        // the two cannot drift.
+        guard let vehicle else { return }
+        nonFillForm = Self.pristineNonFillForm(for: entry, vehicle: vehicle)
     }
 
     /// P4.6 lazy download: opening the entry fetches the missing full rendition

@@ -59,6 +59,10 @@ enum AppTab: Int, CaseIterable, Identifiable {
 struct AppTabBar: View {
     /// The `TabView` selection the bar drives. Capture is not a tag.
     @Binding var selection: AppTab
+    /// RV.31: fires only when the tap lands on the ALREADY-selected tab. A tap
+    /// that changes tabs never fires it - the host pops that tab's own
+    /// `NavigationStack` path to its root (the standard iOS re-tap convention).
+    let onReselectTab: (AppTab) -> Void
     /// Presents `ModalRoute.capture` via the app's existing full-screen cover.
     let onCapture: () -> Void
     /// The live home-indicator inset, so the bar can spend the artboard's
@@ -147,7 +151,14 @@ struct AppTabBar: View {
     private func tabSlot(_ tab: AppTab) -> some View {
         let isSelected = selection == tab
         return Button {
-            selection = tab
+            if selection == tab {
+                // RV.31: a re-tap of the active tab is a "return to root"
+                // request, NOT a no-op. The host owns the paths, so the pop (and
+                // its discard guard) lives there, never in this bar.
+                onReselectTab(tab)
+            } else {
+                selection = tab
+            }
         } label: {
             VStack(spacing: 4) {
                 Image(systemName: tab.icon)

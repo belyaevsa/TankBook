@@ -23,6 +23,19 @@ extension ManualFillUpFormState {
         tankLevelAfterPct = fill.tankLevelAfterPct
         odometer = fill.odometer.map(OdometerFormat.grouped) ?? ""
         date = fill.date
+        // RV.31: pin the discard-guard snapshots to the LOADED values. An
+        // existing entry's stored values are a convenience pre-fill exactly
+        // like the odometer/date pre-fill on a NEW entry - the entry is not
+        // "edited" until the user changes something. `initialDate` in
+        // particular defaults to `Date()` at instantiation, so a pristine form
+        // rebuilt later for the discard comparison would never equal the
+        // loaded one unless the snapshot is taken here.
+        initialTotal = total
+        initialLiters = liters
+        initialPricePerL = pricePerL
+        initialOdometer = odometer
+        initialDate = date
+        initialManualRate = manualRate
     }
 
     /// A stored USER-set rate loads back into the manual-rate field (hard rule

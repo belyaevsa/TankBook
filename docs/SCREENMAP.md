@@ -10,6 +10,7 @@
    - **Tab roots** (Log/Home, Trends, Garage) – no back button; switching tabs preserves each tab's stack. The three share ONE header treatment (RV.21): a one-row custom header – screen title + the Settings gear on the same line – drawn by the shared `TabRootHeader` (docs/DESIGN.md). Each root's gear pushes Settings onto that root's OWN stack, so back returns to the root that pushed it, never to a hardcoded tab.
    - **Tab roots reload on signals, not on reappearance.** The roots stay mounted across a switch (only visibility changes, `AppRootView`), so a root's `.task` fires once and never again for a tab the user returns to. Each root therefore reloads on the same three triggers – its first `.task`, a change to `carSelection.selectedID`, and a bump of `toastCenter.revision` – and every save that changes a tab root's data raises `noteEntryChanged()` (RV.25: a car added from the picker showed in Garage only after a relaunch because Add car raised no signal and Garage listened to none; a root with a `.task`-only load is a stale-list bug).
    - **Pushed screens** (Settings, About, Reminders, Recently deleted, Edit entry) – back chevron top-left + iOS edge-swipe. Back never discards saved data.
+   - **Re-tapping the active tab returns that tab to its root** (RV.31): the standard iOS escape when the back chevron is not where the thumb is. It pops that tab's OWN `NavigationStack` path – immediate when the pushed top screen holds nothing unsaved; through the SAME "Keep editing / Discard" confirmation a sheet uses when a pushed Edit entry has unsaved edits, and Cancel leaves the entry open and unchanged (hard rule 8). A tap on a DIFFERENT tab is an ordinary switch and never pops. Each tab's dirty signal is its own, so a half-typed entry left open on one tab never makes re-tapping ANOTHER tab ask.
    - **Sheets** (Confirm variants, Car switcher, Tank level, Reminder complete, Sign in) – drag handle, swipe-down to dismiss, plus an explicit close/"Not now". A sheet with unsaved *typed* input asks before discarding ("Keep editing / Discard"); a sheet with only scanned data discards silently – the photo is never lost, it re-offers from the camera roll.
 2. **Capture is modal full-screen** (camera): X closes back to wherever it was opened from, and so does a **successful save** – see "Saving inside capture" below. A save inside capture tears the modal down (RV.12); it does **not** switch tabs, so it lands wherever capture was opened from, with the new entry visible there (Home reloads on `noteEntryChanged`). The earlier wording here promised the **Log tab regardless of where capture started**; that cross-tab jump was never built, and RV.12 deliberately did not add it – a save that moves the user to a tab they did not choose is a second surprise on top of the one it fixes. Recorded here as the shape that ships; changing it is a product decision, not a bug fix.
 3. **System surfaces** (photo viewer, share sheet for export, App Store rating, system delete-confirmation alerts) are leaves that return automatically – listed once here, not repeated below.
@@ -117,6 +118,7 @@ flowchart TD
 
     Settings -->|account card, guest| SignIn
     Settings -->|account card, signed in| AccountDevices
+    Settings -->|Language| LanguagePicker[Language picker (sheet)]
     Settings -->|Import| ImportWizard
     Settings -->|"2 entries need a look"| Log
     Settings -->|Recently deleted| RecentlyDeleted
@@ -168,7 +170,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
 | Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
-| Settings | any tab root's gear (Log, Trends, Garage) | account, import, export (system), recently deleted, Pro, About | back → the tab root that pushed it |
+| Settings | any tab root's gear (Log, Trends, Garage) | account, language, import, export (system), recently deleted, Pro, About | back → the tab root that pushed it |
 | Account & devices (P6.4) | Settings account card (signed in) | device list (revoke) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
 | About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) | back → Settings |
 

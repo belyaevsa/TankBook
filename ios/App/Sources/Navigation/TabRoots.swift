@@ -46,6 +46,19 @@ struct AppRootView: View {
     @State private var logPath: [Route] = []
     @State private var trendsPath: [Route] = []
     @State private var garagePath: [Route] = []
+    /// RV.31: each tab's own "the pushed screen on top holds unsaved edits"
+    /// signal, reported up by `EditEntryView` through
+    /// `PushedFormDirtyPreference`. One per tab, because an INACTIVE tab keeps
+    /// its mounted stack (and its dirty Edit entry) while the user works on
+    /// another tab, and re-tapping THAT tab must never ask about - or pop -
+    /// the hidden one.
+    @State private var logFormDirty = false
+    @State private var trendsFormDirty = false
+    @State private var garageFormDirty = false
+    /// RV.31: the tab whose re-tap "pop to root" is waiting on the discard
+    /// confirmation. `nil` = no pop pending. Only the ACTIVE tab can be
+    /// re-tapped, so at most one tab can ever be waiting here.
+    @State private var pendingReselectDiscard: AppTab?
     /// Set by `ConfirmableFormScreen` through a preference: a form with a
     /// primary confirmation action hides the bar while it is on screen.
     @State private var isConfirmableFormOnTop = false
@@ -159,8 +172,11 @@ struct AppRootView: View {
             // `if`, because an `if` would destroy and rebuild the losing tabs.
             ZStack {
                 tabRoot(.log) { HomeTabView(path: $logPath, modal: $logModal) }
+                    .onPreferenceChange(PushedFormDirtyPreference.self) { logFormDirty = $0 }
                 tabRoot(.trends) { TrendsTabView(path: $trendsPath, modal: $trendsModal) }
+                    .onPreferenceChange(PushedFormDirtyPreference.self) { trendsFormDirty = $0 }
                 tabRoot(.garage) { GarageTabView(path: $garagePath, modal: $garageModal) }
+                    .onPreferenceChange(PushedFormDirtyPreference.self) { garageFormDirty = $0 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             // The accent still propagates to CONTENT - entry markers, the
@@ -179,7 +195,8 @@ struct AppRootView: View {
             // for Save that lands on Capture abandons a half-filled form. See
             // `ConfirmableFormScreen`.
             if !isConfirmableFormOnTop {
-                AppTabBar(selection: $tabSelection) {
+                AppTabBar(selection: $tabSelection,
+                          onReselectTab: handleTabReselect) {
                     openCapture()
                 }
                 .transition(.move(edge: .bottom))
@@ -306,6 +323,64 @@ struct AppRootView: View {
         .onChange(of: notificationRouter.pending) { _, _ in
             drive(notificationRouter.consume())
         }
+        // RV.31: the discard confirmation a same-tab re-tap routes through when
+        // the pushed Edit entry holds unsaved work. SAME copy and behaviour as
+        // `DiscardAwareSheet`'s prompt - "Keep editing" leaves the entry open
+        // and untouched, "Discard" pops the tab's path to root (hard rule 8).
+        .alert("Discard changes?", isPresented: reselectDiscardPresented) {
+            Button("Keep editing") {}
+            Button("Discard", role: .destructive) {
+                if let tab = pendingReselectDiscard {
+                    popTabToRoot(tab)
+                }
+            }
+        }
+    }
+
+    /// RV.31: a tap on the ALREADY-selected tab returns that tab to its root
+    /// (the standard iOS re-tap convention - docs/SCREENMAP.md back paths).
+    /// Nothing happens when the tab is already at its root. A pushed Edit
+    /// entry with unsaved edits asks FIRST through the discard confirmation;
+    /// Cancel leaves the entry open and unchanged, so a re-tap can never
+    /// silently throw away a half-typed entry (hard rule 8).
+    private func handleTabReselect(_ tab: AppTab) {
+        let dirty: Bool
+        let atRoot: Bool
+        switch tab {
+        case .log:
+            dirty = logFormDirty
+            atRoot = logPath.isEmpty
+        case .trends:
+            dirty = trendsFormDirty
+            atRoot = trendsPath.isEmpty
+        case .garage:
+            dirty = garageFormDirty
+            atRoot = garagePath.isEmpty
+        }
+        guard !atRoot else { return }
+        if dirty {
+            pendingReselectDiscard = tab
+        } else {
+            popTabToRoot(tab)
+        }
+    }
+
+    private func popTabToRoot(_ tab: AppTab) {
+        switch tab {
+        case .log: logPath = []
+        case .trends: trendsPath = []
+        case .garage: garagePath = []
+        }
+    }
+
+    /// Backs the RV.31 discard alert: present while a re-tap pop is waiting on
+    /// the user's answer, and clearing the alert (Keep editing, or an
+    /// out-of-band dismissal) also clears the pending pop.
+    private var reselectDiscardPresented: Binding<Bool> {
+        Binding(get: { pendingReselectDiscard != nil },
+                set: { isPresented in
+                    if !isPresented { pendingReselectDiscard = nil }
+                })
     }
 
     /// Routes the capture button to whichever tab is on screen, so the cover is
