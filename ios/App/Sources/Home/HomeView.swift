@@ -71,30 +71,14 @@ struct HomeView: View {
     }
 
     /// Title and settings gear on ONE row (docs/DESIGN.md: "The Home header is
-    /// ONE row"). Not `.navigationTitle` + `.toolbar`: SwiftUI's large-title
-    /// layout puts toolbar items on the bar ABOVE the title by construction, so
-    /// two rows went to chrome before any of the user's data appeared - on a
-    /// screen whose job is "your car, at a glance", the car should come first.
+    /// ONE row") - since RV.21 the shared `TabRootHeader`, drawn by all three
+    /// tab roots so the gear sits in the same place on Log, Trends and Garage.
+    /// Not `.navigationTitle` + `.toolbar`: SwiftUI's large-title layout puts
+    /// toolbar items on the bar ABOVE the title by construction, so two rows
+    /// went to chrome before any of the user's data appeared - on a screen
+    /// whose job is "your car, at a glance", the car should come first.
     private var header: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Log")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Theme.Palette.ink)
-                .accessibilityIdentifier("homeHeaderTitle")
-                .accessibilityAddTraits(.isHeader)
-            Spacer(minLength: 12)
-            NavigationLink(value: Route.settings) {
-                Image(systemName: "gearshape")
-                    .font(.title3)
-                    .foregroundStyle(Theme.Palette.taillight)
-                    .frame(width: 44, height: 44)          // tap target >= 44pt
-                    .background(Circle().fill(Theme.Palette.dash))
-                    .overlay(Circle().stroke(Theme.Palette.hairline, lineWidth: 1))
-            }
-            .accessibilityIdentifier("settingsButton")
-            .accessibilityLabel("Settings")
-        }
-        .padding(.top, 4)
+        TabRootHeader(title: "Log", titleIdentifier: "homeHeaderTitle")
     }
 
     var body: some View {

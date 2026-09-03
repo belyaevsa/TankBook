@@ -41,6 +41,10 @@ struct TrendsView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 9) {
+                // The shared tab-root header (RV.21): same one-row title + gear
+                // treatment as Log and Garage, so Settings sits in the same
+                // place on every tab root.
+                TabRootHeader(title: "Trends", titleIdentifier: "trendsHeaderTitle")
                 content
                 if vehicle != nil {
                     MonthlySummaryToggle(isOn: $monthlySummaryEnabled)

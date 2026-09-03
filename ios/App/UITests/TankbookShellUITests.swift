@@ -58,11 +58,11 @@ final class TankbookShellUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
 
         app.buttons["tabbar.trends"].tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
 
         app.buttons["tabbar.garage"].tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.navigationBars.buttons["Back"].exists)
     }
 
@@ -78,7 +78,7 @@ final class TankbookShellUITests: XCTestCase {
 
         // Switch away to Trends.
         app.buttons["tabbar.trends"].tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5))
 
         // Switch back: the pushed Settings screen must still be on the stack.
         app.buttons["tabbar.log"].tap()
@@ -140,17 +140,17 @@ final class TankbookShellUITests: XCTestCase {
     func testGarageTabEdgesHaveBackPaths() {
         let app = launch()
         app.buttons["tabbar.garage"].tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
 
         app.buttons["garageCarRow"].firstMatch.tap()
         XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
 
         app.buttons["garageAddCar"].tap()
         XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     func testSettingsChainHasBackPaths() {

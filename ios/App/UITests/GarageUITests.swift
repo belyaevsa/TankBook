@@ -22,7 +22,7 @@ final class GarageUITests: XCTestCase {
     private func openGarage(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
         app.buttons["tabbar.garage"].tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     /// The live car rows (the archived one is a separate identifier).
@@ -119,7 +119,7 @@ final class GarageUITests: XCTestCase {
         XCTAssertTrue(app.buttons["carLimitCancelButton"].exists)
 
         app.buttons["carLimitCancelButton"].tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5),
                       "cancel leaves the garage intact and on the tab")
         XCTAssertEqual(liveRows(app).count, 3, "cancelling must not remove a car")
     }

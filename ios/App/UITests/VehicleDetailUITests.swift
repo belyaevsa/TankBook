@@ -206,7 +206,7 @@ final class VehicleDetailUITests: XCTestCase {
         // Back to Garage, then Home, then the switcher: the Volvo is now an
         // archived row (the seeded BMW was already one), dimmed and honest.
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
         app.buttons["tabbar.log"].tap()
 
         let switcher = app.buttons["carSwitcherButton"]
@@ -267,7 +267,7 @@ final class VehicleDetailUITests: XCTestCase {
 
         // Back to the switcher: all three cars remain (the cancel touched nothing).
         app.navigationBars.buttons.element(boundBy: 0).tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
         app.buttons["tabbar.log"].tap()
         let switcher = app.buttons["carSwitcherButton"]
         XCTAssertTrue(switcher.waitForExistence(timeout: 5), "carSwitcherButton never appeared")

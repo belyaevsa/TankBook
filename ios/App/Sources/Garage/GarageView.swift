@@ -38,6 +38,10 @@ struct GarageView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 8) {
+                // The shared tab-root header (RV.21): same one-row title + gear
+                // treatment as Log and Trends, so Settings sits in the same
+                // place on every tab root.
+                TabRootHeader(title: "Garage", titleIdentifier: "garageHeaderTitle")
                 if rows.isEmpty {
                     emptyGarage
                 } else {
@@ -54,7 +58,6 @@ struct GarageView: View {
         }
         .scrollContentBackground(.hidden)
         .background(Theme.Palette.midnight)
-        .navigationTitle("Garage")
         .task { await load() }
         .sheet(isPresented: $showsLimitSheet) { limitSheet }
     }

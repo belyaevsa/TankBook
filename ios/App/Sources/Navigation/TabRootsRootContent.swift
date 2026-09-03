@@ -9,9 +9,10 @@ struct HomeRootView: View {
     let presentSheet: (SheetRoute) -> Void
 
     var body: some View {
-        // Home draws its own one-row header (title + gear on the same line,
-        // docs/DESIGN.md), so the navigation bar is hidden rather than stacked
-        // above it. The other tab roots keep the standard large title.
+        // The three tab roots share ONE header treatment (RV.21): each draws
+        // its own one-row header - title + gear on the same line, docs/DESIGN.md
+        // - via the shared `TabRootHeader`, so the navigation bar is hidden
+        // rather than stacked above it.
         HomeView(presentSheet: presentSheet)
             .navigationTitle("Log")
             .toolbar(.hidden, for: .navigationBar)
@@ -24,6 +25,7 @@ struct TrendsRootView: View {
     var body: some View {
         TrendsView(presentSheet: presentSheet)
             .navigationTitle("Trends")
+            .toolbar(.hidden, for: .navigationBar)
     }
 }
 
@@ -34,5 +36,7 @@ struct GarageRootView: View {
 
     var body: some View {
         GarageView(onNavigate: onNavigate)
+            .navigationTitle("Garage")
+            .toolbar(.hidden, for: .navigationBar)
     }
 }

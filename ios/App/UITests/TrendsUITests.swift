@@ -109,7 +109,7 @@ final class TrendsUITests: XCTestCase {
     func testDataPoorStateOmitsTilesAndNoNATiles() {
         let app = launch(args: ["-seedHomeEmptyVehicle"])
 
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 10))
         XCTAssertFalse(anyElement(app, "trendsConsumptionTile").exists)
         XCTAssertFalse(anyElement(app, "trendsCostPerKmTile").exists)
         XCTAssertFalse(anyElement(app, "trendsSpendTile").exists)
@@ -200,7 +200,7 @@ final class TrendsUITests: XCTestCase {
         waitForExpectations(timeout: 10)
         XCTAssertFalse(app.buttons["tabbar.log"].isSelected,
                        "the Log tab must not be selected after a monthly-summary tap")
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5),
                       "the Trends root is what is in frame, not a bare title")
     }
 

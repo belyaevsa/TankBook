@@ -125,11 +125,11 @@ final class SignInUITests: XCTestCase {
 
         // Trends works.
         app.buttons["tabbar.trends"].tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5))
 
         // Garage works.
         app.buttons["tabbar.garage"].tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
 
         // An entry saves: back to Log, type a fill-up, save. The declined
         // sign-in leaves the app a guest, so the guest Home's own "Type it"

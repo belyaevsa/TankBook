@@ -118,7 +118,7 @@ final class AddVehicleUITests: XCTestCase {
 
         save.tap()
         // Save succeeded: back on Garage.
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Error-state 2: odometer missing/implausible
@@ -153,7 +153,7 @@ final class AddVehicleUITests: XCTestCase {
         let save = app.buttons["addVehicleSaveButton"]
         scrollTo(save, in: app)
         save.tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     func testConfirmItIsRightIsOneTap() {
@@ -202,7 +202,7 @@ final class AddVehicleUITests: XCTestCase {
         name.typeText("My car")
         let save = app.buttons["addVehicleSaveButton"]
         save.tap()
-        XCTAssertTrue(app.navigationBars["Garage"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
     }
 
     // MARK: - Suggestion pre-fill

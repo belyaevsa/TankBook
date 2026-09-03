@@ -334,7 +334,7 @@ final class CaptureUITests: XCTestCase {
         let trends = app.buttons["tabbar.trends"]
         XCTAssertTrue(trends.waitForExistence(timeout: 10), "tabbar.trends never appeared")
         trends.tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5))
 
         let button = app.buttons["captureButton"]
         XCTAssertTrue(button.waitForExistence(timeout: 10))
@@ -349,7 +349,7 @@ final class CaptureUITests: XCTestCase {
         let close = app.buttons["captureCloseButton"]
         XCTAssertTrue(close.waitForExistence(timeout: 5), "captureCloseButton never appeared")
         close.tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5),
                       "closing capture must return to the originating tab")
         XCTAssertTrue(app.buttons["tabbar.trends"].isSelected,
                       "the originating tab must still be selected")
@@ -366,7 +366,7 @@ final class CaptureUITests: XCTestCase {
         let trends = app.buttons["tabbar.trends"]
         XCTAssertTrue(trends.waitForExistence(timeout: 10), "tabbar.trends never appeared")
         trends.tap()
-        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].waitForExistence(timeout: 5))
 
         // Push a screen on Trends' own stack via the excluded-entries footnote
         // (the duplicate seed produces one excluded entry, which Trends links).
