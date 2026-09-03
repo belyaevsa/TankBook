@@ -3947,6 +3947,23 @@
         }
       }
     },
+    "Downloading the full photo…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloading the full photo…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Загружаем полное фото…"
+          }
+        }
+      }
+    },
     "Drivvo": {
       "extractionState": "manual",
       "localizations": {
@@ -7657,6 +7674,23 @@
         }
       }
     },
+    "Read from the receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Read from the receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Считано с чека"
+          }
+        }
+      }
+    },
     "Reading file…": {
       "extractionState": "manual",
       "localizations": {
@@ -9070,6 +9104,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Настройки"
+          }
+        }
+      }
+    },
+    "Share": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Share"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Поделиться"
           }
         }
       }
@@ -11177,6 +11228,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добро пожаловать в Tankbook"
+          }
+        }
+      }
+    },
+    "What was read": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What was read"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что распознано"
           }
         }
       }

@@ -15,6 +15,14 @@ import TankbookCore
 ///   disk, so the viewer opens on the zoomable photo.
 /// - `-seedPhotoPDF` (RV.9): the attachment is a PDF on disk - the state an
 ///   image view would render as a blank screen.
+/// - `-seedPhotoRemote` (RV.17): the full rendition is nowhere on the device but
+///   the attachment's sha256 names a JPEG the seeded `SeededBlobTransport`
+///   serves after `-seedBlobFetchDelay`, and an account is written at launch
+///   (`seedSessionAtLaunchIfRequested`) so the viewer has a fetcher - the state
+///   the slow-fetch progress test drives.
+/// - `-seedPhotoLocalNoOCR` (RV.17): a local photo with NO recognised data
+///   (`ocrText` and `extractedTimestamp` both nil), so the viewer's recognised
+///   page is absent rather than empty.
 ///
 /// The entry is openable and editable in every one of them (hard rule 1).
 enum PhotoSyncingTestSeed {
@@ -28,6 +36,10 @@ enum PhotoSyncingTestSeed {
             variant = .local
         } else if arguments.contains("-seedPhotoPDF") {
             variant = .pdf
+        } else if arguments.contains("-seedPhotoRemote") {
+            variant = .remote
+        } else if arguments.contains("-seedPhotoLocalNoOCR") {
+            variant = .localNoOCR
         } else {
             variant = nil
         }
@@ -35,11 +47,33 @@ enum PhotoSyncingTestSeed {
         seed(variant)
     }
 
+    /// Writes the account the `.remote` slow-fetch seed needs, at LAUNCH time -
+    /// before any view appears - so the viewer's on-demand fetch has a fetcher
+    /// the moment it opens. Seeding the session only when Edit entry loads
+    /// would race `-openAttachmentViewer` (which opens the viewer first) and the
+    /// screenshot could show "signed out" instead of "downloading". Called from
+    /// the app root init, next to `SettingsTestSeed.seedSessionAtLaunchIfRequested`.
+    static func seedSessionAtLaunchIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-seedPhotoRemote") else { return }
+        let store = KeychainSessionStore()
+        try? store.clear()
+        try? store.save(SettingsTestSeed.stubSession())
+    }
+
     enum Variant {
         case syncing
         case local
         case pdf
+        case remote
+        case localNoOCR
     }
+
+    /// The JPEG the seeded slow transport returns, and the bytes the `.remote`
+    /// seed hashes into its attachment's sha256. A `static let` so the seed and
+    /// the transport agree bit-for-bit within the process (verify-on-download
+    /// compares against the sha256, so any divergence would read as a failed
+    /// fetch rather than the intended full rendition).
+    static let remoteRendition: Data = sampleJPEG(size: 900) ?? Data()
 
     @MainActor
     private static func seed(_ variant: Variant) {
@@ -59,12 +93,20 @@ enum PhotoSyncingTestSeed {
         try? repository.upsertVehicle(vehicle)
 
         let scannedAt = now.addingTimeInterval(-3600)
+        // RV.17: `.localNoOCR` and `.remote` carry nothing recognised - the
+        // first so the viewer's recognised page is absent, the second so the
+        // slow-fetch capture shows the progress indication cleanly (no second
+        // page). Every other variant carries the same distinctive OCR line so
+        // the page is reachable.
+        let recognised: (timestamp: Date?, ocr: String?) =
+            (variant == .localNoOCR || variant == .remote)
+                ? (nil, nil) : (scannedAt, "SHELL 71.02 42.30 1.679")
         let attachment = Attachment(
             id: UUID.v7(), createdAt: scannedAt, updatedAt: scannedAt, deletedAt: nil,
             kind: variant == .pdf ? .pdf : .photo,
             file: fileRef(for: variant),
-            extractedTimestamp: scannedAt,
-            ocrText: "SHELL 71.02 42.30 1.679",
+            extractedTimestamp: recognised.timestamp,
+            ocrText: recognised.ocr,
             thumbnailBase64: variant == .pdf ? nil : Self.thumbnailBase64())
         try? repository.upsertAttachment(attachment)
 
@@ -79,8 +121,10 @@ enum PhotoSyncingTestSeed {
     }
 
     /// The syncing variant points at a blob that is nowhere on the device; the
-    /// other two write the real bytes and reference them by their own hash, so
-    /// `BlobService.localData` finds them without a network round-trip.
+    /// remote variant points at the seeded slow transport's JPEG (also nowhere
+    /// on the device); the others write the real bytes and reference them by
+    /// their own hash, so `BlobService.localData` finds them without a network
+    /// round-trip.
     @MainActor
     private static func fileRef(for variant: Variant) -> LocalFileRef {
         switch variant {
@@ -88,7 +132,11 @@ enum PhotoSyncingTestSeed {
             return LocalFileRef(
                 sha256: "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
                 relativePath: "photos/pending/9f86d081.jpg")
-        case .local, .pdf:
+        case .remote:
+            return LocalFileRef(
+                sha256: BlobHash.sha256(Self.remoteRendition),
+                relativePath: "photos/pending/remote.jpg")
+        case .local, .localNoOCR, .pdf:
             let data = variant == .pdf ? samplePDF() : sampleJPEG(size: 900)
             guard let data, let saved = try? VehiclePhotoStore.save(data, id: UUID.v7()) else {
                 return LocalFileRef(sha256: "", relativePath: "")

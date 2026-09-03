@@ -16,9 +16,9 @@ final class AttachmentViewerUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(_ seed: String) -> XCUIApplication {
+    private func launch(_ seed: String, extra: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", seed, "-presentScreen", "editEntry"]
+        app.launchArguments = ["-homeResetDatabase", seed, "-presentScreen", "editEntry"] + extra
         app.launch()
         return app
     }
@@ -173,5 +173,109 @@ final class AttachmentViewerUITests: XCTestCase {
                       "the PDF must be visible, not merely in the hierarchy")
         XCTAssertFalse(app.descendants(matching: .any)["attachmentViewerUnavailable"].isHittable,
                        "a readable PDF must not fall back to the unavailable state")
+    }
+
+    // MARK: - RV.17: the recognised data, share, and the download progress
+
+    /// The recognised data is "just an additional photo": a second page reached
+    /// by swiping, not chrome over the receipt. `-seedPhotoLocal` carries the
+    /// OCR line and the scan timestamp, so the page is present and reachable.
+    func testTheRecognisedDataPageIsReachableWhenPresent() {
+        let app = launch("-seedPhotoLocal")
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let image = app.descendants(matching: .any)["attachmentViewerImage"]
+        XCTAssertTrue(image.waitForExistence(timeout: 10),
+                      "the photo page must open first")
+
+        app.swipeLeft()
+
+        let recognised = app.descendants(matching: .any)["attachmentViewerRecognised"]
+        XCTAssertTrue(recognised.waitForExistence(timeout: 10),
+                      "the recognised data must be reachable by swiping to the next page")
+        XCTAssertTrue(recognised.isHittable,
+                      "the recognised data must be visible, not merely in the hierarchy")
+        XCTAssertTrue(app.descendants(matching: .any)["attachmentViewerOcrText"].isHittable,
+                      "the OCR lines must render on the recognised page")
+    }
+
+    /// With nothing recognised, the surface is absent rather than empty: no
+    /// pager, so a swipe cannot reveal a second page that is not in the
+    /// hierarchy at all.
+    func testTheRecognisedPageIsAbsentWhenNothingWasRead() {
+        let app = launch("-seedPhotoLocalNoOCR")
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let image = app.descendants(matching: .any)["attachmentViewerImage"]
+        XCTAssertTrue(image.waitForExistence(timeout: 10),
+                      "the local photo must open")
+
+        app.swipeLeft()
+        XCTAssertFalse(app.descendants(matching: .any)["attachmentViewerRecognised"].exists,
+                       "with no recognised data the page must be absent, never an empty page")
+    }
+
+    /// Share is offered only once the full rendition is local. A share sheet
+    /// over the 44 pt thumbnail is worse than no share sheet, so in the
+    /// not-local state the button is absent from the hierarchy entirely (not
+    /// merely disabled - XCUITest keeps disabled controls in the tree).
+    func testShareIsOfferedOnlyOnceTheFullRenditionIsLocal() {
+        let app = launch("-seedPhotoLocal")
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let share = app.buttons["attachmentViewerShareButton"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10),
+                      "share must be offered once the full rendition is local")
+        XCTAssertTrue(share.isHittable,
+                      "the share button must be hittable, not merely present")
+
+        let syncing = launch("-seedPhotoSyncing")
+        let syncingChip = syncing.buttons["attachmentPhotoSyncing"]
+        XCTAssertTrue(syncingChip.waitForExistence(timeout: 15))
+        syncingChip.tap()
+
+        XCTAssertTrue(syncing.descendants(matching: .any)["attachmentViewerUnavailable"]
+            .waitForExistence(timeout: 10),
+                      "the not-downloaded state must render")
+        XCTAssertFalse(syncing.buttons["attachmentViewerShareButton"].exists,
+                       "share must not be offered while the full rendition is missing")
+    }
+
+    /// The wait looks like work: with a slow seeded transport the progress
+    /// indication is on screen for the whole fetch and the share affordance
+    /// stays withheld until the full rendition lands. If the fetch were instant
+    /// the downloading line would be gone by the time this asserts it, so the
+    /// test fails on a fetch that proves nothing.
+    func testTheDownloadShowsProgressForTheWholeFetch() {
+        let app = launch("-seedPhotoRemote", extra: ["-seedBlobFetchDelay", "8"])
+
+        let chip = app.buttons["attachmentPhotoSyncing"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15),
+                      "a not-local photo is still openable (hard rule 1)")
+        chip.tap()
+
+        let downloading = app.descendants(matching: .any)["attachmentViewerDownloading"]
+        XCTAssertTrue(downloading.waitForExistence(timeout: 10),
+                      "the download must show progress while the fetch runs")
+        XCTAssertTrue(downloading.isHittable,
+                      "the progress indication must be visible, not merely present")
+        XCTAssertFalse(app.buttons["attachmentViewerShareButton"].exists,
+                       "share must stay withheld while the fetch is in flight")
+
+        let image = app.descendants(matching: .any)["attachmentViewerImage"]
+        XCTAssertTrue(image.waitForExistence(timeout: 20),
+                      "the full rendition must arrive once the fetch completes")
+        let share = app.buttons["attachmentViewerShareButton"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10),
+                      "share must appear once the full rendition is local")
+        XCTAssertTrue(share.isHittable)
     }
 }

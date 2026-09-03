@@ -197,9 +197,9 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
-### J8b · Look at the receipt again (RV.9)
+### J8b · Look at the receipt again (RV.9, RV.17)
 **Trigger:** a figure is questioned weeks later – "did that fill really cost 71.02?" – or the paper is gone and the photo is the only record.
-**Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). Close or swipe down and the entry is exactly as it was, still editable.
+**Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). If the receipt carried anything recognised, a second page beside the photo shows what was read (the OCR lines and the scan timestamp) – a swipe away, not chrome over the photo, and absent when there was nothing. The Share affordance (RV.17) hands the **full** rendition to the system share sheet – Save Image, Save to Files, share to apps – and is offered only once that rendition is local, never over the thumbnail; sharing is the user's deliberate act. Close or swipe down and the entry is exactly as it was, still editable.
 
 **Success metric:** the receipt can be read without leaving the app or hunting for the paper; opening a photo never ends in a blank screen.
 

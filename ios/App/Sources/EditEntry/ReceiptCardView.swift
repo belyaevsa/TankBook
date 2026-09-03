@@ -54,7 +54,8 @@ struct ReceiptCardView: View {
             // Screenshot seam: `simctl` can launch and shoot, but it cannot tap,
             // so the committed viewer screenshots need a way in that is not a
             // gesture. DEBUG-only, and it opens the same sheet the chip opens.
-            if ProcessInfo.processInfo.arguments.contains("-openAttachmentViewer") {
+            if ProcessInfo.processInfo.arguments.contains("-openAttachmentViewer")
+                || ProcessInfo.processInfo.arguments.contains("-openAttachmentViewerRecognised") {
                 showViewer = true
             }
             #endif

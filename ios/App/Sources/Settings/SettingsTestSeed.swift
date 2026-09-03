@@ -78,6 +78,13 @@ enum SettingsTestSeed {
     /// queue. Call from the app root init, DEBUG/test only.
     static func seedSessionAtLaunchIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
+        // RV.17: the attachment viewer's slow-fetch seed (`-seedPhotoRemote`)
+        // needs an account at launch so the viewer's on-demand fetch has a
+        // fetcher the moment it opens (the `-openAttachmentViewer` screenshot
+        // seam opens the viewer before Edit entry loads, so seeding the session
+        // only there would race it). It has no `-seedSettings*` argument, so it
+        // must run before the state guard below returns early for `.none`.
+        PhotoSyncingTestSeed.seedSessionAtLaunchIfRequested()
         let state = Self.state(arguments)
         // The auth-expired seed is deliberately NOT planted at launch: the
         // launch opportunistic sync must see no session (a no-op), so the

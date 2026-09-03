@@ -49,6 +49,17 @@ enum SyncService {
     /// after; a failure leaves the "photo syncing" shimmer, never an error.
     static func makeBlobFetcher(sessionStore: any SessionStore) -> LazyBlobFetcher? {
         guard (try? sessionStore.load()) != nil else { return nil }
+        #if DEBUG
+        // RV.17: a seeded slow transport wins so the viewer's progress state is
+        // observable from a UI test; it never ships (the transport seam is
+        // DEBUG-only, exactly like the sync stubs in SeededLaunchTransport).
+        if let seeded = SeededBlobTransport.from() {
+            let store = FileBackedBlobStore(
+                directory: (try? VehiclePhotoStore.attachmentsDirectory())
+                    ?? FileManager.default.temporaryDirectory)
+            return LazyBlobFetcher(transport: seeded, store: store)
+        }
+        #endif
         let transport = RemoteBlobTransport(
             director: AppConfigStore.shared.director,
             transport: makeAppTransport(),

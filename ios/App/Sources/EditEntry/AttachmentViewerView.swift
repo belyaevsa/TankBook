@@ -3,31 +3,46 @@ import SwiftUI
 import TankbookCore
 import UIKit
 
-/// The attachment viewer (RV.9) - the full-size look at the receipt the entry
-/// exists to evidence. Reached by tapping the receipt strip's photo chip in
-/// Edit entry, presented as a sheet so it carries BOTH dismissal paths the
-/// docs/SCREENMAP.md convention asks for: swipe-down with a drag indicator and
-/// a visible Close control.
+/// The attachment viewer (RV.9, extended by RV.17) - the full-size look at the
+/// receipt the entry exists to evidence. Reached by tapping the receipt strip's
+/// photo chip in Edit entry, presented as a sheet so it carries BOTH dismissal
+/// paths the docs/SCREENMAP.md convention asks for: swipe-down with a drag
+/// indicator and a visible Close control.
 ///
-/// Four states, and the last three are the whole point (docs/ERRORS.md ->
-/// Edit entry):
+/// Four rendition states, and the last three are the whole point
+/// (docs/ERRORS.md -> Edit entry):
 /// 1. the full rendition is on this device - zoomable, pannable, fitted on
 ///    entry (`ZoomableImageView`);
 /// 2. it is not local but a fetch is possible - the inline thumbnail renders
-///    from the first frame while `LazyBlobFetcher` downloads and verifies it;
+///    from the first frame while `LazyBlobFetcher` downloads and verifies it
+///    (RV.17: the wait is a visible `ProgressView`, degrading to a static
+///    hourglass under Reduce Motion - RV.8's precedent);
 /// 3. it is not local and no fetch is possible (signed out, offline, the fetch
 ///    failed) - the thumbnail stays, the copy says so plainly and names the
 ///    next step (hard rule 7). Nothing here gates the entry (hard rule 1);
 /// 4. the attachment is a PDF - rendered by PDFKit, which brings its own zoom
 ///    and paging. Unreadable bytes get an explicit state, never a blank frame.
 ///
-/// Never logs a byte, a station or an amount - ids and operation names only
-/// (hard rule 12).
+/// RV.17 adds two surfaces on top of RV.9:
+/// - the recognised data (`Attachment.ocrText`, `extractedTimestamp`) as a
+///   second page beside the photo, reachable by swiping - present only when the
+///   attachment carries anything, absent rather than empty otherwise. This is
+///   presentation of stored data; the viewer never re-runs OCR (hard rule 13).
+/// - a Share affordance that hands the FULL rendition to the system share sheet
+///   (save-to-Photos, share, save-to-Files), offered only once `.full` is
+///   reached - a share sheet over a 44 pt thumbnail is worse than none.
+///
+/// Never logs a byte, a station or an amount - ids and operation names only;
+/// the share is logged shape-only (that it happened and its outcome, never what
+/// was shared, its hash or its size) (hard rule 12).
 struct AttachmentViewerView: View {
     let attachment: Attachment
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var state: ViewerState = .loading
+    @State private var shareable: AttachmentShareable?
+    @State private var page = 0
 
     /// What the viewer is showing right now.
     enum ViewerState: Equatable {
@@ -51,25 +66,76 @@ struct AttachmentViewerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Close") { dismiss() }
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("attachmentViewerCloseButton")
+                    HStack(spacing: 20) {
+                        // Share is offered only once the full rendition is
+                        // local: a share sheet over the 44 pt thumbnail is worse
+                        // than no share sheet. The on-demand fetch that makes it
+                        // local is `load()` below (docs/SYNC.md -> Delivery).
+                        if fullData != nil {
+                            Button("Share") { presentShare() }
+                                .foregroundStyle(Theme.Palette.action)
+                                .accessibilityIdentifier("attachmentViewerShareButton")
+                        }
+                        Button("Close") { dismiss() }
+                            .foregroundStyle(Theme.Palette.action)
+                            .accessibilityIdentifier("attachmentViewerCloseButton")
+                    }
                 }
             }
         }
         .presentationDragIndicator(.visible)
         .task { await load() }
+        .onAppear {
+            #if DEBUG
+            // Screenshot seam: simctl cannot swipe, so the recognised-page
+            // capture opens the pager on the second page directly.
+            if ProcessInfo.processInfo.arguments.contains("-openAttachmentViewerRecognised") {
+                page = 1
+            }
+            #endif
+        }
+        .sheet(item: $shareable) { item in
+            ActivityView(items: item.items) { completed in
+                // Shape only: that the share ended and how - never what was
+                // shared, its hash or its size (hard rule 12).
+                AppLog.info(operation: "attachmentViewer.share", category: .ui,
+                            outcome: completed ? "completed" : "cancelled")
+            }
+        }
+    }
+
+    /// The photo (or PDF) page, plus - when the attachment carries recognised
+    /// data - a second page beside it (the product owner's "just an additional
+    /// photo"). The pager exists only when there is something to page to, so
+    /// the recognised surface is absent rather than empty when there is nothing
+    /// (hard rule 13, and the RV.17 check).
+    @ViewBuilder
+    private var content: some View {
+        if hasRecognisedData {
+            TabView(selection: $page) {
+                photoContent
+                    .tag(0)
+                AttachmentRecognisedView(ocrText: attachment.ocrText,
+                                         extractedTimestamp: attachment.extractedTimestamp)
+                    .tag(1)
+            }
+            .tabViewStyle(.page(indexDisplayMode: .automatic))
+        } else {
+            photoContent
+        }
     }
 
     @ViewBuilder
-    private var content: some View {
+    private var photoContent: some View {
         switch state {
         case .full(let data):
             fullRendition(data)
-        case .loading, .fetching:
-            pendingContent(message: nil)
+        case .loading:
+            pendingContent(message: nil, downloading: false)
+        case .fetching:
+            pendingContent(message: nil, downloading: true)
         case .unavailable(let reason):
-            pendingContent(message: reason)
+            pendingContent(message: reason, downloading: false)
         }
     }
 
@@ -85,7 +151,7 @@ struct AttachmentViewerView: View {
                     .ignoresSafeArea(edges: .bottom)
                     .accessibilityIdentifier("attachmentViewerPDF")
             } else {
-                pendingContent(message: .unreadable)
+                pendingContent(message: .unreadable, downloading: false)
             }
         } else if let image = UIImage(data: data) {
             VStack(spacing: 0) {
@@ -94,28 +160,54 @@ struct AttachmentViewerView: View {
                 zoomHint
             }
         } else {
-            pendingContent(message: .unreadable)
+            pendingContent(message: .unreadable, downloading: false)
         }
     }
 
     /// States 2 and 3: the inline thumbnail (already in the payload, so
     /// something is on screen from the first frame) with, once the fetch has
-    /// settled, the line that says what happened and what to do next.
-    private func pendingContent(message: AttachmentUnavailableReason?) -> some View {
+    /// settled, the line that says what happened and what to do next. While the
+    /// fetch runs the indicator is a system `ProgressView` - the wait must look
+    /// like work (RV.8's reasoning, unchanged) - degrading to a static hourglass
+    /// under Reduce Motion.
+    private func pendingContent(message: AttachmentUnavailableReason?, downloading: Bool) -> some View {
         VStack(spacing: 20) {
             Spacer(minLength: 0)
             thumbnailPreview
             if let message {
                 unavailableCard(message)
             } else {
-                ProgressView()
-                    .controlSize(.regular)
-                    .tint(Theme.Palette.inkSoft)
-                    .accessibilityIdentifier("attachmentViewerProgress")
+                downloadIndicator
+                if downloading {
+                    Text("Downloading the full photo…")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .accessibilityIdentifier("attachmentViewerDownloading")
+                }
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Theme.Spacing.screenMargin)
+    }
+
+    /// The moving part of the fetch. A system `ProgressView` (the same small
+    /// spinner the rest of the app uses); under Reduce Motion it degrades to a
+    /// static hourglass, matching `GatewayReadingBanner` (RV.8) - the
+    /// accessibility floor is non-negotiable and the "Downloading..." line
+    /// carries the meaning on its own.
+    @ViewBuilder
+    private var downloadIndicator: some View {
+        if reduceMotion {
+            Image(systemName: "hourglass.bottomhalf.filled")
+                .font(.title3)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("attachmentViewerProgress")
+        } else {
+            ProgressView()
+                .controlSize(.regular)
+                .tint(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("attachmentViewerProgress")
+        }
     }
 
     /// The blown-up inline thumbnail. It is small and soft - honestly so: this
@@ -184,6 +276,10 @@ struct AttachmentViewerView: View {
             .font(.caption)
             .foregroundStyle(Theme.Palette.inkSoft)
             .padding(.vertical, 10)
+            // RV.17: with a recognised-data page the system page dots sit at the
+            // bottom and would cover this hint; lift it clear of them. The
+            // non-paged viewer is unchanged.
+            .padding(.bottom, hasRecognisedData ? 24 : 0)
             .accessibilityIdentifier("attachmentViewerZoomHint")
     }
 
@@ -209,6 +305,59 @@ struct AttachmentViewerView: View {
         guard let base64 = attachment.thumbnailBase64,
               let data = Data(base64Encoded: base64) else { return nil }
         return UIImage(data: data)
+    }
+
+    // MARK: - Recognised data (RV.17)
+
+    /// Whether the attachment carries anything recognised to show. Both signals
+    /// are stored fields (`ocrText`, `extractedTimestamp`); neither requires a
+    /// fetch, so the recognised page is reachable while the photo is still
+    /// downloading.
+    private var hasRecognisedData: Bool {
+        if let ocr = attachment.ocrText,
+           !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return true
+        }
+        return attachment.extractedTimestamp != nil
+    }
+
+    // MARK: - Share (RV.17)
+
+    /// The verified full rendition's bytes, or nil until the fetch lands. The
+    /// share affordance keys off this - `nil` means the thumbnail is all there
+    /// is, and a share sheet over a thumbnail is a bug that looks like a feature.
+    private var fullData: Data? {
+        if case .full(let data) = state { return data }
+        return nil
+    }
+
+    private var reduceMotion: Bool {
+        accessibilityReduceMotion || ProcessInfo.processInfo.arguments.contains("-forceReduceMotion")
+    }
+
+    /// Hands the full rendition to the system share sheet. The share itself is
+    /// the user's deliberate act (docs/SECURITY.md's signed-off line: sharing
+    /// exports a domain value by choice, which is fine) - the log records only
+    /// that it happened and its outcome, never what was shared.
+    private func presentShare() {
+        guard let data = fullData else { return }
+        AppLog.info(operation: "attachmentViewer.share", category: .ui, outcome: "presented")
+        shareable = AttachmentShareable(items: shareItems(from: data))
+    }
+
+    /// The share-sheet payload. A photo shares the `UIImage` (so "Save Image"
+    /// and the usual image targets appear); a PDF shares a temporary file with
+    /// the right extension. A photo that will not decode falls back to its
+    /// bytes rather than a dead sheet.
+    private func shareItems(from data: Data) -> [Any] {
+        if attachment.kind == .pdf {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("receipt-\(attachment.id.uuidString).pdf")
+            try? data.write(to: url, options: .atomic)
+            return [url]
+        }
+        if let image = UIImage(data: data) { return [image] }
+        return [data]
     }
 
     // MARK: - Loading
@@ -241,93 +390,6 @@ struct AttachmentViewerView: View {
     }
 }
 
-/// A `UIScrollView` around the photo: pinch to zoom, drag to pan, double-tap to
-/// toggle between fitted and 3x. Fitted on entry, which is what "open the
-/// receipt" means before the user asks for more.
-struct ZoomableImageView: UIViewRepresentable {
-    let image: UIImage
-
-    func makeUIView(context: Context) -> UIScrollView {
-        let scrollView = UIScrollView()
-        scrollView.delegate = context.coordinator
-        scrollView.minimumZoomScale = 1
-        scrollView.maximumZoomScale = 6
-        scrollView.bouncesZoom = true
-        scrollView.showsHorizontalScrollIndicator = false
-        scrollView.showsVerticalScrollIndicator = false
-        scrollView.backgroundColor = .clear
-
-        let imageView = UIImageView(image: image)
-        imageView.contentMode = .scaleAspectFit
-        imageView.isUserInteractionEnabled = true
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.addSubview(imageView)
-        NSLayoutConstraint.activate([
-            imageView.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor),
-            imageView.topAnchor.constraint(equalTo: scrollView.frameLayoutGuide.topAnchor),
-            imageView.bottomAnchor.constraint(equalTo: scrollView.frameLayoutGuide.bottomAnchor),
-            imageView.widthAnchor.constraint(equalTo: scrollView.contentLayoutGuide.widthAnchor),
-            imageView.heightAnchor.constraint(equalTo: scrollView.contentLayoutGuide.heightAnchor)
-        ])
-        context.coordinator.imageView = imageView
-
-        let doubleTap = UITapGestureRecognizer(target: context.coordinator,
-                                               action: #selector(Coordinator.handleDoubleTap(_:)))
-        doubleTap.numberOfTapsRequired = 2
-        scrollView.addGestureRecognizer(doubleTap)
-        return scrollView
-    }
-
-    func updateUIView(_ uiView: UIScrollView, context: Context) {
-        context.coordinator.imageView?.image = image
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    final class Coordinator: NSObject, UIScrollViewDelegate {
-        var imageView: UIImageView?
-
-        func viewForZooming(in scrollView: UIScrollView) -> UIView? { imageView }
-
-        @objc func handleDoubleTap(_ recognizer: UITapGestureRecognizer) {
-            guard let scrollView = recognizer.view as? UIScrollView else { return }
-            if scrollView.zoomScale > scrollView.minimumZoomScale {
-                scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
-            } else {
-                let point = recognizer.location(in: imageView)
-                let size = scrollView.bounds.size
-                let side = CGSize(width: size.width / 3, height: size.height / 3)
-                scrollView.zoom(to: CGRect(x: point.x - side.width / 2,
-                                           y: point.y - side.height / 2,
-                                           width: side.width, height: side.height),
-                                animated: true)
-            }
-        }
-    }
-}
-
-/// PDFKit's own viewer. Service invoices are stored as PDFs byte-identical
-/// (docs/SCHEMA.md), and an image view handed PDF bytes shows nothing - so the
-/// PDF gets the renderer that reads it, with zoom and paging included.
-struct AttachmentPDFView: UIViewRepresentable {
-    let document: PDFDocument
-
-    func makeUIView(context: Context) -> PDFView {
-        let view = PDFView()
-        view.document = document
-        view.autoScales = true
-        view.displayMode = .singlePageContinuous
-        view.displayDirection = .vertical
-        view.backgroundColor = .clear
-        return view
-    }
-
-    func updateUIView(_ uiView: PDFView, context: Context) {
-        if uiView.document !== document { uiView.document = document }
-    }
-}
-
 /// Why the full rendition is not on screen (docs/ERRORS.md -> Edit entry, the
 /// RV.9 rows). Each case owns a headline and a next step - never a dead end.
 enum AttachmentUnavailableReason: Equatable {
@@ -337,4 +399,11 @@ enum AttachmentUnavailableReason: Equatable {
     case failed
     /// The bytes are here but are not a photo / not a readable PDF.
     case unreadable
+}
+
+/// The share-sheet payload, wrapped so the `.sheet(item:)` that presents it has
+/// a stable identity (the items themselves are not Identifiable). RV.17.
+private struct AttachmentShareable: Identifiable {
+    let id = UUID()
+    let items: [Any]
 }

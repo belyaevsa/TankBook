@@ -24,7 +24,32 @@ enum AppLog {
         shared.emit(AppWarning(operation: operation, category: category, reason: reason))
     }
 
+    /// Emits a typed info record (docs/LOGGING.md §3: info = the per-op
+    /// records). `operation` and `outcome` are stable codes, never domain
+    /// values (hard rule 12).
+    static func info(operation: String, category: LogCategory, outcome: String) {
+        shared.emit(AppEvent(operation: operation, category: category, outcome: outcome))
+    }
+
     private static func deviceId() -> String? {
         (try? KeychainSessionStore().load())?.deviceId
+    }
+}
+
+/// An app-layer info record (docs/LOGGING.md §3). Fields are fixed and already
+/// classified, so a call site cannot log an ad-hoc value; `operation` and
+/// `outcome` are stable codes only (hard rule 12 - never a domain value).
+struct AppEvent: LogEvent {
+    let eventName = "app.event"
+    let category: LogCategory
+    let level = LogLevel.info
+    let fields: [LogField]
+
+    init(operation: String, category: LogCategory, outcome: String) {
+        self.category = category
+        fields = [
+            .safe("operation", operation),
+            .safe("outcome", outcome)
+        ]
     }
 }
