@@ -68,6 +68,94 @@ struct AuthServiceTests {
         }
     }
 
+    // MARK: - The stored deviceId travels with the exchange (RV.41)
+
+    @Test func signInSendsTheStoredDeviceIdWhenOneExists() async throws {
+        let transport = AuthRecordingTransport()
+        let stored = AuthSession(accessToken: "old-at", refreshToken: "old-rt",
+                                 accountId: "acc", deviceId: "dev-123", provider: .apple)
+        let service = makeService(transport: transport, store: InMemorySessionStore(session: stored))
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev-123"}
+                """.data(using: .utf8)!)
+        ])
+
+        _ = try await service.signIn(identity: identity())
+
+        let body = try JSONSerialization.jsonObject(with: transport.receivedRequests()[0].body ?? Data()) as? [String: Any]
+        let device = body?["device"] as? [String: Any]
+        #expect(device?["deviceId"] as? String == "dev-123",
+                "a returning install sends its stored deviceId so the server reuses the row")
+    }
+
+    @Test func signInOmitsTheDeviceIdOnAFreshInstall() async throws {
+        let transport = AuthRecordingTransport()
+        let service = makeService(transport: transport, store: InMemorySessionStore())
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev"}
+                """.data(using: .utf8)!)
+        ])
+
+        _ = try await service.signIn(identity: identity())
+
+        let body = try JSONSerialization.jsonObject(with: transport.receivedRequests()[0].body ?? Data()) as? [String: Any]
+        let device = body?["device"] as? [String: Any]
+        #expect(device?["deviceId"] == nil,
+                "a fresh install has no stored deviceId and sends none")
+    }
+
+    // MARK: - The account email prefers the server (RV.39)
+
+    /// The regression is that the credential's email is nil on every re-sign-in,
+    /// so a client that depends on it shows "Apple ID". The server value is the
+    /// account's stored email and survives every sign-in. Assert equality, not
+    /// non-emptiness - "Apple ID" is non-empty and is the bug.
+    @Test func signInPrefersTheServerEmailOverANilCredential() async throws {
+        let transport = AuthRecordingTransport()
+        let service = makeService(transport: transport, store: InMemorySessionStore())
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev","email":"driver@icloud.com"}
+                """.data(using: .utf8)!)
+        ])
+
+        let session = try await service.signIn(identity: ProviderIdentity(provider: .apple, idToken: "id", email: nil))
+
+        #expect(session.email == "driver@icloud.com")
+    }
+
+    @Test func signInFallsBackToTheCredentialEmailWhenTheServerHasNone() async throws {
+        let transport = AuthRecordingTransport()
+        let service = makeService(transport: transport, store: InMemorySessionStore())
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev"}
+                """.data(using: .utf8)!)
+        ])
+
+        let session = try await service.signIn(identity: ProviderIdentity(provider: .apple, idToken: "id", email: "first@icloud.com"))
+
+        #expect(session.email == "first@icloud.com",
+                "a first-run credential email is a bonus, kept when the server has none")
+    }
+
+    @Test func signInLeavesEmailNilWhenNeitherTheServerNorTheCredentialHasOne() async throws {
+        let transport = AuthRecordingTransport()
+        let service = makeService(transport: transport, store: InMemorySessionStore())
+        transport.script([
+            TankbookHTTPResponse(status: 200, body: """
+                {"accessToken":"at","refreshToken":"rt","accountId":"acc","deviceId":"dev"}
+                """.data(using: .utf8)!)
+        ])
+
+        let session = try await service.signIn(identity: ProviderIdentity(provider: .apple, idToken: "id", email: nil))
+
+        #expect(session.email == nil,
+                "a genuine no-email account keeps nil so the UI renders the provider name")
+    }
+
     // MARK: - Refresh
 
     @Test func refreshRotatesTokensAndKeepsAccountAndDevice() async throws {

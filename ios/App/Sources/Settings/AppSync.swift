@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import TankbookCore
+import UIKit
 
 /// Builds the app's one `SyncCoordinator` over the real repository, transport
 /// and session store (docs/SYNC.md: one sync path - the trigger and the
@@ -372,6 +373,30 @@ final class AppSync {
     /// lost, nothing is claimed.
     func syncNow() async {
         await runSync(trigger: .userInitiated)
+    }
+
+    /// Signs this device out (RV.40, docs/SYNC.md -> "Sign out"). Two steps in
+    /// the existing `SessionSignOut` order: revoke the refresh chain server-side
+    /// (`DELETE /auth/session`, best-effort - a handed-over phone must not keep
+    /// a 90-day chain valid) and clear the Keychain unconditionally (offline
+    /// sign-out still signs out locally, hard rule 1). It is NOT a device
+    /// revoke: the device row survives, so a later sign-in reuses it (RV.41).
+    /// The local log is never touched - nothing here reads or writes the
+    /// repository. After the clear, the surface re-reads the (now empty)
+    /// session so the account card renders the guest state.
+    func signOut() async {
+        let store = sessionStore
+        let authService: any AuthService = RemoteAuthService(
+            director: AppConfigStore.shared.director,
+            transport: makeAppTransport(),
+            sessionStore: store,
+            device: RemoteAuthService.SessionDevice(
+                name: UIDevice.current.name,
+                platform: "iOS"
+            )
+        )
+        await SessionSignOut(authService: authService, sessionStore: store).signOut()
+        await refresh()
     }
 
     /// The launch / foreground / timer cycle (docs/SYNC.md -> Low Power Mode:

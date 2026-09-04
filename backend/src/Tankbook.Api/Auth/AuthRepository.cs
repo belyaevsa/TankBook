@@ -77,11 +77,13 @@ public sealed class AuthRepository
 
     /// <summary>
     /// Finds the account for the verified subject, or creates it. Returns the
-    /// account id and whether this call created the account. Race-safe: a
-    /// concurrent create for the same subject loses the insert (ON CONFLICT DO
-    /// NOTHING) and re-selects the winner.
+    /// account id, whether this call created the account, and the account's
+    /// stored email (the column set at creation, never refreshed - the verified
+    /// id token's email is a first-sight value, not a rolling override).
+    /// Race-safe: a concurrent create for the same subject loses the insert (ON
+    /// CONFLICT DO NOTHING) and re-selects the winner.
     /// </summary>
-    public async Task<(Guid AccountId, bool Created)> FindOrCreateAccountAsync(
+    public async Task<(Guid AccountId, bool Created, string Email)> FindOrCreateAccountAsync(
         string provider,
         string subject,
         string email,
@@ -101,17 +103,17 @@ public sealed class AuthRepository
 
             if (inserted is not null)
             {
-                return (inserted.Value, true);
+                return (inserted.Value, true, email);
             }
 
             var selectSql = provider == "apple"
-                ? "SELECT id FROM accounts WHERE apple_sub = @Sub"
-                : "SELECT id FROM accounts WHERE google_sub = @Sub";
-            var existing = await _db.QuerySingleAsync<Guid>(new CommandDefinition(
+                ? "SELECT id, email FROM accounts WHERE apple_sub = @Sub"
+                : "SELECT id, email FROM accounts WHERE google_sub = @Sub";
+            var existing = await _db.QuerySingleAsync<(Guid Id, string Email)>(new CommandDefinition(
                 selectSql,
                 new { Sub = subject },
                 cancellationToken: cancellationToken));
-            return (existing, false);
+            return (existing.Id, false, existing.Email);
         }
         finally
         {
@@ -122,17 +124,44 @@ public sealed class AuthRepository
         }
     }
 
-    /// <summary>Registers a device and returns its id (docs/API.md POST /auth/session).</summary>
-    public async Task<Guid> CreateDeviceAsync(
+    /// <summary>
+    /// Reuses the caller's device row when it already belongs to this account,
+    /// and mints a fresh one otherwise (docs/API.md POST /auth/session). The
+    /// reuse is bound to the account: a device id that belongs to a different
+    /// account matches the UPDATE's WHERE and returns nothing, so the caller
+    /// can never adopt another account's row. A revoked row that its device
+    /// returns is re-attached (revoked_at cleared) - the owner proved the
+    /// account again by presenting a valid id token.
+    /// </summary>
+    public async Task<Guid> FindOrCreateDeviceAsync(
         Guid accountId,
+        Guid? deviceId,
         string name,
         string platform,
         CancellationToken cancellationToken)
     {
-        var id = Guid.NewGuid();
         var opened = await OpenIfNeededAsync();
         try
         {
+            if (deviceId is not null)
+            {
+                var reused = await _db.QuerySingleOrDefaultAsync<Guid?>(new CommandDefinition(
+                    """
+                    UPDATE devices
+                    SET name = @Name, platform = @Platform, last_seen_at = now(), revoked_at = NULL
+                    WHERE id = @DeviceId AND account_id = @AccountId
+                    RETURNING id
+                    """,
+                    new { DeviceId = deviceId.Value, AccountId = accountId, Name = name, Platform = platform },
+                    cancellationToken: cancellationToken));
+
+                if (reused is not null)
+                {
+                    return reused.Value;
+                }
+            }
+
+            var id = Guid.NewGuid();
             await _db.ExecuteAsync(new CommandDefinition(
                 "INSERT INTO devices (id, account_id, name, platform) VALUES (@Id, @AccountId, @Name, @Platform)",
                 new { Id = id, AccountId = accountId, Name = name, Platform = platform },

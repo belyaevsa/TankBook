@@ -116,6 +116,17 @@ GET  /sync/pull?since=SCN&limit=500
 
 Device identity is carried by the bearer token (assigned at `POST /auth/session` – `API.md` is authoritative for the HTTP surface); no explicit deviceId parameters.
 
+**Sign out (RV.40).** The Settings "Sign out" control revokes this device's refresh chain
+server-side (`DELETE /auth/session`, **best-effort** - a handed-over phone must not keep a 90-day
+chain valid) and clears the local session, in that order, with the clear unconditional (offline
+sign-out still signs out locally, hard rule 1). It is **not** a device revoke: the `devices` row
+survives with `revoked_at` NULL, so a later sign-in reuses the same row (`API.md` -> "The device id
+is a client-supplied, unverified claim"). It is **not** account deletion: the local log is
+completely untouched, and unsynced changes are never silently dropped - the confirmation names the
+dirty count and that the changes are kept, and the user decides (hard rules 7 and 8). The distinct
+`DELETE /account/devices/{id}` (Revoke, on the Account & devices screen) is the one that marks the
+row revoked; ordinary sign-out is the milder control that sits between "keep syncing" and it.
+
 - **Push:** for each change, if `baseScn` matches the server's current SCN for that id (or the record is new), the server writes it and assigns the next SCN. Otherwise → `conflict` with the current server record; the client merges and re-pushes with the new base. First-writer-wins at the transport level; the *merge* decides content. **Idempotent replay:** a `baseScn` of 0 against an id the server already holds (a new-record push whose response the client never received) returns the same accepted outcome with the record's existing SCN - it never writes a second row or allocates a second SCN. This is what makes the endpoints idempotent "by id + baseScn".
 - **Pull:** strictly ordered by SCN, paginated, cursor stored per device (`last_pull_scn`). A device that was offline for a year just replays the stream. Fresh install + sign-in = pull from 0 (this IS restore).
 - Sync cycle: pull → merge → push, triggered on app foreground, after every local write (debounced), and by push notification nudge (silent APNs "there's news" – no content in the push).

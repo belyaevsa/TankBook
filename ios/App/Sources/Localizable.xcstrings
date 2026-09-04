@@ -9414,6 +9414,23 @@
         }
       }
     },
+    "Sign out?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти?"
+          }
+        }
+      }
+    },
     "Sign out and try another account": {
       "extractionState": "manual",
       "localizations": {
@@ -11670,6 +11687,76 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ваши данные"
+          }
+        }
+      }
+    },
+    "Your entries stay on this phone. You can sign in again anytime.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your entries stay on this phone. You can sign in again anytime."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записи останутся на этом телефоне. Вы сможете войти снова в любой момент."
+          }
+        }
+      }
+    },
+    "You have %lld unsynced changes. They stay on this phone and sync when you sign in again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have %lld unsynced change. It stays on this phone and syncs when you sign in again."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have %lld unsynced changes. They stay on this phone and sync when you sign in again."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированное изменение. Оно останется на этом телефоне и синхронизируется, когда вы войдёте снова."
+                }
+              },
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменения. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              }
+            }
           }
         }
       }

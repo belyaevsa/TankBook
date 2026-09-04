@@ -355,6 +355,14 @@ enum L10n {
         String(localized: "\(count) entries need a look")
     }
 
+    /// The Sign out confirmation (RV.40, docs/ERRORS.md -> Settings).
+    static func signOutConfirmation(dirtyCount: Int) -> String {
+        if dirtyCount == 0 {
+            return localize("Your entries stay on this phone. You can sign in again anytime.")
+        }
+        return String(localized: "You have \(dirtyCount) unsynced changes. They stay on this phone and sync when you sign in again.")
+    }
+
     /// "Photo storage 95% full – older photos stay on this phone only."
     /// (docs/ERRORS.md -> Settings). One full localised phrase; the percent is
     /// runtime data.

@@ -53,11 +53,14 @@ public struct RemoteAuthService: AuthService {
     private let client: TankbookHTTPClient
     private let director: ConfigTransportDirector
     private let device: SessionDevice
+    private let sessionStore: any SessionStore
 
     /// Builds the service over an injected transport (testable without sockets;
     /// docs/TESTING.md). The token provider reads the current session's access
     /// token, so `DELETE /auth/session` carries the bearer automatically while
-    /// a fresh sign-in (no session yet) carries none.
+    /// a fresh sign-in (no session yet) carries none. The store is also read at
+    /// sign-in time for the stored `deviceId`, so a returning install reuses its
+    /// device row instead of duplicating it (docs/API.md -> Auth, RV.41).
     public init(
         director: ConfigTransportDirector,
         transport: any TankbookHTTPTransport,
@@ -70,13 +73,26 @@ public struct RemoteAuthService: AuthService {
         )
         self.director = director
         self.device = device
+        self.sessionStore = sessionStore
     }
 
     public func signIn(identity: ProviderIdentity) async throws -> AuthSession {
+        // The stored deviceId (when one exists - a returning install or a
+        // re-sign-in) travels with the session exchange so the server reuses the
+        // row. Absent on a fresh install. It is an unverified claim: the server
+        // binds any reuse to the authenticated account. The store is read only
+        // for a host the allowlist permits - it holds the tokens, and they must
+        // never be fetched for a non-allowlisted host (docs/SECURITY.md -> "the
+        // token is bound to the host, not to the session").
+        var deviceBody: [String: Any] = ["name": device.name, "platform": device.platform]
+        if HostAllowlist.allows(url: endpoint("auth/session")),
+           let deviceId = try? sessionStore.load()?.deviceId {
+            deviceBody["deviceId"] = deviceId
+        }
         let body: [String: Any] = [
             "provider": identity.provider.rawValue,
             "idToken": identity.idToken,
-            "device": ["name": device.name, "platform": device.platform],
+            "device": deviceBody,
         ]
         let response = try await post(path: "auth/session", body: body)
         return try Self.decodeSession(response.body, provider: identity.provider, email: identity.email)
@@ -145,6 +161,7 @@ public struct RemoteAuthService: AuthService {
         let refreshToken: String
         let accountId: String
         let deviceId: String
+        let email: String?
     }
 
     private struct TokenPairPayload: Decodable {
@@ -152,6 +169,12 @@ public struct RemoteAuthService: AuthService {
         let refreshToken: String
     }
 
+    /// The account email prefers the server value - the account's stored email,
+    /// which survives every re-sign-in - and falls back to the credential's
+    /// email (a first-run-only bonus from Apple) and then to nil (a hidden
+    /// private-relay identity renders the provider name). RV.39: the server
+    /// value is the fix; the credential was nil on every re-sign-in, which is
+    /// how a real email became "Apple ID".
     private static func decodeSession(_ data: Data?, provider: AuthProvider, email: String?) throws -> AuthSession {
         guard let data else { throw AuthError.invalidResponse }
         let payload = try JSONDecoder().decode(SessionPayload.self, from: data)
@@ -161,7 +184,7 @@ public struct RemoteAuthService: AuthService {
             accountId: payload.accountId,
             deviceId: payload.deviceId,
             provider: provider,
-            email: email
+            email: payload.email ?? email
         )
     }
 

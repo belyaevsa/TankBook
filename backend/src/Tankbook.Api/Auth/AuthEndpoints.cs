@@ -3,14 +3,20 @@ namespace Tankbook.Api.Auth;
 /// <summary>POST /auth/session body (docs/API.md Auth).</summary>
 public sealed record CreateSessionRequest(string? Provider, string? IdToken, DeviceInfo? Device);
 
-/// <summary>The device descriptor in a session exchange.</summary>
-public sealed record DeviceInfo(string? Name, string? Platform);
+/// <summary>
+/// The device descriptor in a session exchange. `DeviceId` is the caller's
+/// stored per-install identifier (a Keychain value, docs/SECURITY.md) - present
+/// on a returning install so the server reuses the row instead of minting a
+/// duplicate. Absent on a fresh install. It is an unverified claim: the server
+/// binds any reuse to the authenticated account (docs/API.md -> Auth).
+/// </summary>
+public sealed record DeviceInfo(string? Name, string? Platform, Guid? DeviceId);
 
 /// <summary>POST /auth/refresh body (docs/API.md Auth).</summary>
 public sealed record RefreshRequest(string? RefreshToken);
 
-/// <summary>POST /auth/session response.</summary>
-public sealed record SessionResponse(string AccessToken, string RefreshToken, Guid AccountId, Guid DeviceId);
+/// <summary>POST /auth/session response. `Email` is the account's stored email.</summary>
+public sealed record SessionResponse(string AccessToken, string RefreshToken, Guid AccountId, Guid DeviceId, string? Email);
 
 /// <summary>POST /auth/refresh response.</summary>
 public sealed record RefreshResponse(string AccessToken, string RefreshToken);
@@ -43,13 +49,14 @@ public static class AuthEndpoints
             return Problem(StatusCodes.Status400BadRequest, "Missing device details.", "device.name and device.platform are required.");
         }
 
-        var result = await auth.ExchangeAsync(provider, request.IdToken, request.Device!.Name!, request.Device.Platform!, cancellationToken);
+        var result = await auth.ExchangeAsync(
+            provider, request.IdToken, request.Device!.Name!, request.Device.Platform!, request.Device.DeviceId, cancellationToken);
         if (!result.Success)
         {
             return Problem(StatusCodes.Status401Unauthorized, "Invalid identity token.", result.FailureReason ?? "invalid_token");
         }
 
-        return Results.Ok(new SessionResponse(result.AccessToken!, result.RefreshToken!, result.AccountId!.Value, result.DeviceId!.Value));
+        return Results.Ok(new SessionResponse(result.AccessToken!, result.RefreshToken!, result.AccountId!.Value, result.DeviceId!.Value, result.Email));
     }
 
     public static async Task<IResult> Refresh(AuthService auth, RefreshRequest request, CancellationToken cancellationToken)

@@ -21,7 +21,7 @@ On a **non-2xx** response the client reads `traceId` from the problem+json body 
 
 | Endpoint | Auth | Purpose |
 |---|---|---|
-| `POST /auth/session` | identity token | Exchange a Sign in with Apple / Google ID token for a session. Body: `{ provider: "apple"\|"google", idToken, device: { name, platform } }` → `{ accessToken (JWT, ~1h), refreshToken, accountId, deviceId }`. Creates the account on first sign-in (email from the verified token; Apple private relay respected) – there is no separate registration endpoint. **No account linking in v1**: Apple and Google identities are distinct accounts; the client handles the wrong-provider case in UX (JOURNEYS J11a), the API just returns whichever account the token maps to. Registers/updates the device row. |
+| `POST /auth/session` | identity token | Exchange a Sign in with Apple / Google ID token for a session. Body: `{ provider: "apple"\|"google", idToken, device: { name, platform, deviceId? } }` → `{ accessToken (JWT, ~1h), refreshToken, accountId, deviceId, email }`. Creates the account on first sign-in (email from the verified token; Apple private relay respected) – there is no separate registration endpoint. **No account linking in v1**: Apple and Google identities are distinct accounts; the client handles the wrong-provider case in UX (JOURNEYS J11a), the API just returns whichever account the token maps to. Registers/updates the device row. |
 | `POST /auth/refresh` | refresh token | `{ refreshToken }` → new token pair. Refresh tokens rotate; reuse of a rotated token revokes the chain (theft signal). |
 | `DELETE /auth/session` | bearer | Sign out this device (revokes its refresh chain; local data stays local). |
 
@@ -33,6 +33,27 @@ token minted for another OAuth client is a `401` like any other verification fai
 cannot tell, and must not be able to.
 
 Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email, wrong audience, wrong issuer) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
+
+**The session response carries the account email (RV.39).** `POST /auth/session` returns the
+account's **stored** email (`accounts.email`, set once at creation from the verified id token's
+`email` claim). The client prefers it over the Apple credential's email, which Apple populates only
+on the first authorization for a given Apple ID + app pair - so a client that depends on the
+credential shows "Apple ID" from the second sign-in on. The stored email is **never refreshed**
+after creation (the insert is `ON CONFLICT DO NOTHING`): the verifier already requires a verified
+email, so a fresh account always has one, and a later token must not silently rewrite a Hide My
+Email user's stored address. A genuine no-email account (email null in the response) renders the
+provider name - the private-relay fallback stays intact.
+
+**The device id is a client-supplied, unverified claim (RV.41).** `device.deviceId` is the
+client's stored per-install identifier (Keychain, `AfterFirstUnlockThisDeviceOnly` - hard rule 11).
+The server **reuses** that device row when it already belongs to the account authenticated by the
+verified id token, and mints a fresh row otherwise. **It never adopts another account's row**: the
+reuse is bound to the account id, so a device id belonging to a different account is ignored,
+exactly as a foreign device id is indistinguishable from absence on the account endpoints. A
+**revoked** row whose device returns is **re-attached** (`revoked_at` cleared) - the owner proved
+the account again by presenting a valid id token, and re-attach is what makes a revoke →
+re-sign-in cycle on one phone a single row rather than two (`docs/SECURITY.md` -> "Device
+identity").
 
 **The client's half of the token lifecycle (PR.1/PR.2).** A `401` on any bearer endpoint is an
 auth event, never a gate from a newer server: the client refreshes **once** through a single shared
@@ -167,7 +188,9 @@ GET /catalog[?since_version=<n>]
 → 304 when If-None-Match matches the current representation
 
 <entry> = { id, make, model, generation?, years?, powertrain, fuelKinds, tankCapacityL?, batteryCapacityKwh? }
-  years      = [firstYear, lastYear] inclusive, or null
+  years      = [firstYear, lastYear] inclusive, or null. A line still in production
+               carries a null lastYear - [2021, null] - never a bare null, which
+               would throw its start year away
   fuelKinds  = the model line's OFFER SET (petrol95/diesel/lpg/...), never one car's fuel (docs/SCHEMA.md)
 ```
 
@@ -204,6 +227,16 @@ GET /catalog[?since_version=<n>]
 > bug (a withdrawn entry can survive a full pack) and not something worse.
 > Backward tolerance is therefore deliberate: an older client degrades to the
 > status quo, never to data loss.
+
+> **Breaking change (2026-09-04):** `years` gained a **nullable last year**.
+> A model line still in production used to serialize as `years: null` - the
+> endpoint emitted the pair only when BOTH bounds were present - which threw
+> away a start year the database held and the seed pack could express. The
+> client's `yearsStart` then read `0` and Add-car autocomplete rendered "0-".
+> It now emits `[2021, null]`, and `null` means only "no range at all". The
+> publish path accepts the same shape, so a pack can express an open-ended
+> line. The only consumer is this repo's own iOS client, changed in the same
+> commit; nothing has shipped against the old shape.
 
 **There is no publish endpoint.** `POST /catalog/publish` was removed on 2026-09-01 (product
 owner): catalog packs are written **directly to the database**, so the catalog has no write surface

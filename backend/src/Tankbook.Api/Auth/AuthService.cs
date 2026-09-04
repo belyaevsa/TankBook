@@ -10,11 +10,12 @@ public sealed record SessionExchangeResult(
     string? RefreshToken,
     Guid? AccountId,
     Guid? DeviceId,
+    string? Email,
     string? FailureReason,
     string? AccountHash)
 {
     public static SessionExchangeResult Failed(string failureReason)
-        => new(false, null, null, null, null, failureReason, null);
+        => new(false, null, null, null, null, null, failureReason, null);
 }
 
 /// <summary>The outcome of a refresh rotation (docs/API.md POST /auth/refresh).</summary>
@@ -77,14 +78,17 @@ public sealed class AuthService
 
     /// <summary>
     /// Exchanges a verified identity token for a session: find-or-create the
-    /// account, register the device, and issue the token pair plus deviceId.
-    /// Sign-in IS registration - there is no separate account endpoint.
+    /// account, reuse-or-create the device row, and issue the token pair plus
+    /// deviceId. Sign-in IS registration - there is no separate account
+    /// endpoint. The response carries the account's stored email so the client
+    /// can always name the account (docs/API.md -> Auth, RV.39).
     /// </summary>
     public async Task<SessionExchangeResult> ExchangeAsync(
         string provider,
         string idToken,
         string deviceName,
         string devicePlatform,
+        Guid? deviceId,
         CancellationToken cancellationToken)
     {
         var verification = await _verifier.VerifyAsync(provider, idToken, cancellationToken);
@@ -98,16 +102,16 @@ public sealed class AuthService
         var subject = verification.Subject!;
         var email = verification.Email!;
 
-        var (accountId, created) = await _repository.FindOrCreateAccountAsync(provider, subject, email, cancellationToken);
-        var deviceId = await _repository.CreateDeviceAsync(accountId, deviceName, devicePlatform, cancellationToken);
+        var (accountId, created, accountEmail) = await _repository.FindOrCreateAccountAsync(provider, subject, email, cancellationToken);
+        var resolvedDeviceId = await _repository.FindOrCreateDeviceAsync(accountId, deviceId, deviceName, devicePlatform, cancellationToken);
 
-        var accessToken = _issuer.Issue(accountId, deviceId);
+        var accessToken = _issuer.Issue(accountId, resolvedDeviceId);
         var refreshToken = RefreshTokenHasher.Generate(_options.RefreshTokenBytes);
         var now = _time.GetUtcNow();
         await _repository.InsertRefreshTokenAsync(
             Guid.NewGuid(),
             accountId,
-            deviceId,
+            resolvedDeviceId,
             RefreshTokenHasher.Hash(refreshToken),
             Guid.NewGuid(),
             now,
@@ -117,7 +121,7 @@ public sealed class AuthService
         var accountHash = AccountHash.Compute(email, _loggingOptions.HashSalt);
         TankbookLog.AuthSession(_logger, provider, created ? "created" : "matched", accountHash: accountHash);
 
-        return new SessionExchangeResult(true, accessToken, refreshToken, accountId, deviceId, null, accountHash);
+        return new SessionExchangeResult(true, accessToken, refreshToken, accountId, resolvedDeviceId, accountEmail, null, accountHash);
     }
 
     /// <summary>

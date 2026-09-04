@@ -117,7 +117,7 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         await using var app = await StartAsync(signer);
-        var (_, refresh1, _, _) = await CreateSessionAsync(app, signer, "apple", "rot-sub", "rot@example.com");
+        var (_, refresh1, _, _, _) = await CreateSessionAsync(app, signer, "apple", "rot-sub", "rot@example.com");
 
         var rotated = await app.Client.PostAsJsonAsync("/v1/auth/refresh", new { refreshToken = refresh1 });
         Assert.Equal(HttpStatusCode.OK, rotated.StatusCode);
@@ -134,7 +134,7 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         await using var app = await StartAsync(signer);
-        var (_, refresh1, _, _) = await CreateSessionAsync(app, signer, "apple", "rot2-sub", "rot2@example.com");
+        var (_, refresh1, _, _, _) = await CreateSessionAsync(app, signer, "apple", "rot2-sub", "rot2@example.com");
 
         var first = await app.Client.PostAsJsonAsync("/v1/auth/refresh", new { refreshToken = refresh1 });
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
@@ -156,7 +156,7 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         await using var app = await StartAsync(signer);
-        var (_, refresh1, _, _) = await CreateSessionAsync(app, signer, "apple", "reuse-sub", "reuse@example.com");
+        var (_, refresh1, _, _, _) = await CreateSessionAsync(app, signer, "apple", "reuse-sub", "reuse@example.com");
 
         var first = await app.Client.PostAsJsonAsync("/v1/auth/refresh", new { refreshToken = refresh1 });
         Assert.Equal(HttpStatusCode.OK, first.StatusCode);
@@ -181,8 +181,8 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
         var signer = new TestIdTokenSigner();
         await using var app = await StartAsync(signer);
 
-        var (access1, refresh1, account1, device1) = await CreateSessionAsync(app, signer, "apple", "signout-sub", "signout@example.com");
-        var (access2, refresh2, account2, device2) = await CreateSessionAsync(app, signer, "apple", "signout-sub", "signout@example.com");
+        var (access1, refresh1, account1, device1, _) = await CreateSessionAsync(app, signer, "apple", "signout-sub", "signout@example.com");
+        var (access2, refresh2, account2, device2, _) = await CreateSessionAsync(app, signer, "apple", "signout-sub", "signout@example.com");
 
         Assert.Equal(account1, account2);
         Assert.NotEqual(device1, device2);
@@ -215,6 +215,87 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
         var response = await app.Client.DeleteAsync("/v1/auth/session");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // MARK: RV.39 - the session response carries the account's stored email
+
+    [SkippableFact]
+    public async Task CreateSession_ReturnsTheAccountEmail()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer);
+
+        var body = await CreateSessionAsync(app, signer, "apple", "email-sub", "driver@example.com");
+
+        Assert.Equal("driver@example.com", body.Email);
+    }
+
+    /// <summary>
+    /// The regression is precisely that the SECOND sign-in differs: the Apple
+    /// credential returns its email only on the first authorization, so a
+    /// client that depends on it shows "Apple ID" from the second sign-in on.
+    /// A sign-in once proves nothing - the account's stored email must be the
+    /// same on both.
+    /// </summary>
+    [SkippableFact]
+    public async Task CreateSession_SecondSignInReturnsTheSameEmailAsTheFirst()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer);
+
+        var first = await CreateSessionAsync(app, signer, "apple", "rv39-sub", "driver@example.com");
+        var second = await CreateSessionAsync(app, signer, "apple", "rv39-sub", "driver@example.com");
+
+        Assert.Equal(first.AccountId, second.AccountId);
+        Assert.Equal(first.Email, second.Email);
+        Assert.Equal("driver@example.com", second.Email);
+    }
+
+    // MARK: RV.41 - a returning install reuses its device row
+
+    [SkippableFact]
+    public async Task ResignInWithTheStoredDeviceId_ReusesTheRowInsteadOfDuplicating()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer);
+
+        // First sign-in: the server mints the device row and hands its id back.
+        var first = await CreateSessionAsync(app, signer, "apple", "rv41-sub", "driver@example.com");
+
+        // The product-owner path: the device is revoked (DELETE /account/devices/{id}).
+        using var revoke = new HttpRequestMessage(HttpMethod.Delete, $"/v1/account/devices/{first.DeviceId}");
+        revoke.Headers.Authorization = new AuthenticationHeaderValue("Bearer", first.AccessToken);
+        Assert.Equal(HttpStatusCode.NoContent, (await app.Client.SendAsync(revoke)).StatusCode);
+
+        // Re-sign-in with the stored device id: the row is reused (and
+        // re-attached), never duplicated.
+        var second = await CreateSessionAsync(app, signer, "apple", "rv41-sub", "driver@example.com", deviceId: first.DeviceId);
+
+        Assert.Equal(first.DeviceId, second.DeviceId);
+        Assert.Equal(1, await app.CountAsync("devices", "account_id = @p", new { p = first.AccountId }));
+        Assert.False(await app.ScalarAsync<bool>("SELECT revoked_at IS NOT NULL FROM devices WHERE id = @p", new { p = first.DeviceId }),
+            "the revoked row re-attaches - it goes live again, not a fresh row beside a greyed one");
+    }
+
+    /// <summary>
+    /// The fence: a client-supplied device id is an unverified claim. Account B
+    /// cannot attach account A's row - the id is bound to the authenticated
+    /// account, and a foreign id is ignored (a new row is minted). Without this
+    /// test the fix is a cross-account take-over.
+    /// </summary>
+    [SkippableFact]
+    public async Task AccountBCannotAttachAccountAsDeviceId()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer);
+
+        var a = await CreateSessionAsync(app, signer, "apple", "fence-a", "a@example.com");
+        var b = await CreateSessionAsync(app, signer, "apple", "fence-b", "b@example.com", deviceId: a.DeviceId);
+
+        Assert.NotEqual(a.DeviceId, b.DeviceId);
+        Assert.Equal(1, await app.CountAsync("devices", "account_id = @p", new { p = a.AccountId }));
+        Assert.Equal(1, await app.CountAsync("devices", "account_id = @p", new { p = b.AccountId }));
+        Assert.Equal(1, await app.CountAsync("devices", "id = @p AND account_id = @a", new { p = a.DeviceId, a = a.AccountId }));
     }
 
     [SkippableFact]
@@ -310,23 +391,27 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
         return new TestApp(factory, client, db, signer);
     }
 
-    private static async Task<(string AccessToken, string RefreshToken, Guid AccountId, Guid DeviceId)> CreateSessionAsync(
+    private static async Task<(string AccessToken, string RefreshToken, Guid AccountId, Guid DeviceId, string? Email)> CreateSessionAsync(
         TestApp app,
         TestIdTokenSigner signer,
         string provider,
         string subject,
-        string email)
+        string email,
+        Guid? deviceId = null)
     {
         var idToken = signer.Mint(provider, subject, email);
+        var device = deviceId is null
+            ? (object)new { name = "iPhone", platform = "ios" }
+            : new { name = "iPhone", platform = "ios", deviceId };
         var response = await app.Client.PostAsJsonAsync("/v1/auth/session", new
         {
             provider,
             idToken,
-            device = new { name = "iPhone", platform = "ios" },
+            device,
         });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<SessionResponse>();
-        return (body!.AccessToken, body.RefreshToken, body.AccountId, body.DeviceId);
+        return (body!.AccessToken, body.RefreshToken, body.AccountId, body.DeviceId, body.Email);
     }
 
     private sealed class TestApp : IAsyncDisposable

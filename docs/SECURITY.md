@@ -130,6 +130,19 @@ switched off by forgetting to deploy a setting. `Auth:AppleAudiences` is the app
 `Auth:GoogleAudiences` is the Google **OAuth client id**. Neither is `Auth:Audience`, which is a
 different thing entirely – the audience stamped on the access tokens this server mints.
 
+**Device identity: a client-supplied id is an unverified claim, never authority (RV.41).** The
+`device.deviceId` the client sends with `POST /auth/session` is its stored per-install identifier
+(the Keychain `deviceId`, hard rule 11). The server reuses that row only when it already belongs to
+the account authenticated by the verified id token - the reuse is bound to the account id, so a
+device id belonging to another account is ignored and a fresh row minted. This is the same class of
+mistake as the `PR.35` audience finding: a client-provided identifier is a claim about the caller,
+and the only trusted identity in a session exchange is the verified id token. The fence is pinned by
+the L2 test `AccountBCannotAttachAccountAsDeviceId` - without it the fix is a cross-account
+take-over. **A revoked row re-attaches when its device returns**: the owner proved the account
+again by presenting a valid id token, and re-attach is what makes a revoke → re-sign-in cycle on
+one phone a single row rather than two. It cannot weaken revocation - a device without the account
+holder's credentials can never sign in, so a stolen phone that was revoked stays out.
+
 **Google sign-in carries no SDK** (decided 2026-09-01). The app runs OAuth 2.0 authorization-code
 with PKCE through `ASWebAuthenticationSession`: `GoogleOAuth` (core, pure, unit-tested) builds the
 request and validates the callback, `GoogleWebAuthenticator` (app) presents the browser and runs

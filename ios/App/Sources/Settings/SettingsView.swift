@@ -36,6 +36,7 @@ struct SettingsView: View {
                         .id(SettingsScrollTarget.account)
                     if sync.signedIn {
                         SettingsSyncSurface(showsSignIn: $showsSignIn)
+                        SignOutSection()
                     }
                     preferencesCard
                     yourDataSection

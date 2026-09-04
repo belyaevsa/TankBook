@@ -201,6 +201,68 @@ final class SettingsUITests: XCTestCase {
         XCTAssertFalse(app.buttons["homeKeepBothButton"].exists)
     }
 
+    // MARK: - Sign out (RV.40, docs/SYNC.md -> "Sign out")
+
+    /// The mildest account exit is reachable from Settings, and after it the app
+    /// is a guest with every local entry still present. The guest Home shows the
+    /// garage card, not the log, so the surviving entries are asserted through a
+    /// known entry's value: the last seeded fill's odometer (119 000) rides the
+    /// garage card, and it is only 119 000 BECAUSE the five fills exist (the
+    /// vehicle's initial odometer is 118 000). A sign-out that quietly wiped the
+    /// log would show 118 000 and fail this - an "a screen changed" check would
+    /// not.
+    func testSignOutReachableFromSettingsAndTheLocalLogIsUntouched() {
+        let app = launch(["-seedSettingsPending"])
+
+        // The real path: Home -> gear -> Settings.
+        XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 10))
+        app.buttons["settingsButton"].tap()
+        XCTAssertTrue(app.navigationBars["Settings"].waitForExistence(timeout: 5))
+
+        let signOut = app.buttons["settingsSignOutButton"]
+        XCTAssertTrue(signOut.waitForExistence(timeout: 10))
+        if !signOut.isHittable { app.swipeUp() }
+        signOut.tap()
+
+        let alert = app.alerts["Sign out?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["settingsSignOutConfirmButton"].firstMatch.tap()
+
+        XCTAssertTrue(app.buttons["settingsSignInButton"].waitForExistence(timeout: 10),
+                      "after sign-out the account card offers sign-in again (a guest)")
+
+        // Back to Home; the seeded vehicle and its fills are still there.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Volvo V60"].waitForExistence(timeout: 5),
+                      "the vehicle survives sign-out")
+        let odometer = app.staticTexts["homeOdometer"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        XCTAssertTrue(odometer.label.contains("119\u{00A0}000"),
+                      "the last entry's odometer survives (the log was not wiped); got '\(odometer.label)'")
+    }
+
+    /// A dirty queue must be named before anything happens (hard rule 7/8):
+    /// the confirmation names the unsynced count, and cancelling drops nothing.
+    func testSignOutWithDirtyQueueNamesTheUnsyncedChanges() {
+        let app = launchSettings(seed: "-seedSettingsPending")
+
+        let signOut = app.buttons["settingsSignOutButton"]
+        XCTAssertTrue(signOut.waitForExistence(timeout: 10))
+        if !signOut.isHittable { app.swipeUp() }
+        signOut.tap()
+
+        let alert = app.alerts["Sign out?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        let text = alert.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " ")
+        XCTAssertTrue(text.contains("5 unsynced changes"),
+                      "the confirmation names the unsynced count; got '\(text)'")
+
+        // Cancelling drops nothing: still signed in, sync surface present.
+        alert.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["settingsSyncNowButton"].waitForExistence(timeout: 5),
+                      "cancelling the confirmation leaves the session intact")
+    }
+
     // MARK: - PJ.13 the first push after sign-in (docs/JOURNEYS.md J11a)
 
     /// A seeded local log, sign in, and the account card reads the synced line
