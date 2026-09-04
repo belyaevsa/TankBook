@@ -79,6 +79,52 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
 
     // ---- 1. A successful call writes one row with every field --------------
 
+    /// The end-to-end question the seed exists to answer: does a REAL receipt
+    /// recognition, priced by the shipped baseline rather than by a fixture,
+    /// record a real cost? Every other ledger test seeds its own model with
+    /// invented prices, so they prove the arithmetic and say nothing about
+    /// whether production would price a call at all - a table full of $0.00 is
+    /// exactly the failure this would hide.
+    ///
+    /// Seeds NO model and NO setting: migration 018's baseline is what resolves.
+    [SkippableFact]
+    public async Task ARealRecognition_IsPricedByTheShippedSeed_NotZero()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetHandler((_, _, _, model) => new LlmExtraction(
+            new Dictionary<string, LlmField>(StringComparer.Ordinal) { ["volume"] = new LlmField(43.61, 0.95) },
+            model.ModelId,
+            PromptTokens,
+            CompletionTokens));
+        await using var app = await StartAsync(signer, provider);
+
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "seed-cost", "seed-cost@example.com");
+        await app.SetTierAsync(accountId, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage());
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var row = await app.QueryAsync<LlmCallRow>(
+            $"SELECT {CallColumns} FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var call = Assert.Single(row);
+
+        // Resolved from the seed, not from a fallback and not from a fixture.
+        Assert.Equal("deepseek-v4-flash-vision-exp", call.ModelId);
+        Assert.Equal("deepseek", call.Vendor);
+
+        // The published OpenRouter rates, snapshotted onto the row.
+        Assert.Equal(0.0000002200m, call.InputPricePerToken);
+        Assert.Equal(0.0000006600m, call.OutputPricePerToken);
+
+        // 1000 x 0.00000022 + 500 x 0.00000066 = 0.00022 + 0.00033 = 0.00055.
+        // Pinned to the literal AND to the product, so neither a wrong rate nor
+        // a wrong formula can pass - "> 0" would sail through both.
+        Assert.Equal(0.00055m, call.Cost);
+        Assert.Equal(PromptTokens * 0.0000002200m + CompletionTokens * 0.0000006600m, call.Cost);
+        Assert.NotEqual(0m, call.Cost);
+    }
+
     [SkippableFact]
     public async Task SuccessfulCall_WritesOneRow_WithEveryFieldPopulated()
     {
