@@ -62,7 +62,11 @@ public enum FuelKindNormalizer {
         // line on every Russian card receipt), which made a payment
         // confirmation look like a diesel product line (receipt-034).
         if fuelWords.contains(where: { matchesFuelToken(matchingKey($0), in: upper) }) { return true }
-        return upper.firstMatch(of: octanePattern) != nil
+        if upper.firstMatch(of: octanePattern) != nil { return true }
+        // A smeared octane prefix (`AM-95`, `АЙ-100`) is a grade only when the
+        // Euro-5 suffix corroborates it on the same line - see
+        // `corroboratedSmearedOctane`.
+        return corroboratedSmearedOctane(in: upper) != nil
     }
 
     /// Normalises a product line to a FuelKind, or nil when the line names no
@@ -89,7 +93,20 @@ public enum FuelKindNormalizer {
         }
         if let kind = circleKLoyaltyGrade(in: upper) { return kind }
 
-        guard let octane = octane(in: upper) else { return nil }
+        guard let octane = octane(in: upper) else {
+            // The octane prefix is smeared beyond the canonical `A[ИH]` pattern.
+            // It is still accepted when the Euro-5 suffix corroborates it - see
+            // `corroboratedSmearedOctane` for why that is corroboration and not
+            // resolution by resemblance.
+            guard let corroborated = corroboratedSmearedOctane(in: upper) else { return nil }
+            return Self.kind(forOctane: corroborated)
+        }
+        return Self.kind(forOctane: octane)
+    }
+
+    /// Maps an octane number onto the FuelKind vocabulary, or nil when it is
+    /// not a retail grade (e.g. receipt-027's `АИ-96`).
+    private static func kind(forOctane octane: Int) -> FuelKind? {
         switch octane {
         case 92: return .petrol92
         case 95: return .petrol95
@@ -174,5 +191,36 @@ public enum FuelKindNormalizer {
             return value
         }
         return nil
+    }
+
+    // MARK: - A smeared octane, corroborated by the Euro-5 suffix
+
+    /// The octane number immediately before a `-К5`/`-K5` suffix, or nil.
+    ///
+    /// Thermal print smears the `И` of `АИ-95` into letters the canonical
+    /// octane pattern `A[ИH]` cannot read: `AM-95` (И -> M, receipt-032),
+    /// `АЙ-100` (И -> Й, receipt-018). `И -> M` is not a homoglyph pair - `M`
+    /// is already the twin of `М` in `latinTwin` - so widening the octane
+    /// letter class would be resolution by resemblance, the move
+    /// `HIGH-WATER.md` forbids and `receipt-027`'s `АИ-96` exists to punish.
+    ///
+    /// The `-К5`/`-K5` suffix is the corroboration instead. It is the Euro-5
+    /// environmental-grade suffix, itself a fuel token that only attaches to a
+    /// grade code, and it sits on the SAME line as the octane it confirms. A
+    /// line that merely *resembles* a grade (`AM-95` with no suffix, the
+    /// receipt-044 case) stays unresolved, and a line that carries a valid
+    /// octane but is not a grade (`АИ-96-К5` on receipt-027) still maps to nil
+    /// because `kind(forOctane:)` has no 96.
+    ///
+    /// What it would take to fire on a non-fuel line: a string of two or three
+    /// digits immediately followed by the literal token `K5` where the digits
+    /// are a retail octane (92/95/98/100). A card authorisation code
+    /// `4XK5RH` (receipt-044) has its `K5` preceded by `X`, not by digits, and
+    /// `ДТ-Л-К5` has no digit before `K5` at all - so neither fires.
+    static func corroboratedSmearedOctane(in upper: String) -> Int? {
+        guard upper.contains("K5") else { return nil }
+        let pattern = /(\d{2,3})\s*[-–]?\s*K5/
+        guard let match = upper.firstMatch(of: pattern), let octane = Int(match.1) else { return nil }
+        return octane
     }
 }

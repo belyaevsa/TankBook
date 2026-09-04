@@ -274,12 +274,24 @@ struct FuelPriceBandDecisionTableTests {
         #expect(result.unitPrice == nil)
     }
 
-    @Test("receipt-032: an undetected fuel kind abstains, never a petrol guess")
-    func receipt032NilFuelKindAbstains() throws {
-        // "AM-95-K5" is the OCR of "АИ-95-К5" the normaliser does not map, so
-        // fuelKind is nil. The band must abstain - a petrol band applied to an
-        // unknown kind is exactly the swap receipt-012 proves the key prevents.
+    @Test("receipt-032: a smeared octane corroborated by -K5 resolves, never a guess")
+    func receipt032CorroboratedResolves() throws {
+        // "AM-95-K5" is the OCR of "АИ-95-К5": the И smeared to M. The -K5
+        // Euro-5 suffix corroborates the grade on the same line (RV.48 stage
+        // three), so it resolves to petrol95 and the band resolves the pair.
         let result = try resolve("73.15*20", fuel: "AM-95-K5 PuLsar-95", currency: "ЗН ККТ 00106906149101")
+        #expect(result.fuelKind == .petrol95)
+        #expect(result.liters == 20.0)
+        #expect(result.unitPrice == decimal("73.15"))
+    }
+
+    @Test("receipt-044: a smeared octane WITHOUT the -K5 suffix still abstains")
+    func receipt044SmearedWithoutCorroborationAbstains() throws {
+        // "AM-95" with no -K5 suffix is not corroborated, so fuelKind stays nil
+        // and no petrol band is applied - the swap receipt-012 proves the key
+        // prevents. Resemblance alone ("AM" looks like "АИ") is not resolution.
+        let result = try resolve("73.15*20", fuel: "AM-95", currency: "ЗН ККТ 00106906149101")
+        #expect(result.fuelKind == nil)
         #expect(result.liters == nil)
         #expect(result.unitPrice == nil)
     }

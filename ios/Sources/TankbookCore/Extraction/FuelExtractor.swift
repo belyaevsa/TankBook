@@ -130,7 +130,9 @@ public struct FuelExtractor: Sendable {
             let discounted = lines[index].text.uppercased().contains("СКИДК")
             return resolveOperands(pair, at: index, in: lines, discounted: discounted, context: context)
         }
-        // A labelled pump-style receipt with no explicit `x` (e.g. "67,00L").
+        // A labelled pump-style receipt with no explicit `x` (e.g. "67,00L"),
+        // and the reference-block "цена за ед." price with its value to the
+        // right.
         if let lone = loneMarkers(lines) {
             return lone
         }
@@ -252,20 +254,15 @@ public struct FuelExtractor: Sendable {
                let value = NumberScanner.numbers(in: line.text).first {
                 volume = value
             }
+            // A quantity label/header states the volume with its value beside
+            // or below it: "Колич. пр." (receipt-030) puts the value to the
+            // right, "единиц" (receipt-023/044) puts it directly below in its
+            // column.
+            if volume == nil, line.text.isQuantityLabel {
+                volume = quantityValue(forLabelAt: index, in: lines)
+            }
             if price == nil, line.text.isPricePerUnitLabel {
-                // The value sits directly below its "/L" label, in the same
-                // column - never above it, where the row's sum lives.
-                var best: (distance: CGFloat, value: Double)?
-                for (otherIndex, other) in lines.enumerated() where otherIndex != index {
-                    let distance = line.midY - other.midY
-                    guard distance > 0, distance < 0.02,
-                          NumberScanner.isValueLine(other.text),
-                          let value = NumberScanner.value(in: other.text) else { continue }
-                    if best == nil || distance < best!.distance {
-                        best = (distance, value)
-                    }
-                }
-                price = best?.value
+                price = pricePerUnitValue(forLabelAt: index, in: lines)
             }
         }
         return (volume, price)
@@ -559,6 +556,16 @@ extension String {
         let upper = uppercased()
         return upper.contains("/L") || upper.contains("/Л") || upper.contains("ЦЕНА/ЛИТР")
             || upper.contains("ЦЕНА ЗА 1 ЛИТР") || upper.contains("HIND/1L")
+            || upper.contains("ЦЕНА ЗА ЕД")
+    }
+
+    /// A quantity label or column header. Deliberately "КОЛИЧ" and "ЕДИНИЦ",
+    /// never bare "КОЛ" or "KOGUS": "КОЛ" also matches "Колонка" (receipt-006's
+    /// pump number) and "KOGUS" would read the Estonian quantity header as a
+    /// label-value row, where the receipt total sits beside it.
+    var isQuantityLabel: Bool {
+        let upper = uppercased()
+        return upper.contains("КОЛИЧ") || upper.contains("ЕДИНИЦ")
     }
 }
 
