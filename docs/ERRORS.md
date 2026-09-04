@@ -210,19 +210,25 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
 | **Language changed (RV.24)** | In the language picker, below the list: "Language changes the next time you open Tankbook" | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
-### Inbox (RV.38)
+### Inbox (RV.38, RV.45)
 
 The bell's screen: work that finished after the user moved on. The first case is a cloud
 reading that landed **after** the entry was saved (`docs/JOURNEYS.md` F4, amended). It is a
 **home for suggestions, never a rewrite** - the app asks, and "leave it as it is" is the
-default (hard rule 13).
+default (hard rule 13). **RV.45 (2026-09-04) made the ask per-field:** the card lists every
+field the receipt read that differs from or fills what the user saved as **yours vs the
+receipt**, and the user ticks per field what to take. A field that matches is not a choice
+(it is shown as agreement, or not at all), and a card with nothing to change says so and
+offers no update action (hard rule 7 - an action must name what it does, and one that does
+nothing is not offered).
 
 | Condition | Shows | Next step |
 |---|---|---|
 | Nothing pending (the normal case) | Reassuring empty state: "Nothing needs your attention" (the Recently-deleted sibling - the screen existing at all is the reassurance) | Nothing to do |
-| A cloud reading landed after save | An item: "Receipt reading ready · Finished after you saved." with three actions. The entry keeps its own badge (hard rule 8), so the bell is a second route, never the only place this is visible | **Update from the receipt** (fills blank fields only, never a typed/derived value) · **Leave it as it is** (the default - nothing changes) · **Replace the receipt** (routes to Edit entry, where the receipt lives) |
-| The reading agrees with what was saved | **Nothing.** An answer that adds no blank and disagrees with nothing is noise, not work - no item is created | Nothing to do; the answer is silently absorbed |
-| The entry the item is about no longer exists | The item routes to the entry; a deleted entry has nothing to update | Leave it as it is - the item clears and nothing is written |
+| A cloud reading landed after save, and it differs or fills a blank | An item: "Receipt reading ready · Finished after you saved." with a **per-field comparison** - every field the receipt read that differs or fills a blank renders "you entered X · receipt Y", marked, with a tick. The two acts read differently: a blank field carries **"Fills the empty field"**, a differing one **"Replaces what you entered"**. The entry keeps its own badge (hard rule 8). | Tick the fields to take · **Update from the receipt** (disabled until at least one field is ticked) · **Leave it as it is** (the default - nothing changes) · **Replace the receipt** (routes to Edit entry, where the receipt lives) |
+| A reading that would change nothing | The card says "Nothing to change – the receipt matches what you saved." and offers **no update action** - an item whose entry has since come to agree with the reading (the user edited it, or sync brought it in line) | **Leave it as it is** (clears the item) · **Replace the receipt** |
+| The reading agrees with what was saved (at creation) | **Nothing.** An answer that adds no blank and disagrees with nothing is noise, not work - no item is created | Nothing to do; the answer is silently absorbed |
+| The entry the item is about no longer exists | "The entry this reading was about no longer exists." The item routes to the entry; a deleted entry has nothing to update | Leave it as it is - the item clears and nothing is written |
 
 **Durability, stated plainly.** The inbox is device-local and best-effort: the extraction lives
 on the device (rule 9 - the gateway holds no conversation), so an app killed mid-request loses

@@ -2,22 +2,25 @@ import Foundation
 import Testing
 @testable import TankbookCore
 
-// RV.38 - the inbox decision (docs/JOURNEYS.md F4, amended): a late gateway
-// answer no longer silently rewrites a saved entry; it lands in the inbox as a
-// suggestion, and "leave it as it is" is the default. This suite pins the three
-// decisions in core - what makes an item, what fills, and what the merge
-// preserves - so the inbox view and the sheet cannot disagree about the
-// boundary. The model is `SyncSurfaceTests`/`SyncChipTests`: pin WHICH state,
-// never "a thing happened".
+// RV.38 - the inbox decision (docs/JOURNEYS.md F4, amended); RV.45 the per-field
+// ask (amended 2026-09-04). A late gateway answer no longer silently rewrites a
+// saved entry; it lands in the inbox as a suggestion, and "leave it as it is" is
+// the default. RV.45 replaced the blank-fields-only merge with a PER-FIELD one:
+// the card lists every field the receipt read that differs from or fills what
+// the user saved, and the user ticks per field what to take. This suite pins the
+// decisions in core - what makes an item, what is offered, and what the per-field
+// merge changes - so the inbox view and the sheet cannot disagree about the
+// boundary. The model is `SyncSurfaceTests`: pin WHICH state, never "a thing
+// happened".
 
-@Suite("Gateway inbox policy (RV.38)")
+@Suite("Gateway inbox policy (RV.38, RV.45)")
 struct GatewayInboxPolicyTests {
 
     private static func answer() -> GatewayExtraction {
         GatewayExtraction(
             total: .init(value: Decimal(string: "99.99")!, confidence: 0.92),
             volume: .init(value: 55.00, confidence: 0.90),
-            unitPrice: .init(value: Decimal(string: "1.679")!, confidence: 0.88),
+            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.88),
             date: .init(value: "17.08.2026", confidence: 0.80),
             fuelKind: .init(value: .diesel, confidence: 0.70),
             currency: .init(value: .rub, confidence: 0.60),
@@ -26,7 +29,7 @@ struct GatewayInboxPolicyTests {
     }
 
     /// A saved fill-up as the typed path writes one: total + litres typed, price
-    /// derived, fuel kind defaulted to petrol95, home currency eur.
+    /// set, fuel kind petrol95, home currency eur.
     private static func savedEntry() -> FillUp {
         let now = Date()
         return FillUp(
@@ -50,25 +53,51 @@ struct GatewayInboxPolicyTests {
         return entry
     }
 
-    // MARK: - What makes an item
-
-    @Test("a differing answer is an offer even when nothing is blank")
-    func differingAnswerIsOffered() {
-        // The gateway read diesel/99.99 against a saved petrol95/71.02: the
-        // difference is worth surfacing even though nothing can be auto-filled.
-        #expect(GatewayInboxPolicy.shouldOffer(extraction: Self.answer(), entry: Self.savedEntry()))
+    /// Asserts `merged` equals `original` with ONLY the change in `apply` made -
+    /// every other field byte-identical (the RV.45 trap: a merge that overwrote
+    /// everything would pass "the target changed" and fail here). `updatedAt` and
+    /// `crossCheck` are legitimately recomputed by the merge, so they are copied
+    /// from the result rather than asserted against the original.
+    private func assertOnlyTickedFieldsChanged(
+        merged: FillUp, original: FillUp, apply: (inout FillUp) -> Void
+    ) {
+        var expected = original
+        apply(&expected)
+        expected.updatedAt = merged.updatedAt
+        expected.crossCheck = merged.crossCheck
+        #expect(merged == expected)
     }
 
-    @Test("a blank field is an offer even when the rest agrees")
-    func blankFieldIsOffered() {
-        let blank = Self.savedEntryBlankPrice()
-        #expect(GatewayInboxPolicy.shouldOffer(extraction: Self.answer(), entry: blank))
+    // MARK: - What is offered (the decision set)
+
+    @Test("a differing answer offers every differing field, each as .differs")
+    func differingAnswerOffersEachField() {
+        let offers = GatewayInboxPolicy.offers(extraction: Self.answer(), entry: Self.savedEntry())
+        #expect(Set(offers.map(\.field)) == [.date, .fuelKind, .volume, .unitPrice, .total, .currency])
+        #expect(offers.allSatisfy { $0.disposition == .differs },
+                "against a fully-set entry every discrepancy replaces a value")
     }
 
-    @Test("an answer that agrees and fills nothing is not an offer")
-    func agreeingAnswerIsNotOffered() {
-        // The answer matches what the user saved exactly: no fillable field, no
-        // difference - nothing to say, no inbox item.
+    @Test("a blank price is offered as .fillsBlank, not .differs")
+    func blankFieldIsAFillNotAReplace() {
+        let offers = GatewayInboxPolicy.offers(extraction: Self.answer(), entry: Self.savedEntryBlankPrice())
+        let price = offers.first { $0.field == .unitPrice }
+        #expect(price?.disposition == .fillsBlank)
+    }
+
+    @Test("a field the receipt did not read is not offered")
+    func unreadFieldIsNotOffered() {
+        let extraction = GatewayExtraction(
+            volume: .init(value: 55.00, confidence: 0.9),
+            pipeline: "test")
+        let offers = GatewayInboxPolicy.offers(extraction: extraction, entry: Self.savedEntry())
+        #expect(Set(offers.map(\.field)) == [.volume])
+        #expect(!offers.contains { $0.field == .date },
+                "an unread date is absence, never a decision")
+    }
+
+    @Test("a field that matches is not offered as a choice at all")
+    func matchingFieldIsNotOffered() {
         var entry = Self.savedEntry()
         let agreeing = GatewayExtraction(
             total: .init(value: entry.money!.amount, confidence: 0.9),
@@ -78,69 +107,109 @@ struct GatewayInboxPolicyTests {
             currency: .init(value: entry.money!.currency, confidence: 0.9),
             pipeline: "test")
         _ = entry
+        #expect(GatewayInboxPolicy.offers(extraction: agreeing, entry: Self.savedEntry()).isEmpty,
+                "agreement is not a decision")
+    }
+
+    // MARK: - What makes an item
+
+    @Test("a differing answer is an offer even when nothing is blank")
+    func differingAnswerIsOffered() {
+        #expect(GatewayInboxPolicy.shouldOffer(extraction: Self.answer(), entry: Self.savedEntry()))
+    }
+
+    @Test("a blank field is an offer even when the rest agrees")
+    func blankFieldIsOffered() {
+        let blank = Self.savedEntryBlankPrice()
+        let extraction = GatewayExtraction(
+            unitPrice: .init(value: Decimal(string: "1.500")!, confidence: 0.9),
+            pipeline: "test")
+        #expect(GatewayInboxPolicy.shouldOffer(extraction: extraction, entry: blank))
+    }
+
+    @Test("an answer that agrees and fills nothing is not an offer")
+    func agreeingAnswerIsNotOffered() {
+        let agreeing = GatewayExtraction(
+            total: .init(value: Self.savedEntry().money!.amount, confidence: 0.9),
+            volume: .init(value: Self.savedEntry().volumeL, confidence: 0.9),
+            unitPrice: .init(value: Self.savedEntry().unitPrice!, confidence: 0.9),
+            fuelKind: .init(value: Self.savedEntry().fuelKind, confidence: 0.9),
+            currency: .init(value: Self.savedEntry().money!.currency, confidence: 0.9),
+            pipeline: "test")
         #expect(!GatewayInboxPolicy.shouldOffer(extraction: agreeing, entry: Self.savedEntry()))
     }
 
-    // MARK: - The blank-fields-only fill set
+    // MARK: - The per-field merge
 
-    @Test("a nil unit price is fillable; a set one never is")
-    func unitPriceFillBoundary() {
-        #expect(GatewayInboxPolicy.fillableFields(
-            extraction: Self.answer(), entry: Self.savedEntryBlankPrice()) == [.unitPrice])
-        #expect(GatewayInboxPolicy.fillableFields(
-            extraction: Self.answer(), entry: Self.savedEntry()).isEmpty,
-            "a typed/derived price is the user's own - never fillable")
-    }
-
-    @Test("volume, date, fuel kind and currency are never blank on a saved fill-up")
-    func nonOptionalFieldsNeverFillable() {
-        let fillable = GatewayInboxPolicy.fillableFields(
-            extraction: Self.answer(), entry: Self.savedEntryBlankPrice())
-        #expect(!fillable.contains(.volume))
-        #expect(!fillable.contains(.total))
-        #expect(!fillable.contains(.date))
-        #expect(!fillable.contains(.fuelKind))
-        #expect(!fillable.contains(.currency))
-    }
-
-    // MARK: - The blank-fields-only merge
-
-    @Test("the merge fills the blank price and leaves every other value byte-identical")
-    func mergeFillsBlankPriceOnly() {
+    @Test("taking a blank field fills it and touches nothing else")
+    func mergeFillsBlankOnly() {
         let blank = Self.savedEntryBlankPrice()
-        let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer())
-
-        #expect(merged.unitPrice == Decimal(string: "1.679")!,
+        let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer(), taking: [.unitPrice])
+        #expect(merged.unitPrice == Decimal(string: "1.500")!,
                 "the blank price fills from the receipt")
-        #expect(merged.volumeL == blank.volumeL, "the typed litres are untouched")
-        #expect(merged.money == blank.money, "the saved total is untouched")
-        #expect(merged.fuelKind == blank.fuelKind, "the saved fuel kind is untouched")
-        #expect(merged.date == blank.date, "the saved date is untouched")
-        #expect(merged.id == blank.id, "the entry identity is preserved")
+        assertOnlyTickedFieldsChanged(merged: merged, original: blank) { $0.unitPrice = Decimal(string: "1.500")! }
     }
 
-    @Test("a value the user saved is never overwritten by an accepted re-read")
-    func mergeNeverOverwritesASavedValue() {
-        // The gateway says 99.99 / 55.00 / 1.679 - but the entry already holds
-        // 71.02 / 42.30 / 1.679, so nothing moves.
+    @Test("taking a differing field replaces exactly that field")
+    func mergeReplacesDifferingFieldOnly() {
         let original = Self.savedEntry()
-        let merged = GatewayInboxPolicy.merged(entry: original, extraction: Self.answer())
-        #expect(merged.volumeL == original.volumeL)
-        #expect(merged.money == original.money)
-        #expect(merged.unitPrice == original.unitPrice)
-        #expect(merged.fuelKind == original.fuelKind)
-        #expect(merged.date == original.date)
+        let merged = GatewayInboxPolicy.merged(entry: original, extraction: Self.answer(), taking: [.volume])
+        #expect(merged.volumeL == 55.00, "the receipt's volume replaces the typed one")
+        assertOnlyTickedFieldsChanged(merged: merged, original: original) { $0.volumeL = 55.00 }
+    }
+
+    @Test("taking several fields replaces each and nothing else")
+    func mergeReplacesTickedFieldsOnly() {
+        let original = Self.savedEntry()
+        let merged = GatewayInboxPolicy.merged(
+            entry: original, extraction: Self.answer(), taking: [.volume, .fuelKind, .total])
+        #expect(merged.volumeL == 55.00)
+        #expect(merged.fuelKind == .diesel)
+        #expect(merged.money?.amount == Decimal(string: "99.99")!)
+        assertOnlyTickedFieldsChanged(merged: merged, original: original) {
+            $0.volumeL = 55.00
+            $0.fuelKind = .diesel
+            $0.money = original.money!.replacingAmount(Decimal(string: "99.99")!)
+        }
+    }
+
+    @Test("taking nothing leaves the entry byte-identical")
+    func mergeTakingNothingIsByteIdentical() {
+        let original = Self.savedEntry()
+        let merged = GatewayInboxPolicy.merged(entry: original, extraction: Self.answer(), taking: [])
+        #expect(merged == original,
+                "no tick means no change - updatedAt included, not just the data fields")
+    }
+
+    @Test("taking a ticked blank and a ticked differing field applies both")
+    func mergeBlankAndDifferTogether() {
+        let blank = Self.savedEntryBlankPrice()
+        let merged = GatewayInboxPolicy.merged(
+            entry: blank, extraction: Self.answer(), taking: [.unitPrice, .volume])
+        #expect(merged.unitPrice == Decimal(string: "1.500")!)
+        #expect(merged.volumeL == 55.00)
+        assertOnlyTickedFieldsChanged(merged: merged, original: blank) {
+            $0.unitPrice = Decimal(string: "1.500")!
+            $0.volumeL = 55.00
+        }
+    }
+
+    @Test("a ticked field the receipt did not read is a no-op")
+    func mergeIgnoresUnreadField() {
+        let original = Self.savedEntry()
+        let volumeOnly = GatewayExtraction(volume: .init(value: 55.00, confidence: 0.9), pipeline: "test")
+        let merged = GatewayInboxPolicy.merged(entry: original, extraction: volumeOnly, taking: [.volume, .date])
+        #expect(merged.volumeL == 55.00, "the read field applies")
+        assertOnlyTickedFieldsChanged(merged: merged, original: original) { $0.volumeL = 55.00 }
+        #expect(merged.date == original.date, "an unread date ticked is not invented")
     }
 
     // MARK: - Clearing is the resolution's job, not the policy's
 
     @Test("the policy offers and fills but never clears - resolution clears")
     func policyDoesNotClear() {
-        // The inbox store deletes the item on resolution; the policy only
-        // decides offer/fill. Pinned so a future "clear in the policy" does not
-        // resurrect a declined item.
         let blank = Self.savedEntryBlankPrice()
-        let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer())
+        let merged = GatewayInboxPolicy.merged(entry: blank, extraction: Self.answer(), taking: [.unitPrice])
         #expect(merged.unitPrice != nil)
     }
 }

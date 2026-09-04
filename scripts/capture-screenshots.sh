@@ -636,6 +636,20 @@ capture RV.38-bell-ru        ru -seedSettingsSignedIn -seedInboxItem -inboxReset
 capture RV.38-inbox-item     en -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
 capture RV.38-inbox-item-ru  ru -seedSettingsSignedIn -seedInboxItem -inboxReset -presentScreen inbox
 
+# RV.45: the per-field comparison card. The comparison seed is the "interesting
+# case" - exactly one differing field (volume 40.00 vs 30.00) and one blank
+# field (price), everything else agreeing, so the card shows the yours-vs-
+# receipt table with two tickable rows and the distinct fill/replace verbs. RU
+# is the real test: a two-column comparison with Russian field labels ("Литры",
+# "Цена/л", "Итого", "Валюта") and the verbs ("Заменит введённое" / "Заполнит
+# пустое поле") are exactly where a table overflows.
+capture RV.45-comparison        en -seedSettingsSignedIn -seedInboxComparison -inboxReset -presentScreen inbox
+capture RV.45-comparison-ru     ru -seedSettingsSignedIn -seedInboxComparison -inboxReset -presentScreen inbox
+# RV.45: the nothing-to-change card - an item whose reading agrees with the
+# saved entry must say so and offer no update action (honesty rule 2).
+capture RV.45-nothing-to-change    en -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
+capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory

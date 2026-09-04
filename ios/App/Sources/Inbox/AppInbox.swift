@@ -50,6 +50,14 @@ final class AppInbox {
         pendingEntryIDs.contains(entryID)
     }
 
+    /// The saved entry an item is about, looked up fresh so the card renders
+    /// "yours" as the entry stands NOW, not as it stood when the answer arrived.
+    /// `nil` when the entry no longer exists (docs/ERRORS.md -> Inbox).
+    func fillUp(for item: GatewayInboxItem) -> FillUp? {
+        guard let repository = try? AppStore.repository() else { return nil }
+        return try? repository.fillUp(id: item.entryId)
+    }
+
     // MARK: - Recording
 
     /// A late gateway answer for a saved entry. The policy decides whether it is
@@ -125,24 +133,25 @@ final class AppInbox {
 
     // MARK: - Resolution
 
-    /// How the user answered the item's ask. `.update` fills blank fields only
-    /// (hard rule 13); `.leaveAsIs` and `.replaceReceipt` change nothing - the
-    /// latter routes the user to the entry, where the receipt lives.
+    /// How the user answered the item's ask. `.update` takes exactly the fields
+    /// the user TICKED (hard rule 13: the user decides per field, never the
+    /// app); `.leaveAsIs` and `.replaceReceipt` change nothing - the latter
+    /// routes the user to the entry, where the receipt lives.
     enum Resolution: Equatable {
-        case update
+        case update(fields: Set<FieldRef>)
         case leaveAsIs
         case replaceReceipt
     }
 
     /// Resolves an item: the item clears and does not return, and an accepted
-    /// update applies the blank-fields-only merge to the entry the item routed
-    /// to (never silently - the user just tapped it).
+    /// update applies the per-field merge to the entry the item routed to
+    /// (never silently - the user just tapped it).
     func resolve(_ item: GatewayInboxItem, as resolution: Resolution) {
         defer { remove(item) }
-        guard resolution == .update else { return }
+        guard case let .update(fields) = resolution else { return }
         guard let repository = try? AppStore.repository(),
               let entry = try? repository.fillUp(id: item.entryId) else { return }
-        let merged = GatewayInboxPolicy.merged(entry: entry, extraction: item.extraction)
+        let merged = GatewayInboxPolicy.merged(entry: entry, extraction: item.extraction, taking: fields)
         try? repository.upsertFillUp(merged)
         noteEntryChanged()
     }

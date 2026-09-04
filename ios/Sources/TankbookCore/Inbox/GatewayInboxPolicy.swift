@@ -1,16 +1,25 @@
 import Foundation
 
 // MARK: - RV.38 the inbox for work that finishes after the user moved on
-// (docs/JOURNEYS.md F4, amended 2026-09-03).
+// (docs/JOURNEYS.md F4, amended 2026-09-03); RV.45 the per-field ask
+// (amended 2026-09-04).
 //
 // F4 used to say "once the entry is saved, nothing arrives at all" and
 // `GatewayScanSession.markSaved()` dropped the answer. RV.38 reverses that -
 // but only because the app ASKS. A late answer no longer silently rewrites a
 // saved entry (hard rule 13 still forbids that); it lands in the inbox as a
 // suggestion the user accepts, edits or declines, with "leave it as it is" the
-// default. The decision - what makes an item, when it clears, and the
-// blank-fields-only merge - lives here in core so the sheet and the tests
-// cannot disagree about the boundary, exactly like `GatewaySuggestionPolicy`.
+// default. The decision - what makes an item, when it clears, and what a taken
+// answer changes - lives here in core so the sheet and the tests cannot
+// disagree about the boundary, exactly like `GatewaySuggestionPolicy`.
+//
+// RV.45 (2026-09-04) replaced the blank-fields-only merge with a PER-FIELD one.
+// The old `fillableFields` could only ever return `.unitPrice` (on a saved
+// `FillUp` the other fields are non-nil by construction), while `shouldOffer`
+// also fired on `hasDifference` - so the commonest item was a DISAGREEMENT for
+// which the old `merged()` changed nothing, and the card offered an "update"
+// that was a guaranteed no-op. The disagreement is the most valuable thing the
+// scan produced; it is now shown, and the user ticks per field what to take.
 
 /// One pending inbox item: a gateway reading that arrived after the entry was
 /// saved. The extraction lives on the device (rule 9 - the gateway holds no
@@ -42,12 +51,37 @@ public struct GatewayInboxItem: Codable, Sendable, Equatable, Identifiable {
 /// `GatewaySuggestionPolicy` precedent).
 public enum GatewayInboxPolicy {
 
-    /// Whether a late answer is worth an inbox item: there is a blank field it
-    /// could fill, or it disagrees with what the user saved. An answer that
-    /// merely agrees with the saved entry is noise, not work.
+    /// The two ways a field the receipt read can be a decision. They must read
+    /// differently to the user (RV.45 honesty rule 3): filling a blank is not
+    /// replacing a value the user typed, and the copy must not flatten them.
+    public enum Disposition: Equatable, Sendable {
+        /// The entry's field is blank; taking the receipt's value fills it.
+        case fillsBlank
+        /// The entry holds a value and the receipt disagrees; taking it replaces
+        /// what the user saved - the act hard rule 13 leaves to the user alone.
+        case differs
+    }
+
+    /// One row of the comparison table: a field the receipt read that is a
+    /// decision for the user. A field that merely agrees is ABSENT (agreement is
+    /// not a choice); a field the receipt did not read is absent too.
+    public struct FieldOffer: Equatable, Sendable, Identifiable {
+        public let field: FieldRef
+        public let disposition: Disposition
+
+        public init(field: FieldRef, disposition: Disposition) {
+            self.field = field
+            self.disposition = disposition
+        }
+
+        public var id: FieldRef { field }
+    }
+
+    /// Whether a late answer is worth an inbox item: at least one field the
+    /// receipt read would change something (fill a blank or replace a value). An
+    /// answer that merely agrees with the saved entry is noise, not work.
     public static func shouldOffer(extraction: GatewayExtraction, entry: FillUp) -> Bool {
-        !fillableFields(extraction: extraction, entry: entry).isEmpty
-            || hasDifference(extraction: extraction, entry: entry)
+        !offers(extraction: extraction, entry: entry).isEmpty
     }
 
     /// The one way an answer becomes an inbox item (RV.44): a fresh item for the
@@ -60,64 +94,100 @@ public enum GatewayInboxPolicy {
         return GatewayInboxItem(id: UUID.v7(), entryId: entry.id, createdAt: now, extraction: extraction)
     }
 
-    /// The subset of a gateway answer that may fill a SAVED entry: fields the
-    /// answer provides that are still BLANK on the entry. A user-typed (or
-    /// derived-then-saved) value is theirs permanently - an accepted re-read
-    /// never overwrites one (hard rule 13). For a `FillUp` the only gateway
-    /// field that can be blank in practice is `unitPrice` (nil); `volumeL`,
-    /// `date`, `fuelKind` and `money` are non-nil on a saved fill-up, and
-    /// `money == nil` cannot be filled without inventing a currency the entry
-    /// does not carry, so it is deliberately not offered.
-    public static func fillableFields(extraction: GatewayExtraction, entry: FillUp) -> Set<FieldRef> {
-        var out = Set<FieldRef>()
-        if extraction.unitPrice != nil && entry.unitPrice == nil {
-            out.insert(.unitPrice)
+    /// Every field the receipt read that would change the entry if taken: a
+    /// blank it can fill, or a value it reads differently. In display order
+    /// (date, fuel kind, volume, unit price, total, currency). A field that
+    /// agrees is not offered (agreement is not a decision), and a field the
+    /// receipt did not read (or a date it could not parse) is not offered either.
+    public static func offers(extraction: GatewayExtraction, entry: FillUp) -> [FieldOffer] {
+        var out: [FieldOffer] = []
+
+        if let rawDate = extraction.date?.value,
+           let parsed = ConfirmDate.parse(rawDate),
+           !Calendar.current.isDate(parsed, inSameDayAs: entry.date) {
+            out.append(FieldOffer(field: .date, disposition: .differs))
         }
+
+        if let kind = extraction.fuelKind?.value, kind != entry.fuelKind {
+            out.append(FieldOffer(field: .fuelKind, disposition: .differs))
+        }
+
+        if let volume = extraction.volume?.value, volume != entry.volumeL {
+            out.append(FieldOffer(field: .volume, disposition: .differs))
+        }
+
+        if let price = extraction.unitPrice?.value {
+            if let current = entry.unitPrice {
+                if price != current {
+                    out.append(FieldOffer(field: .unitPrice, disposition: .differs))
+                }
+            } else {
+                out.append(FieldOffer(field: .unitPrice, disposition: .fillsBlank))
+            }
+        }
+
+        // total and currency live on the money pair; a saved fill-up whose money
+        // is nil carries neither, so there is nothing to compare or take.
+        if let money = entry.money {
+            if let total = extraction.total?.value, total != money.amount {
+                out.append(FieldOffer(field: .total, disposition: .differs))
+            }
+            if let currency = extraction.currency?.value, currency != money.currency {
+                out.append(FieldOffer(field: .currency, disposition: .differs))
+            }
+        }
+
         return out
     }
 
-    /// The blank-fields-only merge: a copy of the entry with the fillable fields
-    /// filled from the answer, everything else byte-identical. The cross-check
-    /// is recomputed when the fill leaves all three pump-card numbers present;
-    /// a partial fill keeps `.notApplicable` (there is no redundancy to check).
-    public static func merged(entry: FillUp, extraction: GatewayExtraction) -> FillUp {
+    /// The per-field merge: a copy of the entry with exactly the TICKED fields
+    /// taken from the receipt, every other field byte-identical. `taking` is the
+    /// user's tick set (the refs of the offered fields they chose). A ref not in
+    /// the set never changes; a ref the receipt did not read (or that agrees) is
+    /// a no-op even if ticked. When nothing is actually applied the entry is
+    /// returned unchanged - byte-identical, no `updatedAt` bump. The cross-check
+    /// is recomputed after a change leaves the pump-card numbers present (hard
+    /// rule 2: derived, never stored stale).
+    ///
+    /// ONE function serves both the in-process late answer and the outbox drain
+    /// (RV.44): both resolve through `AppInbox.resolve`, which passes the same
+    /// tick set here - one policy, not two.
+    public static func merged(entry: FillUp, extraction: GatewayExtraction, taking fields: Set<FieldRef>) -> FillUp {
         var result = entry
-        let fillable = fillableFields(extraction: extraction, entry: entry)
-        if fillable.contains(.unitPrice), let price = extraction.unitPrice?.value {
-            result.unitPrice = price
+        var changed = false
+
+        if fields.contains(.date), let rawDate = extraction.date?.value, let parsed = ConfirmDate.parse(rawDate) {
+            result.date = parsed
+            changed = true
         }
+        if fields.contains(.fuelKind), let kind = extraction.fuelKind?.value {
+            result.fuelKind = kind
+            changed = true
+        }
+        if fields.contains(.volume), let volume = extraction.volume?.value {
+            result.volumeL = volume
+            changed = true
+        }
+        if fields.contains(.unitPrice), let price = extraction.unitPrice?.value {
+            result.unitPrice = price
+            changed = true
+        }
+        if fields.contains(.total), let total = extraction.total?.value, let money = result.money {
+            result.money = money.replacingAmount(total)
+            changed = true
+        }
+        if fields.contains(.currency), let currency = extraction.currency?.value, let money = result.money {
+            result.money = money.replacingCurrency(currency)
+            changed = true
+        }
+
+        guard changed else { return entry }
+
         if let money = result.money {
             result.crossCheck = TimelineValidator.crossCheck(
                 volumeL: result.volumeL, unitPrice: result.unitPrice, amount: money.amount)
         }
         result.updatedAt = Date()
         return result
-    }
-
-    /// Whether the answer disagrees with a value the user saved - the "find a
-    /// difference" half of the ask. Values only, never confidence (the corpus
-    /// proved a wrong digit at confidence 1.00, docs/EXTRACTION.md -> pump-004).
-    public static func hasDifference(extraction: GatewayExtraction, entry: FillUp) -> Bool {
-        if let total = extraction.total?.value, let money = entry.money, total != money.amount {
-            return true
-        }
-        if let volume = extraction.volume?.value, volume != entry.volumeL {
-            return true
-        }
-        if let price = extraction.unitPrice?.value, let current = entry.unitPrice, price != current {
-            return true
-        }
-        if let kind = extraction.fuelKind?.value, kind != entry.fuelKind {
-            return true
-        }
-        if let currency = extraction.currency?.value, let money = entry.money, currency != money.currency {
-            return true
-        }
-        if let rawDate = extraction.date?.value, let date = ConfirmDate.parse(rawDate) {
-            if !Calendar.current.isDate(date, inSameDayAs: entry.date) {
-                return true
-            }
-        }
-        return false
     }
 }

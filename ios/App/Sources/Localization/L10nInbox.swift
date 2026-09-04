@@ -50,4 +50,39 @@ extension L10n {
     static var inboxEmpty: String {
         localize("Nothing needs your attention")
     }
+
+    /// The comparison table's "yours" column header: the value the user saved.
+    static var inboxYouEntered: String {
+        localize("You entered")
+    }
+
+    /// The comparison table's receipt column header.
+    static var inboxReceiptColumn: String {
+        localize("Receipt")
+    }
+
+    /// The per-field verb for a field the receipt reads DIFFERENTLY: taking it
+    /// REPLACES what the user typed. Deliberately distinct from `inboxFills`
+    /// (RV.45 honesty rule 3) - the two acts must not read as one word.
+    static var inboxReplaces: String {
+        localize("Replaces what you entered")
+    }
+
+    /// The per-field verb for a field the user left BLANK: taking the receipt's
+    /// value FILLS it. Not "replacing" anything, and it must not read that way.
+    static var inboxFills: String {
+        localize("Fills the empty field")
+    }
+
+    /// The no-op card (RV.45 honesty rule 2): an item whose reading agrees with
+    /// what is now saved. States the truth and offers no action that changes
+    /// nothing.
+    static var inboxNothingToChange: String {
+        localize("Nothing to change – the receipt matches what you saved.")
+    }
+
+    /// The entry the item routes to no longer exists (docs/ERRORS.md -> Inbox).
+    static var inboxEntryGone: String {
+        localize("The entry this reading was about no longer exists.")
+    }
 }
