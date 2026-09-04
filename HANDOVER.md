@@ -1,18 +1,68 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-03 (evening pass). **The app is on TestFlight and the backend is deployed**. The `RV`
-(reviewer) backlog now carries **38 rows filed from production logs, device walks and screenshots**;
-**30 are closed, 8 open**. Since the morning pass: `RV.32` (demand-driven exchange-rate backfill,
-closing the "a foreign entry before today can never resolve its home amount" gap), `RV.37` (receipt
-delete/replace with the re-read ask), `RV.18` (measured sync cadence - a scripted session showed 5
-cycles across launch + 3 foregrounds, gated the launch double-fire only), `RV.29` (a foreign fill's
-price-per-litre no longer wears the home currency symbol), `RV.24` (a working language picker,
-follow-system until overridden) and `RV.31` (re-tapping the active tab pops it to root, through the
-same discard guard a sheet already uses) all landed and were independently verified - build/test by
-exit code, the relevant UI suites re-run, every load-bearing fix mutation-checked personally, every
-screenshot opened personally. `RV.28` (fuel chips must pack, not distribute) is in flight. Measured
-now: **iOS 1189 unit / 110 suites**, **backend 347** (0 skipped), lint 0 (both tiers). Read this
-first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-04. **The app is on TestFlight and the backend is deployed.** The `RV` (reviewer)
+backlog now carries **54 rows filed from production logs, device walks and screenshots**; **47 are
+closed, 7 open**. Measured now: **iOS 1250 tests / 117 suites**, **backend 370** (0 skipped), lint 0
+(both tiers, ignoring a sibling session's worktree). Read this first, then `CLAUDE.md`, then
+`docs/TASKS.md`.*
+
+## The three findings from 2026-09-04 worth carrying forward
+
+**1. Every in-app photo was handed to Vision sideways, and no gate could see it (`RV.49`).** The
+photo connection's rotation was never set, `UIImage(cgImage:)` discarded the orientation, and
+`VNImageRequestHandler(cgImage:options:)` was built without one - so a portrait phone gave Vision a
+90-degree-rotated receipt labelled upright. **It survived because every gate is file-based**: the
+corpus harness reads files, `VNImageRequestHandler(url:)` honours EXIF, so the corpus measured the
+parser on correctly-oriented images while the live camera fed it rotated ones. **The 38.3% receipt
+rate is an upper bound the shutter may never have reached.** The lesson generalises: *a suite that
+exercises a different entry point than production is not measuring production.*
+
+**2. A green corpus gate is not evidence, and the row that fixes something must say so.** RV.49's
+brief required the corpus gate be run before and after and reported as **unchanged, not as proof**,
+because it cannot move either way. The only honest proof was a rotated fixture through the `cgImage`
+path, and it genuinely failed first (33 lines vs 36). **Ask what a test would do if the bug were
+present** - if the answer is "pass", it is not evidence.
+
+**3. A filed diagnosis is a hypothesis (`RV.6`).** A read-only investigation found that half of
+RV.6 was already fixed by RV.18, that the remaining half was not a poll at all, and that **two
+claims in the row's own text were false** - there is no rate limit on `GET /account/devices`, and
+RV.22 had not worsened it (my own suspicion, disproved). Its **acceptance criteria would have passed
+against the live bug**. Rows filed days before the code moved are starting points, not facts -
+re-check before building.
+
+## Two hazards that are new, and both cost something today
+
+**Concurrent sessions in one checkout.** A second Claude session works in this repo via a worktree
+at `.claude/worktrees/rv48`. A dispatched agent **moved 56 KB of that session's uncommitted work out
+of the repo** into a temp directory to get a clean baseline; it was recovered only because it was
+noticed. Every brief now carries *"never move, rename or delete a file you did not create - report it
+and carry on"*, and staging is always explicit paths. Expect a red test in the tree that is not
+yours, and expect `swiftlint` from the root to walk into that worktree.
+
+**Monitor each dispatch by its PID, never `pgrep -x opencode`.** A global count reports the other
+session's agents as yours - it announced three exits while my agent was still running. A count is
+not an identity. `pgrep -f "<title>"` is not the fix either: `-f` matches any process whose arguments
+merely contain the text, which is how an agent killed a sibling on 2026-08-24.
+
+## What is blocked, and on whom
+
+- **`RV.51`, `RV.54`** - product decisions, not work. RV.51: the cloud read measured **12-36 s
+  against a 3 s budget**, so the late answer is the normal path and the inbox is the primary receipt
+  experience, not a fallback. RV.54: "N devices" counts revoked devices, so revoking one changes
+  nothing on screen.
+- **`RV.53`** - a live defect: an unguarded `PutObjectAsync` on the critical path means an S3 outage
+  destroys a recognition the user already paid for **and burns their quota**. A regression `RV.33`
+  introduced. Briefed, not yet dispatched.
+- **`SH.3`** - the launch-readiness walk on a real device. Only a human can do it, and with `T.3`
+  (an intermittent `ConfirmOdometerPrefillUITests` failure) it is one of only two things gating v1.
+
+## Housekeeping done 2026-09-04
+
+~29 GB reclaimed: 29 orphaned `DerivedData` directories (**each git worktree gets its own, and
+removing the worktree leaves it behind** - expect this to recur), a merged `p6.4` worktree, three
+simulator devices erased, and 1.1 GB of agent temp. `opencode.db` (8.9 GB of agent conversations)
+was deliberately kept - it is how an agent's reasoning can be audited after the fact, which mattered
+twice today.
 
 ## What today changed about HOW to work (2026-09-03)
 
