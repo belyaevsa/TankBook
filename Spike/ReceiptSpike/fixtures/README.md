@@ -8,10 +8,12 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
-              13 receipts / 14 files, 10 brands, 5 years, RU. Baseline 36.6% - see its README
+              48 files, RU + EE + KZ, 6 years. Score 180/220 - see its README
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
+              receipt-047/048 are matched pairs with pump-065/066 (see high-water.json):
+              048 sweeps 5/5, 047 abstains on both operands - they bracket the RUB band
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-              23 displays, 6 makes, EE/RU/KZ. pump-016/017 are idle pumps - negative fixtures
+              66 displays, 6 makes, EE/RU/KZ. Score 53/261. pump-016/017 are idle - negative fixtures
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
@@ -34,9 +36,15 @@ OCR'd. See `fiscal/README.md`.
 
 ## Adding a photo
 
-1. Drop it in the right folder, named `receipt-NNN.heic` / `pump-NNN.heic` in
-   sequence. Keep the original resolution - downscaling changes what OCR sees,
-   so a downscaled fixture measures a different problem than the app has.
+1. Drop it in the right folder, named `receipt-NNN-<slug>.<ext>` /
+   `pump-NNN-<slug>.<ext>` in sequence - the slug names the brand, site and
+   whatever the fixture exists to prove. Keep the original resolution -
+   downscaling changes what OCR sees, so a downscaled fixture measures a
+   different problem than the app has. **Do not route a photo through a chat
+   app**: Telegram recompresses to 1280 px and strips EXIF, which is below even
+   the gateway's own 1800 px rendition (receipt-047/048 and pump-065/066 came in
+   that way and are marked as such in high-water.json, so a MISS on those four
+   cannot be blamed on the parser alone).
 2. Read the values off the photo yourself and add a row to that folder's
    `expected.csv`.
 3. Re-run and check the parser against it:
