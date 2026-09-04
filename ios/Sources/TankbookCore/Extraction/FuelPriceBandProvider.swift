@@ -82,4 +82,9 @@ public struct DefaultFuelPriceBandProvider: FuelPriceBandProvider {
     public func historicalPrice(currency: CurrencyCode?, fuelKind: FuelKind?) -> Double? {
         history?.historicalPrice(currency: currency, fuelKind: fuelKind)
     }
+
+    public func currencyBand(currency: CurrencyCode?) -> FuelPriceBand? {
+        guard let currency else { return nil }
+        return pack.currencyBand(currency: currency)
+    }
 }

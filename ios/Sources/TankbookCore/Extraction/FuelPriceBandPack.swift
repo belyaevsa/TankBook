@@ -104,6 +104,23 @@ public struct FuelPriceBandPack: Equatable, Sendable {
         }
         return chosen.map { FuelPriceBand(low: $0.low, high: $0.high) }
     }
+
+    /// The widest price band for a currency across ALL fuel families and ALL
+    /// periods - the pump scale-search's pin. A pump names a currency (its
+    /// `€`/`РУБЛИ`/`ТЕНГЕ` marker) but never a fuel kind and usually no date, so
+    /// the family/era-keyed `band(currency:fuelKind:date:)` is unavailable. The
+    /// union is deliberately the WIDEST range that still separates a per-litre
+    /// price from a fill volume (LPG runs a third of petrol): it pins `2450` to
+    /// `245.0 KZT` and rejects `24.5`/`2450`, at the cost of abstaining more
+    /// often - which is the correct trade under hard rule 13 (a wider band
+    /// refuses, a narrower one guesses).
+    public func currencyBand(currency: CurrencyCode) -> FuelPriceBand? {
+        let entries = self.entries.filter { $0.currency == currency }
+        guard let low = entries.map(\.low).min(), let high = entries.map(\.high).max() else {
+            return nil
+        }
+        return FuelPriceBand(low: low, high: high)
+    }
 }
 
 // MARK: - Bundled seed pack

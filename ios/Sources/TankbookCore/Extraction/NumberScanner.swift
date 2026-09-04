@@ -65,3 +65,46 @@ enum NumberScanner {
         return stripped.filter { $0.isLetter }.count <= 2
     }
 }
+
+// MARK: - Pump number tokens (B2)
+
+/// A digit run read from a pump display, kept with its raw text. A seven-segment
+/// display routinely drops the decimal point, so a bare run like `12522` is a
+/// candidate whose decimal scale is UNKNOWN - not a number to discard (the
+/// receipt scanner's mandatory separator made exactly that discard). A run that
+/// still carries a `[.,]` separator has its scale intact and reads as written.
+struct PumpNumber: Sendable, Equatable {
+    /// The raw digit run, e.g. `12522`, `67.00`, `005580`. Zero-padding is kept
+    /// so a zero-padded Gilbarco value (`005580`) survives to have its scale
+    /// searched the same way an unpadded one does.
+    let raw: String
+    /// Whether the run carries a decimal separator. A separator-carrying token's
+    /// value is known; a bare token's value must be searched over 10^0..10^-3.
+    let hasSeparator: Bool
+
+    /// The value as written: a separator-carrying token parses directly (leading
+    /// zeros dropped by `Double`), a bare token is its integer.
+    var value: Double? { Double(raw.replacingOccurrences(of: ",", with: ".")) }
+
+    /// The candidate values. A separator-carrying token has exactly one; a bare
+    /// token is the integer divided by 10^k for k in 0...3 (up to three decimal
+    /// places - the most a pump price or volume shows).
+    func candidates() -> [Double] {
+        guard let base = value else { return [] }
+        guard !hasSeparator else { return [base] }
+        return (0...3).map { k in base / pow(10.0, Double(k)) }
+    }
+}
+
+extension NumberScanner {
+    /// Every digit run on a pump line, bare or separated, as a scale-unknown
+    /// token. `\d+(?:[.,]\d+)?` reads both `12522` and `67.00`; a run is not
+    /// discarded for missing its separator the way `decimals(in:)` would discard
+    /// it. The receipt paths are untouched - this is pump-only.
+    static func pumpNumbers(in line: String) -> [PumpNumber] {
+        line.matches(of: /\d+(?:[.,]\d+)?/).map { match in
+            let raw = String(match.0)
+            return PumpNumber(raw: raw, hasSeparator: raw.contains(".") || raw.contains(","))
+        }
+    }
+}

@@ -30,4 +30,17 @@ public protocol FuelPriceBandProvider: Sendable {
     /// Step 3: the user's historical median unit price for this currency and
     /// fuel, or nil when there is no history. Needs no network (hard rule 1).
     func historicalPrice(currency: CurrencyCode?, fuelKind: FuelKind?) -> Double?
+
+    /// The currency-wide band for the pump scale search (B2). A pump names a
+    /// currency but never a fuel kind, so the family-keyed `band` is unavailable;
+    /// this is the union across families/eras (see
+    /// `FuelPriceBandPack.currencyBand`).
+    func currencyBand(currency: CurrencyCode?) -> FuelPriceBand?
+}
+
+extension FuelPriceBandProvider {
+    /// Default: no currency-wide band. Receipt-only providers and test stubs
+    /// need not supply one - the pump path then abstains on scale (a missing pin
+    /// is a refusal, never a guess).
+    func currencyBand(currency: CurrencyCode?) -> FuelPriceBand? { nil }
 }

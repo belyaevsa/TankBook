@@ -36,16 +36,37 @@ public struct FuelExtractor: Sendable {
             result.fuelKind = detectFuelKind(candidates)
         }
 
-        let volumePrice = resolveVolumeAndPrice(
-            candidates, currency: result.currency, fuelKind: result.fuelKind, date: parsedDate
-        )
-        result.liters = volumePrice.liters
-        // Money is born Decimal here (P2.2b), never Decimal(Double).
-        result.unitPrice = volumePrice.price.flatMap {
-            ConfirmFormat.decimal(fromExtraction: $0,
-                                  fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
+        if source == .pump {
+            // B2: a pump display is three bare numbers under three labels, not
+            // the operand-pair / lone-marker shapes the receipt ladder expects
+            // (no `×`, no `L` marker, no `ИТОГ` label, and a decimal point that
+            // is often absent). The pump path reads the display's own shape:
+            // separator-liberal tokens, label anchors, and a scale search pinned
+            // by the currency-wide band and a plausible volume. Every ambiguity
+            // abstains; the receipt ladder never runs on a pump.
+            let band = bandProvider?.currencyBand(currency: result.currency)
+            let pump = PumpExtractor.resolve(lines: candidates, currency: result.currency, band: band)
+            result.liters = pump.liters
+            result.unitPrice = pump.price.flatMap {
+                ConfirmFormat.decimal(fromExtraction: $0,
+                                      fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
+            }
+            result.total = pump.total.flatMap {
+                ConfirmFormat.decimal(fromExtraction: $0,
+                                      fractionDigits: ConfirmFormat.fractionDigits(for: .total))
+            }
+        } else {
+            let volumePrice = resolveVolumeAndPrice(
+                candidates, currency: result.currency, fuelKind: result.fuelKind, date: parsedDate
+            )
+            result.liters = volumePrice.liters
+            // Money is born Decimal here (P2.2b), never Decimal(Double).
+            result.unitPrice = volumePrice.price.flatMap {
+                ConfirmFormat.decimal(fromExtraction: $0,
+                                      fractionDigits: ConfirmFormat.fractionDigits(for: .unitPrice))
+            }
+            result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
         }
-        result.total = resolveTotal(lines, liters: result.liters, unitPrice: volumePrice.price)
 
         // A printed ZERO is "the price is not on this receipt", never "the fuel
         // was free". B2B contract fuel cards settle the price between the fleet

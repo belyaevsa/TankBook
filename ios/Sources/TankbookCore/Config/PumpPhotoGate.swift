@@ -36,16 +36,16 @@ public enum PumpPhotoGate {
     /// unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 5
+    public static let measuredCommittedCorrect: Int = 24
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
-    public static let measuredCommitted: Int = 44
+    public static let measuredCommitted: Int = 24
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 5
+    public static let measuredNumericHits: Int = 24
 
     /// The numeric cells the pump corpus scores (B1): 178. Not 66 x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
