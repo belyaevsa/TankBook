@@ -1,6 +1,7 @@
 import Foundation
 
 #if canImport(Vision)
+import ImageIO
 import Vision
 
 /// The Vision OCR entry point, kept out of the pure extraction core so the core
@@ -34,13 +35,30 @@ public enum VisionTextRecognizer {
     /// OCR from an in-memory image (the document camera returns `UIImage`s, not
     /// files - P3.1b multi-page invoices). Same request configuration as the
     /// URL entry point, so a scanned page and a saved page OCR identically.
+    /// Defaults to `.up` - the orientation of a `CGImage` decoded from a file,
+    /// where EXIF has already been applied.
     public static func recognizeText(image: CGImage, languages: [String]) throws -> [OCRLine] {
+        try recognizeText(image: image, orientation: .up, languages: languages)
+    }
+
+    /// OCR from an in-memory image with an explicit orientation. A `CGImage`
+    /// carries no orientation of its own (unlike a file, whose EXIF the URL
+    /// entry point honours), so a caller that holds a buffer straight off the
+    /// camera sensor - or any pixels that are not already `.up` - MUST pass the
+    /// orientation here, or Vision will read the text sideways (RV.49). The
+    /// `UIImage` that wraps the buffer knows its `imageOrientation`; map it to
+    /// `CGImagePropertyOrientation` and pass it through, never drop it.
+    public static func recognizeText(
+        image: CGImage,
+        orientation: CGImagePropertyOrientation,
+        languages: [String]
+    ) throws -> [OCRLine] {
         let request = VNRecognizeTextRequest()
         request.recognitionLevel = .accurate
         request.usesLanguageCorrection = false
         request.recognitionLanguages = languages
 
-        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         try handler.perform([request])
 
         let observations = request.results ?? []
