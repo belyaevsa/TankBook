@@ -1,0 +1,2071 @@
+Building for debugging...
+[0/6] Write sources
+[1/6] Write ReceiptSpike-entitlement.plist
+[2/6] Write swift-version--58304C5D6DBC2206.txt
+[4/10] Emitting module ReceiptSpike
+[5/10] Compiling ReceiptSpike main.swift
+[6/10] Compiling ReceiptSpike OCR.swift
+[7/10] Compiling ReceiptSpike Parser.swift
+[7/10] Write Objects.LinkFileList
+[8/10] Linking ReceiptSpike
+[9/10] Applying ReceiptSpike
+Build of product 'ReceiptSpike' complete! (6.24s)
+
+═══ pump-001.heic – raw OCR ═══
+  [1.00] 7€
+  [1.00] Wrapper ja jook 0,5-0,7l
+  [1.00] SUMMA
+  [1.00] 12522
+  [1.00] LIITRIT
+  [1.00] 67.00
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 95
+  [1.00] 1869 HIND/1L
+  [1.00] Circle K app!
+  [1.00] 1,5
+  [1.00] 1,5
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] 0,0
+  [1.00] exuid
+  [0.50] nadimiseu nina wa
+  [1.00] ext
+
+═══ pump-002-lukoil-spb-ru.png – raw OCR ═══
+  [0.30] Lolse
+  [1.00] 92
+  [1.00] 95
+  [1.00] 95
+  [1.00] РУБЛИ
+  [1.00] 100
+  [1.00] 433483
+  [1.00] AH-92-K3
+  [1.00] AH-95-KS
+  [0.30] Д- 100-05
+  [1.00] ЛИТРЫ
+  [1.00] 4361
+  [1.00] ЦЕНА/ЛИТР
+  [1.00] 99.40
+  [1.00] ILBARC(
+  [1.00] МИНИМАЛЬНАЯ ДОЗА®
+  [1.00] EEDER-ROO
+  [1.00] ОТПУСКА SЛ
+  [1.00] ОТКРЫВАТЬ, ОТКЛЮЧИВ ОТ СЕТИ
+  [1.00] 95
+
+═══ pump-003-kz-95-kzt.jpg – raw OCR ═══
+  [1.00] 95
+  [1.00] СТОИМОСтЬ
+  [1.00] 208863
+  [1.00] ТЕНГЕ
+  [1.00] ЛИТРЫ
+  [1.00] 8525
+  [1.00] МИНИМАЛЬНАЯ ПОДАЧА S ЛИТРО
+  [1.00] ЦЕНА ЗА 1 ЛИТР
+  [1.00] 2450
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] ОТКРЫВАТЬ, ОТКЛЮЧИВ ОТ СЕТИ
+
+═══ pump-004-kz-95-kzt-tokheim.jpg – raw OCR ═══
+  [1.00] АИ-95
+  [1.00] Стоимость
+  [1.00] 1408
+  [1.00] тенге
+  [1.00] Количество
+  [1.00] 12,
+  [1.00] литров
+  [1.00] Цена за 1 литр
+  [1.00] 243
+  [1.00] тенге
+  [1.00] TOKHEIM
+  [1.00] MMQ: 5 L
+  [1.00] АНИЕІ ОПЛ
+
+═══ pump-005-dresser-wayne-four-prices-ru.png – raw OCR ═══
+  [1.00] СУММА
+  [1.00] 462108
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] ЛИТРЫ
+  [1.00] 8792
+  [1.00] 52.06
+  [1.00] 4932 5256
+  [1.00] ЦЕНА ЗА ЛИТР
+  [1.00] 55.18
+
+═══ pump-006-kz-adast-92-kzt.png – raw OCR ═══
+  [1.00] 92
+  [1.00] FADAST
+  [1.00] www.adastsystems.cz
+  [1.00] 10980
+  [1.00] CУМMА
+  [1.00] 45
+  [1.00] ЛИТРЫ
+  [1.00] 244
+  [1.00] ЦЕНА/ЛИТР
+  [1.00] Под напряжением не открывать IP 54 !
+
+═══ pump-007-lukoil-spb-comma-decimals-ru.png – raw OCR ═══
+  [1.00] АЗC Nº 78154
+  [1.00] ОПЛАТА ПОСЛЕ ЗАПРАВКИ
+  [1.00] CH)
+  [1.00] 6168
+  [1.00] 4553.46
+  [1.00] РУБЛИ
+  [1.00] 67,62
+  [1.00] 602
+  [1.00] ЛИТРЫ
+  [1.00] ИНСТРУКЦИЯ
+  [1.00] по использованию клавиатуры
+  [1.00] предварительного набора:
+  [1.00] 68,48
+  [1.00] 1. Убедитесь, что пистолеты
+  [1.00] находятся на ТРК.
+  [1.00] 2. Не снимая заправочный пистолет.
+  [1.00] Выбрать способ заправки на
+  [1.00] ЦЕНА/ЛИТР
+  [1.00] СУММУ или на количество
+  [1.00] ЛИТРОВ, клавишей
+  [1.00] 2
+  [1.00] 3
+  [1.00] «ЛИТРЫ/РУБЛИ».
+  [1.00] 3. Выбор способа заправки на
+  [1.00] СУММУ или количество
+  [1.00] 5
+  [1.00] 6
+  [1.00] 4
+  [1.00] ЛИТРОВ отобразится мерцанием
+  [1.00] 10,L
+  [1.00] 76,24
+  [1.00] «0000» в соответствующем окошке
+  [1.00] дисплея «Сумма» или «Литры».
+  [1.00] 4. Пронзвести набор необходимой
+  [1.00] 8
+  [1.00] Рубли
+  [1.00] 7
+  [1.00] 9
+  [1.00] Суммы или количества Литров
+  [1.00] GILBARCO
+  [1.00] цифровыми клавишами 0-9.
+  [1.00] 5. Снять заправочный пистолет с
+  [1.00] Сброс
+  [1.00] Литры
+  [1.00] Ввод
+  [1.00] VEEDER-ROOT
+  [1.00] необходимым видом топлива и
+  [1.00] МИНИМАЛЬНАЯ ДОЗА
+  [1.00] начать заправку автомобиля.
+  [1.00] 6. В случае ошибки в наборе суммы
+  [1.00] ОТПУСКА 5Л
+  [1.00] или литров, снова нажмите кнопку
+  [1.00] «Сумма или Литры».
+  [1.00] ОТКРЫВАТЬ, ОТКЛЮЧИВ ОТ СЕТИ
+
+═══ pump-008-topaz-video-overlay-92-ru.png – raw OCR ═══
+  [0.30] ТОПАЗ
+  [1.00] ЦЕНА
+  [1.00] руб.Ілитр
+  [1.00] 1098.00
+  [1.00] СУММА
+  [1.00] АИ-92
+  [1.00] ОБЪЕМ
+  [1.00] 20.00
+  [1.00] СУММА
+  [1.00] ОБЪЁМ
+  [1.00] ЦЕНА
+  [1.00] 1098.00
+  [1.00] 20.00
+  [1.00] 5490
+  [1.00] РУБ
+  [1.00] ЛИТР
+  [1.00] РУБ/ЛИТР
+
+═══ pump-009-gilbarco-zero-padded-ru.png – raw OCR ═══
+  [1.00] потом
+  [1.00] оплатите
+  [1.00] сначала
+  [1.00] заправьте
+  [1.00] РУБЛИ
+  [1.00] 060,80
+  [1.00] 0203800
+  [1.00] ЛИТРЫ
+  [1.00] 05095
+  [1.00] 0004000
+  [1.00] 055,90
+  [1.00] ЦЕНА/ЛИТР
+  [1.00] 07288
+  [1.00] LI
+  [1.00] GILBARCO
+  [1.00] МИНИМАЛЬНАЯ ДОЗА
+  [1.00] VEEDER-ROOT
+  [1.00] ОТПУСКА 5Л
+  [1.00] ОТКРЫВАТЬ, ОТКЛЮЧИВ ОТ СЕТИ
+
+═══ pump-010-scheidt-preset-amount-ru.png – raw OCR ═══
+  [1.00] Рублей
+  [1.00] 00.0U
+  [1.00] ИтоГО
+  [1.00] Литров
+  [1.00] 13.1
+  [1.00] Количество
+  [1.00] 75.95
+  [0.30] VOЛeL
+  [1.00] Цена за Л
+  [1.00] SCHEIDT&BACHMANN
+  [1.00] CE
+  [1.00] D-11238 Mönchenglad
+
+═══ pump-011-gilbarco-circlek-ee-zero-padded.heic – raw OCR ═══
+  [1.00] sag ja jook 0,8-0,71
+  [1.00] 7€
+  [1.00] pper je jook 0,5-0,71
+  [1.00] ÄRA
+  [1.00] UNUSTA
+  [1.00] PÜSTOLI
+  [1.00] PAAKI!
+  [1.00] Söidu alustamisel paaki unust
+  [1.00] ohustab Sinu autot ja körval
+  [1.00] 0019.70
+  [1.00] €
+  [1.00] L
+  [1.00] 001101
+  [1.00] Vmin=5L
+  [1.00] M26
+  [1.00] ~ AE010573)
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 1,789
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] Laadi alla
+  [1.00] Circle Käpp!
+  [0.30] 1,51,5
+  [1.00] 0,5 0,5
+  [1.00] 0,0
+  [1.00] säästa rohkem.
+  [0.30] s/Wh
+  [1.00] 0,0
+  [1.00] CIRCLE K
+  [0.30] ait a laadmisetening iga 5
+  [1.00] extra
+  [1.00] exura
+  [1.00] LIIKMED
+  [1.00] Osta Super
+  [1.00] an - saad
+
+═══ pump-012-gilbarco-circlek-ee-glare-total.heic – raw OCR ═══
+  [1.00] AE010555
+  [1.00] PÜST
+  [1.00] M26
+  [1.00] PAA
+  [1.00] kiwa
+  [1.00] Söidu alustamisel paaki ı
+  [1.00] 00
+  [1.00] ohustab Sinu autot ja V
+  [1.00] EE
+  [0.30] 100
+  [1.00] (AE010558
+  [1.00] M26
+  [1.00] €
+  [1.00] Va
+  [1.00] AE010557
+  [1.00] L
+  [1.00] 155
+  [1.00] Vmin=5L
+  [1.00] AE010558
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 89
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] Laadi alla
+  [1.00] Circle Käpp!
+  [1.00] Kulasta rohkem,
+  [1.00] 1,5 1,5
+  [1.00] 5 0,5
+  [1.00] säästa rohkem.
+  [1.00] CIRCLE C
+  [0.30] 0,0
+  [1.00] CIRCLE K
+  [1.00] extra
+  [1.00] CIRCLE K
+  [0.30] •z0
+  [1.00] RedBull
+  [1.00] SOAPBÜX
+  [1.00] RACE
+  [0.50] Bull
+  [1.00] UMIM
+  [1.00] 2/3€
+  [1.00] XXxX xxxx Xxxx 9093
+  [0.50] 92-80-9202
+  [1.00] + pant 0,20 € (6,00 €/L)
+  [1.00] Alustamiseks
+  [1.00] VAJUTA SIIA
+  [1.00] Klienditugi: 675 7777 (
+  [1.00] 92-80-9202
+
+═══ pump-013-dresser-wayne-ee-four-prices.heic – raw OCR ═══
+  [1.00] Wrapper ja jook 0,
+  [1.00] Pakkoun
+  [1.00] sise tavahind 7.99-8.49C
+  [1.00] SUMI
+  [1.00] 13.85
+  [1.00] 2
+  [1.00] LIITRI
+  [1.00] 134
+  [1.00] Vmin 5 LIITF
+  [1.00] DRESSER Wayne
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 1774
+  [1.00] 1834
+  [1.00] HII
+  [1.00] 1824
+  [1.00] 1Д84
+  [1.00] RADELOL
+  [1.00] 24
+  [1.00] 24
+  [1.00] NAE023738•
+  [1.00] PADELDUO
+  [1.00] M26
+  [1.00] AE023739
+  [1.00] FACU 3 41
+  [1.00] M26
+  [0.30] 26170
+
+═══ pump-014-dresser-wayne-ee-glare-partial.heic – raw OCR ═══
+  [1.00] Wrapper ja jook 0,5-0,7l
+  [0.30] ing 199-8.49€
+  [1.00] SUMMA
+  [1.00] 1.0
+  [1.00] LIITRIT
+  [1.00] 392
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles
+  [1.00] HIND/1L
+  [1.00] 1884
+  [1.00] 1824
+  [1.00] 1834
+  [1.00] 4
+  [1.00] AE023729•
+  [1.00] AE023727
+  [1.00] AE025/20G
+  [1.00] ALUZOIZD
+
+═══ pump-015-dresser-wayne-ee-diesel.heic – raw OCR ═══
+  [1.00] 350
+  [1.00] 450
+  [1.00] inediil!
+  [1.00] Hot dog ja jook 0,5-0,71
+  [1.00] 7€
+  [1.00] Wrapper ja jook 0,5-0,7l
+  [1.00] 30.02
+  [1.00] SUMMA
+  [1.00] 15.89
+  [1.00] LIITRIT
+  [1.00] SER Wayne
+  [1.00] ORESSER Wayne
+  [1.00] Vmin 5 LIITRIT
+  [1.00] D
+  [1.00] miles
+  [1.00] 95
+  [1.00] miles+
+  [1.00] 98
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 1884
+  [1.00] 1824
+  [1.00] 1834
+  [1.00] 1.774
+  [1.00] HIND/1L
+  [1.00] EXTRA SAFETY
+  [1.00] PROTECTED
+  [1.00] AE023736•
+  [1.00] AE023737
+  [1.00] extra
+  [1.00] 0,5 0,5
+  [1.00] 1,5 1,5
+  [1.00] Circle Käpp!
+  [1.00] CIRCLE
+  [1.00] RedBulli
+  [1.00] SOAPBOX
+  [1.00] RACE
+  [1.00] 2/3€
+  [1.00] UMMI
+  [1.00] pdBull
+  [1.00] NERG
+  [1.00] * pănt 0,20 € (0.00 €/L)
+
+═══ pump-016-wayne-ee-idle-zero.heic – raw OCR ═══
+  [1.00] EUR
+  [1.00] LIITRIT
+  [1.00] 0.00
+  [1.00] Vmin 2 LIITRIT
+  [1.00] Tb = 15°C
+  [1.00] Wayne
+  [1.00] iwa
+  [1.00] xiwa
+  [1.00] 28
+  [1.00] LAADELDUO
+  [1.00] 27
+  [1.00] EE
+  [1.00] 26,
+  [1.00] LRADELDUD
+  [1.00] ~(AE011811
+  [1.00] EE
+  [1.00] M26
+  [1.00] TRADELDUD
+  [1.00] ~AE011810=
+  [1.00] EE
+  [1.00] M26
+  [1.00] AE011809
+  [1.00] M26
+  [1.00] EUR/1L
+  [1.00] 1.769
+  [1.00] 1884
+  [1.00] 1884
+  [1.00] ÄPIGA MAKSTES:
+  [1.00] 1. AVA ÄPP
+  [1.00] 2. VALI TANKLA JA TANKU
+  [1.00] 3. VÕTA PÜSTOL JA TANGI
+  [1.00] SKÄNNI
+  [1.00] ANKUR 6
+  [1.00] ÄPP
+
+═══ pump-017-wayne-ee-idle-zero-angled.heic – raw OCR ═══
+  [1.00] EUR
+  [0.50] 0EG LITRIT
+  [1.00] Wayne
+  [1.00] Vmin 2 LIITRIT
+  [1.00] kiwa
+  [1.00] Tb =15°C
+  [1.00] EE
+  [1.00] AE011806
+  [1.00] EE
+  [1.00] 26
+  [0.30] A1011807
+  [1.00] M26
+  [1.00] TRADELDUD
+  [1.00] EE
+  [1.00] 29
+  [1.00] AE011808
+  [1.00] M26
+  [0.50] :16g
+  [1.00] 29
+  [1.00] 28
+  [1.00] 1880
+  [1.00] NKUR 5
+  [1.00] EUR/1L
+  [1.00] SKÄNNI
+  [1.00] ÄPIGA MAKSTES:
+  [1.00] ÄPP
+  [1.00] 1. AVA ÄPP
+
+═══ pump-018-gilbarco-tatneft-tver-98-ru.jpeg – raw OCR ═══
+  [1.00] РУБЛИ
+  [1.00] 25,00
+  [1.00] ЛИТРЫ
+  [1.00] ЦЕНА/ЛИТР
+  [1.00] 3
+  [1.00] 2
+  [1.00] 99,99
+  [1.00] 6
+  [1.00] 4
+  [1.00] Руб
+  [1.00] 9
+  [1.00] 7
+  [1.00] 8
+  [1.00] Литі
+  [1.00] GILBARCO
+  [1.00] Ввод
+  [1.00] Сброс
+  [1.00] VEEDER-ROOT
+  [1.00] МАЛЬНАЯ ДОЗА
+  [0.30] AUAPH
+
+═══ pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg – raw OCR ═══
+  [1.00] s/kWh
+  [1.00] 0,5
+  [1.00] pper ja josk 0,5-0,71
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] VEEDER-ROOT
+  [1.00] 009932
+  [1.00] 1754
+  [1.00] 0045,22
+  [1.00] €/ L
+  [1.00] GILBARCO
+  [1.00] M26-
+  [1.00] M26s
+  [1.00] (AE010575 =
+  [1.00] 5AE010576 =
+  [1.00] M26
+  [1.00] EE
+  [1.00] kiwa
+  [0.30] KWA
+  [1.00] kiwa
+  [1.00] EE
+  [1.00] AE010578
+  [1.00] M26
+  [0.50] 56789
+
+═══ pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg – raw OCR ═══
+  [1.00] ÄRA
+  [1.00] UNUSTA
+  [1.00] PÜSTOLIT
+  [1.00] PAAKI!
+  [1.00] ohustab Sinu autot ja körvalseisjaid.
+  [1.00] Söidu alustamisel paaki unustatud püstol
+  [1.00] Vmin=5L
+  [1.00] stop
+  [1.00] Verifane
+  [1.00] 7€
+  [1.00] 4501
+  [0.30] n deg jn jeat 0,8-0,71
+  [1.00] niseks vajuta
+  [1.00] 002000
+  [1.00] 0O 10.76
+  [1.00] 1859
+  [1.00] €/L
+  [1.00] linediil!
+  [1.00] Laadi alla
+  [1.00] Circle Käpp!
+  [1.00] VISA
+  [1.00] Vali maksemeetod
+  [1.00] vasakpoolsest menüüst
+  [1.00] RG Pay&Pay
+  [1.00] Külasta rohkem,
+  [1.00] säästa rohkem.
+  [1.00] CIRCLE R
+  [1.00] extra
+  [1.00] Kviitung
+  [1.00] tomaat
+  [1.00] od
+
+═══ pump-021-wayne-circlek-sun-glare-ee.jpg – raw OCR ═══
+  [1.00] HINL
+  [1.00] SUMM
+  [1.00] Vmin 5 LIITRIT
+  [1.00] LIITRIT
+  [1.00] 85
+  [1.00] miles
+  [1.00] 1554
+  [1.00] DELDUO
+  [1.00] AE023741
+  [1.00] M26
+  [0.30] 26)
+  [1.00] 8.09
+  [1.00] miles+
+  [1.00] •
+  [1.00] 1794
+  [1.00] AE023740
+  [1.00] miles+
+  [1.00] 1804
+  [1.00] M26
+  [1.00] AE023739
+  [1.00] Wayne
+  [1.00] ESSER
+
+═══ pump-022-wayne-circlek-pump1-glare-ee.jpg – raw OCR ═══
+  [1.00] HIND/1L
+  [1.00] SUMMA
+  [1.00] Vmin 5 LIITRIT
+  [1.00] LIITRIT
+  [1.00] miles
+  [1.00] 1744
+  [1.00] 7€
+  [1.00] Wrapper ja jook 0,5-0,7l
+  [1.00] Hot dog ja jook 0,5-0,71
+  [1.00] 300|
+  [1.00] milest
+  [1.00] 1804
+  [1.00] 52.49
+  [1.00] miles+
+  [1.00] 1794
+  [1.00] CIRCLEO
+  [1.00] Wayne
+  [1.00] Red Bull
+  [1.00] Laaai aua
+  [1.00] Circle K äpp!
+  [0.30] Pakkumine kethtb kakkumie lk tavalind 215 € + pant ano mbso en
+  [1.00] DRESSER
+  [1.00] VAJUTA SIIA
+  [1.00] Alustamiseks
+  [1.00] miles
+  [1.00] UMMER
+  [1.00] 1854
+  [1.00] 1,51,5
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] inednl.
+  [1.00] Red Bull
+  [1.00] RACE
+  [1.00] SOAPBÜX
+  [1.00] säästa rohkem.
+  [1.00] + pant 0,20 € (6,00 €/D)
+  [1.00] 2/3€
+  [1.00] extra
+  [1.00] AFETY
+  [1.00] :TED
+  [1.00] /ne
+  [1.00] TOP
+
+═══ pump-023-wayne-circlek-glare-ee.jpg – raw OCR ═══
+  [1.00] HIND/1 L
+  [1.00] 7€
+  [1.00] SUMMA
+  [1.00] LIITRID
+  [1.00] Vmin 2 LIITRIT
+  [1.00] Wrapper ja jook 0,5-0,7l
+  [1.00] 54
+  [1.00] miles
+  [1.00] miles+
+  [1.00] 95
+  [0.50] AE0237160
+  [1.00] Circle Käpp!
+  [1.00] miles+
+  [1.00] 0,5 0,5 1,5 1,5
+  [1.00] Osta Super
+  [1.00] hooajapesu - saad
+  [1.00] exua
+  [1.00] LIIKMED
+  [1.00] 0,0 0,0
+  [1.00] miles
+  [1.00] kingituseks
+  [0.30] demate kaie
+  [1.00] salasta ronkem®
+  [1.00] extra
+
+═══ pump-024-wayne-neste-ee-three-grade-prices.jpg – raw OCR ═══
+  [1.00] ANE KEELATUSI
+  [0.30] R TASMINSE AINSS
+  [1.00] EUR
+  [1.00] 175
+  [1.00] LIITRIT
+  [1.00] 9.79
+  [1.00] Vmin 2 LIITRIT
+  [1.00] Wayne
+  [1.00] Futura D
+  [1.00] D
+  [1.00] nESTEMY
+  [1.00] Futura 95
+  [1.00] 2179
+  [1.00] HIND/1L
+  [1.00] 1789
+
+═══ pump-025-wayne-neste-ee-glare-obscured-total.jpg – raw OCR ═══
+  [1.00] SEKA M
+  [1.00] EE
+  [1.00] 06287
+  [1.00] M1
+  [0.30] PS878
+  [1.00] METRO
+  [1.00] EUR
+  [1.00] 4094
+  [1.00] 0628
+  [0.30] 567
+  [1.00] LIITRIT
+  [1.00] 22.
+  [1.00] Vmin 2 LIITRIT
+  [1.00] Wayne
+  [1.00] Futura D
+  [1.00] D
+  [1.00] Futura 95
+  [1.00] nESTEMY
+  [1.00] HIND /1L
+  [1.00] 1889
+  [1.00] 2.174
+  [1.00] 1789
+
+═══ pump-026-gilbarco-circlek-ee-comma-decimal.jpg – raw OCR ═══
+  [1.00] Wrapper ja jook 0,8-0,M
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] AE010554
+  [1.00] M26
+  [0.30] 30789
+  [1.00] KIwa
+  [1.00] AE010555
+  [1.00] M26
+  [1.00] KiWA
+  [1.00] 10359
+  [1.00] €
+  [1.00] EE
+  [1.00] AE010556 =
+  [1.00] M26
+  [1.00] va
+  [1.00] EE
+  [1.00] AE010557
+  [1.00] L
+  [1.00] M26
+  [1.00] 0053,8 |
+  [1.00] AE010558
+  [1.00] M26
+  [1.00] €/L
+  [1.00] 1,924
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+
+═══ pump-027-gilbarco-circlek-ee-comma-glare.jpg – raw OCR ═══
+  [1.00] Iwa
+  [1.00] EE
+  [1.00] M26
+  [1.00] JWa
+  [1.00] EE
+  [1.00] Sõ
+  [1.00] ~AE010560
+  [1.00] M26
+  [1.00] 0087/
+  [1.00] €
+  [1.00] EE
+  [1.00] AE010561=
+  [1.00] M26
+  [1.00] L
+  [1.00] EE
+  [1.00] AE010562 =
+  [1.00] 0046,86
+  [1.00] M26
+  [1.00] KiWa
+  [1.00] EE
+  [1.00] ~AE010563=
+  [1.00] M26 -
+  [1.00] €/L
+  [1.00] S
+  [1.00] 1859
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+
+═══ pump-028-gilbarco-circlek-ee-comma-decimal-b.jpg – raw OCR ═══
+  [0.50] ÃI
+  [1.00] wa
+  [1.00] UNU
+  [1.00] EE
+  [1.00] AE010564
+  [1.00] PÜST
+  [1.00] M26
+  [1.00] PAA
+  [1.00] kiwa
+  [1.00] Sõidu alustamisel paa
+  [1.00] ohustab Sinu autot
+  [1.00] M26
+  [1.00] €
+  [0.50] KiWa
+  [1.00] 004908
+  [1.00] IVILO
+  [1.00] L
+  [1.00] M268
+  [1.00] 0025,5 1
+  [1.00] Vmin=5
+  [1.00] Kiwa
+  [1.00] 2RADELDUD
+  [1.00] M26
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 1924
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] писазьа гопкем,
+  [1.00] AULASTUST
+  [1.00] CIRCLEK
+  [1.00] säästa rohkem.
+  [1.00] Laadi alla
+  [1.00] extra
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 1,5
+  [1.00] Circle Käpp!
+  [1.00] 1,5
+  [1.00] ing iga 5
+  [1.00] s/kWh
+  [1.00] Kviitung väljastatakse
+  [1.00] peale tankimist
+  [1.00] Hetkel pole ühtegi
+  [1.00] kviitungit väljastada
+
+═══ pump-029-dresser-wayne-gpn-okulovka-ru-glare-total.jpg – raw OCR ═══
+  [1.00] •УММА
+  [1.00] ЛИТРЫ
+  [1.00] 5700
+  [1.00] ORESSERWayne
+  [1.00] 92
+  [1.00] 95
+  [1.00] GDRIVE 95
+  [1.00] ЦЕНА ЗА
+  [1.00] 7118
+  [1.00] ЛИТР
+
+═══ pump-030-tokheim-zolotaya-seredina-tver-ru-comma.jpg – raw OCR ═══
+  [1.00] Рублей
+  [1.00] Стоимость
+  [1.00] 3695,76
+  [1.00] Литров
+  [1.00] Количество
+  [1.00] 40
+  [1.00] 844
+  [1.00] Рублей
+  [1.00] Цена за 1 литр
+  [1.00] TOKHEIM®
+  [1.00] U A
+
+═══ pump-031-gilbarco-circlek-ee-discount-mismatch.jpg – raw OCR ═══
+  [1.00] ÄR
+  [1.00] UNU!
+  [1.00] PÜST
+  [1.00] PAA
+  [1.00] Sõidu alustamisel paal
+  [1.00] ohustab Sinu autot
+  [1.00] M26
+  [1.00] €
+  [1.00] 003258
+  [1.00] EE
+  [1.00] AE010576=
+  [1.00] Vmin=5
+  [1.00] kiwa
+  [1.00] 0016,80
+  [1.00] kiwa
+  [1.00] A2010518
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 1939
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] CIKCLE KO
+  [1.00] säästa rohkem.
+  [1.00] extra
+  [1.00] Laadi alla
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] ,5
+  [1.00] 0,5
+  [1.00] 1,5
+  [1.00] 1,5
+  [1.00] s/kWh
+  [1.00] Circle Käpp!
+  [1.00] s/kWh
+  [1.00] s/kWh
+  [1.00] VIRT
+  [1.00] Red Bull
+  [1.00] SOAPBÜX
+  [1.00] RACE
+
+═══ pump-032-gilbarco-circlek-ee-clean.jpg – raw OCR ═══
+  [1.00] kiwa
+  [1.00] EE
+  [1.00] ~(AE010544 =
+  [1.00] M26
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] AE010545 =
+  [0.30] M26
+  [1.00] €
+  [1.00] 002002
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] ~ AE010546 =
+  [1.00] M26
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] 0011,38
+  [1.00] AE010547
+  [0.30] KIWa
+  [1.00] EE
+  [1.00] AE010548
+  [1.00] €/L
+  [1.00] 1,759
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] exud
+  [0.30] bandahiserie ning iga s.
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] 1,5
+  [1.00] s/kWh
+
+═══ pump-033-dresser-wayne-circlek-ee-fourprice-95.jpg – raw OCR ═══
+  [1.00] SUMM
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [1.00] 2.8
+  [1.00] Vmin 2 LIITRIT
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 193
+  [1.00] 1839
+  [1.00] HIND / 1
+  [1.00] AE0237140
+  [1.00] M26
+  [1.00] AE023715
+  [1.00] M26
+  [1.00] 25
+  [1.00] AE023717
+  [1.00] 27
+  [1.00] Vali maksemeetod
+  [1.00] vasakpoolsest menüüst
+
+═══ pump-034-dresser-wayne-circlek-tallinn-ee-db0-pair.jpg – raw OCR ═══
+  [1.00] SUMM
+  [1.00] 160.5
+  [1.00] LIITRIT
+  [0.50] 729
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles+
+  [1.00] HIN
+  [1.00] 1759
+  [1.00] 1819
+  [1.00] 1834
+  [1.00] 1934
+  [1.00] 35
+  [1.00] AE023725
+  [1.00] 25
+  [1.00] M26
+  [1.00] AE023724
+  [1.00] AE023723
+  [1.00] ANADELDUD
+  [0.30] AE0237223
+  [1.00] 26
+  [1.00] M26
+  [1.00] s/Wh
+  [1.00] s/kWh
+  [1.00] s/kWh
+  [1.00] gadimiselt ning iga 5.
+  [1.00] is uus preemia.
+  [1.00] K
+
+═══ pump-035-dresser-wayne-circlek-ee-rain-pump8.jpg – raw OCR ═══
+  [1.00] SUMM
+  [1.00] 82.0
+  [1.00] LIITRI
+  [1.00] 44.96
+  [1.00] Vmin 5 LIITRI
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles
+  [1.00] HIN
+  [1.00] 1759
+  [1.00] 1819
+  [1.00] 1834
+  [1.00] 1934
+  [1.00] 'AE023718
+  [1.00] AE023719
+  [1.00] AE023720•
+  [1.00] 27
+  [0.30] uuStSed Kutues
+  [1.00] iselt ning iga 5.
+  [1.00] use arel ootab Sind apis uus preemia
+  [1.00] CAUC
+  [1.00] LIIKMED
+
+═══ pump-036-dresser-wayne-circlek-ee-pump4-95.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] 4
+  [1.00] 1277 LITRIT
+  [1.00] DRESSER Wayne
+  [1.00] Vmin 5 LIITRIT
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] D
+  [1.00] miles
+  [1.00] 1759
+  [1.00] 180
+  [1.00] 1834
+  [1.00] HIND/1
+  [1.00] AE023727
+  [1.00] AE023728•
+  [1.00] AE023729
+
+═══ pump-037-dresser-wayne-circlek-ee-pump3-diesel.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] 20.27
+  [1.00] 1105
+  [1.00] LIITRIT
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] HIND/1
+  [1.00] 1759
+  [1.00] 1819
+  [1.00] 1809
+  [1.00] 1834
+  [1.00] 35
+  [1.00] AE023732•
+  [1.00] AE023731.
+  [1.00] AE023730•
+  [1.00] 26
+  [1.00] Cirele Käpp!
+  [1.00] 1,5 1,5
+  [1.00] 0,5 0,5
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] Kviitung väljastatakse
+  [1.00] peale tankimist
+  [1.00] Hetkel pole ühtegi
+
+═══ pump-038-dresser-wayne-circlek-ee-reflection-95.jpg – raw OCR ═══
+  [1.00] SUMM
+  [1.00] LIITRIT
+  [1.00] 44.03
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] 98
+  [1.00] miles
+  [1.00] 95
+  [1.00] HIN
+  [1.00] 1034
+  [1.00] 1809
+  [1.00] 1819
+  [1.00] 1759
+  [1.00] 24
+  [1.00] 24
+  [1.00] AE023741
+  [1.00] AE023740•
+  [1.00] M26
+  [1.00] AE023739
+  [1.00] AE023738
+  [1.00] 27
+  [1.00] 26
+  [1.00] 27
+
+═══ pump-039-gilbarco-circlek-ee-1839-clean.jpg – raw OCR ═══
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] ~AE010559
+  [1.00] M26
+  [1.00] Kiwa
+  [1.00] TRADELDUD
+  [1.00] EE
+  [1.00] AE010560
+  [1.00] M268
+  [1.00] 002109
+  [1.00] M26
+  [1.00] Wa
+  [1.00] L
+  [1.00] M26
+  [1.00] 00 1147
+  [1.00] 28
+  [1.00] EE
+  [1.00] NAE010563
+  [1.00] M26
+  [1.00] €/L
+  [1.00] 1,839
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] Circle K app!
+  [1.00] 1,5 1,5
+  [1.00] 0,5 0,5
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] s/kWh
+  [1.00] s/l
+  [1.00] s/kWh
+  [1.00] s/kWh
+  [0.30] sanatie e otadaned ga ue remna an s.
+  [1.00] K
+
+═══ pump-040-gilbarco-circlek-ee-pump4-wide.jpg – raw OCR ═══
+  [1.00] 350
+  [1.00] 4501
+  [1.00] inediil!
+  [1.00] 76
+  [1.00] ARA
+  [1.00] UNUSTA
+  [1.00] PÜSTOLIT
+  [1.00] PAAKE
+  [1.00] 00 1492
+  [1.00] 000807
+  [0.30] Vmema
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 1849
+  [1.00] GELRARCO
+  [1.00] VILDER-ROOT
+  [0.30] i PuLs
+  [1.00] 4
+  [1.00] EGPA- VISA®
+  [1.00] Vali maksemeetod
+  [1.00] risakpoolest menil
+
+═══ pump-041-dresser-wayne-circlek-ee-glare-total.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] .4
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [0.30] 1.bc
+  [1.00] Vmin 2 LIITRIT
+  [1.00] miles
+  [1.00] D
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] HIND / 1 L
+  [1.00] miles
+  [1.00] 95
+  [1.00] 1914
+  [1.00] 1844
+  [1.00] 1784
+  [0.30] A10231
+  [1.00] AE023716 0
+  [1.00] 35
+  [1.00] AE0237150
+  [1.00] 26
+  [1.00] AE0237140
+  [1.00] 1,5
+  [0.30] shiwh
+  [1.00] 0,5
+  [1.00] 0,5
+  [0.30] SNNm
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] s/Wh
+  [1.00] körgemet
+  [1.00] miselt ning iga 5.
+  [1.00] s preomia.
+
+═══ pump-042-dresser-wayne-circlek-ee-preset-20eur.jpg – raw OCR ═══
+  [1.00] Hot dog ja jook 0,5-0,7
+  [1.00] 7€
+  [1.00] Wrapper ja jook 0,5-0,71
+  [1.00] SUMMA
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [1.00] 34
+  [1.00] Vmin 2 LIITRIT
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] HIND / 1 L
+  [1.00] 784
+  [1.00] miles
+  [1.00] 1.894
+  [1.00] 14
+  [1.00] 14
+  [1.00] AE023711
+  [1.00] AE023710O
+  [1.00] 27
+
+═══ pump-043-dresser-wayne-circlek-ee-pump8-95.jpg – raw OCR ═══
+  [1.00] k 0,5-0,
+  [1.00] SUMMA
+  [1.00] 1080
+  [1.00] 8
+  [1.00] 60.58
+  [1.00] LIITRIT
+  [1.00] DRESSER Wayne
+  [1.00] Vmin 5 LIITRIT
+  [1.00] 95
+  [1.00] miles
+  [1.00] milest
+  [1.00] miles
+  [1.00] miles+
+  [1.00] 1784
+  [1.00] 4844
+  [1.00] 1814
+  [1.00] 1914
+  [1.00] HIND/1L
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 1,5
+
+═══ pump-044-rn-tver-chkalovskaya-95-comma-truncated-price-ru.jpeg – raw OCR ═══
+  [1.00] Стоимость
+  [1.00] рублейр
+  [1.00] 29.00
+  [1.00] Количество
+  [1.00] литров
+  [1.00] рублей
+  [1.00] 68,
+  [1.00] Цена за 1 литр
+
+═══ pump-045-gilbarco-circlek-ee-1799-zeropad.jpg – raw OCR ═══
+  [1.00] Twa
+  [1.00] AE010564 =
+  [1.00] M26
+  [1.00] Kiwa
+  [1.00] Sõidu a
+  [1.00] ohus
+  [0.50] AE010565 =
+  [1.00] = M26
+  [1.00] €
+  [1.00] 00293
+  [1.00] EE
+  [1.00] 4-010566
+  [1.00] M26
+  [1.00] kiwa
+  [1.00] L
+  [1.00] AE010567 =
+  [1.00] 16,29
+  [1.00] M26
+  [1.00] KiWa
+  [1.00] EE
+  [1.00] AE010568
+  [1.00] M26
+  [1.00] €/L
+  [1.00] stc
+  [1.00] 1799
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] extra
+  [1.00] säästa rohkem.
+  [1.00] Laadi alla
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] ,5
+  [1.00] 1,5
+  [1.00] s/kh
+  [1.00] Circle K äpp!
+  [1.00] s/kWh
+  [1.00] Kviitung väljastatakse
+  [1.00] peale tankimist
+
+═══ pump-046-gilbarco-circlek-ee-pump7-95-badge.jpg – raw OCR ═══
+  [1.00] * 0,8-0,71
+  [1.00] 50
+  [1.00] miles
+  [1.00] ÄR
+  [1.00] UNUS
+  [1.00] PÜSTO
+  [1.00] PAAK
+  [1.00] Sõidu alustamisel paaki un
+  [1.00] ohustab Sinu autot ja kõ
+  [1.00] €
+  [1.00] 002222
+  [1.00] L
+  [1.00] 0012,63
+  [1.00] Vmin=5L
+  [1.00] €/L
+  [1.00] 1059
+  [1.00] stop
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] CIRCLE C-
+  [1.00] Külasta rohkem,
+  [1.00] extra
+  [1.00] säästa rohkem.
+  [1.00] Laadi alla
+  [1.00] 2,5 1,5
+  [1.00] Circle Käpp!
+  [1.00] extra
+  [1.00] LIIKMED
+  [1.00] Osta Super
+  [1.00] hooajapesu - saad
+  [1.00] kingituseks -x0/1Nea)
+  [1.00] Alystamiseks™
+  [1.00] VAJUTA SILA
+  [1.00] CIRCLE K
+  [1.00] Ara unusta
+  [1.00] püstolit paaki
+  [1.00] Kviitungi saamiseks
+  [1.00] INFO67577
+  [1.00] vajuta_KVIITUNG"
+  [1.00] nuppu. Hilisem kviitungi
+  [1.00] www.circlek.ee
+  [1.00] tellimine on tasuline
+  [1.00] lisateenus
+  [1.00] Probleemide korral pdórdu
+  [1.00] teenindusjaama poedi
+
+═══ pump-047-gilbarco-circlek-ee-pump8-outdoor.jpg – raw OCR ═══
+  [0.30] 03-0,2
+  [1.00] ÄRA
+  [1.00] UNUSTA
+  [1.00] PÜSTOLIT
+  [1.00] PAAKI!
+  [1.00] Söidu alustamisel paaki unustatud püstol
+  [1.00] ohustab Sinu autot ja körvalseisjaid.
+  [1.00] €
+  [1.00] 005833
+  [1.00] L
+  [1.00] 003316
+  [1.00] Vmin=5L
+  [1.00] €/L
+  [1.00] stop
+  [1.00] 4959
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] VIRCLE K
+  [1.00] CIRCLE C
+  [1.00] Külasta rohkem,
+  [1.00] extra
+  [1.00] säästa rohkem.
+  [1.00] Laadi alla
+  [1.00] 1,5
+  [1.00] Circle Käpp!
+  [1.00] G Pay «Pay
+  [1.00] VISA a
+  [1.00] M
+  [1.00] ALMOND
+  [1.00] Vali maksemeetod
+  [1.00] vasakpoolsest menüüst
+  [1.00] CIRCLEK
+  [1.00] Kviitung
+  [1.00] CIRCLE KE
+  [1.00] Sisesta lojaalsuskaart
+  [1.00] Sisesta maksekaart
+  [1.00] Ära unuste
+  [1.00] püstolit paaki
+  [1.00] Sisesta PIN kood,
+  [1.00] CIRCLEI
+  [1.00] vajuta OK ning jälgi
+  [1.00] juhiseid ekraar
+  [0.30] ENTO
+
+═══ pump-048-gilbarco-circlek-ee-1889-near-preset.jpg – raw OCR ═══
+  [1.00] KiWa
+  [1.00] 27
+  [1.00] AADELO,
+  [1.00] EE
+  [1.00] AE010544
+  [1.00] M26
+  [1.00] 28
+  [1.00] KiWa
+  [1.00] 26
+  [1.00] 27
+  [1.00] PRADELDUO
+  [1.00] EE
+  [1.00] AE010545
+  [1.00] M26
+  [1.00] kiwa
+  [1.00] 27
+  [1.00] LAADELDUD
+  [1.00] 19,99
+  [1.00] EE
+  [1.00] AE010546
+  [1.00] M26
+  [1.00] KIWa
+  [1.00] 28
+  [1.00] LAADELDUD
+  [1.00] EE
+  [1.00] AE010547
+  [1.00] M26
+  [1.00] 10,5 B
+  [1.00] 28
+  [1.00] kiwa
+  [1.00] 27
+  [1.00] LAADELDUD
+  [1.00] EE
+  [1.00] AE010548
+  [1.00] M26
+  [1.00] €/ L
+  [1.00] SINU KUTUS PĂRINSET
+  [1.00] GILBARCO
+  [0.50] LUE FVILEB EUROOPAEN
+  [1.00] VEEDER-ROOT
+
+═══ pump-049-gilbarco-circlek-ee-faint-lcd-small-fill.jpg – raw OCR ═══
+  [1.00] Kiwa
+  [0.50] 2F
+  [1.00] PRADELDUD
+  [1.00] EE
+  [1.00] AE010539
+  [1.00] M26
+  [1.00] 28
+  [1.00] Kiwa
+  [1.00] RADELDUO
+  [1.00] EE
+  [1.00] AE010540
+  [1.00] M26
+  [1.00] 28
+  [1.00] 74798
+  [1.00] €
+  [1.00] KIWa
+  [1.00] LRADELDUD
+  [1.00] EE
+  [1.00] ~AE010541
+  [1.00] M26
+  [1.00] 29
+  [1.00] kiwa
+  [1.00] L
+  [1.00] 27
+  [1.00] LRADELDUO
+  [1.00] EE
+  [1.00] 1005,8
+  [1.00] AE010542
+  [1.00] M26
+  [1.00] 29
+  [1.00] EE
+  [1.00] AE010543 =
+  [1.00] M26
+  [1.00] €/L
+  [1.00] 885
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] Circle Käpp!
+  [1.00] 0,5
+  [1.00] 1,5 1,5
+  [1.00] 0,5
+  [1.00] 0,0
+  [1.00] 0,0
+  [0.30] s/h
+  [0.30] CCРIT
+  [0.30] Mida ustust saad klüsataa aadisiseliening iga 5.
+  [1.00] soodustust saad küt
+  [1.00] külastuse järel ootab Sind äpis uus preemia.
+  [0.30] X OKI
+  [1.00] VIDA
+  [0.30] сРay
+  [1.00] Pay
+
+═══ pump-050-gilbarco-circlek-ee-1929.jpg – raw OCR ═══
+  [1.00] kiwa
+  [1.00] TRADELDUO
+  [1.00] EE
+  [1.00] AE010554
+  [1.00] M26
+  [1.00] kiwa
+  [1.00] Sõidu alı
+  [1.00] EE
+  [1.00] ~AE010555 =
+  [1.00] ohust
+  [1.00] M260
+  [0.30] KWE
+  [1.00] 002033
+  [1.00] RAADELDUD
+  [1.00] EE
+  [1.00] AE010556
+  [1.00] €
+  [1.00] M26
+  [1.00] KIwa
+  [1.00] TAADELDUD
+  [1.00] EE
+  [1.00] (AE010557
+  [1.00] M26
+  [1.00] 10,54
+  [1.00] AE010558
+  [1.00] M26
+  [1.00] €/L
+  [1.00] str
+  [1.00] 1,929
+  [1.00] ST(
+  [1.00] → GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] Laadi al
+  [1.00] CIRCLE K
+  [1.00] Circle K är
+  [1.00] säästa rohkem.
+  [1.00] 1,5 1,5
+  [1.00] extra
+  [1.00] 0,5 0,5
+  [1.00] 0,0
+  [1.00] 0,0
+  [0.30] s/Wh
+  [1.00] Mida rohkem m
+  [0.50] s/cwh
+  [0.30] sod uehie adies kdentyd eaede kergi ring iga 5
+  [0.30] s/0nh
+  [1.00] Tex Mex
+  [1.00] Wrapper
+
+═══ pump-051-wayne-circlek-ee-fourprice-none-matches.jpg – raw OCR ═══
+  [1.00] Hot dog ja jook 0,5-0,7l
+  [1.00] Vali einediili juurde jook: Coca-Cola 0,51,
+  [1.00] Coca-Cola Zero 0,51, Sprite 0,5l, Fanta 0,5L,
+  [1.00] CIRCI
+  [1.00] Circle K vesi 0,71. Pudelijookidega einediilide
+  [1.00] hinnale lisandub pant 0.10€. Pakkumiste
+  [1.00] tavahinnad 4.69-5.69€.
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] SUMMA
+  [1.00] 00.42
+  [1.00] 8
+  [1.00] LIITRIT
+  [1.00] 15.6
+  [1.00] Vmin 5 LIITRIT
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] miles
+  [1.00] miles+
+  [1.00] D
+  [1.00] miles
+  [1.00] miles+
+  [1.00] 1884
+  [1.00] 1944
+  [1.00] 1919
+  [1.00] HIND/1L
+  [1.00] 2019
+  [1.00] 25
+  [1.00] AE023721a
+  [0.30] eAUO
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] 1,5 1,5
+  [1.00] &PayT
+  [1.00] VISAC
+  [1.00] Ksemeelod
+  [1.00] boisest menüüst
+
+═══ pump-052-wayne-circlek-ee-glare-total-lost.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] 5.6
+  [1.00] LIITRIT
+  [1.00] 7464
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] HIND/1L
+  [1.00] 19
+  [1.00] 1934
+  [1.00] 1944
+  [1.00] 1884
+  [1.00] AE023741
+  [1.00] AE023739
+  [1.00] :AE023738
+  [1.00] 27
+  [0.50] 26)
+  [1.00] Circ
+  [1.00] 1,5
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] 1,5
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] exua
+  [0.30] sacmaeotninoiga
+  [1.00] s/Wh
+  [1.00] Kviitung väljastatakse
+  [1.00] peale tankimist
+  [1.00] Hetkel pole ühtegi
+  [1.00] kviitungit valjastada
+
+═══ pump-053-wayne-circlek-ee-pump1-glare-total-digit.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] 72.6
+  [1.00] 1
+  [1.00] 3888
+  [1.00] LIITRIT
+  [1.00] Vmin 5 LIITRIT
+  [1.00] DRESSER Wayne
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] HIND/1L
+  [1.00] 1919
+  [1.00] 1974
+  [1.00] 1944
+  [1.00] 1884
+  [1.00] AE023734.
+  [1.00] AE023735
+  [1.00] Circle K äpp!
+  [1.00] 0,5 0,5
+  [1.00] 1,5 1,5
+  [1.00] 0,0
+  [1.00] s/kWh
+  [1.00] K
+  [1.00] Kviitung väljastatakse
+  [1.00] peale tankimist
+  [1.00] Hetkel pole ühtegi
+  [1.00] kviitungit valjastada
+
+═══ pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg – raw OCR ═══
+  [0.30] ПІППа
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] SUN
+  [1.00] 7
+  [1.00] 2694
+  [1.00] LIITE
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] Vmin 5 Ll
+  [1.00] miles+
+  [1.00] D
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 1944
+  [1.00] MADELDU 35
+  [1.00] AE023723
+  [1.00] 24
+  [1.00] - AE023724
+  [1.00] 24
+  [1.00] AE023725
+  [1.00] 27
+
+═══ pump-055-wayne-circlek-ee-liitrid-variant.jpg – raw OCR ═══
+  [1.00] ga eita 0,5l,
+  [1.00] avaninnad 4.09-5.69E.
+  [0.30] Juokidega emedide
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] CIRCLEK
+  [1.00] SUMMA
+  [1.00] 108.58
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [1.00] 56.05
+  [1.00] Vmin 2 LITRIT
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] 5
+  [1.00] HIND / 1
+  [1.00] miles
+  [1.00] 95
+  [1.00] 2019
+  [1.00] 1944
+  [1.00] 1884
+  [1.00] AE023717
+  [1.00] AE0237160
+  [1.00] AE023715
+  [1.00] AE023714 0
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] s/kWn
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] sAWh
+  [0.30] Lactla, eada leedening iga 5.
+  [1.00] selt ja taadimise
+  [1.00] Sind apis uus preemia.
+
+═══ pump-056-wayne-circlek-ee-preset-72eur.jpg – raw OCR ═══
+  [1.00] Hotsog ja jook 0,5-0,71
+  [1.00] Vaii einediili juurde jook: Coca-Cola 0,5L,
+  [1.00] Coca-Cola Zero 0,51, Sprite 0,5l, Fanta 0,5l,
+  [1.00] CIR
+  [1.00] Circle K vesi 0,7L. Pudelijookidega einediilide
+  [1.00] hinnale lisandub pant 0.10€. Pakkumiste
+  [1.00] savahinnad 4.69-5.69€.
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] SUMMA
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [1.00] 8.32
+  [1.00] Vmin 2 LIITRIT
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] 95
+  [1.00] miles
+  [1.00] 6
+  [1.00] 2.0
+  [1.00] HIND /1 L
+  [1.00] 0,0
+  [1.00] 0,5 0,5
+
+═══ pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair.jpg – raw OCR ═══
+  [1.00] M26
+  [1.00] LAE010560
+  [1.00] M26
+  [1.00] 0
+  [1.00] €
+  [1.00] 10038
+  [1.00] M26
+  [1.00] L
+  [1.00] 005580
+  [1.00] RONIS
+  [1.00] (AE010563=
+  [1.00] M26
+  [1.00] €/L
+  [1.00] 1,799
+  [1.00] GILBARCO
+  [1.00] ,VEEDER-ROOT
+  [1.00] Kulasta ronkem,
+  [1.00] CIRCLE K
+  [1.00] IKÜLASTUST
+  [1.00] säästa rohkem.
+  [1.00] extra
+  [1.00] Laadi alla
+  [1.00] meid külaste
+  [1.00] 0,0
+  [1.00] 0,0
+  [1.00] 0,5
+  [1.00] 1,5 1,5
+  [1.00] Circle Käpp!
+  [1.00] $0
+  [0.50] s/kwh
+  [1.00] Kviitungi printimine
+  [1.00] lisateenus,
+
+═══ pump-058-gilbarco-circlek-ee-dirty-lcd-1969.jpg – raw OCR ═══
+  [1.00] Ä
+  [1.00] UNI
+  [1.00] PÜS
+  [1.00] PA
+  [1.00] Soidu alustamisel
+  [1.00] ohustab Sinu au
+  [1.00] €
+  [1.00] 003942
+  [1.00] Vmi
+  [1.00] 0020,02
+  [1.00] 58
+  [1.00] 28
+  [1.00] €/L
+  [1.00] stor
+  [1.00] LUTUS PÄRINEBI
+  [1.00] 1,969
+  [1.00] STOP
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] ILEB EUROOPAST!
+  [1.00] Circle Käpp!
+  [1.00] 1,51,5
+  [1.00] 0,5
+  [1.00] s/kWh
+  [1.00] 0,5
+  [1.00] 0,0
+  [0.50] s/iWh
+  [1.00] saasta ronkem.
+  [1.00] 0,0
+  [1.00] s/wh
+  [1.00] extra
+  [1.00] 0000060
+
+═══ pump-059-gilbarco-circlek-ee-pump3-1899.jpg – raw OCR ═══
+  [0.50] Cırcle k vesio, L. ruu
+  [1.00] tavahinnad 4.69-5.69€.
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] (AE010550 =
+  [1.00] M260
+  [1.00] €
+  [1.00] 10298
+  [1.00] kiwa
+  [0.30] M26
+  [1.00] kiwa
+  [1.00] L
+  [1.00] 005423
+  [1.00] AEU10552
+  [0.30] .M26 0
+  [1.00] kiwa
+  [1.00] €/L
+  [1.00] 1899
+  [1.00] GILBARCO
+  [1.00] 3
+  [1.00] VEEDER-ROOT
+  [1.00] extra
+  [1.00] saasta rohkem.
+  [0.30] iselem
+  [1.00] uus preeming iga 5.
+  [1.00] 0,0
+  [1.00] Laaui dlld
+  [1.00] 0,5
+  [1.00] 0,5
+  [1.00] 1,5 1,5
+  [1.00] Cirele K äpp!
+  [1.00] CIRCLE KT
+  [1.00] OSTES KOHVI,
+  [1.00] MAKSAB ŠOKOLAAD
+
+═══ pump-060-gilbarco-circlek-ee-1894.jpg – raw OCR ═══
+  [1.00] kiwa
+  [1.00] E010564 =
+  [1.00] Kiwa
+  [1.00] EE
+  [1.00] AE010565-
+  [1.00] M26
+  [1.00] €
+  [1.00] 009233
+  [1.00] Wa
+  [1.00] AE010566 =
+  [1.00] M260
+  [1.00] Kiwa
+  [1.00] 2ANADELDUD
+  [1.00] L
+  [1.00] EE
+  [1.00] (AE010567
+  [1.00] 0048,95
+  [1.00] kiwa
+  [1.00] EE
+  [1.00] AE010568
+  [1.00] M26
+  [1.00] €/L
+  [1.00] TEA,1
+  [1.00] 1,894
+  [1.00] GILBARCO
+  [1.00] VEEDER-ROOT
+  [1.00] extra
+  [1.00] säästa rohkem.
+  [1.00] La
+  [1.00] 0,0
+  [1.00] 0,0
+  [0.30] kolasusse liral ootab sind a pis des preemine
+  [1.00] 0,5
+  [1.00] ng iga 5,
+  [1.00] 0,5
+  [1.00] Cirele
+  [1.00] 1,5
+  [1.00] 1,5
+  [1.00] 6090C
+  [1.00] s/kWh
+  [1.00] s/kWh
+  [1.00] s/kWh
+  [0.30] лoray
+  [1.00] •Pay
+  [0.50] Roudes
+  [1.00] VISA
+  [0.30] Nele
+
+═══ pump-061-wayne-circlek-ee-discount-below-board.jpg – raw OCR ═══
+  [1.00] SUMMA
+  [1.00] 62.4
+  [1.00] DRESSER
+  [1.00] Wayne
+  [1.00] LIITRID
+  [1.00] 33.84
+  [1.00] Vmin 2 LIITRIT
+  [1.00] D
+  [1.00] D
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles
+  [1.00] 1874
+  [1.00] 1974
+  [1.00] 1894
+  [1.00] 1834
+  [1.00] HIND / 1 L
+  [1.00] ACU2S/12
+  [1.00] AE023711
+  [1.00] AE023713
+  [0.30] A5023710
+  [1.00] KULE CV
+  [1.00] Saasta ronkem.
+  [1.00] extra
+  [1.00] 0,5 0,5
+  [1.00] 1,5 1,5
+  [1.00] 0,0
+  [0.30] Mod rohika mand id kilat dl eda kielg ning iga s.
+  [1.00] 0,0
+  [0.30] eute jlre ootab Sind ia bha diun prte min
+  [0.50] kwh
+  [1.00] Kviltung väljastatakse
+  [1.00] peale tankimist
+  [1.00] Hetkel pole ühtegi
+  [1.00] kviitungit väljastada
+
+═══ pump-062-wayne-circlek-ee-pump8-1894.jpg – raw OCR ═══
+  [1.00] Vali einediili juurde jook: Coca-Cola 0,5l,
+  [1.00] Coca-Cola Zero 0,5L, Sprite 0,5L, Fanta 0,5L,
+  [1.00] Circle K vesi 0,7L. Pudelijookidega einediilide
+  [1.00] hinnale lisandub pant 0.10€. Pakkumiste
+  [1.00] CIRCLE ((
+  [1.00] tavahinnad 4.69-5.69€.
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] SUMMA
+  [1.00] 39.55
+  [1.00] 8
+  [1.00] LIITRIT
+  [1.00] 2088
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles+
+  [1.00] miles
+  [1.00] miles
+  [1.00] miles+
+  [1.00] HIND/1L
+  [1.00] 1894
+  [1.00] 1874
+  [1.00] 1974
+  [1.00] 1834
+  [1.00] AE023719
+  [1.00] salas
+  [1.00] Circle Ki
+  [1.00] exta
+  [1.00] 0,5 0.5 1,5 1,5
+  [1.00] a
+  [1.00] •Pay
+  [1.00] VISAO
+  [1.00] Vali maksemeetod
+  [1.00] vasakpoolsest menüüst
+
+═══ pump-063-wayne-circlek-ee-insect-on-price-display.jpg – raw OCR ═══
+  [1.00] Sprite 0,5l, Fanta 0,5L,
+  [1.00] Coca-Cola Zero 0,5l,
+  [1.00] Circle K vesi 0,7L Pudelijookidega einediilide
+  [1.00] hinnale lisandub pant 0.10€. Pakkumiste
+  [1.00] tavahinnad 4.69-5.69€.
+  [1.00] Loe lähemalt: www.circlek.ee
+  [1.00] SUMMA
+  [1.00] LIITRIT
+  [1.00] Vmin 5 LIITRIT
+  [1.00] DRESSER Wayne
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] D
+  [1.00] miles
+  [1.00] DRESSER
+  [1.00] 1834
+  [1.00] 1894
+  [1.00] 1884
+  [1.00] 74
+  [1.00] HIND/1L
+  [1.00] AEO23741
+  [1.00] E)
+  [1.00] F
+  [1.00] 0,0
+  [1.00] TexMex
+  [1.00] Uudistoode!
+  [1.00] Wrapper
+  [1.00] 699g
+
+═══ pump-064-wayne-circlek-ee-4645l-1834.jpg – raw OCR ═══
+  [1.00] uи 4.09-9.09€.
+  [1.00] emnedulide
+  [1.00] .IUE. Pakkumiste
+  [1.00] Loe lahemalt: www.circlek.ee
+  [1.00] CIRCLEK
+  [1.00] SUMMA
+  [1.00] 85.19
+  [1.00] LIITRIT
+  [1.00] 46.45
+  [1.00] Vmin 5 LIITRIT
+  [1.00] Wayne
+  [1.00] DRESSER
+  [1.00] miles
+  [1.00] miles+
+  [1.00] miles+
+  [1.00] miles
+  [1.00] HIND/1L
+  [1.00] 1834
+  [1.00] 1894
+  [1.00] 1884
+  [1.00] 1874
+  [1.00] AE023736 •
+  [1.00] AE023734 ,
+  [1.00] Tex Mex
+  [1.00] Wrapper
+
+═══ pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru.jpeg – raw OCR ═══
+  [1.00] Стоимость
+  [1.00] Рублей
+  [1.00] $966
+  [1.00] Количество
+  [1.00] Литров
+  [1.00] Цена за 1 литр
+  [1.00] 71,05 Рублей
+  [1.00] TOKHEIM
+
+═══ pump-066-rn-tver-budovo-95-exact-total-pair-ru.jpeg – raw OCR ═══
+  [1.00] Стоимость
+  [1.00] Рублей
+  [1.00] 194588
+  [1.00] Количество
+  [1.00] Литров
+  [1.00] Рублей
+  [1.00] 69,50
+  [1.00] Цена за 1 литр
+
+File                            Liters    €/unit    Total     Curr  Fuel      Check
+────────────────────────────────────────────────────────────────────────────────────────
+pump-001.heic                   0.700     –         –         EUR   95        ✗
+pump-002-lukoil-spb-ru.png      –         –         –         RUB   95        ✗
+pump-003-kz-95-kzt.jpg          –         –         –         –     95        ✗
+pump-004-kz-95-kzt-tokheim.jpg  –         –         –         –     95        ✗
+pump-005-dresser-wayne-four-pric–         –         –         –     –         ✗
+pump-006-kz-adast-92-kzt.png    –         –         –         –     –         ✗
+pump-007-lukoil-spb-comma-decima–         –         –         RUB   –         ✗
+pump-008-topaz-video-overlay-92-–         –         –         RUB   АИ-92     ✗
+pump-009-gilbarco-zero-padded-ru–         –         –         RUB   –         ✗
+pump-010-scheidt-preset-amount-r–         –         –         RUB   95        ✗
+pump-011-gilbarco-circlek-ee-zer–         –         –         EUR   SUPER     ✗
+pump-012-gilbarco-circlek-ee-gla–         6.000     –         EUR   100       ✗
+pump-013-dresser-wayne-ee-four-p–         –         13.850    –     –         ✗
+pump-014-dresser-wayne-ee-glare-0.700     –         1.000     EUR   –         ✗
+pump-015-dresser-wayne-ee-diesel0.700     –         15.890    EUR   95        ✗
+pump-016-wayne-ee-idle-zero.heic–         –         –         EUR   –         ✗
+pump-017-wayne-ee-idle-zero-angl–         –         –         EUR   –         ✗
+pump-018-gilbarco-tatneft-tver-9–         –         –         RUB   –         ✗
+pump-019-gilbarco-circlek-sikupi–         –         –         EUR   –         ✗
+pump-020-gilbarco-circlek-sikupi–         –         –         EUR   –         ✗
+pump-021-wayne-circlek-sun-glare–         –         –         –     –         ✗
+pump-022-wayne-circlek-pump1-gla0.700     –         –         EUR   –         ✗
+pump-023-wayne-circlek-glare-ee.0.700     –         –         EUR   95        ✗
+pump-024-wayne-neste-ee-three-gr–         –         –         EUR   95        ✗
+pump-025-wayne-neste-ee-glare-ob–         –         –         EUR   95        ✗
+pump-026-gilbarco-circlek-ee-com–         –         –         EUR   –         ✗
+pump-027-gilbarco-circlek-ee-com–         –         –         EUR   –         ✗
+pump-028-gilbarco-circlek-ee-com–         –         –         EUR   –         ✗
+pump-029-dresser-wayne-gpn-okulo–         –         –         –     95        ✗
+pump-030-tokheim-zolotaya-seredi–         –         –         RUB   –         ✗
+pump-031-gilbarco-circlek-ee-dis–         –         –         EUR   –         ✗
+pump-032-gilbarco-circlek-ee-cle–         –         –         EUR   –         ✗
+pump-033-dresser-wayne-circlek-e–         –         –         –     –         ✗
+pump-034-dresser-wayne-circlek-t–         –         160.500   –     –         ✗
+pump-035-dresser-wayne-circlek-e–         –         82.000    –     –         ✗
+pump-036-dresser-wayne-circlek-e–         –         –         –     –         ✗
+pump-037-dresser-wayne-circlek-e–         –         20.270    –     –         ✗
+pump-038-dresser-wayne-circlek-e–         –         –         –     98        ✗
+pump-039-gilbarco-circlek-ee-183–         –         –         EUR   –         ✗
+pump-040-gilbarco-circlek-ee-pum–         –         –         EUR   –         ✗
+pump-041-dresser-wayne-circlek-e–         –         –         –     95        ✗
+pump-042-dresser-wayne-circlek-e–         –         –         EUR   –         ✗
+pump-043-dresser-wayne-circlek-e–         –         –         –     95        ✗
+pump-044-rn-tver-chkalovskaya-95–         –         –         RUB   –         ✗
+pump-045-gilbarco-circlek-ee-179–         –         –         EUR   –         ✗
+pump-046-gilbarco-circlek-ee-pum–         –         –         EUR   SUPER     ✗
+pump-047-gilbarco-circlek-ee-pum–         –         –         EUR   –         ✗
+pump-048-gilbarco-circlek-ee-188–         –         –         EUR   –         ✗
+pump-049-gilbarco-circlek-ee-fai–         –         –         EUR   –         ✗
+pump-050-gilbarco-circlek-ee-192–         –         –         EUR   –         ✗
+pump-051-wayne-circlek-ee-fourpr0.700     –         0.420     EUR   –         ✗
+pump-052-wayne-circlek-ee-glare-–         –         5.600     –     –         ✗
+pump-053-wayne-circlek-ee-pump1-–         –         72.600    –     –         ✗
+pump-054-wayne-circlek-jarvevana–         –         –         –     –         ✗
+pump-055-wayne-circlek-ee-liitri0.500     –         108.580   –     95        ✗
+pump-056-wayne-circlek-ee-preset0.500     –         –         EUR   95        ✗
+pump-057-gilbarco-circlek-sikupi–         –         –         EUR   –         ✗
+pump-058-gilbarco-circlek-ee-dir–         –         –         EUR   –         ✗
+pump-059-gilbarco-circlek-ee-pum–         –         –         EUR   –         ✗
+pump-060-gilbarco-circlek-ee-189–         –         –         EUR   95        ✗
+pump-061-wayne-circlek-ee-discou–         –         62.400    –     –         ✗
+pump-062-wayne-circlek-ee-pump8-0.500     –         39.550    EUR   –         ✗
+pump-063-wayne-circlek-ee-insect0.500     –         –         EUR   –         ✗
+pump-064-wayne-circlek-ee-4645l-–         –         85.190    EUR   –         ✗
+pump-065-tokheim-gazpromneft-edr–         –         –         RUB   –         ✗
+pump-066-rn-tver-budovo-95-exact–         –         –         RUB   –         ✗
+
+Cross-check passed: 0/66
+Ground-truth field accuracy: 4/178 (2.2%)
