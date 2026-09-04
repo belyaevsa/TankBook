@@ -394,7 +394,10 @@ struct ManualFillUpOdometerCard: View {
     }
 
     private var odometerRow: some View {
-        FieldRow("Odometer") {
+        // RV.47: the whole row focuses the field (an empty odometer is a
+        // near-zero-width target otherwise).
+        FocusableFieldRow("Odometer", $focus, equals: .odometer,
+                          rowIdentifier: "manualFillUpOdometerRow") {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 TextField("", text: $form.odometer)
                     .keyboardType(.numberPad)

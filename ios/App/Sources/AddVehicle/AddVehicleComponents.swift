@@ -74,7 +74,12 @@ struct SectionEyebrow: View {
     }
 }
 
-/// A card row: label on the left, value on the right (artboard layout).
+/// A card row: label on the left, value on the right (artboard layout). The
+/// row is for values that are NOT a keyboard field - a picker/menu, a chip
+/// row, a static value - so it stays INERT: no tap gesture of its own, because
+/// such a row either has its own tap targets or must not pretend to be a
+/// button. A row whose value IS a text field is `FocusableFieldRow`, which
+/// carries the focus action this type deliberately does not have.
 struct FieldRow<Value: View>: View {
     let label: LocalizedStringKey
     @ViewBuilder let value: () -> Value
@@ -95,6 +100,69 @@ struct FieldRow<Value: View>: View {
         }
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 12)
+    }
+}
+
+/// A card row whose VALUE is a keyboard-editable field. The WHOLE row is the
+/// tap target (RV.47): tapping the label - or the empty stretch between label
+/// and value - focuses the field, the `<label for>` behaviour a web form gives
+/// and a typist on a capture-first form expects. An empty, placeholder-less
+/// text field collapses to a near-zero-width strip pinned to the row's right
+/// edge - nothing on screen says "field here" until it is focused or warned -
+/// so the row itself enforces the 44pt accessibility floor (docs/DESIGN.md)
+/// and answers taps across its full extent.
+///
+/// The focusable/inert split is TYPE-LEVEL, not a flag (RV.47): this type
+/// cannot be constructed without naming the focus state and target its field
+/// binds to (`Focus` is the row's case in its screen's focus enum, exactly as
+/// `.focused(_:equals:)` spells it), and `FieldRow` has no focus parameter and
+/// no tap gesture - so a picker or read-only row can never be silently turned
+/// into a fake button, and an editable row is never built without stating which
+/// field the whole row focuses.
+struct FocusableFieldRow<Value: View, Focus: Hashable>: View {
+    let label: LocalizedStringKey
+    @FocusState.Binding var focus: Focus?
+    let target: Focus
+    var rowIdentifier: String?
+    @ViewBuilder let value: () -> Value
+
+    init(_ label: LocalizedStringKey,
+         _ focus: FocusState<Focus?>.Binding,
+         equals target: Focus,
+         rowIdentifier: String? = nil,
+         @ViewBuilder value: @escaping () -> Value) {
+        self.label = label
+        self._focus = focus
+        self.target = target
+        self.rowIdentifier = rowIdentifier
+        self.value = value
+    }
+
+    @ViewBuilder
+    var body: some View {
+        // Simultaneous, not exclusive: a tap that lands ON the field itself
+        // must still reach the field (caret placement must keep working);
+        // only the taps the field does not claim - the label and the gap -
+        // exist to focus it.
+        let rowElement = HStack(alignment: .firstTextBaseline, spacing: 12) {
+            Text(label)
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: true, vertical: false)
+            Spacer(minLength: 8)
+            value()
+        }
+        .padding(.horizontal, Theme.Spacing.cardPadding)
+        .padding(.vertical, 12)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+        .simultaneousGesture(TapGesture().onEnded { focus = target })
+        .accessibilityElement(children: .contain)
+        if let rowIdentifier {
+            rowElement.accessibilityIdentifier(rowIdentifier)
+        } else {
+            rowElement
+        }
     }
 }
 
