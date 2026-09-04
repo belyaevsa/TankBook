@@ -35,10 +35,10 @@ struct CorpusCompressionTests {
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
     /// The recorded high-water mark for receipts through the compression step.
-    /// Measured at 174/210 (RV.48 stage three), one ahead of the uncompressed
-    /// ratchet's 173 (high-water.json) - the resize is not lossy for this
-    /// parser, and never below.
-    private static let recordedReceipts = (hits: 181, total: 220)
+    /// Measured at 186/220 (RV.56), one ahead of the uncompressed ratchet's
+    /// 185 (high-water.json) - the resize is not lossy for this parser, and
+    /// never below.
+    private static let recordedReceipts = (hits: 186, total: 220)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {

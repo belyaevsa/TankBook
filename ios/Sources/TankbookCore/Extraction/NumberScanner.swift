@@ -52,6 +52,19 @@ enum NumberScanner {
         return decimals(in: normalized).first
     }
 
+    /// True when the line's number carries a leading minus: a subtraction (a
+    /// VAT credit, a discount, change), never a total. A receipt total is never
+    /// printed negative. The leading `=`/`#`/`≡` of a right-aligned value is
+    /// stripped first, so `=961.80` is not negative while `-3555.89` (receipt-018's
+    /// VAT amount) is.
+    static func isNegativeAmount(_ line: String) -> Bool {
+        var start = line.startIndex
+        while start < line.endIndex, "=#≡ _".contains(line[start]) {
+            start = line.index(after: start)
+        }
+        return line[start...].hasPrefix("-")
+    }
+
     /// True when the line is a bare value: an optional `=`/currency prefix then
     /// one number, with at most a stray letter of OCR noise. Sentences like
     /// "В ТОМ ЧИСЛЕ ВАША СКИДКА = 0.83" are excluded.
