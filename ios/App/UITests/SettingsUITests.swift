@@ -33,6 +33,18 @@ final class SettingsUITests: XCTestCase {
                 "-presentScreen", "settings", seed])
     }
 
+    /// Launches Settings signed in and forces the account card's LIVE device
+    /// count to `count` (`-seedSettingsDeviceCount`, RV.54), so the rendered
+    /// plural forms can be asserted at 1/2/5 in either language without a real
+    /// device fetch. The value semantics (live-only counting) are the L1
+    /// contract; this pins the account card's rendering of it.
+    private func launchSettingsDeviceCount(_ count: Int, language: String) -> XCUIApplication {
+        launch(["-presentScreen", "settings", "-seedSettingsSynced",
+                "-seedSettingsDeviceCount", "\(count)",
+                "-AppleLanguages", "(\(language))", "-AppleLocale",
+                language == "ru" ? "ru_RU" : "en_US"])
+    }
+
     /// The status line's rendered text (the account card subtitle).
     private func syncStatus(_ app: XCUIApplication) -> XCUIElement {
         app.staticTexts["settingsSyncStatus"]
@@ -300,5 +312,48 @@ final class SettingsUITests: XCTestCase {
                       "the just-signed-in card shows 'Your garage now follows your account.'")
         XCTAssertFalse(app.buttons["settingsSignInButton"].exists,
                        "the guest card is gone once signed in")
+    }
+
+    // MARK: - RV.54 the account card's count is LIVE and pluralises (docs/JOURNEYS.md J11a)
+
+    /// The card's "· N device(s)" suffix renders with the real plural forms in
+    /// EN (device/devices) at 1, 2 and 5. RV.54 changed what the NUMBER means
+    /// (live devices only, the L1 contract in `LiveDeviceCountTests`); this
+    /// pins that whatever number the card is given still renders with the
+    /// catalog's plural rules - a count that stopped pluralising would pass a
+    /// value test and fail here.
+    func testAccountCardDeviceCountPluralisesInEnglish() {
+        let expected = [
+            1: "Synced just now · 1 device",
+            2: "Synced just now · 2 devices",
+            5: "Synced just now · 5 devices"
+        ]
+        for (count, label) in expected.sorted(by: { $0.key < $1.key }) {
+            let app = launchSettingsDeviceCount(count, language: "en")
+            let status = syncStatus(app)
+            XCTAssertTrue(status.waitForExistence(timeout: 10))
+            XCTAssertEqual(status.label, label,
+                           "the card must render '\(label)' at a live count of \(count)")
+        }
+    }
+
+    /// The RU plural is the risk RV.54 names: Russian has THREE plural forms
+    /// (устройство / устройства / устройств at 1/2/5) and a revoked device is
+    /// exactly what moves a count across them. A count that no longer
+    /// pluralises, or pluralises by the total instead of the live count, fails
+    /// here.
+    func testAccountCardDeviceCountPluralisesInRussian() {
+        let expected = [
+            1: "Синхронизировано только что · 1 устройство",
+            2: "Синхронизировано только что · 2 устройства",
+            5: "Синхронизировано только что · 5 устройств"
+        ]
+        for (count, label) in expected.sorted(by: { $0.key < $1.key }) {
+            let app = launchSettingsDeviceCount(count, language: "ru")
+            let status = syncStatus(app)
+            XCTAssertTrue(status.waitForExistence(timeout: 10))
+            XCTAssertEqual(status.label, label,
+                           "the card must render '\(label)' at a live count of \(count)")
+        }
     }
 }

@@ -143,8 +143,8 @@ final class AppSync {
     /// flow's first push, cleared on sign-out or relaunch; in-memory only.
     private var didJustSignIn = false
     /// The Settings card's device count (`GET /account/devices`,
-    /// docs/JOURNEYS.md J11a -> "Synced just now · 1 device"), behind a
-    /// `DeviceCountCache` (RV.6).
+    /// docs/JOURNEYS.md J11a) behind a `DeviceCountCache` (RV.6); LIVE devices
+    /// only, revoked rows stay in the list but do not count (RV.54).
     private var deviceCountCache = DeviceCountCache()
     /// RV.18: when the last opportunistic (launch/foreground) cycle started, so
     /// a burst of `.active` transitions is one cycle, not one each. Only the
@@ -218,9 +218,8 @@ final class AppSync {
     /// render the just-signed-in card.
     var justSignedIn: Bool { didJustSignIn || forcedJustSignedIn }
 
-    /// The device count for the account card's "· N device(s)" suffix, or nil
-    /// while unknown (guest, offline, or the fetch failed). The fixture lets a
-    /// frozen-sync screenshot render the count.
+    /// The live device count for the account card's "· N device(s)" suffix, or
+    /// nil while unknown; the fixture lets a frozen-sync screenshot render it.
     var deviceCount: Int? { forcedDeviceCount ?? deviceCountCache.count }
 
     /// RV.6: an event changed the account's devices (a revoke, account delete,
@@ -312,11 +311,12 @@ final class AppSync {
             lastOutcome = core.lastOutcome()
         }
         // The "· N device(s)" suffix (docs/JOURNEYS.md J11a), decided by the
-        // `DeviceCountCache` (RV.6): reuse a cached count, forget it as a
-        // guest, fetch only when unknown.
+        // `DeviceCountCache` (RV.6): reuse/fetch/clear as it decides. RV.54:
+        // the count is LIVE only (`liveDeviceCount`) - revoked rows stay in
+        // the list, the counting excludes them.
         if case .fetch = deviceCountCache.refreshAction(signedIn: session != nil),
-           let count = try? await accountDevicesClient().devices().count {
-            deviceCountCache.record(count)
+           let devices = try? await accountDevicesClient().devices() {
+            deviceCountCache.record(devices.liveDeviceCount)
         }
         do {
             let repository = try AppStore.repository()

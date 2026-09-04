@@ -459,7 +459,14 @@ Three things live there, and the split between them is what keeps hard rule 8 in
    the user to babysit a queue the app is supposed to drain by itself.
 
    The signed-in reassurance line also carries the account's device count – "Synced just now ·
-   1 device" (docs/JOURNEYS.md J11a -> Confirm). **The count is fetched from `GET
+   1 device" (docs/JOURNEYS.md J11a -> Confirm). **RV.54 (product owner, 2026-09-04): the
+   number counts LIVE devices only.** It answers "how many devices can reach my data", and a
+   revoked device's next pull gets 410, so it cannot reach the data and does not count – which is
+   also what makes a revoke visibly decrement the number (the RV.6 acceptance that was unwritable
+   while the count included revoked rows). The revoked rows stay in the Account & devices LIST,
+   marked, never omitted: the history is the point of showing them. This is a client-side
+   counting decision (`liveDeviceCount`) – `GET /account/devices` is unchanged and keeps
+   returning revoked rows marked. **The count is fetched from `GET
    /account/devices` once per membership, not once per appearance (RV.6).** It is a reassurance
    detail that changes on **events** – a sign-in, a sign-out, a revoke, an account delete – never
    on a clock, so it is cached across every surface refresh (Settings re-appearing after a pop
@@ -471,7 +478,9 @@ Three things live there, and the split between them is what keeps hard rule 8 in
    Deliberately **not** a time interval: an interval would make the count *sometimes* stale for
    reasons the user cannot see, while event invalidation keeps it correct on exactly the moments
    the user can act on. The Account & devices screen itself always reads the full list on each
-   visit (didLoad-guarded per push) – this cache governs only the Settings card's suffix.
+   visit (didLoad-guarded per push) – this cache governs only the Settings card's suffix, and the
+   list and the count always agree because the count is derived from that same list, live rows
+   only.
 
 2. **"Sync now" - a manual trigger, never a requirement.** Sync is automatic; this exists because
    a user who has just edited something on another device wants to *pull now* rather than wonder.

@@ -3,7 +3,11 @@ import Foundation
 /// Decides when the Settings account card re-reads the account's device count
 /// from `GET /account/devices` (docs/SYNC.md -> "The Settings sync surface":
 /// the "Synced just now · N device(s)" reassurance suffix, docs/JOURNEYS.md
-/// J11a).
+/// J11a). The value cached here is the LIVE device count - revoked rows are
+/// returned marked and stay in the Account & devices list, but a revoked
+/// device's next pull gets 410, so it cannot reach the account and does not
+/// count (RV.54; the caller records `devices.liveDeviceCount`, never the raw
+/// `count`).
 ///
 /// RV.6 was that the decision did not exist: `AppSync.refresh()` re-fetched the
 /// count on every call and never reused what it had, and `SettingsView`'s
@@ -60,7 +64,10 @@ public struct DeviceCountCache: Sendable, Equatable {
     }
 
     /// Reports a fetch outcome. A non-nil count is cached for reuse; nil (the
-    /// fetch failed) leaves the cache unknown so the next refresh retries.
+    /// fetch failed) leaves the cache unknown so the next refresh retries. The
+    /// value must be the LIVE count (`devices.liveDeviceCount`, RV.54) - the
+    /// cache's `count` answers "how many devices can reach my data", so a caller
+    /// that records the raw `devices().count` stores the RV.54 bug.
     public mutating func record(_ fetched: Int?) {
         count = fetched
     }

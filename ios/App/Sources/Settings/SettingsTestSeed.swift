@@ -59,6 +59,16 @@ enum SettingsTestSeed {
         return .none
     }
 
+    /// Test/screenshot-only: the numeric value following a `-seed... <n>`
+    /// argument, nil when absent or unparseable. Seed arguments are data (see
+    /// `state` above); a number rides as a separate launch argument so a
+    /// concatenated seed string cannot swallow it.
+    private static func intValue(for argument: String, in arguments: [String]) -> Int? {
+        guard let index = arguments.firstIndex(of: argument),
+              arguments.indices.contains(index + 1) else { return nil }
+        return Int(arguments[index + 1])
+    }
+
     /// Whether the state renders with the five-fill dirty queue behind it: the
     /// pending state, the Low Power state (the queue the mode's postponement
     /// holds) and every server-ahead state, because a refused or paced push
@@ -150,6 +160,15 @@ enum SettingsTestSeed {
         // the confirmation even though the screenshot freezes the sync (no push
         // and no device fetch runs under `-freezeSyncState`).
         sync.forcedDeviceCount = (state == .signedIn) ? 1 : nil
+        // RV.54: `-seedSettingsDeviceCount <n>` renders any LIVE device count
+        // on a signed-in account card ("· N devices"), so the EN/RU plural
+        // forms at 1/2/5 can be asserted (L4) and screenshotted without a real
+        // device fetch. It rides as its own argument (never inside a
+        // concatenated seed string - a launch argument containing spaces
+        // matches nothing).
+        if let count = Self.intValue(for: "-seedSettingsDeviceCount", in: arguments) {
+            sync.forcedDeviceCount = count
+        }
         sync.forcedJustSignedIn = (state == .signedIn)
 
         // Transport-issue fixtures (410 revoked, blob-quota 429, offline with a

@@ -27,6 +27,22 @@ public struct AccountDevice: Sendable, Equatable, Decodable {
     }
 }
 
+extension Array where Element == AccountDevice {
+    /// The number of devices that can still reach this account - the Settings
+    /// account card's "· N device(s)" suffix (docs/SYNC.md -> The Settings sync
+    /// surface). RV.54 (product owner, 2026-09-04): the count counts LIVE
+    /// devices only, because the number answers "how many devices can reach my
+    /// data", and a revoked device's next pull gets 410 - it cannot reach the
+    /// data any more, so it does not count. Revoked rows are still returned by
+    /// `GET /account/devices` and still shown in the Account & devices list:
+    /// the counting excludes them, the list never does (the history is the point
+    /// of showing them). Deliberately client-side - the endpoint keeps returning
+    /// revoked rows marked, never omitted (docs/API.md -> Account & devices).
+    public var liveDeviceCount: Int {
+        filter { !$0.revoked }.count
+    }
+}
+
 /// Errors the account client surfaces, each mapped from a specific wire status
 /// (docs/API.md -> Account & devices, docs/ERRORS.md -> the screen's rows).
 public enum AccountClientError: Error, Sendable, Equatable {
