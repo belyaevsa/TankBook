@@ -1,18 +1,68 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-03 (evening pass). **The app is on TestFlight and the backend is deployed**. The `RV`
-(reviewer) backlog now carries **38 rows filed from production logs, device walks and screenshots**;
-**30 are closed, 8 open**. Since the morning pass: `RV.32` (demand-driven exchange-rate backfill,
-closing the "a foreign entry before today can never resolve its home amount" gap), `RV.37` (receipt
-delete/replace with the re-read ask), `RV.18` (measured sync cadence - a scripted session showed 5
-cycles across launch + 3 foregrounds, gated the launch double-fire only), `RV.29` (a foreign fill's
-price-per-litre no longer wears the home currency symbol), `RV.24` (a working language picker,
-follow-system until overridden) and `RV.31` (re-tapping the active tab pops it to root, through the
-same discard guard a sheet already uses) all landed and were independently verified - build/test by
-exit code, the relevant UI suites re-run, every load-bearing fix mutation-checked personally, every
-screenshot opened personally. `RV.28` (fuel chips must pack, not distribute) is in flight. Measured
-now: **iOS 1189 unit / 110 suites**, **backend 347** (0 skipped), lint 0 (both tiers). Read this
-first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-04. **The app is on TestFlight and the backend is deployed.** The `RV` (reviewer)
+backlog now carries **54 rows filed from production logs, device walks and screenshots**; **47 are
+closed, 7 open**. Measured now: **iOS 1250 tests / 117 suites**, **backend 370** (0 skipped), lint 0
+(both tiers, ignoring a sibling session's worktree). Read this first, then `CLAUDE.md`, then
+`docs/TASKS.md`.*
+
+## The three findings from 2026-09-04 worth carrying forward
+
+**1. Every in-app photo was handed to Vision sideways, and no gate could see it (`RV.49`).** The
+photo connection's rotation was never set, `UIImage(cgImage:)` discarded the orientation, and
+`VNImageRequestHandler(cgImage:options:)` was built without one - so a portrait phone gave Vision a
+90-degree-rotated receipt labelled upright. **It survived because every gate is file-based**: the
+corpus harness reads files, `VNImageRequestHandler(url:)` honours EXIF, so the corpus measured the
+parser on correctly-oriented images while the live camera fed it rotated ones. **The 38.3% receipt
+rate is an upper bound the shutter may never have reached.** The lesson generalises: *a suite that
+exercises a different entry point than production is not measuring production.*
+
+**2. A green corpus gate is not evidence, and the row that fixes something must say so.** RV.49's
+brief required the corpus gate be run before and after and reported as **unchanged, not as proof**,
+because it cannot move either way. The only honest proof was a rotated fixture through the `cgImage`
+path, and it genuinely failed first (33 lines vs 36). **Ask what a test would do if the bug were
+present** - if the answer is "pass", it is not evidence.
+
+**3. A filed diagnosis is a hypothesis (`RV.6`).** A read-only investigation found that half of
+RV.6 was already fixed by RV.18, that the remaining half was not a poll at all, and that **two
+claims in the row's own text were false** - there is no rate limit on `GET /account/devices`, and
+RV.22 had not worsened it (my own suspicion, disproved). Its **acceptance criteria would have passed
+against the live bug**. Rows filed days before the code moved are starting points, not facts -
+re-check before building.
+
+## Two hazards that are new, and both cost something today
+
+**Concurrent sessions in one checkout.** A second Claude session works in this repo via a worktree
+at `.claude/worktrees/rv48`. A dispatched agent **moved 56 KB of that session's uncommitted work out
+of the repo** into a temp directory to get a clean baseline; it was recovered only because it was
+noticed. Every brief now carries *"never move, rename or delete a file you did not create - report it
+and carry on"*, and staging is always explicit paths. Expect a red test in the tree that is not
+yours, and expect `swiftlint` from the root to walk into that worktree.
+
+**Monitor each dispatch by its PID, never `pgrep -x opencode`.** A global count reports the other
+session's agents as yours - it announced three exits while my agent was still running. A count is
+not an identity. `pgrep -f "<title>"` is not the fix either: `-f` matches any process whose arguments
+merely contain the text, which is how an agent killed a sibling on 2026-08-24.
+
+## What is blocked, and on whom
+
+- **`RV.51`, `RV.54`** - product decisions, not work. RV.51: the cloud read measured **12-36 s
+  against a 3 s budget**, so the late answer is the normal path and the inbox is the primary receipt
+  experience, not a fallback. RV.54: "N devices" counts revoked devices, so revoking one changes
+  nothing on screen.
+- **`RV.53`** - a live defect: an unguarded `PutObjectAsync` on the critical path means an S3 outage
+  destroys a recognition the user already paid for **and burns their quota**. A regression `RV.33`
+  introduced. Briefed, not yet dispatched.
+- **`SH.3`** - the launch-readiness walk on a real device. Only a human can do it, and with `T.3`
+  (an intermittent `ConfirmOdometerPrefillUITests` failure) it is one of only two things gating v1.
+
+## Housekeeping done 2026-09-04
+
+~29 GB reclaimed: 29 orphaned `DerivedData` directories (**each git worktree gets its own, and
+removing the worktree leaves it behind** - expect this to recur), a merged `p6.4` worktree, three
+simulator devices erased, and 1.1 GB of agent temp. `opencode.db` (8.9 GB of agent conversations)
+was deliberately kept - it is how an agent's reasoning can be audited after the fact, which mattered
+twice today.
 
 ## What today changed about HOW to work (2026-09-03)
 
@@ -64,12 +114,21 @@ Worth reading in order, because each one hid the next and no test saw any of the
    published later that day could never replace it. Found from a single query the product owner ran:
    29 of 34 rows for 2026-09-03 were `ecb:carried-forward`, all holding the 2nd's rates.
 
-**Still open: `RV.32`.** A foreign entry dated before 2026-09-03 **can never** resolve its home
-amount - there is no CIS history at all before that date, `RatesJobService` only ever fetches
-`today`, and `CarryForwardAsync` fills forward and never backwards. Demand-driven backfill, keyed on
+**Closed by `RV.32` (2026-09-03):** a foreign entry dated before that day could never resolve its
+home amount - no CIS history existed, `RatesJobService` only ever fetched `today`, and
+`CarryForwardAsync` fills forward, never backwards. The fix is a demand-driven backfill keyed on
 `GET /v1/rates/pack?from=&to=`, with a **14-day** carry-back window - and 14 is measured, not chosen:
 CBR's New Year gap runs `31.12.2025` to `13.01.2026`, thirteen days, so a 7-day window would leave
 six days of January unresolved in RUB.
+
+**But the backfill is not finished: see `RV.50`.** Production shows it draining a full 50-date batch
+every five minutes with `Published=0 CarriedForward=0 SourcesFailed=0`, for twenty consecutive passes
+including windows with no device traffic - it enqueues, does nothing, settles, and is re-enqueued.
+The suspected cause is a predicate mismatch: `RecordRequestAsync` enqueues when **any** feed family
+lacks a row, while `BackfillDatesAsync` skips a feed that **already has** one, so a date one feed
+covers and another never will is pending forever. **The cost is DB churn, not money - but
+`rates.backfill` is now useless as a health signal**, because the line looks identical whether the
+system is healthy or wedged.
 
 ## The device was pushing its own records back forever, on two paths (2026-09-03)
 
@@ -90,16 +149,33 @@ green.
 
 ## What is waiting on the product owner
 
-- **`RV.33`/`RV.34`** - recording every LLM call in a table **reverses a signed-off decision**:
-  `CLAUDE.md` rule 9 says `/extract` never stores an image and calls the asymmetry with
-  `/import/parse` deliberate. Storage shape is agreed (S3 + references, content purged on account
-  delete, references kept); the **rule amendment is not yet made**, and it belongs in the same commit
-  as the migration.
-- **`RV.23`** - shipped but its row is open on purpose: its two UI suites were run by the agent and
-  never re-run here.
-- **`RV.6`** - `/v1/account/devices` polled four times in 14 seconds; untouched since it was filed.
-- **`RV.38`** - notification inbox (bell icon), registered but not yet briefed - depends on `RV.33`
-  for durability and its placement collides with `RV.22`'s chip layout, so it is blocked behind both.
+*(Refreshed 2026-09-04. Everything previously listed here - `RV.33`/`RV.34`'s rule-9 amendment,
+`RV.23`, `RV.6`, `RV.38` - has since shipped and been verified.)*
+
+- **`RV.51`** - the cloud read measures **12-36 s against a 3 s budget**, so the late answer is the
+  normal path, not the edge case the design assumed. That makes the inbox the **primary** receipt
+  experience rather than a fallback. Three directions - accept it and polish the inbox, make the
+  cloud fast enough to matter, or raise the budget deliberately - and the choice is a product one.
+- **`RV.54`** - "N devices" counts revoked devices, because `GET /account/devices` returns them
+  marked rather than omitted. So revoking a device changes nothing on screen and the user concludes
+  it failed. Decide what the number means: live devices, a relabel, or "2 devices, 1 revoked".
+- **`SH.3`** - the launch-readiness walk on a real device. **Only a human can do it**, and with
+  `T.3` it is one of only two things gating v1.
+
+## What is open and actionable (2026-09-04)
+
+- **`RV.53`** - briefed, not dispatched. A live defect: an unguarded `PutObjectAsync` sits on the
+  critical path *after* the metered provider call, so an S3 outage destroys a recognition the user
+  already paid for **and burns their quota**. A regression `RV.33` introduced - before the ledger, a
+  storage outage could not touch `/extract`.
+- **`RV.50`**, **`RV.52`** - dispatched. `RV.52`'s acceptance is re-enabling `RV.49`'s rotated-fixture
+  test, which is currently the only honest proof that camera orientation reaches Vision and cannot
+  run in CI.
+- **`RV.43`** - briefed. A Trends test that fails the 1st-6th of every month; it will go red again on
+  **1 October** whatever else changes.
+- **`RV.48`** - deferred by the product owner. Worth re-weighing: `RV.51` makes the persisted role
+  assignment more valuable than when it was filed, and the "What was read" viewer keeps showing raw
+  OCR soup - merchant registration and VAT numbers included - until it lands.
 
 ## Two more things this session's parallel dispatch taught (2026-09-03 evening)
 
@@ -358,11 +434,17 @@ is usually the machine trains you to re-run instead of read.
 > the orchestrator ticks at merge. Resolving that file by side silently un-ticks somebody else's
 > task.
 >
-> **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28). A
-> `Monitor` watching `pgrep -x opencode` for a shrinking pid set fires the moment an agent exits.
-> **Emit only on the TRANSITION, never on the state** - a first version of this re-announced "all
-> agents idle" every 45 s once the last one finished, which is noise that trains you to ignore the
-> monitor. Fire once when a pid disappears, and say nothing while nothing changes.
+> **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28) - and
+> **watch that dispatch's OWN pid**, captured from `$!` at launch:
+> `while kill -0 <pid> 2>/dev/null; do sleep 15; done`.
+> **Do NOT watch `pgrep -x opencode` for a shrinking pid set.** That was the instruction until
+> 2026-09-04, and it breaks the moment anything else on the machine runs opencode: a second Claude
+> session was working in this checkout, so the global count rose and fell on *their* schedule and the
+> monitor announced three exits while my agent was still running. A count is not an identity.
+> `pgrep -f "<title>"` is not the fix either - `-f` matches any process whose arguments merely
+> contain the text, which is how an agent killed a sibling on 2026-08-24.
+> **Emit only on the TRANSITION, never on the state** - a first version re-announced "all agents
+> idle" every 45 s once the last one finished, which is noise that trains you to ignore the monitor.
 > Without one you discover completions by asking, which cost real time repeatedly on 2026-08-27 -
 > agents sat finished for twenty minutes while lanes stood idle. Re-arm it after each dispatch,
 > because a one-shot waiter dies with the event it was waiting for.

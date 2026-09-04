@@ -1,6 +1,12 @@
 import SwiftUI
 import TankbookCore
 
+/// Which field of the non-fill edit form holds focus (drives the whole-row
+/// tap-to-focus of RV.47 and the odometer's format-on-blur).
+enum EditEntryNonFillFocus: Hashable {
+    case amount, energy, provider, vendor, title, odometer
+}
+
 /// The edit form for the three non-FillUp entry types (docs/SCHEMA.md, Entry):
 /// a charge, a service record or an expense. Compact editable rows - amount +
 /// currency chips (the lifted `CurrencyChipRow`), the type's own headline field,
@@ -17,7 +23,7 @@ struct EditEntryNonFillView: View {
     let pendingBlobIDs: Set<UUID>
     let onAttachmentChanged: (FuelExtraction?) -> Void
 
-    @FocusState private var odometerFocused: Bool
+    @FocusState private var nonFillFocus: EditEntryNonFillFocus?
 
     private var distanceUnit: DistanceUnit { vehicle.units.distance }
 
@@ -52,13 +58,16 @@ struct EditEntryNonFillView: View {
         switch entry {
         case let charge as ChargeSession:
             VStack(spacing: 0) {
-                FieldRow("Energy") {
+                // RV.47: whole row (label + gap) focuses the field.
+                FocusableFieldRow("Energy", $nonFillFocus, equals: .energy,
+                                  rowIdentifier: "editEntryEnergyRow") {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         TextField("0", text: $form.energyKWh)
                             .keyboardType(.decimalPad)
                             .multilineTextAlignment(.trailing)
                             .font(.custom(AppFonts.dinAlternateBold, size: 24))
                             .foregroundStyle(Theme.Palette.ink)
+                            .focused($nonFillFocus, equals: .energy)
                             .accessibilityIdentifier("editEntryEnergyField")
                             .numericInput($form.energyKWh, kind: .decimal)
                         Text(L10n.kWh)
@@ -67,30 +76,36 @@ struct EditEntryNonFillView: View {
                     }
                 }
                 CardDivider()
-                FieldRow("Provider") {
+                FocusableFieldRow("Provider", $nonFillFocus, equals: .provider,
+                                  rowIdentifier: "editEntryProviderRow") {
                     TextField(charge.provider ?? L10n.localize("Provider"), text: $form.provider)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.ink)
+                        .focused($nonFillFocus, equals: .provider)
                         .accessibilityIdentifier("editEntryProviderField")
                 }
             }
             .formCard()
         case let service as ServiceRecord:
-            FieldRow("Vendor") {
+            FocusableFieldRow("Vendor", $nonFillFocus, equals: .vendor,
+                              rowIdentifier: "editEntryVendorRow") {
                 TextField(service.vendor ?? L10n.localize("Vendor"), text: $form.vendor)
                     .multilineTextAlignment(.trailing)
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.ink)
+                    .focused($nonFillFocus, equals: .vendor)
                     .accessibilityIdentifier("editEntryVendorField")
             }
             .formCard()
         case let expense as Expense:
-            FieldRow("Title") {
+            FocusableFieldRow("Title", $nonFillFocus, equals: .title,
+                              rowIdentifier: "editEntryTitleRow") {
                 TextField(expense.title, text: $form.title)
                     .multilineTextAlignment(.trailing)
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.ink)
+                    .focused($nonFillFocus, equals: .title)
                     .accessibilityIdentifier("editEntryTitleField")
             }
             .formCard()
@@ -101,13 +116,15 @@ struct EditEntryNonFillView: View {
 
     private var moneyCard: some View {
         VStack(spacing: 0) {
-            FieldRow("Amount") {
+            FocusableFieldRow("Amount", $nonFillFocus, equals: .amount,
+                              rowIdentifier: "editEntryAmountRow") {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     TextField("0.00", text: $form.amount)
                         .keyboardType(.decimalPad)
                         .multilineTextAlignment(.trailing)
                         .font(.custom(AppFonts.dinAlternateBold, size: 24))
                         .foregroundStyle(Theme.Palette.ink)
+                        .focused($nonFillFocus, equals: .amount)
                         .accessibilityIdentifier("editEntryAmountField")
                         .numericInput($form.amount, kind: .decimal)
                     Text(AddVehicleSupport.currencySymbol(for: form.currency))
@@ -129,20 +146,21 @@ struct EditEntryNonFillView: View {
     }
 
     private var odometerRow: some View {
-        FieldRow("Odometer") {
+        FocusableFieldRow("Odometer", $nonFillFocus, equals: .odometer,
+                          rowIdentifier: "editEntryOdometerRow") {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 TextField("", text: $form.odometer)
                     .keyboardType(.numberPad)
                     .multilineTextAlignment(.trailing)
                     .font(.custom(AppFonts.dinAlternateBold, size: 24))
                     .foregroundStyle(Theme.Palette.ink)
-                    .focused($odometerFocused)
+                    .focused($nonFillFocus, equals: .odometer)
                     .accessibilityIdentifier("editEntryOdometerField")
                     .numericInput($form.odometer, kind: .integer)
-                    .onChange(of: odometerFocused) { oldValue, newValue in
-                        if newValue {
+                    .onChange(of: nonFillFocus) { oldValue, newValue in
+                        if newValue == .odometer {
                             form.odometer = OdometerFormat.ungrouped(form.odometer)
-                        } else if oldValue, let value = form.odometerValue {
+                        } else if oldValue == .odometer, let value = form.odometerValue {
                             form.odometer = OdometerFormat.grouped(value)
                         }
                     }

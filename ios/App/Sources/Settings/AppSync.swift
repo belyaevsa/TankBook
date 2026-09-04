@@ -142,11 +142,10 @@ final class AppSync {
     /// "Your garage now follows your account" confirmation. Set by the sign-in
     /// flow's first push, cleared on sign-out or relaunch; in-memory only.
     private var didJustSignIn = false
-    /// The account's device count from `GET /account/devices` (docs/JOURNEYS.md
-    /// J11a -> First push: "Synced just now · 1 device"). Refreshed on every
-    /// surface refresh; nil while unknown (guest, offline, a fetch failure) -
-    /// the card then shows the ordinary status line without the count.
-    private var fetchedDeviceCount: Int?
+    /// The Settings card's device count (`GET /account/devices`,
+    /// docs/JOURNEYS.md J11a -> "Synced just now · 1 device"), behind a
+    /// `DeviceCountCache` (RV.6).
+    private var deviceCountCache = DeviceCountCache()
     /// RV.18: when the last opportunistic (launch/foreground) cycle started, so
     /// a burst of `.active` transitions is one cycle, not one each. Only the
     /// launch/foreground door reads it - the Settings "Sync now" tap, the retry
@@ -222,7 +221,13 @@ final class AppSync {
     /// The device count for the account card's "· N device(s)" suffix, or nil
     /// while unknown (guest, offline, or the fetch failed). The fixture lets a
     /// frozen-sync screenshot render the count.
-    var deviceCount: Int? { forcedDeviceCount ?? fetchedDeviceCount }
+    var deviceCount: Int? { forcedDeviceCount ?? deviceCountCache.count }
+
+    /// RV.6: an event changed the account's devices (a revoke, account delete,
+    /// sign-out, sign-in) - the next refresh re-reads the count.
+    func invalidateDeviceCount() {
+        deviceCountCache.invalidate()
+    }
 
     var surfaceState: SyncSurfaceState {
         SyncSurfaceState(
@@ -306,12 +311,12 @@ final class AppSync {
             lastSyncDate = core.lastSyncDate()
             lastOutcome = core.lastOutcome()
         }
-        // The "· N device(s)" suffix on the reassurance line (docs/JOURNEYS.md
-        // J11a). Best-effort: a guest, an offline device or a fetch failure
-        // leaves the count nil and the card shows the plain status line.
-        fetchedDeviceCount = nil
-        if session != nil {
-            fetchedDeviceCount = try? await accountDevicesClient().devices().count
+        // The "· N device(s)" suffix (docs/JOURNEYS.md J11a), decided by the
+        // `DeviceCountCache` (RV.6): reuse a cached count, forget it as a
+        // guest, fetch only when unknown.
+        if case .fetch = deviceCountCache.refreshAction(signedIn: session != nil),
+           let count = try? await accountDevicesClient().devices().count {
+            deviceCountCache.record(count)
         }
         do {
             let repository = try AppStore.repository()
@@ -339,6 +344,8 @@ final class AppSync {
     @discardableResult
     func firstPushNow() async -> SyncOutcome {
         didJustSignIn = true
+        // RV.6: sign-in is an invalidation event; the next refresh re-fetches.
+        invalidateDeviceCount()
         guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else {
             return SyncOutcome()
         }
@@ -396,6 +403,8 @@ final class AppSync {
             )
         )
         await SessionSignOut(authService: authService, sessionStore: store).signOut()
+        // RV.6: sign-out is an invalidation event - explicit, not a side effect.
+        invalidateDeviceCount()
         await refresh()
     }
 

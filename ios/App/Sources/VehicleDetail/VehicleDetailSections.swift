@@ -74,7 +74,9 @@ struct VehicleDetailOdometerCard: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            FieldRow("Current odometer") {
+            // RV.47: whole row (label + gap) focuses the field.
+            FocusableFieldRow("Current odometer", $focus, equals: .odometer,
+                              rowIdentifier: "vehicleDetailOdometerRow") {
                 VehicleOdometerField(odometer: $form.odometer, focus: $focus,
                                      distanceUnit: units.distance, warn: false,
                                      idPrefix: "vehicleDetail")

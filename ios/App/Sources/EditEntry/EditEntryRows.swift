@@ -21,15 +21,8 @@ enum EditEntryRows {
     }
 
     static func noteRow(text: Binding<String>, identifier: String) -> some View {
-        FieldRow("Note") {
-            TextField("Add a note", text: text, axis: .vertical)
-                .multilineTextAlignment(.trailing)
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.ink)
-                .lineLimit(1 ... 3)
-                .accessibilityIdentifier(identifier)
-        }
-        .formCard()
+        EditNoteRow(text: text, identifier: identifier)
+            .formCard()
     }
 
     /// The S1 sync state (docs/ERRORS.md -> Edit entry, row 2), built from the
@@ -104,5 +97,33 @@ enum EditEntryRows {
         }
         .multilineTextAlignment(.center)
         .padding(24)
+    }
+}
+
+/// The shared Note row (P1.6) behind `EditEntryRows.noteRow`. RV.47: the whole
+/// row is the tap target that focuses the field. A static builder shared by two
+/// screens has no screen focus enum to hand out, so the row owns a private
+/// focus state of its own - a field that has no siblings is the one case a
+/// local enum is honest.
+private enum EditNoteFocus: Hashable {
+    case note
+}
+
+private struct EditNoteRow: View {
+    let text: Binding<String>
+    let identifier: String
+    @FocusState private var focused: EditNoteFocus?
+
+    var body: some View {
+        FocusableFieldRow("Note", $focused, equals: .note,
+                          rowIdentifier: "\(identifier)Row") {
+            TextField("Add a note", text: text, axis: .vertical)
+                .multilineTextAlignment(.trailing)
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.ink)
+                .lineLimit(1 ... 3)
+                .focused($focused, equals: .note)
+                .accessibilityIdentifier(identifier)
+        }
     }
 }

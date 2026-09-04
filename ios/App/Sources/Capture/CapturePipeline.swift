@@ -1,4 +1,5 @@
 import CoreGraphics
+import ImageIO
 import UIKit
 import Vision
 import TankbookCore
@@ -25,7 +26,11 @@ enum CapturePipeline {
                         bandProvider: (any FuelPriceBandProvider)? = nil) async -> ConfirmPrefill {
         let assembly: CaptureAssembly
         let lines: [OCRLine]
-        if let box = image.cgImage.map(CGImageBox.init) {
+        // Both halves are load-bearing: RV.49's orientation (an in-app photo
+        // reaches Vision sideways without it) and RV.48's band provider (the
+        // resolution ladder's steps 3 and 4 are dead without it).
+        if let cgImage = image.cgImage {
+            let box = CGImageBox(image: cgImage, orientation: cgImagePropertyOrientation(of: image))
             (assembly, lines) = await recognize(box: box, source: source, bandProvider: bandProvider)
         } else {
             assembly = CaptureAssembly(extraction: FuelExtraction(), qrAnchor: nil, cropRects: [:])
@@ -49,8 +54,9 @@ enum CapturePipeline {
         await Task.detached(priority: .userInitiated) {
             let cgImage = box.image
             let lines = (try? VisionTextRecognizer.recognizeText(image: cgImage,
+                                                                 orientation: box.orientation,
                                                                  languages: languages)) ?? []
-            let qrPayload = CaptureQRDetector.detectPayload(in: cgImage)
+            let qrPayload = CaptureQRDetector.detectPayload(in: cgImage, orientation: box.orientation)
             let assembly = ExtractionAssembler.assemble(lines: lines,
                                                         qrPayload: qrPayload,
                                                         source: source,
@@ -91,9 +97,9 @@ enum CapturePipeline {
 /// which `ExtractionAssembler` hands to `FiscalQRParser`. No QR is a plain
 /// absence (`nil`), never an error.
 enum CaptureQRDetector {
-    static func detectPayload(in image: CGImage) -> String? {
+    static func detectPayload(in image: CGImage, orientation: CGImagePropertyOrientation) -> String? {
         let request = VNDetectBarcodesRequest()
-        let handler = VNImageRequestHandler(cgImage: image, options: [:])
+        let handler = VNImageRequestHandler(cgImage: image, orientation: orientation, options: [:])
         try? handler.perform([request])
         return (request.results ?? []).compactMap(\.payloadStringValue).first
     }
@@ -101,7 +107,27 @@ enum CaptureQRDetector {
 
 /// `CGImage` is not Sendable; this box is the deliberate, documented exception
 /// for an image created exclusively for OCR and handed across to a detached
-/// task - the same pattern `PhotoPickerView.PickedImage` uses.
+/// task - the same pattern `PhotoPickerView.PickedImage` uses. The orientation
+/// travels with the pixels because a `CGImage` alone carries none (RV.49).
 private struct CGImageBox: @unchecked Sendable {
     let image: CGImage
+    let orientation: CGImagePropertyOrientation
+}
+
+/// Maps a `UIImage`'s orientation onto Vision's `CGImagePropertyOrientation` so
+/// the recognizer is told the truth about how the pixels are held. The camera
+/// shutter's `UIImage(data:)` preserves the EXIF orientation; `process` must
+/// not drop it (a `CGImage` has no orientation of its own).
+private func cgImagePropertyOrientation(of image: UIImage) -> CGImagePropertyOrientation {
+    switch image.imageOrientation {
+    case .up: return .up
+    case .down: return .down
+    case .left: return .left
+    case .right: return .right
+    case .upMirrored: return .upMirrored
+    case .downMirrored: return .downMirrored
+    case .leftMirrored: return .leftMirrored
+    case .rightMirrored: return .rightMirrored
+    @unknown default: return .up
+    }
 }

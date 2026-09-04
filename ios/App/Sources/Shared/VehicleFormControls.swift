@@ -130,7 +130,9 @@ struct VehicleIdentityCard: View {
 
     private var nameRow: some View {
         VStack(spacing: 0) {
-            FieldRow("Name") {
+            // RV.47: whole row (label + gap) focuses the field.
+            FocusableFieldRow("Name", $focus, equals: .name,
+                              rowIdentifier: "\(idPrefix)NameRow") {
                 TextField("", text: $name)
                     .multilineTextAlignment(.trailing)
                     .font(.subheadline.weight(.semibold))
@@ -158,7 +160,8 @@ struct VehicleIdentityCard: View {
     }
 
     private var makeModelRow: some View {
-        FieldRow("Make · model · year") {
+        FocusableFieldRow("Make · model · year", $focus, equals: .makeModel,
+                          rowIdentifier: "\(idPrefix)MakeModelRow") {
             TextField("", text: $makeModel)
                 .multilineTextAlignment(.trailing)
                 .font(.subheadline.weight(.semibold))
@@ -175,7 +178,8 @@ struct VehicleIdentityCard: View {
     }
 
     private var plateRow: some View {
-        FieldRow("Plate") {
+        FocusableFieldRow("Plate", $focus, equals: .plate,
+                          rowIdentifier: "\(idPrefix)PlateRow") {
             HStack(alignment: .firstTextBaseline, spacing: 6) {
                 TextField("", text: $plate)
                     .multilineTextAlignment(.trailing)
@@ -373,7 +377,10 @@ struct VehicleCapacityField: View {
     var idPrefix: String = "addVehicle"
 
     var body: some View {
-        FieldRow(isElectric ? "Battery capacity" : "Tank capacity") {
+        // RV.47: whole row (label + gap) focuses the field.
+        FocusableFieldRow(isElectric ? "Battery capacity" : "Tank capacity",
+                          $focus, equals: .capacity,
+                          rowIdentifier: "\(idPrefix)TankCapacityRow") {
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 TextField("", text: $capacity)
                     .keyboardType(.decimalPad)
