@@ -22,6 +22,18 @@ the same change.
 Vision reads the characters; **the hard part is deciding what each number means**, and every
 value this pipeline produces is a suggestion the user can overwrite forever (hard rule 13).
 
+## Measured reality, 2026-09-04 (receipts re-measured after RV.48 stage one)
+
+The receipt class scores **138/210 cells (65.7%)**, up from 101/210 (48.1%) on the same 46
+fixtures - the corpus did not change, the parser did (`Spike/ReceiptSpike/fixtures/high-water.json`
+carries the per-change breakdown). Fiscal moved 2/5 -> 3/5 and screenshots 27/40 -> 30/40 as a side
+effect of the same fixes; pump is unchanged at 51/251 and its mode still ships off.
+
+The largest remaining block is **26 abstentions in `resolveUnmarked`**, which begins
+`guard let provider = bandProvider else { return (nil, nil) }` - and nothing injects a provider, so
+ladder steps 3 and 4 are dead code. See "the resolution ladder" below; a band pack must be keyed by
+**fuel kind and era**, because a currency-only RUB band gets receipt-012 (LPG at 23.99) wrong.
+
 ## Measured reality, 2026-08-26
 
 Scored by `AccuracyRatchetTests` over `Spike/ReceiptSpike/fixtures/`, field-by-field against
@@ -52,6 +64,10 @@ same solution.
  2. recognize    Vision VNRecognizeTextRequest -> [OCRLine] (text + normalised box)
     |
  3. classify     receipt | pump | screenshot | fiscal  -> ExtractionSource
+    |
+ 3b. clean       ReceiptNoiseFilter tags the lines that can carry no value
+    |            (RV.48; the value finders read the tagged-clean subset,
+    |             the EVIDENCE gates keep reading the raw lines)
     |
  4. resolve      per-field role assignment  (the bulk of the logic)
     |
@@ -98,6 +114,42 @@ inferred. Today the one hard consequence is:
 nozzle it has. `pump-001` OCRs to `miles+`, `miles`, `miles+`, `miles`, `95` and the fill was
 diesel. A visible grade is evidence the station **sells** it, never that this fill used it. The
 authority is the receipt line, or the person who filled the tank.
+
+### 3b. Clean (RV.48, 2026-09-04)
+
+A fuel receipt prints far more numbers than it prints facts, and until this stage existed every
+one of them was a candidate operand. The cost was not a missed field, which is recoverable, but a
+**confident wrong one**, which hard rule 13 forbids outright. Four fixtures measured it:
+
+| fixture | returned | from the line | how |
+|---|---|---|---|
+| receipt-023 | volume `32986034` | `wNLL32986034/90` | the lone-marker volume path |
+| receipt-046 | volume `10180925` | `Reg.kood 10180925, KMKR nr• EE1003L` | the lone-marker volume path |
+| receipt-041 | volume `5.000` | `2X5LT6` - a card **authorisation code** | it parses as the operand pair `2 X 5L`, marker and all |
+| receipt-044 | volume `1.000`, kind `lpg` | `1 ед.=1 литр для нефтепродуктов/суг` | the footnote states the document's units, and `суг` reads as LPG |
+
+`ReceiptNoiseFilter` classifies a line into one of five witnessed noise classes - Russian fiscal
+identifiers, Estonian registration, card-terminal furniture, unit-convention footnotes, contact
+details - or leaves it alone. Two properties are load-bearing and neither is optional:
+
+**It tags, it never deletes.** The raw OCR text is kept in full. It is the evidence that lets a bad
+parse be re-examined, and the four named failure modes below are pinned to it.
+
+**The evidence gates keep reading the RAW lines.** `CurrencyDetection` resolves a Russian receipt's
+currency precisely *from* its `ИНН`, `ККТ` and `ОФД` lines - the very lines this filter calls
+valueless. Cleaning before that gate would delete the evidence the gate runs on, so `FuelExtractor`
+passes raw lines to currency and date detection and cleaned lines only to the value finders.
+
+**Two layers, because neither covers the other's cases.** Alongside the line classes, a unit marker
+must be a **standalone token**: `2X5LT6`'s `L` is followed by a letter, and `wNLL32986034`'s is
+preceded by one. But `EE1003L` ends in a token-final `L` and passes that test, so it needs the
+`Reg.kood` line class instead. Removing either layer puts a wrong volume back.
+
+**What must never be tagged**: the product line, the operand line, the total label and its value,
+the date, the discount line, a stranded marker line (`л =5380.00`), the `Цена за ед.` reference
+block - which is the *only* source of receipt-023's and receipt-044's unit price - and above all
+**bare short-decimal value lines**, because a bare `5380.00` IS the total on receipt-015. The
+bare-identifier rule is bounded at 14 digits for exactly that reason.
 
 ### 4. Resolve
 

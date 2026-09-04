@@ -16,8 +16,8 @@ import Vision
 // here: the receipt fixtures go through `GatewayRendition` (long edge 1600 px,
 // quality 0.7 - the exact step the app runs before upload), then OCR + the
 // parser, then `CorpusScorer` at the existing tolerance. Hits may not fall
-// below the recorded mark (receipts 102/210, one hit ABOVE the uncompressed
-// 101/210 the ratchet measures - the resize is not lossy for this parser).
+// below the recorded mark (receipts 138/210, the SAME as the uncompressed
+// score the ratchet measures - the resize is not lossy for this parser).
 // This is what stops "make the upload faster" from quietly becoming "read the
 // receipt worse".
 
@@ -37,7 +37,7 @@ struct CorpusCompressionTests {
     /// The recorded high-water mark for receipts - the number the uncompressed
     /// ratchet measures (Spike/ReceiptSpike/fixtures/high-water.json). The
     /// compression step must not move it.
-    private static let recordedReceipts = (hits: 102, total: 210)
+    private static let recordedReceipts = (hits: 138, total: 210)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {

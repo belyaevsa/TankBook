@@ -56,7 +56,7 @@ public enum FuelKindNormalizer {
         let upper = matchingKey(text)
         let fuelWords = ["БЕНЗИН", "БЕНЗ", "ДИЗ", "ДТ", "СУГ", "КПГ", "ПРОПАН", "МЕТАН",
                          "АВТОГАЗ", "DIESEL", "PETROL", "BENZIN", "GASOLINE", "G-DRIVE",
-                         "GDRIVE", "ЭКТО", "V-POWER", "ULTIMATE", "EXCELLIUM"]
+                         "GDRIVE", "ЭКТО", "V-POWER", "ULTIMATE", "EXCELLIUM", "MILES"]
         // A grade code must not run into more letters: "ДТ" occurs inside
         // "ПОДТВЕРЖДЕНА" ("Операция подтверждена вводом ПИН" - the card terminal
         // line on every Russian card receipt), which made a payment
@@ -87,6 +87,7 @@ public enum FuelKindNormalizer {
         if ["КПГ", "CNG", "МЕТАН"].contains(where: { matchesFuelToken(matchingKey($0), in: upper) }) {
             return .cng
         }
+        if let kind = circleKLoyaltyGrade(in: upper) { return kind }
 
         guard let octane = octane(in: upper) else { return nil }
         switch octane {
@@ -96,6 +97,33 @@ public enum FuelKindNormalizer {
         case 100: return .petrol100
         default: return nil
         }
+    }
+
+    /// The Circle K loyalty grade names, which are the product string on every
+    /// Estonian receipt in the corpus and name a fuel nowhere else in the
+    /// vocabulary: `D B0 miles` (diesel, B0 = no biodiesel) and `95E0 miles`
+    /// (petrol 95, E0 = no ethanol). Four fixtures print the first and two the
+    /// second, and `Spike/ReceiptSpike/fixtures/receipts/README.md` has called
+    /// this "vocabulary work, not parsing work" since receipt-042.
+    ///
+    /// The zero is matched as `[0OÓ]` because it is a zero the OCR reads as a
+    /// letter: the corpus carries `D B0`, `D BO` and `D BÓ` for the same grade
+    /// (receipt-001, receipt-045, receipt-046). The `MILES` suffix is REQUIRED
+    /// on both, which is what keeps a bare `D` or a bare `95` on some other
+    /// line from reaching this path.
+    private static func circleKLoyaltyGrade(in upper: String) -> FuelKind? {
+        guard upper.contains("MILES") else { return nil }
+        if upper.firstMatch(of: /\bD\s*B[0OÓ]\b/) != nil { return .diesel }
+        if let match = upper.firstMatch(of: /\b(\d{2,3})E\d\b/), let octane = Int(match.1) {
+            switch octane {
+            case 92: return .petrol92
+            case 95: return .petrol95
+            case 98: return .petrol98
+            case 100: return .petrol100
+            default: return nil
+            }
+        }
+        return nil
     }
 
     /// Fuel ABBREVIATIONS, which are never the start of a longer word: a grade

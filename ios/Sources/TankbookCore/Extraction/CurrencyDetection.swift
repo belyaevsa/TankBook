@@ -20,9 +20,23 @@ enum CurrencyDetection {
     ///    authority, its OFD host, its VAT acronym and its total label. This
     ///    is where the `тг` -> `гг` misread resolves: the marker itself is
     ///    unreadable, but the document still names its country.
+    /// 3. **The same reasoning, applied to Russia** (2026-09-04). A Russian
+    ///    cash-register receipt is denominated in roubles as a matter of law
+    ///    (54-ФЗ), and it names its country the same way the Kazakh one does:
+    ///    the cash register (`ККТ`), the fiscal-data operator (`ОФД`), the tax
+    ///    service host (`nalog.ru`), the taxpayer number (`ИНН`) and the fiscal
+    ///    document trio (`ФН`/`ФД`/`ФП`). This gate exists because the marker
+    ///    tier resolves only 11 of the corpus's 39 currency cells: most Russian
+    ///    receipts print no currency word Vision reads, so 28 of them came back
+    ///    nil while plainly saying which country's fiscal system issued them.
+    ///
+    ///    **Kazakhstan is checked first and keeps winning**, which matters
+    ///    because `receipt-033` is a Kazakh receipt printed in Russian; it
+    ///    carries `КГД`, `ККС` and `ЖИЫНЫ` and no `ИНН`/`ККТ` at all.
     static func detect(in lines: [OCRLine]) -> CurrencyCode? {
         if let marker = explicitMarker(in: lines) { return marker }
         if kazakhstanEvidence(in: lines) { return .kzt }
+        if russiaEvidence(in: lines) { return .rub }
         return nil
     }
 
@@ -61,6 +75,40 @@ enum CurrencyDetection {
     /// `(6000,00 гг)`), but it is also the Russian years abbreviation; and the
     /// 16% rate is KZ's VAT - read as country evidence, never as a fixed set
     /// the parser keys on (receipt-037 README).
+    // MARK: - Tier 3: Russian fiscal document evidence
+
+    /// Whether the document's own text names the Russian fiscal system.
+    ///
+    /// Matching runs on the homoglyph-canonical key
+    /// (`FuelKindNormalizer.canonicalKey`), because Vision picks glyphs by
+    /// shape and reads the very same acronym as `ККТ` on one receipt and Latin
+    /// `KKT` on the next (receipt-036 against receipt-044). Canonicalising both
+    /// sides is how P2.11 already handles `АИ-95` and it costs nothing here.
+    ///
+    /// Two groups, the same shape as the Kazakh gate above. The first exists on
+    /// no receipt outside the Russian system: the cash register acronym, the
+    /// fiscal-data operator, and the tax service's own host. Any one of them
+    /// settles it. The second group is ordinary Russian fiscal furniture - each
+    /// token is individually weak (a `ЧЕК` is just a receipt) so two must agree.
+    ///
+    /// What this deliberately does NOT use: the language of the receipt.
+    /// Russian is printed in Kazakhstan, Belarus and Armenia, and a
+    /// Russian-language receipt is not a rouble receipt - `receipt-033` is the
+    /// corpus's proof. The evidence is the *fiscal system*, not the script.
+    private static func russiaEvidence(in lines: [OCRLine]) -> Bool {
+        let decisive = ["ККТ", "ОФД", "NALOG", "ФНС"].map(FuelKindNormalizer.canonicalKey)
+        let supporting = ["ИНН", "КАССОВЫЙ ЧЕК", "ПРИХОД", "БЕЗНАЛИЧНЫМИ", "ФН ", "ФД ", "ФП "]
+            .map(FuelKindNormalizer.canonicalKey)
+        var corroboration = 0
+        for line in lines {
+            let key = FuelKindNormalizer.canonicalKey(line.text.uppercased())
+            if decisive.contains(where: key.contains) { return true }
+            corroboration += supporting.filter(key.contains).count
+            if corroboration >= 2 { return true }
+        }
+        return false
+    }
+
     private static func kazakhstanEvidence(in lines: [OCRLine]) -> Bool {
         let kazakhDocumentTokens = ["KOFD", "КГД", "ККС", "ЖИЫНЫ"]
         var corroboration = 0

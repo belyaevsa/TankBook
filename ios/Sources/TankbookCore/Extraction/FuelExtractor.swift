@@ -15,14 +15,21 @@ public struct FuelExtractor: Sendable {
 
     public func extract(lines: [OCRLine], source: ExtractionSource = .receipt) -> FuelExtraction {
         var result = FuelExtraction()
+        // RV.48: currency and date read the RAW lines, every value finder reads
+        // the FILTERED ones. The asymmetry is the whole design of
+        // `ReceiptNoiseFilter` - a Russian receipt's currency is established by
+        // its `ИНН`/`ККТ`/`ОФД` lines, which are exactly the lines the filter
+        // classifies as carrying no value. Filtering before the currency gate
+        // would delete the evidence the gate runs on.
         result.currency = CurrencyDetection.detect(in: lines)
         result.date = detectDate(lines)
+        let candidates = ReceiptNoiseFilter.candidateLines(lines)
         if source != .pump {
-            result.fuelKind = detectFuelKind(lines)
+            result.fuelKind = detectFuelKind(candidates)
         }
 
         let volumePrice = resolveVolumeAndPrice(
-            lines, currency: result.currency, fuelKind: result.fuelKind, date: nil
+            candidates, currency: result.currency, fuelKind: result.fuelKind, date: nil
         )
         result.liters = volumePrice.liters
         // Money is born Decimal here (P2.2b), never Decimal(Double).
@@ -428,14 +435,37 @@ struct OperandPair {
         // confirm-screen lines print it and the thermal receipts omit it, so
         // the currency tokens are stripped before the shared pattern runs.
         let currencyPattern = #"\s*(?:EUR|€|RUB|₽|USD|\$|ТЕНГЕ|KZT|PLN|ZŁ|CZK|KČ|GBP|£|CHF|грн)\s*"#
-        let normalized = line.replacingOccurrences(of: currencyPattern, with: " ", options: .regularExpression)
-        let pattern = /(\d+(?:[.,]\d+)?)\s*([лL]?)\s*([xXхХ*·×])\s*(\d+(?:[.,]\d+)?)\s*([лL]?)/
+        var normalized = line.replacingOccurrences(of: currencyPattern, with: " ", options: .regularExpression)
+        // A GRADE NUMBER IS NOT AN OPERAND. receipt-036 prints the whole fill on
+        // one line - `Аи-98 х25.00 лит х99.99 РУБ` - and it carries TWO
+        // multiplication signs, so the leftmost `num op num` match is
+        // `98 х 25.00`: the octane of the grade name times the volume. The
+        // parser took 98 as the unit price (the truth is 99.99) and then
+        // reported a total of 25 x 98 = 2450.00 against a printed 2499.75.
+        // Masking the grade token leaves `25.00 лит х 99.99` as the only pair on
+        // the line, which is the pair the paper states.
+        let gradePattern = #"[АA][ИИHН][-\s]*\d{2,3}"#
+        normalized = normalized.replacingOccurrences(
+            of: gradePattern, with: " ", options: [.regularExpression, .caseInsensitive]
+        )
+        // The optional trailing marker must accept an UPPERCASE Cyrillic `Л`
+        // for the same reason `hasVolumeMarker` must: `99.99 Х 25 Л`
+        // (receipt-037) and `69.98 Х 30 Л` (receipt-031) print it that way, and
+        // a marker the pattern cannot capture is a marker `resolveOperands`
+        // cannot see.
+        // The marker may be spelled out: receipt-036 writes `лит`, and once the
+        // grade token above is masked the remaining pair is
+        // `25.00 лит х 99.99`, whose marker a single-character class cannot
+        // consume - the operator then fails to match the `и` and the whole line
+        // yields no pair at all. `л`, `лит`, `литр` and their uppercase forms
+        // are all the same marker.
+        let pattern = /(\d+(?:[.,]\d+)?)\s*([лЛL](?:ИТР?|итр?)?(?!\p{L}))?\s*([xXхХ*·×])\s*(\d+(?:[.,]\d+)?)\s*([лЛL](?:ИТР?|итр?)?(?!\p{L}))?/
         guard let match = normalized.firstMatch(of: pattern) else { return nil }
         guard let left = Self.parse(match.1), let right = Self.parse(match.4) else { return nil }
         self.left = left
         self.right = right
-        self.leftText = String(match.1) + String(match.2)
-        self.rightText = String(match.4) + String(match.5)
+        self.leftText = String(match.1) + (match.2.map(String.init) ?? "")
+        self.rightText = String(match.4) + (match.5.map(String.init) ?? "")
     }
 
     private static func parse(_ text: Substring) -> Double? {
@@ -450,8 +480,34 @@ enum MarkerSide { case left, right }
 extension String {
     /// A unit marker attached to a number: "67,00L", "40 л", "66.810л". A bare
     /// "L" inside a word (Tallinn, ЛУКОЙЛ) is not a volume marker.
+    /// Whether the text carries a litre marker beside a number.
+    ///
+    /// The character class must hold BOTH cases of the Cyrillic letter. It held
+    /// only lowercase `л` (U+043B) and Latin `L` until 2026-09-04, and Russian
+    /// receipts print the marker in either case: `69.98 Х 30 Л` (receipt-031)
+    /// and `99.99 Х 25 Л` (receipt-037) both carry an UPPERCASE Cyrillic `Л`
+    /// (U+041B), so neither line was recognised as the fuel line. The ladder
+    /// then fell through to `OperandPair.first`, which on receipt-031 picks the
+    /// `БЕЗ СКИДКИ` list-price line instead - an unmarked pair - and abstained.
+    /// One missing character cost four cells.
+    /// A marker must be a STANDALONE token, never a letter inside a word or an
+    /// identifier. Without the boundaries, `2X5LT6` - a card authorisation code
+    /// on receipt-041 - reads as `2 X 5L` with a marked volume of five litres,
+    /// and `wNLL32986034/90` on receipt-023 offers a volume of 32,986,034. Both
+    /// are confident wrong values, which is the one outcome hard rule 13 rules
+    /// out; an abstention would have been correct.
+    ///
+    /// The boundaries are not sufficient on their own and are not meant to be:
+    /// `EE1003L` (receipt-046's `KMKR nr• EE1003L`) ends in a token-final `L`
+    /// and passes this test. That line is removed by `ReceiptNoiseFilter`
+    /// instead - the two layers cover different halves of the same problem.
+    /// The optional `ИТ`/`ИТР` suffix is part of the marker, not a violation of
+    /// the boundary: receipt-036 spells it `лит`, and a rule that demanded a
+    /// bare `л` would reject the spelled-out form as if it were an identifier -
+    /// which is exactly what happened when the boundary landed without it.
     var hasVolumeMarker: Bool {
-        firstMatch(of: /\d\s*[лL]/) != nil || firstMatch(of: /[лL]\s*\d/) != nil
+        firstMatch(of: /\d\s*[лЛL](?:ИТР?|итр?)?(?!\p{L})/) != nil
+            || firstMatch(of: /(?:^|[^\p{L}])[лЛL]\s*\d/) != nil
     }
 
     var hasPriceMarker: Bool {
@@ -485,7 +541,17 @@ enum TotalLabel {
     private static let excluded = [
         "СУММА НДС", "СУММА БЕЗ НДС", "НДС", "ОКРУГЛЕНИЕ", "СДАЧА", "ПОЛУЧЕНО", "ПО НАЛОГУ"
     ]
-    private static let primary = ["ИТОГ", "ВСЕГО", "К ОПЛАТЕ", "TOTAL", "KOKKU", "SUMMA", "AMOUNT"]
+    // `СУММА` is here in BOTH scripts on purpose. The Latin `SUMMA` is the
+    // Estonian label; the Cyrillic `СУММА` is the Russian one, and until
+    // 2026-09-04 only the Latin form was listed - so receipt-036's `СУММА:`
+    // against `2499.75 РУБ` on the same baseline matched nothing and the total
+    // came back nil. The two strings are different sequences of code points and
+    // `uppercased()` never bridges them; the exclusion list above already
+    // carries the Cyrillic `СУММА НДС`, which is checked first, so a VAT line
+    // still cannot be read as the total.
+    private static let primary = [
+        "ИТОГ", "ВСЕГО", "К ОПЛАТЕ", "TOTAL", "KOKKU", "SUMMA", "СУММА", "AMOUNT"
+    ]
     private static let payment = [
         "НАЛИЧНЫМИ", "БЕЗНАЛИЧНЫМИ", "ПЛАТ.КАРТОЙ", "ПЛАТ. КАРТОЙ", "КАРТОЙ", "KK MAKSE"
     ]
