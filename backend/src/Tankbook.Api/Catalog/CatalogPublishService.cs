@@ -193,7 +193,10 @@ public sealed class CatalogPublishService
 
         public string? Generation { get; set; }
 
-        public int[]? Years { get; set; }
+        // [firstYear, lastYear] with a NULLABLE last year: a model line still
+        // in production publishes [2021, null] and keeps its start year. An
+        // int[] here would refuse that pack outright (docs/API.md "GET /catalog").
+        public int?[]? Years { get; set; }
 
         public string? Powertrain { get; set; }
 

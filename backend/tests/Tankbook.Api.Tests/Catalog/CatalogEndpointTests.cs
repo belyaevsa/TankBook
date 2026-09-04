@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Dapper;
 using Npgsql;
 using Microsoft.Extensions.DependencyInjection;
 using Tankbook.Api.Catalog;
@@ -423,6 +424,38 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         Assert.Empty(body.GetProperty("entries").EnumerateArray());
     }
 
+    /// <summary>
+    /// The seed migration is only useful if a device can actually receive it.
+    /// A client's held version STARTS at the bundled seed pack's packVersion
+    /// (VehicleCatalog.seed.json, currently 2) and it applies a pack only when
+    /// packVersion is strictly greater (docs/SYNC.md "packVersion is
+    /// monotonic"), so a server publishing at or below that version is
+    /// invisible: every device asks since_version=2 and gets an honest empty
+    /// delta. This is the regression guard for that - the seed pack and the
+    /// published packs share ONE numbering space.
+    /// </summary>
+    [SkippableFact]
+    public async Task MigrationSeedsACatalogPackAboveTheBundledSeedVersion()
+    {
+        _fixture.RequireAvailable();
+        var db = await _fixture.CreateDatabaseAsync();
+        await using var _ = db;
+        await db.OpenAsync();
+        await SchemaMigrator.ApplyPendingAsync(db);
+        using var app = await StartAsync(db.ConnectionString);
+
+        // Exactly what a fresh device on the bundled seed pack asks for.
+        var response = await GetAsync(app.Client, $"/v1/catalog?since_version={BundledSeedPackVersion}");
+        var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+
+        Assert.True(body.GetProperty("packVersion").GetInt32() > BundledSeedPackVersion,
+            "a pack at or below the bundled seed's version never reaches a device");
+        Assert.NotEmpty(body.GetProperty("entries").EnumerateArray());
+    }
+
+    /// <summary>ios/Sources/TankbookCore/Catalog/VehicleCatalog.seed.json -> packVersion.</summary>
+    private const int BundledSeedPackVersion = 2;
+
     [SkippableFact]
     public async Task Publish_SuccessReportsTheVersionAndCount()
     {
@@ -433,10 +466,13 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
 
         var result = await PublishAsync(app, CatalogTestData.Pack(4,
             new CatalogTestData.Entry(Guid.NewGuid(), "Volvo", "V60", Years: [2018, 2025], FuelKinds: ["petrol95", "diesel"], TankCapacityL: 71m),
-            new CatalogTestData.Entry(Guid.NewGuid(), "Tesla", "Model 3", Powertrain: "ev", FuelKinds: ["electricity"], BatteryCapacityKwh: 60m)));
+            new CatalogTestData.Entry(Guid.NewGuid(), "Tesla", "Model 3", Powertrain: "ev", FuelKinds: ["electricity"], BatteryCapacityKwh: 60m),
+            // Still in production: a start year and no end. This is the common
+            // case in a curated pack, not an edge one.
+            new CatalogTestData.Entry(Guid.NewGuid(), "Haval", "Jolion", Years: [2021, null], FuelKinds: ["petrol95"], TankCapacityL: 55m)));
         Assert.True(result.IsSuccess);
         Assert.Equal(4, result.Version);
-        Assert.Equal(2, result.EntriesPublished);
+        Assert.Equal(3, result.EntriesPublished);
 
         // The full round trip: years and the offer set survive exactly.
         var full = await GetAsync(client, "/v1/catalog");
@@ -447,6 +483,20 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(new[] { 2018, 2025 }, volvo.GetProperty("years").EnumerateArray().Select(y => y.GetInt32()).ToArray());
         Assert.Equal(new[] { "petrol95", "diesel" }, volvo.GetProperty("fuelKinds").EnumerateArray().Select(f => f.GetString()).ToArray());
         Assert.Equal(71m, volvo.GetProperty("tankCapacityL").GetDecimal());
+
+        // An open-ended line keeps its START year and reports a null end - it
+        // does NOT collapse to years: null, which would lose 2021 and leave the
+        // client rendering "0-" in Add-car autocomplete (docs/API.md).
+        var jolion = entries.Values.First(e => e.GetProperty("make").GetString() == "Haval");
+        var jolionYears = jolion.GetProperty("years").EnumerateArray().ToArray();
+        Assert.Equal(2, jolionYears.Length);
+        Assert.Equal(2021, jolionYears[0].GetInt32());
+        Assert.Equal(JsonValueKind.Null, jolionYears[1].ValueKind);
+
+        // A line with no range at all is still a bare null - that is what null
+        // means now, and nothing else.
+        var tesla = entries.Values.First(e => e.GetProperty("make").GetString() == "Tesla");
+        Assert.Equal(JsonValueKind.Null, tesla.GetProperty("years").ValueKind);
     }
 
     private async Task<NpgsqlConnection> OpenAndMigrateAsync()
@@ -454,7 +504,24 @@ public class CatalogEndpointTests : IClassFixture<PostgresFixture>
         var db = await _fixture.CreateDatabaseAsync();
         await db.OpenAsync();
         await SchemaMigrator.ApplyPendingAsync(db);
+        await ClearSeededCatalogAsync(db);
         return db;
+    }
+
+    /// <summary>
+    /// Every test below owns the catalog's contents: it publishes the exact pack
+    /// it then asserts on, and "the catalog is empty" is a premise several of
+    /// them start from. Migration 019 seeds a real CIS pack, so a freshly
+    /// migrated database is NOT empty - these tests drop that pack and reset the
+    /// version, so they keep testing the endpoint rather than the seed data.
+    /// That the seed itself lands, and lands above the bundled seed pack's
+    /// version, is asserted once by
+    /// <see cref="MigrationSeedsACatalogPackAboveTheBundledSeedVersion"/>.
+    /// </summary>
+    private static async Task ClearSeededCatalogAsync(NpgsqlConnection db)
+    {
+        await db.ExecuteAsync("DELETE FROM vehicle_catalog");
+        await db.ExecuteAsync("UPDATE catalog_pack_state SET pack_version = 0 WHERE singleton = 1");
     }
 
     private static async Task<HttpResponseMessage> GetAsync(HttpClient client, string url)

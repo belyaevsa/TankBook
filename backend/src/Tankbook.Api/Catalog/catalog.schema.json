@@ -75,12 +75,15 @@
               "type": "integer"
             },
             {
-              "type": "integer"
+              "type": [
+                "integer",
+                "null"
+              ]
             }
           ],
           "minItems": 2,
           "maxItems": 2,
-          "description": "Production years as an inclusive [firstYear, lastYear] pair, or null. Stored as an int4range with inclusive bounds."
+          "description": "Production years as an inclusive [firstYear, lastYear] pair, or null. A model line STILL IN PRODUCTION has a null lastYear - it keeps its start year, which a bare null would throw away. Stored as an int4range with an infinite upper bound."
         },
         "powertrain": {
           "type": "string",

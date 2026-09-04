@@ -116,7 +116,14 @@ public static class CatalogEndpoints
             row.Make,
             row.Model,
             row.Generation,
-            row.YearsStart is int start && row.YearsEnd is int end ? new[] { start, end } : null,
+            // An open-ended model line - one still in production - has a start
+            // year and NO end. Collapsing the pair to null because the end is
+            // missing threw away a perfectly good start year, and the client
+            // rendered the resulting "no years" as "0-" in Add-car autocomplete.
+            // So the pair is [firstYear, lastYear] with a NULL last year for a
+            // line still in production (docs/API.md "GET /catalog"); only a row
+            // with no range at all is null.
+            row.YearsStart is int start ? new int?[] { start, row.YearsEnd } : null,
             row.Powertrain,
             row.FuelKinds,
             row.TankCapacityL,
@@ -132,7 +139,7 @@ public static class CatalogEndpoints
         string Make,
         string Model,
         string? Generation,
-        int[]? Years,
+        int?[]? Years,
         string Powertrain,
         string[] FuelKinds,
         decimal? TankCapacityL,

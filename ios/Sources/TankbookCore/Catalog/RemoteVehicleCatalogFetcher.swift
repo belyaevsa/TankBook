@@ -128,8 +128,12 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
         }
         // The wire `years` is an inclusive [firstYear, lastYear] pair or null
         // (docs/API.md); the domain keeps the seed's `[Int?]` shape, where the
-        // open end is nil. A null wire range maps to two nils.
-        let years: [Int?] = wire.years.map { [$0[0], $0[1]] } ?? [nil, nil]
+        // open end is nil. A model line still in production carries its start
+        // year with a null END - `[2021, null]`, not a bare null - because a
+        // bare null loses the start year and `yearsStart` then reads 0, which
+        // Add-car renders as "0-". Only a row with no range at all is null,
+        // and that maps to two nils.
+        let years: [Int?] = wire.years ?? [nil, nil]
         return VehicleCatalogEntry(
             id: wire.id,
             make: wire.make,
@@ -155,7 +159,7 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
         let make: String
         let model: String
         let generation: String?
-        let years: [Int]?
+        let years: [Int?]?
         let powertrain: String
         let fuelKinds: [String]
         let tankCapacityL: Double?

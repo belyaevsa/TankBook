@@ -63,7 +63,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(17, applied.Single());   // 018 added the LLM dictionary/settings baseline
+        Assert.Equal(18, applied.Single());   // 019 added the CIS vehicle catalog seed
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -246,14 +246,21 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
 
         await SchemaMigrator.ApplyPendingAsync(db);
 
-        // The singleton pack-state row exists after apply and is seeded from the
-        // (empty) catalog, so a fresh table reads back pack version 0.
+        // The singleton pack-state row exists after apply and IS the current
+        // pack version: 011 seeds it from the table's max so a database that
+        // already holds catalog rows keeps its highest version authoritative,
+        // and every later publish claims through it. Asserted against the
+        // table rather than against a literal, because migration 019 publishes
+        // a real pack behind this one - the invariant is "the state row agrees
+        // with the rows", not "the catalog is empty".
         Assert.Equal(1, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'catalog_pack_state'"));
         var (singleton, seeded) = await db.QuerySingleAsync<(int, int)>(
             "SELECT singleton, pack_version FROM catalog_pack_state");
         Assert.Equal(1, singleton);
-        Assert.Equal(0, seeded);
+        Assert.Equal(
+            await db.QuerySingleAsync<int>("SELECT coalesce(max(pack_version), 0) FROM vehicle_catalog"),
+            seeded);
 
         // The CHECK constraint keeps it a true singleton: a second row is refused.
         await Assert.ThrowsAsync<Npgsql.PostgresException>(() => db.ExecuteAsync(

@@ -15,7 +15,7 @@ internal static class CatalogTestData
         string Make,
         string Model,
         string? Generation = null,
-        int[]? Years = null,
+        int?[]? Years = null,
         string Powertrain = "ice",
         string[]? FuelKinds = null,
         decimal? TankCapacityL = null,

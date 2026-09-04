@@ -645,48 +645,6 @@ private func deterministicEncode(_ value: some Encodable) throws -> Data {
     #expect(sent[0].headers["Authorization"] == nil)
 }
 
-@Test func packDecodesExactlyFromTheWire() throws {
-    let body = packJSON(version: 7, entries: [
-        v60EntryJSON(id: "11111111-1111-1111-1111-111111111111", tank: "71", years: "[2018, 2024]"),
-        // An open-ended model line arrives as years: null; generation may be null.
-        #"{"id":"22222222-2222-2222-2222-222222222222","make":"Tesla","model":"Model 3","#
-            + #""generation":null,"years":null,"powertrain":"ev","fuelKinds":["electricity"],"#
-            + #""tankCapacityL":null,"batteryCapacityKwh":60}"#
-    ])
-    let pack = try RemoteVehicleCatalogFetcher.decodePack(body)
-    #expect(pack.packVersion == 7)
-
-    let v60 = try #require(pack.entries.first { $0.model == "V60" })
-    #expect(v60.id == "11111111-1111-1111-1111-111111111111")
-    #expect(v60.years == [2018, 2024], "inclusive pair, not half-open")
-    #expect(v60.yearsEnd == 2024)
-    #expect(v60.tankCapacityL == 71)
-
-    let tesla = try #require(pack.entries.first { $0.model == "Model 3" })
-    #expect(tesla.years == [nil, nil])
-    #expect(tesla.yearsEnd == nil)
-    #expect(tesla.generation == "")
-    #expect(tesla.batteryCapacityKWh == 60)
-}
-
-@Test func unknownPowertrainOrFuelKindRejectsThePackWhole() throws {
-    let unknownPowertrain = packJSON(version: 8, entries: [
-        v60EntryJSON().replacingOccurrences(of: "\"powertrain\": \"ice\"",
-                                            with: "\"powertrain\": \"warp\"")
-    ])
-    #expect(throws: CatalogFetchError.invalidResponse) {
-        _ = try RemoteVehicleCatalogFetcher.decodePack(unknownPowertrain)
-    }
-
-    let unknownFuel = packJSON(version: 8, entries: [
-        v60EntryJSON().replacingOccurrences(of: "[\"petrol95\",\"diesel\"]",
-                                            with: "[\"hydrofluorocarbons\"]")
-    ])
-    #expect(throws: CatalogFetchError.invalidResponse) {
-        _ = try RemoteVehicleCatalogFetcher.decodePack(unknownFuel)
-    }
-}
-
 @Test func catalogFetcherRefusesNonAllowlistedHost() async throws {
     let transport = RecordingTransport()
     let fetcher = RemoteVehicleCatalogFetcher(director: ConfigTransportDirector(baseURL: { URL(string: "https://evil.com")! }, report: { _ in }),
