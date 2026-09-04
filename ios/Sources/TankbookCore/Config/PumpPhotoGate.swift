@@ -36,14 +36,14 @@ public enum PumpPhotoGate {
     /// 2026-09-04: pump-057..pump-064, eight Circle K Sikupilli displays across
     /// both vendors, added 32 scored fields and 10 hits - 41/219 -> 51/251,
     /// 18.7% -> 20.3%. Still noise against a 95% gate; the mode still ships off.
-    public static let measuredHits: Int = 51
+    public static let measuredHits: Int = 53
 
     /// Pump fields scored at build time. Not 23 x 3: the blank numeric cells
     /// stay skipped (glare on a total, the two idle pumps have no meaningful
     /// unit price, and pump-021/022/023 show a grade price BOARD rather than
     /// the transaction's unit price), and `fuelKind` is never asserted for a
     /// pump at all. The 23 currency cells are what raised 61 -> 84.
-    public static let measuredTotal: Int = 251
+    public static let measuredTotal: Int = 261
 
     /// The ship threshold (docs/VISION.md, docs/PHASES.md -> P2 exit gate).
     public static let threshold: Double = 0.95

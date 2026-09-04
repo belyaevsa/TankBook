@@ -319,6 +319,14 @@ enum PostSweepCorpusAdditions {
             // pump 5, 55.80 L of D B0 miles at 1.799 = 100.38, VAT 24%.
             // Declared, not swept.
             "receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg",
+            // 2026-09-04: the matched halves of pump-065 and pump-066 - two RU
+            // fills shot the same day, each photographed at the pump and on
+            // paper. They bracket the RUB price band: 048's 15 L falls below
+            // the 40 floor and sweeps 5/5, 047's 53 L sits inside it and
+            // abstains on both operands. Declared, not swept - the arms are
+            // frozen, and these arrived at 1280 px through Telegram.
+            "receipt-047-gazpromneft-edrovo-gdrive95-fuelcard-pair-ru.jpeg",
+            "receipt-048-rn-tver-budovo-95-nonfiscal-terminal-slip-pair-ru.jpeg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -396,6 +404,13 @@ enum PostSweepCorpusAdditions {
             "pump-062-wayne-circlek-ee-pump8-1894.jpg",
             "pump-063-wayne-circlek-ee-insect-on-price-display.jpg",
             "pump-064-wayne-circlek-ee-4645l-1834.jpg",
+            // 2026-09-04: the matched halves of receipt-047 and receipt-048.
+            // pump-065's Tokheim truncates its total to one decimal (3765,7 vs
+            // the paper's 3765.65) where pump-066 agrees to the cent - so total
+            // precision is a property of the PUMP, not the country. Declared,
+            // not swept.
+            "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru.jpeg",
+            "pump-066-rn-tver-budovo-95-exact-total-pair-ru.jpeg",
         ],
     ]
 
