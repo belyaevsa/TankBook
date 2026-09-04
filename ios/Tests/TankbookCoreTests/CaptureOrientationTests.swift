@@ -19,28 +19,13 @@ import Vision
 // and key values match the upright run. A rotated fixture that reaches the
 // cgImage path with no orientation reads sideways and loses/misreads lines; the
 // same pixels with the orientation passed through read identically to upright.
-
-// DISABLED IN THE PARALLEL SUITE, DELIBERATELY - and this is not the test
-// being flaky, it is the framework hitting a ceiling.
 //
-// The test passes in 0.59 s on its own:
-//     cd ios && swift test --filter CaptureOrientationTests
-// Added to the full parallel run it hangs the whole suite, deterministically
-// (8/8 hangs with it, 5/5 clean without, confirmed independently by the
-// orchestrator: >210 s against a ~65 s clean run). `sample` puts the hang in
-// Apple's `VNCRImageReaderDetector -> TextRecognition ->
-// _dispatch_semaphore_wait_slow`, inside `VNControlledCapacityTasksQueue`. The
-// existing Vision-gated L5 suites already run ~12 concurrent OCR requests, at
-// the framework's capacity; a thirteenth tips it over. A minimal one-OCR test
-// with no rotation hangs it too, and a semaphore, a serial queue and
-// `Task.detached` all failed to help - so the fix is to serialize the EXISTING
-// Vision suites, which is RV.52 and not this row's job.
-//
-// It is disabled rather than deleted because it is the ONLY honest proof of
-// RV.49: every other gate, including the corpus accuracy gate, is file-based
-// and stays green whether the orientation bug is present or not.
-@Suite("RV.49 camera orientation reaches Vision (L5)",
-       .disabled("Hangs the parallel suite via Vision's task-queue ceiling - see RV.52. Run with --filter CaptureOrientationTests."))
+// It is the ONLY honest proof of RV.49: every other gate, including the corpus
+// accuracy gate, is file-based and stays green whether the orientation bug is
+// present or not. It reaches Vision through the shared `VisionRequestGate`
+// (RV.52) like every other OCR caller, so it no longer tips the parallel suite
+// over Vision's concurrency ceiling.
+@Suite("RV.49 camera orientation reaches Vision (L5)")
 struct CaptureOrientationTests {
 
     private static let repoRoot = URL(fileURLWithPath: #filePath).standardizedFileURL

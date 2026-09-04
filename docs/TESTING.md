@@ -139,6 +139,44 @@ moves as tests are added. When a run surprises you by its count, run the gate be
 the two known causes are a filter that matched nothing, and a runner/app that lost the device
 mid-suite (never drive `simctl` while `xcodebuild test` runs; they fight over the device).
 
+## The Vision OCR concurrency ceiling (RV.52)
+
+Adding one more OCR test once made the whole `swift test` run hang (>210 s against a
+~65 s clean run). It is Apple's framework, not the test, and it bounds every future OCR
+test. This is the measurement and the rule that keeps it from recurring.
+
+**The measured ceiling.** On a 12-core Mac (2026-09-04): **11 concurrent Vision
+`perform` calls are safe, a 12th hangs** the process in `_dispatch_semaphore_wait_slow`
+inside `VNControlledCapacityTasksQueue`. Measured three ways: a 12-way synchronous
+parameterized test hangs (11 passes in 1.6 s, 12 never returns), a `DispatchSemaphore`
+gate does not help, and `concurrentPerform` from libdispatch threads does not reproduce
+it (24 fine). The hang is specific to blocking **Swift concurrency's cooperative thread
+pool** – the pool `swift test` runs test cases on. A blocked cooperative thread still
+consumes the pool, so any *blocking* gate (semaphore, serial queue) leaves 12 blocked
+threads hanging exactly as 12 active ones do. The decisive variable is not the gate but
+**where the `perform` runs**: on the caller's (cooperative) thread it hangs, on a
+background dispatch thread it does not (40 concurrent callers measured clean).
+
+**The fix, and it has two halves that are not interchangeable.** `VisionTextRecognizer`
+(the single choke point every OCR request in the process passes through – tests and
+app alike) runs its `perform` on a background dispatch thread through `VisionRequestGate`.
+That is the half that removes the hang: no cooperative thread is ever inside the
+recognizer. The API stays synchronous – the caller waits on a per-call completion
+semaphore – so the app's callers are untouched. The second half is the gate's bound
+(`VisionOCRConcurrency.limit = 8`) that caps in-flight performs so a future suite cannot
+exhaust the dispatch pool. The **limit is defence-in-depth, not the hang fix**: raising
+it to 100 leaves the suite green, while running the body on the caller's thread hangs it
+again. `ios/Sources/TankbookCore/Extraction/VisionRequestGate.swift` records this so nobody
+"restores rigour" by reverting to a blocking gate around a caller-thread perform.
+
+**The rule for the next person adding an OCR test.** Call `VisionTextRecognizer` –
+never `VNImageRequestHandler.perform` directly – and the gate applies automatically;
+there is nothing to opt into. If you are tempted to raise `VisionOCRConcurrency.limit`,
+re-measure the ceiling first (the probe pattern is the synchronous parameterized test
+above) and keep the same margin: the recorded 8 is ceiling 11 minus 3. The cost of the
+gate is nil in wall-clock – the suite runs *faster* than the blocking baseline because
+the recognizer is no longer driven from the cooperative pool.
+
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 
 **Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects.

@@ -32,6 +32,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "catalog_pack_state",
         "import_parses",
         "rate_backfill",
+        "rate_backfill_answered",
         "llm_settings",
         "llm_models",
         "llm_calls",
@@ -63,7 +64,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(18, applied.Single());   // 019 added the CIS vehicle catalog seed
+        Assert.Equal(19, applied.Single());   // 020 added the answered-state ledger
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -98,6 +99,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("catalog_pack_state", tables);
         Assert.DoesNotContain("import_parses", tables);
         Assert.DoesNotContain("rate_backfill", tables);
+        Assert.DoesNotContain("rate_backfill_answered", tables);
         Assert.DoesNotContain("llm_settings", tables);
         Assert.DoesNotContain("llm_models", tables);
         Assert.DoesNotContain("llm_calls", tables);
@@ -455,6 +457,35 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'delivery_outbox'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '016'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration020_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The answered ledger exists after apply, keyed (base, date, source), and
+        // a row round-trips (the "asked, no document" shape).
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill_answered'"));
+        await db.ExecuteAsync(
+            "INSERT INTO rate_backfill_answered (base, date, source) VALUES ('EUR', '2026-09-02', 'cis')");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill_answered"));
+
+        // Re-answering the same (base, date, source) is a no-op (idempotent).
+        await db.ExecuteAsync(
+            "INSERT INTO rate_backfill_answered (base, date, source) VALUES ('EUR', '2026-09-02', 'cis') ON CONFLICT DO NOTHING");
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill_answered"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill_answered'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '020'"));
     }
 
     [SkippableFact]

@@ -10,6 +10,9 @@ public sealed record ExchangeRateRow(DateOnly Date, string Base, string Quote, d
 /// <summary>A row the job wants to write. Upsert is append-only: it inserts only when no live row occupies the key.</summary>
 public sealed record RateInsert(DateOnly Date, string Base, string Quote, decimal Rate, string Source);
 
+/// <summary>One answered-empty record: this feed was asked for this (date, base) and returned no document.</summary>
+public sealed record AnsweredRateRow(DateOnly Date, string Base, string Source);
+
 /// <summary>
 /// Database access for <c>exchange_rates</c> (docs/SCHEMA.md "Reference data ->
 /// Exchange rates"). Published rows are append-only: <see cref="UpsertAsync"/>
@@ -244,6 +247,103 @@ public sealed class RateRepository
                 new { Base = baseCurrency, BatchSize = batchSize },
                 cancellationToken: cancellationToken));
             return rows.ToList();
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Records that a feed was asked for a (date, base) and answered empty - no
+    /// document, and no earlier published rate within the carry-back window. The
+    /// record is what lets <c>RecordRequestAsync</c> stop re-enqueueing a date
+    /// that is genuinely unfillable (RV.50). Idempotent - re-answering is a no-op.
+    /// </summary>
+    public async Task<int> MarkAnsweredAsync(DateOnly date, string baseCurrency, string source, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            return await _db.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO rate_backfill_answered (date, base, source)
+                VALUES (@Date, @Base, @Source)
+                ON CONFLICT DO NOTHING
+                """,
+                new { Date = date, Base = baseCurrency, Source = source },
+                cancellationToken: cancellationToken));
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>The answered-empty records for an inclusive date range and base, ordered by date then source - the set <c>RecordRequestAsync</c> consults before enqueueing.</summary>
+    public async Task<IReadOnlyList<AnsweredRateRow>> GetAnsweredAsync(DateOnly from, DateOnly to, string baseCurrency, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            var rows = await _db.QueryAsync<AnsweredRateRow>(new CommandDefinition(
+                """
+                SELECT date AS Date, base AS Base, source AS Source
+                FROM rate_backfill_answered
+                WHERE date BETWEEN @From AND @To AND base = @Base
+                ORDER BY date, source
+                """,
+                new { From = from, To = to, Base = baseCurrency },
+                cancellationToken: cancellationToken));
+            return rows.ToList();
+        }
+        finally
+        {
+            if (opened)
+            {
+                _db.Close();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reopens answered dates inside an inclusive window for one feed: a fresh
+    /// published rate is a new carry-back anchor, so dates answered "nothing
+    /// published" that now sit within the window of it must be tried again. The
+    /// answered markers are cleared and the dates re-enqueued in one step; a date
+    /// already in the queue is left alone (<c>ON CONFLICT DO NOTHING</c>). Returns
+    /// the number of dates re-enqueued.
+    /// </summary>
+    public async Task<int> ReopenAnsweredAsync(DateOnly from, DateOnly to, string baseCurrency, string source, CancellationToken cancellationToken)
+    {
+        var opened = await OpenIfNeededAsync();
+        try
+        {
+            var requeued = await _db.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO rate_backfill (date, base)
+                SELECT date, base FROM rate_backfill_answered
+                WHERE base = @Base AND source = @Source AND date BETWEEN @From AND @To
+                ON CONFLICT DO NOTHING
+                """,
+                new { From = from, To = to, Base = baseCurrency, Source = source },
+                cancellationToken: cancellationToken));
+
+            await _db.ExecuteAsync(new CommandDefinition(
+                """
+                DELETE FROM rate_backfill_answered
+                WHERE base = @Base AND source = @Source AND date BETWEEN @From AND @To
+                """,
+                new { From = from, To = to, Base = baseCurrency, Source = source },
+                cancellationToken: cancellationToken));
+
+            return requeued;
         }
         finally
         {

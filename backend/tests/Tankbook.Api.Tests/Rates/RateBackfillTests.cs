@@ -200,6 +200,135 @@ public class RateBackfillTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
     }
 
+    [SkippableFact]
+    public async Task AnUnfillableDate_IsAnsweredOnce_AndTheQueueIsEmptyOnTheSecondPass()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        // A date no feed can fill: every feed answers empty (no document, no exception).
+        var feed = new RecordingRateFeed(RateSources.Cis);
+        feed.SetHandler((_, _) => []);
+        var backfill = BuildBackfill(db, feed);
+
+        var day = new DateOnly(2026, 9, 2);
+
+        // The pack trigger queues the date (the device asked for a date we have no rate for).
+        Assert.Equal(1, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+
+        // First pass: the feed is asked, answers empty, and the date is settled.
+        var first = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, first.Processed);
+        Assert.Equal(0, first.Published);
+        Assert.Equal(0, first.CarriedForward);
+        Assert.Equal(1, first.Answered);
+
+        // The device re-asks on its next refresh. The date is answered now, so the
+        // pack must NOT re-enqueue it.
+        Assert.Equal(0, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+
+        // Second pass: the queue is EMPTY - the date did not reappear.
+        var second = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(0, second.Processed);
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
+    }
+
+    [SkippableFact]
+    public async Task AFillableDate_IsStillQueuedAndPublished_NotAnswered()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        // The counterpart to the unfillable case: a date a feed CAN fill must still
+        // be enqueued by the pack and published - the fix must not over-correct into
+        // answering a fillable date empty.
+        var feed = new RecordingRateFeed(RateSources.Cis);
+        feed.SetHandler((_, _) => [new RateQuote("RUB", 90.0m)]);
+        var backfill = BuildBackfill(db, feed);
+
+        var day = new DateOnly(2026, 9, 2);
+
+        // The pack still enqueues a date it has no rate for (the messenger is intact).
+        Assert.Equal(1, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+
+        var result = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, result.Published);
+        Assert.Equal(0, result.Answered);
+
+        var rows = await ReadRatesAsync(db, "EUR");
+        Assert.Contains(rows, r => r.Date == day && r.Quote == "RUB" && r.Rate == 90.0m && r.Source == RateSources.Cis && !RateSources.IsCarried(r.Source));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
+    }
+
+    [SkippableFact]
+    public async Task ADateOneFeedCoversAndAnotherNeverWill_IsFilledAndNotReenqueued()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        // The production shape: cis serves the date, ecb structurally never will
+        // (its daily file carries only today, so a past date answers empty). The
+        // date must be filled from cis, have ecb answered empty, and NOT be
+        // re-enqueued forever - the granularity both ends now agree on.
+        var cis = new RecordingRateFeed(RateSources.Cis);
+        cis.SetHandler((_, _) => [new RateQuote("RUB", 90.0m)]);
+        var ecb = new RecordingRateFeed(RateSources.Ecb);
+        ecb.SetHandler((_, _) => []);
+        var backfill = BuildBackfill(db, cis, ecb);
+
+        var day = new DateOnly(2026, 9, 2);
+
+        Assert.Equal(1, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+
+        var result = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, result.Published);
+        Assert.Equal(1, result.Answered);
+
+        var rows = await ReadRatesAsync(db, "EUR");
+        Assert.Contains(rows, r => r.Date == day && r.Quote == "RUB" && r.Rate == 90.0m && r.Source == RateSources.Cis && !RateSources.IsCarried(r.Source));
+
+        // cis filled the date and ecb answered empty, so the next pack request must
+        // not re-enqueue it (the old code did, forever).
+        Assert.Equal(0, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM rate_backfill"));
+    }
+
+    [SkippableFact]
+    public async Task ADateAnsweredEmpty_IsReopenedWhenAnEarlierAnchorArrives()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        // A gap date asked before its anchor exists is answered empty; when the
+        // anchor arrives later (a second request), publishing it must reopen the
+        // answered gap so the next pass carries it back - a fix that never reopens
+        // would leave the date absent forever.
+        var anchor = new DateOnly(2026, 9, 1);
+        var day = new DateOnly(2026, 9, 8); // 7 days after the anchor - inside the 14-day window
+        var feed = new RecordingRateFeed(RateSources.Cis);
+        feed.SetHandler((date, _) => date == anchor ? [new RateQuote("RUB", 90.0m)] : []);
+        var backfill = BuildBackfill(db, feed);
+
+        // The gap date is asked first, with no anchor anywhere -> answered empty.
+        Assert.Equal(1, await backfill.RecordRequestAsync(day, day, "EUR", CancellationToken.None));
+        var first = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, first.Answered);
+        Assert.Equal(0, first.Published);
+
+        // The anchor arrives later (a second device asks for it).
+        Assert.Equal(1, await backfill.RecordRequestAsync(anchor, anchor, "EUR", CancellationToken.None));
+        var anchorPass = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, anchorPass.Published);
+
+        // Publishing the anchor reopened the answered gap date; the next pass
+        // carries it back from the anchor.
+        var reopened = await backfill.ProcessPendingAsync(CancellationToken.None);
+        Assert.Equal(1, reopened.CarriedForward);
+
+        var rows = await ReadRatesAsync(db, "EUR");
+        Assert.Contains(rows, r => r.Date == day && r.Quote == "RUB" && r.Rate == 90.0m && RateSources.IsCarried(r.Source));
+    }
+
     private async Task<NpgsqlConnection> OpenDatabaseAsync()
     {
         var db = await _fixture.CreateDatabaseAsync();
