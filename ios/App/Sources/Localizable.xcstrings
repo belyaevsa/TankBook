@@ -10939,6 +10939,23 @@
         }
       }
     },
+    "More entry types": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More entry types"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Другие типы записей"
+          }
+        }
+      }
+    },
     "Type it or scan it – seconds either way": {
       "extractionState": "manual",
       "localizations": {

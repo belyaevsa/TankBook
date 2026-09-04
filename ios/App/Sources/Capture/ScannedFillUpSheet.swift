@@ -88,4 +88,29 @@ extension CaptureEntryForm {
         case .expense: return .expenseEntry
         }
     }
+
+    /// The forms Home's "Type it" menu lists, in order: every form EXCEPT the
+    /// primary (fill-up), which is the button's own one-tap action (RV.61,
+    /// hard rule 15 - the two doors stand side by side, and the commonest
+    /// entry must never get slower). Derived from `allCases`, never hardcoded,
+    /// so a fourth entry form appears here the moment it exists - it cannot
+    /// silently lack a door. `sheetRoute` above is an exhaustive switch, so the
+    /// new case refuses to compile until it maps to a sheet.
+    static var doorMenuForms: [CaptureEntryForm] {
+        allCases.filter { $0 != .fillUp }
+    }
+
+    /// The menu item's label, the same wording as the capture screen's mode
+    /// chip (`CaptureMode.label`) so both doors name the entry type
+    /// identically. Exhaustive: a new form must name itself here or the switch
+    /// fails to compile. `.fillUp` is never listed - it is the primary action -
+    /// but the case keeps the switch exhaustive and reuses the button's own
+    /// "Type it" label.
+    var doorMenuLabel: LocalizedStringKey {
+        switch self {
+        case .fillUp: "Type it"
+        case .service: "Service"
+        case .expense: "Expense"
+        }
+    }
 }

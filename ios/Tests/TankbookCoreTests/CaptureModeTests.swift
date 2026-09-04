@@ -130,4 +130,25 @@ struct CaptureModeTests {
         #expect(CaptureMode.charge.manualEntryForm == .fillUp,
                 "no charge form exists - charge shares the fill-up form until PJ.12")
     }
+
+    // MARK: - RV.61: every entry form has a manual door
+
+    /// RV.61: the Home "Type it" door lists every non-fill-up form as a menu
+    /// item, with fill-up as the primary (one-tap) action. This pins the enum's
+    /// shape so the door cannot drift: `CaptureEntryForm.allCases` IS the door
+    /// menu's source (the app derives it, never hardcodes "Service"/"Expense"),
+    /// fill-up leads so it stays the zero-tap primary, and a fourth case added
+    /// here both fails this ordering pin and refuses to compile in
+    /// `CaptureEntryForm.sheetRoute` (an exhaustive switch) until it maps to a
+    /// sheet. The set-equals half pins that no form is an orphan: every case is
+    /// a real form some capture mode routes to (hard rule 15 - every entry type
+    /// has a typed door).
+    @Test("RV.61: every entry form is a distinct manual door, fill-up the primary")
+    func everyEntryFormHasAManualDoor() {
+        #expect(CaptureEntryForm.allCases == [.fillUp, .service, .expense],
+                "fill-up must lead so it stays the door's one-tap primary")
+        let reachable = Set(CaptureMode.allCases.map(\.manualEntryForm))
+        #expect(reachable == Set(CaptureEntryForm.allCases),
+                "every form must be reachable from a capture mode - no orphan form")
+    }
 }
