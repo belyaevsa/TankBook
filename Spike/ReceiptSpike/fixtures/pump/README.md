@@ -4,7 +4,7 @@ Photos of the pump readout, for the **pump-photo mode** that `docs/VISION.md`
 gates hard: it ships only at **>=95%** accuracy, or the mode stays off
 (`docs/TASKS.md` P2.7 - "the gate IS the check").
 
-## The flag's contract (P2.7, recorded 2026-08-25)
+## The flag's contract (P2.7, recorded 2026-08-25; re-scoped 2026-09-04)
 
 Pump mode is a **feature flag** with this contract, enforced by code and by a
 build-failing test rather than by prose:
@@ -12,12 +12,12 @@ build-failing test rather than by prose:
 - **Defaults off.** The bundled config ships `pumpPhoto` disabled; the app is
   fully usable with it never turning on.
 - **The gate is a property of the build, not a runtime opinion.** The measured
-  pump accuracy is compiled into `PumpPhotoGate` (`measuredHits` / `measuredTotal`,
-  0/30 today, and asserted against the live corpus score by the Vision-gated
-  ratchet test). A remote config document may only ever turn the flag **down**
-  while the gate fails, never up - `ConfigStore.isEnabled(.pumpPhoto)` is false
-  regardless of rollout below the threshold. This is the same reasoning as
-  `docs/CONFIG.md` -> "Config can never disable a security control".
+  pump accuracy is compiled into `PumpPhotoGate` and asserted against the live
+  corpus score by the Vision-gated ratchet test. A remote config document may
+  only ever turn the flag **down** while the gate fails, never up -
+  `ConfigStore.isEnabled(.pumpPhoto)` is false regardless of rollout below the
+  threshold. This is the same reasoning as `docs/CONFIG.md` -> "Config can
+  never disable a security control".
 - **Off is not a dead end (hard rule 15).** A pump capture with the flag off
   routes to the ordinary manual form, pre-filled with nothing and with no
   message - the feature is simply not offered, and there is no error to show.
@@ -26,9 +26,38 @@ build-failing test rather than by prose:
   particular** must never be written without the user seeing it, because the
   factor-of-ten ambiguity (`pump-003` above) is invisible on a Confirm screen.
 
-Raising `measuredHits` above 28/30 (95%) is the only way the flag can turn on -
-and it must land in the same change as the parser fix that earned it, together
-with the recorded high-water mark and this README.
+### The gate's metric, since 2026-09-04 (B1)
+
+The gate is no longer a recall average. The old `measuredHits / measuredTotal >=
+0.95` scored a denominator of three different things - the 178 numeric cells,
+a near-free `currency` marker lookup, and `fuelKind`, which a pump parser must
+never produce - and recall itself was the wrong shape: it scores a correct
+`nil` as a miss and a confident-wrong value as a hit, and on the two idle pumps
+(`pump-016`/`pump-017`, ground truth `0.00`) it actively rewarded logging a
+zero-litre fill.
+
+The pump class is now scored on its **178 numeric cells only** (`liters`,
+`unitPrice`, `total`; blanks skipped). `fuelKind` is dropped from the pump score
+and `currency` is reported separately, never in the gate. Three numbers replace
+the single average, all over the 178:
+
+- **precision** = `committedCorrect / committed` - of the numeric fields the
+  parser returns non-nil, the fraction that are correct.
+- **coverage** = `committed / 178` - the fraction of numeric cells it commits
+  to. A correct refusal (idle pump, factor-of-ten tie) lowers this, never
+  precision.
+- **recall** = `hits / 178` - the old number, kept for legibility.
+
+`PumpPhotoGate` ships the mode only when **committed-value precision is at or
+above ~99% AND coverage clears the 60% floor**. The threshold's *meaning*
+changed, not just its number: "never a wrong fill-up" is a precision property,
+not a recall average. The 60% floor is a product decision, not a derived number
+- it is what the deterministic ladder reaches on the OCR text that already
+exists, and the floor below which a three-in-five pre-fill stops being a head
+start worth offering. Raising precision above 99% while clearing the floor is
+the only way the flag can turn on - and it must land in the same change as the
+parser fix that earned it, together with the recorded high-water mark and this
+README. The mode stays off; nothing here turns it on.
 
 ## What is here
 

@@ -197,6 +197,13 @@ enum CorpusScorer {
         return ScoredClass(name: name, hits: hits, total: total)
     }
 
+    // MARK: - Pump scoring (B1): numeric-only, precision + coverage
+
+    // The pump class's re-scoped scorer lives in `CorpusPumpScorer.swift`, with
+    // its score shape, to keep this file under its length limit. The pump is
+    // scored on its 178 numeric cells only; `currency` is reported separately
+    // and `fuelKind` is never scored (a pump parser must not produce it).
+
     /// Parses a class's `expected.csv` (header
     /// `filename,liters,unitPrice,total,fuelKind,currency`). An empty column
     /// becomes `nil` - the field is skipped, not guessed. `fuelKind` is written

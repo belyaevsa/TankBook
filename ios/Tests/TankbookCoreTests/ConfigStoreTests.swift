@@ -517,8 +517,8 @@ private func cacheFileURL(directory: URL) -> URL {
     defer { try? FileManager.default.removeItem(at: directory) }
 
     // A config that tries to enable pumpPhoto at 100% rollout. The accuracy gate
-    // (PumpPhotoGate, measured 0/30 below the 95% threshold) must keep the flag
-    // off regardless - a remote document cannot flip an accuracy gate into
+    // (PumpPhotoGate, measured below the precision/coverage gate) must keep the
+    // flag off regardless - a remote document cannot flip an accuracy gate into
     // truth (docs/CONFIG.md -> "Config can never disable a security control").
     let onData = makeDocument(apiBaseURL: "https://api.tankbook.live",
                               flags: "{\"pumpPhoto\":{\"enabled\":true,\"rolloutPercent\":100}}")

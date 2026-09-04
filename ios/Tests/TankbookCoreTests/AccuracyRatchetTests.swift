@@ -133,7 +133,12 @@ struct CorpusAccuracyGateTests {
         let highWater = try loadHighWater()
         var failures: [String] = []
         for name in ["receipts", "pump", "fiscal", "screenshots"] {
-            let scored = try scoreClass(name)
+            // The pump class is scored under the re-scoped B1 metric (numeric
+            // only, precision + coverage); the ratchet still guards its recall
+            // (hits may not fall, total may not shrink).
+            let scored = name == "pump"
+                ? try scorePump().scoredClass
+                : try scoreClass(name)
             let recorded = highWater.recorded(for: name)
             if let violation = AccuracyRatchet.violation(
                 name: name,
@@ -150,26 +155,35 @@ struct CorpusAccuracyGateTests {
 
     @Test func everyClassIsScored() throws {
         for name in ["receipts", "pump", "fiscal", "screenshots"] {
-            let scored = try scoreClass(name)
-            #expect(scored.total > 0, "\(name) scored no fields")
+            let total = name == "pump" ? try scorePump().numericTotal : try scoreClass(name).total
+            #expect(total > 0, "\(name) scored no fields")
         }
     }
 
     /// P2.7 "the gate IS the check", made executable: the real, live-scored pump
-    /// corpus must match the compile-time gate constant (so the constant cannot
-    /// drift from reality), and the shipped flag must be off while that measured
-    /// accuracy is below the 95% threshold. A flag flipped on below the gate is
-    /// exactly what `PumpPhotoGate.violation` catches.
+    /// corpus must match the compile-time gate constants (so the constants cannot
+    /// drift from reality), and the shipped flag must be off while the measured
+    /// precision is below the 99% threshold or coverage below the 60% floor. A
+    /// flag flipped on below the gate is exactly what `PumpPhotoGate.violation`
+    /// catches.
     @Test func pumpModeShipsOffWhileTheCorpusIsBelowTheGate() throws {
-        let scored = try scoreClass("pump")
-        #expect(scored.hits == PumpPhotoGate.measuredHits,
-                "measured pump hits \(PumpPhotoGate.measuredHits) must match the live \(scored.hits)")
-        #expect(scored.total == PumpPhotoGate.measuredTotal,
-                "measured pump total \(PumpPhotoGate.measuredTotal) must match the live \(scored.total)")
-        let accuracy = Double(scored.hits) / Double(scored.total)
+        let scored = try scorePump()
+        #expect(scored.numericHits == PumpPhotoGate.measuredNumericHits,
+                "measured numeric hits \(PumpPhotoGate.measuredNumericHits) must match the live \(scored.numericHits)")
+        #expect(scored.numericTotal == PumpPhotoGate.measuredNumericTotal,
+                Comment(stringLiteral: "measured numeric total \(PumpPhotoGate.measuredNumericTotal) "
+                    + "must match the live \(scored.numericTotal)"))
+        #expect(scored.committed == PumpPhotoGate.measuredCommitted,
+                "measured committed \(PumpPhotoGate.measuredCommitted) must match the live \(scored.committed)")
+        #expect(scored.committedCorrect == PumpPhotoGate.measuredCommittedCorrect,
+                Comment(stringLiteral: "measured committed-correct \(PumpPhotoGate.measuredCommittedCorrect) "
+                    + "must match the live \(scored.committedCorrect)"))
         let shipped = try ConfigDefaults.bundledAppConfig().flags["pumpPhoto"]?.enabled ?? false
-        #expect(PumpPhotoGate.violation(flagEnabled: shipped, accuracy: accuracy) == nil,
-                "the pump flag must stay off while the measured accuracy is below \(PumpPhotoGate.threshold)")
+        #expect(PumpPhotoGate.violation(flagEnabled: shipped,
+                                        precision: scored.precision,
+                                        coverage: scored.coverage) == nil,
+                Comment(stringLiteral: "the pump flag must stay off while precision is below "
+                    + "\(PumpPhotoGate.precisionThreshold) or coverage below \(PumpPhotoGate.coverageFloor)"))
     }
 
     // MARK: - Scoring
@@ -180,13 +194,42 @@ struct CorpusAccuracyGateTests {
         let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let source: ExtractionSource = name == "pump" ? .pump : .receipt
+        let records = try extractRecords(folder: folder, images: images, expected: expected, source: source)
+        // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,
+        // so the rules arm of the A/B is scored with an identical comparison.
+        return CorpusScorer.score(
+            name: name,
+            images: images.map(\.lastPathComponent),
+            records: records,
+            expected: expected
+        )
+    }
 
+    /// The pump class scored under the re-scoped B1 metric (numeric-only
+    /// precision/coverage/recall, currency reported separately).
+    private func scorePump() throws -> PumpScore {
+        let folder = Self.fixturesRoot.appendingPathComponent("pump")
+        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let records = try extractRecords(folder: folder, images: images, expected: expected, source: .pump)
+        return CorpusScorer.scorePump(
+            name: "pump",
+            images: images.map(\.lastPathComponent),
+            records: records,
+            expected: expected
+        )
+    }
+
+    private func extractRecords(folder: URL, images: [URL], expected: [String: ExpectedRow],
+                                source: ExtractionSource) throws -> [String: ExtractionRecord] {
         // The scorer injects the bundled band pack - a corpus fixture has no
         // user history (a fresh device, no prior fill-ups), so ladder step 3
         // yields nothing and the recorded number is the parser running with the
         // same curated band the app ships. Without this the scorer measures a
-        // parser the app never runs - the same argument the `source: .pump`
-        // branch below already makes for the pump class.
+        // parser the app never runs.
         let pack = try FuelPriceBandStore.bundledPack()
         let extractor = FuelExtractor(bandProvider: DefaultFuelPriceBandProvider(pack: pack))
         var records: [String: ExtractionRecord] = [:]
@@ -197,7 +240,6 @@ struct CorpusAccuracyGateTests {
             // parser paths (no fuel kind, P2.13 digit repair) are pump-source
             // behaviour, and scoring them as receipts would measure a parser
             // the app does not run for this class.
-            let source: ExtractionSource = name == "pump" ? .pump : .receipt
             // RV.56: the fiscal QR is composed into the extraction, exactly as
             // the app composes it, so the scored number measures the pipeline
             // the app runs rather than a weaker OCR-only one.
@@ -211,14 +253,7 @@ struct CorpusAccuracyGateTests {
                 filename: image.lastPathComponent, extraction: result
             )
         }
-        // The same scorer `CorpusScorer` that the P4.12 A/B uses for both arms,
-        // so the rules arm of the A/B is scored with an identical comparison.
-        return CorpusScorer.score(
-            name: name,
-            images: images.map(\.lastPathComponent),
-            records: records,
-            expected: expected
-        )
+        return records
     }
 
     private func loadHighWater() throws -> HighWater {

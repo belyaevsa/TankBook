@@ -11,25 +11,40 @@ import Testing
 @Suite("Pump-photo accuracy gate")
 struct PumpPhotoGateTests {
 
-    @Test("the gate fails when the flag is on but accuracy is below 95%")
-    func flagOnBelowThresholdIsAViolation() {
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 0.0) != nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 0.40) != nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 0.94) != nil)
+    @Test("the gate fails when the flag is on but precision is below 99%")
+    func flagOnBelowPrecisionIsAViolation() {
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 0.0, coverage: 1.0) != nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 0.90, coverage: 1.0) != nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 0.98, coverage: 1.0) != nil)
     }
 
-    @Test("the gate passes with the flag off, whatever the accuracy")
+    @Test("the gate fails when the flag is on but coverage is below the floor")
+    func flagOnBelowCoverageIsAViolation() {
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 1.0, coverage: 0.0) != nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 1.0, coverage: 0.59) != nil)
+    }
+
+    @Test("the gate passes with the flag off, whatever the precision and coverage")
     func flagOffIsNeverAViolation() {
-        #expect(PumpPhotoGate.violation(flagEnabled: false, accuracy: 0.0) == nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: false, accuracy: 0.40) == nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: false, accuracy: 1.0) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: false, precision: 0.0, coverage: 0.0) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: false, precision: 0.4, coverage: 0.4) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: false, precision: 1.0, coverage: 1.0) == nil)
     }
 
-    @Test("the gate passes when the flag is on at or above 95%")
+    @Test("the gate passes when the flag is on at or above precision and coverage")
     func flagOnAtOrAboveThresholdPasses() {
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 0.95) == nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 0.96) == nil)
-        #expect(PumpPhotoGate.violation(flagEnabled: true, accuracy: 1.0) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 0.99, coverage: 0.60) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 0.995, coverage: 0.61) == nil)
+        #expect(PumpPhotoGate.violation(flagEnabled: true, precision: 1.0, coverage: 1.0) == nil)
+    }
+
+    @Test("allowsPumpPhoto requires both precision and coverage")
+    func allowsPumpPhotoRequiresBoth() {
+        #expect(PumpPhotoGate.precisionThreshold == 0.99)
+        #expect(PumpPhotoGate.coverageFloor == 0.60)
+        // A build that is precise but commits nothing must not ship.
+        #expect(PumpPhotoGate.allowsPumpPhoto == false,
+                "the mode must stay off while the measured corpus is below the gate")
     }
 }
 
