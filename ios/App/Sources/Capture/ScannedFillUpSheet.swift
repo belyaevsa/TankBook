@@ -12,6 +12,12 @@ import UIKit
 /// form for the mode the user selected (`CaptureMode.manualEntryForm`), not a
 /// fill-up form in Service mode. The form is part of the identity so a Service
 /// "Type it" cannot be confused with a Fill-up one.
+///
+/// RV.62: `.manualForm(.expense)` is also how an Expense-mode SCAN lands - the
+/// capture pipeline's recognition is handed to ExpenseEntry through the shared
+/// `ExpenseEntrySession` first, and the expense form is the sheet that opens
+/// (a scan is a head start into the same form, hard rules 13 and 15). The
+/// fill-up scan keeps its own `.scanned` sheet.
 enum CaptureSheet: Identifiable {
     case manualForm(CaptureEntryForm)
     case photoPicker

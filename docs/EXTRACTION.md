@@ -229,6 +229,36 @@ no re-scan, improved parser, pack update or late gateway answer may overwrite it
 And hard rule 15: **a capture is a head start, not an answer.** A poor scan must degrade to
 "correct two fields", never to "start over", and manual entry is never the failure branch.
 
+### The Expense-mode hand-off (RV.62)
+
+An Expense-mode capture runs the same pipeline as any receipt - but the hand-off into the
+expense form is **deliberately narrower**. A shop receipt is not a fuel receipt: liters, unit
+price and fuel kind are meaningless on it. The product-owner decision (2026-09-04) is that the
+expense form receives exactly **total, currency and date** - the three `ExtractionAssembler`
+already resolves. `ExpensePrefillBuilder` (core) is the one seam where a `FuelExtraction`
+becomes an `ExpensePrefill`, and `ExpensePrefill` has **no liters / unitPrice / fuelKind
+members** - the boundary is structural, not a discipline: piping the fill-up prefill across is
+not a mistake that could slip through review, it is something the type refuses to express.
+Those fuel fields are still extracted by the shared parser on a fuel-looking receipt; they are
+dropped HERE, by construction, before anything app-side can read them.
+
+Two fields are **not** resolved, deliberately: merchant and category. Category is the user's
+pick on the form (`ExpenseCategory.entryCases`); guessing one from a shop receipt is a NEW
+extraction problem with its own corpus and its own failure modes, and it was not assumed into
+this change.
+
+The contract that bounds the expense hand-off is the fill-up path's own:
+- An extraction that resolves nothing becomes an all-nil `ExpensePrefill` - the expense form
+  opens EMPTY, never an error (hard rules 7 and 15). The F1 caption belongs to the fill-up
+  Confirm sheet; the expense form has no caption of its own.
+- Every carried value is default input the user edits (hard rule 13): the amount and the date
+  land in the form and stay editable, and the snapshots for the discard guard are taken after
+  the pre-fill so a scan never counts as an edit.
+- Currency is carried so the form can be honest about it: the expense form is home-currency
+  only (it has no conversion card), so a total the recognition priced in another currency is
+  NOT offered as if it were home money - the amount stays blank for the user to type. A nil
+  currency is treated as "no evidence to the contrary", exactly as the fill-up form does.
+
 ## Cross-multiplication as digit repair
 
 New, 2026-08-26, and specific to seven-segment displays.

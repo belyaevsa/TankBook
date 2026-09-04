@@ -134,6 +134,8 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Odometer required but empty (km lifetime set) | Warn on odometer card: "Needed to schedule 'next in 15 000 km'." | Fill (pre-filled value one tap away) · remove the km lifetime |
 | Odometer breaks timeline (F9a, PJ.11) | Amber on the odometer card as the user types, the conflicting entry quoted ("Aug 17 already recorded 119 486 km.") - the same F9a mechanics as Confirm. **The check is on every write, not just capture**: a service odometer typo must flag, never silently skew spans and cost/km | Fix (focuses the odometer) · save anyway (the record saves `.flagged`; its segment is excluded until resolved) |
 | Shelf part suggested but wrong | – (suggestion, not warning) | Dismiss chip; never auto-links |
+| Expense-mode scan read nothing (RV.62) | The ordinary EMPTY expense form – no caption, no warning (the expense form is not the fill-up Confirm, so the F1 caption does not apply) | Type the expense; the empty form IS the contract (hard rule 7) |
+| Expense-mode scan priced in a currency the home-only expense form cannot express (RV.62) | The amount stays BLANK – the recognised total is never offered as if it were home currency (a wrong fact is worse than none, hard rule 13); the date still pre-fills | Type the amount; currency mismatches are not an error, just an honest absence |
 
 ### Edit entry
 | Condition | Shows | Next step |
