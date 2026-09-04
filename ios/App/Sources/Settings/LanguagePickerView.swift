@@ -28,26 +28,59 @@ enum LanguageDisplay {
 /// The Settings row that opens the language picker (docs/TASKS.md RV.24). Shows
 /// the current language - the stored choice when one exists, else the language
 /// the app is currently rendering in - never a hardcoded name.
+///
+/// RV.42: when the app is pending a relaunch to apply the stored choice, the row
+/// carries the restart prompt itself - the notice survives dismissing the picker
+/// (hard rule 7: every error names its next step and survives being ignored).
+/// `pendingRestart` is derived (docs/TASKS.md RV.42), never a stored flag.
 struct LanguageRow: View {
     /// The language the row displays: the user's stored choice wins; without one
     /// the app follows the system (docs/TASKS.md RV.24 - the L1 rule, resolved).
     let value: String
+    /// Whether the stored choice differs from the language actually running, so
+    /// a relaunch is needed to apply it (RV.42, derived in core).
+    let pendingRestart: Bool
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text("Language")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.ink)
-                Spacer(minLength: 8)
-                Text(verbatim: value)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Text("Language")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.ink)
+                    Spacer(minLength: 8)
+                    Text(verbatim: value)
+                        .font(.footnote)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .accessibilityIdentifier("settingsLanguageValue")
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                if pendingRestart {
+                    // AMBER, and with a glyph (product owner, 2026-09-04: the
+                    // earlier grey line "is blind"). `warn` is hard rule 5's
+                    // attention colour and this is attention by definition - the
+                    // user changed a setting and an action is still outstanding
+                    // before it takes effect. It is NOT an error: nothing failed
+                    // and nothing is lost, so it stays a notice in `warn`, never
+                    // red and never a system dialog.
+                    //
+                    // The icon is not decoration. `DESIGN.md`'s accessibility
+                    // floor says colour is never the only channel, so an amber
+                    // line with no glyph would fail a colour-blind reader
+                    // exactly as the grey one failed everyone.
+                    Label {
+                        Text(L10n.languageRestartPrompt)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                    }
                     .font(.footnote)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .accessibilityIdentifier("settingsLanguageValue")
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .accessibilityIdentifier("settingsLanguagePendingNotice")
+                }
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)

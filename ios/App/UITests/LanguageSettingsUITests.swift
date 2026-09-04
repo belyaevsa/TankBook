@@ -78,6 +78,31 @@ final class LanguageSettingsUITests: XCTestCase {
                        "the row now shows the chosen language; got '\(value.label)'")
     }
 
+    func testRestartNoticeSurvivesDismissingThePicker() {
+        let app = launchSettingsEN()
+        let row = app.buttons["settingsLanguageRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        let russian = app.buttons["languageOption-ru"]
+        XCTAssertTrue(russian.waitForExistence(timeout: 10))
+        russian.tap()
+
+        app.buttons["settingsLanguageDoneButton"].tap()
+
+        // RV.42, the bug: the notice used to live only in the picker's @State
+        // and died with the sheet, so Settings showed the new value with nothing
+        // saying the app is still running the old language. It must be STILL
+        // visible on the row after the picker is dismissed - and it must be the
+        // real copy, not merely "some element exists".
+        let notice = app.staticTexts["settingsLanguagePendingNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 5),
+                      "the restart notice survives dismissing the picker (hard rule 7)")
+        XCTAssertEqual(notice.label,
+                       "Language changes the next time you open Tankbook",
+                       "the row notice names its next step")
+    }
+
     func testSystemDefaultReturnsToFollowingTheSystem() {
         let app = launchSettingsEN()
         let row = app.buttons["settingsLanguageRow"]

@@ -27,6 +27,43 @@ struct LanguagePreferenceTests {
     }
 }
 
+// RV.42: the pending-restart rule (docs/TASKS.md RV.42). Derived, never stored:
+// the app is pending a relaunch exactly while the stored preference differs from
+// the language actually running. A user who never overrode (follow-system) is
+// not waiting for anything.
+
+@Suite("Language pending-restart rule")
+struct LanguagePendingRestartTests {
+
+    @Test("a stored language differing from the running one is pending")
+    func storedDiffersFromRunningIsPending() {
+        #expect(LanguagePreference.isPendingRestart(storedLanguage: "ru",
+                                                     runningLanguage: "en"),
+                "stored ru but running en needs a relaunch")
+        #expect(LanguagePreference.isPendingRestart(storedLanguage: "en",
+                                                     runningLanguage: "ru"),
+                "stored en but running ru needs a relaunch")
+    }
+
+    @Test("a stored language matching the running one is not pending")
+    func storedMatchesRunningIsNotPending() {
+        #expect(!LanguagePreference.isPendingRestart(storedLanguage: "ru",
+                                                      runningLanguage: "ru"))
+        #expect(!LanguagePreference.isPendingRestart(storedLanguage: "en",
+                                                      runningLanguage: "en"))
+    }
+
+    @Test("no stored preference (follow the system) is not pending")
+    func noStoredPreferenceIsNotPending() {
+        #expect(!LanguagePreference.isPendingRestart(storedLanguage: nil,
+                                                      runningLanguage: "en"),
+                "a user who never overrode is not waiting for anything")
+        #expect(!LanguagePreference.isPendingRestart(storedLanguage: "",
+                                                      runningLanguage: "en"),
+                "an empty stored value follows the system, so it is not pending")
+    }
+}
+
 @Suite("Language preference store")
 struct LanguagePreferenceStoreTests {
 

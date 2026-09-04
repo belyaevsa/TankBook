@@ -59,6 +59,7 @@ struct SettingsView: View {
                 didSeed = true
                 #if DEBUG
                 SettingsTestSeed.seedIfRequested(sync: sync)
+                SettingsTestSeed.setPendingLanguageForScreenshotIfRequested()
                 #endif
             }
             selectedLanguage = languageStore.selectedLanguage
@@ -265,9 +266,14 @@ struct SettingsView: View {
         .formCard()
     }
 
-    /// The language row (docs/TASKS.md RV.24): a real picker, not a placeholder.
+    /// The language row (docs/TASKS.md RV.24); RV.42: it carries the restart
+    /// prompt while the stored choice differs from the running language.
     private var languageRow: some View {
-        LanguageRow(value: languageValue) { showsLanguagePicker = true }
+        LanguageRow(value: languageValue,
+                    pendingRestart: LanguagePreference.isPendingRestart(
+                        storedLanguage: languageStore.storedLanguage,
+                        runningLanguage: LanguageDisplay.currentCode),
+                    action: { showsLanguagePicker = true })
     }
 
     /// The language the row displays: the user's stored choice wins; without one

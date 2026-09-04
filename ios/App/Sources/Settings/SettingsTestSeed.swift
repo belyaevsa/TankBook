@@ -110,6 +110,21 @@ enum SettingsTestSeed {
         UserDefaults.standard.removeObject(forKey: LanguagePreference.appleLanguagesKey)
     }
 
+    /// Screenshot-only: `-languageSetPending <code>` writes a stored language
+    /// choice WITHOUT opening the picker, so Settings renders the RV.42 pending
+    /// notice on the Language row (a stored choice differing from the language
+    /// actually running) with the picker closed - the state the notice must
+    /// survive in. `simctl` cannot tap the picker's option and then dismiss it.
+    /// Called at Settings appear, after `-languageReset` cleared any prior choice.
+    static func setPendingLanguageForScreenshotIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: "-languageSetPending"),
+              index + 1 < arguments.count else { return }
+        let code = arguments[index + 1]
+        UserDefaults.standard.set(code, forKey: LanguagePreferenceStore.storedLanguageKey)
+        UserDefaults.standard.set([code], forKey: LanguagePreference.appleLanguagesKey)
+    }
+
     @MainActor
     static func seedIfRequested(sync: AppSync) {
         let arguments = ProcessInfo.processInfo.arguments

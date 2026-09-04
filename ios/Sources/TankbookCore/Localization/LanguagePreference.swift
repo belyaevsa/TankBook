@@ -37,6 +37,22 @@ public enum LanguagePreference {
         }
         return .selected(code)
     }
+
+    /// Whether the app is pending a relaunch to apply the stored language choice
+    /// (docs/TASKS.md RV.42). **Derived, never stored**: the app is pending a
+    /// relaunch exactly while the stored preference differs from the language
+    /// actually running (`Bundle.main.preferredLocalizations.first`). A nil or
+    /// empty stored value means "follow the system" and is never pending - a
+    /// user who never overrode is not waiting for anything. It self-clears on
+    /// the next launch (the running language then matches the stored one) with
+    /// nothing to reset, which is what makes it correct: no bookkeeping can
+    /// drift out of sync with reality.
+    public static func isPendingRestart(storedLanguage: String?,
+                                        runningLanguage: String?) -> Bool {
+        guard let stored = storedLanguage, !stored.isEmpty else { return false }
+        guard let running = runningLanguage, !running.isEmpty else { return false }
+        return stored != running
+    }
 }
 
 /// Persistence for the user's language choice (docs/TASKS.md RV.24). Two keys:

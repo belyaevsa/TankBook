@@ -650,6 +650,17 @@ capture RV.45-comparison-ru     ru -seedSettingsSignedIn -seedInboxComparison -i
 capture RV.45-nothing-to-change    en -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 
+# RV.42: the language restart notice survives being ignored - Settings showing
+# the pending notice on the Language row AFTER the picker was dismissed (the
+# whole point; a shot of the picker does not demonstrate the fix). The notice is
+# derived, never stored - `-languageSetPending <code>` writes a stored choice
+# that differs from the running language, with the picker closed. The EN shot
+# runs English with a stored Russian choice; the RU shot runs Russian with a
+# stored English choice - both are pending. RU is where the notice overflows on
+# a row that already carries a value and a chevron.
+capture RV.42-settings-pending    en -presentScreen settings -seedSettingsGuest -languageReset -languageSetPending ru
+capture RV.42-settings-pending-ru ru -presentScreen settings -seedSettingsGuest -languageReset -languageSetPending en
+
 # The light-theme shell is the one deliberate light capture (docs/DESIGN.md).
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
