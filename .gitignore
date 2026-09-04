@@ -68,3 +68,13 @@ backend/**/TestResults/
 # names nothing. Without this line the script's own output makes the tree dirty
 # and blocks the next run, which is what happened on build 463.
 build/
+
+# Claude Code local state. `settings.local.json` is per-machine by design, and
+# `worktrees/` is where other sessions check out branches inside this repo -
+# one sat here during RV.52. Neither is this checkout's source, and leaving
+# them untracked made `git status --porcelain` non-empty, which failed
+# scripts/release.sh's dirty check (and made swiftlint walk a second copy of
+# the tree). Ignored, not committed. `.claude/` itself stays free for shared
+# config if we ever want it tracked.
+.claude/settings.local.json
+.claude/worktrees/
