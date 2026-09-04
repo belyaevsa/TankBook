@@ -58,8 +58,8 @@ struct ManualFillUpView: View {
     @State private var acceptedLineIDs: Set<UUID> = []
     /// P6.3: the cloud-reading session (docs/API.md -> "The device's side of
     /// /extract"). Idle for the typed path; started when a scan carries a photo
-    /// and a gateway is available. Drives the 3 s budget banner and the
-    /// fill-blanks-only late answer.
+    /// and a gateway is available. Drives the RV.57 proceed note and, for a
+    /// within-budget answer, the fill-blanks-only apply.
     @State private var gatewaySession = GatewayScanSession()
     /// The fields the ON-DEVICE extraction resolved (the pre-fill already on
     /// screen). A late gateway answer never refills one of these (F4).
@@ -67,6 +67,11 @@ struct ManualFillUpView: View {
     /// Arming guard for the currency/fuelKind/date touch hooks: the form's own
     /// load-time assignment must not count as a user touch.
     @State private var gatewayTouchTrackingArmed = false
+    /// RV.57: the proceed note was dismissed (the ×). Per-sheet, never
+    /// persisted - a new capture is a new sheet and a new note. The note is a
+    /// hint, so dismissing it survives being ignored exactly like the note
+    /// itself does (hard rule 7).
+    @State private var proceedNoteDismissed = false
 
     // PJ.48: the quiet "Attach receipt" row on the typed path. The picked photo
     // is held as a second, blank-fields-only prefill; Save writes it with
@@ -138,8 +143,13 @@ struct ManualFillUpView: View {
                     if cloudExtractSurface && !config.allowsServerBacked {
                         UpdateRequiredNotice()
                     }
-                    GatewayReadingBanner(phase: gatewaySession.phase,
-                                         reduceMotion: reduceMotion)
+                    // RV.57: the "a more reliable reading may still arrive"
+                    // note - shown only while a request is in flight, dismissable,
+                    // never blocking (hard rule 7). Absent on a local-only parse.
+                    if GatewayProceedNote.shouldShow(phase: gatewaySession.phase),
+                       !proceedNoteDismissed {
+                        GatewayProceedNoteView(dismiss: { proceedNoteDismissed = true })
+                    }
                     ManualFillUpOdometerCard(form: $form, focus: $focus, distanceUnit: distanceUnit,
                                              conflict: odometerConflict,
                                              onFixDate: { showDatePicker = true },
@@ -461,11 +471,12 @@ struct ManualFillUpView: View {
             vehicleFuelKinds: vehicle?.fuelKinds.map(\.rawValue) ?? [])
     }
 
-    /// Applies a gateway answer - within budget or late - as a SUGGESTION,
-    /// bound by hard rule 13 and F4: only fields that are still blank AND
-    /// untouched, on an unsaved entry. Applied fields are marked as resolved
-    /// but unconfirmed, so they render dimmed exactly like any other extraction
-    /// suggestion until the user confirms them.
+    /// Applies a WITHIN-BUDGET gateway answer as a SUGGESTION, bound by hard
+    /// rule 13 and F4: only fields that are still blank AND untouched, on an
+    /// unsaved entry. Applied fields are marked as resolved but unconfirmed, so
+    /// they render dimmed exactly like any other extraction suggestion until
+    /// the user confirms them. A LATE answer never reaches this - RV.57 routes
+    /// it to the inbox (the session's `markSaved`), never into the open editor.
     private func applyGatewayAnswer(_ extraction: GatewayExtraction) {
         guard let vehicle else { return }
         let snapshot = GatewaySuggestionSnapshot(

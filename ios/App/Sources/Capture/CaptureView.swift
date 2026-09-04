@@ -25,7 +25,7 @@ struct CaptureView: View {
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     @State private var mode: CaptureMode = .fillUpAuto
-    @State private var activeSheet: CaptureSheet?
+    @State var activeSheet: CaptureSheet?
     /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
     /// review step is up; the capture pipeline has NOT run yet.
     @State private var reviewSubject: CaptureReviewSubject?
@@ -172,7 +172,7 @@ struct CaptureView: View {
         }
     }
 
-    private func currentVehicle() throws -> Vehicle? {
+    func currentVehicle() throws -> Vehicle? {
         let repository = try AppStore.repository()
         return carSelection.selectedVehicle(try repository.liveVehicles())
     }
@@ -266,11 +266,7 @@ struct CaptureView: View {
             if mode == .expense {
                 await acceptExpenseScan(image)
             } else {
-                let vehicle = try? currentVehicle()
-                let prefill = await CapturePipeline.process(
-                    image, source: .receipt,
-                    bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
-                activeSheet = .scanned(prefill)
+                await acceptFillUpScan(image)
             }
         }
     }
@@ -283,7 +279,7 @@ struct CaptureView: View {
     /// A COMPILED constant (docs/PRACTICES.md): it is coupled to the system's
     /// cover-dismissal animation, so it is not a knob for a user or a remote
     /// flag to turn - it belongs next to the code whose timing it matches.
-    private static let coverDismissBeat: Duration = .milliseconds(350)
+    static let coverDismissBeat: Duration = .milliseconds(350)
 
     /// "Type it" from the review: the manual door for the selected mode, the
     /// same call the capture surface's own affordance makes (hard rule 15 -

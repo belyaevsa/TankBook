@@ -10,11 +10,14 @@ import TankbookCore
 // request in the background and applies the budget in the UI's terms:
 //
 // - within the 3 s budget the answer applies directly (still fill-blanks-only);
-// - at 3 s the sheet stops waiting and tells the user to carry on with what was
-//   read locally - the REQUEST IS NOT CANCELLED, it keeps running (the budget
-//   is about the user's next step, never an abort);
-// - a late answer may fill only fields that are still blank and untouched, and
-//   renders as a suggestion (hard rule 13);
+// - at 3 s the sheet stops waiting and tells the user to proceed now - the
+//   REQUEST IS NOT CANCELLED, it keeps running (the budget is about the user's
+//   next step, never an abort);
+// - RV.57 (product-owner ruling, 2026-09-04): a LATE answer is never applied to
+//   the open editor - "if a user keeps the edit entry open (they fill up
+//   odometer) and recognition has arrived - there is no need to async update".
+//   It lands in the inbox instead, keyed to the saved entry, never as a value
+//   that moves under the user's cursor;
 // - once the entry is saved, the answer is NOT dropped (RV.38 amends F4): it
 //   lands in the inbox as a suggestion the user accepts, edits or declines -
 //   "leave it as it is" is the default, and an accepted update fills blank
@@ -28,21 +31,10 @@ import TankbookCore
 @MainActor
 @Observable
 final class GatewayScanSession {
-    /// What the sheet should show about the background request.
-    enum Phase: Equatable {
-        /// No request is running (no scan, no gateway, or signed out).
-        case idle
-        /// The request is in flight and the 3 s budget has not expired yet.
-        case running
-        /// The budget expired: the sheet has moved on (the on-device result is
-        /// already on screen), the request keeps running in the background.
-        case budgetExpired
-        /// The request finished and any fillable fields were applied (or the
-        /// answer was dropped because the entry was saved).
-        case answered
-        /// The entry was saved; late answers are dropped (F4).
-        case saved
-    }
+    /// What the sheet should show about the background request. The phase and
+    /// its `isInFlight` decision live in core (`GatewayReadingPhase`) so the
+    /// proceed note's presence rule (RV.57) tests at L1.
+    typealias Phase = GatewayReadingPhase
 
     private(set) var phase: Phase = .idle
     /// The fields the user has engaged since the on-device pre-fill (tapped,
@@ -147,15 +139,13 @@ final class GatewayScanSession {
         case .answered(let extraction):
             phase = .answered
             deliver(extraction)
-        case .stillRunning(let running):
+        case .stillRunning:
             // The budget expired: the UI moves on; the request was NOT
-            // cancelled and keeps running. Await the late answer.
+            // cancelled and keeps running. RV.57: the late answer is NOT
+            // applied to the open editor (the product-owner ruling - no async
+            // update, nothing moves under the user's cursor). `markSaved`
+            // awaits this same `work` and routes the answer to the inbox.
             phase = .budgetExpired
-            let extraction = try? await running.value
-            phase = .answered
-            if let extraction {
-                deliver(extraction)
-            }
         }
     }
 

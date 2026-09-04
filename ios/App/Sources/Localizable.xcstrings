@@ -1395,6 +1395,23 @@
         }
       }
     },
+    "A more reliable reading may still arrive. You can proceed now.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A more reliable reading may still arrive. You can proceed now."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Более точное распознавание может прийти позже. Вы можете продолжать."
+          }
+        }
+      }
+    },
     "A year earlier": {
       "extractionState": "manual",
       "localizations": {
