@@ -47,7 +47,8 @@ struct ReceiptFieldDiagnosticsTests {
             guard let want = expected[image] else { continue }
             let url = folder.appendingPathComponent(image)
             let ocrLines = try VisionTextRecognizer.recognizeText(in: url, languages: Self.languages)
-            let got = extractor.extract(lines: ocrLines, source: .receipt)
+            let qrAnchor = CorpusScorer.qrAnchor(forImage: image, in: folder)
+            let got = extractor.extract(lines: ocrLines, source: .receipt, qrAnchor: qrAnchor)
 
             func cell(_ name: String, _ wantValue: Double?, _ gotValue: Double?) -> String {
                 guard let wantValue else { return "" }

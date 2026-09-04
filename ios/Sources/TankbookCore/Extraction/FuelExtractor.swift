@@ -13,7 +13,9 @@ public struct FuelExtractor: Sendable {
 
     // MARK: - Entry point
 
-    public func extract(lines: [OCRLine], source: ExtractionSource = .receipt) -> FuelExtraction {
+    public func extract(lines: [OCRLine],
+                        source: ExtractionSource = .receipt,
+                        qrAnchor: FiscalQRAnchor? = nil) -> FuelExtraction {
         var result = FuelExtraction()
         // RV.48: currency and date read the RAW lines, every value finder reads
         // the FILTERED ones. The asymmetry is the whole design of
@@ -60,6 +62,22 @@ public struct FuelExtractor: Sendable {
         // and only the cost figures abstain.
         if result.total == 0 { result.total = nil }
         if result.unitPrice == 0 { result.unitPrice = nil }
+        // A zero-litres guard mirroring the two above. A printed `0,00L` volume
+        // is a VOID (receipt-039), never "the fill was zero litres" - and it
+        // would otherwise bias consumption exactly the way a zero price does,
+        // only in the opposite direction (a zero denominator poisons L/100km
+        // rather than cost/km). The zero-operand guard above already returns
+        // the non-zero operand as the volume, so this also keeps a
+        // `0.00 Х 30.61`-shaped pair from surfacing a zero-litre fill.
+        if result.liters == 0 { result.liters = nil }
+        // The fiscal QR carries the grand total (`s`) and the date (`t`) and
+        // nothing else (FiscalQR.swift) - no litres, no unit price, no fuel
+        // kind, no currency. When one decodes it is composed here so the scored
+        // extraction is the extraction the app actually produces, not a weaker
+        // OCR-only one (the same `ConfirmQRTotal.resolve` rule the confirm
+        // sheet applies - authoritative on a disagreement, the fuel line stands
+        // on a mixed receipt, hard rule 4).
+        Self.composeQR(qrAnchor, into: &result)
         result.crossCheck = ExtractionCrossCheck.evaluate(
             liters: result.liters, unitPrice: result.unitPrice, total: result.total, lines: lines
         )
@@ -93,8 +111,10 @@ public struct FuelExtractor: Sendable {
     /// Pure-text convenience, so the bulk of the core is testable from plain
     /// `[String]` with no image at all. Lines carry a `.zero` box, so the
     /// total-finder falls back to reading-order adjacency.
-    public func extract(textLines: [String], source: ExtractionSource = .receipt) -> FuelExtraction {
-        extract(lines: textLines.map { OCRLine(text: $0) }, source: source)
+    public func extract(textLines: [String],
+                        source: ExtractionSource = .receipt,
+                        qrAnchor: FiscalQRAnchor? = nil) -> FuelExtraction {
+        extract(lines: textLines.map { OCRLine(text: $0) }, source: source, qrAnchor: qrAnchor)
     }
 
     // MARK: - Volume / price ladder (docs/SCHEMA.md -> Fuel price bands)
@@ -209,6 +229,27 @@ public struct FuelExtractor: Sendable {
             let liters = discounted ? nil : (leftPrice ? pair.right : pair.left)
             return (liters, price)
         }
+        // A printed `0.00` operand names the price, never the volume. B2B
+        // contract fuel cards settle the price between the fleet and the
+        // network, so the driver's copy prints `30.61 Х 0.00` (receipt-034)
+        // with the unit declared on the stranded product line above it. The
+        // volume is the only certain number on the line; the price is
+        // contract-hidden and stays nil (the same doctrine as the zero-total
+        // guard below: a printed ZERO is "not on this receipt", never a fact).
+        //
+        // This runs BEFORE `resolveUnmarked` on purpose: with the user's own
+        // price history wired (ladder step 3, `AppFuelPriceBand`), a realistic
+        // median makes `resolveUnmarked` see the zero as the implausible
+        // operand and return a zero-litre fill at a price that is really a
+        // volume - a confident wrong value nothing downstream catches. The
+        // marker paths above are already safe (a marked `0,00L` void, e.g.
+        // receipt-039, never reaches here), so this guards only the unmarked
+        // fallback.
+        let leftZero = pair.left == 0
+        let rightZero = pair.right == 0
+        if leftZero != rightZero {
+            return (liters: leftZero ? pair.right : pair.left, price: nil)
+        }
         return resolveUnmarked(left: pair.left, right: pair.right, context: context)
     }
 
@@ -311,7 +352,27 @@ public struct FuelExtractor: Sendable {
                 if kind == .primary { primaryCandidates.append(value) }
             }
         }
-        return modal(candidates, preferring: primaryCandidates)
+        let labelTotal = modal(candidates, preferring: primaryCandidates)
+        // A СКИДКА line between the extension and the total means the charged
+        // total is the pre-discount value minus the discount. When the label
+        // pairing grabbed the pre-discount extension and the discounted value is
+        // printed, prefer the discounted one (receipt-017: 961.80 - 0.80 =
+        // 961.00). This runs before the redundancy fallback so a labelled total
+        // that reconciles keeps its authority.
+        if let labelTotal, let discounted = discountedTotal(of: labelTotal,
+                                                           candidates: candidates,
+                                                           lines: lines) {
+            return discounted
+        }
+        if labelTotal != nil { return labelTotal }
+        // No labelled total resolved (an unbreakable tie, or no label paired a
+        // value at all): fall back to the modal value across the receipt's own
+        // value lines. The gross total is the value a receipt prints most often
+        // - receipt-001's `125,22` appears four times and receipt-038's `79,32`
+        // four times - while the net and the VAT print once or twice. Only a
+        // single, strictly-dominant value printed at least twice is trusted;
+        // anything else abstains (hard rule 13).
+        return redundantValue(in: lines)
     }
 
     private func pairedValue(forLabelAt index: Int, in lines: [OCRLine]) -> Double? {
@@ -323,6 +384,7 @@ public struct FuelExtractor: Sendable {
             guard line.boundingBox.minX > label.boundingBox.minX,
                   abs(line.midY - label.midY) < 0.012,
                   NumberScanner.isValueLine(line.text),
+                  !isSubtractionLine(line.text),
                   let value = NumberScanner.value(in: line.text) else { continue }
             let distance = abs(line.midY - label.midY)
             if best == nil || distance < best!.distance {
@@ -338,7 +400,7 @@ public struct FuelExtractor: Sendable {
     }
 
     private func adjacentValue(_ line: OCRLine) -> Double? {
-        guard NumberScanner.isValueLine(line.text) else { return nil }
+        guard NumberScanner.isValueLine(line.text), !isSubtractionLine(line.text) else { return nil }
         return NumberScanner.value(in: line.text)
     }
 

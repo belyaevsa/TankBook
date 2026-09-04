@@ -100,11 +100,7 @@ struct ScreenshotCrossCheckTests {
     func receipt038IsNotReconciled() throws {
         // The paper receipt prints `EXTRA SOODUS -0,23 EUR` beneath the item
         // while KOKKU still reads 79,32 - the discount is NOT subtracted from
-        // the total. With the ground-truth triple the outcome is a lock (the
-        // product 45,22 x 1,754 = 79,32 equals the total); the parser currently
-        // leaves the price and total unresolved, so the live outcome is
-        // `.notApplicable`. Either way, a discount line existing must never
-        // produce a reconciled.
+        // the total. A discount line existing must never produce a reconciled.
         let image = Self.fixturesRoot
             .appendingPathComponent("receipts")
             .appendingPathComponent("receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg")
@@ -114,9 +110,12 @@ struct ScreenshotCrossCheckTests {
         if case .reconciled = result.crossCheck {
             Issue.record("receipt-038 must never reconcile; got \(result.crossCheck)")
         }
-        // The live parser resolves the volume but not price/total -> no triple.
+        // RV.56: the net-versus-gross fix now resolves the total, so the live
+        // triple is complete and locks (45,22 x 1,754 = 79,32 == total). The
+        // honest outcome with the ground-truth triple is the same lock.
         #expect(result.liters == 45.22)
-        #expect(result.crossCheck == .notApplicable)
+        #expect(result.total == dec("79.32"))
+        #expect(result.crossCheck == .lock)
 
         // The honest outcome with the ground-truth triple: lock, not reconciled.
         let outcome = ExtractionCrossCheck.evaluate(liters: 45.22, unitPrice: dec("1.754"),

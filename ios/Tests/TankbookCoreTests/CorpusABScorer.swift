@@ -258,6 +258,20 @@ enum CorpusScorer {
             .sorted()
     }
 
+    /// The fiscal-QR anchor a fixture's committed `.qr.txt` sidecar decodes to,
+    /// or nil when the fixture has no sidecar (or one that fails to parse). A
+    /// missing QR is a plain absence, never an error - the extraction then runs
+    /// on OCR alone, exactly as the app does when the detector finds no barcode.
+    static func qrAnchor(forImage image: String,
+                         in folder: URL,
+                         timeZone: TimeZone = .current) -> FiscalQRAnchor? {
+        let base = (image as NSString).deletingPathExtension
+        let url = folder.appendingPathComponent("\(base).qr.txt")
+        guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        return (try? FiscalQRParser.parse(raw.trimmingCharacters(in: .whitespacesAndNewlines),
+                                          timeZone: timeZone))?.anchor
+    }
+
     /// The images a committed sweep actually covered: the live folder narrowed
     /// to the filenames the result file holds a record for.
     ///

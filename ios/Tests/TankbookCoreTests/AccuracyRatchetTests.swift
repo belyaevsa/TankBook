@@ -198,7 +198,11 @@ struct CorpusAccuracyGateTests {
             // behaviour, and scoring them as receipts would measure a parser
             // the app does not run for this class.
             let source: ExtractionSource = name == "pump" ? .pump : .receipt
-            let result = extractor.extract(lines: ocrLines, source: source)
+            // RV.56: the fiscal QR is composed into the extraction, exactly as
+            // the app composes it, so the scored number measures the pipeline
+            // the app runs rather than a weaker OCR-only one.
+            let qrAnchor = CorpusScorer.qrAnchor(forImage: image.lastPathComponent, in: folder)
+            let result = extractor.extract(lines: ocrLines, source: source, qrAnchor: qrAnchor)
             // The record keeps Double money (the scorer's boundary - see
             // CorpusABScorer); the exact Decimal the extraction now carries is
             // converted through NSDecimalNumber, lossless in the measured
