@@ -68,31 +68,35 @@ public final class VisionRequestGate: @unchecked Sendable {
         // synchronous and its callers (the capture pipeline, the invoice
         // scanner) are unchanged.
         let done = DispatchSemaphore(value: 0)
-        nonisolated(unsafe) var outcome: Result<Value, Error>?
+        let box = Box<Value>()
         DispatchQueue.global(qos: .userInitiated).async {
-            outcome = Result { try body() }
+            box.outcome = Result { try body() }
             done.signal()
         }
         done.wait()
 
-        // `outcome` is always set: the async block signals only after assigning.
-        guard let outcome else {
+        // Unreachable: the async block assigns before it signals, and we only
+        // get here after that signal. Preferred over `!` so a future edit that
+        // breaks that ordering surfaces as an error, not a crash.
+        guard let outcome = box.outcome else {
             throw VisionRequestGateError.slotFinishedWithoutResult
         }
         return try outcome.get()
     }
 }
 
-/// The result of a `withSlot` body, written on the background thread and read on
-/// the caller after the completion semaphore fires. The happens-before edge is
-/// `done.signal()` / `done.wait()`; `@unchecked Sendable` records that.
+/// The outcome of a `withSlot` body, written on the background thread and read
+/// on the caller after the completion semaphore fires. The happens-before edge
+/// is `done.signal()` / `done.wait()`; `@unchecked Sendable` records that.
+///
+/// It holds a `Result` rather than separate value/error fields so the success
+/// path never force-unwraps: a body that legitimately returns `nil` for an
+/// Optional `Value` is a real outcome, not a missing one.
 private final class Box<Value>: @unchecked Sendable {
-    var value: Value?
-    var error: Error?
+    var outcome: Result<Value, Error>?
 }
 
-
-/// Raised only if a gate slot completes without producing a result, which the
+/// Raised only if a gate slot completes without producing an outcome, which the
 /// implementation makes unreachable - it exists so the success path never has
 /// to force-unwrap.
 public enum VisionRequestGateError: Error {

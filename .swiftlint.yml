@@ -12,6 +12,11 @@ excluded:
   # P0.2: the generated token file is the single sanctioned source of hex values
   # (the no_literal_hex_colors rule guards hand-written UI code, not the token source).
   - ios/Sources/TankbookCore/Design/Theme.generated.swift
+  # Other sessions' git worktrees live here. Their checkouts are not this
+  # checkout's source - linting them reported ~22 errors from a copy of the
+  # generated token file above, which the root-relative path on the line above
+  # cannot match at that depth. Nobody can fix those from here.
+  - ".claude"
 
 opt_in_rules:
   - empty_count
