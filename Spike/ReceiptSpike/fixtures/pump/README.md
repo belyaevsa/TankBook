@@ -617,3 +617,80 @@ receipt*, which is reading, not by the multiplication, which would have been wro
 concrete reason the fixtures record what is on the image and the arithmetic lives in this README:
 a cross-check that recomputes a total will disagree with the paper by a cent on fills of this shape,
 and it is the paper that is right.
+
+## pump-057 .. pump-064 - Circle K Sikupilli, one visit, and an insect on the price display
+
+Eight displays added 2026-09-04 from a single forecourt - **Circle K Sikupilli, Tartu mnt 86,
+Tallinn** - shot in one visit across both vendors: four **Gilbarco Veeder-Root**
+(`pump-057`..`pump-060` - comma decimals, zero-padded) and four **Dresser Wayne**
+(`pump-061`..`pump-064` - dot decimals, unpadded, under `SUMMA` / `LIITRID` / `LIITRIT`).
+
+That is the `pump-045`..`pump-056` separator finding **repeated at a different site**, which is what
+it needed: until now "the separator belongs to the pump, not the country" rested on one forecourt
+and could have been a property of that forecourt's hardware mix. It is not.
+
+### pump-057 + receipt-046 - the sixth matched pair
+
+`pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair.jpg` is the same fill as
+`../receipts/receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg`: pump 5, `D B0 miles`,
+`0100,38 €` over `0055,80 L` with `1,799` in the `€/L` window, 04/09/2026 10:20.
+
+Unlike `pump-054`, nothing here has to be recomputed - `55.80 x 1.799 = 100.3842 -> 100.38` and the
+paper prints `100,38`, so the pair agrees to the cent and the Gilbarco's own selected-price window
+carries the transaction price outright. What the pair adds is the **other direction** of the `D B0`
+finding: the Wayne boards on this same forecourt price `D miles` at `1.874` and list `1.799`
+nowhere, so the product actually dispensed is absent from every board on site. That is now the
+fifth independent counter-example to resolving a fill against the prices a display advertises.
+
+### The insect - an occlusion class the corpus did not have
+
+`pump-063-wayne-circlek-ee-insect-on-price-display.jpg` has a **dead insect sitting on the
+`HIND/1L` window**, covering part of a digit: the `D miles` price reads `1.074` where the identical
+badge on `pump-064` reads `1.874`.
+
+This is not glare, not dirt, not defocus, and not a display fault - it is an opaque object on the
+glass, and no amount of image processing recovers what is physically covered. It belongs with
+`pump-006`'s bezel-clipped price as a **capture failure**, and the corpus had exactly one of those.
+
+The fill itself is untouched (`7.17 L x 1.834 = 13.15`, the `95 miles` price, fully legible), which
+is what makes the fixture useful: the occlusion sits on a value the parser must **not** read, so it
+measures whether a board price is trusted blindly rather than whether a transaction survives.
+
+### The board order is not stable, and neither is the grade set
+
+The four Wayne boards show the same five grades in **different orders**, each price identified only
+by the badge above it:
+
+| fixture | board, left to right |
+|---|---|
+| pump-061 | `D miles` 1.874 · `D miles+` 1.974 · `98 miles+` 1.894 · `95 miles` 1.834 |
+| pump-062 | `95 miles` 1.834 · `98 miles+` 1.894 · `D miles` 1.874 · `D miles+` 1.974 |
+| pump-063 | `95 miles` 1.834 · `98 miles+` 1.894 · `95 miles+` 1.884 · `D miles` 1.874 (occluded) |
+| pump-064 | `D miles` 1.874 · `95 miles+` 1.884 · `98 miles+` 1.894 · `95 miles` 1.834 |
+
+The price for a given badge is identical everywhere; the **position** is not, and the four pumps do
+not even show the same four grades. `pump-005` established that position is unreliable - taking the
+first of four was wrong there. This is stronger: position carries **no** information at all, and
+only the badge beside a price says what it is.
+
+### Two more shapes
+
+`pump-061-wayne-circlek-ee-discount-below-board.jpg` charges `62.40 / 33.84 = 1.8440`, which is none
+of its own four board prices. That is the Circle K discount shape already recorded on `pump-031` and
+`pump-042`, so its `unitPrice` cell is **empty** - the display does not carry the number the
+transaction used.
+
+`pump-058-gilbarco-circlek-ee-dirty-lcd-1969.jpg` is the **lowest-contrast readable display** in the
+corpus: the LCD is filmed with road dirt to grey-on-grey, and a human still reads `0039,42` /
+`0020,02` / `1,969`. It is the honest low end of "the photograph does carry the value" - anything
+fainter belongs with the blank cells.
+
+### Five prices at one site in one visit
+
+Across these eight displays the readouts imply `1.799`, `1.834`, `1.894`, `1.899` and `1.969`, while
+the Wayne boards advertise `1.834 / 1.874 / 1.884 / 1.894 / 1.974`. Only `1.894` appears in both
+sets. Two explanations both fit and both matter: the fill was an **off-board product** (which
+`receipt-046` proves for `pump-057`'s `1.799`), or the display still holds an **earlier customer's
+transaction**, since a pump readout persists until the next fill starts. Neither lets a parser
+resolve a transaction price from the board, and the second is a reason a capture cannot assume the
+numbers on a display belong to the user standing in front of it (hard rule 13 - the app suggests).

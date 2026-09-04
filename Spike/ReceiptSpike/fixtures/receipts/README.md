@@ -792,3 +792,26 @@ cross-check tolerance has to absorb that; treating it as a mismatch would flag a
 The VAT line reads `24% KM` at `24,00%` - Estonia's rate as of 2026-07, one point above the `22%`
 that `receipt-043` records for an earlier fill. A parser that hardcodes an Estonian VAT rate has
 already been wrong once inside this corpus's own time span.
+
+
+## receipt-046 - the paper half of pump-057, and a pair that needs no arithmetic
+
+`receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg` - Circle K Sikupilli teenindusjaam, Tartu
+mnt 86, Tallinn, added 2026-09-04. **The same transaction as
+`../pump/pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair.jpg`**: `D B0 miles`, `Kogus 55,80L`,
+`Summa 100,38`, `Pump 5 Hind 1,799 EUR/L`, `04/09/2026 10:20`, terminal `T05`, arve `0217`.
+
+It is the corpus's **sixth matched pair** and its second at Sikupilli. Where `receipt-045` existed
+to correct the arithmetic (`51,70` computed against `51,71` printed), this one agrees with its pump
+to the cent - `55.80 x 1.799 = 100.3842 -> 100.38` - and its value is elsewhere: the Wayne boards on
+the same forecourt price `D miles` at `1.874` and never print `1.799`, so the paper is the only
+source on site for what this fill actually cost per litre. A pair that reconciles cleanly is worth
+keeping precisely because it is the control case for the ones that do not.
+
+`D B0 miles` is the third `D B0` slip here (`receipt-042`, `receipt-045`), and it is still a
+loyalty-grade name rather than a fuel kind - mapping it to diesel is vocabulary work, not parsing.
+
+The VAT line reads `24% KM` / `24,00%` with `Käibemaksuta 80,95` and `Käibemaks kokku 19,43`, which
+is the same Estonian rate `receipt-045` records and one point above `receipt-043`'s `22%`. The
+receipt prints its total **three times** (`Summa`, `KOKKU`, `KK MAKSE`, and again on the card slip
+below `SUMMA ... EUR 100,38`) - the redundancy a pump display does not have.

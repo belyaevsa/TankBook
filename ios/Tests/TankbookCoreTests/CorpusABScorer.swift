@@ -315,6 +315,10 @@ enum PostSweepCorpusAdditions {
             // total is a cent above litres x price. Declared, not swept.
             "receipt-044-rn-tver-chkalovskaya-95-nonfiscal-terminal-slip-ru.jpeg",
             "receipt-045-circlek-jarvevana-pump7-db0-2694l-ee.jpg",
+            // 2026-09-04: the matched half of pump-057 - Circle K Sikupilli,
+            // pump 5, 55.80 L of D B0 miles at 1.799 = 100.38, VAT 24%.
+            // Declared, not swept.
+            "receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -378,6 +382,20 @@ enum PostSweepCorpusAdditions {
             "pump-054-wayne-circlek-jarvevana-pump7-diesel-flare.jpg",
             "pump-055-wayne-circlek-ee-liitrid-variant.jpg",
             "pump-056-wayne-circlek-ee-preset-72eur.jpg",
+            // 2026-09-04: eight more Circle K Sikupilli displays, four
+            // Gilbarco and four Dresser Wayne, including the matched half of
+            // receipt-046. pump-061 charges a price on no board price of its
+            // own display, and pump-063's price display is physically covered
+            // by a dead insect - a NEW occlusion class, an object on the glass
+            // rather than glare or dirt. Declared, not swept.
+            "pump-057-gilbarco-circlek-sikupilli-pump5-db0-pair.jpg",
+            "pump-058-gilbarco-circlek-ee-dirty-lcd-1969.jpg",
+            "pump-059-gilbarco-circlek-ee-pump3-1899.jpg",
+            "pump-060-gilbarco-circlek-ee-1894.jpg",
+            "pump-061-wayne-circlek-ee-discount-below-board.jpg",
+            "pump-062-wayne-circlek-ee-pump8-1894.jpg",
+            "pump-063-wayne-circlek-ee-insect-on-price-display.jpg",
+            "pump-064-wayne-circlek-ee-4645l-1834.jpg",
         ],
     ]
 
