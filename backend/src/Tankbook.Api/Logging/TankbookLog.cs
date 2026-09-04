@@ -310,18 +310,20 @@ public static class TankbookLog
             ("CarriedForward", carriedForward),
             ("SourcesFailed", sourcesFailed));
 
-    /// <summary>The demand-driven rates backfill (docs/SCHEMA.md): counts only - how many queued dates were attempted, and how they resolved. SourcesFailed stays visible even while gaps are carried, so a broken feed cannot hide again (RV.15).</summary>
+    /// <summary>The demand-driven rates backfill (docs/SCHEMA.md): counts only - how many queued dates were attempted, and how they resolved. SourcesFailed stays visible even while gaps are carried, so a broken feed cannot hide again (RV.15). Answered counts the gaps recorded unfillable (RV.50) - it is what lets a healthy drain read differently from a wedged one.</summary>
     public static void RatesBackfill(
         ILogger logger,
         int processed,
         int published,
         int carriedForward,
-        int sourcesFailed)
+        int sourcesFailed,
+        int answered)
         => Emit(logger, LogLevel.Information, "rates.backfill",
             ("Processed", processed),
             ("Published", published),
             ("CarriedForward", carriedForward),
-            ("SourcesFailed", sourcesFailed));
+            ("SourcesFailed", sourcesFailed),
+            ("Answered", answered));
 
     public static void AccountDelete(
         ILogger logger,
