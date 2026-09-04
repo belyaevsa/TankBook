@@ -48,6 +48,15 @@ arrive and that proceeding now is recommended.
 4. **Typing stays a peer door** (hard rule 15): this screen is reached identically whether the user
    typed or scanned, and nothing here may frame manual entry as the failure branch.
 
+**A blocker found while verifying RV.62, and it lands squarely on this row's goal.** After an
+Expense-mode scan the form pre-fills the amount and date, but **"Save expense" stays DIMMED**,
+because Title is required and no merchant is resolved. So the user is told to proceed and then
+cannot. Check the same question for the FILL-UP path you are building: **after a capture, with the
+pre-fill in place and the note on screen, is Save actually reachable without typing?** If a required
+field is empty, the note recommending the user proceed is a promise the screen does not keep (hard
+rule 7 - it must survive being ignored). Say what you found for each form, and if fill-up has the
+same problem, say so rather than fixing the expense form here - that is a separate change.
+
 **Copy through String Catalogs, EN + RU, whole localised phrases and never concatenation** (hard rule
 10 – the composed-string bug that produced "АВГУСТ РАСХОДЫ" is exactly this shape).
 
