@@ -35,7 +35,8 @@ struct ReceiptFieldDiagnosticsTests {
         let folder = Self.fixturesRoot.appendingPathComponent("receipts")
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try CorpusScorer.imageFilenames(in: folder)
-        let extractor = FuelExtractor()
+        let pack = try FuelPriceBandStore.bundledPack()
+        let extractor = FuelExtractor(bandProvider: DefaultFuelPriceBandProvider(pack: pack))
 
         var report = ""
         var lineDump = ""

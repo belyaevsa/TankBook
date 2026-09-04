@@ -609,7 +609,9 @@ private extension EditEntryView {
         attachImage = image
         attachProcessing = true
         Task {
-            let prefill = await CapturePipeline.process(image, source: .receipt)
+            let prefill = await CapturePipeline.process(
+                image, source: .receipt,
+                bandProvider: AppFuelPriceBand.provider(vehicleId: fillUp.vehicleId))
             attachOcrLines = prefill.ocrLines
             let extraction = prefill.extraction ?? FuelExtraction()
             attachExtraction = extraction

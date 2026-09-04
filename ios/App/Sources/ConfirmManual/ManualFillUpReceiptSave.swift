@@ -67,7 +67,9 @@ extension ManualFillUpView {
     func attachReceipt(_ image: UIImage) {
         guard let vehicle else { return }
         Task {
-            let prefill = await CapturePipeline.process(image, source: .receipt)
+            let prefill = await CapturePipeline.process(
+                image, source: .receipt,
+                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
             attachedPrefill = prefill
             guard let extraction = prefill.extraction else { return }
             let entry = form.blankDetectingEntry(vehicle: vehicle)

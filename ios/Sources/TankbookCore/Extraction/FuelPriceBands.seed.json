@@ -1,0 +1,115 @@
+{
+  "packVersion": 1,
+  "bands": [
+    {
+      "country": "RU",
+      "currency": "RUB",
+      "fuelKind": "petrol",
+      "periodStart": "2018-01-01",
+      "low": 35,
+      "high": 100,
+      "source": "curated",
+      "note": "RUB retail petrol 2018-2023 ranged 43-62. Floor 35 is the historic floor (2017-2018 lows ~35-38), kept BELOW 38.28 so a 38.28 L volume on a 2019 receipt reads as a plausible price and the pair abstains (receipt-025 is step-3 history territory, not a band call). High 100 leaves headroom over the ~62 peak without reaching the 2026+ level."
+    },
+    {
+      "country": "RU",
+      "currency": "RUB",
+      "fuelKind": "petrol",
+      "periodStart": "2024-01-01",
+      "low": 40,
+      "high": 500,
+      "source": "curated",
+      "note": "Retail petrol has not been under 40 since 2019; the corpus's own regional outlier is 450 (Crimean AI-100, 2026), so 500 leaves headroom. Round numbers on purpose - the band separates ~20 L from ~70-450 RUB/L, it does not price fuel."
+    },
+    {
+      "country": "RU",
+      "currency": "RUB",
+      "fuelKind": "diesel",
+      "periodStart": "2018-01-01",
+      "low": 35,
+      "high": 100,
+      "source": "curated",
+      "note": "RUB diesel tracks petrol closely (48.09 in 2020, 62.89 in 2024). Same floor/high as petrol for the era."
+    },
+    {
+      "country": "RU",
+      "currency": "RUB",
+      "fuelKind": "diesel",
+      "periodStart": "2024-01-01",
+      "low": 40,
+      "high": 500,
+      "source": "curated",
+      "note": "RUB diesel 2026 includes Crimean regional outliers (245, 259). Same wide band as petrol."
+    },
+    {
+      "country": "RU",
+      "currency": "RUB",
+      "fuelKind": "lpg",
+      "periodStart": "2018-01-01",
+      "low": 15,
+      "high": 60,
+      "source": "curated",
+      "note": "LPG runs roughly a third of petrol. The band deliberately overlaps LPG fill volumes (40-80 L), so an unmarked LPG pair - 52.15 X 23.99 on receipt-012 - has BOTH operands in band and abstains rather than swapping. A petrol band would reject 23.99 and call 52.15 the price; this is the row that makes the fuel-kind key load-bearing."
+    },
+    {
+      "country": "EE",
+      "currency": "EUR",
+      "fuelKind": "petrol",
+      "periodStart": "2018-01-01",
+      "low": 1.0,
+      "high": 3.0,
+      "source": "curated",
+      "note": "EUR/L retail ~1.30-2.00 across the eurozone in the corpus era. 1.0-3.0 is deliberately coarse: it only separates a litre price from a fill volume. The client keys on currency, not country, so a French or German receipt gets the same band."
+    },
+    {
+      "country": "EE",
+      "currency": "EUR",
+      "fuelKind": "diesel",
+      "periodStart": "2018-01-01",
+      "low": 1.0,
+      "high": 3.0,
+      "source": "curated",
+      "note": "EUR diesel ~1.75-1.92 in the corpus (Estonian Circle K). Same coarse band as petrol."
+    },
+    {
+      "country": "EE",
+      "currency": "EUR",
+      "fuelKind": "lpg",
+      "periodStart": "2018-01-01",
+      "low": 0.4,
+      "high": 1.5,
+      "source": "curated",
+      "note": "EUR LPG ~0.60-0.90, roughly a third of petrol, same relationship as RUB."
+    },
+    {
+      "country": "KZ",
+      "currency": "KZT",
+      "fuelKind": "petrol",
+      "periodStart": "2018-01-01",
+      "low": 100,
+      "high": 1000,
+      "source": "curated",
+      "note": "KZT/L retail ~200-300 in the corpus era. 100-1000 separates a 24.69 L volume from a 243 KZT price (receipt-033)."
+    },
+    {
+      "country": "KZ",
+      "currency": "KZT",
+      "fuelKind": "diesel",
+      "periodStart": "2018-01-01",
+      "low": 100,
+      "high": 1000,
+      "source": "curated",
+      "note": "KZT diesel tracks KZT petrol. Same coarse band."
+    },
+    {
+      "country": "KZ",
+      "currency": "KZT",
+      "fuelKind": "lpg",
+      "periodStart": "2018-01-01",
+      "low": 50,
+      "high": 300,
+      "source": "curated",
+      "note": "KZT LPG roughly a third of KZT petrol. Same family relationship as the other currencies."
+    }
+  ]
+}

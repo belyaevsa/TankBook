@@ -37,6 +37,10 @@ let package = Package(
                 // Bundled exchange-rate seed pack (docs/SCHEMA.md -> Exchange
                 // rates): a first launch offline still converts common pairs.
                 .copy("Rates/Rates.seed.json"),
+                // Bundled fuel-price band seed pack (docs/SCHEMA.md -> Fuel
+                // price bands): day-one offline capture can still tell a litre
+                // price from a volume on an unmarked receipt.
+                .copy("Extraction/FuelPriceBands.seed.json"),
                 // Bundled payload JSON Schemas (docs/SCHEMA.md -> Payload
                 // schemas). The per-car archive reader validates every payload
                 // against the registered contract before it imports anything;

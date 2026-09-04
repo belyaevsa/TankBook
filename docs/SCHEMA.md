@@ -628,6 +628,22 @@ outlier must still save: the corpus contains AI-100 at 450 RUB/L during a region
 which any "sensible" band would have called impossible. If a value sits outside every band,
 that is not an error state – at most it is a quiet hint, never a block (`ERRORS.md`).
 
+**Three client-side edges of the ladder, each an abstention, not a guess (RV.48 stage two,
+2026-09-04):**
+
+- **An unknown fuel kind means no band.** The fuel-kind key is load-bearing (above), so a pair
+  whose kind OCR did not detect cannot be safely fed a petrol band – that is the same swap the
+  key prevents. No currency-only fallback: it would swap an LPG fill exactly when the key is
+  most needed.
+- **The fallback resolves only a SOLE operand pair.** Steps 3/4 apply to the fuel line. On a
+  mixed receipt the first operand pair is often a non-fuel item (`69.28 X 1` for a service
+  ahead of the fuel `43.38 X 38.28` on receipt-025), so with more than one unmarked pair the
+  parser cannot know which is fuel and abstains rather than store a service item as the
+  fill-up (hard rule 13).
+- **A missing receipt date uses the most recent period's band.** A nil date usually means a
+  degraded print; the most recent band is the widest, so this errs toward abstention. When the
+  date IS present it is always the receipt's own, never today's.
+
 - **Served as** `GET /reference/fuel-price-bands` (public, ETag, CDN-cacheable), and shipped
   as a bundled seed pack so day-one offline capture has a fallback. Rides the existing
   reference-pack mechanism (`ConfigDocument.ReferencePacks`, `CONFIG.md`), so it updates

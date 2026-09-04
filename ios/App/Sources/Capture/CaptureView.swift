@@ -258,7 +258,10 @@ struct CaptureView: View {
         reviewSubject = nil
         Task {
             defer { isProcessing = false }
-            let prefill = await CapturePipeline.process(image, source: .receipt)
+            let vehicle = try? currentVehicle()
+            let prefill = await CapturePipeline.process(
+                image, source: .receipt,
+                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
             activeSheet = .scanned(prefill)
         }
     }

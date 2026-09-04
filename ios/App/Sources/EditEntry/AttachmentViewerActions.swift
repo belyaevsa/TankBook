@@ -105,7 +105,9 @@ extension AttachmentViewerView {
         replaceFailed = false
         replaceProcessing = true
         Task {
-            let prefill = await CapturePipeline.process(image, source: .receipt)
+            let prefill = await CapturePipeline.process(
+                image, source: .receipt,
+                bandProvider: AppFuelPriceBand.provider(vehicleId: entry.vehicleId))
             let extraction = prefill.extraction ?? FuelExtraction()
             do {
                 let repository = try AppStore.repository()

@@ -21,11 +21,12 @@ enum CapturePipeline {
     /// which the Confirm sheet renders as the ordinary empty manual form, never
     /// an error and never a dead end (hard rule 15).
     @MainActor
-    static func process(_ image: UIImage, source: ExtractionSource) async -> ConfirmPrefill {
+    static func process(_ image: UIImage, source: ExtractionSource,
+                        bandProvider: (any FuelPriceBandProvider)? = nil) async -> ConfirmPrefill {
         let assembly: CaptureAssembly
         let lines: [OCRLine]
         if let box = image.cgImage.map(CGImageBox.init) {
-            (assembly, lines) = await recognize(box: box, source: source)
+            (assembly, lines) = await recognize(box: box, source: source, bandProvider: bandProvider)
         } else {
             assembly = CaptureAssembly(extraction: FuelExtraction(), qrAnchor: nil, cropRects: [:])
             lines = []
@@ -43,7 +44,8 @@ enum CapturePipeline {
     /// OCR + QR detection + assembly, off the main actor: Vision recognition is
     /// CPU-bound and must never block the UI. Only Sendable values cross.
     private static func recognize(box: CGImageBox,
-                                  source: ExtractionSource) async -> (CaptureAssembly, [OCRLine]) {
+                                  source: ExtractionSource,
+                                  bandProvider: (any FuelPriceBandProvider)?) async -> (CaptureAssembly, [OCRLine]) {
         await Task.detached(priority: .userInitiated) {
             let cgImage = box.image
             let lines = (try? VisionTextRecognizer.recognizeText(image: cgImage,
@@ -51,7 +53,8 @@ enum CapturePipeline {
             let qrPayload = CaptureQRDetector.detectPayload(in: cgImage)
             let assembly = ExtractionAssembler.assemble(lines: lines,
                                                         qrPayload: qrPayload,
-                                                        source: source)
+                                                        source: source,
+                                                        bandProvider: bandProvider)
             return (assembly, lines)
         }.value
     }

@@ -23,13 +23,19 @@ public struct FuelExtractor: Sendable {
         // would delete the evidence the gate runs on.
         result.currency = CurrencyDetection.detect(in: lines)
         result.date = detectDate(lines)
+        // RV.48: the band is era-keyed (docs/SCHEMA.md -> Fuel price bands),
+        // so the ladder needs the receipt's own date, never today's. The date
+        // string `detectDate` produced is parsed once here and handed down;
+        // a nil date (no date printed, or one the regex did not match) is a
+        // plain absence - the band provider then applies its most recent period.
+        let parsedDate = result.date.flatMap { ConfirmDate.parse($0) }
         let candidates = ReceiptNoiseFilter.candidateLines(lines)
         if source != .pump {
             result.fuelKind = detectFuelKind(candidates)
         }
 
         let volumePrice = resolveVolumeAndPrice(
-            candidates, currency: result.currency, fuelKind: result.fuelKind, date: nil
+            candidates, currency: result.currency, fuelKind: result.fuelKind, date: parsedDate
         )
         result.liters = volumePrice.liters
         // Money is born Decimal here (P2.2b), never Decimal(Double).
@@ -113,7 +119,14 @@ public struct FuelExtractor: Sendable {
             return resolveOperands(fuel.pair, at: fuel.index, in: lines,
                                    discounted: discounted, context: context)
         }
-        if let (pair, index) = OperandPair.first(in: lines) {
+        // Step 3/4 fallback: the only unmarked operand pair. `OperandPair.first`
+        // is NOT used here - on a mixed receipt the first pair is often a
+        // non-fuel item (receipt-025 prints a service `69.28 X 1` ahead of the
+        // fuel `43.38 Х 38.28`), and resolving that as the fill-up is a
+        // confident wrong value (hard rule 13). With more than one unmarked
+        // pair the parser cannot know which is fuel, so it abstains rather than
+        // guess which line to read.
+        if let (pair, index) = OperandPair.single(in: lines) {
             let discounted = lines[index].text.uppercased().contains("СКИДК")
             return resolveOperands(pair, at: index, in: lines, discounted: discounted, context: context)
         }
@@ -409,6 +422,22 @@ struct OperandPair {
             }
         }
         return nil
+    }
+
+    /// The one and only operand pair in the document, or nil when there are
+    /// none or several. Used by the band's fallback: a pair the parser knows is
+    /// the sole operand is the fuel line by elimination, but with two unmarked
+    /// pairs (a mixed receipt's service ahead of the fuel, receipt-025) it
+    /// cannot tell which is fuel and must abstain rather than resolve the first
+    /// one as the fill-up.
+    static func single(in lines: [OCRLine]) -> (OperandPair, Int)? {
+        var found: (OperandPair, Int)?
+        for (index, line) in lines.enumerated() {
+            guard let pair = OperandPair(line: line.text) else { continue }
+            if found != nil { return nil }
+            found = (pair, index)
+        }
+        return found
     }
 
     /// The FUEL line: the operand pair carrying a volume marker on either

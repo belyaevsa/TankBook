@@ -16,7 +16,7 @@ import Vision
 // here: the receipt fixtures go through `GatewayRendition` (long edge 1600 px,
 // quality 0.7 - the exact step the app runs before upload), then OCR + the
 // parser, then `CorpusScorer` at the existing tolerance. Hits may not fall
-// below the recorded mark (receipts 138/210, the SAME as the uncompressed
+// below the recorded mark (receipts 158/210, the SAME as the uncompressed
 // score the ratchet measures - the resize is not lossy for this parser).
 // This is what stops "make the upload faster" from quietly becoming "read the
 // receipt worse".
@@ -37,7 +37,7 @@ struct CorpusCompressionTests {
     /// The recorded high-water mark for receipts - the number the uncompressed
     /// ratchet measures (Spike/ReceiptSpike/fixtures/high-water.json). The
     /// compression step must not move it.
-    private static let recordedReceipts = (hits: 138, total: 210)
+    private static let recordedReceipts = (hits: 158, total: 210)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {
@@ -45,7 +45,10 @@ struct CorpusCompressionTests {
         let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
         let images = try CorpusScorer.imageFilenames(in: folder)
 
-        let extractor = FuelExtractor()
+        // Same injected band as the uncompressed ratchet - the compression step
+        // is scored against the parser the app runs, not a bare extractor.
+        let pack = try FuelPriceBandStore.bundledPack()
+        let extractor = FuelExtractor(bandProvider: DefaultFuelPriceBandProvider(pack: pack))
         var records: [String: ExtractionRecord] = [:]
         var compressed = 0
         for image in images {

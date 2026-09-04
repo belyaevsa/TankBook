@@ -181,7 +181,14 @@ struct CorpusAccuracyGateTests {
             .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
 
-        let extractor = FuelExtractor()
+        // The scorer injects the bundled band pack - a corpus fixture has no
+        // user history (a fresh device, no prior fill-ups), so ladder step 3
+        // yields nothing and the recorded number is the parser running with the
+        // same curated band the app ships. Without this the scorer measures a
+        // parser the app never runs - the same argument the `source: .pump`
+        // branch below already makes for the pump class.
+        let pack = try FuelPriceBandStore.bundledPack()
+        let extractor = FuelExtractor(bandProvider: DefaultFuelPriceBandProvider(pack: pack))
         var records: [String: ExtractionRecord] = [:]
         for image in images {
             guard expected[image.lastPathComponent] != nil else { continue }
