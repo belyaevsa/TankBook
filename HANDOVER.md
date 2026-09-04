@@ -114,12 +114,21 @@ Worth reading in order, because each one hid the next and no test saw any of the
    published later that day could never replace it. Found from a single query the product owner ran:
    29 of 34 rows for 2026-09-03 were `ecb:carried-forward`, all holding the 2nd's rates.
 
-**Still open: `RV.32`.** A foreign entry dated before 2026-09-03 **can never** resolve its home
-amount - there is no CIS history at all before that date, `RatesJobService` only ever fetches
-`today`, and `CarryForwardAsync` fills forward and never backwards. Demand-driven backfill, keyed on
+**Closed by `RV.32` (2026-09-03):** a foreign entry dated before that day could never resolve its
+home amount - no CIS history existed, `RatesJobService` only ever fetched `today`, and
+`CarryForwardAsync` fills forward, never backwards. The fix is a demand-driven backfill keyed on
 `GET /v1/rates/pack?from=&to=`, with a **14-day** carry-back window - and 14 is measured, not chosen:
 CBR's New Year gap runs `31.12.2025` to `13.01.2026`, thirteen days, so a 7-day window would leave
 six days of January unresolved in RUB.
+
+**But the backfill is not finished: see `RV.50`.** Production shows it draining a full 50-date batch
+every five minutes with `Published=0 CarriedForward=0 SourcesFailed=0`, for twenty consecutive passes
+including windows with no device traffic - it enqueues, does nothing, settles, and is re-enqueued.
+The suspected cause is a predicate mismatch: `RecordRequestAsync` enqueues when **any** feed family
+lacks a row, while `BackfillDatesAsync` skips a feed that **already has** one, so a date one feed
+covers and another never will is pending forever. **The cost is DB churn, not money - but
+`rates.backfill` is now useless as a health signal**, because the line looks identical whether the
+system is healthy or wedged.
 
 ## The device was pushing its own records back forever, on two paths (2026-09-03)
 
@@ -140,16 +149,33 @@ green.
 
 ## What is waiting on the product owner
 
-- **`RV.33`/`RV.34`** - recording every LLM call in a table **reverses a signed-off decision**:
-  `CLAUDE.md` rule 9 says `/extract` never stores an image and calls the asymmetry with
-  `/import/parse` deliberate. Storage shape is agreed (S3 + references, content purged on account
-  delete, references kept); the **rule amendment is not yet made**, and it belongs in the same commit
-  as the migration.
-- **`RV.23`** - shipped but its row is open on purpose: its two UI suites were run by the agent and
-  never re-run here.
-- **`RV.6`** - `/v1/account/devices` polled four times in 14 seconds; untouched since it was filed.
-- **`RV.38`** - notification inbox (bell icon), registered but not yet briefed - depends on `RV.33`
-  for durability and its placement collides with `RV.22`'s chip layout, so it is blocked behind both.
+*(Refreshed 2026-09-04. Everything previously listed here - `RV.33`/`RV.34`'s rule-9 amendment,
+`RV.23`, `RV.6`, `RV.38` - has since shipped and been verified.)*
+
+- **`RV.51`** - the cloud read measures **12-36 s against a 3 s budget**, so the late answer is the
+  normal path, not the edge case the design assumed. That makes the inbox the **primary** receipt
+  experience rather than a fallback. Three directions - accept it and polish the inbox, make the
+  cloud fast enough to matter, or raise the budget deliberately - and the choice is a product one.
+- **`RV.54`** - "N devices" counts revoked devices, because `GET /account/devices` returns them
+  marked rather than omitted. So revoking a device changes nothing on screen and the user concludes
+  it failed. Decide what the number means: live devices, a relabel, or "2 devices, 1 revoked".
+- **`SH.3`** - the launch-readiness walk on a real device. **Only a human can do it**, and with
+  `T.3` it is one of only two things gating v1.
+
+## What is open and actionable (2026-09-04)
+
+- **`RV.53`** - briefed, not dispatched. A live defect: an unguarded `PutObjectAsync` sits on the
+  critical path *after* the metered provider call, so an S3 outage destroys a recognition the user
+  already paid for **and burns their quota**. A regression `RV.33` introduced - before the ledger, a
+  storage outage could not touch `/extract`.
+- **`RV.50`**, **`RV.52`** - dispatched. `RV.52`'s acceptance is re-enabling `RV.49`'s rotated-fixture
+  test, which is currently the only honest proof that camera orientation reaches Vision and cannot
+  run in CI.
+- **`RV.43`** - briefed. A Trends test that fails the 1st-6th of every month; it will go red again on
+  **1 October** whatever else changes.
+- **`RV.48`** - deferred by the product owner. Worth re-weighing: `RV.51` makes the persisted role
+  assignment more valuable than when it was filed, and the "What was read" viewer keeps showing raw
+  OCR soup - merchant registration and VAT numbers included - until it lands.
 
 ## Two more things this session's parallel dispatch taught (2026-09-03 evening)
 
@@ -408,11 +434,17 @@ is usually the machine trains you to re-run instead of read.
 > the orchestrator ticks at merge. Resolving that file by side silently un-ticks somebody else's
 > task.
 >
-> **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28). A
-> `Monitor` watching `pgrep -x opencode` for a shrinking pid set fires the moment an agent exits.
-> **Emit only on the TRANSITION, never on the state** - a first version of this re-announced "all
-> agents idle" every 45 s once the last one finished, which is noise that trains you to ignore the
-> monitor. Fire once when a pid disappears, and say nothing while nothing changes.
+> **Arm a monitor immediately after every dispatch** (standing instruction, 2026-08-28) - and
+> **watch that dispatch's OWN pid**, captured from `$!` at launch:
+> `while kill -0 <pid> 2>/dev/null; do sleep 15; done`.
+> **Do NOT watch `pgrep -x opencode` for a shrinking pid set.** That was the instruction until
+> 2026-09-04, and it breaks the moment anything else on the machine runs opencode: a second Claude
+> session was working in this checkout, so the global count rose and fell on *their* schedule and the
+> monitor announced three exits while my agent was still running. A count is not an identity.
+> `pgrep -f "<title>"` is not the fix either - `-f` matches any process whose arguments merely
+> contain the text, which is how an agent killed a sibling on 2026-08-24.
+> **Emit only on the TRANSITION, never on the state** - a first version re-announced "all agents
+> idle" every 45 s once the last one finished, which is noise that trains you to ignore the monitor.
 > Without one you discover completions by asking, which cost real time repeatedly on 2026-08-27 -
 > agents sat finished for twenty minutes while lanes stood idle. Re-arm it after each dispatch,
 > because a one-shot waiter dies with the event it was waiting for.
