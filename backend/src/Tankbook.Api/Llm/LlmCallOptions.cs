@@ -1,9 +1,11 @@
 namespace Tankbook.Api.Llm;
 
 /// <summary>
-/// LLM call-ledger configuration (docs/SECURITY.md "LLM call ledger"). Bound
-/// from the "LlmCalls" configuration section; environment variables use the
-/// LlmCalls__RetentionDays, LlmCalls__PurgeIntervalMinutes form.
+/// LLM call-ledger configuration (docs/SECURITY.md "LLM call ledger" and "The
+/// ledger write queue"). Bound from the "LlmCalls" configuration section;
+/// environment variables use the LlmCalls__RetentionDays,
+/// LlmCalls__PurgeIntervalMinutes, LlmCalls__RetryIntervalMinutes and
+/// LlmCalls__MaxRetryAttempts form.
 /// </summary>
 public sealed class LlmCallOptions
 {
@@ -22,7 +24,25 @@ public sealed class LlmCallOptions
     /// <summary>How often the background purge job runs a pass. Hourly by default.</summary>
     public int PurgeIntervalMinutes { get; set; } = 60;
 
+    /// <summary>
+    /// The base interval of the ledger write queue's retry pass (RV.53), and the
+    /// first backoff step. A row that could not be inserted synchronously is
+    /// retried this soon, then at doubling intervals up to the give-up bound.
+    /// </summary>
+    public int RetryIntervalMinutes { get; set; } = 10;
+
+    /// <summary>
+    /// How many times the retry pass attempts a queued ledger row before giving
+    /// up. The give-up is a defined outcome (docs/SECURITY.md "The ledger write
+    /// queue"): the row is dropped and a shape-only Warning names the loss -
+    /// never an infinite retry, and never a failure surfaced to the user whose
+    /// paid call it records.
+    /// </summary>
+    public int MaxRetryAttempts { get; set; } = 6;
+
     public TimeSpan RetentionPeriod => TimeSpan.FromDays(RetentionDays);
 
     public TimeSpan PurgeInterval => TimeSpan.FromMinutes(PurgeIntervalMinutes);
+
+    public TimeSpan RetryInterval => TimeSpan.FromMinutes(RetryIntervalMinutes);
 }

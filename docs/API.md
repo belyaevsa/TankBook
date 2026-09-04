@@ -362,6 +362,15 @@ in a column. The row's content is purged on `DELETE /account` and after 30 days;
 (the spend ledger, including `accountId`) survives. There is no endpoint that reads the ledger.
 Status codes: `400` unknown `kind` or missing/undecodable `image`; `413` base64 image over the 4 MB cap (enforced at the envelope, before the provider is called); `502` provider failure (not metered – a failed call never bills, and the client falls back to the on-device result). A low-confidence field is returned as a value plus a low confidence – never dropped, which would silently turn "uncertain" into "absent".
 
+**The audit write is off the critical path of the answer (amended 2026-09-04, RV.53).** A
+storage outage must not destroy a recognition the user already paid for. The ledger row is
+written synchronously and a failure to write it can no longer fail the request: the rendition
+blob is best-effort (a blob-store outage drops the rendition, records the row without it, and
+the request still returns the extraction), and a row whose insert fails is queued
+(`llm_ledger_pending`, `docs/SECURITY.md` "The ledger write queue") for a bounded retry instead
+of thrown. The provider-failure `502` is unaffected and is never masked by a coincident storage
+outage. A queue holds ledger rows, never images.
+
 #### The device's side of `/extract` (normative)
 
 The endpoint is only half the contract. Two device-side rules are part of it, because the server

@@ -126,6 +126,12 @@ event name made every request line identical.
 | `blob.begin` / `blob.commit` | sha256, sizeBytes, contentType, `dedupe: hit\|miss`, quotaUsedPct |
 | `blob.get` | sha256, `presignTtlSec` – never the signed URL |
 | `llm.extract` | kind, quotaBefore/After, model, durationMs, outcome. **Never the image, never the extracted values.** |
+| `llm.rendition_failed` | accountId, outcome (Warning) – the ledger's prompt rendition could not be written to blob storage; the row still recorded the call WITHOUT it (RV.53, handled degradation) |
+| `llm.call_queued` | accountId, outcome (Warning) – the ledger row insert failed and the row was queued for a bounded retry (`llm_ledger_pending`, RV.53) |
+| `llm.call_unrecorded` | accountId, outcome (Error) – a paid call's ledger row could not be written anywhere (insert AND queue write both failed); the spend record is lost |
+| `llm.call_retry_dropped` | accountId, outcome, attempts (Warning) – a queued ledger row exhausted its retry bound and was dropped; the defined give-up outcome (RV.53) |
+| `llm.call_retry_landed` | landed (a count) – the retry pass wrote queued ledger rows into `llm_calls` |
+| `llm.pending_purge` | purged (a count) – the retention pass dropped pending rows past the 30-day cutoff |
 | `migration.ddl` | version, direction, durationMs |
 | `migration.payload` | entityType, fromVersion→toVersion, rowsScanned, rowsRewritten, batches, durationMs |
 | `feedback.accepted` | id, category, **textLength**, hasReplyTo, hasDeviceModel, hasAccount – shape only. **Never the text, never `replyTo`, never `deviceModel`**: the user wrote that text and `replyTo` is contact data, so all three are Never-class (hard rule 12). Pinned by a `RedactionTests` case - the mutation that proves it logs the text and watches the sweep fail naming the leaked value |

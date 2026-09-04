@@ -31,11 +31,23 @@ public sealed class RecordingBlobStorage : IBlobStorage
     /// <summary>The raw bytes held for each key (import files and results).</summary>
     public IReadOnlyDictionary<string, byte[]> ByteObjects => _bytes;
 
+    /// <summary>
+    /// When set, <see cref="PutObjectAsync"/> throws before writing - simulates
+    /// the blob store being unavailable (RV.53's storage-outage tests). Off by
+    /// default, so no existing test changes.
+    /// </summary>
+    public bool FailPutObject { get; set; }
+
     /// <summary>Seeds an object into storage (the "client PUTs the bytes" step, done by the test).</summary>
     public void Put(string key, long size) => _objects[key] = size;
 
     public Task PutObjectAsync(string key, byte[] bytes, string contentType, CancellationToken cancellationToken)
     {
+        if (FailPutObject)
+        {
+            throw new InvalidOperationException("blob store unavailable");
+        }
+
         _objects[key] = bytes.Length;
         _bytes[key] = bytes;
         return Task.CompletedTask;

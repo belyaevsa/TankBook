@@ -36,6 +36,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         "llm_settings",
         "llm_models",
         "llm_calls",
+        "llm_ledger_pending",
         "delivery_outbox",
     };
 
@@ -64,7 +65,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(19, applied.Single());   // 020 added the answered-state ledger
+        Assert.Equal(20, applied.Single());   // 021 added the ledger write queue
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -103,6 +104,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("llm_settings", tables);
         Assert.DoesNotContain("llm_models", tables);
         Assert.DoesNotContain("llm_calls", tables);
+        Assert.DoesNotContain("llm_ledger_pending", tables);
         Assert.DoesNotContain("delivery_outbox", tables);
 
         var remaining = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
@@ -486,6 +488,55 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         Assert.Equal(0, await db.QuerySingleAsync<int>(
             "SELECT count(*) FROM information_schema.tables WHERE table_name = 'rate_backfill_answered'"));
         Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '020'"));
+    }
+
+    [SkippableFact]
+    public async Task Migration021_AppliesAndRollsBack()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // The ledger write queue exists after apply, with the due-scan,
+        // retention-scan and account-purge indexes.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_ledger_pending'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_llm_ledger_pending_due'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_llm_ledger_pending_created'"));
+        Assert.Equal(1L, await db.ExecuteScalarAsync<long>(
+            "SELECT count(*) FROM pg_indexes WHERE indexname = 'idx_llm_ledger_pending_account'"));
+
+        // A row round-trips (a minimal ledger row, the queue's own columns).
+        var accountId = Guid.NewGuid();
+        await db.ExecuteAsync(
+            "INSERT INTO accounts (id, email) VALUES (@account, 'pending@example.com')",
+            new { account = accountId });
+        await db.ExecuteAsync(
+            """
+            INSERT INTO llm_ledger_pending
+                (id, account_id, device_id, kind, model_id, vendor, outcome, category,
+                 prompt_tokens, completion_tokens, thinking_enabled,
+                 input_price_per_token, output_price_per_token, cost, currency, duration_ms)
+            VALUES
+                (gen_random_uuid(), @account, NULL, 'receipt', 'test-model', 'test-vendor',
+                 'ok', 'success', 100, 50, false, 0.0000025, 0.00001, 0.00075, 'USD', 123)
+            """,
+            new { account = accountId });
+        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_ledger_pending"));
+
+        // The account foreign key cascades: deleting the account removes the row.
+        await db.ExecuteAsync("DELETE FROM accounts WHERE id = @account", new { account = accountId });
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_ledger_pending"));
+
+        await SchemaMigrator.RollbackAsync(db);
+
+        Assert.Equal(0, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM information_schema.tables WHERE table_name = 'llm_ledger_pending'"));
+        Assert.Equal(0, await db.QuerySingleAsync<int>("SELECT count(*) FROM schema_migrations WHERE version = '021'"));
     }
 
     [SkippableFact]
