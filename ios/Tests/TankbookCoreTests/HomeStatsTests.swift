@@ -84,6 +84,36 @@ struct HomeStatsTests {
         #expect(stats.bestThisYear == nil)
     }
 
+    /// RV.43: the single-fill SEED date must survive the 1st-6th of a month.
+    /// `monthSpend` counts only entries inside `asOf`'s calendar month, and a
+    /// relative "6 days ago" date crosses the boundary early in a month - so
+    /// the spend tile the D4 state exists to show vanished on those days. The
+    /// seed pins the fill to the start of the month it runs in; that date is
+    /// inside the window on ANY run date, including the 1st.
+    @Test func singleFillSeedPinnedToMonthStartCountsOnTheFirst() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        // A run on the 1st shortly after midnight: `asOf` here is "now".
+        let firstOfMonth = calendar.date(
+            from: DateComponents(year: 2025, month: 7, day: 1, hour: 0, minute: 30))!
+        let monthStart = calendar.dateInterval(of: .month, for: firstOfMonth)!.start
+
+        // The fix: the fill sits on the month's start - inside the window.
+        let pinned = Self.fill(date: monthStart, odometer: 118_000, litres: 42, isFull: true)
+        let fixed = HomeStats(vehicle: Self.vehicle(), entries: [pinned],
+                              asOf: firstOfMonth, calendar: calendar)
+        #expect(fixed.monthSpend != nil,
+                "a fill pinned to the 1st must count towards that month's spend")
+
+        // The old seed: `daysAgo: 6` from the 1st lands in the PREVIOUS month.
+        let drifted = Self.fill(date: firstOfMonth - 6 * Self.day,
+                                odometer: 118_000, litres: 42, isFull: true)
+        let broken = HomeStats(vehicle: Self.vehicle(), entries: [drifted],
+                               asOf: firstOfMonth, calendar: calendar)
+        #expect(broken.monthSpend == nil,
+                "6 days before the 1st is last month - the spend tile would vanish (RV.43)")
+    }
+
     @Test func partialFillAloneDoesNotClaimD4Hint() {
         // No full tank yet: the "one more full tank" hint would be a lie.
         let partial = Self.fill(date: Self.asOf - 2 * Self.day, odometer: 118_000,

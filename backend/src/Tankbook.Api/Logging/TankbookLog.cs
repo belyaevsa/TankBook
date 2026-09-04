@@ -224,6 +224,59 @@ public static class TankbookLog
         => Emit(logger, LogLevel.Information, "llm.call_purge",
             ("Purged", purged));
 
+    /// <summary>
+    /// The prompt rendition could not be written to blob storage (RV.53). The
+    /// ledger row still records the call - WITHOUT the rendition - and the
+    /// request still answers, so this is handled degradation (Warning). Shape
+    /// only: the account id and an outcome code, never the image (hard rule 12).
+    /// </summary>
+    public static void LlmCallRenditionFailed(ILogger logger, Guid accountId, string outcome)
+        => Emit(logger, LogLevel.Warning, "llm.rendition_failed",
+            ("AccountId", accountId),
+            ("Outcome", outcome));
+
+    /// <summary>
+    /// The ledger row insert failed and the row was queued for a bounded retry
+    /// (RV.53, llm_ledger_pending). Handled degradation - the audit will land
+    /// if the retry succeeds. Shape only (hard rule 12).
+    /// </summary>
+    public static void LlmCallQueued(ILogger logger, Guid accountId, string outcome)
+        => Emit(logger, LogLevel.Warning, "llm.call_queued",
+            ("AccountId", accountId),
+            ("Outcome", outcome));
+
+    /// <summary>
+    /// A paid call's audit record could not be written anywhere - the row insert
+    /// failed AND the queue write failed, so the ledger row is lost. Data
+    /// integrity is at risk (the spend of a real call has no record), so this is
+    /// Error. Shape only (hard rule 12).
+    /// </summary>
+    public static void LlmCallUnrecorded(ILogger logger, Guid accountId, string outcome)
+        => Emit(logger, LogLevel.Error, "llm.call_unrecorded",
+            ("AccountId", accountId),
+            ("Outcome", outcome));
+
+    /// <summary>
+    /// A queued ledger row exhausted its retry bound and was dropped (RV.53,
+    /// the defined give-up outcome). The row is gone; this Warning is what makes
+    /// the loss visible rather than silent. Shape only (hard rule 12).
+    /// </summary>
+    public static void LlmCallRetryDropped(ILogger logger, Guid accountId, string outcome, int attempts)
+        => Emit(logger, LogLevel.Warning, "llm.call_retry_dropped",
+            ("AccountId", accountId),
+            ("Outcome", outcome),
+            ("Attempts", attempts));
+
+    /// <summary>The retry pass wrote queued ledger rows into llm_calls. Count only (hard rule 12).</summary>
+    public static void LlmCallRetryLanded(ILogger logger, int landed)
+        => Emit(logger, LogLevel.Information, "llm.call_retry_landed",
+            ("Landed", landed));
+
+    /// <summary>The ledger-write queue's retention pass dropped some pending rows that never landed (docs/SECURITY.md). Count only (hard rule 12).</summary>
+    public static void LlmPendingPurge(ILogger logger, int purged)
+        => Emit(logger, LogLevel.Information, "llm.pending_purge",
+            ("Purged", purged));
+
     /// <summary>A gateway result could not be delivered and was queued for the device (docs/SECURITY.md "The delivery outbox"). Ids and a byte count only - never a payload (hard rule 12).</summary>
     public static void OutboxEnqueue(ILogger logger, Guid accountId, Guid deviceId, int payloadBytes)
         => Emit(logger, LogLevel.Information, "outbox.enqueue",

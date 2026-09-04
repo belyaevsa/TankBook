@@ -513,6 +513,78 @@ final class HomeUITests: XCTestCase {
                              + "odometer at \(odometer.frame.minY), date at \(date!.frame.minY)")
     }
 
+    // MARK: - RV.61 the manual door (Service and Expense without the camera)
+
+    /// RV.61 (hard rule 15): from Home, with no camera involved, reach a SAVED
+    /// Service record. The assertion is the saved record afterwards - never that
+    /// a sheet appeared (a sheet always could be presented; nothing user-facing
+    /// presented it before RV.61, which is the bug).
+    func testManualDoorSavesServiceFromHome() {
+        let app = launch(args: ["-seedHomeEmptyVehicle"])
+
+        // The header "Type it" is a split control: the button is the fill-up
+        // door, the chevron menu lists the other entry types.
+        let menu = app.buttons["typeItMenu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        let service = app.buttons["Service"]
+        XCTAssertTrue(service.waitForExistence(timeout: 5), "the menu must offer Service")
+        service.tap()
+
+        // The ServiceEntry form opens; add a titled line item and save.
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 5))
+        app.buttons["serviceEntryAddItemButton"].tap()
+        let title = app.textFields["serviceEntryItemTitle"].firstMatch
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        title.tap()
+        title.typeText("Oil service")
+
+        app.buttons["serviceEntrySaveButton"].tap()
+
+        // The saved service renders in the log (vendor empty -> "Service").
+        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 10),
+                      "the saved service must appear in the log")
+    }
+
+    /// RV.61: the Expense half - a SAVED Expense record from Home, no camera.
+    func testManualDoorSavesExpenseFromHome() {
+        let app = launch(args: ["-seedHomeEmptyVehicle"])
+
+        let menu = app.buttons["typeItMenu"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10))
+        menu.tap()
+        let expense = app.buttons["Expense"]
+        XCTAssertTrue(expense.waitForExistence(timeout: 5), "the menu must offer Expense")
+        expense.tap()
+
+        XCTAssertTrue(app.textFields["expenseEntryTitleField"].waitForExistence(timeout: 5))
+        let title = app.textFields["expenseEntryTitleField"]
+        title.tap()
+        title.typeText("Parking")
+
+        let amount = app.textFields["expenseEntryAmountField"]
+        amount.tap()
+        amount.typeText("6.00")
+
+        app.buttons["expenseEntrySaveButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["Parking"].waitForExistence(timeout: 10),
+                      "the saved expense must appear in the log")
+    }
+
+    /// RV.61: the fill-up "Type it" path costs no additional taps - the primary
+    /// action still opens the fill-up form in one interaction (hard rule 15: the
+    /// commonest entry must never get slower).
+    func testTypeItStillOpensFillUpInOneTap() {
+        let app = launch(args: ["-seedHomeEmptyVehicle"])
+
+        let button = app.buttons["typeItButton"]
+        XCTAssertTrue(button.waitForExistence(timeout: 10))
+        button.tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 5),
+                      "one tap on the primary must reach the fill-up form")
+    }
+
     // MARK: - Helpers
 
     private func textContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {

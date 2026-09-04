@@ -80,12 +80,23 @@ enum HomeTestSeed {
     }
 
     /// The D4 state: a car, one full tank logged, no segment closed yet.
+    ///
+    /// The fill is pinned to the 1st of the current month, never a relative
+    /// "days ago" (RV.43): `monthSpend` only counts entries inside `asOf`'s
+    /// calendar month (HomeStats.monthSpend), so a `daysAgo: 6` date crosses
+    /// the boundary on the 1st-6th of a month and the spend tile this state
+    /// exists to show silently vanishes - the Trends "single fill" test failed
+    /// on exactly those days. The 1st is the latest date that can never cross,
+    /// and it is always in the past (equal to today only when run on the 1st).
     private static func seedSingleFill(_ repository: TankbookRepository) {
         let vehicle = makeVehicle()
         try? repository.upsertVehicle(vehicle)
+        let monthStart = Calendar.current.dateInterval(of: .month, for: Date())?.start
+            ?? Date()
         let fill = makeFill(vehicleID: vehicle.id,
                             FillSpec(daysAgo: 6, odometer: 118_000, litres: 42.3,
-                                     amount: "71.02", price: "1.679", stationID: nil))
+                                     amount: "71.02", price: "1.679", stationID: nil),
+                            date: monthStart)
         try? repository.upsertFillUp(fill)
     }
 

@@ -94,4 +94,18 @@ extension FuelExtractor {
         let modes = counts.filter { $0.value == maxCount }.map(\.key)
         return modes.count == 1 ? modes[0] : nil
     }
+
+    /// Whether a value is printed more than once among the candidate value
+    /// lines. A labelled total the receipt repeats is the total; one printed
+    /// once, while another value is repeated, is the net-versus-gross shape.
+    func isRepeatedValue(_ value: Double, in lines: [OCRLine]) -> Bool {
+        var count = 0
+        for line in ReceiptNoiseFilter.candidateLines(lines) {
+            guard NumberScanner.isValueLine(line.text),
+                  !isSubtractionLine(line.text),
+                  let other = NumberScanner.value(in: line.text) else { continue }
+            if abs(other - value) < 0.005 { count += 1 }
+        }
+        return count > 1
+    }
 }

@@ -28,14 +28,14 @@ into one is still caught.
 
 Two structural helps: the server *cannot* accidentally log domain fields because it never parses `payload` – the rule is simply **never log `payload`**; and on iOS, OSLog interpolation is `.private` by default, so a field only becomes visible if someone deliberately marks it `.public`.
 
-**Email** is logged as a stable salted hash (`acct_9f2c…`), never plaintext – enough to correlate a support request, useless in a leak.
+**Email** is Sensitive and never logged plaintext. If one reaches the pipeline with no account context – a stray `Email` property on a logged object – the redactor masks it as a **salted `emailHash`** (`acct_9f2c…`) under its *own* key. That mask is deliberately **not** the account identifier: the redactor has no account id to hash, only the address, so an email-derived value can never join a support lookup. It is therefore never written under `accountHash`, which means the salted hash of the **account id** (§2). Before RV.63 an email hash and an account-id hash both answered to `accountHash`, so two lines about one account did not join – one log field carried two values that could not be compared.
 
 ## 2 · Correlation: one thread through both tiers
 
 - The **client generates a `traceId`** (UUIDv7) per API request and sends it as `X-Tankbook-Trace`. One id per **logical** request: redirect hops and a 401-refresh replay keep the same id, two calls never share one. The client stamps the header (and the app headers below) at the single chokepoint inside `TankbookHTTPClient`, so no owner can miss it.
 - Every request also carries **`X-Tankbook-App: <version>+<build>`** (marketing version + `CFBundleVersion`, `1.0.0+1` today), **`X-Tankbook-Platform`** (`ios`) and **`X-Tankbook-Schema-Version`** (the client's payload contract version). A support report therefore says which build produced the line.
 - The **server echoes the traceId** in every log line for that request, in the `X-Tankbook-Trace` response header on success, and in the `problem+json` body of any error. Known behaviour: on an unhandled 500 the framework's exception handler calls `Response.Clear()`, which wipes the response header – so on that path the body is the only carrier. **On a non-2xx the client reads the `traceId` from the body onto the thrown error**, so the error handler (and the diagnostics bundle) always has it. The server's own fallback when the header is absent is also a UUIDv7.
-- The server **pushes `clientVersion`, `clientPlatform`, `accountHash`, `deviceId`, `schemaVersion` into the log scope** for every request (PR.8): `clientVersion`/`clientPlatform`/`schemaVersion` come from the headers above, `deviceId` from the bearer token, and `accountHash` on an authenticated request is the **salted hash of the account id** – the JWT carries the account id, not the email, so the scope hash is over that (a stable, salted identifier that still joins a support lookup; the email-based hash still appears on `auth.session`). Public routes carry the client fields and leave `accountHash`/`deviceId` null.
+- The server **pushes `clientVersion`, `clientPlatform`, `accountHash`, `deviceId`, `schemaVersion` into the log scope** for every request (PR.8): `clientVersion`/`clientPlatform`/`schemaVersion` come from the headers above, `deviceId` from the bearer token. **`accountHash` is the salted hash of the account id – and it is the one identifier for one account everywhere an account is resolved (RV.63).** The JWT carries the account id, not the email, so the scope hash is over that; `auth.session` and `account.delete` hash the **same account id** now that the account is resolved at the point they log. One account therefore logs one value under `accountHash` on every line that names it, and any two lines about the same account join – the `auth.session` of a sign-in and the `sync.push` that follows it included. (Before RV.63 the session line hashed the email instead, so the same device logged two hashes of one account and a support lookup could not join them.) Public routes carry the client fields and leave `accountHash`/`deviceId` null; an email that reaches a payload with no account context is masked under the distinct `emailHash` key, never `accountHash` (§1).
 - The server's own version field is **`serverVersion`**, and its platform is `server` – distinct from the client's `clientVersion`/`clientPlatform`, so a line says both who served it and what called it.
 - A **`syncSessionId`** groups one pull→merge→push cycle across many requests.
 - The user-visible surface: when an error is shown from a failed request, the diagnostics bundle (§5) carries its traceId. A support message therefore maps to exact server lines without the user describing anything.
@@ -118,7 +118,7 @@ event name made every request line identical.
 
 | Event | Fields (all Safe class) |
 |---|---|
-| `auth.session` | provider (apple/google), outcome (created/matched/rejected), failureReason (invalid_signature / expired / clock_skew / revoked), accountHash on success. **Never the token.** |
+| `auth.session` | provider (apple/google), outcome (created/matched/rejected), failureReason (invalid_signature / expired / clock_skew / revoked), accountHash on success – the salted hash of the **account id**, the same value the follow-up request scope logs (RV.63). A rejected exchange logs no accountHash (no account was resolved – null is honest). **Never the token.** |
 | `auth.refresh` | outcome, rotation id, `reuse_detected: true` when a rotated token is replayed – this one is a **security event**, log at WARN and include deviceId |
 | `sync.push` | batchSize, accepted, conflicts, rejected, `assignedScnRange: [from,to]`, durationMs; and a compact per-item array of `{id, entityType, schemaVersion, outcome, errorCode?, pointer?}` – **ids and outcomes, never values** |
 | `sync.pull` | sinceScn, returned, nextSince, more, durationMs |
@@ -126,10 +126,16 @@ event name made every request line identical.
 | `blob.begin` / `blob.commit` | sha256, sizeBytes, contentType, `dedupe: hit\|miss`, quotaUsedPct |
 | `blob.get` | sha256, `presignTtlSec` – never the signed URL |
 | `llm.extract` | kind, quotaBefore/After, model, durationMs, outcome. **Never the image, never the extracted values.** |
+| `llm.rendition_failed` | accountId, outcome (Warning) – the ledger's prompt rendition could not be written to blob storage; the row still recorded the call WITHOUT it (RV.53, handled degradation) |
+| `llm.call_queued` | accountId, outcome (Warning) – the ledger row insert failed and the row was queued for a bounded retry (`llm_ledger_pending`, RV.53) |
+| `llm.call_unrecorded` | accountId, outcome (Error) – a paid call's ledger row could not be written anywhere (insert AND queue write both failed); the spend record is lost |
+| `llm.call_retry_dropped` | accountId, outcome, attempts (Warning) – a queued ledger row exhausted its retry bound and was dropped; the defined give-up outcome (RV.53) |
+| `llm.call_retry_landed` | landed (a count) – the retry pass wrote queued ledger rows into `llm_calls` |
+| `llm.pending_purge` | purged (a count) – the retention pass dropped pending rows past the 30-day cutoff |
 | `migration.ddl` | version, direction, durationMs |
 | `migration.payload` | entityType, fromVersion→toVersion, rowsScanned, rowsRewritten, batches, durationMs |
 | `feedback.accepted` | id, category, **textLength**, hasReplyTo, hasDeviceModel, hasAccount – shape only. **Never the text, never `replyTo`, never `deviceModel`**: the user wrote that text and `replyTo` is contact data, so all three are Never-class (hard rule 12). Pinned by a `RedactionTests` case - the mutation that proves it logs the text and watches the sweep fail naming the leaked value |
-| `account.delete` | accountHash, recordsPurged, blobsPurged, graceEndsAt |
+| `account.delete` | accountHash (the salted hash of the account id, RV.63), recordsPurged, blobsPurged, graceEndsAt |
 | `catalog.publish` | version, entries (a count), outcome (published/rejected), reason (schema_validation_failed / version_not_monotonic / invalid_document) – **never the pack's contents**: the curation feedback loop records model strings as counts only, and that discipline holds here too |
 
 **What changed** is expressed as identity + outcome (`id`, `entityType`, `schema_version`, old→new `scn`), never as a value diff. A record's history is already in the stream; the log's job is to say *that* it changed and whether it succeeded.

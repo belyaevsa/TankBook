@@ -35,6 +35,16 @@ public sealed record ExtractOutcome(ExtractStatus Status, ExtractResponse? Respo
 /// the llm_usage ledger, and records every provider call in the llm_calls ledger
 /// (migration 015) - the spend record that survives account deletion.
 ///
+/// The audit write is OFF the critical path of the answer (RV.53). The ledger
+/// row is written synchronously and never fails the request: if the row insert
+/// itself cannot land, the row is queued (llm_ledger_pending, migration 021) for
+/// a bounded retry instead of thrown. The prompt rendition in blob storage is
+/// best-effort - a blob store outage costs the rendition (the row then records
+/// the call WITHOUT one, and the device still holds the photo), never the answer
+/// or the row. This was a regression RV.33 introduced (an audit write on the
+/// path of a paid answer); before the ledger existed an S3 outage could not
+/// touch /extract at all. docs/SECURITY.md "The ledger write queue".
+///
 /// Two quota conditions, two codes, never collapsed: a tier with no allowance
 /// answers 402 ("the tier lacks quota at all"), a tier whose current-period
 /// allowance is spent answers 429. The billing rule: <b>only a successful provider
@@ -73,6 +83,7 @@ public sealed class LlmService
     private readonly LlmRepository _repository;
     private readonly LlmModelResolver _modelResolver;
     private readonly LlmCallRepository _callRepository;
+    private readonly LlmLedgerPendingRepository _ledgerPending;
     private readonly IBlobStorage _storage;
     private readonly ILlmProvider _provider;
     private readonly OutboxService _outbox;
@@ -84,6 +95,7 @@ public sealed class LlmService
         LlmRepository repository,
         LlmModelResolver modelResolver,
         LlmCallRepository callRepository,
+        LlmLedgerPendingRepository ledgerPending,
         IBlobStorage storage,
         ILlmProvider provider,
         OutboxService outbox,
@@ -94,6 +106,7 @@ public sealed class LlmService
         _repository = repository;
         _modelResolver = modelResolver;
         _callRepository = callRepository;
+        _ledgerPending = ledgerPending;
         _storage = storage;
         _provider = provider;
         _outbox = outbox;
@@ -169,7 +182,11 @@ public sealed class LlmService
         // The paid call. A provider failure resolves to a 502 in the endpoint and
         // is NOT metered - the user is billed only for a result they received -
         // but it IS recorded in the ledger (a ledger of successes only cannot
-        // answer what it exists for).
+        // answer what it exists for). RecordCallAsync cannot throw for an
+        // unavailable blob store or ledger row insert (RV.53), so a storage
+        // outage coinciding with the provider outage can no longer mask the
+        // real failure - the operator sees provider_failed, not a storage
+        // stack trace.
         LlmExtraction extraction;
         try
         {
@@ -185,7 +202,9 @@ public sealed class LlmService
         // Meter the successful call, then record it. Both run on the server
         // token, so a client that vanished mid-call still gets a metered,
         // recorded, deliverable answer (the ledger is the audit of a call that
-        // really happened; the outbox is the delivery).
+        // really happened; the outbox is the delivery). Metering is a real
+        // Postgres write and stays on the path; the record that follows is the
+        // audit, written so it can no longer fail this request (RV.53).
         var usedAfter = await _repository.IncrementUsageAsync(accountId, period, extraction.TotalTokens, serverToken);
         await RecordCallAsync(accountId, deviceId, kind, model, extraction, imageBytes, OutcomeOk, CategorySuccess, stopwatch.Elapsed, serverToken);
 
@@ -247,6 +266,19 @@ public sealed class LlmService
     /// unit prices onto the row, and computes the cost from the snapshot - never
     /// from the dictionary at read time, so a later price change cannot rewrite
     /// what an earlier call cost (hard rule 3's rate-snapshot logic).
+    ///
+    /// Neither half may fail the user's request (RV.53): this runs after the
+    /// call was paid for and metered, so an AUDIT write failing here would hand
+    /// the user nothing for money already spent. The rendition is best-effort -
+    /// a blob store outage is caught, logged (llm.rendition_failed) and the row
+    /// is written WITHOUT the rendition (prompt_sha256 null), the degradation
+    /// docs/SECURITY.md names; it is never retried later, because the server
+    /// retains no image bytes to retry with. The row insert is the audit the
+    /// ledger exists for, so on failure the row is queued
+    /// (llm_ledger_pending) for a bounded retry instead of thrown; only if even
+    /// the queue cannot be written (the database itself is down) is the record
+    /// lost, and that loss is an Error event (llm.call_unrecorded), never a
+    /// thrown request.
     /// </summary>
     private async Task RecordCallAsync(
         Guid accountId,
@@ -262,13 +294,30 @@ public sealed class LlmService
     {
         var sha256 = Convert.ToHexString(SHA256.HashData(imageBytes)).ToLowerInvariant();
         var key = LlmCallKeys.PromptKey(accountId, sha256);
-        await _storage.PutObjectAsync(key, imageBytes, "image/jpeg", cancellationToken);
+
+        string? storedSha = null;
+        try
+        {
+            await _storage.PutObjectAsync(key, imageBytes, "image/jpeg", cancellationToken);
+            storedSha = sha256;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // Shape only - account id and an outcome code, never the image
+            // (hard rule 12). The row below still records the call; only the
+            // rendition is lost, and the device still holds the original.
+            TankbookLog.LlmCallRenditionFailed(_logger, accountId, outcome);
+        }
 
         long promptTokens = extraction?.PromptTokens ?? 0;
         long completionTokens = extraction?.CompletionTokens ?? 0;
         var cost = promptTokens * model.InputPricePerToken + completionTokens * model.OutputPricePerToken;
 
-        await _callRepository.InsertAsync(new LlmCallInsert(
+        var call = new LlmCallInsert(
             Id: Guid.NewGuid(),
             AccountId: accountId,
             DeviceId: deviceId,
@@ -284,12 +333,40 @@ public sealed class LlmService
             OutputPricePerToken: model.OutputPricePerToken,
             Cost: cost,
             Currency: model.Currency,
-            PromptSha256: sha256,
+            PromptSha256: storedSha,
             PromptBody: null,
             ResponseBody: extraction?.ResponseBody,
             ThinkingBody: extraction?.ThinkingBody,
-            DurationMs: (long)duration.TotalMilliseconds),
-            cancellationToken);
+            DurationMs: (long)duration.TotalMilliseconds);
+
+        try
+        {
+            await _callRepository.InsertAsync(call, cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception)
+        {
+            // The row insert failed. Queue the row for a bounded retry rather
+            // than drop it - the audit of a paid call is exactly what RV.33
+            // exists to keep. If even the queue cannot be written the record is
+            // lost, and the Error names that loss (shape only).
+            try
+            {
+                await _ledgerPending.EnqueueAsync(call, cancellationToken);
+                TankbookLog.LlmCallQueued(_logger, accountId, outcome);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
+            }
+            catch (Exception)
+            {
+                TankbookLog.LlmCallUnrecorded(_logger, accountId, outcome);
+            }
+        }
     }
 
     /// <summary>Whole seconds until the next quota period (midnight UTC, the boundary the daily period uses).</summary>

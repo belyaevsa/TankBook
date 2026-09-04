@@ -110,7 +110,24 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
    by meaning, and exposes no search or stats over it. It exists **because** the ledger must stay
    write-only: reading answers back out of `llm_calls` would turn the audit record into a delivery
    channel, and that is explicitly not licensed. It licenses nothing further.
-   **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
+   **The ledger write queue (amended 2026-09-04, product owner).** A ledger row the gateway
+   computed but could not insert synchronously is **queued** (`llm_ledger_pending`, migration 021)
+   and retried, rather than thrown at the user. This is the **fourth** place that stores user
+   content, and it exists because RV.33 left an audit write on the critical path of a paid answer:
+   a blob-store outage made the user get nothing back from a call that already ran, already cost
+   money and already consumed a quota unit. The alternative - dropping the row on a transient
+   failure - was rejected for the reason the ledger amendment already gives: **an unmetered,
+   unauditable spend path is worse than the storage it avoids**. It is bounded exactly like the
+   other three: **retention is 30 days**, the same number as the tombstone/undo window; it holds
+   **ledger rows and never images** - the prompt rendition is best-effort in the request and, if
+   the blob store is down, the row lands WITHOUT one and the bytes are dropped, because the device
+   still holds the photo; the retry is **bounded** with a defined give-up (a dropped row and a
+   Warning, never an infinite retry); it is **written by the gateway and read by no endpoint** -
+   no query, search or stats API over it; `DELETE /account` purges it and the row cascades with
+   the account; and **nothing is logged but shape**. It is staging for the ledger, not a second
+   ledger: a row leaves it by landing in `llm_calls` or by being dropped. It **licenses nothing
+   further** - a fifth place that stores user content needs its own decision, written here.
+      **[v2] The second exception (decided 2026-08-29, product owner): the Car Agent's `POST
    /agent/turn`** (`docs/AGENT.md` §2.1). Same shape, three differences: it **stores nothing**
    (the device holds the conversation) except what the LLM call ledger amendment above records,
    it **requires an account** because it is Pro-metered per turn, and it reads only what the

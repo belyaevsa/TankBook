@@ -327,6 +327,64 @@ The terms, written here because they are commitments:
   feeds it through the same inbox policy as any in-process late answer, and an answer whose entry
   was never saved is acked and dropped. No screen is gated on the outbox (hard rule 1).
 
+## The ledger write queue (added 2026-09-04)
+
+Hard rule 9's bounded stores were not the only place RV.33 left a hole. It also put
+the call ledger's **audit write** on `/extract`'s critical path: the paid call
+succeeds, the quota is metered, and then `RecordCallAsync` writes the prompt
+rendition to blob storage **before** the ledger row - with no guard between the
+user's money and the audit's storage. An S3/MinIO outage therefore made the user
+get nothing back from a call that already ran, already cost money and already
+consumed a quota unit. This section writes down the fix and the queue it added
+(migration 021), because a fourth table that holds ledger-row content needs its
+terms stated as plainly as the other three.
+
+- **The audit write never fails the request (RV.53).** The ledger row is the
+  audit the user already paid for, so it is written synchronously and a failure
+  to write it can no longer escape `ExtractAsync` - the request answers 200 with
+  the extraction regardless. This was a regression RV.33 introduced; before the
+  ledger existed an S3 outage could not touch `/extract` at all.
+- **The prompt rendition is best-effort; the queue never holds images.** The
+  rendition is attempted in the request; if the blob store is down, the failure
+  is caught (its own Warning, `llm.rendition_failed`), the row is recorded
+  **WITHOUT** the rendition (`prompt_sha256` null), and the answer still goes
+  out. It is not queued for later, and this is the reason, stated plainly: **the
+  server retains no image bytes**, so a retried rendition write would have
+  nothing to PUT. A rendition that could not be written is therefore dropped
+  immediately - the device still holds the original photo (the product owner's
+  framing for the LLM-down case, which applies equally here). "Row without its
+  rendition" is the named degradation, never "no row and no answer".
+- **The queue holds ledger rows, waiting for the row insert to succeed.** When
+  the synchronous `llm_calls` insert itself fails, the row (the same columns as
+  `llm_calls` - caller, model, prices, tokens, cost, outcome, the response body
+  and the `sha256` reference) is queued in `llm_ledger_pending` and retried by a
+  background pass instead of being thrown at the user.
+- **Where it lives: Postgres.** In-memory would be lost on the blue-green
+  deploy that happens on every release; a table survives it. `delivery_outbox`
+  (migration 016) is the working precedent - same shape, same reason.
+- **How long it retries, and what happens when it stops.** A row is retried up
+  to `LlmCalls:MaxRetryAttempts` (default 6) with exponential backoff from
+  `LlmCalls:RetryIntervalMinutes` (default 10). When the bound is exhausted the
+  row is **dropped** - deleted from the queue with a shape-only Warning
+  (`llm.call_retry_dropped`) as the defined give-up outcome, never an infinite
+  retry and never a failure surfaced to the user. The 30-day retention ceiling
+  also applies (a wedged retry worker cannot park a row forever): the hourly
+  purge drops any queued row past the cutoff. Both sides are asserted by tests.
+- **The drain is at-least-once.** The copy into `llm_calls` is
+  `INSERT ... ON CONFLICT (id) DO NOTHING`, so a worker that dies between the
+  copy and the delete replays the row and the conflict resolves it - the same
+  ack discipline as the delivery outbox.
+- **Account deletion purges it.** A queued row belongs to the account being
+  deleted; `DELETE /account` drops pending rows explicitly and the foreign key
+  cascades (the backstop). Unlike `llm_calls` itself, the pending queue does not
+  survive deletion - it is staging, and staging dies with the account.
+- **Nothing is logged but shape** (hard rule 12). The new events are
+  `llm.rendition_failed` (Warning), `llm.call_queued` (Warning),
+  `llm.call_retry_dropped` (Warning), `llm.call_unrecorded` (Error - the row
+  insert AND the queue write both failed, so a paid call's record is lost),
+  `llm.call_retry_landed` and `llm.pending_purge` (Information, counts only).
+  Never an image, a prompt, a response body or a domain value.
+
 ## Passphrase-protected exports (added 2026-08-27)
 
 A user-held per-car archive (`docs/SCHEMA.md` -> Backup format) can be passphrase-protected at

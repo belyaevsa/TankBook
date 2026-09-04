@@ -172,4 +172,44 @@ public class LogScopeEnrichmentTests
         Assert.False(all.Contains(accountId.ToString(), StringComparison.Ordinal),
             "the raw account id must never appear - the scope carries its salted hash");
     }
+
+    /// <summary>
+    /// RV.63 L1 guard, in-request: when an email reaches the pipeline inside an
+    /// authenticated request, its mask lands under the distinct emailHash key
+    /// and the correlation accountHash stays the ACCOUNT-ID hash. Before RV.63
+    /// the redactor renamed the email to accountHash too, so one line could
+    /// carry two values under one key and two lines about one account could not
+    /// be joined.
+    /// </summary>
+    [Fact]
+    public async Task EmailInsideAnAuthenticatedRequest_IsMaskedAsEmailHash_WhileAccountHashStaysTheAccountIdHash()
+    {
+        var pipeline = BuildPipeline(app =>
+        {
+            app.Run(ctx =>
+            {
+                var logger = ctx.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("Tankbook.Api.Tests");
+                logger.LogInformation("reach {Email}", "driver@example.com");
+                ctx.Response.StatusCode = 200;
+                return Task.CompletedTask;
+            });
+        });
+        var accountId = Guid.NewGuid();
+        var deviceId = Guid.NewGuid();
+        var context = AuthenticatedContext(pipeline.Services, "/v1/sync/pull", "d4e5f6a7-4444-5555-6666-777788889999", accountId, deviceId);
+
+        await pipeline.Delegate(context);
+
+        var line = pipeline.Writer.JsonLines().Single(l => l.Prop("event") != "http.request");
+
+        // accountHash is the account-id hash, unchanged by the email on the line.
+        Assert.Equal(AccountHash.ForAccount(accountId, TestSalt), line.Prop("accountHash"));
+        // The email's mask rides under its own key, with its own value.
+        Assert.Equal(AccountHash.ForEmail("driver@example.com", TestSalt), line.Prop("emailHash"));
+        // The email value never appears under the account key and never plaintext.
+        Assert.NotEqual(AccountHash.ForEmail("driver@example.com", TestSalt), line.Prop("accountHash"));
+        var all = string.Join('\n', pipeline.Writer.Lines);
+        Assert.DoesNotContain("driver@example.com", all, StringComparison.Ordinal);
+    }
 }

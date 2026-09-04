@@ -310,6 +310,17 @@ if (!builder.Environment.IsEnvironment("Testing"))
 {
     builder.Services.AddHostedService<LlmCallPurgeHostedService>();
 }
+// The ledger write queue (RV.53, migration 021): llm_calls rows that could not
+// be inserted synchronously, retried for a bounded time by a background pass so
+// an audit write never fails a paid request. The scoped service is what L2
+// tests drive directly; the timer is registered only outside test hosts (the
+// same pattern as the purge jobs).
+builder.Services.AddScoped<LlmLedgerPendingRepository>();
+builder.Services.AddScoped<LlmLedgerRetryService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    builder.Services.AddHostedService<LlmLedgerRetryHostedService>();
+}
 builder.Services.AddScoped<LlmService>();
 
 // Delivery outbox (docs/API.md "Delivery outbox", docs/SECURITY.md "The delivery

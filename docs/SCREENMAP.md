@@ -76,6 +76,7 @@ flowchart TD
         CaptureReview -->|Use this · auto: foreign currency| ConfirmForeign
         CaptureReview -->|Use this · auto: mixed receipt| ConfirmMixed
         CaptureReview -->|Use this · OCR declined to guess| ConfirmManual
+        CaptureReview -->|Use this · Expense mode (RV.62)| ExpenseEntry
         Capture -->|Type it · Fill-up mode| ConfirmManual
         Capture -->|Type it · Service mode| ServiceEntry
         Capture -->|Type it · Expense mode| ExpenseEntry
@@ -94,6 +95,9 @@ flowchart TD
     Home -->|capture button| Capture
     Trends -->|capture button| Capture
     Garage -->|capture button| Capture
+    Home -->|"Type it" (primary, one tap)| ConfirmManual
+    Home -->|"Type it" menu · Service| ServiceEntry
+    Home -->|"Type it" menu · Expense| ExpenseEntry
 
     Garage -->|vehicle| VehicleDetail
     Garage -->|Add car| AddVehicle
@@ -155,14 +159,14 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Sign in | Welcome (the restore line carries the restore intent; the peer "Sign in to Tankbook" button does not), Settings (a running app – no restore intent) | provider → Restoring (existing) or Home (new, uploads local log) | "Not now" / swipe → opener |
 | Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
-| Home (incl. guest/empty state) | tab root | gear → Settings (the shared tab-root header), car card, banner, entries, capture · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
+| Home (incl. guest/empty state) | tab root | gear → Settings (the shared tab-root header), car card, banner, entries, capture · **the header "Type it" split (RV.61)**: the primary action is the fill-up door in one tap, its trailing chevron is a menu offering Service and Expense entry - the same peer manual doors the capture screen's mode row offers, with no camera required · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
 | **Inbox** (RV.38, RV.45) | the bell on the shared tab-root header (Log, Trends and Garage alike) | an item → Edit entry (the entry the reading is about) · an item resolves in place with a **per-field comparison** – each field the receipt read that differs or fills a blank shows "yours vs the receipt" with a tick, then **update from the receipt** (takes the ticked fields only, disabled until one is ticked, hard rule 13), **leave it as it is** (the default), **replace the receipt** (routes to Edit entry) · a reading that would change nothing says so and offers no update · Reminders (planned, links, never replaces that screen) | back chevron + edge-swipe → the tab root that pushed it |
-| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry | X → opener |
-| **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
+| Capture | the tab bar's centre capture button (any tab), GuestHome CTA, notification deep links | mode-dependent confirm sheets · "Type it" opens the form for the selected mode (PJ.6: Fill-up → ConfirmManual, Service → ServiceEntry, Expense → ExpenseEntry) · shutter / Photos → **Capture review** (RV.5) · scan → Confirm/ServiceEntry · **scan · Expense mode** (RV.62) → ExpenseEntry pre-filled with the recognised total/currency/date | X → opener |
+| **Capture review** (RV.5, full-screen cover over Capture) | Capture's shutter · Capture's Photos pick – both doors, always; Service mode goes to the document camera instead and never passes through here | **Use this** → the pipeline runs, then Confirm/Foreign/Mixed/Manual · **Use this · Expense mode** (RV.62) → ExpenseEntry pre-filled with the recognised total/currency/date (never liters or fuel kind – a shop receipt has no fuel fields) · **Re-take** → Capture, nothing kept · **Type it** → the form for the selected mode (the same door the capture surface offers) | Re-take **is** the back path – it is the only way out other than a verdict, so the step can never be a dead end |
 | Confirm / Foreign / Mixed / Manual | Capture review "Use this" · Capture "Type it" (Fill-up mode) | Save → the sheet AND the capture modal behind it close (RV.12) → the opener tab, entry visible + toast · tank row → TankLevel · the foreign-currency conversion card offers the manual-rate entry on the card itself when the rate is pending (F9, hard rule 7), and "Edit rate" on a feed conversion (hard rule 13) | back → Capture (photo kept) · swipe-down discards scan (photo re-offerable) |
 | Tank level (sheet) | Confirm's tank row | Set / Skip → Confirm | swipe-down = Skip |
-| Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
-| Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · ServiceEntry's Parts/Other mode row | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
+| Service & expenses | Capture (Service mode, scan) · Capture "Type it" (Service mode) · ReminderComplete · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · **Tires mode** (P3.3) mounts a set (a `ServiceRecord` carrying `tireSetId`) and makes the odometer required | X → opener (typed input asks first) |
+| Expense entry (sheet, P3.2) | Capture "Type it" (Expense mode) · Capture review "Use this" in Expense mode (RV.62, pre-filled with the scan's total/currency/date, editable – hard rule 13) · ServiceEntry's Parts/Other mode row · Home's "Type it" menu (RV.61, the no-camera door) | Save → Home · category, title, money, date (PJ.6 wired the Capture door; `.parts` is an ordinary category, never a separate flow) | X → opener (typed input asks first) |
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | **Attachment viewer** (RV.9 + RV.17 + RV.37, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | Share/save the full rendition via the system share sheet (RV.17, offered only once the rendition is local – never the 44 pt thumbnail) · swipe to the recognised-data page when the attachment carried any (`ocrText` / `extractedTimestamp`), absent rather than empty otherwise · **Delete** (system-confirmed: tombstones the attachment and unlinks it from the entry, hard rule 8) · **Replace photo** (the same camera/Photos door as "Add receipt"; a new attachment plus a tombstone for the old, then the ask – "Re-read this and update the entry?" with "Leave it as it is" the default, hard rule 13). Rotate, crop and edit remain their own decisions | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
 | Trends | tab root | gear → Settings · insight cards → (chart detail, planned) · capture | tab root |
@@ -266,6 +270,13 @@ The map names screens that exist as nodes but have no artboard yet – listed so
   mode** (PJ.6): Fill-up → `ConfirmManual`, Service → ServiceEntry, Expense → ExpenseEntry. A
   user who starts manually and one whose scan came back thin end up in the identical screen for
   their kind of entry, editing the same fields.
+  **RV.61 (hard rule 15, the two doors at every entry point):** Home's header "Type it" is a
+  **split** - the primary action is the fill-up form in one tap (the commonest entry never gets
+  slower), and its trailing chevron is a menu offering **Service** and **Expense** entry. This is
+  the no-camera manual door for the two entry types that previously existed only behind the capture
+  screen's mode row; a fourth entry form appears in that menu the moment it exists
+  (`CaptureEntryForm.doorMenuForms` derives from `allCases`, and `sheetRoute` is an exhaustive
+  switch, so it cannot silently lack a door).
 - **Confirm takes a `ConfirmPrefill` (P2.3)**: the extraction pre-fills present fields, nil
   fields stay blank and focusable, and an all-nil extraction IS the ordinary manual form -
   never an error, never a "scan failed" banner (the two doors stay equal). **PJ.17: when that

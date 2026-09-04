@@ -245,11 +245,33 @@ struct ExpenseEntryView: View {
 
     // MARK: - Loading
 
+    /// RV.62: the scan's pre-fill becomes default input, field by field. A nil
+    /// value stays blank and focusable - never `0` and never an error (hard
+    /// rules 13, 7). The total is offered only when the receipt's own currency
+    /// is not in conflict with the home-currency form: the expense form has no
+    /// foreign-currency affordance, so a total priced in another currency must
+    /// not be offered as if it were home money - the field stays blank for the
+    /// user to type. A nil currency is treated as "no evidence to the
+    /// contrary", exactly as the fill-up form treats an unresolved currency.
+    private func apply(_ prefill: ExpensePrefill) {
+        if let total = prefill.total {
+            let currencyFitsForm = prefill.currency == nil
+                || prefill.currency == vehicle?.homeCurrency
+            if currencyFitsForm {
+                form.amount = ConfirmFormat.string(decimal: total, fractionDigits: 2)
+            }
+        }
+        if let date = prefill.date {
+            form.date = date
+        }
+    }
+
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
         #if DEBUG
         PartsShelfTestSeed.seedIfRequested()
+        ExpenseEntryTestSeed.seedIfRequested()
         #endif
         do {
             let repository = try AppStore.repository()
@@ -272,8 +294,25 @@ struct ExpenseEntryView: View {
                 form.category = category
                 form.title = pending.reminder.title
                 form.date = pending.completionDate
+            } else if let prefill = expenseSession.pendingPrefill {
+                // RV.62: an Expense-mode capture hands its recognised
+                // total/currency/date through the shared session (mirroring
+                // `ServiceInvoiceSession`). Applied AFTER the category preset -
+                // a scan never overwrites a preset - and every value is default
+                // input the user edits (hard rule 13). Consumed here, so a
+                // second open of the form never re-applies a stale scan.
+                apply(prefill)
+                expenseSession.pendingPrefill = nil
+            } else {
+                #if DEBUG
+                if let prefill = ExpenseEntryPrefillSeed.from(
+                    arguments: ProcessInfo.processInfo.arguments) {
+                    apply(prefill)
+                }
+                #endif
             }
-            // Snapshots taken AFTER the pre-selection - it does not count as an edit.
+            // Snapshots taken AFTER the category pre-selection and the scan
+            // pre-fill - neither counts as an edit.
             form.initialCategory = form.category
             form.initialTitle = form.title
             form.initialAmount = form.amount

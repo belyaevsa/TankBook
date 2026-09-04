@@ -57,8 +57,10 @@ public class RedactionTests
         Assert.DoesNotContain("999.99", output);
         Assert.DoesNotContain("driver@example.com", output);
 
-        // The email must be replaced by a salted accountHash, not kept or dropped.
-        Assert.Contains("accountHash", output);
+        // The email must be replaced by a salted emailHash, not kept or dropped -
+        // and under the emailHash key, never accountHash (RV.63: an email hash is
+        // not the account identifier, and sharing the key broke correlation).
+        Assert.Contains("emailHash", output);
         Assert.Contains("acct_", output);
 
         // Safe identity fields survive.
@@ -87,8 +89,11 @@ public class RedactionTests
         Assert.Equal(TankbookRedactor.Masked, root.Prop("Amount"));
         Assert.Equal(TankbookRedactor.Masked, root.Prop("StationName"));
 
-        // Email becomes the correlation hash under its own name.
-        Assert.Equal("acct_", root.Prop("accountHash")![..5]);
+        // Email becomes a salted hash under its own name (emailHash, RV.63 - it
+        // is an email mask, never the account identifier). The correlation
+        // accountHash field stays null: this bare logger has no account scope.
+        Assert.Equal("acct_", root.Prop("emailHash")![..5]);
+        Assert.Null(root.Prop("accountHash"));
         Assert.False(root.TryGetProperty("Email", out _));
         Assert.False(root.TryGetProperty("email", out _));
 
@@ -133,7 +138,7 @@ public class RedactionTests
         logger.LogInformation("second {Email}", "driver@example.com");
         logger.LogInformation("other {Email}", "someone@example.com");
 
-        var hashes = writer.Lines.Select(l => JsonDocument.Parse(l).RootElement.Prop("accountHash")).ToArray();
+        var hashes = writer.Lines.Select(l => JsonDocument.Parse(l).RootElement.Prop("emailHash")).ToArray();
 
         // Same email, same hash; different email, different hash; salted, not the email.
         Assert.Equal(hashes[0], hashes[1]);
@@ -143,15 +148,39 @@ public class RedactionTests
     }
 
     [Fact]
-    public void AccountHash_IsTheStableHash_NotTheEmail()
+    public void ForEmail_IsAStableSaltedHash_NotTheAddress()
     {
         var salt = "test-salt";
         var email = "driver@example.com";
-        var hash = AccountHash.Compute(email, salt);
+        var hash = AccountHash.ForEmail(email, salt);
         Assert.StartsWith("acct_", hash, StringComparison.Ordinal);
         Assert.NotEqual(email, hash);
-        Assert.Equal(hash, AccountHash.Compute(email, salt));
-        Assert.NotEqual(hash, AccountHash.Compute(email, "other-salt"));
+        Assert.Equal(hash, AccountHash.ForEmail(email, salt));
+        Assert.NotEqual(hash, AccountHash.ForEmail(email, "other-salt"));
+    }
+
+    /// <summary>
+    /// RV.63 L1: the two hash entry points feed two different log keys, and only
+    /// the account-id one may answer to `accountHash`. The redactor is the only
+    /// caller of the email hash (it has no account context), so its mask must
+    /// carry the distinct `emailHash` name - never `accountHash`, where an
+    /// email-derived value would silently break correlation.
+    /// </summary>
+    [Fact]
+    public void EmailMask_LandsUnderEmailHash_NeverAccountHash()
+    {
+        var salt = "test-salt";
+        var email = "driver@example.com";
+        var masked = new TankbookRedactor(salt).RedactProperty("Email", email);
+        Assert.NotNull(masked);
+        Assert.Equal("emailHash", masked!.Name);
+        Assert.Equal(AccountHash.ForEmail(email, salt), masked.Value);
+        Assert.StartsWith("acct_", (string)masked.Value!, StringComparison.Ordinal);
+
+        // The other entry point exists for the correlation field only: an
+        // account-id hash is a different value, and the redactor never produces
+        // it - it has no id to hash.
+        Assert.NotEqual(masked.Value, AccountHash.ForAccount(Guid.NewGuid(), salt));
     }
 
     [Fact]

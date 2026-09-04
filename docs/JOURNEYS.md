@@ -154,6 +154,8 @@ captures" metric assumed QR was a capture path; it is not.)
 ### J7 · Service visit
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
+**The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
+
 Scan invoice (document camera, multi-page) → the **deterministic parser** splits line items ("oil service", "brake pads front") into categorized records with attachments, with the opt-in cloud LLM (tier 3) as the only model-assisted path. *(The on-device model was the original plan here; tier 2 was **cut on 2026-08-25** because Foundation Models has no Russian - `docs/VISION.md` -> "Why tier 2 was cut". Invoices are messier than receipts, so this makes the manual split path load-bearing rather than a fallback.)* → app proposes the *next* reminder from item lifetimes ("Oil change in 15,000 km or 12 months?") → accept = the maintenance loop closes itself. ⚠ Invoices are far messier than fuel receipts – expectations set accordingly: pre-fill what's confident, never fake precision. P3 addition: insurance (ОСАГО) expiry as a first-class reminder type.
 
 **Fallbacks:** OCR can't split the invoice → the *same screen* holds one uncategorized item with the full total; the user renames/splits by hand or leaves it as "Annual service · 148 €" – a lump sum with the bill attached is a perfectly good record (never force itemization). No invoice at all (DIY) → manual line items, parts pulled from the shelf (J7b). Unknown category → `.other` with free text, promoted to a real category later without data loss. Odometer: pre-filled from the last known value (usually right, the car was just driven there) – one glance to confirm, editable; required only when an item sets a km lifetime or a tire set is mounted, since those anchor on it.
@@ -171,6 +173,17 @@ Scan invoice (document camera, multi-page) → the **deterministic parser** spli
 | Tires | A tire purchase becomes a TireSet; each seasonal swap (a small ServiceRecord) marks which set went on | Set mileage derives from odometer spans between swaps – "Winter Nokian: 18 400 km" answers the real question (are these tires done?) plus the swap reminder each season |
 
 **Fallbacks:** part logged without a receipt → plain manual expense, one field + price. User skips the shelf entirely and just types parts inside service records → works fine, the shelf is an optimization, never a gate. Tire mileage without logged swaps → unavailable, shown as "–", never estimated.
+
+**The Expense capture door (RV.62):** scanning a shop receipt in Expense mode runs the same
+recognition as a fill-up but pre-fills only **total, currency and date** into the expense form –
+a shop receipt has no liters or fuel kind, and those fields are dropped at the extraction →
+pre-fill boundary (`ExpensePrefill`, core), never offered. Merchant and category are not
+guessed: the user picks the category on the form, exactly as J7's "pre-fill what's confident,
+never fake precision" demands. A scan that reads nothing opens the EMPTY expense form with no
+error (hard rule 7), the same contract the fill-up path honours. The amount is offered only
+when the receipt's currency is nil or is the car's home currency – the expense form cannot
+express a foreign total, so one is never offered as if it were home money (hard rule 13: a wrong
+fact is worse than none).
 
 **Success metric:** shelf-suggested parts accepted ≥40%; tire-swap reminders acted on ≥70% in season.
 

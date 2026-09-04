@@ -337,22 +337,82 @@ public struct FuelExtractor: Sendable {
     /// stay bit-identical (a Decimal re-key would move the pinned scores).
     func resolveTotal(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Decimal? {
         let total = grandTotal(lines)
-        // Hard rule 4: on a mixed receipt the fill-up amount is the fuel line,
-        // never the grand total. Detection is the cross-check itself
-        // (docs/SCHEMA.md CHECK 3). The fuel line's own printed amount wins
-        // over the arithmetic product when the document prints one (a fuel
-        // discount makes the charged line differ from liters x unitPrice -
-        // screenshot-008 returns 112.63, never 115.02 or the grand total
-        // 122.99).
-        guard let liters, let unitPrice, let total else {
-            return total.map { ConfirmFormat.decimal(fromExtraction: $0, fractionDigits: 2) ?? .zero }
+        let fuelLine = arithmeticFuelLine(lines, liters: liters, unitPrice: unitPrice)
+        // No labelled total: the arithmetic fuel line is the amount the document
+        // settles. On a fuel-only receipt it equals the total; on a mixed one it
+        // is the fuel amount (hard rule 4). A discount receipt with no label at
+        // all is not a shape the corpus carries.
+        guard let total else {
+            return fuelLine.flatMap(totalDecimal)
         }
-        let fuelLine = ExtractionCrossCheck.printedFuelLineAmount(lines, liters: liters, unitPrice: unitPrice)
-            ?? liters * unitPrice
-        if abs(fuelLine - total) > max(0.02, total * 0.005) {
-            return ConfirmFormat.decimal(fromExtraction: fuelLine, fractionDigits: 2) ?? .zero
+        // A labelled total but unresolved operands. Hard rule 4 still applies to
+        // a mixed receipt: its fuel line is the fuel operand pair's own product
+        // (`a x b` is the fuel amount whichever operand is the volume), never the
+        // grand total - receipt-025's service line pushes the total above the fuel.
+        guard let fuelLine else {
+            if ExtractionCrossCheck.nonFuelListSum(in: lines) > 0,
+               let product = fuelOperandProduct(in: lines),
+               abs(product - total) > max(0.02, total * 0.005) {
+                return totalDecimal(product)
+            }
+            return totalDecimal(total)
         }
-        return ConfirmFormat.decimal(fromExtraction: total, fractionDigits: 2) ?? .zero
+        let tolerance = max(0.02, total * 0.005)
+        if abs(fuelLine - total) > tolerance {
+            // The gap is either a mixed receipt (the fuel line wins - hard rule 4),
+            // a printed discount (the labelled total is the charged amount and the
+            // fuel line is the pre-discount list - the total stays), or a mispaired
+            // total (the fuel line is the arithmetic truth). Only a discount that
+            // actually reconciles the two keeps the labelled total.
+            let residual = fuelLine - total
+            let discounts = ExtractionCrossCheck.discountLines(in: lines).map {
+                NSDecimalNumber(decimal: $0).doubleValue
+            }
+            let reconciled = discounts.contains { abs(abs(residual) - $0) <= tolerance }
+            if ExtractionCrossCheck.nonFuelListSum(in: lines) > 0 || !reconciled {
+                return totalDecimal(fuelLine)
+            }
+        }
+        return totalDecimal(total)
+    }
+
+    /// The fuel line's amount: its own printed figure when the document prints
+    /// one, else the arithmetic product. Nil when neither the volume nor the
+    /// price resolved.
+    private func arithmeticFuelLine(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Double? {
+        guard let liters, let unitPrice else { return nil }
+        if let printed = ExtractionCrossCheck.printedFuelLineAmount(
+            lines, liters: liters, unitPrice: unitPrice
+        ) {
+            return printed
+        }
+        return liters * unitPrice
+    }
+
+    private func totalDecimal(_ value: Double) -> Decimal? {
+        ConfirmFormat.decimal(fromExtraction: value, fractionDigits: 2)
+    }
+
+    /// The fuel operand pair's own product. `a x b == b x a`, so this is the
+    /// fuel amount even when the parser could not decide which operand is the
+    /// volume - the case on an unmarked, unresolvable fuel line.
+    private func fuelOperandProduct(in lines: [OCRLine]) -> Double? {
+        guard let index = fuelOperandIndex(in: lines),
+              let pair = OperandPair(line: lines[index].text) else { return nil }
+        return pair.left * pair.right
+    }
+
+    /// The index of the fuel operand line. Prefers the volume-marked operand;
+    /// otherwise the operand pair that sits directly below a fuel product line
+    /// (an unmarked fuel line on a mixed receipt, receipt-025).
+    private func fuelOperandIndex(in lines: [OCRLine]) -> Int? {
+        if let fuel = OperandPair.fuelLine(in: lines) { return fuel.index }
+        for (index, line) in lines.enumerated() {
+            guard OperandPair(line: line.text) != nil else { continue }
+            guard index > 0, FuelKindNormalizer.isProductLine(lines[index - 1].text) else { continue }
+            return index
+        }
+        return nil
     }
 
     /// The receipt's own grand total (ИТОГ/ВСЕГО/...), independent of the fuel
@@ -364,35 +424,46 @@ public struct FuelExtractor: Sendable {
     }
 
     private func grandTotal(_ lines: [OCRLine]) -> Double? {
-        var candidates: [Double] = []
-        var primaryCandidates: [Double] = []
+        var primary: [Double] = []
+        var payment: [Double] = []
         for (index, line) in lines.enumerated() {
             guard let kind = TotalLabel.classify(line.text) else { continue }
-            if let value = pairedValue(forLabelAt: index, in: lines) {
-                candidates.append(value)
-                if kind == .primary { primaryCandidates.append(value) }
+            guard let value = pairedValue(forLabelAt: index, in: lines) else { continue }
+            switch kind {
+            case .primary: primary.append(value)
+            case .payment: payment.append(value)
             }
         }
-        let labelTotal = modal(candidates, preferring: primaryCandidates)
-        // A СКИДКА line between the extension and the total means the charged
-        // total is the pre-discount value minus the discount. When the label
-        // pairing grabbed the pre-discount extension and the discounted value is
-        // printed, prefer the discounted one (receipt-017: 961.80 - 0.80 =
-        // 961.00). This runs before the redundancy fallback so a labelled total
-        // that reconciles keeps its authority.
-        if let labelTotal, let discounted = discountedTotal(of: labelTotal,
-                                                           candidates: candidates,
-                                                           lines: lines) {
-            return discounted
+        // Both sessions fixed receipt-017's discount on the same day by
+        // different mechanisms, and trunk's is the better one: with a discount
+        // the primary `ИТОГ` is a pre-discount subtotal, so the PAYMENT line -
+        // what was actually charged - breaks the tie. That subsumes the
+        // subtract-the-discount path this branch had.
+        let hasDiscount = !ExtractionCrossCheck.discountLines(in: lines).isEmpty
+        let labelled = modal(primary: primary, payment: payment, hasDiscount: hasDiscount)
+        // THE NET-VERSUS-GROSS CASE, and why the redundancy check runs even when
+        // a label DID resolve. On the Estonian layout the `KOKKU` label shares a
+        // baseline with the KÄIBEMAKSUTA **net** (receipt-001: `100,98`), while
+        // the gross `125,22` sits one baseline up and is printed FOUR times. A
+        // labelled total that a strictly-dominant repeated value outranks - and
+        // that is smaller than it, which is what net-versus-gross always looks
+        // like - loses to the value the receipt keeps repeating. A labelled
+        // total that is itself the repeated value is untouched, which is the
+        // ordinary receipt.
+        if let redundant = redundantValue(in: lines),
+           let labelled, redundant > labelled,
+           !isRepeatedValue(labelled, in: lines) {
+            return redundant
         }
-        if labelTotal != nil { return labelTotal }
-        // No labelled total resolved (an unbreakable tie, or no label paired a
-        // value at all): fall back to the modal value across the receipt's own
+        if let labelled { return labelled }
+        // Kept from this branch, because trunk has no equivalent: when no
+        // labelled total resolves (an unbreakable tie, or no label paired a
+        // value at all), fall back to the modal value across the receipt's own
         // value lines. The gross total is the value a receipt prints most often
-        // - receipt-001's `125,22` appears four times and receipt-038's `79,32`
-        // four times - while the net and the VAT print once or twice. Only a
-        // single, strictly-dominant value printed at least twice is trusted;
-        // anything else abstains (hard rule 13).
+        // - receipt-001's `125,22` four times, receipt-038's `79,32` four times
+        // - while the net and the VAT print once or twice. Only a single,
+        // strictly-dominant value printed at least twice is trusted; anything
+        // else abstains (hard rule 13).
         return redundantValue(in: lines)
     }
 
@@ -405,7 +476,12 @@ public struct FuelExtractor: Sendable {
             guard line.boundingBox.minX > label.boundingBox.minX,
                   abs(line.midY - label.midY) < 0.012,
                   NumberScanner.isValueLine(line.text),
+                  // Two sessions found this bug independently on the same day.
+                  // `isSubtractionLine` also strips currency symbols, so it is
+                  // the wider test; `isNegativeAmount` is the shared home. Both
+                  // run, because each has tests pinning it.
                   !isSubtractionLine(line.text),
+                  !NumberScanner.isNegativeAmount(line.text),
                   let value = NumberScanner.value(in: line.text) else { continue }
             let distance = abs(line.midY - label.midY)
             if best == nil || distance < best!.distance {
@@ -421,7 +497,10 @@ public struct FuelExtractor: Sendable {
     }
 
     private func adjacentValue(_ line: OCRLine) -> Double? {
-        guard NumberScanner.isValueLine(line.text), !isSubtractionLine(line.text) else { return nil }
+        // Both predicates, for the reason given at the other call site.
+        guard NumberScanner.isValueLine(line.text),
+              !isSubtractionLine(line.text),
+              !NumberScanner.isNegativeAmount(line.text) else { return nil }
         return NumberScanner.value(in: line.text)
     }
 
@@ -441,17 +520,26 @@ public struct FuelExtractor: Sendable {
     /// move between identical runs (P4.13 saw receipt-021/-026/-029 flip
     /// 29/96 <-> 30/96). Only a tie that the primary labels genuinely break
     /// still resolves; an unbreakable tie abstains.
-    private func modal(_ candidates: [Double], preferring primary: [Double]) -> Double? {
+    ///
+    /// A discount line changes which side breaks the tie. With no discount the
+    /// primary label is the canonical total and wins. With a discount the
+    /// primary (ИТОГ) is a pre-discount subtotal - receipt-017 prints `ИТОГ
+    /// 961.80` then `СКИДКА -0.80` and the charged `961.00` on the payment
+    /// line - so the payment line, which records what was actually charged, is
+    /// preferred instead.
+    private func modal(primary: [Double], payment: [Double], hasDiscount: Bool) -> Double? {
+        let candidates = primary + payment
         guard !candidates.isEmpty else { return nil }
         let counts = Dictionary(grouping: candidates, by: { $0 }).mapValues(\.count)
         let maxCount = counts.values.max() ?? 0
         let modes = counts.filter { $0.value == maxCount }.map(\.key)
         if modes.count == 1 { return modes[0] }
-        // Tie on count: prefer the value the primary labels named most often.
+        // Tie on count: prefer the value the preferred side named most often.
         // That preference is itself allowed to tie; when it does, abstain.
-        let primaryCounts = Dictionary(grouping: primary, by: { $0 }).mapValues(\.count)
-        let topPrimary = modes.map { primaryCounts[$0] ?? 0 }.max() ?? 0
-        let winners = modes.filter { (primaryCounts[$0] ?? 0) == topPrimary }
+        let preferred = hasDiscount ? payment : primary
+        let preferredCounts = Dictionary(grouping: preferred, by: { $0 }).mapValues(\.count)
+        let topPreferred = modes.map { preferredCounts[$0] ?? 0 }.max() ?? 0
+        let winners = modes.filter { (preferredCounts[$0] ?? 0) == topPreferred }
         return winners.count == 1 ? winners[0] : nil
     }
 
@@ -658,7 +746,13 @@ enum TotalLabel {
     enum Kind { case primary, payment }
 
     private static let excluded = [
-        "СУММА НДС", "СУММА БЕЗ НДС", "НДС", "ОКРУГЛЕНИЕ", "СДАЧА", "ПОЛУЧЕНО", "ПО НАЛОГУ"
+        "СУММА НДС", "СУММА БЕЗ НДС", "НДС", "ОКРУГЛЕНИЕ", "СДАЧА", "ПОЛУЧЕНО", "ПО НАЛОГУ",
+        // The Estonian VAT total (`Käibemaks kokku`) contains the total word
+        // `KOKKU`, so it used to be read as a primary total - receipt-001's
+        // `Käibemaks kokku 24,24` tied with the real `KOKKU` and forced an
+        // abstention. VAT is never the receipt total; both the `Ä` and the
+        // OCR'd `A` spelling are excluded.
+        "KÄIBEMAKS", "KAIBEMAKS"
     ]
     // `СУММА` is here in BOTH scripts on purpose. The Latin `SUMMA` is the
     // Estonian label; the Cyrillic `СУММА` is the Russian one, and until

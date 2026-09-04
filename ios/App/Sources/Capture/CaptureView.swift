@@ -21,6 +21,7 @@ struct CaptureView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ServiceInvoiceSession.self) private var invoiceSession
+    @Environment(ExpenseEntrySession.self) private var expenseSession
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     @State private var mode: CaptureMode = .fillUpAuto
@@ -252,17 +253,25 @@ struct CaptureView: View {
     /// pipeline, then the Confirm sheet. The cover is dismissed FIRST and the
     /// sheet presented after the pipeline's await, because SwiftUI will not
     /// present a sheet in the same runloop turn it dismisses a cover.
+    ///
+    /// RV.62: Expense mode takes its own exit after the same pipeline - the
+    /// recognised total/currency/date go to the expense form through
+    /// `ExpenseEntrySession`, never to the fill-up Confirm sheet.
     private func acceptReview(_ image: UIImage) {
         guard !isProcessing else { return }
         isProcessing = true
         reviewSubject = nil
         Task {
             defer { isProcessing = false }
-            let vehicle = try? currentVehicle()
-            let prefill = await CapturePipeline.process(
-                image, source: .receipt,
-                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
-            activeSheet = .scanned(prefill)
+            if mode == .expense {
+                await acceptExpenseScan(image)
+            } else {
+                let vehicle = try? currentVehicle()
+                let prefill = await CapturePipeline.process(
+                    image, source: .receipt,
+                    bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
+                activeSheet = .scanned(prefill)
+            }
         }
     }
 
@@ -603,6 +612,53 @@ private extension CaptureView {
             invoiceSession.pendingPrefill = prefill
             onServiceEntry()
         }
+    }
+
+    // MARK: - Expense-mode scan (RV.62)
+
+    /// An Expense-mode capture: the same frame and the same `CapturePipeline`
+    /// as any receipt - but only total / currency / date may reach the expense
+    /// form. A shop receipt is not a fuel receipt: liters, unit price and fuel
+    /// kind are meaningless on it, and `ExpensePrefillBuilder` (core, L1)
+    /// enforces that boundary - nothing here decides what crosses, it only
+    /// hands the mapping's result to ExpenseEntry through the shared session
+    /// and opens the expense sheet. A scan that resolves nothing writes an
+    /// all-nil prefill, so the form opens empty, never an error (hard rule 7).
+    private func acceptExpenseScan(_ image: UIImage) async {
+        let extraction: FuelExtraction
+        #if DEBUG
+        // DEBUG/test-only (`ExpenseScanTestSeed`): a canned recognition lets a
+        // UI test assert what the user SEES without OCR over a corpus image.
+        // It substitutes only the pipeline's output - the session hand-off and
+        // the form's apply path below are exactly the shipped ones.
+        if let seeded = ExpenseScanTestSeed.extraction(
+            from: ProcessInfo.processInfo.arguments) {
+            extraction = seeded
+            // The seeded path has no pipeline await to separate the cover's
+            // dismissal from the sheet's presentation (see `coverDismissBeat`);
+            // OCR's real wait does that for free in production.
+            try? await Task.sleep(for: Self.coverDismissBeat)
+        } else {
+            extraction = await expenseExtraction(from: image)
+        }
+        #else
+        extraction = await expenseExtraction(from: image)
+        #endif
+        expenseSession.pendingPrefill = ExpensePrefillBuilder.prefill(from: extraction)
+        activeSheet = .manualForm(.expense)
+    }
+
+    /// Runs the recognition an Expense-mode scan shares with the fill-up path.
+    /// `CapturePipeline` is the FILL-UP OCR, and that is deliberate here: its
+    /// assembler is what resolves total, currency and date on a receipt; the
+    /// fuel-specific fields it also resolves are dropped by the prefill
+    /// builder, never carried.
+    private func expenseExtraction(from image: UIImage) async -> FuelExtraction {
+        let vehicle = try? currentVehicle()
+        let prefill = await CapturePipeline.process(
+            image, source: .receipt,
+            bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
+        return prefill.extraction ?? FuelExtraction()
     }
 
     /// The shutter circle: in Service mode the document camera (J7); in the

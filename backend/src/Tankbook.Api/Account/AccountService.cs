@@ -95,7 +95,10 @@ public sealed class AccountService
 
         if (row.TombstonedNow)
         {
-            var accountHash = AccountHash.Compute(row.Email, _loggingOptions.HashSalt);
+            // RV.63: the account-id hash, so account.delete joins the same
+            // correlation the rest of the account's lines carry. The id is the
+            // parameter; the email is no longer hashed for this.
+            var accountHash = AccountHash.ForAccount(accountId, _loggingOptions.HashSalt);
             var graceEndsAt = row.DeletedAt + _options.DeletionGracePeriod;
             TankbookLog.AccountDelete(_logger, accountHash, recordsPurged: 0, blobsPurged: 0, graceEndsAt);
         }

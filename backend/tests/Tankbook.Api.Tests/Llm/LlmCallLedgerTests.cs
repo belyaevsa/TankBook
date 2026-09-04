@@ -377,6 +377,358 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         Assert.False(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, old.PromptSha256!)));
     }
 
+    // ---- 6. RV.53: the audit write never fails a paid answer ----------------
+
+    /// The headline defect: the ledger's rendition blob write sat on /extract's
+    /// critical path (an RV.33 regression - before the ledger existed an S3
+    /// outage could not touch /extract at all). With the blob store down, the
+    /// request must still return the answer with its extracted fields in the
+    /// BODY (an empty 200 would be a vacuous pass), the quota is metered exactly
+    /// once, and a ledger row exists WITHOUT its rendition - the degradation the
+    /// queue's design names, pinned rather than assumed.
+    [SkippableFact]
+    public async Task BlobStoreDown_SuccessfulCall_Returns200WithTheFields_RowWithoutRendition_QuotaOnce()
+    {
+        var responseSentinel = "RESPONSE-RV53-0x7E";
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetHandler((_, _, _, model) => new LlmExtraction(
+            new Dictionary<string, LlmField>(StringComparer.Ordinal) { ["volume"] = new LlmField(43.61, 0.95) },
+            model.ModelId,
+            PromptTokens,
+            CompletionTokens,
+            responseSentinel,
+            null));
+
+        var storage = new RecordingBlobStorage(new MutableTimeProvider(Now)) { FailPutObject = true };
+        await using var app = await StartAsync(signer, provider, storage: storage);
+        await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice, supportsThinking: true);
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
+
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv53-storage", "rv53-storage@example.com");
+        await app.SetTierAsync(accountId, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage());
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // The response body carries the extraction - not just the status code.
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal("cloud-fallback v1", doc.RootElement.GetProperty("pipeline").GetString());
+        Assert.Equal(43.61, doc.RootElement.GetProperty("fields").GetProperty("volume").GetProperty("value").GetDouble());
+
+        // Quota metered exactly once - the user is charged, so they get the answer.
+        var usage = await app.QueryAsync<(int Requests, long Tokens)>(
+            "SELECT requests AS Requests, tokens AS Tokens FROM llm_usage WHERE account_id = @p AND period = @d",
+            new { p = accountId, d = Period });
+        var metered = Assert.Single(usage);
+        Assert.Equal(1, metered.Requests);
+        Assert.Equal(PromptTokens + CompletionTokens, metered.Tokens);
+
+        // The row exists WITHOUT its rendition: prompt_sha256 is null and no
+        // blob was written - the degradation is pinned, not assumed.
+        var rows = await app.QueryAsync<LlmCallRow>(
+            $"SELECT {CallColumns} FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var call = Assert.Single(rows);
+        Assert.Equal("ok", call.Outcome);
+        Assert.Equal("success", call.Category);
+        Assert.Null(call.PromptSha256);
+        Assert.Equal(responseSentinel, call.ResponseBody);
+        Assert.Empty(storage.ByteObjects);
+
+        // No pending row either - the row landed synchronously; nothing is queued.
+        Assert.Equal(0, await app.CountAsync("llm_ledger_pending"));
+    }
+
+    /// The masking defect: the provider-failure catch also records the call, and
+    /// that audit write used to throw inside the catch when the blob store was
+    /// down too - the operator saw a storage stack trace for what was really an
+    /// LLM outage. Both-down must still report provider: 502, a provider_failed
+    /// log, no error.unhandled, and no quota burned.
+    [SkippableFact]
+    public async Task ProviderAndBlobStoreDown_ReportsProvider_NotStorage_AndDoesNotMeter()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetFailure();
+
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        var storage = new RecordingBlobStorage(new MutableTimeProvider(Now)) { FailPutObject = true };
+        await using var app = await StartAsync(signer, provider, writer, storage);
+        await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
+
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv53-both", "rv53-both@example.com");
+        await app.SetTierAsync(accountId, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage());
+        Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+
+        // The response names the provider, not storage.
+        using var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var title = problem.RootElement.GetProperty("title").GetString();
+        Assert.Contains("provider", title, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("storage", title, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("internal error", title, StringComparison.OrdinalIgnoreCase);
+
+        // The log says provider_failed and never an unhandled storage error.
+        var logLines = writer.JsonLines().ToList();
+        Assert.Contains(logLines, l => l.Prop("event") == "llm.extract" && l.Prop("outcome") == "provider_failed");
+        Assert.DoesNotContain(logLines, l => l.Prop("event") == "error.unhandled");
+        Assert.Contains(logLines, l => l.Prop("event") == "llm.rendition_failed");
+
+        // The provider-failure path still declines to meter (a failed call never bills).
+        Assert.Equal(0, await app.CountAsync("llm_usage", "account_id = @p", new { p = accountId }));
+
+        // A failure row IS recorded, without its rendition (blob store down).
+        var rows = await app.QueryAsync<LlmCallRow>(
+            $"SELECT {CallColumns} FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var call = Assert.Single(rows);
+        Assert.Equal("provider_failed", call.Outcome);
+        Assert.Equal("error", call.Category);
+        Assert.Equal(0m, call.Cost);
+        Assert.Null(call.PromptSha256);
+    }
+
+    // ---- 7. RV.53: the ledger write queue (llm_ledger_pending) --------------
+
+    /// The queue's wiring end-to-end: when the llm_calls insert itself cannot
+    /// land (here: the table is temporarily gone), the request still returns the
+    /// answer, the quota is metered once, and the row is queued rather than
+    /// lost. Once the table is back, the retry pass lands the row WITH its
+    /// rendition (the blob was written while storage was healthy).
+    [SkippableFact]
+    public async Task RowInsertFailure_QueuesTheRow_RequestStillAnswers_RetryLandsIt()
+    {
+        var responseSentinel = "RESPONSE-QUEUED-0x8A";
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        provider.SetHandler((_, _, _, model) => new LlmExtraction(
+            new Dictionary<string, LlmField>(StringComparer.Ordinal) { ["volume"] = new LlmField(43.61, 0.95) },
+            model.ModelId,
+            PromptTokens,
+            CompletionTokens,
+            responseSentinel,
+            null));
+
+        var storage = new RecordingBlobStorage(new MutableTimeProvider(Now));
+        await using var app = await StartAsync(signer, provider, storage: storage);
+        await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice, supportsThinking: true);
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
+
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv53-queue", "rv53-queue@example.com");
+        await app.SetTierAsync(accountId, "pro");
+
+        // Make the ledger insert fail deterministically by moving llm_calls away.
+        await app.Db.ExecuteAsync("ALTER TABLE llm_calls RENAME TO llm_calls_gone");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage());
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(43.61, doc.RootElement.GetProperty("fields").GetProperty("volume").GetProperty("value").GetDouble());
+
+        // Quota metered exactly once; the row did not land but IS queued.
+        Assert.Equal(1, await app.ScalarAsync<int>("SELECT requests FROM llm_usage WHERE account_id = @p AND period = @d", new { p = accountId, d = Period }));
+        Assert.Equal(0, await app.CountAsync("llm_calls_gone"));
+        var pending = await app.QueryAsync<PendingLedgerRow>(
+            "SELECT id AS Id, account_id AS AccountId, outcome AS Outcome, attempts AS Attempts, prompt_sha256 AS PromptSha256 FROM llm_ledger_pending");
+        var queued = Assert.Single(pending);
+        Assert.Equal("ok", queued.Outcome);
+        Assert.Equal(0, queued.Attempts);
+        Assert.NotNull(queued.PromptSha256);
+
+        // Restore the table and age the row so the frozen-clock retry pass sees it.
+        await app.Db.ExecuteAsync("ALTER TABLE llm_calls_gone RENAME TO llm_calls");
+        await app.Db.ExecuteAsync("UPDATE llm_ledger_pending SET next_attempt_at = @now", new { now = Now });
+
+        using var scope = app.Services.CreateScope();
+        var retry = scope.ServiceProvider.GetRequiredService<LlmLedgerRetryService>();
+        var result = await retry.RetryDueAsync(CancellationToken.None);
+        Assert.Equal(1, result.Landed);
+        Assert.Equal(0, result.Dropped);
+
+        // The row landed, WITH its rendition (the blob write had succeeded).
+        var rows = await app.QueryAsync<LlmCallRow>(
+            $"SELECT {CallColumns} FROM llm_calls WHERE account_id = @p", new { p = accountId });
+        var call = Assert.Single(rows);
+        Assert.Equal("ok", call.Outcome);
+        Assert.Equal(responseSentinel, call.ResponseBody);
+        Assert.NotNull(call.PromptSha256);
+        Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, call.PromptSha256!)));
+        Assert.Equal(0, await app.CountAsync("llm_ledger_pending"));
+    }
+
+    /// A queued row that keeps failing must not retry forever: when the bound is
+    /// exhausted the row is dropped - a defined, asserted outcome (a Warning and
+    /// an empty queue), not an infinite retry.
+    [SkippableFact]
+    public async Task RetryExhaustsItsBound_TheRowIsDropped_WithADefinedOutcome()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, provider, writer, config: new Dictionary<string, string?>
+        {
+            ["LlmCalls:MaxRetryAttempts"] = "2",
+        });
+
+        // Enqueue one row that can never land: move llm_calls away and leave it
+        // away, so every copy attempt throws.
+        await app.Db.ExecuteAsync("ALTER TABLE llm_calls RENAME TO llm_calls_gone");
+        var (_, accountId, _) = await CreateSessionAsync(app, signer, "rv53-exhaust", "rv53-exhaust@example.com");
+        await app.Db.ExecuteAsync("UPDATE accounts SET llm_tier = 'pro' WHERE id = @p", new { p = accountId });
+
+        using (var enqueueScope = app.Services.CreateScope())
+        {
+            var pending = enqueueScope.ServiceProvider.GetRequiredService<LlmLedgerPendingRepository>();
+            await pending.EnqueueAsync(new LlmCallInsert(
+                Id: Guid.NewGuid(),
+                AccountId: accountId,
+                DeviceId: null,
+                Kind: "receipt",
+                ModelId: "test-model",
+                Vendor: "test-vendor",
+                Outcome: "ok",
+                Category: "success",
+                PromptTokens: 100,
+                CompletionTokens: 50,
+                ThinkingEnabled: false,
+                InputPricePerToken: InputPrice,
+                OutputPricePerToken: OutputPrice,
+                Cost: 0.00075m,
+                Currency: "USD",
+                PromptSha256: "deadbeef",
+                PromptBody: null,
+                ResponseBody: null,
+                ThinkingBody: null,
+                DurationMs: 123), CancellationToken.None);
+        }
+
+        var ageDue = async () => await app.Db.ExecuteAsync("UPDATE llm_ledger_pending SET next_attempt_at = @now", new { now = Now });
+
+        using var scope = app.Services.CreateScope();
+        var retry = scope.ServiceProvider.GetRequiredService<LlmLedgerRetryService>();
+
+        // Pass 1: fails, attempts 0 -> 1, still below the bound of 2, so it is scheduled again.
+        await ageDue();
+        var first = await retry.RetryDueAsync(CancellationToken.None);
+        Assert.Equal(0, first.Landed);
+        Assert.Equal(0, first.Dropped);
+        Assert.Equal(1, await app.ScalarAsync<int>("SELECT attempts FROM llm_ledger_pending"));
+
+        // Pass 2: fails again, attempts 1 -> 2 == the bound, so it is dropped.
+        await ageDue();
+        var second = await retry.RetryDueAsync(CancellationToken.None);
+        Assert.Equal(0, second.Landed);
+        Assert.Equal(1, second.Dropped);
+        Assert.Equal(0, await app.CountAsync("llm_ledger_pending"));
+
+        // The defined outcome is visible: a Warning names the dropped row.
+        var logLines = writer.JsonLines().ToList();
+        var drop = Assert.Single(logLines, l => l.Prop("event") == "llm.call_retry_dropped");
+        Assert.Equal("2", drop.Prop("attempts"));
+        Assert.Equal("ok", drop.Prop("outcome"));
+    }
+
+    /// The pending queue shares the 30-day retention ceiling: a row a wedged
+    /// retry worker never resolved is dropped by the hourly retention pass, so
+    /// it cannot sit in the staging table forever.
+    [SkippableFact]
+    public async Task PendingRowPastTheRetentionCutoff_IsPurgedByTheRetentionPass()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+
+        var (_, accountId, _) = await CreateSessionAsync(app, signer, "rv53-stale", "rv53-stale@example.com");
+        using (var enqueueScope = app.Services.CreateScope())
+        {
+            var pending = enqueueScope.ServiceProvider.GetRequiredService<LlmLedgerPendingRepository>();
+            await pending.EnqueueAsync(new LlmCallInsert(
+                Id: Guid.NewGuid(),
+                AccountId: accountId,
+                DeviceId: null,
+                Kind: "receipt",
+                ModelId: "test-model",
+                Vendor: "test-vendor",
+                Outcome: "ok",
+                Category: "success",
+                PromptTokens: 0,
+                CompletionTokens: 0,
+                ThinkingEnabled: false,
+                InputPricePerToken: InputPrice,
+                OutputPricePerToken: OutputPrice,
+                Cost: 0m,
+                Currency: "USD",
+                PromptSha256: null,
+                PromptBody: null,
+                ResponseBody: null,
+                ThinkingBody: null,
+                DurationMs: 0), CancellationToken.None);
+        }
+
+        Assert.Equal(1, await app.CountAsync("llm_ledger_pending"));
+
+        // Age the queued row past the 30-day cutoff, on the FROZEN clock (never
+        // Postgres now() - RV.55), and run the retention pass.
+        await app.Db.ExecuteAsync("UPDATE llm_ledger_pending SET created_at = @aged", new { aged = Now.AddDays(-31) });
+        using var scope = app.Services.CreateScope();
+        var purge = scope.ServiceProvider.GetRequiredService<LlmCallPurgeService>();
+        await purge.PurgeDueAsync(CancellationToken.None);
+
+        Assert.Equal(0, await app.CountAsync("llm_ledger_pending"));
+        Assert.Equal(0, await app.CountAsync("llm_calls"));
+    }
+
+    /// Account deletion drops the account's queued rows too (the explicit purge
+    /// in the account-deletion path; the cascade FK is the backstop).
+    [SkippableFact]
+    public async Task AccountDeletion_PurgesQueuedPendingRows()
+    {
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        await using var app = await StartAsync(signer, provider);
+
+        var (_, accountId, _) = await CreateSessionAsync(app, signer, "rv53-del", "rv53-del@example.com");
+        using (var enqueueScope = app.Services.CreateScope())
+        {
+            var pending = enqueueScope.ServiceProvider.GetRequiredService<LlmLedgerPendingRepository>();
+            await pending.EnqueueAsync(new LlmCallInsert(
+                Id: Guid.NewGuid(),
+                AccountId: accountId,
+                DeviceId: null,
+                Kind: "receipt",
+                ModelId: "test-model",
+                Vendor: "test-vendor",
+                Outcome: "ok",
+                Category: "success",
+                PromptTokens: 0,
+                CompletionTokens: 0,
+                ThinkingEnabled: false,
+                InputPricePerToken: InputPrice,
+                OutputPricePerToken: OutputPrice,
+                Cost: 0m,
+                Currency: "USD",
+                PromptSha256: null,
+                PromptBody: null,
+                ResponseBody: null,
+                ThinkingBody: null,
+                DurationMs: 0), CancellationToken.None);
+        }
+
+        Assert.Equal(1, await app.CountAsync("llm_ledger_pending"));
+
+        // Tombstone the account past its grace period and run the purge pass.
+        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = @aged WHERE id = @p", new { aged = Now.AddDays(-31), p = accountId });
+        using var scope = app.Services.CreateScope();
+        var purge = scope.ServiceProvider.GetRequiredService<AccountPurgeService>();
+        await purge.PurgeDueAccountsAsync(CancellationToken.None);
+
+        Assert.Equal(0, await app.CountAsync("llm_ledger_pending", "account_id = @p", new { p = accountId }));
+    }
+
     // ---- helpers -------------------------------------------------------------
 
     private static string SmallImage() => Image("receipt");
@@ -401,7 +753,8 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         TestIdTokenSigner signer,
         RecordingLlmProvider provider,
         InMemoryLogWriter? writer = null,
-        RecordingBlobStorage? storage = null)
+        RecordingBlobStorage? storage = null,
+        IReadOnlyDictionary<string, string?>? config = null)
     {
         _fixture.RequireAvailable();
         var db = await _fixture.CreateDatabaseAsync();
@@ -417,6 +770,14 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
                 b.UseEnvironment("Testing");
                 b.UseSetting("ConnectionStrings:Postgres", connectionString);
                 b.UseSetting("Logging:LogLevel:Default", "Debug");
+                if (config is not null)
+                {
+                    foreach (var (key, value) in config)
+                    {
+                        b.UseSetting(key, value);
+                    }
+                }
+
                 b.ConfigureServices(services =>
                 {
                     services.Replace(ServiceDescriptor.Singleton<IIdTokenVerifier>(signer.Verifier));
@@ -459,6 +820,9 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         request.Content = JsonContent.Create(new { kind, image });
         return await client.SendAsync(request);
     }
+
+    /// <summary>A queued ledger row, read back with the fields the retry tests assert.</summary>
+    private sealed record PendingLedgerRow(Guid Id, Guid AccountId, string Outcome, int Attempts, string? PromptSha256);
 
     private sealed class LlmCallRow
     {
@@ -537,6 +901,14 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
 
         public async Task<IReadOnlyList<T>> QueryAsync<T>(string sql, object? param = null)
             => (await Db.QueryAsync<T>(sql, param)).ToList();
+
+        public Task<int> CountAsync(string table, string? where = null, object? param = null)
+            => Db.QuerySingleAsync<int>(
+                $"SELECT count(*) FROM {table}" + (where is null ? "" : " WHERE " + where),
+                param ?? new { });
+
+        public Task<T> ScalarAsync<T>(string sql, object? param = null)
+            => Db.QuerySingleAsync<T>(sql, param ?? new { });
 
         public async ValueTask DisposeAsync()
         {

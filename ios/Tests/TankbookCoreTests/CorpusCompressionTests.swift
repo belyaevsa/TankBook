@@ -35,10 +35,9 @@ struct CorpusCompressionTests {
     private static let languages = ["en-US", "de-DE", "pl-PL", "cs-CZ", "ru-RU"]
 
     /// The recorded high-water mark for receipts through the compression step.
-    /// Measured at 189/220 (RV.56, 2026-09-04): the resize keeps clearing a
-    /// smear, so the compressed run stays ahead of the uncompressed ratchet's
-    /// 187 (high-water.json) - the resize is not lossy for this parser, and
-    /// never below.
+    /// Re-measured after the merge of both sessions' total-finder work; the
+    /// compressed run stays at or above the uncompressed ratchet (high-water.json)
+    /// - the resize is not lossy for this parser, and never below.
     private static let recordedReceipts = (hits: 189, total: 220)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")

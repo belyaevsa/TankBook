@@ -7,7 +7,7 @@ namespace Tankbook.Api.Account;
 /// <summary>A devices row read for the "manage devices" screen (migrations 001/005).</summary>
 public sealed record DeviceRow(Guid Id, string Name, string Platform, DateTime LastSeenAt, bool Revoked);
 
-/// <summary>A tombstoned account eligible for purge, with its email for the accountHash.</summary>
+/// <summary>A tombstoned account eligible for purge (RV.63: the accountHash is computed from the id, not the email).</summary>
 public sealed record DueAccountRow(Guid Id, string Email, DateTime DeletedAt);
 
 /// <summary>The result of a tombstone attempt: the account's email and deletion stamp, and whether this call set it.</summary>
