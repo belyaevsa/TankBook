@@ -115,6 +115,7 @@ struct SyncStateChip: View {
     /// degrades to a still glyph under Reduce Motion (the RV.8 precedent) - the
     /// accessibility floor is non-negotiable, and the label carries the meaning
     /// on its own.
+    @ViewBuilder
     private var indicator: some View {
         // EVERY state is an `Image`, including the in-flight one, and that is a
         // layout requirement rather than a style choice. `TabRootHeader`'s row
@@ -128,13 +129,28 @@ struct SyncStateChip: View {
         //
         // Reduce Motion degrades it to the same glyph, still (the RV.8
         // precedent): the state is never lost, only its motion.
-        Image(systemName: glyph)
-            .font(.title3)
-            .rotationEffect(.degrees(spinning ? 360 : 0))
-            .animation(spins ? .linear(duration: 1).repeatForever(autoreverses: false) : nil,
-                       value: spinning)
-            .onAppear { spinning = spins }
-            .onChange(of: spins) { _, newValue in spinning = newValue }
+        // Two BRANCHES, not one view with a conditional animation, and the
+        // difference is the whole bug fix (product owner, 2026-09-04: the chip
+        // "continues spinning with the 'is synced' state"). A
+        // `.repeatForever` animation attached with `.animation(_:value:)` keeps
+        // running once committed: swapping the animation to `nil` and setting
+        // the angle back does NOT cancel it, because the view keeps its
+        // identity. So a finished sync showed `checkmark.icloud` turning
+        // forever. Branching gives the moving and still glyphs DIFFERENT
+        // identities, so the animating view is torn down when the sync ends and
+        // the animation goes with it. Both branches are the same `Image` at the
+        // same font, so the baseline and the header height are unchanged.
+        if spins {
+            Image(systemName: glyph)
+                .font(.title3)
+                .rotationEffect(.degrees(spinning ? 360 : 0))
+                .animation(.linear(duration: 1).repeatForever(autoreverses: false), value: spinning)
+                .onAppear { spinning = true }
+                .onDisappear { spinning = false }
+        } else {
+            Image(systemName: glyph)
+                .font(.title3)
+        }
     }
 
     /// Whether the in-flight glyph should turn: the syncing state, unless the
