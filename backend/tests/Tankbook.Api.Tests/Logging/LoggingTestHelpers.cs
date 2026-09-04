@@ -245,9 +245,10 @@ internal static class LoggingTestHelpers
     /// <summary>
     /// Case-insensitive property lookup, matching the docs' lowercase field
     /// names (docs/LOGGING.md §2/§3) against the emitted keys, which keep their
-    /// original casing (Path, Status, ...). On duplicate keys (the redactor can
-    /// emit accountHash both as a correlation field and as a renamed email) the
-    /// last occurrence wins, mirroring JsonElement.TryGetProperty.
+    /// original casing (Path, Status, ...). On duplicate keys (RV.63: the redactor
+    /// masks an email under the distinct emailHash key, so accountHash can no
+    /// longer be duplicated by a renamed email - a state AccountHash would override
+    /// the scope's) the last occurrence wins, mirroring JsonElement.TryGetProperty.
     /// </summary>
     /// <summary>
     /// Rendered log output with the <b>free-running machine-generated numbers</b>

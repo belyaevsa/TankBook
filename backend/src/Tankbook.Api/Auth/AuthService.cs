@@ -35,7 +35,8 @@ public sealed record RefreshResult(
 /// <summary>
 /// Orchestrates session exchange, refresh rotation, and sign-out. It logs the
 /// auth.session / auth.refresh events (docs/LOGGING.md §3) with ids, outcomes
-/// and the salted accountHash - never a token, idToken, or email (hard rule 12).
+/// and the salted accountHash (over the ACCOUNT ID - RV.63, so the line joins
+/// the bearer-request scope) - never a token, idToken, or email (hard rule 12).
 /// </summary>
 public sealed class AuthService
 {
@@ -118,7 +119,11 @@ public sealed class AuthService
             now.AddDays(_options.RefreshTokenLifetimeDays),
             cancellationToken);
 
-        var accountHash = AccountHash.Compute(email, _loggingOptions.HashSalt);
+        // RV.63: accountHash is the salted hash of the ACCOUNT ID, the same
+        // value the bearer-request scope logs - so this auth.session line joins
+        // the request lines that follow it. The account is resolved above
+        // (created or matched both return an id), so the id is available here.
+        var accountHash = AccountHash.ForAccount(accountId, _loggingOptions.HashSalt);
         TankbookLog.AuthSession(_logger, provider, created ? "created" : "matched", accountHash: accountHash);
 
         return new SessionExchangeResult(true, accessToken, refreshToken, accountId, resolvedDeviceId, accountEmail, null, accountHash);

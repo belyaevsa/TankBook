@@ -83,7 +83,9 @@ public sealed class AccountPurgeService
             await _outbox.PurgeAccountAsync(account.Id, cancellationToken);
             await _repository.DeleteAccountAsync(account.Id, cancellationToken);
 
-            var accountHash = AccountHash.Compute(account.Email, _loggingOptions.HashSalt);
+            // RV.63: the account-id hash, so account.delete joins the account's
+            // other lines; the row's email is no longer hashed for this.
+            var accountHash = AccountHash.ForAccount(account.Id, _loggingOptions.HashSalt);
             var graceEndsAt = new DateTimeOffset(DateTime.SpecifyKind(account.DeletedAt, DateTimeKind.Utc)) + _options.DeletionGracePeriod;
             TankbookLog.AccountDelete(_logger, accountHash, records, blobs, graceEndsAt);
 

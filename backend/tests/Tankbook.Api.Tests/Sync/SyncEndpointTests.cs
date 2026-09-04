@@ -433,6 +433,43 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("scope@example.com", string.Join('\n', lines), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// RV.63, the headline: two log lines about ONE account - one from
+    /// auth.session, one from an authenticated request - carry the SAME
+    /// accountHash. Before RV.63 the session line hashed the EMAIL while the
+    /// bearer-request scope hashed the ACCOUNT ID, so the same device's
+    /// auth.session and sync.push read as two different accounts (the production
+    /// defect RV.58 was diagnosed from exactly that pair). Asserting the VALUES
+    /// are equal is the whole point - the shape (acct_...) was never wrong.
+    /// </summary>
+    [SkippableFact]
+    public async Task AuthSession_AndAnAuthenticatedRequest_CarryTheSameAccountHash()
+    {
+        var signer = new TestIdTokenSigner();
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, writer);
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv63-sub", "rv63@example.com");
+
+        var response = await PullAsync(app.Client, token, since: 0, limit: 10);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Three lines about the same account, produced by two different code
+        // paths: the auth.session event (AuthService), and the sync.pull event
+        // plus its http.request line (both under the bearer-request scope).
+        var session = writer.JsonLines().Single(l => l.Prop("event") == "auth.session");
+        var request = writer.JsonLines().RequestLine("/v1/sync/pull");
+        var pull = writer.JsonLines().Single(l => l.Prop("event") == "sync.pull");
+
+        Assert.False(string.IsNullOrWhiteSpace(session.Prop("accountHash")), "a successful auth.session resolves an accountHash");
+        Assert.Equal(session.Prop("accountHash"), request.Prop("accountHash"));
+        Assert.Equal(session.Prop("accountHash"), pull.Prop("accountHash"));
+        Assert.StartsWith("acct_", session.Prop("accountHash"), StringComparison.Ordinal);
+        // The email hash of the signed-in address is a DIFFERENT value - if the
+        // session line ever regressed to hashing the email this fails.
+        Assert.DoesNotContain("rv63@example.com", string.Join('\n', lines), StringComparison.Ordinal);
+    }
+
     // ---- helpers -----------------------------------------------------------
 
     private async Task<TestApp> StartAsync(TestIdTokenSigner signer, InMemoryLogWriter? writer = null)

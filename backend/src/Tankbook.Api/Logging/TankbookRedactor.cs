@@ -6,9 +6,10 @@ namespace Tankbook.Api.Logging;
 /// The enforcement point for docs/LOGGING.md §1, not a convention: every value
 /// that reaches the logging pipeline is classified here before it can be
 /// written. Never values are dropped, Sensitive values are masked (email becomes
-/// a salted accountHash), Safe values pass through. Because classification
-/// happens in the pipeline, a careless call site that logs a whole entity or a
-/// named field cannot leak a Sensitive or Never value.
+/// a salted emailHash - distinct from the accountHash correlation field, RV.63),
+/// Safe values pass through. Because classification happens in the pipeline, a
+/// careless call site that logs a whole entity or a named field cannot leak a
+/// Sensitive or Never value.
 /// </summary>
 public sealed class TankbookRedactor
 {
@@ -27,8 +28,12 @@ public sealed class TankbookRedactor
     /// <summary>
     /// Classifies one named property: null means drop the field entirely;
     /// otherwise the returned field carries the (possibly renamed / masked)
-    /// value to write. Email is renamed to accountHash so the correlation hash
-    /// replaces the address instead of riding under the same key.
+    /// value to write. Email is masked under the distinct key emailHash, never
+    /// accountHash: the redactor has no account context here - it sees an email
+    /// value, not an account id - so its hash cannot be the account identifier,
+    /// and labelling it as one would silently break log correlation (RV.63).
+    /// The account-id hash appears only where the account is actually resolved
+    /// (AccountHash.ForAccount, the bearer scope and the auth/account events).
     /// </summary>
     public RedactedField? RedactProperty(string fieldName, object? value)
     {
@@ -41,8 +46,8 @@ public sealed class TankbookRedactor
         {
             var hashed = value is null
                 ? null
-                : AccountHash.Compute(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)!, _hashSalt);
-            return new RedactedField("accountHash", hashed);
+                : AccountHash.ForEmail(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture)!, _hashSalt);
+            return new RedactedField("emailHash", hashed);
         }
 
         var sensitive = SensitiveFieldCatalog.IsSensitive(fieldName) ||
