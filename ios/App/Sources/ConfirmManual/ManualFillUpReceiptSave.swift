@@ -125,7 +125,8 @@ extension ManualFillUpView {
                               repository: TankbookRepository) -> [AttachmentID] {
         guard let attachmentID = scanned.attachmentID else { return [] }
         do {
-            try writeReceiptAttachment(id: attachmentID, repository: repository)
+            try writeReceiptAttachment(id: attachmentID, repository: repository,
+                                       extraction: scanned.extraction)
             return [attachmentID]
         } catch {
             AppLog.error(operation: "confirmManual.receiptPhotoSave", category: .ui, error: error)
@@ -144,9 +145,12 @@ extension ManualFillUpView {
     /// Writes the receipt photo once: file bytes into the shared attachments
     /// directory (the same pool `InvoiceAttachmentFiles` uses, docs/SYNC.md),
     /// one `Attachment` row shared by the fill-up and every accepted expense,
-    /// with the inline thumbnail in the payload (P4.6).
+    /// with the inline thumbnail in the payload (P4.6) and - RV.48 - the parse's
+    /// per-field ASSIGNMENT (`extraction`), so the recognised page shows what the
+    /// receipt said, not line soup.
     func writeReceiptAttachment(id: AttachmentID,
-                                repository: TankbookRepository) throws {
+                                repository: TankbookRepository,
+                                extraction: ExtractionMeta?) throws {
         guard let source = receiptSource, let sourceImage = source.sourceImage else { return }
         guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
             throw ReceiptAttachmentError.notEncodable
@@ -162,7 +166,10 @@ extension ManualFillUpView {
         let attachment = Attachment(
             id: id, createdAt: now, updatedAt: now, deletedAt: nil,
             kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
-            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail)
+            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
+            // A parse that assigned nothing stores no container at all, never an
+            // empty one (RV.48).
+            extractionMeta: extraction?.assignmentOnly)
         try repository.upsertAttachment(attachment)
     }
 }

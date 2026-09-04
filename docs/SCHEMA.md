@@ -229,9 +229,12 @@ Attachment {
   ocrText: String?              // full recognized text, retained for re-parsing after parser upgrades
   thumbnailBase64: String?      // ~120px JPEG, base64, rides INSIDE the payload so lists render photo chips
                                 // with zero blob fetches (SYNC.md -> Attachments); nil for a PDF
+  extractionMeta: ExtractionMeta?   // RV.48: the parse's per-field ASSIGNMENT, so the recognised page shows
+                                // meaning instead of line soup. nil when the parse assigned nothing – an
+                                // empty container is never stored. Only value-bearing fields (see below).
 }
 
-ExtractionMeta {                // embedded in FillUp/ChargeSession
+ExtractionMeta {                // embedded in FillUp/ChargeSession AND Attachment.extractionMeta
   fields: [FieldRef: FieldExtraction]
   pipeline: String              // "vision+rules v3", "fiscal-qr", "cloud-fallback v1" – regression tracking
 }
@@ -239,8 +242,41 @@ FieldExtraction {
   cropRect: CGRect?             // normalized region in the attachment image – powers tap-to-verify (F2)
   confidence: Double            // 0–1; UI dims below threshold
   userCorrected: Bool           // corrected fields become OCR training signals (opt-in)
+  value: FieldValue?            // RV.48: the value the parse ASSIGNED to this field. nil on records written
+                                // before the field existed, and on a field recorded without a value (an
+                                // invoice line the splitter tagged). A field the parse did NOT assign is
+                                // ABSENT from `fields`, never a blank entry.
+}
+FieldValue {                    // the typed value per field (RV.48). Money is `Decimal` never `Double` (P2.2b);
+                                // the currency for a money value is the sibling `.currency` field, so the pair
+                                // is the two fields together ("Money is always a pair").
+  .money(Decimal)               // .total, .unitPrice
+  .number(Double)               // .volume (litres), .energy (kWh) – a measurement, not money
+  .text(String)                 // .date (the raw date string), .station, .vendor – byte-identical (P2.11)
+  .fuelKind(FuelKind)
+  .currency(CurrencyCode)
 }
 FieldRef: .total | .volume | .unitPrice | .date | .station | .fuelKind | .energy | .currency | .vendor | .lineItem(Int)
+```
+
+**On `Attachment.extractionMeta` (RV.48):** the attachment stores the *value-bearing subset*
+of the save's `ExtractionMeta` – every `FieldExtraction` whose `value` is non-nil. Two
+invariants, both tested: a field the parse did not assign is **absent**, never an empty
+string or a zero; a parse that assigned nothing stores **no container at all** (the entry's
+`extraction` may still carry the empty provenance map for the accuracy feed, but the
+attachment's is nil). The stored assignment is a record of what the scan concluded, **not** a
+fact and never a source that may overwrite a user's value (hard rule 13): `userCorrected`
+already marks a field the user changed, and the viewer only ever presents these values, it
+never feeds them back into an entry.
+
+**On `ocrText` retention (RV.48 decision, recorded):** the raw dump is kept, not trimmed.
+The recognised page demotes it behind a disclosure, but it stays on the record so a bad
+parse can still be re-examined (`docs/EXTRACTION.md`'s four failure modes are pinned to it).
+The privacy cost is real and accepted with reasoning in `docs/SECURITY.md` -> "Attachment raw
+text": the merchant's `Reg.kood`/`KMKR`/`ИНН` and terminal ids ride into on-device storage and
+sync, and the app has no use for them – the alternative (deleting evidence of a misread to
+save bytes) costs more than it saves.
+
 // .currency: detected from the receipt's symbol/code ("PLN", "zł") – shown as a chip on the confirm
 // screen with its own confidence; a low-confidence currency NEVER silently converts (ask, don't guess).
 

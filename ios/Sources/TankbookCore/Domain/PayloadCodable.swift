@@ -33,12 +33,11 @@ internal struct PayloadCodingKey: CodingKey, Hashable, Sendable {
     init(_ string: String) { self.stringValue = string; self.intValue = nil }
 }
 
-private func key(_ string: String) -> PayloadCodingKey { PayloadCodingKey(string) }
+func key(_ string: String) -> PayloadCodingKey { PayloadCodingKey(string) }
 
-private func dataCorrupted(_ error: String) -> DecodingError {
+func dataCorrupted(_ error: String) -> DecodingError {
     DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: error))
 }
-
 // MARK: - Money
 
 extension Money {
@@ -410,6 +409,7 @@ extension FieldExtraction {
         }
         try c.encode(confidence, forKey: key("confidence"))
         try c.encode(userCorrected, forKey: key("userCorrected"))
+        try c.encodeIfPresent(value, forKey: key("value"))
     }
 
     public init(from decoder: Decoder) throws {
@@ -426,6 +426,11 @@ extension FieldExtraction {
         }
         confidence = try c.decode(Double.self, forKey: key("confidence"))
         userCorrected = try c.decode(Bool.self, forKey: key("userCorrected"))
+        // Forward compatibility: a `value` tag this build does not know (a newer
+        // client's field kind) decodes to nil rather than failing the whole
+        // record; the codec's unknown-key preservation re-emits the raw bytes on
+        // encode, so nothing is dropped (docs/SYNC.md, forward compatibility).
+        value = try? c.decodeIfPresent(FieldValue.self, forKey: key("value"))
     }
 }
 

@@ -187,7 +187,8 @@ struct AttachmentViewerView: View {
             TabView(selection: $page) {
                 photoContent
                     .tag(0)
-                AttachmentRecognisedView(ocrText: attachment.ocrText,
+                AttachmentRecognisedView(extractionMeta: attachment.extractionMeta,
+                                         ocrText: attachment.ocrText,
                                          extractedTimestamp: attachment.extractedTimestamp)
                     .tag(1)
             }
@@ -380,16 +381,17 @@ struct AttachmentViewerView: View {
 
     // MARK: - Recognised data (RV.17)
 
-    /// Whether the attachment carries anything recognised to show. Both signals
-    /// are stored fields (`ocrText`, `extractedTimestamp`); neither requires a
-    /// fetch, so the recognised page is reachable while the photo is still
-    /// downloading.
+    /// Whether the attachment carries anything recognised to show. The signals
+    /// are stored fields (`ocrText`, `extractedTimestamp`, `extractionMeta`);
+    /// none requires a fetch, so the recognised page is reachable while the
+    /// photo is still downloading.
     private var hasRecognisedData: Bool {
         if let ocr = attachment.ocrText,
            !ocr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return true
         }
-        return attachment.extractedTimestamp != nil
+        if attachment.extractedTimestamp != nil { return true }
+        return attachment.extractionMeta?.hasAssignedValue == true
     }
 
     // MARK: - Share (RV.17)

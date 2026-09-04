@@ -650,6 +650,14 @@ capture RV.45-comparison-ru     ru -seedSettingsSignedIn -seedInboxComparison -i
 capture RV.45-nothing-to-change    en -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 
+# RV.48: the attachment viewer's recognised page showing the parse's ASSIGNED
+# fields (total/litres/price/fuel/currency) as the headline, the raw OCR lines
+# demoted behind a disclosure. `-openAttachmentViewerRecognised` opens the pager
+# on the second page (simctl cannot swipe). RU is where the two-column field list
+# overflows worst ("Итого", "Цена/л", "Валюта", "Топливо").
+capture RV.48-attachment-recognised    en -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
+capture RV.48-attachment-recognised-ru ru -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
+
 # RV.42: the language restart notice survives being ignored - Settings showing
 # the pending notice on the Language row AFTER the picker was dismissed (the
 # whole point; a shot of the picker does not demonstrate the fix). The notice is

@@ -126,6 +126,9 @@
         },
         "userCorrected" : {
           "type" : "boolean"
+        },
+        "value" : {
+          "$ref" : "#/$defs/fieldValue"
         }
       },
       "required" : [
@@ -156,6 +159,35 @@
         }
       ],
       "type" : "string"
+    },
+    "fieldValue" : {
+      "additionalProperties" : true,
+      "properties" : {
+        "tag" : {
+          "enum" : [
+            "money",
+            "number",
+            "text",
+            "fuelKind",
+            "currency"
+          ],
+          "type" : "string"
+        },
+        "value" : {
+          "anyOf" : [
+            {
+              "type" : "string"
+            },
+            {
+              "type" : "number"
+            }
+          ]
+        }
+      },
+      "required" : [
+        "tag"
+      ],
+      "type" : "object"
     },
     "fiscalDocumentIdentity" : {
       "additionalProperties" : true,

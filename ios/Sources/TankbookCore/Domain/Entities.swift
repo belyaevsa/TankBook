@@ -505,13 +505,21 @@ public struct Attachment: Entity, Codable, Sendable, Equatable {
     /// payload so lists render photo chips with zero blob fetches
     /// (docs/SYNC.md -> Attachments: the blob pipeline). Nil for a PDF.
     public var thumbnailBase64: String?
+    /// What the parse CONCLUDED, not the raw lines (RV.48): the per-field
+    /// assignment with its value and confidence, so the recognised page shows
+    /// meaning instead of line soup. nil when the parse assigned nothing - an
+    /// empty container is never stored for a nothing-assigned parse. A record of
+    /// what the scan concluded, never a fact (hard rule 13): the entry's own
+    /// values are what the user decided; this is only evidence of what was read.
+    public var extractionMeta: ExtractionMeta?
 
     /// Memberwise initializer, public so the app target can build an `Attachment`
     /// (the same construction blocker that `Vehicle` had; see its note).
     public init(id: UUID, createdAt: Date, updatedAt: Date, deletedAt: Date? = nil,
                 kind: AttachmentKind, file: LocalFileRef,
                 extractedTimestamp: Date? = nil, ocrText: String? = nil,
-                thumbnailBase64: String? = nil) {
+                thumbnailBase64: String? = nil,
+                extractionMeta: ExtractionMeta? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -521,6 +529,7 @@ public struct Attachment: Entity, Codable, Sendable, Equatable {
         self.extractedTimestamp = extractedTimestamp
         self.ocrText = ocrText
         self.thumbnailBase64 = thumbnailBase64
+        self.extractionMeta = extractionMeta
     }
 }
 
@@ -555,11 +564,20 @@ public struct FieldExtraction: Codable, Sendable, Equatable {
     public var cropRect: CGRect?
     public var confidence: Double
     public var userCorrected: Bool
+    /// The value the parse assigned to this field (docs/SCHEMA.md,
+    /// FieldExtraction.value). nil when the field was recorded without a value
+    /// (an invoice line the splitter tagged but did not carry a value for, and
+    /// every record written before this field existed). A field the parse did
+    /// not assign is ABSENT from `ExtractionMeta.fields`, never a blank entry
+    /// (RV.48).
+    public var value: FieldValue?
 
-    public init(cropRect: CGRect?, confidence: Double, userCorrected: Bool) {
+    public init(cropRect: CGRect?, confidence: Double, userCorrected: Bool,
+                value: FieldValue? = nil) {
         self.cropRect = cropRect
         self.confidence = confidence
         self.userCorrected = userCorrected
+        self.value = value
     }
 }
 

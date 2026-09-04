@@ -92,6 +92,25 @@ A batched, idempotent, resumable job applies pending transforms across `records`
 
 Anything not expressible as a declarative transform is client-only migration, and `minSupported` simply waits longer. That constraint is a feature: it keeps domain logic out of the server by construction.
 
+**RV.48 is the easy end of this mechanism: no transform at all.** It adds one optional
+property – `Attachment.extractionMeta` (an `ExtractionMeta?`) and the optional
+`FieldExtraction.value` inside it. Both are **additive and optional**, so this is a data
+change (a schema update, seeded by SQL), never a backend deploy. The ordered-operation list
+(`rename`, `addDefault`, `wrap`, `removeDeprecated`) has nothing to express here:
+
+- **An older client reading a newer payload** decodes `extractionMeta` as absent (the key is
+  unknown) and re-emits it unchanged via the round-trip preservation rule – the assignment is
+  never dropped, only unrendered. `FieldExtraction.value` unknown tags decode to nil the same
+  way (`FieldExtraction.init(from:)` uses `try?`), and the codec's unknown-key preservation
+  re-emits the raw `value` bytes.
+- **A newer client reading an older payload** finds no `extractionMeta` and decodes it to
+  nil – the recognised page falls back to the raw-text disclosure, exactly the pre-RV.48
+  behaviour. No `addDefault` is needed because nil already means "nothing was assigned".
+
+The registered JSON Schema for `attachment` gains the `extractionMeta` property and the
+`fieldValue` definition (both optional), so validation stays strict on structure while the
+absence of either is a valid, well-formed payload.
+
 ### How this is assured (tests, not promises)
 
 - **Schema coverage**: every `entityType` in SCHEMA.md has a registered schema at the current version. A new entity without its contract fails the build.

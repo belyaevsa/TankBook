@@ -179,7 +179,9 @@ final class AttachmentViewerUITests: XCTestCase {
 
     /// The recognised data is "just an additional photo": a second page reached
     /// by swiping, not chrome over the receipt. `-seedPhotoLocal` carries the
-    /// OCR line and the scan timestamp, so the page is present and reachable.
+    /// OCR line, the scan timestamp and - RV.48 - the parse's per-field
+    /// assignment, so the page shows meaning with the raw lines demoted behind
+    /// a disclosure.
     func testTheRecognisedDataPageIsReachableWhenPresent() {
         let app = launch("-seedPhotoLocal")
 
@@ -198,8 +200,67 @@ final class AttachmentViewerUITests: XCTestCase {
                       "the recognised data must be reachable by swiping to the next page")
         XCTAssertTrue(recognised.isHittable,
                       "the recognised data must be visible, not merely in the hierarchy")
-        XCTAssertTrue(app.descendants(matching: .any)["attachmentViewerOcrText"].isHittable,
-                      "the OCR lines must render on the recognised page")
+        // RV.48: the assigned fields are the headline, the raw lines the evidence.
+        XCTAssertTrue(app.descendants(matching: .any)["attachmentViewerRecognisedFields"].isHittable,
+                      "the assigned fields must render on the recognised page")
+        // The raw OCR lines are demoted behind a disclosure, never deleted: the
+        // disclosure label is present and the raw text is collapsed out of sight.
+        XCTAssertTrue(app.staticTexts["Read from the receipt"].waitForExistence(timeout: 5),
+                      "the raw OCR lines must be offered behind a disclosure")
+        XCTAssertFalse(app.descendants(matching: .any)["attachmentViewerOcrText"].exists,
+                       "the raw OCR lines must start collapsed, not as a headline")
+    }
+
+    /// RV.48 the whole point: the recognised page shows what the parse CONCLUDED,
+    /// not line soup. The seeded assignment is 71.02 EUR total, 42.30 L volume,
+    /// 1.679 EUR/L price, petrol95, EUR - the values the parser read off the
+    /// receipt, each asserted as a value (never merely that the card renders).
+    func testTheRecognisedPageShowsTheAssignedValues() {
+        let app = launch("-seedPhotoLocal")
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["attachmentViewerImage"]
+            .waitForExistence(timeout: 10))
+        app.swipeLeft()
+
+        let fields = app.descendants(matching: .any)["attachmentViewerRecognisedFields"]
+        XCTAssertTrue(fields.waitForExistence(timeout: 10),
+                      "the assigned-field card must render")
+        XCTAssertTrue(fields.isHittable,
+                      "the assigned-field card must be visible, not merely present")
+
+        // The values the parse assigned - asserted as concrete values within the
+        // card, so a card that renders nothing still fails. petrol95 renders as
+        // its grade "95" (docs/SCHEMA.md fuel kind labels).
+        XCTAssertTrue(fields.staticTexts["71.02"].exists, "the assigned total must render")
+        XCTAssertTrue(fields.staticTexts["42.30"].exists, "the assigned volume must render")
+        XCTAssertTrue(fields.staticTexts["1.679"].exists, "the assigned unit price must render")
+        XCTAssertTrue(fields.staticTexts["95"].exists, "the assigned fuel kind must render")
+        XCTAssertTrue(fields.staticTexts["EUR"].exists, "the assigned currency must render")
+    }
+
+    /// A parse that assigned nothing says so, instead of an empty card (RV.48's
+    /// L4 requirement). `-seedPhotoNothingAssigned` carries the raw lines and the
+    /// timestamp but no assignment, so the page exists and states it plainly.
+    func testNothingAssignedSaysSo() {
+        let app = launch("-seedPhotoNothingAssigned")
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["attachmentViewerImage"]
+            .waitForExistence(timeout: 10))
+        app.swipeLeft()
+
+        let nothing = app.descendants(matching: .any)["attachmentViewerNothingRecognised"]
+        XCTAssertTrue(nothing.waitForExistence(timeout: 10),
+                      "a nothing-assigned receipt must say so, never an empty card")
+        XCTAssertTrue(nothing.isHittable,
+                      "the nothing-assigned statement must be visible, not merely present")
+        XCTAssertFalse(app.descendants(matching: .any)["attachmentViewerRecognisedFields"].exists,
+                       "no assigned-field card must render when nothing was assigned")
     }
 
     /// With nothing recognised, the surface is absent rather than empty: no

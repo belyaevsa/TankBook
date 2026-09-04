@@ -28,7 +28,10 @@ enum ReceiptAttachmentWriter {
         return Attachment(
             id: id, createdAt: now, updatedAt: now, deletedAt: nil,
             kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
-            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail)
+            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
+            // RV.48: the parse's per-field assignment, so the recognised page
+            // shows meaning. nil when the parse assigned nothing.
+            extractionMeta: ScannedSavePlanner.assignment(from: extraction))
     }
 }
 

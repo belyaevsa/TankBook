@@ -131,6 +131,43 @@ public enum ScannedSavePlanner {
         return declared
     }
 
+    /// The value-only assignment for an `Attachment` written OUTSIDE a save
+    /// (PJ.48 attach, RV.37 replace): the fields the parse read with their
+    /// values and confidence, but no `userCorrected` - that comparison needs the
+    /// saved values and lives on the save path. nil when the parse assigned
+    /// nothing, so the attachment stores no empty container (RV.48).
+    public static func assignment(from extraction: FuelExtraction,
+                                  pipeline: String = onDevicePipeline,
+                                  confidence: Double = onDeviceConfidenceDefault) -> ExtractionMeta? {
+        var fields: [FieldRef: FieldExtraction] = [:]
+        if let total = extraction.total {
+            fields[.total] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                             userCorrected: false, value: .money(total))
+        }
+        if let liters = extraction.liters {
+            fields[.volume] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                              userCorrected: false, value: .number(liters))
+        }
+        if let price = extraction.unitPrice {
+            fields[.unitPrice] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                                 userCorrected: false, value: .money(price))
+        }
+        if let date = extraction.date {
+            fields[.date] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                            userCorrected: false, value: .text(date))
+        }
+        if let currency = extraction.currency {
+            fields[.currency] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                                userCorrected: false, value: .currency(currency))
+        }
+        if let kind = extraction.fuelKind {
+            fields[.fuelKind] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                                userCorrected: false, value: .fuelKind(kind))
+        }
+        guard !fields.isEmpty else { return nil }
+        return ExtractionMeta(fields: fields, pipeline: pipeline)
+    }
+
     // MARK: - The extraction record
 
     private static func extractionMeta(extraction: FuelExtraction,
@@ -142,41 +179,47 @@ public enum ScannedSavePlanner {
         var fields: [FieldRef: FieldExtraction] = [:]
 
         let proposalTotal = resolvedTotal(extraction: extraction, qrAnchor: qrAnchor)
-        if proposalTotal != nil {
+        if let proposalTotal {
             fields[.total] = FieldExtraction(
                 cropRect: cropRects[.total],
                 confidence: confidence[.total] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.total.map { !sameMoney($0, proposalTotal!) } ?? true)
+                userCorrected: saved.total.map { !sameMoney($0, proposalTotal) } ?? true,
+                value: .money(proposalTotal))
         }
         if let liters = extraction.liters {
             fields[.volume] = FieldExtraction(
                 cropRect: cropRects[.volume],
                 confidence: confidence[.volume] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.volumeL.map { !sameVolume($0, liters) } ?? true)
+                userCorrected: saved.volumeL.map { !sameVolume($0, liters) } ?? true,
+                value: .number(liters))
         }
         if let price = extraction.unitPrice {
             fields[.unitPrice] = FieldExtraction(
                 cropRect: cropRects[.unitPrice],
                 confidence: confidence[.unitPrice] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.unitPrice.map { !sameMoney($0, price) } ?? true)
+                userCorrected: saved.unitPrice.map { !sameMoney($0, price) } ?? true,
+                value: .money(price))
         }
         if let raw = extraction.date, let date = ConfirmDate.parse(raw) {
             fields[.date] = FieldExtraction(
                 cropRect: nil,
                 confidence: confidence[.date] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.date != date)
+                userCorrected: saved.date != date,
+                value: .text(raw))
         }
         if let currency = extraction.currency {
             fields[.currency] = FieldExtraction(
                 cropRect: nil,
                 confidence: confidence[.currency] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.currency != currency)
+                userCorrected: saved.currency != currency,
+                value: .currency(currency))
         }
         if let kind = extraction.fuelKind {
             fields[.fuelKind] = FieldExtraction(
                 cropRect: nil,
                 confidence: confidence[.fuelKind] ?? onDeviceConfidenceDefault,
-                userCorrected: saved.fuelKind != kind)
+                userCorrected: saved.fuelKind != kind,
+                value: .fuelKind(kind))
         }
         return ExtractionMeta(fields: fields, pipeline: pipeline)
     }

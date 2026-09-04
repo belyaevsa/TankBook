@@ -40,6 +40,8 @@ enum PhotoSyncingTestSeed {
             variant = .remote
         } else if arguments.contains("-seedPhotoLocalNoOCR") {
             variant = .localNoOCR
+        } else if arguments.contains("-seedPhotoNothingAssigned") {
+            variant = .nothingAssigned
         } else {
             variant = nil
         }
@@ -66,6 +68,7 @@ enum PhotoSyncingTestSeed {
         case pdf
         case remote
         case localNoOCR
+        case nothingAssigned
     }
 
     /// The JPEG the seeded slow transport returns, and the bytes the `.remote`
@@ -101,13 +104,31 @@ enum PhotoSyncingTestSeed {
         let recognised: (timestamp: Date?, ocr: String?) =
             (variant == .localNoOCR || variant == .remote)
                 ? (nil, nil) : (scannedAt, "SHELL 71.02 42.30 1.679")
+        // RV.48: the `.local` receipt carries the parse's per-field ASSIGNMENT, so
+        // the recognised page shows meaning. `.nothingAssigned` carries the raw
+        // lines but no assignment, so it shows the "nothing usable" state.
+        let extractionMeta: ExtractionMeta? = (variant == .local)
+            ? ExtractionMeta(fields: [
+                .total: FieldExtraction(cropRect: nil, confidence: 0.98, userCorrected: false,
+                                        value: .money(Decimal(string: "71.02")!)),
+                .volume: FieldExtraction(cropRect: nil, confidence: 0.97, userCorrected: false,
+                                         value: .number(42.30)),
+                .unitPrice: FieldExtraction(cropRect: nil, confidence: 0.96, userCorrected: false,
+                                            value: .money(Decimal(string: "1.679")!)),
+                .currency: FieldExtraction(cropRect: nil, confidence: 0.99, userCorrected: false,
+                                           value: .currency(.eur)),
+                .fuelKind: FieldExtraction(cropRect: nil, confidence: 0.95, userCorrected: false,
+                                           value: .fuelKind(.petrol95)),
+            ], pipeline: "vision+rules v3")
+            : nil
         let attachment = Attachment(
             id: UUID.v7(), createdAt: scannedAt, updatedAt: scannedAt, deletedAt: nil,
             kind: variant == .pdf ? .pdf : .photo,
             file: fileRef(for: variant),
             extractedTimestamp: recognised.timestamp,
             ocrText: recognised.ocr,
-            thumbnailBase64: variant == .pdf ? nil : Self.thumbnailBase64())
+            thumbnailBase64: variant == .pdf ? nil : Self.thumbnailBase64(),
+            extractionMeta: extractionMeta)
         try? repository.upsertAttachment(attachment)
 
         try? repository.upsertFillUp(FillUp(
@@ -136,7 +157,7 @@ enum PhotoSyncingTestSeed {
             return LocalFileRef(
                 sha256: BlobHash.sha256(Self.remoteRendition),
                 relativePath: "photos/pending/remote.jpg")
-        case .local, .localNoOCR, .pdf:
+        case .local, .localNoOCR, .nothingAssigned, .pdf:
             let data = variant == .pdf ? samplePDF() : sampleJPEG(size: 900)
             guard let data, let saved = try? VehiclePhotoStore.save(data, id: UUID.v7()) else {
                 return LocalFileRef(sha256: "", relativePath: "")

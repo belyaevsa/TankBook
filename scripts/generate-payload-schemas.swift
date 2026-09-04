@@ -182,6 +182,10 @@ let reminderStatusDef = taggedEnum(["scheduled", "attention", "done", "dismissed
     "reason": schemaString,
 ])
 
+let fieldValueDef = taggedEnum(["money", "number", "text", "fuelKind", "currency"], [
+    "value": ["anyOf": [schemaString, schemaNumber]],
+])
+
 let fieldExtractionDef = schemaObject([
     "cropRect": schemaObject([
         "x": schemaNumber,
@@ -191,6 +195,7 @@ let fieldExtractionDef = schemaObject([
     ], ["x", "y", "width", "height"]),
     "confidence": schemaNumber,
     "userCorrected": schemaBoolean,
+    "value": schemaRef("fieldValue"),
 ], ["confidence", "userCorrected"])
 
 let extractionFieldsDef: [String: Any] = [
@@ -236,6 +241,7 @@ let allDefs: [String: Any] = [
     "expenseCategory": expenseCategoryDef,
     "reminderCategory": reminderCategoryDef,
     "reminderStatus": reminderStatusDef,
+    "fieldValue": fieldValueDef,
     "fieldExtraction": fieldExtractionDef,
     "extractionMeta": extractionMetaDef,
     "serviceItem": serviceItemDef,
@@ -428,6 +434,10 @@ let attachmentProperties: [String: Any] = [
     // P4.6: the inline ~120px JPEG thumbnail, base64, carried inside the
     // payload so lists render photo chips with zero blob fetches.
     "thumbnailBase64": schemaString,
+    // RV.48: the parse's per-field assignment, so the recognised page shows
+    // meaning instead of line soup. Optional - a nothing-assigned parse stores
+    // no container at all.
+    "extractionMeta": schemaRef("extractionMeta"),
 ]
 
 let preferencesProperties: [String: Any] = [

@@ -233,6 +233,30 @@ quietly stops being true.
 **Deleting the account deletes these too.** They are the account's data and fall under the
 signed-off delete-account-deletes-everything stance.
 
+## Attachment raw text at rest (RV.48 decision, 2026-09-04)
+
+The receipt's full OCR dump (`Attachment.ocrText`) carries the merchant's `Reg.kood`, `KMKR nr.`,
+`ИНН` and terminal ids into on-device storage and through sync, and the app has no use for any of
+it. When RV.48 added the per-field assignment (`Attachment.extractionMeta`), it was therefore a
+decision to record, not an optimisation to slip in. The three options:
+
+1. **Trim it** - data minimisation, but deleting the evidence of a misread means a bad parse can
+   never be re-examined; `docs/EXTRACTION.md`'s four named failure modes are pinned to the raw
+   lines.
+2. **Keep everything** - the raw dump stays intact; a stranger's VAT number rides into sync for
+   nothing.
+3. **Keep it, demote it** - the dump stays (option 2's integrity), but the *viewer* shows the
+   assigned fields as the headline and demotes the raw lines behind a disclosure.
+
+**Chosen: (3) keep it, demote it.** The cost we accepted is the one this section is for: the raw
+dump is still stored and synced, merchant identifiers included. The cost we avoided is the larger
+one: deleting the only evidence a re-parse could use. `ReceiptNoiseFilter` (RV.48 stage one)
+already classifies exactly those merchant/noise lines, and it tags rather than deletes - so the
+tagging exists for a future "keep only candidate lines" if a privacy need outweighs re-examinability,
+without this change needing to make that call. The stored text remains subject to the same rules
+as every other domain value: never logged (hard rule 12), at-rest protected like all attachments,
+and covered by `DELETE /account`.
+
 ## LLM call ledger (added 2026-09-03)
 
 Hard rule 9's amendment: every call to an LLM gate (`/extract` today, `/agent/turn` when v2

@@ -256,7 +256,16 @@ private func fullyPopulatedPayloads() throws -> [(entityType: String, payload: J
                            relativePath: "photos/2026/08/9f86d081.jpg"),
         extractedTimestamp: testTimestamp,
         ocrText: "BOSCH SERVICE 89.00",
-        thumbnailBase64: "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA=="
+        thumbnailBase64: "/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAA==",
+        extractionMeta: ExtractionMeta(
+            fields: [
+                .total: FieldExtraction(cropRect: nil, confidence: 0.98, userCorrected: false,
+                                        value: .money(dec("89.00"))),
+                .currency: FieldExtraction(cropRect: nil, confidence: 0.99, userCorrected: false,
+                                           value: .currency(.eur)),
+            ],
+            pipeline: "vision+rules v3"
+        )
     )
     return [
         (Vehicle.entityType, try payload(fullyPopulatedVehicle())),

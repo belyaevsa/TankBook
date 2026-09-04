@@ -13165,6 +13165,23 @@
         }
       }
     },
+    "Nothing usable was read from this receipt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing usable was read from this receipt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Из чека не удалось извлечь полезные данные."
+          }
+        }
+      }
+    },
     "The entry this reading was about no longer exists.": {
       "extractionState": "manual",
       "localizations": {

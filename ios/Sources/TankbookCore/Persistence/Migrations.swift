@@ -118,6 +118,15 @@ public enum TankbookMigrations {
                 table.add(column: "deviceName", .text)
             }
         }
+        migrator.registerMigration("v8") { db in
+            // RV.48: the attachment now persists the parse's per-field ASSIGNMENT
+            // (ExtractionMeta, with values), so the recognised page shows meaning
+            // instead of the raw ocrText. Same TEXT JSON shape as the entry
+            // tables' `extraction` column.
+            try db.alter(table: TankbookSchema.attachment) { table in
+                table.add(column: "extraction", .text)
+            }
+        }
         return migrator
     }
 
