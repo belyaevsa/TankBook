@@ -52,7 +52,7 @@ struct AccountDevicesView: View {
                isPresented: revokePresented) {
             Button("Revoke") {
                 if let device = pendingRevoke {
-                    Task { await model?.revoke(device) }
+                    Task { await performRevoke(device) }
                 }
                 pendingRevoke = nil
             }
@@ -263,7 +263,7 @@ struct AccountDevicesView: View {
                 trailing(device, model: model)
             }
             if model.revokeErrorFor == device.id {
-                revokeErrorRow(device, model: model)
+                revokeErrorRow(device)
             }
         }
         .padding(.horizontal, 16)
@@ -314,7 +314,7 @@ struct AccountDevicesView: View {
 
     /// A failed revoke names its next step (hard rule 7): Try again on the same
     /// row, amber (attention, never red - nothing was lost).
-    private func revokeErrorRow(_ device: AccountDevice, model: AccountDevicesModel) -> some View {
+    private func revokeErrorRow(_ device: AccountDevice) -> some View {
         HStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.caption)
@@ -324,7 +324,7 @@ struct AccountDevicesView: View {
                 .foregroundStyle(Theme.Palette.warn)
             Spacer(minLength: 8)
             Button("Try again") {
-                Task { await model.revoke(device) }
+                Task { await performRevoke(device) }
             }
             .buttonStyle(.plain)
             .font(.caption.weight(.bold))
@@ -414,6 +414,16 @@ struct AccountDevicesView: View {
     }
 
     // MARK: - Behavior
+
+    /// The shared revoke path (alert confirm and row retry): a revoke that
+    /// reached the server invalidates the Settings card's cached device count
+    /// (RV.6), so the pop-back Settings refresh fetches the server truth.
+    private func performRevoke(_ device: AccountDevice) async {
+        guard let model else { return }
+        if await model.revoke(device) {
+            sync.invalidateDeviceCount()
+        }
+    }
 
     private func performDelete() async {
         guard let model else { return }

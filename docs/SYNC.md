@@ -439,6 +439,21 @@ Three things live there, and the split between them is what keeps hard rule 8 in
    week offline is the same as an hour (S7). A status row that nags is a status row that teaches
    the user to babysit a queue the app is supposed to drain by itself.
 
+   The signed-in reassurance line also carries the account's device count – "Synced just now ·
+   1 device" (docs/JOURNEYS.md J11a -> Confirm). **The count is fetched from `GET
+   /account/devices` once per membership, not once per appearance (RV.6).** It is a reassurance
+   detail that changes on **events** – a sign-in, a sign-out, a revoke, an account delete – never
+   on a clock, so it is cached across every surface refresh (Settings re-appearing after a pop
+   back from Account & devices, a Low Power toggle, the end of a sync cycle) and re-fetched only
+   when an event cleared it or it is still unknown (a guest, offline, or a fetch failure, which
+   the next appearance retries). The decision is core (`DeviceCountCache`), so a second
+   fetch-on-every-refresh cannot silently return; the Account & devices screen clears the cache
+   the moment a revoke succeeds, and the Settings refresh clears it whenever there is no session.
+   Deliberately **not** a time interval: an interval would make the count *sometimes* stale for
+   reasons the user cannot see, while event invalidation keeps it correct on exactly the moments
+   the user can act on. The Account & devices screen itself always reads the full list on each
+   visit (didLoad-guarded per push) – this cache governs only the Settings card's suffix.
+
 2. **"Sync now" - a manual trigger, never a requirement.** Sync is automatic; this exists because
    a user who has just edited something on another device wants to *pull now* rather than wonder.
    Constraints: it is **idempotent** (inert while a sync is in flight, so a repeated tap is never

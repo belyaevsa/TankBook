@@ -81,17 +81,22 @@ final class AccountDevicesModel {
     /// Revokes one device (`DELETE /account/devices/{id}`). The device's next
     /// pull gets 410; its local data stays on it. The server's response is the
     /// truth: on success the row reloads from the next `load()`, on 404 the
-    /// device is treated as already gone.
-    func revoke(_ device: AccountDevice) async {
-        guard inFlightRevoke == nil else { return }
+    /// device is treated as already gone. Returns whether the revoke reached
+    /// the server (a reload that then fails does not undo a successful revoke),
+    /// so the caller can invalidate anything that depends on the old list.
+    @discardableResult
+    func revoke(_ device: AccountDevice) async -> Bool {
+        guard inFlightRevoke == nil else { return false }
         inFlightRevoke = device.id
         revokeErrorFor = nil
         defer { inFlightRevoke = nil }
         do {
             try await client.revoke(deviceID: device.id)
             await load()
+            return true
         } catch {
             revokeErrorFor = device.id
+            return false
         }
     }
 
