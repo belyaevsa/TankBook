@@ -36,6 +36,14 @@ namespace Tankbook.Api.Tests.Outbox;
 /// </summary>
 public class OutboxTests : IClassFixture<PostgresFixture>
 {
+    /// <summary>
+    /// The app's TimeProvider is frozen here, and every retention cutoff is
+    /// computed from it. Age rows with <c>Now.AddDays(-n)</c>, NEVER with SQL
+    /// <c>now() - interval 'n days'</c>: that mixes Postgres's real wall clock
+    /// into a comparison against this frozen instant, so the test passes only
+    /// on 2026-09-03 and rots the day after (RV.55, four suites went red on
+    /// 2026-09-04). Both sides of a cutoff must read the same clock.
+    /// </summary>
     private static readonly DateTimeOffset Now = new(2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
 
     private const decimal InputPrice = 0.0000025m;
@@ -167,7 +175,7 @@ public class OutboxTests : IClassFixture<PostgresFixture>
         Assert.Equal(1, await app.CountAsync("delivery_outbox"));
 
         // Tombstone the account past its grace period and run the purge pass.
-        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = now() - interval '31 days' WHERE id = @p", new { p = accountId });
+        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = @aged WHERE id = @p", new { aged = Now.AddDays(-31), p = accountId });
         var purge = app.Resolve<AccountPurgeService>();
         await purge.PurgeDueAccountsAsync(CancellationToken.None);
 
@@ -210,8 +218,8 @@ public class OutboxTests : IClassFixture<PostgresFixture>
         var oldId = rows[0];
         var recentId = rows[1];
 
-        await app.Db.ExecuteAsync("UPDATE delivery_outbox SET created_at = now() - interval '31 days' WHERE id = @p", new { p = oldId });
-        await app.Db.ExecuteAsync("UPDATE delivery_outbox SET created_at = now() - interval '1 day' WHERE id = @p", new { p = recentId });
+        await app.Db.ExecuteAsync("UPDATE delivery_outbox SET created_at = @aged WHERE id = @p", new { aged = Now.AddDays(-31), p = oldId });
+        await app.Db.ExecuteAsync("UPDATE delivery_outbox SET created_at = @aged WHERE id = @p", new { aged = Now.AddDays(-1), p = recentId });
 
         var purged = await outbox.PurgeDueAsync(CancellationToken.None);
         Assert.Equal(1, purged);

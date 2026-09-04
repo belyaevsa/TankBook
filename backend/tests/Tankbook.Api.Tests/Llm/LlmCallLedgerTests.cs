@@ -31,6 +31,14 @@ namespace Tankbook.Api.Tests.Llm;
 /// </summary>
 public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
 {
+    /// <summary>
+    /// The app's TimeProvider is frozen here, and every retention cutoff is
+    /// computed from it. Age rows with <c>Now.AddDays(-n)</c>, NEVER with SQL
+    /// <c>now() - interval 'n days'</c>: that mixes Postgres's real wall clock
+    /// into a comparison against this frozen instant, so the test passes only
+    /// on 2026-09-03 and rots the day after (RV.55, four suites went red on
+    /// 2026-09-04). Both sides of a cutoff must read the same clock.
+    /// </summary>
     private static readonly DateTimeOffset Now = new(2026, 9, 3, 12, 0, 0, TimeSpan.Zero);
     private static readonly DateOnly Period = new(2026, 9, 3);
 
@@ -251,7 +259,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         Assert.True(storage.ByteObjects.ContainsKey(LlmCallKeys.PromptKey(accountId, before.PromptSha256!)));
 
         // Tombstone the account past its grace period and run the purge pass.
-        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = now() - interval '31 days' WHERE id = @p", new { p = accountId });
+        await app.Db.ExecuteAsync("UPDATE accounts SET deleted_at = @aged WHERE id = @p", new { aged = Now.AddDays(-31), p = accountId });
         using var scope = app.Services.CreateScope();
         var purge = scope.ServiceProvider.GetRequiredService<AccountPurgeService>();
         await purge.PurgeDueAccountsAsync(CancellationToken.None);
@@ -344,8 +352,8 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         var oldId = rows[0].Id;
         var recentId = rows[1].Id;
 
-        await app.Db.ExecuteAsync("UPDATE llm_calls SET created_at = now() - interval '31 days' WHERE id = @p", new { p = oldId });
-        await app.Db.ExecuteAsync("UPDATE llm_calls SET created_at = now() - interval '1 day' WHERE id = @p", new { p = recentId });
+        await app.Db.ExecuteAsync("UPDATE llm_calls SET created_at = @aged WHERE id = @p", new { aged = Now.AddDays(-31), p = oldId });
+        await app.Db.ExecuteAsync("UPDATE llm_calls SET created_at = @aged WHERE id = @p", new { aged = Now.AddDays(-1), p = recentId });
 
         using var scope = app.Services.CreateScope();
         var purge = scope.ServiceProvider.GetRequiredService<LlmCallPurgeService>();
