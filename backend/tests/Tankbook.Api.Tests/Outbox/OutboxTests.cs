@@ -70,7 +70,7 @@ public class OutboxTests : IClassFixture<PostgresFixture>
 
         await using var app = await StartAsync(signer, provider);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
         var (_, accountId, deviceId) = await CreateSessionAsync(app, signer, "outbox-enqueue", "outbox-enqueue@example.com");
         await app.SetTierAsync(accountId, "pro");
 
@@ -152,7 +152,7 @@ public class OutboxTests : IClassFixture<PostgresFixture>
 
         await using var app = await StartAsync(signer, provider);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
         var (_, accountId, deviceId) = await CreateSessionAsync(app, signer, "outbox-del", "outbox-del@example.com");
         await app.SetTierAsync(accountId, "pro");
 

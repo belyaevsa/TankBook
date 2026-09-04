@@ -99,7 +99,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         var writer = new InMemoryLogWriter(lines);
         await using var app = await StartAsync(signer, provider, writer: writer);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice, supportsThinking: true);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (token, accountId, deviceId) = await CreateSessionAsync(app, signer, "ledger-ok", "ledger-ok@example.com");
         await app.SetTierAsync(accountId, "pro");
@@ -153,7 +153,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
 
         await using var app = await StartAsync(signer, provider);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (token, accountId, _) = await CreateSessionAsync(app, signer, "ledger-fail", "ledger-fail@example.com");
         await app.SetTierAsync(accountId, "pro");
@@ -193,7 +193,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         var storage = new RecordingBlobStorage();
         await using var app = await StartAsync(signer, provider, storage: storage);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice, supportsThinking: true);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (token, accountId, _) = await CreateSessionAsync(app, signer, "ledger-del", "ledger-del@example.com");
         await app.SetTierAsync(accountId, "pro");
@@ -244,7 +244,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
 
         await using var app = await StartAsync(signer, provider);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (token, accountId, _) = await CreateSessionAsync(app, signer, "ledger-snap", "ledger-snap@example.com");
         await app.SetTierAsync(accountId, "pro");
@@ -285,7 +285,7 @@ public class LlmCallLedgerTests : IClassFixture<PostgresFixture>
         var storage = new RecordingBlobStorage();
         await using var app = await StartAsync(signer, provider, storage: storage);
         await SeedModelAsync(app, "test-model", "test-vendor", InputPrice, OutputPrice);
-        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model')");
+        await app.Db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'test-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (token, accountId, _) = await CreateSessionAsync(app, signer, "ledger-ret", "ledger-ret@example.com");
         await app.SetTierAsync(accountId, "pro");

@@ -37,7 +37,7 @@ public class LlmModelResolverTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         await SeedModelAsync(db, "compiled-default", "default-vendor", 0.0000025m, 0.00001m);
-        await db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'ghost-model')");
+        await db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'ghost-model') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (resolver, writer) = BuildResolver(db, "compiled-default");
         var choice = await resolver.ResolveAsync("receipt", CancellationToken.None);
@@ -62,7 +62,12 @@ public class LlmModelResolverTests : IClassFixture<PostgresFixture>
         await db.OpenAsync();
         await SchemaMigrator.ApplyPendingAsync(db);
 
-        // No llm_settings row at all - the compiled default is the only model.
+        // No llm_settings row for this kind - the compiled default is the only
+        // model. Migration 018 ships a production baseline row for every kind,
+        // so this test must DELETE it to reach the state it is about: "the
+        // operator has not chosen a model". Relying on an empty table would be
+        // testing a state that no longer ships.
+        await db.ExecuteAsync("DELETE FROM llm_settings WHERE kind = 'receipt'");
         await SeedModelAsync(db, "compiled-default", "default-vendor", 0.0000025m, 0.00001m);
 
         var (resolver, writer) = BuildResolver(db, "compiled-default");
@@ -89,7 +94,7 @@ public class LlmModelResolverTests : IClassFixture<PostgresFixture>
 
         await SeedModelAsync(db, "vision-receipt", "vendor-a", 0.0000025m, 0.00001m);
         await SeedModelAsync(db, "vision-pump", "vendor-b", 0.000003m, 0.000012m);
-        await db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'vision-receipt'), ('pump', 'vision-pump')");
+        await db.ExecuteAsync("INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'vision-receipt'), ('pump', 'vision-pump') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
 
         var (resolver, _) = BuildResolver(db, "compiled-default");
 
@@ -104,6 +109,38 @@ public class LlmModelResolverTests : IClassFixture<PostgresFixture>
         Assert.Equal("vendor-b", pump.Vendor);
         Assert.False(pump.IsFallback);
         Assert.NotEqual(receipt.ModelId, pump.ModelId);
+    }
+
+    /// The 018 seed is only useful if it actually RESOLVES - a seeded row that
+    /// the resolver never reaches is a comment with a database bill. Every
+    /// extraction kind must land on the vision model (they all send an image, so
+    /// a text model physically cannot serve them), and the prices must be the
+    /// published OpenRouter rates rather than zero, because RV.33's ledger
+    /// multiplies them: a zero here is a cost column that silently reads $0 for
+    /// every call ever made.
+    [SkippableTheory]
+    [InlineData("receipt")]
+    [InlineData("pump")]
+    [InlineData("chargeScreenshot")]
+    [InlineData("invoice")]
+    public async Task TheSeededBaseline_ResolvesEveryKindToThePricedVisionModel(string kind)
+    {
+        _fixture.RequireAvailable();
+        await using var db = await _fixture.CreateDatabaseAsync();
+        await db.OpenAsync();
+        await SchemaMigrator.ApplyPendingAsync(db);
+
+        // Nothing seeded by the test: this is migration 018's own baseline.
+        var (resolver, _) = BuildResolver(db, "compiled-default");
+        var choice = await resolver.ResolveAsync(kind, CancellationToken.None);
+
+        Assert.Equal("deepseek-v4-flash-vision-exp", choice.ModelId);
+        Assert.Equal("deepseek", choice.Vendor);
+        Assert.False(choice.IsFallback, $"{kind} must resolve from the seed, not fall back");
+
+        // The published OpenRouter rates, per token: $0.22 / $0.66 per 1M.
+        Assert.Equal(0.0000002200m, choice.InputPricePerToken);
+        Assert.Equal(0.0000006600m, choice.OutputPricePerToken);
     }
 
     private static Task SeedModelAsync(NpgsqlConnection db, string modelId, string vendor, decimal inputPrice, decimal outputPrice)

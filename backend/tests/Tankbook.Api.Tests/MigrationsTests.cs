@@ -63,7 +63,7 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await SchemaMigrator.ApplyPendingAsync(db);
 
         var applied = await db.QueryAsync<int>("SELECT count(*) FROM schema_migrations");
-        Assert.Equal(16, applied.Single());
+        Assert.Equal(17, applied.Single());   // 018 added the LLM dictionary/settings baseline
 
         var tables = await GetPublicTablesAsync(db);
         var expected = ExpectedTables.Append("schema_migrations").OrderBy(t => t, StringComparer.Ordinal).ToArray();
@@ -346,9 +346,15 @@ public class MigrationsTests : IClassFixture<PostgresFixture>
         await db.ExecuteAsync(
             "INSERT INTO llm_models (model_id, vendor, input_price, output_price, currency, context_window, supports_thinking, effective_from) VALUES ('m', 'vendor', 0.0000025, 0.00001, 'USD', 128000, true, '2026-09-01')");
         await db.ExecuteAsync(
-            "INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'm')");
-        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_models"));
-        Assert.Equal(1, await db.QuerySingleAsync<int>("SELECT count(*) FROM llm_settings"));
+            "INSERT INTO llm_settings (kind, model_id) VALUES ('receipt', 'm') ON CONFLICT (kind) DO UPDATE SET model_id = EXCLUDED.model_id");
+        // Count THIS test's own rows, not the whole table: migration 018 seeds a
+        // production baseline (three models, four kinds), so a global count here
+        // would assert "nothing else ships", which is not what this test is
+        // about and would break every time the dictionary gains an entry.
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM llm_models WHERE model_id = 'm'"));
+        Assert.Equal(1, await db.QuerySingleAsync<int>(
+            "SELECT count(*) FROM llm_settings WHERE model_id = 'm'"));
 
         // A price correction is a NEW row (different effective_from), never an
         // edit: two rows for one model id coexist.
