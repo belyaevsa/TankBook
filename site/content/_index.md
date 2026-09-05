@@ -8,10 +8,10 @@ hero_title_2 = "snap the receipt,"
 hero_title_3 = "or type it in."
 hero_sub = "Tankbook is a car cost log. Fuel, charging, service and the rest – kept on your phone, added in seconds through either door, checked by arithmetic you can watch."
 hero_facts = ["Free", "No account needed", "Export always free"]
-hero_cta_primary = "TestFlight is opening soon – write to us"
+hero_cta_primary = "Join the TestFlight ring"
 hero_cta_secondary = "See what's shipped"
 hero_cta_secondary_url = "/roadmap/"
-hero_note = "Not on the App Store yet – no badge, no fake ratings. The mail reaches a human."
+hero_note = "In testing now – no badge, no fake ratings. The mail reaches a human."
 hero_shot = "P1.4-home.png"
 hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, August spend 390 €, and a stream of real entries'''
 hero_shot_caption = '''The real app, not a render – note "Type it" sits beside the camera.'''
@@ -132,7 +132,7 @@ a = '''It gives you a head start, not an answer. The scan fills in what it can r
 
 [[faq]]
 q = "What does it cost?"
-a = "Nothing right now – TestFlight is free while we finish. Three things stay true after launch: multiple cars in the free tier, export always free, and limits never change retroactively."
+a = "Nothing right now – Tankbook is free while we finish. Three things stay true after launch: multiple cars in the free tier, export always free, and limits never change retroactively."
 
 [[faq]]
 q = "I have years of data in another app."

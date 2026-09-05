@@ -22,7 +22,7 @@ sign in first.
 - **Price:** free; nothing is for sale today.
 - **Account:** not required. Optional sign-in enables sync and restore.
 - **Languages:** English and Russian, both from day one.
-- **Status:** not on the App Store yet – TestFlight is opening soon.
+- **Status:** in TestFlight; App Store review under way.
 
 ## The icon
 

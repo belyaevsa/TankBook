@@ -35,7 +35,7 @@ on this page is a promise; the shipped list is the record.
 - **Importers for the apps you are leaving** beyond My Fuel Manager – Drivvo, Fuelio, Spritmonitor
   and the rest – same review-first shape.
 - **The Garage tab and the Account & devices screens** as full surfaces in the app.
-- **TestFlight, then the App Store** – the ring opens soon; feedback during it shapes the release.
+- **TestFlight, then the App Store** – the ring is open and review is under way; feedback shapes the release.
 - **CarPlay** – your costs and reminders on the dash.
 - **Android** – possible later: the sync protocol was designed for it from the start. Nothing
   promised, nothing dated.

@@ -210,6 +210,44 @@
   max-width: 640px;
 }
 
+/* Long-form pages (support, privacy, terms, delete-account) are prose, and the
+   global reset zeroes every margin - so without this they render as one wall of
+   text with headings the only breaks. The reset also strips list markers
+   (`ul{list-style:none}`), which is right for nav and card lists and wrong for a
+   sentence like "the more specific the report, the faster the fix:" followed by
+   items - they read as run-on lines. Restore both, scoped to prose only. */
+.page__body > * + * {
+  margin-top: 18px;
+}
+
+.page__body h2 {
+  margin-top: 40px;
+  font-size: 26px;
+}
+
+.page__body h3 {
+  margin-top: 30px;
+  font-size: 19px;
+}
+
+.page__body ul,
+.page__body ol {
+  padding-left: 22px;
+  list-style: disc;
+}
+
+.page__body ol {
+  list-style: decimal;
+}
+
+.page__body li + li {
+  margin-top: 10px;
+}
+
+.page__body li::marker {
+  color: var(--ink-soft);
+}
+
 /* ── breakpoints ─────────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {
