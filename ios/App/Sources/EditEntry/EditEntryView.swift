@@ -345,7 +345,8 @@ struct EditEntryView: View {
                 updated.attachments = [id]
                 updated.extraction = plan.extraction
             }
-            try repository.upsertFillUp(updated)
+            try loggedWrite(AppLog.shared, op: .update, entityType: FillUp.entityType,
+                            entityId: updated.id, source: .manual) { try repository.upsertFillUp(updated) }
             let after = headline(repository: repository, vehicle: vehicle)
             notify(before: before, after: after, vehicle: vehicle)
             dismiss()
@@ -491,14 +492,19 @@ struct EditEntryView: View {
     private func performDelete() {
         do {
             let repository = try AppStore.repository()
+            // OB.2: the delete mutation pair - ids and the entity type only.
             if let fill = fillUp {
-                try repository.softDeleteFillUp(id: fill.id)
+                try loggedWrite(AppLog.shared, op: .delete, entityType: FillUp.entityType,
+                                entityId: fill.id, source: .manual) { try repository.softDeleteFillUp(id: fill.id) }
             } else if let charge = charge {
-                try repository.softDeleteChargeSession(id: charge.id)
+                try loggedWrite(AppLog.shared, op: .delete, entityType: ChargeSession.entityType,
+                                entityId: charge.id, source: .manual) { try repository.softDeleteChargeSession(id: charge.id) }
             } else if let service = service {
-                try repository.softDeleteServiceRecord(id: service.id)
+                try loggedWrite(AppLog.shared, op: .delete, entityType: ServiceRecord.entityType,
+                                entityId: service.id, source: .manual) { try repository.softDeleteServiceRecord(id: service.id) }
             } else if let expense = expense {
-                try repository.softDeleteExpense(id: expense.id)
+                try loggedWrite(AppLog.shared, op: .delete, entityType: Expense.entityType,
+                                entityId: expense.id, source: .manual) { try repository.softDeleteExpense(id: expense.id) }
             }
             toastCenter.noteEntryChanged()
             dismiss()

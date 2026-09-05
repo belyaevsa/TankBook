@@ -155,21 +155,31 @@ public struct DataRecompute: LogEvent {
 
 // MARK: - Requests and their results (docs/LOGGING.md §4)
 
-/// Outgoing request. `endpoint` is the route template (e.g. `/sync/pull`), not
-/// a raw URL - ids stay out of paths in logs (docs/LOGGING.md §3). The
-/// request's `traceId` rides the common line via the facade's `traceId:`
-/// argument, which is the per-request correlation id from docs/LOGGING.md §2.
+/// Outgoing request. `endpoint` is the route path (e.g. `/v1/sync/pull`), not
+/// a raw URL with its query string - ids and query values stay out of paths in
+/// logs (docs/LOGGING.md §3), and `requestBytes` is the body's byte count,
+/// never the body. The request's `traceId` rides the common line via the
+/// facade's `traceId:` argument, which is the per-request correlation id from
+/// docs/LOGGING.md §2.
+///
+/// Privacy: `endpoint` is a route path (Safe), `method` a verb (Safe), `attempt`
+/// a count (Safe), `requestBytes` a byte count (Safe). No header, no query,
+/// no body value and no token ever reach this event - the fields are exactly
+/// the four hard rule 12 permits, so a future contributor adding e.g. a host
+/// or a body preview would break the class contract at the call site and in the
+/// privacy sweep.
 public struct NetRequest: LogEvent {
     public let eventName = "net.request"
     public let category = LogCategory.sync
     public let level = LogLevel.info
     public let fields: [LogField]
 
-    public init(endpoint: String, method: String, attempt: Int) {
+    public init(endpoint: String, method: String, attempt: Int, requestBytes: Int) {
         fields = [
             .safe("endpoint", endpoint),
             .safe("method", method),
             .safe("attempt", attempt),
+            .safe("requestBytes", requestBytes),
         ]
     }
 }
@@ -177,18 +187,31 @@ public struct NetRequest: LogEvent {
 /// Response / result of a request, including the retry/backoff decision so a
 /// "sync seems stuck" report is explicable. Failure-level responses log at
 /// `warn` (handled degradation - docs/LOGGING.md §3).
+///
+/// Privacy: this is where a doubled upload (RV.65) or a duplicate fetch
+/// (RV.59) shows up from the device side, which is why `requestBytes` and
+/// `responseBytes` ride here - byte counts, never bodies. Every field is Safe
+/// class: `endpoint` is the route path, `status`/`durationMs`/the byte counts
+/// are numbers, `retryAfter` is seconds, `errorCode` is a stable code.
+/// Nothing that a body could contain - no values, no tokens, no host - has an
+/// API onto this event.
 public struct NetResponse: LogEvent {
     public let eventName = "net.response"
     public let category = LogCategory.sync
     public let level: LogLevel
     public let fields: [LogField]
 
-    public init(status: Int, durationMs: Int, retryAfter: Int? = nil,
-                errorCode: String? = nil, willRetry: Bool = false) {
+    public init(endpoint: String, status: Int, durationMs: Int,
+                requestBytes: Int = 0, responseBytes: Int = 0,
+                retryAfter: Int? = nil, errorCode: String? = nil,
+                willRetry: Bool = false) {
         level = (status >= 400 || errorCode != nil) ? .warn : .info
         var fields: [LogField] = [
+            .safe("endpoint", endpoint),
             .safe("status", status),
             .safe("durationMs", durationMs),
+            .safe("requestBytes", requestBytes),
+            .safe("responseBytes", responseBytes),
             .safe("willRetry", willRetry ? "true" : "false"),
         ]
         if let retryAfter {
@@ -204,9 +227,33 @@ public struct NetResponse: LogEvent {
 // MARK: - Sync client (docs/LOGGING.md §4, docs/SYNC.md S1-S8)
 
 public enum SyncTrigger: String, Sendable {
+    // The two doors the client actually distinguishes today (docs/SYNC.md):
+    // app-scheduled work (launch, foreground, timer, debounced write, a WiFi
+    // change) all arrives as `.background`; a sync the user asked for is
+    // `.userInitiated`. The doc vocabulary below (foreground/write/nudge) names
+    // the individual automatic doors, which the app cannot tell apart yet - so
+    // `background` is the honest carrier until they are wired individually.
+    case background
+    case userInitiated
+    // The docs' semantic doors (docs/LOGGING.md §4). Present in the enum for
+    // callers that DO know which automatic door fired; today the engine maps
+    // every `.background` PowerWorkTrigger onto `.background` because the
+    // distinguishing signal does not exist on the wire yet.
     case foreground
     case write
     case nudge
+}
+
+extension PowerWorkTrigger {
+    /// The cycle-event trigger vocabulary for this work trigger. The engine
+    /// only ever hears `background` / `userInitiated` (the two doors above);
+    /// the finer automatic doors are future refinements, never guessed here.
+    var syncTrigger: SyncTrigger {
+        switch self {
+        case .background: return .background
+        case .userInitiated: return .userInitiated
+        }
+    }
 }
 
 public enum SyncScenario: String, Sendable, CaseIterable {

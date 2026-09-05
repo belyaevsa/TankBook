@@ -139,9 +139,9 @@ enum AppRates {
         if ProcessInfo.processInfo.arguments.contains("-stubRates") {
             return RateStubTransport()
         }
-        return SeededLaunch.transport()
+        return appTransport(SeededLaunch.transport())
         #else
-        return URLSessionTransport()
+        return appTransport(URLSessionTransport())
         #endif
     }
 }

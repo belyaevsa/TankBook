@@ -19,10 +19,10 @@ enum AccountDevicesService {
         } else if let stub = AccountStubTransport(launchArguments: arguments) {
             transport = stub
         } else {
-            transport = URLSessionTransport()
+            transport = appTransport(URLSessionTransport())
         }
         #else
-        transport = URLSessionTransport()
+        transport = appTransport(URLSessionTransport())
         #endif
         let client = AccountClient(
             httpClient: TankbookHTTPClient(

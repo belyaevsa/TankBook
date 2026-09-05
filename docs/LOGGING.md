@@ -120,7 +120,7 @@ event name made every request line identical.
 |---|---|
 | `auth.session` | provider (apple/google), outcome (created/matched/rejected), failureReason (invalid_signature / expired / clock_skew / revoked), accountHash on success – the salted hash of the **account id**, the same value the follow-up request scope logs (RV.63). A rejected exchange logs no accountHash (no account was resolved – null is honest). **Never the token.** |
 | `auth.refresh` | outcome, rotation id, `reuse_detected: true` when a rotated token is replayed – this one is a **security event**, log at WARN and include deviceId |
-| `sync.push` | batchSize, accepted, conflicts, rejected, `assignedScnRange: [from,to]`, durationMs; and a compact per-item array of `{id, entityType, schemaVersion, outcome, errorCode?, pointer?}` – **ids and outcomes, never values** |
+| `sync.push` | batchSize, accepted, conflicts, rejected, `clamped` (the count of stamps clamped to server time – the server half of `sync.clock.skew`, OB.2), `assignedScnRange: [from,to]`, durationMs; and a compact per-item array of `{id, entityType, schemaVersion, outcome, errorCode?, pointer?}` – **ids and outcomes, never values** |
 | `sync.pull` | sinceScn, returned, nextSince, more, durationMs |
 | `sync.nudge` | accountId, candidates, delivered, invalidToken, transient, throttled, config, durationMs – counts and outcome only; **never the push token** (a Never credential) |
 | `blob.begin` / `blob.commit` | sha256, sizeBytes, contentType, `dedupe: hit\|miss`, quotaUsedPct |
@@ -152,7 +152,7 @@ Health, readiness and metrics endpoints log at DEBUG only – they would otherwi
 Subsystem `live.belyaev.tankbook`; categories: `sync`, `persistence`, `capture`, `notifications`, `ui`, `auth` (plus `config`, the iOS-only addition). OSLog gives level-based persistence, redaction by default, and Console.app/`log collect` access without shipping a logging SDK. The app logs **only through the `TankbookLog` facade** (`AppLog` in the app target, built from `TankbookLog.makeDefault`): a raw `os.Logger` under any other subsystem is invisible to the diagnostics export (§5), so the SwiftLint rule `no_raw_os_logger` makes constructing one outside `Logging/` an error.
 
 ### Requests and their results (mirrors the backend)
-`net.request` – endpoint (route template), method, traceId, attempt number; `net.response` – status, durationMs, retryAfter, and on failure the `errorCode` + whether it will be retried. Backoff decisions are logged so a "sync seems stuck" report is explicable.
+`net.request` – endpoint (route path, never the query or host), method, traceId, attempt number, requestBytes; `net.response` – endpoint, status, durationMs, requestBytes, responseBytes, retryAfter, and on failure the `errorCode` + whether it will be retried. **Both carry a byte count and the endpoint, never a body, a header, a query or a token** – that is the field set that shows a duplicate config fetch or a doubled upload (RV.59, RV.65) from the device side. Every physical request through an observable transport logs its own `net.request`/`net.response` pair, so a redirect hop or a 401 replay reads as exactly the second request it is. Backoff decisions are logged so a "sync seems stuck" report is explicable.
 
 ### Local mutations – the "attempt → outcome" pair the user asked for
 Every create / update / delete logs **twice**: an intent and an outcome, so a crash between them is itself diagnostic.
@@ -161,15 +161,24 @@ Every create / update / delete logs **twice**: an intent and an outcome, so a cr
 |---|---|
 | `data.mutate.begin` | op (create/update/delete/restore), entityType, entityId, source (capture/manual/import/sync-merge/reminder) |
 | `data.mutate.ok` | same + durationMs, `fieldsChanged: ["odometer","volumeL"]` – **field *names* only, never values** |
-| `data.mutate.fail` | same + errorCode, errorDomain, underlyingError, and whether the write was rolled back |
+| `data.mutate.fail` | same + errorCode (`database.write_failed` unless the caller maps a more precise stable code), errorDomain, underlyingError, and whether the write was rolled back (`rolledBack: true` – the write is thrown out of a GRDB transaction, which rolls it back) |
 | `data.validate` | entityId, result (ok / flagged), conflictKind (order/pace), crossCheck (verified/mismatch + which field) |
 | `data.recompute` | vehicleId, segmentsBefore/After, durationMs – catches the "stats look wrong" class of bug |
 
+The pair is emitted around **user-initiated writes only** (capture, manual, import, reminder): a sync merge of N records emits ONE `sync.merge` line, never N mutation pairs (docs/LOGGING.md §7, volume discipline). The caller names the `source` – the repository cannot know which door a write came through – and `create` vs `update` is the caller's knowledge too.
+
 ### Sync client
-`sync.cycle.begin/end` (syncSessionId, trigger: foreground/write/nudge), `sync.merge` (records applied, conflicts by **scenario** – `S1`…`S8` from SYNC.md, which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
+`sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
+
+### Async edges (OB.2)
+The events that can only be written at the moment they happen, because after the fact they are unrecoverable:
+- `app.lifecycle` – phase (active/inactive/background) on every scene-phase transition.
+- `background.task.begin` / `background.task.expired` – kind (a stable work code: `sync`, later `blobUpload`) around `UIApplication.beginBackgroundTask`; the expired line (with the granted seconds) is the "the OS killed me mid-write" signal.
+- `network.path` – from/to NWPath status codes on every connectivity transition; a drop to `unsatisfied` also emits an `app.warning` (`blob.upload` / `path_unsatisfied`) because that is the moment an in-flight blob upload aborts (the record stays dirty, S7).
+- `sync.clock.skew` – `syncSessionId`, `clampedCount`: the server clamped one or more pushed stamps to its clock (a `clientUpdatedAt` >24h in the future), which is the client-visible evidence the device clock runs ahead. One line per cycle, count only; which records were clamped stays in the outcome's `clampedIds`, never on the line. The server side reports the same event on `sync.push` as a `clamped` count.
 
 ### Capture / OCR
-`capture.pipeline` – pipeline id (`vision+rules v3` / `fiscal-qr` / `cloud-fallback v1`), durationMs, per-field **confidence values and field names, never the extracted values**, crossCheck outcome, whether the user corrected a field afterwards. This is the feed for the L5 accuracy ratchet in `TESTING.md` – and it is aggregate-safe by construction.
+`capture.pipeline` – pipeline id (`vision+rules v3` / `fiscal-qr` / `cloud-fallback v1`), durationMs (the recognition time the pipeline measured, carried by the prefill), per-field **confidence values and field names, never the extracted values**, crossCheck outcome, and `userCorrected` – true when the user edited any proposed value before saving. The line is emitted **at the confirm commit**, because `userCorrected` is only knowable there, when the saved values are compared with the scan's proposal (OB.2); the typed path (no prefill) emits nothing. This is the feed for the L5 accuracy ratchet in `TESTING.md` – and it is aggregate-safe by construction.
 
 ### Feedback (PJ.20)
 `feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the

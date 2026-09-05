@@ -352,9 +352,9 @@ private struct StationNameError: LocalizedError {
 // MARK: - Level discipline (docs/LOGGING.md §3)
 
 @Test func netResponseLevelsFollowDegradation() {
-    #expect(NetResponse(status: 200, durationMs: 12).level == .info)
-    #expect(NetResponse(status: 429, durationMs: 12, retryAfter: 5, errorCode: "rate_limited", willRetry: true).level == .warn)
-    #expect(NetResponse(status: 503, durationMs: 12, errorCode: "unavailable", willRetry: true).level == .warn)
+    #expect(NetResponse(endpoint: "/v1/sync/pull", status: 200, durationMs: 12).level == .info)
+    #expect(NetResponse(endpoint: "/v1/sync/push", status: 429, durationMs: 12, retryAfter: 5, errorCode: "rate_limited", willRetry: true).level == .warn)
+    #expect(NetResponse(endpoint: "/v1/sync/push", status: 503, durationMs: 12, errorCode: "unavailable", willRetry: true).level == .warn)
 }
 
 // MARK: - Breadcrumb ring (docs/LOGGING.md §4-§5)

@@ -79,6 +79,13 @@ public struct SyncEngine {
     /// The injected power state (docs/SYNC.md -> Low Power Mode). Consulted for
     /// the blob-upload deferral; never `ProcessInfo` read inline.
     public let powerState: any PowerStateProvider
+    /// The optional logging facade (OB.2). Nil keeps the engine silent, which
+    /// is how every existing test and un-wired embedding behaves. When set, one
+    /// cycle emits `sync.cycle.begin`/`sync.cycle.end`, one aggregate
+    /// `sync.merge` line per non-empty cycle (never one per record,
+    /// docs/LOGGING.md §7), and a `sync.clock.skew` line when the server
+    /// clamped pushed stamps.
+    public let log: TankbookLog?
 
     public init(
         repository: TankbookRepository,
@@ -89,7 +96,8 @@ public struct SyncEngine {
         batchLimit: Int = 200,
         pullPageLimit: Int = 500,
         blobGate: (any BlobPushGate)? = nil,
-        powerState: any PowerStateProvider = ProcessInfoPowerState()
+        powerState: any PowerStateProvider = ProcessInfoPowerState(),
+        log: TankbookLog? = nil
     ) {
         self.repository = repository
         self.transport = transport
@@ -100,16 +108,34 @@ public struct SyncEngine {
         self.pullPageLimit = pullPageLimit
         self.blobGate = blobGate
         self.powerState = powerState
+        self.log = log
     }
 
     public func synchronize(trigger: PowerWorkTrigger = .userInitiated) async -> SyncOutcome {
         var outcome = SyncOutcome()
+        let sessionId = UUID.v7()
+        let startedAt = Date()
+        // The per-cycle tally behind the ONE `sync.merge` line (OB.2): counts
+        // only - how many remote records arrived, how many local edits a merge
+        // overwrote (S1/S4) and how many transport conflicts a push resolved
+        // (S6). A reference box because it crosses async calls; it is touched
+        // only from this task, so no lock is needed.
+        let tally = SyncCycleTally()
+        log?.emit(SyncCycleBegin(syncSessionId: sessionId, trigger: trigger.syncTrigger))
+        defer {
+            log?.emit(SyncCycleEnd(
+                syncSessionId: sessionId,
+                durationMs: Int(Date().timeIntervalSince(startedAt) * 1000),
+                recordsPulled: outcome.pulled,
+                recordsPushed: outcome.pushed))
+        }
+
         try? repository.recoverStuckPushes()
         var affected = Set<UUID>()
 
         // 1. PULL (never sync-gated; a 410/transport failure just stops this half).
         do {
-            let (pulled, touched) = try await pullAll()
+            let (pulled, touched) = try await pullAll(tally: tally)
             outcome.pulled = pulled
             affected.formUnion(touched)
         } catch SyncServerError.deviceRevoked {
@@ -130,7 +156,7 @@ public struct SyncEngine {
 
         // 2. PUSH.
         do {
-            let summary = try await pushAll(trigger: trigger)
+            let summary = try await pushAll(trigger: trigger, tally: tally)
             outcome.pushed = summary.pushed
             outcome.conflictsResolved = summary.conflicts
             outcome.clampedIds = summary.clamped
@@ -170,6 +196,27 @@ public struct SyncEngine {
             try? repository.recoverStuckPushes()
         }
 
+        // The one aggregate merge line for the cycle (OB.2, docs/LOGGING.md
+        // §7): records that arrived plus the conflicts the merge actually
+        // performed, tagged by SYNC.md scenario. Emitted only for a cycle that
+        // merged something - an inert cycle says nothing.
+        if tally.pulled > 0 || tally.overwriteConflicts > 0 || tally.pushTransportConflicts > 0 {
+            var conflicts: [SyncConflict] = []
+            if tally.overwriteConflicts > 0 {
+                conflicts.append(SyncConflict(scenario: .s1, count: tally.overwriteConflicts))
+            }
+            if tally.pushTransportConflicts > 0 {
+                conflicts.append(SyncConflict(scenario: .s6, count: tally.pushTransportConflicts))
+            }
+            log?.emit(SyncMerge(recordsApplied: tally.pulled, conflicts: conflicts))
+        }
+
+        // A clamped push means this device's clock runs ahead of the server's -
+        // one line per cycle, count only (the id list stays in the outcome).
+        if tally.clamped > 0 {
+            log?.emit(SyncClockSkew(syncSessionId: sessionId, clampedCount: tally.clamped))
+        }
+
         // 3. Domain re-validation after the merge batch (docs/SYNC.md S3).
         outcome.flaggedEntries = (try? repository.revalidateTimeline(vehicleIds: affected)) ?? 0
         return outcome
@@ -177,7 +224,7 @@ public struct SyncEngine {
 
     // MARK: - Pull
 
-    private func pullAll() async throws -> (pulled: Int, touched: Set<UUID>) {
+    private func pullAll(tally: SyncCycleTally) async throws -> (pulled: Int, touched: Set<UUID>) {
         var since = try cursorStore.load() ?? 0
         var pulled = 0
         var touched = Set<UUID>()
@@ -185,7 +232,7 @@ public struct SyncEngine {
         while true {
             let response = try await transport.pull(since: since, limit: pullPageLimit)
             for remote in response.records {
-                touched.formUnion(try applyPull(remote))
+                touched.formUnion(try applyPull(remote, tally: tally))
                 pulled += 1
             }
             // Persist the cursor only after the page is applied (cursor safety:
@@ -195,10 +242,11 @@ public struct SyncEngine {
             if !response.more { break }
             since = response.nextSince
         }
+        tally.pulled = pulled
         return (pulled, touched)
     }
 
-    private func applyPull(_ remote: SyncPullRecord) throws -> Set<UUID> {
+    private func applyPull(_ remote: SyncPullRecord, tally: SyncCycleTally) throws -> Set<UUID> {
         guard let local = try repository.localSyncRecord(id: remote.id, entityType: remote.entityType) else {
             let touched = try repository.applyRemoteRecord(remote.asRecord(), scn: remote.scn)
             payloadMemory.recordSynced(id: remote.id, payload: remote.payload)
@@ -222,6 +270,7 @@ public struct SyncEngine {
             payloadMemory.recordSynced(id: remote.id, payload: result.keep.payload)
             // S1/S4: a local edit overwritten by sync lands in the undo log.
             if let loser = result.loser, !loser.deleted, isLocalEdit(local.syncState) {
+                tally.overwriteConflicts += 1
                 try repository.recordSyncOverwrite(recordId: remote.id, losingRecord: loser,
                                                    deviceName: remote.originDeviceName)
             }
@@ -276,7 +325,18 @@ public struct SyncEngine {
         var touched = Set<UUID>()
     }
 
-    private func pushAll(trigger: PowerWorkTrigger) async throws -> PushSummary {
+    /// The per-cycle merge tally behind the single `sync.merge` line (OB.2).
+    /// Counts only - never a record list, never a domain value. A reference
+    /// box (not a struct) because it crosses async calls; it is touched only
+    /// from the one synchronize task, so it needs no lock.
+    fileprivate final class SyncCycleTally {
+        var pulled = 0
+        var overwriteConflicts = 0
+        var pushTransportConflicts = 0
+        var clamped = 0
+    }
+
+    private func pushAll(trigger: PowerWorkTrigger, tally: SyncCycleTally) async throws -> PushSummary {
         var summary = PushSummary()
 
         // Snapshot the dirty set once: each row gets one push attempt this
@@ -357,16 +417,21 @@ public struct SyncEngine {
                     if let record = localRecords[result.id] {
                         payloadMemory.recordSynced(id: result.id, payload: record.payload)
                     }
-                    if isClamped { summary.clamped.append(result.id) }
+                    if isClamped {
+                        summary.clamped.append(result.id)
+                        tally.clamped += 1
+                    }
                     summary.pushed += 1
                 case .conflict(let current):
                     let (resolved, conflictTouched) = try await resolveConflict(
                         id: result.id,
                         local: localRecords[result.id],
                         current: current,
-                        entityType: entityType
+                        entityType: entityType,
+                        tally: tally
                     )
                     summary.conflicts += resolved
+                    tally.pushTransportConflicts += resolved
                     summary.touched.formUnion(conflictTouched)
                 case .rejected:
                     try repository.markDirty(id: result.id, entityType: entityType)
@@ -379,7 +444,7 @@ public struct SyncEngine {
     /// S6: a stale `baseScn` conflict re-merges against the server's current and
     /// re-pushes, fully automatically, with a bounded number of retries.
     private func resolveConflict(id: UUID, local: SyncRecord?, current: SyncPullRecord,
-                                 entityType: String) async throws -> (resolved: Int, touched: Set<UUID>) {
+                                 entityType: String, tally: SyncCycleTally) async throws -> (resolved: Int, touched: Set<UUID>) {
         guard var localRecord = local else {
             try repository.markSynced(id: id, entityType: entityType, scn: current.scn)
             payloadMemory.recordSynced(id: id, payload: current.payload)
@@ -400,6 +465,7 @@ public struct SyncEngine {
                 payloadMemory.recordSynced(id: id, payload: currentRecord.payload)
                 // The local version lost (S1/S4): it lands in the undo log.
                 if keep.payload != localRecord.payload || keep.deleted != localRecord.deleted {
+                    tally.overwriteConflicts += 1
                     try repository.recordSyncOverwrite(recordId: id, losingRecord: localRecord,
                                                        deviceName: remoteDeviceName)
                 }

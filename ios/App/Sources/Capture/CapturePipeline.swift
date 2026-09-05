@@ -24,6 +24,10 @@ enum CapturePipeline {
     @MainActor
     static func process(_ image: UIImage, source: ExtractionSource,
                         bandProvider: (any FuelPriceBandProvider)? = nil) async -> ConfirmPrefill {
+        // OB.2: the recognition duration rides the prefill so the
+        // `capture.pipeline` line emitted at the confirm commit can carry it.
+        // The duration covers OCR + QR + assembly, not the user's editing time.
+        let startedAt = Date()
         let assembly: CaptureAssembly
         let lines: [OCRLine]
         // Both halves are load-bearing: RV.49's orientation (an in-app photo
@@ -41,7 +45,8 @@ enum CapturePipeline {
             crops: cropEvidence(assembly.cropRects, image: image),
             qrAnchor: assembly.qrAnchor,
             ocrLines: lines,
-            sourceImage: image)
+            sourceImage: image,
+            pipelineDurationMs: Int(Date().timeIntervalSince(startedAt) * 1000))
     }
 
     // MARK: - Off-main work

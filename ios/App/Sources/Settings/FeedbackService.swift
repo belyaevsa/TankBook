@@ -34,10 +34,10 @@ enum FeedbackService {
         } else if arguments.contains("-feedbackRateLimit") {
             transport = RateLimitedFeedbackTransport()
         } else {
-            transport = SeededLaunch.transport(arguments)
+            transport = appTransport(SeededLaunch.transport(arguments))
         }
         #else
-        transport = URLSessionTransport()
+        transport = appTransport(URLSessionTransport())
         #endif
         let sessionStore = KeychainSessionStore()
         let client = FeedbackClient(

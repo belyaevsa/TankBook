@@ -563,6 +563,8 @@ private extension ManualFillUpView {
 
     func save() {
         guard let vehicle, let derived = form.derived(volumeUnit: volumeUnit) else { return }
+        // OB.2: the door that wrote the entry - capture (a prefill was applied) vs typed (hard rule 15).
+        let source: MutationSource = prefill?.extraction != nil ? .capture : .manual
         do {
             let repository = try AppStore.repository()
             let scanned = scannedSavePlan(derived: derived)
@@ -592,11 +594,21 @@ private extension ManualFillUpView {
                                          homeCurrency: vehicle.homeCurrency))
                 }
                 for row in rows {
-                    try repository.upsertExpense(row)
+                    // OB.2: per-row mutation pair - ids only, never a value.
+                    try loggedWrite(AppLog.shared, op: .create, entityType: Expense.entityType,
+                                    entityId: row.id, source: source) { try repository.upsertExpense(row) }
                 }
             }
-            try repository.upsertFillUp(toSave)
+            try loggedWrite(AppLog.shared, op: .create, entityType: FillUp.entityType,
+                            entityId: toSave.id, source: source) { try repository.upsertFillUp(toSave) }
             hasUnsavedChanges = false
+            // OB.2: capture.pipeline is emitted AT the commit, where `userCorrected`
+            // is finally knowable (docs/LOGGING.md §4, aggregate-safe by design).
+            if let meta = scanned.extraction {
+                AppLog.shared.emit(CaptureCommitLog.event(meta: meta,
+                                                          crossCheck: toSave.crossCheck,
+                                                          durationMs: prefill?.pipelineDurationMs ?? 0))
+            }
             // A new entry was written with no delta toast - tell Home to
             // reload anyway (docs/ERRORS.md -> Edit entry, row 4; hard rule 2),
             // exactly as Edit entry, Vehicle detail and Recently deleted do on

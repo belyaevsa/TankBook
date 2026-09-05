@@ -105,7 +105,7 @@ struct RecentlyDeletedView: View {
             }
             Spacer(minLength: 8)
             Button {
-                restore(deletedEntry.id)
+                restore(deletedEntry.entry)
             } label: {
                 Text("Restore")
                     .font(.caption.weight(.bold))
@@ -278,10 +278,23 @@ struct RecentlyDeletedView: View {
 
     // MARK: - Actions
 
-    private func restore(_ id: UUID) {
+    private func restore(_ entry: any Entry) {
+        let entityType: String
+        switch entry {
+        case is FillUp: entityType = FillUp.entityType
+        case is ChargeSession: entityType = ChargeSession.entityType
+        case is ServiceRecord: entityType = ServiceRecord.entityType
+        case is Expense: entityType = Expense.entityType
+        default: entityType = "entry"
+        }
         do {
             let repository = try AppStore.repository()
-            if try repository.restoreEntry(id: id) {
+            // OB.2: the restore mutation pair - ids and the entity type only.
+            let restored = try loggedWrite(AppLog.shared, op: .restore, entityType: entityType,
+                                           entityId: entry.id, source: .manual) {
+                try repository.restoreEntry(id: entry.id)
+            }
+            if restored {
                 toastCenter.noteEntryChanged()
                 reload()
             }
@@ -297,7 +310,10 @@ struct RecentlyDeletedView: View {
     private func restoreReminder(_ id: UUID) {
         do {
             let repository = try AppStore.repository()
-            try repository.restoreReminder(id: id)
+            try loggedWrite(AppLog.shared, op: .restore, entityType: Reminder.entityType,
+                            entityId: id, source: .manual) {
+                try repository.restoreReminder(id: id)
+            }
             reload()
         } catch {
             AppLog.error(operation: "recentlyDeleted.restoreReminder", category: .ui, error: error)

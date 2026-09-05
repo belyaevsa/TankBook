@@ -89,10 +89,10 @@ enum ImportService {
         } else if let stub = ImportStubTransport(launchArguments: arguments) {
             transport = stub
         } else {
-            transport = URLSessionTransport()
+            transport = appTransport(URLSessionTransport())
         }
         #else
-        transport = URLSessionTransport()
+        transport = appTransport(URLSessionTransport())
         #endif
         let sessionStore = KeychainSessionStore()
         let client = ImportClient(

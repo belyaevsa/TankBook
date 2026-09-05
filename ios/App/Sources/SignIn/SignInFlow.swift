@@ -364,7 +364,7 @@ extension SignInFlow {
     private static func makeRemoteAuthService(sessionStore: any SessionStore) -> any AuthService {
         return RemoteAuthService(
             director: AppConfigStore.shared.director,
-            transport: URLSessionTransport(),
+            transport: appTransport(URLSessionTransport()),
             sessionStore: sessionStore,
             device: RemoteAuthService.SessionDevice(
                 name: UIDevice.current.name,
@@ -406,7 +406,7 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let transport = RemoteSyncTransport(
             director: AppConfigStore.shared.director,
-            transport: URLSessionTransport(),
+            transport: appTransport(URLSessionTransport()),
             tokenProvider: tokenProvider,
             refresher: AppSessionRefresher.shared
         )
@@ -417,7 +417,8 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
             repository: repository,
             transport: transport,
             cursorStore: cursor,
-            payloadMemory: InMemorySyncPayloadMemory()
+            payloadMemory: InMemorySyncPayloadMemory(),
+            log: AppLog.shared
         )
         let outcome = await RestoreEngine(engine: engine).restore()
         if case .restored = outcome, let finalCursor = try? cursor.load() {

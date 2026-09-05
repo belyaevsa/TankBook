@@ -82,7 +82,7 @@ final class AppConfigService {
         // needs no token: a nil provider means `TankbookHTTPClient` never builds
         // an Authorization header for them.
         let client = TankbookHTTPClient(
-            transport: URLSessionTransport(),
+            transport: appTransport(URLSessionTransport()),
             tokenProvider: NoConfigTokenProvider()
         )
 
@@ -103,7 +103,8 @@ final class AppConfigService {
             clock: { Date() },
             deviceIdentifier: deviceIdentifier(),
             fetcher: fetcher,
-            healthProber: prober
+            healthProber: prober,
+            log: AppLog.shared
         )
         AppConfigStore.shared.setStore(store)
         return AppConfigService(

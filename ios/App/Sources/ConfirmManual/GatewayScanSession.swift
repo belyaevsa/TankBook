@@ -184,7 +184,7 @@ enum GatewayScanStarter {
         guard GatewayArming.shouldArm(sessionStore: store) else { return nil }
         return RemoteGatewayExtractTransport(
             director: AppConfigStore.shared.director,
-            transport: URLSessionTransport(),
+            transport: appTransport(URLSessionTransport()),
             tokenProvider: KeychainTokenProvider(sessionStore: store),
             // PR.1: the same single-flight refresher every authenticated
             // transport shares - a stale (but valid) session refreshes on the

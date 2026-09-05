@@ -85,6 +85,10 @@ struct AppRootView: View {
     /// frame so the tabs never flash behind onboarding; hidden for good the
     /// moment a car exists or a session lands (WelcomeRootView reports it).
     @State private var showWelcome: Bool
+    /// OB.2: the app's one connectivity observer, started once at launch. It
+    /// emits `network.path` on every transition (and an upload-abort warning on
+    /// a drop), so the "photo never arrived" class of bug has a why.
+    @State private var pathMonitor = AppPathMonitor()
 
     init() {
         let configService = AppConfigService.make()
@@ -279,6 +283,7 @@ struct AppRootView: View {
         .environment(sync)
         .environment(inbox)
         .task {
+            pathMonitor.start()
             runPurgeIfNeeded()
             #if DEBUG
             // PJ.5: `-replayNotificationResponse <identifier>` drives a
@@ -325,6 +330,11 @@ struct AppRootView: View {
             await inbox.drainOutbox()
         }
         .onChange(of: scenePhase) { _, phase in
+            // OB.2: the app.lifecycle edge - foreground/background transitions
+            // are the trigger vocabulary of every automatic sync, config and
+            // rate refresh, so "did the app come back and what did it run" is
+            // observable. A phase name is a stable code, never a domain value.
+            AppLog.shared.emit(AppLifecycle(phase: Self.appPhase(phase)))
             if phase == .active {
                 runPurgeIfNeeded()
                 Task { await configService.refresh() }
@@ -464,6 +474,18 @@ struct AppRootView: View {
         #else
         return false
         #endif
+    }
+
+    /// Maps SwiftUI's `ScenePhase` onto the core `AppPhase` vocabulary
+    /// (OB.2). The mapping is total - there is no `ScenePhase` case without a
+    /// stable code here, so a new phase cannot silently go unlogged.
+    private static func appPhase(_ phase: ScenePhase) -> AppPhase {
+        switch phase {
+        case .active: return .active
+        case .inactive: return .inactive
+        case .background: return .background
+        @unknown default: return .inactive
+        }
     }
 }
 

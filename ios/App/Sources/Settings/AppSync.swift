@@ -39,7 +39,8 @@ enum SyncService {
             // revert another device's edit (docs/SYNC.md S9, hard rule 13).
             payloadMemory: DatabaseSyncPayloadMemory(repository: repository),
             blobGate: blobGate,
-            powerState: powerState
+            powerState: powerState,
+            log: AppLog.shared
         )
         return SyncCoordinator(engine: engine, powerState: powerState)
     }
@@ -339,8 +340,18 @@ final class AppSync {
         }
         do {
             let repository = try AppStore.repository()
-            dirtyCount = (try? repository.fetchDirtyRows().count) ?? 0
+            let dirty = (try? repository.fetchDirtyRows()) ?? []
+            dirtyCount = dirty.count
             flaggedCount = (try? repository.flaggedEntryCount()) ?? 0
+            // OB.2: the sync.queue line - the number behind Settings' "Waiting
+            // to sync" count and how long the oldest has waited. Counts and an
+            // age only; never which records (docs/LOGGING.md §4).
+            if session != nil {
+                let oldest = dirty.map(\.updatedAt).min()
+                let oldestAge = oldest.map { Int(Date().timeIntervalSince($0)) } ?? 0
+                AppLog.shared.emit(SyncQueue(dirtyCount: dirtyCount,
+                                             oldestDirtyAgeSeconds: oldestAge))
+            }
         } catch {
             dirtyCount = 0
             flaggedCount = 0
@@ -462,6 +473,29 @@ final class AppSync {
         guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else { return }
         isSyncing = true
         defer { isSyncing = false }
+        // OB.2: the cycle runs under a `beginBackgroundTask` guard so a sync (or
+        // its blob uploads) started just before a backgrounding gets iOS's
+        // grace time to finish. The expiry handler is the async edge nothing
+        // else can narrate - it emits `background.task.expired` when the OS runs
+        // out of patience mid-cycle (docs/LOGGING.md §4, OB.2).
+        let background = BackgroundTaskLogging(log: AppLog.shared, kind: "sync")
+        var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+        backgroundTask = UIApplication.shared.beginBackgroundTask(withName: "tankbook.sync") {
+            let remaining = UIApplication.shared.backgroundTimeRemaining
+            DispatchQueue.main.async {
+                background.note(grantedSeconds: remaining.isFinite ? max(0, Int(remaining)) : 0)
+                background.expired()
+                if backgroundTask != .invalid {
+                    UIApplication.shared.endBackgroundTask(backgroundTask)
+                    backgroundTask = .invalid
+                }
+            }
+        }
+        defer {
+            if backgroundTask != .invalid {
+                UIApplication.shared.endBackgroundTask(backgroundTask)
+            }
+        }
         let outcome = await coordinator.syncNow(trigger: trigger)
         if outcome.deferred {
             registerDeferredSync()
@@ -544,10 +578,19 @@ final class AppSync {
 /// URLSession transport - the seed transports never ship.
 func makeAppTransport() -> any TankbookHTTPTransport {
     #if DEBUG
-    return SeededLaunch.transport()
+    return appTransport(SeededLaunch.transport())
     #else
-    return URLSessionTransport()
+    return appTransport(URLSessionTransport())
     #endif
+}
+
+/// Every transport the app builds is observable (OB.2): wrapping it makes each
+/// physical request emit `net.request` / `net.response` with the endpoint's
+/// path and the byte counts, so a duplicate fetch (RV.59) or a doubled upload
+/// (RV.65) reads from the device side. The wrapper logs shape only - never the
+/// host, the query, a header or a body (hard rule 12).
+func appTransport(_ inner: any TankbookHTTPTransport) -> any TankbookHTTPTransport {
+    LoggingHTTPTransport(inner: inner, log: AppLog.shared)
 }
 
 /// RV.22: the Settings card the sync chip's Settings tap should scroll to

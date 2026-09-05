@@ -45,6 +45,11 @@ struct ConfirmPrefill {
     /// silently convert (docs/ERRORS.md -> Confirm). False by default; the real
     /// OCR-confidence signal lands with the Foundation-models work (P2.8).
     var currencyLowConfidence: Bool = false
+    /// OB.2: the recognition time (ms) `CapturePipeline.process` measured. The
+    /// `capture.pipeline` event is emitted at the confirm commit with this
+    /// duration; nil on the typed path and on seeded prefills that never ran a
+    /// pipeline.
+    var pipelineDurationMs: Int? = nil
 }
 
 #if DEBUG
