@@ -11727,23 +11727,6 @@
         }
       }
     },
-    "We couldn't read that file – try again, or send it to us.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We couldn't read that file – try again, or send it to us."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось прочитать файл – попробуйте ещё раз или пришлите его нам."
-          }
-        }
-      }
-    },
     "We couldn't read the list of apps": {
       "extractionState": "manual",
       "localizations": {
@@ -13382,6 +13365,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Ещё не синхронизировано"
+          }
+        }
+      }
+    },
+    "We couldn't read that file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't read that file."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать файл."
+          }
+        }
+      }
+    },
+    "It may still be downloading from iCloud Drive. In Files, open it once, then pick it again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It may still be downloading from iCloud Drive. In Files, open it once, then pick it again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возможно, он ещё загружается из iCloud Drive. Откройте его в «Файлах», а затем выберите его снова."
+          }
+        }
+      }
+    },
+    "We read the file, but couldn't process it. Try again, or send us the file.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We read the file, but couldn't process it. Try again, or send us the file."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мы прочитали файл, но не смогли его обработать. Попробуйте ещё раз или пришлите его нам."
           }
         }
       }

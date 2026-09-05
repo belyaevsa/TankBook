@@ -188,6 +188,17 @@ address, never the device-model string, never a file's contents** (hard rule 12)
 domain values have no route into these events by construction - the same discipline as
 `capture.pipeline`.
 
+### Import (P5.5b; RV.68, RV.73)
+The import wizard's two failure moments are logged at the point they happen, never inferred:
+`import.transport.fail` (RV.68) records a non-HTTP failure of the parse upload - route path, the
+error's Swift type and, for a `URLError`, its numeric code - BEFORE the client maps it to a
+user-visible state, so the mapping is reconstructible from the log; `import.read.fail` (RV.73)
+records a **local read failure** - the security-scoped pick could not be copied into the app
+container, or a staged copy could not be read - carrying the error's type and numeric code and
+**never the path, never the file name, never a byte of content** (a Cocoa file error names the
+file it could not open, so its rendered description has no route into this event). Both are `warn`
+(handled degradations that surface their own cards, docs/ERRORS.md -> Import wizard).
+
 ### Errors
 Every failure logs the typed error, its `underlyingError`, the operation in flight, the entity id, and the traceId when it came from a request. App-layer failures emit the typed events `app.error` (`operation`, `errorType` - both Safe - plus `errorDescription`, which is **Sensitive** because `localizedDescription` on a GRDB error can carry its statement's arguments: station names, notes, amounts) and `app.warning` (`operation`, `reason` - both Safe, for handled degradations). A view never interpolates `error.localizedDescription` with `.public`; what stays loggable is the type and a stable code, never the rendered message (hard rule 12). iOS additionally records a **breadcrumb ring** (last ~50 events, in memory), which reaches the
 **diagnostics export**. It does NOT reach crash reports, and saying so was fiction: there is no

@@ -37,6 +37,9 @@ final class ImportFlowModel {
     /// The parse's failure, each mapped to a specific message (F7) - never a
     /// generic "something went wrong".
     enum ParseFailure: Equatable {
+        /// The file could not be READ locally (RV.73) - no parse was attempted.
+        /// Distinct from the parse-failure cases below, whose next step differs.
+        case couldNotRead
         case doesNotMatchDeclared(displayName: String)
         case transportUnreachable
         case oversize
@@ -274,11 +277,14 @@ final class ImportFlowModel {
     /// for the full upload budget with no escape).
     func parse(fileURL: URL, preferredVehicleID: UUID? = nil) {
         guard let format = pickedFormat else { return }
-        // P6.18b: withheld under `.required` - the server has stopped
-        // supporting this build.
-        guard !serverBackedPaused else { return }
-        guard let data = try? Data(contentsOf: fileURL) else {
-            parseFailure = .unknown
+        guard !serverBackedPaused else { return } // P6.18b: parse is withheld under `.required`.
+        // RV.73: never read silently - log the error's type/code and set the READ-failure state, not a parse one.
+        let data: Data
+        do {
+            data = try Data(contentsOf: fileURL)
+        } catch {
+            AppLog.shared.emit(ImportReadFailure(error: error))
+            parseFailure = .couldNotRead
             return
         }
         isParsing = true
@@ -634,6 +640,12 @@ final class ImportFlowModel {
 // MARK: - Parse (PR.6)
 
 extension ImportFlowModel {
+    /// RV.73: the pick's staged copy failed - the stager logged the type/code;
+    /// this sets the read-failure state so the wizard shows the honest card.
+    func reportPickedFileCouldNotBeRead() {
+        parseFailure = .couldNotRead
+    }
+
     /// Maps a parse error to the parse-failure surface (RV.68: a transport
     /// failure that is not a connectivity signal and a decode break never mean
     /// "you need a connection"; `.cancelled` is handled in `performParse`

@@ -280,6 +280,17 @@ second rule-9 reversal and the product owner's call, not an agent's.
 | **Preview shows a figure the parse did not produce** | Nothing - this must not be possible. Every number comes from the candidates through the **same engine** that computes them after commit; a display-only total is worse than no preview, because the user approved something they never saw | (design constraint, not a state) |
 | **Cancelled at preview** | Nothing imported, and the stored file deleted rather than left to age out | Nothing to do; the garage is untouched |
 | **Offline during the parse upload** | The same offline card, reached when the upload times out or the device drops offline mid-parse (the "Parse in flight" row's stall lands here, never on a generic failure). RV.68: like every offline state, this fires only from a genuine connectivity failure - never from a cancellation, a decode break or a server response | Retry when online · the garage is untouched |
+| **The picked file cannot be read - local, before any upload** (RV.73) | The read-failure card: **"We couldn't read that file. It may still be downloading from iCloud Drive - in Files, open it once, then pick it again."** The file picker's URL is security-scoped; its bytes are **copied into the app container under the scope at pick time**, and a pick whose bytes cannot be copied never reaches the server - **no parse was attempted**, so "send us the file" is NOT the next step for THIS state (it would fail the same way). The failure is logged with the error's type and code, never the path or the file name (`import.read.fail`, docs/LOGGING.md) | Open the file once in Files (so iCloud downloads it) · pick it again (the picker stays available below the card) |
+| **The file was read but the parse could not be obtained - unknown reason** (RV.73) | "We read the file, but couldn't process it. Try again, or send us the file." The read SUCCEEDED and the upload/parse did not (a contract break, a transport failure, an unanswered server). DISTINCT from an unreadable file, whose next step is re-picking, not re-uploading (hard rule 7) | Try again · send us the file · choose a different app |
+| **The "send us the file" pick cannot be read** (RV.73) | The not-listed sheet shows the same read-failure copy inline; the consent step never opens for a file whose bytes could not be copied (there is nothing to share) | Open the file once in Files · pick it again · cancel |
+
+The staged copy's lifecycle is decided (RV.73): a picked file is copied into the app's Caches under
+`TankbookImport/` and is **deleted as soon as its consumer is done** - immediately after the parse
+path reads the bytes into memory, and when the consent/share flow settles on the send-us-the-file
+path. It never survives to the end of the wizard, it holds user data and must not outlive its use,
+and the Caches location is additionally evictable by the OS. `SECURITY.md`'s
+`completeUntilFirstUserAuthentication` class is applied to the copy on write.
+
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 
 ### About & feedback

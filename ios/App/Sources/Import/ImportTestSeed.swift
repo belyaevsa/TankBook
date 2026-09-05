@@ -71,6 +71,20 @@ enum ImportTestSeed {
                 .appendingPathComponent("seed-parsing-\(UUID().uuidString).csv")
             try? Data("Date;Volume\n1/1/2024;42.1".utf8).write(to: url)
             model.parse(fileURL: url)
+        } else if arguments.contains("-seedImportReadFailed") {
+            // RV.73: drive the REAL read path against a URL that cannot be
+            // read (a pick whose bytes never existed) so the read-failure
+            // state - its own card, distinct from the parse-rejection one -
+            // renders from an actual failed `Data(contentsOf:)`, never from a
+            // fixture. This is the closest a test can get to a security-scoped
+            // pick that the app cannot read: the read is refused either way,
+            // and the state that must follow is `.couldNotRead`.
+            model.selectFormat(model.formats.first ?? ImportFormat(id: "mfm", displayName: "My Fuel Manager",
+                                                                   fileKinds: ["csv"], helpUrl: nil,
+                                                                   addedInPackVersion: 1))
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("seed-read-failed-\(UUID().uuidString).csv")
+            model.parse(fileURL: url)
         }
     }
 }

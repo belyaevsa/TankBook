@@ -429,6 +429,30 @@ struct ImportSourceView: View {
             .padding(.bottom, 10)
         case .transportUnreachable:
             EmptyView()
+        case .couldNotRead:
+            // RV.73: the file could not be READ locally - the bytes never left
+            // the device, so no parse was attempted. Distinct from a parse
+            // rejection, whose next step is re-uploading or another app: for an
+            // unreadable file the fix is the file itself (still downloading
+            // from iCloud, moved, permission), and re-picking IS the next step
+            // (hard rule 7) - "send us the file" would fail the same way.
+            VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("We couldn't read that file.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.warn)
+                    Text("It may still be downloading from iCloud Drive. In Files, open it once, then pick it again.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineSpacing(1.4)
+                }
+                .accessibilityIdentifier("importReadFailedCard")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .formCard()
+            .padding(.horizontal, Theme.Spacing.screenMargin)
+            .padding(.bottom, 10)
         case .oversize:
             errorCard("That file is larger than 8 MB – try a smaller export.")
         case .unrecognisedFormat:
@@ -436,7 +460,7 @@ struct ImportSourceView: View {
         case .server:
             errorCard("The server couldn't read the file right now – try again.")
         case .unknown:
-            errorCard("We couldn't read that file – try again, or send it to us.")
+            errorCard("We read the file, but couldn't process it. Try again, or send us the file.")
         }
     }
 

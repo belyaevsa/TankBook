@@ -496,3 +496,49 @@ extension ImportUITests {
                       "answering the question enables confirm in Russian")
     }
 }
+
+// MARK: - RV.73 the read-failure state is its own card
+
+/// The read-failure tests live in an extension so the class stays under
+/// SwiftLint's `type_body_length` floor (the same pattern the PJ.10 tests use).
+@MainActor
+extension ImportUITests {
+
+    /// The picked file could not be READ - the bytes never left the device, so
+    /// the failure is local and no parse was attempted. The seed drives the
+    /// REAL read path (`model.parse` over a URL whose bytes do not exist - the
+    /// closest a test can come to a scoped pick the app cannot read) and
+    /// asserts the read-failure card, DISTINCT from the parse-rejection card:
+    /// the defect shipped because both states collapsed onto one generic card,
+    /// so the assertion is the split, not "an error card renders".
+    func testReadFailureShowsItsOwnCardNotTheParseCard() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportReadFailed"])
+        let readCard = app.staticTexts["We couldn't read that file."]
+        XCTAssertTrue(readCard.waitForExistence(timeout: 10),
+                      "the read-failure card must render for an unreadable pick")
+        let nextStep = "It may still be downloading from iCloud Drive. In Files, open it once, "
+            + "then pick it again."
+        XCTAssertTrue(app.staticTexts[nextStep].exists,
+                      "the read-failure next step names re-picking, never 'send us the file'")
+        let parseCard = "We read the file, but couldn't process it. Try again, or send us the file."
+        XCTAssertFalse(app.staticTexts[parseCard].exists,
+                       "an unreadable file must NOT render the parse-failure card")
+    }
+
+    func testReadFailureShowsItsOwnCardInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportReadFailed"])
+        XCTAssertTrue(app.staticTexts["Не удалось прочитать файл."].waitForExistence(timeout: 10),
+                      "the RU read-failure card must render for an unreadable pick")
+        let nextStep = "Возможно, он ещё загружается из iCloud Drive. Откройте его в «Файлах», "
+            + "а затем выберите его снова."
+        XCTAssertTrue(app.staticTexts[nextStep].exists,
+                      "the RU read-failure next step is localised")
+        let parseCard = "Мы прочитали файл, но не смогли его обработать. Попробуйте ещё раз "
+            + "или пришлите его нам."
+        XCTAssertFalse(app.staticTexts[parseCard].exists,
+                       "an unreadable file must NOT render the RU parse-failure card")
+    }
+}

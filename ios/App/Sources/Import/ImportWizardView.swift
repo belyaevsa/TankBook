@@ -62,8 +62,25 @@ struct ImportWizardView: View {
                       allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let url = urls.first,
                   let model else { return }
+            // RV.73: a picked URL is security-scoped and the scope dies with
+            // this handler, but the bytes are read later (the parse upload,
+            // the review). Copy the pick into the app container UNDER the
+            // scope first; `stage` releases the scope on every path and logs a
+            // read failure's type/code (never the path or name). If the copy
+            // fails, the file could not be read at all - that is the
+            // read-failure state, NOT a parse rejection.
+            let stager = ImportService.makePickedFileStager()
             let preferred = carSelection.selectedVehicle((try? model.repository.liveVehicles()) ?? [])?.id
-            model.parse(fileURL: url, preferredVehicleID: preferred)
+            switch stager.stage(url, log: AppLog.shared) {
+            case .staged(let copy):
+                model.parse(fileURL: copy, preferredVehicleID: preferred)
+                // parse() reads the copy synchronously before starting the
+                // upload, so the staged file has served its purpose (it holds
+                // user data and must not outlive its use).
+                stager.dispose(copy)
+            case .readFailed:
+                model.reportPickedFileCouldNotBeRead()
+            }
         }
         .sheet(isPresented: $showingCarPicker) {
             if let model { ImportTargetCarSheet(model: model) }
@@ -282,6 +299,7 @@ struct ImportNotSupportedSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showingFilePicker = false
     @State private var pickedFileURL: URL?
+    @State private var sendFileReadFailed = false
     @State private var showingSendFile = false
     @State private var didSeed = false
 
@@ -320,6 +338,24 @@ struct ImportNotSupportedSheet: View {
                 .accessibilityIdentifier("importNotSupportedHelp")
             }
             Spacer()
+            if sendFileReadFailed {
+                // RV.73: the pick could not be copied into the container, so
+                // there is nothing to send - the card names the next step
+                // (hard rule 7) instead of a consent sheet for unreadable bytes.
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("We couldn't read that file.")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.warn)
+                    Text("It may still be downloading from iCloud Drive. In Files, open it once, then pick it again.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineSpacing(1.4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .formCard()
+                .accessibilityIdentifier("importSendFileReadFailed")
+            }
             ImportPrimaryBar(action: { showingFilePicker = true },
                              label: { Text(L10n.sendFileTitle) })
             Button("Pick a different app") {
@@ -334,16 +370,30 @@ struct ImportNotSupportedSheet: View {
         .padding(.horizontal, Theme.Spacing.screenMargin)
         .padding(.top, 24)
         .padding(.bottom, 24)
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
         .fileImporter(isPresented: $showingFilePicker,
                       allowedContentTypes: [.commaSeparatedText, .plainText, .item],
                       allowsMultipleSelection: false) { result in
             guard case .success(let urls) = result, let url = urls.first else { return }
-            pickedFileURL = url
-            showingSendFile = true
+            // RV.73: same security-scope discipline as the parse path - the
+            // picked URL dies with this handler, so its bytes are copied under
+            // the scope before the consent step reads the file later.
+            let stager = ImportService.makePickedFileStager()
+            switch stager.stage(url, log: AppLog.shared) {
+            case .staged(let copy):
+                sendFileReadFailed = false
+                pickedFileURL = copy
+                showingSendFile = true
+            case .readFailed:
+                sendFileReadFailed = true
+            }
         }
         .sheet(isPresented: $showingSendFile) {
-            SendFileConsentSheet(fileURL: pickedFileURL)
+            if let fileURL = pickedFileURL {
+                SendFileConsentSheet(fileURL: fileURL, dispose: {
+                    ImportService.makePickedFileStager().dispose(fileURL)
+                })
+            }
         }
         #if DEBUG
         .task { seedIfRequested() }
@@ -358,10 +408,12 @@ struct ImportNotSupportedSheet: View {
         guard !didSeed else { return }
         didSeed = true
         guard ProcessInfo.processInfo.arguments.contains("-seedSendFile") else { return }
+        let stager = ImportService.makePickedFileStager()
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("MyFuelManager_export.csv")
         try? Data("Date;Odometer;Volume\n1/1/2024;120000;42.5".utf8).write(to: url)
-        pickedFileURL = url
+        guard case .staged(let copy) = stager.stage(url, log: nil) else { return }
+        pickedFileURL = copy
         showingSendFile = true
     }
     #endif
@@ -371,10 +423,22 @@ struct ImportNotSupportedSheet: View {
 /// -> Import wizard). The file is attached only after this consent is given:
 /// the copy states plainly what the file may contain, and "Share file" is the
 /// affirmative act. Nothing is uploaded or queued until then.
+///
+/// RV.73: `fileURL` is always the staged container copy of the user's pick
+/// (the security scope died with the file-picker handler). `dispose` deletes
+/// that copy once its use is over - when the share sheet settles, or when this
+/// sheet is cancelled - so the user data never outlives the flow (hard rule 8,
+/// the "must not outlive its use" promise).
 struct SendFileConsentSheet: View {
     let fileURL: URL?
+    var dispose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
     @State private var showingShare = false
+    /// Whether the share sheet was offered. Guards `onDisappear` against the
+    /// SwiftUI gotcha where presenting a sheet on top fires the presenter's
+    /// `onDisappear`: once sharing has begun, only the share sheet's own
+    /// completion may dispose, never the disappearance.
+    @State private var didShare = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -400,10 +464,11 @@ struct SendFileConsentSheet: View {
                 .formCard()
             }
             Spacer()
-            ImportPrimaryBar(action: { showingShare = true },
+            ImportPrimaryBar(action: { didShare = true; showingShare = true },
                              label: { Text(L10n.sendFileShare) })
                 .accessibilityIdentifier("sendFileShareButton")
             Button("Cancel") {
+                dispose?()
                 dismiss()
             }
             .buttonStyle(.plain)
@@ -419,8 +484,17 @@ struct SendFileConsentSheet: View {
         .sheet(isPresented: $showingShare) {
             // PJ.20: the actual file rides the share sheet, with the consent
             // sentence alongside it - never the sentence alone.
-            ActivityView(items: [fileURL as Any, L10n.sendFileMessage])
-                .presentationDetents([.medium, .large])
+            ActivityView(items: [fileURL as Any, L10n.sendFileMessage]) { _ in
+                // The share sheet has read the file (or the user dismissed it);
+                // the staged copy has served its purpose either way.
+                dispose?()
+            }
+            .presentationDetents([.medium, .large])
+        }
+        .onDisappear {
+            // Cancelled or swiped away without sharing - dispose only when the
+            // share sheet was never offered (its completion handles that path).
+            if !didShare { dispose?() }
         }
     }
 }

@@ -135,6 +135,21 @@ enum ImportService {
         UserDefaults.standard.set(id, forKey: key)
         return id
     }
+
+    /// The stager for a picked file (RV.73): the security-scoped pick is copied
+    /// into the app's own container at pick time, under the scope, so every
+    /// later read (the parse upload, the send-us-the-file share) works after
+    /// the scope is released. The copy lives in Caches/TankbookImport - the
+    /// OS may additionally purge it - and is deleted once its consumer is done
+    /// (docs/ERRORS.md -> Import wizard). Production closures call the real
+    /// Foundation APIs; tests build their own with injected doubles.
+    static func makePickedFileStager() -> ImportPickedFile {
+        let caches = FileManager.default.urls(for: .cachesDirectory,
+                                              in: .userDomainMask).first
+            ?? FileManager.default.temporaryDirectory
+        return ImportPickedFile(stagingDirectory:
+            caches.appendingPathComponent("TankbookImport", isDirectory: true))
+    }
 }
 
 /// A `TankbookHTTPTransport` that serves canned import responses from bundle
