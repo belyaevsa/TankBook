@@ -122,13 +122,17 @@ From the **repo ROOT**, judged by exit code (`echo $?`), never by skimming outpu
   stale by the time you run.
 - `swiftlint lint` **from the repo root** -> 0 errors. From `ios/` it prints thousands of phantom
   violations; that false red has cost two sessions.
-- the localization gate **from the repo root** -> 0
+- the localization gate **from the repo root** -> 0, run exactly:
+  `swift run --package-path ios localization-gate --sources ios/App/Sources --catalogue ios/App/Sources/Localizable.xcstrings`
+  (measured on this checkout 2026-09-06: 716 keys, 100% RU, 0 missing, 0 violations)
 - `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
   `swift build` does NOT compile `ios/App`; only `xcodebuild` does. Run `xcodegen generate` first if
   you added a file. **Check the observed count is non-zero** - a filter matching nothing prints
   "0 tests ... passed". Do NOT run the whole UI suite (2026-08-29 rule).
 - **Never `pgrep -f` for a build** - your own brief is in your command line and you will match, and
   could kill, a sibling agent. Use `pgrep -x xcodebuild`.
+- **Echo the exit code from the COMMAND, never through a pipe.** A pipe reports the LAST stage's
+  status, so a failing build behind `| tail` reports 0 - redirect to a file and read that instead.
 
 ## Screenshots
 
