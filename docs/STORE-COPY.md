@@ -44,10 +44,10 @@ Why A: it answers the English audience's sharpest complaint – the history that
 phone change – in words no login-pushing incumbent can use, while "no account" and "offline" are
 already stated word for word in the promotional text and the description.
 
-### Promotional text (130 / 170 characters)
+### Promotional text (170 / 170 characters)
 
 ```
-No account, no subscription, no ads. Your history lives on your phone, works offline, and exports whole – receipt photos included.
+No account, no subscription, no ads. Your history lives on your phone; the export takes the receipt photos with it – so the next phone is not where five years go missing.
 ```
 
 ### Description (2479 / 4000 characters)
