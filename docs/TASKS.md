@@ -517,6 +517,64 @@ hardware. `RV.1`-`RV.5`, `RV.7`-`RV.9` and `RV.11`-`RV.16` are fixed; `RV.10`, `
 | **[x]** RV.43 (2026-09-04, verified by orchestrator: swift build 0, `swift test` **1322/126**, swiftlint **0 from the repo ROOT**, and `TrendsUITests` **10 tests / 0 failures** - run ON the 4th, inside the 1st-6th window, so this is a live boundary-date run rather than a lucky one. The seed now pins its fill to the start of the month it runs in instead of `daysAgo: 6`. **The agent's mutation check is the evidence**: restoring `daysAgo: 6` reproduced the original failure at `TrendsUITests.swift:129` on today's real clock (`MUTATION_UITEST=65`), and the fix restored it to green - I confirmed both in its log. It also audited EVERY `daysAgo` seed rather than only the failing one and said why each other is safe (`seedHomeFullHistory` carries an explicit `daysAgo: 0` entry guaranteeing a current-month row on any date). The added L1 pins the bug in BOTH directions - a fill on the 1st counts, a fill six days before the 1st does not - using a fixed gregorian/UTC date, so it does not repeat the two-clocks mistake of [RV.55]. Commit `dd0f196`.) | **`TrendsUITests.testSingleFillShowsOnlyTheTilesThatHaveHonestData` fails on the 1st-6th of every month.** Found by the RV.22 agent and **confirmed by the orchestrator on a clean tree** (2026-09-03, `EXIT=65` at `TrendsUITests.swift:129`). `-seedHomeSingleFill` writes its fill at `FillSpec(daysAgo: 6, ...)` (`HomeTestSeed.swift:87`), and `HomeStats.monthSpend` filters entries to the calendar month of `asOf` (`HomeStats.swift:151-152`). Today is Sep 3, so the seeded fill lands on Aug 28 - a different month - `monthSpend` returns nil, the spend tile is absent, and the first assertion fails. **The test is right and the seed is wrong**: the test's claim ("a single fill shows spend and price, but not consumption or cost/km") is a true statement about the product; the seed just picks a date that silently changes meaning depending on when the suite runs. It passes for roughly 24 days a month, which is exactly what makes it expensive - it will be blamed on whatever change happens to be in flight on the 1st. **Not caused by RV.22, RV.26 or RV.29** - `monthSpend` is untouched by all three (RV.29 changed only `lastUnitPrice`) | Pin the seed to a date that is always inside the current month - e.g. the 1st of the current month, or `daysAgo` clamped so it cannot cross the boundary - rather than a fixed offset. **Do not fix it by relaxing the assertion**: "assert the tile exists OR does not" would make the test vacuous, and the tile's presence is the product claim being tested. **Audit the other seeds for the same shape in the same change** - any `daysAgo` large enough to cross a month boundary against a month-filtered stat has this bug latent, and a grep for `daysAgo:` is the whole audit. L4: the suite passes with the simulator clock set to the 1st of a month - state how you verified it, since running it on the 20th proves nothing |
 | **[x]** RV.42 (2026-09-04, verified by orchestrator by captured exit code: LanguagePreference L1 10/10, swiftlint 0 errors, localization gate 0, app build, `LanguageSettingsUITests` 5/5 including the survives-dismiss assertion; both screenshots re-shot after the colour change and opened personally, RU wraps cleanly. Commit `72798bb`. **COLOUR DECIDED 2026-09-04, product owner: the pending notice is AMBER (`warn`), not `inkSoft`.** *"There is a note below the setting, but it's blind. As it's a warning, it should be of amber color."* The current `.footnote` + `inkSoft` is what `DESIGN.md` classifies as **inert status** - placeholder glyphs, informational icons, status badges - which is precisely why it reads as decoration and gets skipped. **This is hard-rule-5 compliant, and the check matters**: amber is reserved for *attention only*, and a setting the user has changed that has NOT taken effect until they relaunch is attention by definition - there is an action outstanding. It is not an error (nothing failed, nothing is lost), so it stays a notice in `warn`, never red and never a system dialog. Apply `Theme.Palette.warn` from the token, never a literal hex, and carry an icon alongside the colour - `DESIGN.md`'s accessibility floor says colour is never the only channel, and an amber line with no glyph fails that for a colour-blind reader exactly as the old grey one failed everyone.) | **Changing the language tells you to relaunch in a notice that vanishes the moment you leave the picker.** Reported by the product owner 2026-09-03: *"after I changed the language in the setting, I wasn't asked / prompted / notified to re-launch the app to apply the settings."* **The notice exists and is unmissable-by-design in exactly the wrong way.** RV.24 shipped `L10n.languageRestartPrompt` ("Language changes the next time you open Tankbook" / "Язык изменится при следующем открытии Tankbook"), but `LanguagePickerView` renders it **only inside the picker sheet** (`LanguagePickerView.swift:99-100`), below the option list, as a `.footnote` in `inkSoft` - the quietest text style on the screen - and gates it on `@State private var pendingChange` (`:72`, set at `:152`/`:159`). **`@State` dies with the sheet**: tapping a language moves the checkmark, and the natural next action is the `Готово`/Done button in the navigation bar, which dismisses the sheet and destroys the only notice. Back in Settings the Language row shows the NEW value with nothing indicating the app is still running in the OLD language - so the user is left with a setting that visibly took effect and an app that visibly did not change, which reads as a broken switch rather than a pending one. **This is hard rule 7, not a copy tweak**: *"every error names its next step **and survives being ignored**"* - this notice is defined by not surviving being ignored. Note the constraint that makes the notice necessary is correct and must not be traded away: iOS applies `AppleLanguages` at launch, and a programmatic exit to apply a setting reads as a crash and risks App Store rejection (`ERRORS.md`, RV.24) - so the answer is a notice that persists, never a relaunch the app performs itself | The pending-relaunch state must **outlive the picker** and be visible where the user ends up. It is derived, not stored (hard rule 2 in spirit): the app is pending a relaunch exactly while the stored preference differs from `Bundle.main.preferredLocalizations.first` - a pure comparison that belongs in core beside `LanguagePreference.resolve` with its own L1 tests, and which **self-clears on the next launch** with nothing to reset. Surface it on the Settings Language row itself (the row the user just changed), and decide explicitly whether the moment of choice also deserves a confirmation rather than a caption - the product owner's words were *"asked / prompted / notified"*, and a caption is none of those. **L1: preference set to a language the bundle is not currently rendering -> pending; preference matching the running language -> not pending; no preference (follow-system) -> not pending.** **L4: choose a language, dismiss the picker, and assert the pending notice is STILL VISIBLE in Settings** - that single assertion is the whole bug, and a test that only checks the notice inside the sheet passes against today's code. Assert the notice's text, not that some element exists. Copy EN + RU as whole phrases (hard rule 10); RU runs longer and this sits on a row that already carries a value and a chevron. `ERRORS.md` (the RV.24 Settings row) moves in the same change; screenshots EN and RU of Settings showing the pending state. Mutation-check: make the pending state `@State`-scoped again and confirm the L4 assertion goes red |
 
+## Dispatch ledger - which model did which task
+**Reconstructed 2026-09-05 from the `opencode` transcripts in `/tmp/agentlogs/*.log`**, where each run
+records its own model. This is the ground truth behind the flash-vs-pro evaluation, and it is here so
+a row's outcome can always be read against the worker that produced it.
+
+**Totals: 24 pro, 20 flash** across 44 build dispatches. Read it with the selection bias in mind -
+pro was chosen for tasks *believed* harder, so a raw success comparison carries no information; what
+the evaluation compared was failure KINDS and above-brief judgement. `flash*` marks the dispatch that
+died instantly with `database is locked` and never reached the model (re-dispatched on flash).
+
+| Task | Worker | Date | Log |
+|---|---|---|---|
+| `RV.10` | **flash** | 2026-09-03 | 436 KB |
+| `RV.14` | **pro** | 2026-09-03 | 415 KB |
+| `RV.17` | **pro** | 2026-09-03 | 514 KB |
+| `RV.18` | **pro** | 2026-09-03 | 293 KB |
+| `RV.21` | **flash** | 2026-09-03 | 464 KB |
+| `RV.22` | **pro** | 2026-09-03 | 573 KB |
+| `RV.23-VALIDATE` | **pro** | 2026-09-03 | 135 KB |
+| `RV.24` | **pro** | 2026-09-03 | 436 KB |
+| `RV.25` | **flash** | 2026-09-03 | 180 KB |
+| `RV.26` | **pro** | 2026-09-03 | 399 KB |
+| `RV.28` | **flash** | 2026-09-03 | 401 KB |
+| `RV.29` | **flash** | 2026-09-03 | 376 KB |
+| `RV.31` | **flash** | 2026-09-03 | 439 KB |
+| `RV.32` | **pro** | 2026-09-03 | 425 KB |
+| `RV.34-RV.33` | **pro** | 2026-09-03 | 698 KB |
+| `RV.35` | **pro** | 2026-09-03 | 312 KB |
+| `RV.36` | **pro** | 2026-09-03 | 119 KB |
+| `RV.37` | **pro** | 2026-09-03 | 577 KB |
+| `RV.38` | **pro** | 2026-09-04 | 809 KB |
+| `RV.40-39-41` | **pro** | 2026-09-04 | 457 KB |
+| `RV.42` | **pro** | 2026-09-04 | 176 KB |
+| `RV.43` | **flash** | 2026-09-04 | 111 KB |
+| `RV.43.dblocked` | **flash*** | 2026-09-04 | 0 KB |
+| `RV.44` | **pro** | 2026-09-04 | 381 KB |
+| `RV.45` | **pro** | 2026-09-04 | 343 KB |
+| `RV.47` | **flash** | 2026-09-04 | 488 KB |
+| `RV.49` | **pro** | 2026-09-04 | 876 KB |
+| `RV.50` | **pro** | 2026-09-04 | 518 KB |
+| `RV.52` | **pro** | 2026-09-04 | 414 KB |
+| `RV.53` | **flash** | 2026-09-04 | 366 KB |
+| `RV.56` | **pro** | 2026-09-04 | 681 KB |
+| `RV.57` | **pro** | 2026-09-04 | 478 KB |
+| `RV.6` | **flash** | 2026-09-04 | 498 KB |
+| `RV.6-INVESTIGATE` | **pro** | 2026-09-04 | 86 KB |
+| `RV.61` | **pro** | 2026-09-04 | 400 KB |
+| `RV.62` | **flash** | 2026-09-04 | 479 KB |
+| `RV.63` | **flash** | 2026-09-04 | 202 KB |
+| `OB.2` | **flash** | 2026-09-05 | 595 KB |
+| `RV.54` | **flash** | 2026-09-05 | 345 KB |
+| `RV.58` | **flash** | 2026-09-05 | 511 KB |
+| `RV.60` | **flash** | 2026-09-05 | 171 KB |
+| `RV.64` | **flash** | 2026-09-05 | 227 KB |
+| `RV.65` | **flash** | 2026-09-05 | 1536 KB |
+| `RV.67` | **flash** | 2026-09-05 | 515 KB |
+| `RV.68` | **flash** | 2026-09-05 | 596 KB |
+
 ## OB · Observability **[v1.0.x]** - the device can say what it did
 
 **Defined 2026-09-05 (product owner).** Not a new backlog: this groups four rows that already
