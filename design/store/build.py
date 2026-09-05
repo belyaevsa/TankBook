@@ -64,11 +64,18 @@ def rounded(stem, src=None):
     return dst
 
 
-# EUR receipts, for the ENGLISH panels. An English panel showing a Russian fiscal
-# receipt tells an English reader the app is meant for someone else; the Russian
-# panels use the app's own screenshots, whose fixture receipt is already Russian.
-RECEIPT_EE_PORTRAIT = "Spike/ReceiptSpike/fixtures/receipts/receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg"
-RECEIPT_EE_INCAR = "Spike/ReceiptSpike/fixtures/receipts/receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg"
+# What the English panels show INSIDE the app's own photo frame. The corpus
+# fixtures are real receipts belonging to real people - they carry a terminal id,
+# an ATC counter and the last four digits of a card - and a store panel is
+# published forever. This is a line drawing of one instead: the same fixture's
+# numbers (45,22 L at 1,754 EUR/L, total 79,32 EUR - and they multiply out),
+# upright, euro, no station brand and no card brand. Generated with imagegen from
+# receipt-038; the prompt is in the commit that added it.
+#
+# The Russian panels keep the app's own screenshots, whose fixture receipt is
+# already Russian - an English panel showing a Russian fiscal receipt tells an
+# English reader the app is meant for someone else.
+RECEIPT_SKETCH = "design/store/assets/receipt-sketch.png"
 
 
 def real_photo_into(stem, top, bottom, receipt):
@@ -297,9 +304,9 @@ def source_for(shot):
     if shot == "RV.48-attachment-recognised-ru":
         return collapse_interior_gap(shot)
     if shot == "RV.9-attachment-viewer":       # the viewer's content area
-        return real_photo_into(shot, 620, 2380, RECEIPT_EE_PORTRAIT)
+        return real_photo_into(shot, 620, 2380, RECEIPT_SKETCH)
     if shot == "RV.5-capture-review":          # between the question and the buttons
-        return real_photo_into(shot, 500, 2060, RECEIPT_EE_INCAR)
+        return real_photo_into(shot, 500, 2060, RECEIPT_SKETCH)
     return None
 
 
