@@ -22,4 +22,12 @@ public protocol SessionStore: Sendable {
     /// in again. Survives `clear` so the "expired" distinction is kept even
     /// after the credentials themselves are removed.
     func isAuthExpired() throws -> Bool
+    /// Marks the device as revoked server-side (a 410 - RV.58). A revoked
+    /// device's tokens are dropped (`clear`) and this mark survives it, so the
+    /// surface keeps naming "sign in" across relaunches instead of reading as
+    /// an ordinary sign-out. A fresh `save` (a re-attaching sign-in) clears it.
+    func setDeviceRevoked(_ revoked: Bool) throws
+    /// Whether the last session's device was revoked (410). Survives `clear`
+    /// exactly like the `authExpired` mark, for the same reason.
+    func isDeviceRevoked() throws -> Bool
 }

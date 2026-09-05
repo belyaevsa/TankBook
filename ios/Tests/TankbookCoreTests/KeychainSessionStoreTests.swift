@@ -74,4 +74,36 @@ struct KeychainSessionStoreTests {
 
         #expect(try store.load()?.provider == .google)
     }
+
+    // MARK: - The revoked mark (RV.58)
+
+    /// A device revoked server-side answers 410; the client drops the
+    /// credentials (`clear`) and persists a revoked mark so the surface keeps
+    /// naming "sign in" instead of reading as a plain sign-out. The mark must
+    /// survive `clear`, and a fresh `save` (a re-attaching sign-in) must clear
+    /// it - the same contract `authExpired` already holds.
+    @Test func deviceRevokedMarkSurvivesClearUntilASaveClearsIt() throws {
+        let store = KeychainSessionStore(service: "test.auth.\(UUID().uuidString)")
+        defer { try? store.clear() }
+        try store.clear()
+
+        try store.save(makeSession())
+        #expect(try store.isDeviceRevoked() == false,
+                "a fresh session is not revoked")
+
+        // The RV.58 drop: clear the credentials, then persist the revoked mark
+        // (clear removes the mark too, so the mark is written AFTER it - the
+        // same order SessionRefresher uses for authExpired).
+        try store.clear()
+        try store.setDeviceRevoked(true)
+        #expect(try store.isDeviceRevoked() == true,
+                "the revoked mark survives the credential drop (RV.58)")
+        #expect(try store.load() == nil,
+                "the credentials themselves are gone - no further request can authenticate")
+
+        // A re-attaching sign-in writes a fresh session and clears the mark.
+        try store.save(makeSession())
+        #expect(try store.isDeviceRevoked() == false,
+                "a saved session is a session that can authenticate again")
+    }
 }

@@ -131,6 +131,73 @@ final class SettingsUITests: XCTestCase {
                       "the revoked card names its next step: sign in")
     }
 
+    // MARK: - RV.58 the real 410 path is terminal (docs/TASKS.md RV.58)
+
+    /// A REAL 410 (the seed transport answers 410 to every request, so the
+    /// whole 410 -> cycle-stop -> session-drop path runs - nothing is forced)
+    /// must end the account on this device: the signed-in account card and its
+    /// sync surface are gone, the signed-out revoked card with its "sign in"
+    /// next step appears, and the card's sign-in opens the flow. The vacuous
+    /// trap the row names is asserting the card while the three minutes of
+    /// traffic still happen behind it - here the session drop IS the traffic
+    /// stop, asserted by the account surface no longer believing it is signed
+    /// in (no account title, no "Sync now").
+    func testReal410DropsTheSessionAndRoutesToSignIn() {
+        let app = launchSettings(seed: "-seedSettingsRevoked410")
+        // Drive the cycle deterministically, exactly as the auth-expired seed
+        // does: the seed writes the session at Settings appear, then the tap
+        // runs the real path against the 410-answering transport. The launch
+        // foreground cycle can already have run that path (and dropped the
+        // session) before Settings appears - if "Sync now" is still there, tap
+        // it; either way the drop's card is what we assert.
+        let syncNow = app.buttons["settingsSyncNowButton"]
+        if syncNow.waitForExistence(timeout: 5) {
+            syncNow.tap()
+        }
+
+        let revokedCard = app.otherElements["settingsRevokedCard"]
+        XCTAssertTrue(revokedCard.waitForExistence(timeout: 10),
+                      "a 410 must surface the revoked card, never 'update the app'")
+        XCTAssertTrue(app.buttons["settingsRevokedSignInButton"].exists,
+                      "the revoked card names its next step: sign in")
+
+        // The session was dropped: the signed-in account card is gone, and so
+        // is the sync surface it guarded. This is what ends the three-minute
+        // tail - no session means no future trigger can start another cycle.
+        XCTAssertFalse(app.staticTexts["settingsAccountTitle"].exists,
+                       "the dropped session must not still render the signed-in account card")
+        XCTAssertFalse(app.buttons["settingsSyncNowButton"].exists,
+                       "a dropped session must not still offer 'Sync now'")
+
+        // Sign-in is reachable: the card's button opens the flow.
+        app.buttons["settingsRevokedSignInButton"].tap()
+        XCTAssertTrue(app.buttons["signInAppleButton"].waitForExistence(timeout: 10),
+                      "the revoked card's next step opens the sign-in flow")
+    }
+
+    /// Hard rules 1 and 8 after a 410: a revoked device keeps using the app
+    /// locally. The signed-out revoked state (the session a 410 dropped, the
+    /// mark persisted) still opens every screen and still owns its local log -
+    /// the vehicle and its last odometer survive, exactly as after a sign-out.
+    func testRevokedDeviceStillOpensItsScreensOffline() {
+        let app = launch(["-presentScreen", "settings", "-seedSettingsRevokedSignedOut"])
+        XCTAssertTrue(app.otherElements["settingsRevokedCard"].waitForExistence(timeout: 10),
+                      "the signed-out revoked state renders the revoked card")
+        XCTAssertFalse(app.buttons["settingsSyncNowButton"].exists,
+                       "a revoked device has no sync surface - there is no session to sync with")
+
+        // Pop back to Home: the local log opens and the last odometer survives
+        // (119 000 only because the five seeded fills exist - a 410 that wiped
+        // the log would show the vehicle's initial 118 000 and fail this).
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Volvo V60"].waitForExistence(timeout: 10),
+                      "the vehicle survives a 410 (nothing local is deleted)")
+        let odometer = app.staticTexts["homeOdometer"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        XCTAssertTrue(odometer.label.contains("119\u{00A0}000"),
+                      "the last entry's odometer survives; got '\(odometer.label)'")
+    }
+
     func testQuotaShowsStorageCard() {
         let app = launchSettings(seed: "-seedSettingsQuota")
         XCTAssertTrue(app.otherElements["settingsQuotaCard"].waitForExistence(timeout: 10))

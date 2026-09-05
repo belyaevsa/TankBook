@@ -39,6 +39,18 @@ struct AuthExpiredTransport: TankbookHTTPTransport {
     }
 }
 
+/// RV.58's UI-test seam: answers every request with a `410`, so a seeded
+/// signed-in launch runs the REAL revoked-device path - the sync cycle answers
+/// 410, ends, drops the session and surfaces the signed-out revoked card. Same
+/// shape as `AuthExpiredTransport`: stateless, the same 410 for the sync pull,
+/// the push, the device fetch and any blob call (docs/API.md: a revoked device
+/// gets 410 on all of them).
+struct RevokedDeviceTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        TankbookHTTPResponse(status: 410)
+    }
+}
+
 /// PR.13's server-down seam: answers every request with a `503`, so a seeded
 /// signed-in launch runs the real 5xx -> server-unavailable path and surfaces
 /// the "Sync service unreachable" card with Try again - the state a real
@@ -187,6 +199,7 @@ enum SeededLaunch {
         if arguments.contains("-signInSyncStub") { return SignInSyncStubTransport() }
         if arguments.contains("-syncFlaggedPullStub") { return FlaggedBatchSyncStubTransport() }
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
+        if arguments.contains("-seedSettingsRevoked410") { return RevokedDeviceTransport() }
         if arguments.contains("-seedSettingsServerDown") { return ServerDownTransport() }
         if isSeeded(arguments) { return SeededLaunchTransport() }
         return URLSessionTransport()

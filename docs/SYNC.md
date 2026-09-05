@@ -555,10 +555,12 @@ tests:
 
 - `status()` is untouched: its callers (Settings) keep their exhaustive switches and never see a
   `signedOut` verdict they have no card for.
-- `chipState` evaluates the attention conditions **before** `!isSignedIn`, because an expired
-  session *clears the Keychain* (so `isSignedIn` reads false too) but is still an account issue the
-  user must act on - "Sign in again", never the colourless "Not signed in". This is the precedence
-  the mutation check below guards.
+- `chipState` evaluates the attention conditions **before** `!isSignedIn`, because an expired session
+  *clears the Keychain* (so `isSignedIn` reads false too) but is still an account issue the
+  user must act on - "Sign in again", never the colourless "Not signed in". **RV.58 adds the same
+  rule for a revoked device**: a 410 drops the session and persists a `deviceRevoked` mark, so a
+  revoked-but-signed-out device still reads as the amber "Device signed out", never as the
+  colourless guest. This is the precedence the mutation check below guards.
 
 ## Offline & failure behavior (ties to JOURNEYS)
 
@@ -573,7 +575,18 @@ tests:
   `401` (authExpired, PR.1's refresher owns it), `402`, `410`, `426` and an unknown 4xx name a next
   step that is not "try again". Partial batch acceptance is fine (idempotent by id + baseScn); only
   idempotent calls are retried at all.
-- A device deleted server-side (user revokes it) gets `410` on its cursor → re-onboards via full pull.
+- **A 410 (device revoked / account deleted) is TERMINAL for the cycle (RV.58), wherever it lands.**
+  A 410 on pull stops the cycle before any push; a 410 on push stops the batch loop and surfaces
+  `deviceRevoked` (it used to fold into the 5xx "server down" class, which the retry policy then
+  retried - a revoked device kept cycling for ~3 minutes in production). Either way nothing is
+  retried, and the app then **drops the session**: the still-valid access token is discarded and a
+  `deviceRevoked` mark is persisted (docs/SECURITY.md: a revoked device discards its tokens and stops
+  syncing), so no later trigger can start another cycle. The surface routes to sign-in
+  (docs/ERRORS.md -> Settings); the local log and the dirty queue are untouched (hard rules 1 and 8)
+  and push again when the user signs in on this device, which re-attaches the device row (RV.41).
+- A device deleted server-side (user revokes it) gets `410` on its cursor → the cycle ends as above;
+  after a re-attaching sign-in, sync resumes from the applied cursor (nothing local was lost, so no
+  full re-pull is needed - the pull is resumable by `since`).
 - Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything.
 - Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).
 

@@ -197,7 +197,7 @@ TLS 1.2+ everywhere, ATS enforced with no per-domain exceptions. **Certificate p
 - **No-secrets-committed check (CI):** the appsettings/scripts grep above.
 - **Sign-out test:** signing out removes every Keychain item and leaves the local database intact (the user keeps their log; only sync stops – `JOURNEYS.md` J11a). Since PR.2, sign-out also issues `DELETE /auth/session` **best-effort**, so a handed-over phone does not keep a 90-day refresh chain valid on the server; the Keychain clear still runs even when that request fails (offline sign-out signs out locally, hard rule 1).
 - **Refresh-race serialisation (PR.1):** a `401` on any bearer endpoint triggers one in-flight refresh through a single shared `SessionRefresher` actor. The server rotates refresh tokens and revokes the chain on reuse, so two concurrent refreshes would sign the user out; the actor makes every concurrent caller await the one in-flight refresh. A rejected refresh clears the session and surfaces "sign in again", never "update the app".
-- **Revocation test:** a device revoked server-side gets `410`, discards its tokens, and stops syncing without destroying local data.
+- **Revocation test:** a device revoked server-side gets `410`, discards its tokens, and stops syncing without destroying local data. RV.58: the first `410` is terminal for the sync cycle, and a persisted `deviceRevoked` mark (the RV.26 `authExpired` pattern, cleared by a re-attaching sign-in) keeps the revoked-but-signed-out device reading as "device signed out - sign in to reconnect" instead of a plain guest.
 
 
 ## Import files at rest (added 2026-08-27)

@@ -40,6 +40,12 @@ public struct KeychainSessionStore: SessionStore {
         /// but is followed by `setAuthExpired(true)` on a rejection) and reads
         /// back even after the tokens themselves are gone (RV.26).
         static let authExpired = "auth-expired"
+        /// Not a credential: a boolean ("1"/"0") recording that this device was
+        /// revoked server-side (a 410, RV.58). Same shape and reason as
+        /// `authExpired`: it survives `clear` so the "signed out by a revoke"
+        /// distinction is kept after the credentials are dropped, and reads back
+        /// after relaunch. A fresh `save` (a re-attaching sign-in) clears it.
+        static let deviceRevoked = "device-revoked"
     }
 
     public init(service: String = "live.belyaev.tankbook.auth") {
@@ -75,8 +81,11 @@ public struct KeychainSessionStore: SessionStore {
             writeData(Account.metadata, data)
         }
         // A saved session is a session that can authenticate again: a fresh
-        // sign-in or a successful refresh clears any prior expiry mark.
+        // sign-in or a successful refresh clears any prior expiry mark, and a
+        // sign-in onto a revoked device row is the re-attach that clears the
+        // revocation server-side - both marks fall here.
         delete(Account.authExpired)
+        delete(Account.deviceRevoked)
     }
 
     public func clear() throws {
@@ -85,6 +94,7 @@ public struct KeychainSessionStore: SessionStore {
         delete(Account.deviceId)
         delete(Account.metadata)
         delete(Account.authExpired)
+        delete(Account.deviceRevoked)
     }
 
     public func setAuthExpired(_ expired: Bool) throws {
@@ -93,6 +103,14 @@ public struct KeychainSessionStore: SessionStore {
 
     public func isAuthExpired() throws -> Bool {
         read(Account.authExpired) == "1"
+    }
+
+    public func setDeviceRevoked(_ revoked: Bool) throws {
+        write(Account.deviceRevoked, revoked ? "1" : "0")
+    }
+
+    public func isDeviceRevoked() throws -> Bool {
+        read(Account.deviceRevoked) == "1"
     }
 
     // MARK: - The write path, exposed for the enforcement test
