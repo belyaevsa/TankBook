@@ -90,7 +90,19 @@ jobs:
   deploy:
     name: Build, gate and deploy
     if: github.event_name != 'pull_request'
-    runs-on: self-hosted
+    # PINNED TO THE PROXY HOST. `runs-on` cannot name a runner - GitHub matches
+    # on labels only - so `vm-proxy` is what makes this "that machine and no
+    # other". It matters because this job is not portable: it writes releases
+    # into /opt/tankbook and flips the `latest` symlink that nginx serves from.
+    #
+    # This replaces a bare `self-hosted`, which was a live hazard rather than a
+    # tidiness issue: backend.yml's own comments call it out by name, noting
+    # that `tankbook-api` exists partly "to keep deploy-landing.yml's bare
+    # `self-hosted` from landing HERE, on a machine with no Hugo". Any runner
+    # the org registers would have been an eligible target - the site would
+    # deploy into a host nobody serves from, the job would report success, and
+    # tankbook.live would keep serving the previous release.
+    runs-on: [self-hosted, vm-proxy]
     env:
       DEPLOY_ROOT: /opt/tankbook
     steps:

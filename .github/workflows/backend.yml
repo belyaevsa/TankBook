@@ -100,8 +100,10 @@ jobs:
     # target and would deploy into a machine holding none of that, while nginx
     # kept proxying to the old host.
     #
-    # `tankbook-api` points the other way - it keeps deploy-landing.yml's bare
-    # `self-hosted` from landing HERE, on a machine with no Hugo.
+    # `tankbook-api` points the other way - it keeps the site deploy off this
+    # host. (deploy-landing.yml no longer relies on that: since 2026-09-05 it
+    # pins itself to `vm-proxy` rather than a bare `self-hosted`, so both sides
+    # of the pairing are now explicit instead of one depending on the other.)
     #
     # Moving hosts means changing this line and the runner's labels together;
     # backend/scripts/install-runner.sh registers the name as a label for exactly
