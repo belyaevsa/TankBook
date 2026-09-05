@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Tankbook.Api.Auth;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Feedback;
 
@@ -22,17 +24,29 @@ public static class FeedbackEndpoints
     {
         if (!FeedbackCategories.IsValid(request.Category))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Unsupported category.", "category must be \"feature\", \"problem\", or \"other\".");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Unsupported category.",
+                "category must be \"feature\", \"problem\", or \"other\".");
         }
 
         if (string.IsNullOrWhiteSpace(request.Text))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing feedback text.", "text is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing feedback text.",
+                "text is required.");
         }
 
         if (string.IsNullOrWhiteSpace(request.AppVersion))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing app version.", "appVersion is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing app version.",
+                "appVersion is required.");
         }
 
         // The bearer is optional (docs/API.md): with a token the case is
@@ -51,6 +65,6 @@ public static class FeedbackEndpoints
         return Results.StatusCode(StatusCodes.Status202Accepted);
     }
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 }

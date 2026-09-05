@@ -1,4 +1,6 @@
 using Tankbook.Api.Auth;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Sync;
 
@@ -20,13 +22,21 @@ public static class SyncEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         var sinceScn = since ?? 0;
         if (sinceScn < 0)
         {
-            return Problem(StatusCodes.Status400BadRequest, "Invalid cursor.", "since must be >= 0.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Invalid cursor.",
+                "since must be >= 0.");
         }
 
         var effectiveLimit = limit is null
@@ -51,17 +61,29 @@ public static class SyncEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         if (request.Changes is null)
         {
-            return Problem(StatusCodes.Status400BadRequest, "Malformed body.", "changes is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Malformed body.",
+                "changes is required.");
         }
 
         if (request.Changes.Count > SyncService.MaxChangesPerBatch)
         {
-            return Problem(StatusCodes.Status400BadRequest, "Batch too large.", $"A push batch holds at most {SyncService.MaxChangesPerBatch} changes.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Batch too large.",
+                $"A push batch holds at most {SyncService.MaxChangesPerBatch} changes.");
         }
 
         var outcome = await sync.PushAsync(identity.Value.AccountId, identity.Value.DeviceId, request.Changes, cancellationToken);
@@ -71,6 +93,7 @@ public static class SyncEndpoints
             PushStatus.DeviceRevoked => Revoked(),
             PushStatus.UpgradeRequired => Problem(
                 StatusCodes.Status426UpgradeRequired,
+                TankbookErrorCodes.UpgradeRequired,
                 "Upgrade required.",
                 "The client's schema_version is below the server's minimum supported version. Update the app; pulling still works."),
             _ => throw new InvalidOperationException($"Unknown push status {outcome.Status}."),
@@ -80,9 +103,10 @@ public static class SyncEndpoints
     private static IResult Revoked()
         => Problem(
             StatusCodes.Status410Gone,
+            TankbookErrorCodes.DeviceRevoked,
             "Device revoked or account deleted.",
             "This device has been revoked or the account was deleted. Re-onboard or detach; local data stays local.");
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 }

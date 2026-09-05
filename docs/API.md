@@ -2,7 +2,46 @@
 
 *The complete HTTP surface of the C#/ASP.NET Core backend. Shapes reference `SCHEMA.md` (payloads) and `SYNC.md` (protocol semantics). This document is the contract both the iOS client and the backend implement against – changes here are breaking-change reviews, not refactors.*
 
-Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7807 problem+json: `{ type, title, status, detail }`. All endpoints are TLS-only. Rate limits return `429` with `Retry-After`; oversize bodies return `413` with the `traceId` (see "Rate limits and request body caps").
+Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7807 problem+json: `{ type, title, status, detail, traceId, code }` – `traceId` and `code` are extension members (see "Error envelope" below). All endpoints are TLS-only. Rate limits return `429` with `Retry-After`; oversize bodies return `413` with the `traceId` (see "Rate limits and request body caps").
+
+## Error envelope
+
+Every error response is RFC 7807 problem+json carrying **two extension members**:
+
+- `traceId` – the request's correlation id (docs/LOGGING.md §2), so a support report maps to exact server lines.
+- `code` – a **stable, snake_case error code**, the same value the server logs as `errorCode` (docs/LOGGING.md §3 Errors). It is the client's key: what the user sees and what they can do next is decided from it (docs/ERRORS.md), never from the status alone. **Every problem+json carries a non-empty `code`** – the code is a required parameter of the server's problem factory, so an endpoint added without one does not compile (PR.9). A `detail` that names a next step or a user value is a bug: `detail` carries only shape (which field, which limit), never domain content (hard rule 12).
+
+Codes are grouped by **what the client must do differently**, not by call site – a code per endpoint is noise, a code per distinct next step is a contract. A client that meets a code it has never seen **falls back to its status-based handling** – never a blank, never a raw identifier – so a newer server can add a code without breaking an older client, and an older server (no `code`) is read exactly as today.
+
+| Code | Status | The client's reading |
+|---|---|---|
+| `internal_error` | 500 | The server had an unhandled failure; retry, nothing is lost (S7) |
+| `payload_invalid` | 400/415/422* | The request could not be processed as offered (a shape failure, never a business rule – hard rule 9) |
+| `payload_too_large` | 413 | A body or attachment exceeds its cap; shrink the upload |
+| `rate_limited` | 429 | A wait, named by `Retry-After` – never an error to retry immediately |
+| `upgrade_required` | 426 | The client's schema version is below the server's minimum; pull still works |
+| `tier_refused` | 402 | A server-side capability this client does not have |
+| `upstream_unavailable` | 502 | An upstream service (the LLM provider) failed; the on-device result stands (F4) |
+| `not_found` | 404 | The route does not exist on this server |
+| `token_invalid` | 401 | The presented token was rejected – an auth event, never a gate |
+| `refresh_reused` | 401 | A rotated refresh token was replayed; the whole chain is revoked (theft signal) |
+| `clock_skew` | 401 | The identity token was rejected because the device clock is off – fix the date, don't retry |
+| `provider_unsupported` | 400 | The sign-in provider is not offered |
+| `device_revoked` | 410 | The device is revoked or the account deleted – re-onboard |
+| `account_device_not_found` | 404 | The device id does not belong to this account |
+| `blob_not_found` | 404 | No attachment with this sha256 exists for this account |
+| `blob_conflict` | 409 | The begin/upload/commit protocol was violated; re-begin |
+| `blob_quota_exceeded` | 429 | The account's attachment storage quota is exhausted |
+| `import_format_unsupported` | 415 | The declared source format is not offered |
+| `import_mismatch` | 422 | The file does not look like the format the user declared |
+| `import_not_found` | 404 | No stored parse has this id |
+| `config_unavailable` | 503 | The server has no published config document / signing key; the client keeps bundled defaults |
+
+\* `payload_invalid` also names a per-item sync `rejected` outcome (docs/SYNC.md) alongside `payload_schema_violation` and `schema_version_unsupported`, which are per-item codes and never appear on the envelope.
+
+The code set is deliberately small and stable: **adding a code is a client-visible contract change** (the client's mapping table and docs/ERRORS.md must grow in the same change), so a code is minted only for a distinct next step, never for a new call site.
+
+
 
 ## Request headers (every request, PR.8)
 
@@ -32,7 +71,7 @@ than accepting any (`docs/SECURITY.md` → "A verified signature is not a verifi
 token minted for another OAuth client is a `401` like any other verification failure – the client
 cannot tell, and must not be able to.
 
-Failure statuses (all `problem+json`, reason in `detail`): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email, wrong audience, wrong issuer) returns `401`; an unsupported `provider` or a malformed body returns `400`. A refresh with an unknown, expired, or reused-rotated token returns `401` (reuse additionally revokes the chain). Sign-out returns `204`, or `401` without a valid bearer token.
+Failure statuses (all `problem+json`, reason in `detail`, condition in `code` – see "Error envelope"): a session exchange whose `idToken` does not verify (garbage, expired, bad signature, unverified email, wrong audience, wrong issuer) returns `401` with `token_invalid`; a rejection for **clock skew** (the device date is off – a retry will not fix it) returns `401` with `clock_skew`, so the client can offer the date-settings fix instead of another attempt; an unsupported `provider` returns `400` with `provider_unsupported`; a malformed body returns `400` with `payload_invalid`. A refresh with an unknown or expired token returns `401` with `token_invalid`; **reuse of a rotated token returns `401` with `refresh_reused`** and revokes the chain (theft signal). Sign-out returns `204`, or `401` with `token_invalid` without a valid bearer token.
 
 **The session response carries the account email (RV.39).** `POST /auth/session` returns the
 account's **stored** email (`accounts.email`, set once at creation from the verified id token's
@@ -82,7 +121,7 @@ GET /sync/pull?since=<SCN>&limit=500        // since=0 → full dataset
 → 200 { records: [ { id, entityType, schemaVersion, scn, payload, clientUpdatedAt, deleted } ],
         nextSince: <SCN>, more: bool,
         schemaPolicy: { minSupported: int, current: int } }   // clients upcast to `current` on read
-→ 410 device revoked / account deleted → client ends the cycle, drops the session, routes to sign-in
+→ 410 device revoked / account deleted (`device_revoked`) → client ends the cycle, drops the session, routes to sign-in
 ```
 Strictly SCN-ordered, paginated; the client persists `nextSince` per device only after applying the page.
 
@@ -129,7 +168,7 @@ type (images 25 MB, PDFs 10 MB) and `429` when the account's metered storage quo
 configurable) would be exceeded. `commit` verifies the stored object against the size declared at
 `begin` (the server remembers it between the two calls) - a commit with no preceding `begin`, no
 uploaded object, or a size mismatch answers `409` and creates no row; it is idempotent (`204` on
-replay). A revoked device or deleted account gets `410` on all three. A presigned URL is never
+replay). A revoked device or deleted account gets `410` (`device_revoked`) on all three. A presigned URL is never
 minted for a blob this account does not own, and never appears in a log (`LOGGING.md`).
 
 ## Reference data (public, CDN-cacheable)
@@ -351,8 +390,9 @@ reasoning as the currency chip on Confirm.
   `unknown_fuel_code`, `unknown_finance_category`, `wrong_column_count`).
 - **Unparseable rows do not fail the file**: they come back in `unparsed` with a reason and land on
   the review list, so a partial import is the normal outcome rather than an error (F6, hard rule 8).
-- `413` oversize, `415` unrecognised format id, `422` **the file does not look like the format the
-  user declared** - the client says so specifically ("this does not look like a My Fuel Manager
+- `413` oversize (`payload_too_large`), `415` unrecognised format id (`import_format_unsupported`),
+  `422` **the file does not look like the format the
+  user declared** (`import_mismatch`) - the client says so specifically ("this does not look like a My Fuel Manager
   export") and offers the picker again, never a generic failure (F7 forbids "something went wrong").
 - **Logs carry shape only**: format, file kind, row counts, error counts. Never a station, note,
   amount or coordinate (hard rule 12). `POST` is a public native-app endpoint with no browser
@@ -379,7 +419,7 @@ paid, so a later price change never rewrites it), and the prompt and response. T
 `/extract` is the image, stored in blob storage and referenced by `sha256` from the row - never
 in a column. The row's content is purged on `DELETE /account` and after 30 days; the row itself
 (the spend ledger, including `accountId`) survives. There is no endpoint that reads the ledger.
-Status codes: `400` unknown `kind` or missing/undecodable `image`; `413` base64 image over the 4 MB cap (enforced at the envelope, before the provider is called); `502` provider failure (not metered – a failed call never bills, and the client falls back to the on-device result). A low-confidence field is returned as a value plus a low confidence – never dropped, which would silently turn "uncertain" into "absent".
+Status codes: `400` unknown `kind` or missing/undecodable `image` (`payload_invalid`); `413` base64 image over the 4 MB cap (`payload_too_large`, enforced at the envelope, before the provider is called); `502` provider failure (`upstream_unavailable` – not metered, a failed call never bills, and the client falls back to the on-device result). A low-confidence field is returned as a value plus a low confidence – never dropped, which would silently turn "uncertain" into "absent".
 
 **The audit write is off the critical path of the answer (amended 2026-09-04, RV.53).** A
 storage outage must not destroy a recognition the user already paid for. The ledger row is

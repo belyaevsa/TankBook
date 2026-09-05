@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Catalog;
 
@@ -130,7 +131,11 @@ public static class CatalogEndpoints
             row.BatteryCapacityKwh);
 
     private static IResult InvalidRequest(string detail)
-        => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid catalog request.", detail: detail);
+        => ProblemResponses.Problem(
+            StatusCodes.Status400BadRequest,
+            TankbookErrorCodes.PayloadInvalid,
+            "Invalid catalog request.",
+            detail);
 
     private sealed record CatalogResponse(int PackVersion, IReadOnlyList<CatalogEntryResponse> Entries, string Kind);
 

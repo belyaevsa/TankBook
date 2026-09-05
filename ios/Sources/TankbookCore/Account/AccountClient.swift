@@ -142,11 +142,12 @@ public struct AccountClient: Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw AccountClientError.unauthorized
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
             // The host answered with a non-2xx account status - a response,
-            // never a transport failure - mapped per status below.
+            // never a transport failure - mapped by its code when the server
+            // named one, else per status below.
             await director.report(.response(status: status))
-            throw Self.error(for: status)
+            throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.
@@ -174,7 +175,15 @@ public struct AccountClient: Sendable {
         }
     }
 
-    static func error(for status: Int) -> AccountClientError {
+    /// Maps a non-2xx to its `AccountClientError`: the server's `code` names
+    /// the condition when it is one of this surface's own codes; an unknown or
+    /// absent code falls back to the status-based classification (PR.9).
+    static func error(for status: Int, code: ServerErrorCode? = nil) -> AccountClientError {
+        switch code {
+        case .tokenInvalid: return .unauthorized
+        case .accountDeviceNotFound: return .notFound
+        default: break
+        }
         switch status {
         case 401: return .unauthorized
         case 404: return .notFound

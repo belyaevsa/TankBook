@@ -2,6 +2,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Rates;
 
@@ -121,7 +123,11 @@ public static class RateEndpoints
     }
 
     private static IResult InvalidRequest(string detail)
-        => Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "Invalid rates request.", detail: detail);
+        => ProblemResponses.Problem(
+            StatusCodes.Status400BadRequest,
+            TankbookErrorCodes.PayloadInvalid,
+            "Invalid rates request.",
+            detail);
 
     private static DateOnly Today(TimeProvider time) => DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
 

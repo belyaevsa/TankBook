@@ -85,12 +85,12 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
             // and it would hide the "sign in again" next step from the surface.
             await director.report(.response(status: 401))
             throw SyncServerError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, _, let retryAfterSeconds) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, let retryAfterSeconds) {
             // The host answered with a non-2xx extract status - a response,
             // never a transport failure - classified as SyncServerError below
             // (the classification this client CONSUMES, P6.11).
             await director.report(.response(status: status))
-            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds)
+            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds, code: ServerErrorCode(raw: code))
         } catch {
             // The allowlist refusal and any socket-level failure are the same
             // survival shape: the on-device result stands (F4, S7) - and both
@@ -107,8 +107,18 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
     /// - a 401 that outlived refresh-and-retry is a session the server rejects,
     /// exactly like sync's), 402 -> tier, 429 -> rate limited with the server's
     /// own wait, 426 -> upgrade, unknown 4xx -> refusal, 5xx -> transport (so
-    /// the one silent retry in `extract` fires only on the transient class).
-    private static func error(for status: Int, retryAfterSeconds: Int?) -> SyncServerError {
+    /// the one silent retry in `extract` fires only on the transient class). A
+    /// server `code` is trusted when it is one of these conditions; an unknown
+    /// or absent code falls back to the status mapping (PR.9).
+    private static func error(for status: Int, retryAfterSeconds: Int?,
+                              code: ServerErrorCode? = nil) -> SyncServerError {
+        switch code {
+        case .tokenInvalid: return .authExpired
+        case .tierRefused: return .tierRefused
+        case .rateLimited: return .rateLimited(retryAfterSeconds: retryAfterSeconds)
+        case .upgradeRequired: return .upgradeRequired
+        default: break
+        }
         switch status {
         case 401:
             return .authExpired

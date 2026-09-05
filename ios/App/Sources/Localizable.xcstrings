@@ -13334,6 +13334,40 @@
           }
         }
       }
+    },
+    "%@ couldn't sign you in – try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ couldn't sign you in – try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось войти через %@ – попробуйте ещё раз."
+          }
+        }
+      }
+    },
+    "Your device's date looks off (%1$@) – sign-in needs it correct. Open Settings > Date & Time.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your device's date looks off (%1$@) – sign-in needs it correct. Open Settings > Date & Time."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На устройстве неверная дата (%1$@) – для входа она должна быть верной. Откройте Настройки > Дата и время."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

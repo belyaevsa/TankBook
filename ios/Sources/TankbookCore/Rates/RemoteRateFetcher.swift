@@ -50,7 +50,7 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
             let response = try await client.send(request)
             await director.report(.response(status: response.status))
             return response
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, _, _, _) {
             // A 400 problem+json (bad range), a 500, and any other non-2xx all
             // leave the cache unchanged: a miss is never an error (F9). The
             // host answered, so this is a response, never evidence the URL is

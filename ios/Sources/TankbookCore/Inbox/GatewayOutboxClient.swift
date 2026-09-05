@@ -93,9 +93,9 @@ public struct GatewayOutboxClient: Sendable {
         } catch SessionRefresherError.authExpired {
             await director.report(.response(status: 401))
             throw GatewayOutboxError.unauthorized
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
             await director.report(.response(status: status))
-            throw Self.error(for: status)
+            throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch is TankbookHTTPClientError {
             await director.report(.transportFailure)
             throw GatewayOutboxError.client
@@ -105,7 +105,11 @@ public struct GatewayOutboxClient: Sendable {
         }
     }
 
-    static func error(for status: Int) -> GatewayOutboxError {
+    static func error(for status: Int, code: ServerErrorCode? = nil) -> GatewayOutboxError {
+        switch code {
+        case .tokenInvalid: return .unauthorized
+        default: break
+        }
         switch status {
         case 401: return .unauthorized
         default: return .server(status: status)

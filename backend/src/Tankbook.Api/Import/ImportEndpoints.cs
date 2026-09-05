@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Import;
 
@@ -56,12 +57,20 @@ public static class ImportEndpoints
     {
         if (string.IsNullOrWhiteSpace(format) || !ImportFormats.TryGet(format, out _))
         {
-            return Problem(StatusCodes.Status415UnsupportedMediaType, "Unsupported format.", "Choose the app this file came from; the file's format is not offered.");
+            return Problem(
+                StatusCodes.Status415UnsupportedMediaType,
+                TankbookErrorCodes.ImportFormatUnsupported,
+                "Unsupported format.",
+                "Choose the app this file came from; the file's format is not offered.");
         }
 
         if (file is null || file.Length == 0)
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing file.", "Attach the export file to upload.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing file.",
+                "Attach the export file to upload.");
         }
 
         // Import must work signed out (docs/API.md): the bearer is optional. With
@@ -75,7 +84,11 @@ public static class ImportEndpoints
             var headerDevice = httpContext.Request.Headers["X-Device-Id"].FirstOrDefault();
             if (headerDevice is null || !Guid.TryParse(headerDevice, out var parsedDevice))
             {
-                return Problem(StatusCodes.Status400BadRequest, "Missing device identity.", "A device id (X-Device-Id) is required when signed out so the stored file can be purged.");
+                return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing device identity.",
+                "A device id (X-Device-Id) is required when signed out so the stored file can be purged.");
             }
 
             deviceId = parsedDevice;
@@ -96,12 +109,17 @@ public static class ImportEndpoints
         }
         catch (ImportFileTooLargeException ex)
         {
-            return Problem(StatusCodes.Status413PayloadTooLarge, "File too large.", $"An import file may be at most {ex.MaxBytes} bytes.");
+            return Problem(
+                StatusCodes.Status413PayloadTooLarge,
+                TankbookErrorCodes.PayloadTooLarge,
+                "File too large.",
+                $"An import file may be at most {ex.MaxBytes} bytes.");
         }
         catch (NotMfmExportException ex)
         {
             return Problem(
                 StatusCodes.Status422UnprocessableEntity,
+                TankbookErrorCodes.ImportMismatch,
                 "This does not look like a My Fuel Manager export.",
                 ex.Detail);
         }
@@ -117,7 +135,11 @@ public static class ImportEndpoints
         var identity = AuthContext.From(httpContext);
         var response = await imports.GetAsync(importId, identity?.AccountId, cancellationToken);
         return response is null
-            ? Results.Problem(statusCode: StatusCodes.Status404NotFound, title: "Import not found.", detail: "No stored parse has this id.")
+            ? ProblemResponses.Problem(
+                StatusCodes.Status404NotFound,
+                TankbookErrorCodes.ImportNotFound,
+                "Import not found.",
+                "No stored parse has this id.")
             : Results.Json(response, WireJson);
     }
 
@@ -133,8 +155,8 @@ public static class ImportEndpoints
         return Results.NoContent();
     }
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 
     private sealed record FormatResponse(string Id, string DisplayName, string[] FileKinds, string? HelpUrl, int AddedInPackVersion);
 }

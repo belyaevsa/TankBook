@@ -1,5 +1,7 @@
 using System.Globalization;
 using Tankbook.Api.Auth;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Llm;
 
@@ -23,13 +25,18 @@ public static class ExtractEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         if (request is null || !ExtractKinds.IsValid(request.Kind))
         {
             return Problem(
                 StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
                 "Invalid extraction request.",
                 "kind must be one of receipt, pump, chargeScreenshot, invoice.");
         }
@@ -45,31 +52,36 @@ public static class ExtractEndpoints
             ExtractStatus.DeliveredViaOutbox => Results.NoContent(),
             ExtractStatus.ImageMissing => Problem(
                 StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
                 "Missing image.",
                 "image is required and must be a base64-encoded JPEG/PNG rendition."),
             ExtractStatus.ImageInvalid => Problem(
                 StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
                 "Invalid image.",
                 "image must be a valid base64 string."),
             ExtractStatus.ImageTooLarge => Problem(
                 StatusCodes.Status413PayloadTooLarge,
+                TankbookErrorCodes.PayloadTooLarge,
                 "Payload too large.",
                 "The base64 image may be at most 4 MB."),
             ExtractStatus.TierLacksQuota => Problem(
                 StatusCodes.Status402PaymentRequired,
+                TankbookErrorCodes.TierRefused,
                 "No extraction allowance.",
                 "This account's tier has no cloud-extraction allowance."),
             ExtractStatus.QuotaSpent => QuotaSpent(httpContext, outcome),
             ExtractStatus.ProviderFailed => Problem(
                 StatusCodes.Status502BadGateway,
+                TankbookErrorCodes.UpstreamUnavailable,
                 "Extraction provider unavailable.",
                 "The extraction provider could not answer; continue with the on-device result."),
             _ => throw new InvalidOperationException($"Unknown extract status {outcome.Status}."),
         };
     }
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 
     /// <summary>The period is spent, so the 429 names when the next period begins (Retry-After, hard rule 7).</summary>
     private static IResult QuotaSpent(HttpContext httpContext, ExtractOutcome outcome)
@@ -82,6 +94,7 @@ public static class ExtractEndpoints
 
         return Problem(
             StatusCodes.Status429TooManyRequests,
+            TankbookErrorCodes.RateLimited,
             "Extraction allowance spent.",
             "This period's cloud-extraction allowance is used up; try again next period.");
     }

@@ -37,7 +37,7 @@ public struct RemoteConfigFetcher: ConfigFetcher {
         let response: TankbookHTTPResponse
         do {
             response = try await client.send(request)
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, _, _, _) {
             // The host answered with a status that is neither 2xx nor 304.
             throw RemoteConfigFetcherError.unexpectedStatus(status)
         }

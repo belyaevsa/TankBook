@@ -260,10 +260,32 @@ final class SignInFlow {
             // web sheet in a way it never was with the Apple dialog.
             errorMessage = nil
             phase = .choosing
+        } catch AuthError.clockSkew {
+            // The server rejected the identity token because the device clock is
+            // off (code `clock_skew`, PR.9) - a retry will not fix it. The next
+            // step is fixing the date (docs/ERRORS.md -> Sign in).
+            errorMessage = L10n.clockSkewMessage(monthYear: Self.deviceMonthYear())
+            phase = .choosing
+        } catch AuthError.unauthorized, AuthError.unsupportedProvider {
+            // The provider (or its token) was refused. The status alone said
+            // only "401"; the code names the provider to retry - never "check
+            // your connection" (hard rule 7). The rest of the surface - "Not
+            // now", the other provider - stays untouched.
+            errorMessage = L10n.providerSignInFailed(provider)
+            phase = .choosing
         } catch {
             errorMessage = L10n.localize("Couldn't sign in. Check your connection and try again, or keep using the app without an account.")
             phase = .choosing
         }
+    }
+
+    /// The device date's month and year ("Aug 2019") for the clock-skew message.
+    private static func deviceMonthYear(now: Date = Date()) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale.current
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "MMMM yyyy",
+                                                        options: 0, locale: Locale.current)
+        return formatter.string(from: now)
     }
 
     /// Runs the restore (pull from 0) and routes through the honest F7 states.

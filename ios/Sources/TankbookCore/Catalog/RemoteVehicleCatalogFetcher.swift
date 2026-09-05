@@ -66,7 +66,7 @@ public struct RemoteVehicleCatalogFetcher: VehicleCatalogFetcher, Sendable {
         do {
             response = try await client.send(request)
             await director.report(.response(status: response.status))
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, _, _, _) {
             // The host answered with a non-2xx/non-304 status - one silent miss;
             // the previous pack stands.
             await director.report(.response(status: status))

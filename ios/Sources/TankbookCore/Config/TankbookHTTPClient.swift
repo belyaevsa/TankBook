@@ -112,12 +112,17 @@ public enum TankbookHTTPClientError: Error, Sendable, Equatable {
     case hostNotAllowlisted
     /// A redirect chain exceeded `maxRedirects`.
     case tooManyRedirects
-    /// The server answered with a non-2xx, non-304 status. `traceId` is read
-    /// from the problem+json body so a support report maps to the exact server
-    /// line (docs/LOGGING.md §2); `retryAfterSeconds` comes from the Retry-After
-    /// header so a 429 keeps the server's own wait. Owners translate this into
-    /// their own errors - a real response, never a transport failure.
-    case httpError(status: Int, traceId: String?, retryAfterSeconds: Int?)
+    /// The server answered with a non-2xx, non-304 status. `code` is the stable
+    /// member of the problem+json body (docs/API.md -> "Error envelope") so an
+    /// owner can classify by what the SERVER said rather than by status alone;
+    /// nil when the body carried no recognisable code - an older client facing a
+    /// newer server (PR.9) - in which case the owner falls back to the
+    /// status-based classification. `traceId` is read from the same body so a
+    /// support report maps to the exact server line (docs/LOGGING.md §2);
+    /// `retryAfterSeconds` comes from the Retry-After header so a 429 keeps the
+    /// server's own wait. Owners translate this into their own errors - a real
+    /// response, never a transport failure.
+    case httpError(status: Int, code: String?, traceId: String?, retryAfterSeconds: Int?)
 }
 
 /// The host-bound HTTP client: the **second**, independent checkpoint
@@ -241,9 +246,11 @@ public struct TankbookHTTPClient: Sendable {
             }
         }
         guard Self.isError(response.status) else { return response }
+        let problem = Self.problemBodyMembers(fromBody: response.body)
         throw TankbookHTTPClientError.httpError(
             status: response.status,
-            traceId: Self.traceId(fromBody: response.body),
+            code: problem.code,
+            traceId: problem.traceId,
             retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init)
         )
     }
@@ -320,13 +327,18 @@ public struct TankbookHTTPClient: Sendable {
     /// tunable worth exposing remotely.
     private static let preemptiveRefreshLeeway: TimeInterval = 60
 
-    /// Reads `traceId` from a problem+json body (docs/API.md conventions); nil
-    /// when the body is absent, not JSON, or carries no traceId.
-    private static func traceId(fromBody body: Data?) -> String? {
+    /// Reads `traceId` and `code` from a problem+json body (docs/API.md ->
+    /// "Error envelope"); both nil when the body is absent, not JSON, or
+    /// carries no such member. One JSONSerialization for both - never two
+    /// passes over the body.
+    private static func problemBodyMembers(fromBody body: Data?) -> (traceId: String?, code: String?) {
         guard let body,
-              let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-              let value = object["traceId"] as? String, !value.isEmpty else { return nil }
-        return value
+              let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+            return (nil, nil)
+        }
+        let traceId = (object["traceId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        let code = (object["code"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+        return (traceId, code)
     }
 
     private func isRedirect(_ status: Int) -> Bool {

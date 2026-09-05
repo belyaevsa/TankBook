@@ -57,11 +57,12 @@ public struct RemoteSyncTransport: SyncTransport {
             // so this is a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw SyncServerError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, _, let retryAfterSeconds) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, let retryAfterSeconds) {
             // The host answered with a non-2xx sync status - a response, never
-            // a transport failure - mapped per status below.
+            // a transport failure - mapped by its code when the server named
+            // one, else per status below.
             await director.report(.response(status: status))
-            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds)
+            throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds, code: ServerErrorCode(raw: code))
         } catch {
             // hostNotAllowlisted, tooManyRedirects, a transport error, or a
             // refresh that could not reach the host: none of them is "the host
@@ -72,11 +73,23 @@ public struct RemoteSyncTransport: SyncTransport {
         }
     }
 
-    /// Maps a non-2xx status to its `SyncServerError` (the same mapping the
-    /// transport used to do by inspecting the response; the client now throws
-    /// it). A 401 is an auth event, never an unknown gate from a newer server
-    /// (PR.1 - the honest next step is "sign in again", never "update the app").
-    private static func error(for status: Int, retryAfterSeconds: Int?) -> SyncServerError {
+    /// Maps a non-2xx status (and, when the server named one, its `code`) to a
+    /// `SyncServerError`. A code is trusted when it is one this surface
+    /// understands; an unknown or absent code falls back to the status mapping,
+    /// which is why a newer server's code can never be misread as a failure
+    /// class this client would not have chosen itself (PR.9). A 401 is an auth
+    /// event, never an unknown gate from a newer server (PR.1 - the honest next
+    /// step is "sign in again", never "update the app").
+    private static func error(for status: Int, retryAfterSeconds: Int?,
+                              code: ServerErrorCode? = nil) -> SyncServerError {
+        switch code {
+        case .tokenInvalid: return .authExpired
+        case .deviceRevoked: return .deviceRevoked
+        case .upgradeRequired: return .upgradeRequired
+        case .tierRefused: return .tierRefused
+        case .rateLimited: return .rateLimited(retryAfterSeconds: retryAfterSeconds)
+        default: break
+        }
         switch status {
         case 401:
             // Unreachable with a wired refresher (the client intercepts 401

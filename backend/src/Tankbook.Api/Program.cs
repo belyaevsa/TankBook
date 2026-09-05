@@ -471,6 +471,7 @@ app.UseExceptionHandler(errorApp =>
                 Title = "An internal error occurred while processing the request.",
                 Type = "about:blank",
             };
+            problem.Extensions[ProblemResponses.ErrorEnvelopeCodeKey] = TankbookErrorCodes.InternalError;
             await problemService.TryWriteAsync(new ProblemDetailsContext
             {
                 HttpContext = context,
@@ -497,6 +498,9 @@ app.UseStatusCodePages(async statusCodeContext =>
         Title = ReasonPhrases.GetReasonPhrase(status),
         Type = "about:blank",
     };
+    problem.Extensions[ProblemResponses.ErrorEnvelopeCodeKey] = status == StatusCodes.Status404NotFound
+        ? TankbookErrorCodes.NotFound
+        : TankbookErrorCodes.PayloadInvalid;
     await problemService.TryWriteAsync(new ProblemDetailsContext
     {
         HttpContext = statusCodeContext.HttpContext,

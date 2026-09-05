@@ -139,12 +139,13 @@ public struct ImportClient: Sendable {
             let response = try await httpClient.send(request)
             await director.report(.response(status: response.status))
             return response
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
             // The host answered with a non-2xx import status - a response, never
-            // a transport failure - mapped per status below (a 422 carries the
-            // declared format's display name so the message is specific, F7).
+            // a transport failure - mapped by its code when the server named one,
+            // else per status below (a 422 carries the declared format's display
+            // name so the message is specific, F7).
             await director.report(.response(status: status))
-            throw Self.error(for: status, declaredDisplayName: declaredDisplayName)
+            throw Self.error(for: status, declaredDisplayName: declaredDisplayName, code: ServerErrorCode(raw: code))
         } catch is TankbookHTTPClientError {
             // Host-not-allowlisted / redirect loop: a real client bug or a
             // security violation, never an offline state.
@@ -193,12 +194,18 @@ public struct ImportClient: Sendable {
         }
     }
 
-    /// The per-status error (docs/API.md, docs/ERRORS.md -> Import wizard):
-    /// 413 oversize, 415 unrecognised format, 422 doesn't match the declared
-    /// format (named specifically, F7), 400 missing identity. Every other
-    /// non-2xx is a generic server status - never a lie about what happened
-    /// (a specific message only where the server named one).
-    static func error(for status: Int, declaredDisplayName: String?) -> ImportClientError {
+    /// The per-error classification (docs/API.md, docs/ERRORS.md -> Import
+    /// wizard): the server's `code` names the condition when it is one of this
+    /// surface's own codes (415/422/404 carry meaning the status alone could
+    /// blur), and an unknown or absent code falls back to the status-based
+    /// classification (PR.9).
+    static func error(for status: Int, declaredDisplayName: String?, code: ServerErrorCode? = nil) -> ImportClientError {
+        switch code {
+        case .importFormatUnsupported: return .unrecognisedFormat
+        case .importMismatch: return .doesNotMatchDeclared(displayName: declaredDisplayName ?? "unknown")
+        case .importNotFound: return .server(status: status)
+        default: break
+        }
         switch status {
         case 413: return .oversize
         case 415: return .unrecognisedFormat

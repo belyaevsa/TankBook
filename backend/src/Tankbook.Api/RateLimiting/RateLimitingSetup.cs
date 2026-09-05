@@ -3,6 +3,7 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Tankbook.Api.Auth;
+using Tankbook.Api.Http;
 using Tankbook.Api.Logging;
 using Tankbook.Api.Options;
 
@@ -94,6 +95,7 @@ public static class RateLimitingSetup
             Type = "about:blank",
             Detail = "Too many requests; wait for the delay named by the Retry-After header before retrying.",
         };
+        problem.Extensions[ProblemResponses.ErrorEnvelopeCodeKey] = TankbookErrorCodes.RateLimited;
         if (traceId is not null)
         {
             problem.Extensions["traceId"] = traceId;

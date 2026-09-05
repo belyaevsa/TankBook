@@ -44,6 +44,12 @@ public sealed class BodySizeLimitMiddleware
         await _next(context);
     }
 
+    private static ProblemDetails WithCode(ProblemDetails problem)
+    {
+        problem.Extensions[ProblemResponses.ErrorEnvelopeCodeKey] = TankbookErrorCodes.PayloadTooLarge;
+        return problem;
+    }
+
     private static async Task WriteTooLargeAsync(HttpContext context, long maxBytes)
     {
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
@@ -57,13 +63,13 @@ public sealed class BodySizeLimitMiddleware
             await problemService.TryWriteAsync(new ProblemDetailsContext
             {
                 HttpContext = context,
-                ProblemDetails = new ProblemDetails
+                ProblemDetails = WithCode(new ProblemDetails
                 {
                     Status = StatusCodes.Status413PayloadTooLarge,
                     Title = "Payload too large.",
                     Type = "about:blank",
                     Detail = $"The request body may be at most {maxBytes} bytes.",
-                },
+                }),
             });
             return;
         }
@@ -71,13 +77,13 @@ public sealed class BodySizeLimitMiddleware
         context.Response.StatusCode = StatusCodes.Status413PayloadTooLarge;
         context.Response.ContentType = "application/problem+json";
         var traceId = context.Items[TraceCorrelationMiddleware.TraceIdItemKey] as string;
-        var problem = new ProblemDetails
+        var problem = WithCode(new ProblemDetails
         {
             Status = StatusCodes.Status413PayloadTooLarge,
             Title = "Payload too large.",
             Type = "about:blank",
             Detail = $"The request body may be at most {maxBytes} bytes.",
-        };
+        });
         if (traceId is not null)
         {
             problem.Extensions["traceId"] = traceId;

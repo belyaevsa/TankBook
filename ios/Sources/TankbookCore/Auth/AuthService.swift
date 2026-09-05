@@ -11,6 +11,10 @@ public enum AuthError: Error, Sendable, Equatable {
     case invalidResponse
     /// The identity token did not verify (`401`).
     case unauthorized
+    /// The identity token was rejected because the device clock is off
+    /// (`401` + code `clock_skew`). The honest next step is fixing the device
+    /// date, not retrying the provider (docs/ERRORS.md -> Sign in).
+    case clockSkew
     /// A malformed body (`400`).
     case badRequest
     /// The host could not be reached. The UI must return the user to a working
@@ -131,9 +135,9 @@ public struct RemoteAuthService: AuthService {
             let response = try await client.send(request)
             await director.report(.response(status: response.status))
             return response
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
             await director.report(.response(status: status))
-            throw Self.error(for: status)
+            throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch {
             await director.report(.transportFailure)
             throw error
@@ -146,7 +150,19 @@ public struct RemoteAuthService: AuthService {
         director.baseURL().appendingPathComponent("v1").appendingPathComponent(path)
     }
 
-    private static func error(for status: Int) -> AuthError {
+    /// Maps a non-2xx to its `AuthError`. The server's `code` (docs/API.md ->
+    /// "Error envelope") names the condition when it is one of auth's own codes,
+    /// so the sign-in screen can say something the status alone cannot: a
+    /// rejected identity token is retry-the-provider, a clock-skew rejection is
+    /// fix-the-device-date (docs/ERRORS.md -> Sign in). An unknown or absent
+    /// code falls back to the status-based classification (PR.9).
+    private static func error(for status: Int, code: ServerErrorCode? = nil) -> AuthError {
+        switch code {
+        case .providerUnsupported: return .unsupportedProvider
+        case .clockSkew: return .clockSkew
+        case .tokenInvalid: return .unauthorized
+        default: break
+        }
         switch status {
         case 401: return .unauthorized
         case 400: return .badRequest

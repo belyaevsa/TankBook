@@ -1,4 +1,6 @@
 using Tankbook.Api.Auth;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Account;
 
@@ -19,7 +21,11 @@ public static class AccountEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         var devices = await account.GetDevicesAsync(identity.Value.AccountId, cancellationToken);
@@ -36,7 +42,11 @@ public static class AccountEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         // A null/absent/blank token clears the row (APNs invalidation -> polling).
@@ -48,6 +58,7 @@ public static class AccountEndpoints
             PushTokenStatus.Stored => Results.NoContent(),
             PushTokenStatus.NotFound => Problem(
                 StatusCodes.Status404NotFound,
+                TankbookErrorCodes.AccountDeviceNotFound,
                 "Device not found.",
                 "No device with this id belongs to this account."),
             _ => throw new InvalidOperationException($"Unknown push-token status {status}."),
@@ -63,7 +74,11 @@ public static class AccountEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         var status = await account.RevokeDeviceAsync(identity.Value.AccountId, id, cancellationToken);
@@ -72,6 +87,7 @@ public static class AccountEndpoints
             RevokeDeviceStatus.Revoked => Results.NoContent(),
             RevokeDeviceStatus.NotFound => Problem(
                 StatusCodes.Status404NotFound,
+                TankbookErrorCodes.AccountDeviceNotFound,
                 "Device not found.",
                 "No device with this id belongs to this account."),
             _ => throw new InvalidOperationException($"Unknown revoke-device status {status}."),
@@ -86,13 +102,17 @@ public static class AccountEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         await account.DeleteAccountAsync(identity.Value.AccountId, cancellationToken);
         return Results.NoContent();
     }
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 }

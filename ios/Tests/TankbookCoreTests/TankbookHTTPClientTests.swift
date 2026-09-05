@@ -276,6 +276,7 @@ struct TankbookHTTPClientTests {
 
         await #expect(throws: TankbookHTTPClientError.httpError(
             status: 422,
+            code: nil,
             traceId: "9f3a5b1e-cd42-4f09-9a2b-1c2d3e4f5a6b",
             retryAfterSeconds: nil
         )) {
@@ -289,7 +290,7 @@ struct TankbookHTTPClientTests {
         let client = Self.makeClient(transport: transport)
 
         await #expect(throws: TankbookHTTPClientError.httpError(
-            status: 500, traceId: nil, retryAfterSeconds: nil
+            status: 500, code: nil, traceId: nil, retryAfterSeconds: nil
         )) {
             _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/x")!))
         }
@@ -304,7 +305,7 @@ struct TankbookHTTPClientTests {
         let client = Self.makeClient(transport: transport)
 
         await #expect(throws: TankbookHTTPClientError.httpError(
-            status: 429, traceId: "trace-abc", retryAfterSeconds: 120
+            status: 429, code: nil, traceId: "trace-abc", retryAfterSeconds: 120
         )) {
             _ = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/x")!))
         }
@@ -349,7 +350,7 @@ struct TankbookHTTPClientTests {
         request.headers["Content-Type"] = "application/json"
 
         await #expect(throws: TankbookHTTPClientError.httpError(
-            status: 401, traceId: nil, retryAfterSeconds: nil)) {
+            status: 401, code: nil, traceId: nil, retryAfterSeconds: nil)) {
             _ = try await client.send(request)
         }
 

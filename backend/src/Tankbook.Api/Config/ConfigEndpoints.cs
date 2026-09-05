@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
 using System.Text.Json;
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
 
 namespace Tankbook.Api.Config;
 
@@ -23,10 +25,11 @@ public static class ConfigEndpoints
         var result = await read.GetForServingAsync(cancellationToken);
         if (result is null)
         {
-            return Results.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "No config document is available.",
-                detail: "The server has no published config document. Clients fall back to bundled defaults.");
+            return ProblemResponses.Problem(
+                StatusCodes.Status503ServiceUnavailable,
+                TankbookErrorCodes.ConfigUnavailable,
+                "No config document is available.",
+                "The server has no published config document. Clients fall back to bundled defaults.");
         }
 
         var etag = ComputeEtag(result);
@@ -47,10 +50,11 @@ public static class ConfigEndpoints
     {
         if (!signer.IsConfigured)
         {
-            return Results.Problem(
-                statusCode: StatusCodes.Status503ServiceUnavailable,
-                title: "The config signing key is not configured.",
-                detail: "Config:SigningKey is unset; there is no public key to expose.");
+            return ProblemResponses.Problem(
+                StatusCodes.Status503ServiceUnavailable,
+                TankbookErrorCodes.ConfigUnavailable,
+                "The config signing key is not configured.",
+                "Config:SigningKey is unset; there is no public key to expose.");
         }
 
         return Results.Ok(new PublicKeyResponse(signer.KeyId, signer.PublicKeyBase64));

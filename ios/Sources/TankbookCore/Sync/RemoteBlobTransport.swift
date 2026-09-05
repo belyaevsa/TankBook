@@ -78,18 +78,28 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw BlobSyncError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
             // The host answered with a non-2xx blob status - a response, never
-            // a transport failure; the per-status error is docs/API.md's.
+            // a transport failure; the per-code/per-status error is docs/API.md's.
             await director.report(.response(status: status))
-            throw Self.error(for: status)
+            throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch {
             await director.report(.transportFailure)
             throw BlobSyncError.transportUnavailable
         }
     }
 
-    private static func error(for status: Int) -> BlobSyncError {
+    /// Maps a non-2xx to its `BlobSyncError`: the server's `code` names the
+    /// condition when it is one of this surface's own codes; an unknown or
+    /// absent code falls back to the status-based classification (PR.9).
+    private static func error(for status: Int, code: ServerErrorCode? = nil) -> BlobSyncError {
+        switch code {
+        case .tokenInvalid: return .authExpired
+        case .blobNotFound: return .notFound
+        case .payloadTooLarge: return .sizeExceeded
+        case .blobQuotaExceeded: return .quotaExceeded
+        default: break
+        }
         switch status {
         case 401: return .authExpired
         case 404: return .notFound

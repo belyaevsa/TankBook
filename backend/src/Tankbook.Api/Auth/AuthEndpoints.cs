@@ -1,3 +1,6 @@
+using Tankbook.Api.Http;
+using Tankbook.Api.Logging;
+
 namespace Tankbook.Api.Auth;
 
 /// <summary>POST /auth/session body (docs/API.md Auth).</summary>
@@ -36,24 +39,43 @@ public static class AuthEndpoints
         var provider = request.Provider?.Trim();
         if (provider is not ("apple" or "google"))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Unsupported provider.", "provider must be \"apple\" or \"google\".");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.ProviderUnsupported,
+                "Unsupported provider.",
+                "provider must be \"apple\" or \"google\".");
         }
 
         if (string.IsNullOrWhiteSpace(request.IdToken))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing identity token.", "idToken is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing identity token.",
+                "idToken is required.");
         }
 
         if (string.IsNullOrWhiteSpace(request.Device?.Name) || string.IsNullOrWhiteSpace(request.Device?.Platform))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing device details.", "device.name and device.platform are required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing device details.",
+                "device.name and device.platform are required.");
         }
 
         var result = await auth.ExchangeAsync(
             provider, request.IdToken, request.Device!.Name!, request.Device.Platform!, request.Device.DeviceId, cancellationToken);
         if (!result.Success)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Invalid identity token.", result.FailureReason ?? "invalid_token");
+            // A rejected idToken is `token_invalid`, EXCEPT the clock-skew case,
+            // whose next step is fixing the device date, not retrying the provider
+            // (docs/ERRORS.md -> Sign in). The reason code is shape-only (a stable
+            // code, never a domain value - hard rule 12).
+            var code = result.FailureReason == "clock_skew"
+                ? TankbookErrorCodes.ClockSkew
+                : TankbookErrorCodes.TokenInvalid;
+            return Problem(StatusCodes.Status401Unauthorized, code, "Invalid identity token.", result.FailureReason ?? "invalid_token");
         }
 
         return Results.Ok(new SessionResponse(result.AccessToken!, result.RefreshToken!, result.AccountId!.Value, result.DeviceId!.Value, result.Email));
@@ -63,13 +85,23 @@ public static class AuthEndpoints
     {
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
         {
-            return Problem(StatusCodes.Status400BadRequest, "Missing refresh token.", "refreshToken is required.");
+            return Problem(
+                StatusCodes.Status400BadRequest,
+                TankbookErrorCodes.PayloadInvalid,
+                "Missing refresh token.",
+                "refreshToken is required.");
         }
 
         var result = await auth.RefreshAsync(request.RefreshToken, cancellationToken);
         if (!result.Success)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Invalid refresh token.", result.FailureReason ?? "invalid_refresh_token");
+            // Reuse of a rotated token revokes the whole chain - a theft signal,
+            // distinct from a plain rejection so the client can tell the two
+            // apart (docs/API.md -> Auth).
+            var code = result.FailureReason == "reuse_detected"
+                ? TankbookErrorCodes.RefreshReused
+                : TankbookErrorCodes.TokenInvalid;
+            return Problem(StatusCodes.Status401Unauthorized, code, "Invalid refresh token.", result.FailureReason ?? "invalid_refresh_token");
         }
 
         return Results.Ok(new RefreshResponse(result.AccessToken!, result.RefreshToken!));
@@ -80,13 +112,17 @@ public static class AuthEndpoints
         var identity = AuthContext.From(httpContext);
         if (identity is null)
         {
-            return Problem(StatusCodes.Status401Unauthorized, "Authentication required.", "A valid bearer token is required.");
+            return Problem(
+                StatusCodes.Status401Unauthorized,
+                TankbookErrorCodes.TokenInvalid,
+                "Authentication required.",
+                "A valid bearer token is required.");
         }
 
         await auth.SignOutAsync(identity.Value.DeviceId, cancellationToken);
         return Results.NoContent();
     }
 
-    private static IResult Problem(int status, string title, string detail)
-        => Results.Problem(statusCode: status, title: title, detail: detail);
+    private static IResult Problem(int status, string code, string title, string detail)
+        => ProblemResponses.Problem(status, code, title, detail);
 }
