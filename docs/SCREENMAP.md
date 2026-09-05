@@ -259,6 +259,23 @@ makes; and an optional repeat in kilometres or months, whose next occurrence is 
 **completion**, not the due date, so a schedule cannot drift. With one car in the garage the car
 field still shows - it says which car this is about, and it is the only place that says so.
 
+**The empty state is the discovery path, so its one action is loud** (`RemindersEmpty.dc.html`).
+Reviewed 2026-09-05 by two models against the mocks and the code (`diagnostics/RESEARCH-reminder-entry-pro.md`,
+`-qwen.md`); they converged on this independently. The dashed card is the app's idiom for "add one
+more" at the END of a populated list - Add car uses it in both Garage and the Car switcher - and it
+is the wrong weight for the single thing a screen with nothing on it can do, where it reads as an
+empty slot rather than an invitation. So: filled, accent, and stated plainly ("Nothing to remember
+yet" plus what a reminder is for). The dashed card keeps its job on a list that has rows.
+
+**What the create action must NOT be attached to**, argued and rejected in the same review: the tab
+bar (five decided slots, the fifth reserved for Ask); the Home header's "Type it" menu, whose items
+come from `CaptureEntryForm.doorMenuForms` over an exhaustive enum of ENTRY forms - a reminder has
+no amount, no receipt and nothing to scan, so it is not a peer of those doors, and putting it there
+would also scope it silently to the selected car; the Home banner (amber is attention, and mixing
+planning into triage is what hard rule 5 guards against); the Garage car row, whose count is a
+diagnostic and whose job is picking a car; and a second "+" on Vehicle detail, one hop from a card
+that already creates with the car filled in.
+
 ### Saving inside capture (RV.12)
 
 Capture is a modal presented over the current tab, not a tab root, so the Confirm sheet's own

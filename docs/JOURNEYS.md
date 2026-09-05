@@ -194,6 +194,33 @@ fact is worse than none).
 
 ## Periodic
 
+### J7d · A reminder is born **[v1.1]**
+
+**Trigger:** insurance lands in March, the oil was just changed, or the driver has never made a
+reminder and has to find the feature at all. J7c covers what a reminder does once it exists; this is
+where it comes from, and until 2026-09-05 it was the journey nobody had written - which is how the
+only trigger ended up at the bottom of a list four taps deep.
+
+| Action | What happens | Notes |
+|---|---|---|
+| **Plan it** | Home's permanent "Reminders · N due" row (present whether or not anything is due) → the merged list → "New reminder" → the form, with the **car as its first field**. From the merged list nothing is picked and Save waits for the choice; from a car's own list or Vehicle detail the car arrives filled in and still changeable | A silently defaulted car is a hard-rule-13 bug: on that screen the user may not have looked at a car at all. The count is what earns the row its tap; creation waits one hop behind it, because a "+" on the row could only guess |
+| **Just did it** | Saving a service or expense record whose category has an interval → after the save lands, "Remind you next time?", pre-filled from the record: its category, its date, its odometer, with the interval editable in the same breath | An offer, never an auto-create. Suppressed when a live reminder of that category already exists on that car, or the user collects three oil reminders. Anchored at the record, never at today, so a schedule cannot drift. Never mid-save; declining costs nothing |
+| **Discover it** | Zero reminders: the Home row still reads "Reminders", the empty list explains what a reminder is for, and its **one action is a filled button** - not the dashed card that means "add one more" at the end of a populated list | This is the path that did not exist. The Home banner renders only inside the attention window (`ReminderBanner.bannerReminder` filters to `.attention`), so a driver with nothing due had to already know the screen was there. J9's anomaly card is a fourth, incidental birth |
+| **Save** | The reminder lands in the list it was created from, **naming its car**, the notification arms, and it sits under Scheduled until its window opens - where J7c takes over | The round trip is what makes per-car creation from a merged list unconfusing: the user sees where the reminder went |
+
+⚠ Birth is where silent guesses live - a defaulted car, a suggested interval dressed as a fact, a
+reminder created as a side effect of saving a record. Every value here is a proposal the user can
+change when it is offered and again afterwards (hard rule 13), and once changed it is theirs.
+
+⚠ **The whole journey is gated on the calm path existing.** Without the permanent row (RV.76), a
+driver who is not already overdue reaches the only trigger through Garage → car → Reminders → scroll,
+and one who has never made a reminder has no idea the screen exists. The surface that should say
+"plan your March insurance" is hardest to reach exactly when the user is calm enough to plan.
+
+**Success metric:** ≥50% of reminders are born from the post-save offer rather than the form – the
+loop, not the screen, is the engine; offer acceptance ≥60% (J7's existing bar); and ≥50% of users
+with a live car hold at least one active reminder within 30 days of first launch.
+
 ### J7c · Reminder lifecycle
 **Trigger:** the "Oil change" reminder fires – or the user just did the thing early.
 

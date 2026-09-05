@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..800&display=swap">
+  <style>
+    body { margin: 0; font-family: -apple-system, system-ui, sans-serif; }
+    a { color: #4FC3E8; } a:hover { color: #7ED4EF; }
+  </style>
+</helmet>
+<div style="width: 390px; height: 844px; background: #101318; color: #EAEDF2; display: flex; flex-direction: column; overflow: hidden;">
+
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 64px 20px 14px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M11.5 3.5L6 9l5.5 5.5" stroke="#EAEDF2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span style="font-family: 'Archivo', sans-serif; font-stretch: 82%; font-weight: 800; font-size: 20px;">Reminders</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 6px; background: #1A1F27; border: 1px solid #232A36; border-radius: 999px; padding: 6px 12px;">
+      <span style="font-size: 12px; font-weight: 600;">All cars</span>
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 4l3 3 3-3" stroke="#98A2B3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+
+  <div style="flex: 1; padding: 4px 20px 0; display: flex; flex-direction: column; gap: 12px;">
+
+    <div style="background: #1A1F27; border: 1px solid #232A36; border-radius: 15px; padding: 28px 20px 24px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+      <svg width="26" height="26" viewBox="0 0 18 18" fill="none"><path d="M9 2.5a4.5 4.5 0 0 1 4.5 4.5c0 3 1 4.2 1.6 4.9H2.9c.6-.7 1.6-1.9 1.6-4.9A4.5 4.5 0 0 1 9 2.5zM7.3 14.5a1.8 1.8 0 0 0 3.4 0" stroke="#98A2B3" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div style="font-size: 16px; font-weight: 700; margin-top: 12px;">Nothing to remember yet</div>
+      <div style="font-size: 13px; color: #98A2B3; margin-top: 7px; line-height: 1.45;">Insurance, the next oil change, the tyre swap – a date, an odometer, or both.</div>
+
+      <div style="background: #F4503A; border-radius: 14px; height: 50px; align-self: stretch; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 20px;">
+        <svg width="15" height="15" viewBox="0 0 14 14" fill="none"><path d="M7 2.5v9M2.5 7h9" stroke="#FFF2EE" stroke-width="1.9" stroke-linecap="round"/></svg>
+        <span style="font-size: 15px; font-weight: 700; color: #FFF2EE;">New reminder</span>
+      </div>
+    </div>
+
+    <div style="font-size: 12px; color: #5A6474; text-align: center; padding: 2px 12px 0; line-height: 1.45;">On a screen with nothing on it, the one thing you can do is the loud thing – a dashed outline here would read as an empty slot, not an invitation.</div>
+  </div>
+
+  <div style="padding: 0 0 34px;"></div>
+</div>
+</x-dc>
+</body>
+</html>
