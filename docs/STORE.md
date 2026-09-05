@@ -359,10 +359,60 @@ the Regulated Medical Devices declaration on the regulations screen.
 
 Rating stays **4+**.
 
-### One thing that contradicts the answers, and must be fixed before submission
+### The contradiction this build fixed (RV.70)
 
-Settings shows a **"Tankbook Pro" card** (`SettingsView.swift:418`, and again on the quota card at
-`:569`) whose route resolves to `LeafContent()` - `Color.clear` (`Destinations.swift:40`, `:174`).
-Tapping it pushes an **empty screen**. That is a guideline 2.1 rejection waiting to happen, and it
-contradicts both the "no paid tier in this version" line in the description and the no-IAP
-declaration above. Registered as **RV.70**.
+Settings used to show a **"Tankbook Pro" card** (`SettingsView.swift:418`, and again on the quota
+card at `:569`) whose route resolved to `LeafContent()` - `Color.clear` (`Destinations.swift:40`,
+`:174`): tapping it pushed an **empty screen**. That was a guideline 2.1 rejection waiting to
+happen, and it contradicted both the "no paid tier in this version" line in the description and
+the no-IAP declaration above. **RV.70 removed both entry points** - the Settings root now has no
+Pro card, and the quota card names its next step (a wait, never a purchase) instead of offering a
+dead button. The `Route.paywall` case and its placeholder destination stay in the code for the v2
+work (`docs/AGENT.md`); the free-tier car-limit sheet's "Pro" remains the one sanctioned
+monetization surface (hard rule 7), reachable only at the 3-car cap. Nothing else in the app
+leads to the placeholder.
+
+## 7 · When Pro arrives: what changes in App Store Connect
+
+Section 6's answers are true of the v1 build. **Every row below is one of those answers becoming
+false.** Written now, while the reasons are in front of us, because a paywall release changes the
+store record in more places than the paywall itself - and three of these are decisions with a
+deadline, not settings.
+
+### The three that need a decision before the release, not during it
+
+| What | Why it cannot wait |
+|---|---|
+| **Trader status under the DSA** | Selling makes the developer a trader. Apple then **verifies and publicly publishes** the name, address, phone and email on the product page. If that should be a company address rather than a home one, **the entity has to exist first** - registering one is weeks, not an afternoon |
+| **Where Pro can actually be bought** | Apple has processed no paid transactions in Russia since 2022. The Russian listing is aimed at an audience that cannot pay through the store, and `STORE.md` section 1 records that "подписка не активируется / нельзя оплатить" is one of the loudest complaints against the incumbents. **Shipping a paywall those users can see but not use repeats the exact grievance the RU listing sells against.** Decide what a Russian user sees before the release: no Pro card at all in that storefront, or a plainly worded card that says it cannot be bought there |
+| **What the free tier keeps, permanently** | Already decided and not to be relitigated (`CLAUDE.md`): multiple cars, export always free, and **no retroactive limit changes**. A paywall that takes something an existing user already has breaks that, and it is the one thing that turns a 3-star review into a 1-star one |
+
+### The metadata that changes
+
+| Field | v1 (section 6) | With Pro |
+|---|---|---|
+| In-app purchases | none | The subscription and its group. **The first one must be submitted WITH a new app version**, so the product and the build are reviewed together |
+| App Store server notifications | empty, deliberately | A **full path** to a real handler (not the API root - `https://api.tankbook.live` was set once and removed; it 404s). Needs the endpoint, JWS verification against Apple's root certificates, and a row in `docs/API.md` |
+| App-specific shared secret | unset | Generated, for receipt validation |
+| Privacy nutrition labels | four types | Add **Purchases** (purchase history), Linked, App Functionality, no tracking. Everything else is unchanged |
+| Description, promo text, What's New | "no subscription and no paid tier in this version" in **both** languages | Every one of those sentences must go, in `STORE-COPY.md`, in the site copy, and in `SITE.md`'s never-say table. A listing that still promises no subscription while selling one is the fastest route to a 1-star wave |
+| Age rating | 4+, all None | Unchanged - a paid tier is not content |
+| Categories | Travel / Finance | Unchanged |
+| Content rights | no third-party content | Unchanged |
+| App encryption | nothing to upload | Unchanged, unless a payment SDK arrives - which it should not; StoreKit is Apple's |
+
+### What review will look for, beyond the metadata
+
+- **A restore-purchases control.** Guideline 3.1.1 requires it, and its absence is a routine rejection.
+- **The paywall must say what recurs, at what price, for what period, before purchase** - and link
+  the terms and the privacy policy from that screen.
+- **Nothing already free may end up behind it** (guideline 3.1.2 plus our own rule above).
+- **The Ask tab is visible to free users** (`docs/AGENT.md` §3): a tab that appears only after paying
+  reads as a rug-pull. Free users open it to the examples and the Pro card.
+- **Quota is not an error surface.** `AGENT.md` §6 already says a quota state is an ordinary screen,
+  and hard rule 7 keeps monetisation out of every error except the car-limit sheet. [RV.70] exists
+  because the v1 build broke that quietly: a quota card whose only next step was a dead paywall link.
+
+**The one that generalises:** RV.70's cause was an entry point shipping ahead of the screen behind
+it. When Pro lands, the same failure is available in reverse - a paywall shipping while a listing
+still says there is nothing to buy. The metadata and the build are one change, not two.
