@@ -166,9 +166,9 @@ PANELS = [
      ("РАБОТАЕТ БЕЗ СЕРВЕРА", "Откроется, даже если серверы лежат",
       "Аккаунт не нужен. База в телефоне, все экраны работают офлайн.")),
 
-    ("02", "RV.9-attachment-viewer", "P2.3-confirm",
-     ("EXPORT, COMPLETE", "The export takes the photos too",
-      "Records and the receipt images, in one archive. Free, and not behind a paid tier."),
+    ("02", "P1.11-car-switcher", "P2.3-confirm",
+     ("EVERY CAR, ONE LOG", "The whole garage, not one car",
+      "Petrol, diesel and electric side by side, each with its own history. Several cars, free."),
      ("ЦИФРЫ МОЖНО ПРОВЕРИТЬ", "Литры x цена - проверка на экране",
       "Если три числа не сходятся, приложение скажет прямо. Ничего не правится втихую.")),
 
@@ -186,7 +186,7 @@ PANELS = [
 
     ("05", "P1.10-trends", "P3.4-reminders",
      ("BRING YOUR HISTORY", "Consumption and cost, per car",
-      "Petrol, diesel and EV in one history. Import from Fuelio, Drivvo, Fuelly and more."),
+      "Import from Fuelio, Drivvo, Fuelly and more. The export is free and takes the photos too."),
      ("НЕ ТОЛЬКО ЗАПРАВКИ", "ТО, страховка и напоминания",
       "Ремонты, запчасти, шины и налоги - с фотографиями и напоминаниями по пробегу.")),
 ]

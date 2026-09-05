@@ -51,7 +51,7 @@ layers:
   - id: caption
     source: text
     area: {cols: 1-12, rows: 5-6}
-    text: "Petrol, diesel and EV in one history. Import from Fuelio, Drivvo, Fuelly and more."
+    text: "Import from Fuelio, Drivvo, Fuelly and more. The export is free and takes the photos too."
     role: subtitle
     fitText: shrink
     font: {vAlign: top, align: center, color: "#9FB0C4"}
