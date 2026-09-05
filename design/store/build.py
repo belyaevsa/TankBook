@@ -162,7 +162,7 @@ PANELS = [
      ("ЦИФРЫ МОЖНО ПРОВЕРИТЬ", "Литры x цена - проверка на экране",
       "Если три числа не сходятся, приложение скажет прямо. Ничего не правится втихую.")),
 
-    ("03", "P2.1-capture", "P4.9b-settings-guest",
+    ("03", "RV.5-capture-review", "P4.9b-settings-guest",
      ("TWO DOORS, ALWAYS", "Snap it or type it",
       "Both take seconds. Typing is a peer path, never the failure branch."),
      ("БЕЗ ПОДПИСКИ", "Ничего не нужно оплачивать",
@@ -247,37 +247,6 @@ layers:
 """
 
 
-def capture_without_hints(stem="P2.1-capture"):
-    """The capture screen cropped down to viewfinder, modes and the shutter.
-
-    Two bands of in-app text are cut out: the alpha-testing notice, which dates
-    a store panel the day it stops being true, and the line claiming receipts,
-    pump displays and the fiscal QR are detected automatically - a claim the
-    listing may not make (`docs/STORE.md`, the copy rule; pump mode ships off).
-    The bands are removed, not painted over, so nothing is faked in their place.
-    """
-    from PIL import Image
-    os.makedirs(CACHE, exist_ok=True)
-    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
-    dst = os.path.join(CACHE, stem + "-trimmed.png")
-    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
-        return dst
-    im = Image.open(src).convert("RGB")
-    cuts = [(1690, 1810), (2000, 2260)]        # measured off the shot
-    keep, y = [], 0
-    for a, b in cuts:
-        keep.append(im.crop((0, y, im.width, a)))
-        y = b
-    keep.append(im.crop((0, y, im.width, im.height)))
-    out = Image.new("RGB", (im.width, sum(k.height for k in keep)))
-    y = 0
-    for k in keep:
-        out.paste(k, (0, y))
-        y += k.height
-    out.save(dst)
-    return dst
-
-
 def collapse_interior_gap(stem, keep=160):
     """Squeeze the one long empty stretch in the middle of a short screen.
 
@@ -324,8 +293,6 @@ def source_for(shot):
     """The image a panel actually draws - a real receipt where the shot is a mock."""
     if shot == "RV.48-attachment-recognised-ru":
         return collapse_interior_gap(shot)
-    if shot == "P2.1-capture":
-        return capture_without_hints(shot)
     if shot == "RV.9-attachment-viewer":
         return viewer_with_real_photo(shot)
     return None
