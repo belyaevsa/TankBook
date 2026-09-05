@@ -305,11 +305,26 @@ row at the end is exactly that case.
 
 ### Regulations and permits
 
-- **Digital Services Act - must be set up, or the app is removed from sale in the EU.** v1 is free,
-  has no in-app purchase, no ads and sells nothing, so **non-trader** is the accurate declaration
-  and no personal contact details are published. **This changes at v2**: the Pro tier makes the
-  developer a trader, and Apple then publishes name, address, phone and email on the listing. Decide
-  the publishing entity before that release, not during it.
+- **Digital Services Act - must be set up, or the app is removed from sale in the EU.** Declared
+  **non-trader**, so no personal contact details are published on the product page. The test is
+  "acting for purposes relating to a trade, business, craft or profession", not "makes money", and
+  both halves were confirmed by the product owner on 2026-09-05: v1 is free with no in-app purchase,
+  no ads and nothing sold, **and** it is published by an individual, not a company, with no business
+  behind it. **This changes at v2**: the Pro tier makes the developer a trader, Apple verifies the
+  details and then publishes address, phone and email publicly on the listing. If that should be a
+  company address rather than a home one, the entity has to exist before that release, not during it.
+
+- **App encryption documentation - nothing to upload**, and `ITSAppUsesNonExemptEncryption` stays
+  `false` (`project.yml:45`). The upload is for proprietary algorithms, or standard ones implemented
+  instead of Apple's; every use here is an Apple framework. The only place the app encrypts user data
+  is the optional passphrase-protected export (`ArchiveCrypto.swift`): AES-GCM via **CryptoKit**, key
+  via **CommonCrypto** PBKDF2-SHA256 at 100k iterations, salt from `SecRandomCopyBytes`. The SHA-256
+  in `AppConfig`, `BlobStore` and `GoogleOAuth` (PKCE) is hashing, not encryption; everything else is
+  HTTPS, Keychain and file protection. **What would flip it**: bundling a third-party crypto library
+  or implementing an algorithm ourselves - then the declaration changes and an annual
+  self-classification report is owed. Note this is an export-control determination, not only a
+  technical one; the conservative alternative is to declare non-exempt encryption and file that
+  report.
 - **Vietnam game license** - not a game. Leave empty.
 - **Regulated medical devices** - nothing medical; the category is Travel, not Health & Fitness.
   Leave empty.
