@@ -102,6 +102,13 @@ target = "layouts"
 source = "static"
 target = "static"
 [[module.mounts]]
+source = "../design/store/site"
+target = "assets/screenshots"
+# Marketing renditions of a screen: the app's own chrome with a drawn receipt in
+# place of the fixture photograph, built by design/store/build.py. They live
+# outside design/screenshots because that directory is the record of what a
+# screen looked like when its task closed, and these are not that.
+[[module.mounts]]
 source = "../design/screenshots"
 target = "assets/screenshots"
 # The corpus keeps P1.1-shell-dark-rejected-accent-tabbar.png as the record of a

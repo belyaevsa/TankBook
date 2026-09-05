@@ -310,6 +310,30 @@ def source_for(shot):
     return None
 
 
+SITE_SHOTS = os.path.join(HERE, "site")
+
+
+def export_site_shots():
+    """The composited screens the SITE needs, committed so Hugo can mount them.
+
+    The site renders a committed PNG straight out of `design/screenshots`; it has
+    no compositing step, so the English pages would show the Russian fiscal
+    receipt the review screen ships with. These are the same substitutions the
+    English panels use, written to `design/store/site/` and mounted into
+    `assets/screenshots` alongside the task records - kept OUT of that directory
+    on purpose, because they are marketing renditions, not the record of what a
+    screen looked like on the day a task closed.
+    """
+    import shutil
+    os.makedirs(SITE_SHOTS, exist_ok=True)
+    made = []
+    for stem, name in (("RV.5-capture-review", "capture-review-drawn.png"),):
+        dst = os.path.join(SITE_SHOTS, name)
+        shutil.copyfile(source_for(stem), dst)
+        made.append(dst)
+    return made
+
+
 def write_specs():
     paths = []
     for pid, shot_en, shot_ru, en, ru in PANELS:
@@ -346,6 +370,7 @@ def main():
         for b in bad:
             print("REJECT " + b)
         print(f"exported {len(glob.glob(os.path.join(FINAL, '*.png')))} panels to final/")
+        print(f"exported {len(export_site_shots())} composited screens to site/")
         failures += len(bad)
     sys.exit(1 if failures else 0)
 

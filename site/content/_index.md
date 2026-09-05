@@ -68,8 +68,8 @@ faq_title = "Questions, answered straight."
 title = "Snap it"
 icon = "camera"
 text = "Point the camera at the receipt. The scan fills in what it can read – you check the numbers, correct the rest, and it remembers your corrections. A head start, not an answer."
-shot = "RV.5-capture-review.png"
-shot_alt = "After a capture: the photographed receipt filling the screen under \"Check the photo - can you read the total on it?\", with Use this, Re-take and Type it side by side"
+shot = "capture-review-drawn.png"
+shot_alt = "After a capture: the receipt filling the screen under \"Check the photo - can you read the total on it?\", showing 45,22 L at 1,754 EUR/L and a total of 79,32 EUR, with Use this, Re-take and Type it side by side"
 
 [[doors]]
 title = "Type it"
