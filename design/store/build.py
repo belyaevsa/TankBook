@@ -17,6 +17,30 @@ OUT = os.path.join(HERE, "out")
 CACHE = os.path.join(HERE, ".cache")
 
 
+def trim_dead_space(im, pad=40):
+    """Crop uniform background off the bottom of a screenshot.
+
+    Several screens end in a tall stretch of empty page - a short list, a sheet
+    with two rows - and in a panel that reads as a phone with nothing on it. Rows
+    matching the bottom-most colour are cropped away, leaving `pad` so the last
+    element does not touch the corner.
+    """
+    w, h = im.size
+    px = im.convert("RGB").load()
+    ground = px[w // 2, h - 1]
+
+    def empty(y):
+        return all(max(abs(a - b) for a, b in zip(px[x, y], ground)) < 12
+                   for x in range(0, w, 7))
+
+    y = h - 1
+    while y > h // 2 and empty(y):
+        y -= 1
+    if h - y < pad * 2:
+        return im
+    return im.crop((0, 0, w, min(h, y + pad)))
+
+
 def rounded(stem, src=None):
     """A rounded-corner RGBA copy of a committed screenshot.
 
@@ -31,7 +55,7 @@ def rounded(stem, src=None):
     dst = os.path.join(CACHE, os.path.basename(src)[:-4] + "-rounded.png")
     if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
         return dst
-    im = Image.open(src).convert("RGBA")
+    im = trim_dead_space(Image.open(src).convert("RGBA"))
     r = int(im.width * 0.055)          # a phone-like corner on a phone-shaped shot
     mask = Image.new("L", im.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, im.width - 1, im.height - 1], radius=r, fill=255)
@@ -112,7 +136,7 @@ PANELS = [
      ("ЦИФРЫ МОЖНО ПРОВЕРИТЬ", "Литры x цена - проверка на экране",
       "Если три числа не сходятся, приложение скажет прямо. Ничего не правится втихую.")),
 
-    ("03", "RV.57-capture-prefill", "P4.9b-settings-guest",
+    ("03", "P2.1-capture", "P4.9b-settings-guest",
      ("TWO DOORS, ALWAYS", "Snap it or type it",
       "Both take seconds. Typing is a peer path, never the failure branch."),
      ("БЕЗ ПОДПИСКИ", "Ничего не нужно оплачивать",
@@ -197,8 +221,85 @@ layers:
 """
 
 
+def capture_without_hints(stem="P2.1-capture"):
+    """The capture screen cropped down to viewfinder, modes and the shutter.
+
+    Two bands of in-app text are cut out: the alpha-testing notice, which dates
+    a store panel the day it stops being true, and the line claiming receipts,
+    pump displays and the fiscal QR are detected automatically - a claim the
+    listing may not make (`docs/STORE.md`, the copy rule; pump mode ships off).
+    The bands are removed, not painted over, so nothing is faked in their place.
+    """
+    from PIL import Image
+    os.makedirs(CACHE, exist_ok=True)
+    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
+    dst = os.path.join(CACHE, stem + "-trimmed.png")
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        return dst
+    im = Image.open(src).convert("RGB")
+    cuts = [(1690, 1810), (2000, 2260)]        # measured off the shot
+    keep, y = [], 0
+    for a, b in cuts:
+        keep.append(im.crop((0, y, im.width, a)))
+        y = b
+    keep.append(im.crop((0, y, im.width, im.height)))
+    out = Image.new("RGB", (im.width, sum(k.height for k in keep)))
+    y = 0
+    for k in keep:
+        out.paste(k, (0, y))
+        y += k.height
+    out.save(dst)
+    return dst
+
+
+def collapse_interior_gap(stem, keep=160):
+    """Squeeze the one long empty stretch in the middle of a short screen.
+
+    A sheet with five rows leaves half a phone of empty page below them, and in a
+    panel that reads as a screen with nothing on it. The longest interior run of
+    background rows is cut down to `keep`; the rows above and below it, including
+    the page dots and the buttons, are untouched.
+    """
+    from PIL import Image
+    os.makedirs(CACHE, exist_ok=True)
+    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
+    dst = os.path.join(CACHE, stem + "-collapsed.png")
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        return dst
+    im = Image.open(src).convert("RGB")
+    w, h = im.size
+    px = im.load()
+    ground = px[w // 2, h - 1]
+
+    def empty(y):
+        return all(max(abs(a - b) for a, b in zip(px[x, y], ground)) < 12
+                   for x in range(0, w, 7))
+
+    best = run = None
+    for y in range(h):
+        if empty(y):
+            run = (run[0], y) if run else (y, y)
+            if not best or run[1] - run[0] > best[1] - best[0]:
+                best = run
+        else:
+            run = None
+    if not best or best[1] - best[0] < keep * 2:
+        return src
+    top = im.crop((0, 0, w, best[0] + keep // 2))
+    bot = im.crop((0, best[1] - keep // 2, w, h))
+    out = Image.new("RGB", (w, top.height + bot.height))
+    out.paste(top, (0, 0))
+    out.paste(bot, (0, top.height))
+    out.save(dst)
+    return dst
+
+
 def source_for(shot):
     """The image a panel actually draws - a real receipt where the shot is a mock."""
+    if shot == "RV.48-attachment-recognised-ru":
+        return collapse_interior_gap(shot)
+    if shot == "P2.1-capture":
+        return capture_without_hints(shot)
     if shot == "RV.9-attachment-viewer":
         return viewer_with_real_photo(shot)
     return None
