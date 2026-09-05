@@ -1,10 +1,71 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-04. **The app is on TestFlight and the backend is deployed.** The `RV` (reviewer)
-backlog now carries **54 rows filed from production logs, device walks and screenshots**; **47 are
-closed, 7 open**. Measured now: **iOS 1250 tests / 117 suites**, **backend 370** (0 skipped), lint 0
-(both tiers, ignoring a sibling session's worktree). Read this first, then `CLAUDE.md`, then
-`docs/TASKS.md`.*
+*Updated 2026-09-05. **The app is on TestFlight, the backend is deployed, and App Store review is
+under way.** The `RV` (reviewer) backlog carries **70 rows filed from production logs, device walks
+and screenshots**; **all 70 are closed**. Measured now: **iOS 1429 tests / 146 suites**, **backend
+392** (0 skipped), lint 0 and the localization gate 0 (706 keys, 100% RU) - both run **from the repo
+ROOT**. **`T.3` is the only tracked v1 row still open**, and it cannot be closed by a fix: it needs
+two consecutive green full suites. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+
+## What changed on 2026-09-05, and what it cost to learn
+
+**Flash became the default worker, and the evidence is in `docs/TASKS.md` → Dispatch ledger.** 24
+pro / 20 flash across 44 dispatches, and two independent evaluations (an Opus agent and
+qwen3.8-max) compared failure KINDS rather than success rates, because after verification nearly
+every row is `[x]` and that comparison carries no information. Both landed in the same place: the
+discriminating variable is not the model, it is whether the brief names the cause to a file and a
+line. Flash produced above-brief design (`RV.63`'s `ForAccount`/`ForEmail`, `RV.62`'s
+`ExpensePrefill` with no liters member - both making a wrong value *inexpressible* rather than
+merely tested against), correct refusals (`RV.56` declined a lead and reported 185 rather than the
+predicted 186; `RV.60` concluded there was no bug; `RV.67` reported a race that did not reproduce),
+and correct escalation (`RV.53` stopped at a hard-rule-9 question instead of absorbing it).
+
+**MY DIAGNOSES WERE WRONG FOUR TIMES, AND FLASH CAUGHT ALL FOUR.** `RV.58` - I filed a
+cross-account data leak from a production log; `accountHash` is computed two ways under one field
+name, so the two hashes were one account (that field confusion became `RV.63`). `RV.68` - I blamed
+a cancelled request; the real cause was `ImportClient` omitting `/v1`, so import had **never** worked
+against the deployed server. `RV.52` and `RV.6` - premise wrong in the brief, corrected by the
+agent. **"Diagnose first, then flash" works only because agents push back.** The failure mode it
+does not cover is an agent implementing a WRONG brief correctly and greenly, which no gate catches
+because nothing fails: read a clean green result against the *symptom the row was filed for*, not
+against the brief.
+
+**And a brief's fence can cause the bug it was meant to prevent.** `RV.70`'s brief said the
+free-tier car-limit sheet "must not be disturbed" - which reads as *leave its Pro button alone*. That
+button pushed the same blank paywall, so the submission blocker survived on the one surface a
+reviewer reaches by adding a fourth car. The agent obeyed, found it, and reported it as a
+**Residual** rather than overreaching; the orchestrator fixed it. **A fence is an instruction, so it
+can be wrong in the same way a diagnosis can.**
+
+## Three things that only an opened screenshot caught
+
+Automated gates missed all three; every one was found by the orchestrator looking at the image.
+
+**A screenshot can be a lie and the agent cannot tell.** `RV.58` shipped an "RU" screenshot that was
+**byte-identical to its EN one** - the `-AppleLanguages "(ru)"` launch had not taken. The agent has
+no image input, so its report honestly said "captured". **Verify each EN/RU pair with `md5 -q`
+before reporting it** - that check is now in every brief, and it has since caught two more of my own
+re-shoots. Also: a `-` prefixed launch argument can **persist across relaunches**, so a state flag
+sticks until the app is reinstalled - that produced identical no-tick/ticked pairs on `RV.64`.
+
+**`RV.69` was found in `RV.67`'s screenshot.** A Lada suggestion read **"50 gal"** - about 190 L and
+impossible. The catalog field is `tankCapacityL`, `capacityText` did no conversion, and `apply()`
+wrote the litre number verbatim into a field read in the user's unit: a US-units user accepting the
+suggestion got a tank wrong by 3.785x. **It is invisible under litres**, which is why no test and no
+RU screenshot showed it. The year also rendered "2,011-" because an `Int` in a SwiftUI `Text` picks
+up locale grouping.
+
+**A tool result can be stale.** Reading `design/store/final/store-02-en.png` returned a cached view
+of a superseded image, and I spent a stretch "fixing" a panel that commit `f7a765b` had already
+fixed. Worse, `design/store/panel-*.yaml` are **generated** - `build.py` regenerates them from its
+`PANELS` table on every run, so hand edits vanish on the next build. Edit `PANELS`, never the yaml.
+
+## The gates that must be run from the repo ROOT
+
+`swiftlint lint` and the localization gate both use root-relative paths. Run either from `ios/` and
+you get a false red - 4,949 phantom violations in one case, a bare non-zero in another. I made this
+mistake twice in one session after having already written it down. **Check the working directory
+before believing a red.**
 
 ## The three findings from 2026-09-04 worth carrying forward
 
