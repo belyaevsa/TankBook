@@ -78,3 +78,16 @@ build/
 # config if we ever want it tracked.
 .claude/settings.local.json
 .claude/worktrees/
+
+# Generated extraction dumps. These come out of the diagnostics harness -
+#   TANKBOOK_WRITE_CORPUS_FILES=1 TANKBOOK_DIAG_OUT=<dir> \
+#     swift test --filter ReceiptFieldDiagnostics
+# - and they rot the moment the parser changes: the copy committed with the
+# 2026-09-04 merge still showed the three confident-wrong totals RV.56 had
+# already fixed, so it misrepresented the parser it was meant to document.
+# Spike/ReceiptSpike/fixtures/high-water.json is the durable record of what was
+# measured; these are scratch. The hand-written research and plan .md files in
+# the same directory ARE tracked and stay.
+diagnostics/receipt-field-report.txt
+diagnostics/receipt-ocr-lines.txt
+diagnostics/pump-ocr-dump.txt
