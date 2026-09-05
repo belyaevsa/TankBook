@@ -216,6 +216,40 @@ audio engine diagnosis (cannot be framed honestly), server-side conversation mem
 the agent as the only path to any action (rule 1), and any answer that renders a number the
 tools did not return (§2).
 
+## 10b · What the market says, measured 2026-09-06
+
+*Full research: `diagnostics/RESEARCH-agent-market.md`; the competitor view: `docs/COMPETITORS.md`
+-> "The 2026-09-06 sweep". Recorded here because it settles two questions this document had left to
+assumption: whether anyone else does this, and what it can be sold for.*
+
+**Nobody we compete with ships it.** Drivvo, Fuelio, Fuelly, aCar, Simply Auto, CarScope and
+Spritmonitor have no conversational AI over the owner's records. What exists is diagnostic hardware
+(OBDeleven, FIXD, CarMD, Carly), a fleet tool (Fleetio), and a wave of 2025-26 newcomers doing
+exactly this at small scale - Refuells, Brimly, GarageHub, MyAutoLog, Autozis, MECH AI.
+
+**The price is $2-8 a month with a metered free tier**, not the $100/year the hardware products
+charge. The reason is in the reviews: users already troubleshoot with free ChatGPT and Gemini, so a
+car chatbot that only reformulates search reads as a gimmick. **The willingness to pay attaches to
+what a general model cannot have** - the user's own history, VIN and manual grounding, live
+diagnostic data, guided tests with confidence, exact parts and diagrams, the ability to write back
+to the log, and a safety escalation.
+
+Of those seven, **Tankbook owns the first and the sixth outright** (the tool catalogue in section 4
+is the history; the draft tools are the write-back) and **deliberately owns none of the diagnostic
+ones** - there is no OBD dongle in this product and no plan for one. That is the honest shape of
+the offer, and section 5's diagnosis framing must not imply otherwise: reasoning over history and
+symptoms is not reading the car.
+
+Two failure modes the reviews name, now carried as `AG.15` and `AG.17`: an entitlement bug erases
+willingness to pay faster than a bad answer does (a paying user found "unlimited" showing zero
+messages, and FIXD's worst reviews are about cancellation rather than answers), and an AI that
+infers a cause from a code alone draws "could have caused expensive unnecessary repairs".
+
+**Russia is not the market for this.** 4PDA through September 2026 shows no recurring demand for
+chatting with a fuel or service history - that community wants reliable scanners and
+vehicle-specific data - and Apple has processed no paid transactions there since 2022
+(`docs/STORE.md` §7). Pro is an EN/EU product; the RU storefront needs its own answer.
+
 ## 11 · Build plan – the AG tasks
 
 *Mirrored into `docs/TASKS.md` → "AG · Car Agent (v2, Pro)" when the backlog file is not mid-edit

@@ -75,3 +75,89 @@ Two camps: payment/station apps (Яндекс Заправки, ЛУКОЙЛ, Г
 3. **Every incumbent has burned pricing goodwill** (Fuelio's Premium creep, Drivvo's export paywall, Fuelly's nags, CarScope's vehicle lock). "Free tier that stays free + export always free" is a real, marketable differentiator.
 4. **No competitor owns the mixed-household EV-vs-petrol comparison.** Spritmonitor has the deepest EV data but no household framing.
 5. **Migration is expected.** Drivvo and CarScope both ship importers from everyone; we need parity (Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope, My Fuel Manager formats) at launch. My Fuel Manager has confirmed export/import, and a real export from it is our first import test fixture and consumption-math dataset.
+
+## The 2026-09-06 sweep: prices, paywalls and the AI question
+
+*Two research passes on that date, kept in full at `diagnostics/RESEARCH-agent-market.md` (the
+agent question) and summarised here. Read the prices as of that date and re-check before quoting
+them anywhere user-facing; storefronts differ and several of these products were mid-repricing.*
+
+### What each competitor charges, and for what
+
+| App | Paid tier, 2026-09-06 | What sits behind it |
+|---|---|---|
+| Fuelio | iOS Pro **$4.99/mo or $17.99/yr** (Android: former Pro features now free) | Stations along a route, advanced price filters, route cost reports. The only app in the set with **CarPlay** |
+| Drivvo | Personal core free; business **$42/vehicle/yr, five minimum** | Historically cloud backup, sync, ad removal and CSV export; fleet adds drivers and checklists |
+| Fuelly | **$0.99/mo or $7.99/yr** | Ad removal and **photo/PDF attachments** |
+| aCar | Premium reported under **$5/yr** | Ad removal and attachments; legacy Pro unlock no longer suppresses every prompt |
+| Spritmonitor | **$0.99** one-time ad removal; attachment credit packs **$0.99-$8.49 per 100** | Attachments are metered and sold by the pack |
+| Simply Auto | Gold **$9.99 one-time**; Platinum **$9.99/yr** (a **$29.99** one-time also listed) | Cloud/receipt backup, sync, web access, **GPS trips**, unlimited vehicles and drivers |
+| CarScope | **$0.99/mo or $6.49/yr** (a **$47.99** IAP also listed) | Chiefly automatic mileage tracking |
+| MyFuelLog2 | ~**EUR 1.99** one-time | Ad removal; the tax form, imports and GPS are free |
+| Road Trip MPG | **$6.99 one-time** | Everything; no subscription at all, and ~4.9 stars |
+
+**Two of these price what we give away.** Fuelly charges annually and Spritmonitor sells credit
+packs for **photo attachments**; our attachments are free and our export takes them with it.
+
+**The most monetised feature in the category is automatic GPS trip logging for tax** (Simply Auto,
+CarScope, and the reason for CarScope's $47.99 tier). `VISION.md` declined that lane deliberately.
+Worth knowing that the EN keyword `mileage` will attract people who mean exactly this.
+
+### What they have that we do not
+
+Fuel-price map and station comparison (Fuelio, plus CarPlay) · automatic GPS trips with
+business/personal classification (Simply Auto, CarScope, Fuelio, MyFuelLog2's PDF tax form) ·
+community comparison against other owners of the same car (Fuelly, Spritmonitor's million-vehicle
+database) · Home Screen widgets (aCar, Fuelio, My Cars) · Siri Shortcuts (Road Trip) ·
+document/insurance expiry vaults (Simply Auto, Drivvo as generic reminders) · multi-driver sharing
+(Drivvo fleet, Simply Auto) · depreciation and ownership cost (Road Trip, My Cars Ultimate).
+
+**What nobody in the category ships:** OBD-II data, VIN decoding, warranty tracking, or a real
+parts inventory. Before anyone argues these are table stakes - they are not, and the parts one is
+`PJ.52`'s opportunity and its warning at once.
+
+### The complaint that matters most to our positioning
+
+**Simply Auto's dominant review complaint is data loss when moving to a new phone, receipts
+especially** - and Fuelly's is "ALL MY DATA IS GONE" (`STORE.md` §1). That is precisely what the
+English listing leads with, so the pitch is aimed at a current, documented wound rather than an
+imagined one.
+
+### Conversational AI over the owner's own data: who ships it
+
+**No established fuel log does.** Drivvo, Fuelio, Fuelly, aCar, Simply Auto, CarScope and
+Spritmonitor all lack it as of 2026-09-06; Drivvo's "AI" searches its own support documents.
+Three groups do:
+
+- **Diagnostic hardware**, which owns something we do not - live data from the car. OBDeleven (AI
+  fault explanations, shipped 2026-01-21, free with the dongle), FIXD (**$12.99/mo or $99.99/yr**
+  plus a $59.99 sensor), CarMD Connect (**$99.96** one-time), Carly (~EUR 36/yr atop a scanner).
+- **Fleet**: Fleetio's AI Service Advisor, B2B, open beta 2026-03-11.
+- **Newcomers doing exactly what `AGENT.md` describes**, all 2025-26 and all small: Refuells
+  (**$1.99/mo or $19.99/yr**) answers "what did I spend last month", "how has efficiency changed",
+  "which stations do I use", restricted to the user's own records; Brimly (**$2.99/mo**, 10 free
+  questions a day); GarageHub's "Rev" (**$7.99/mo**, ~15 free messages) reads service history and
+  **writes back to the log**; MECH AI, MyAutoLog, Autozis, MyCarLog similar.
+
+**The price band is $2-8 a month with a metered free tier.** The $100/year products bundle hardware
+or human mechanics. `AGENT.md` §11 and `AG.15` carry the consequence.
+
+**Why it is cheap: users already troubleshoot with free ChatGPT and Gemini and say so in reviews**,
+so an undifferentiated car chatbot reads as repackaged search. The r/MechanicAdvice post-mortem of
+a failed AI-OBD startup rejected "AI added to a code reader" and said they would pay for original
+measurement and analysis, not reformulated search. What buyers named as worth paying for: their own
+history, VIN and manual grounding, live OBD data, guided tests with confidence, exact parts and
+diagrams, write-back to the log, and a safety escalation. **We own the first and the sixth
+outright, and deliberately own none of the diagnostic ones.**
+
+**Two review patterns to design against** (`AG.15`, `AG.17`): FIXD's worst reviews are about
+auto-renewal and cancellation rather than answer quality, and a paying MECH AI user found
+"unlimited" showing zero messages - an entitlement bug erases willingness to pay faster than a bad
+answer does. Separately, an AI mechanic that inferred a wrong cause from a fault code drew "could
+have caused expensive unnecessary repairs", and mechanics report generative AI doubling down on
+unsafe brake advice.
+
+**The uncomfortable finding for the Russian plan:** 4PDA through September 2026 shows no recurring
+demand for chatting with your fuel or service history - that community wants reliable scanners and
+vehicle-specific data. Combined with Apple processing no paid transactions in Russia since 2022
+(`STORE.md` §7), Pro is an EN/EU product.
