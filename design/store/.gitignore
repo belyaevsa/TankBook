@@ -1,0 +1,3 @@
+# Built panels: regenerate with `python3 design/store/build.py`. The specs and
+# the source screenshots are what is versioned; the composites are output.
+out/

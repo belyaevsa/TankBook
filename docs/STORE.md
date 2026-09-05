@@ -1,176 +1,263 @@
-# Tankbook - App Store submission metadata
+# Tankbook - the App Store listing
 
-*What goes where for an App Store release. Companion to `docs/SITE.md` (the URLs
-below are pages that exist and are live), `docs/SECURITY.md` and `docs/LOGGING.md`
-(what the privacy answers must be true to), and `docs/TASKS.md` P6.6.*
+*Single authority for the App Store product page in **English and Russian**: name, subtitle,
+keywords, description, screenshots and review notes. Companion to `SITE.md` (the same claims on
+the web, and the copy rule both obey), `VISION.md` (what may be claimed at all), `COMPETITORS.md`
+(what the incumbents' pages say) and `DESIGN.md` (the visual language the screenshots use).
+Written 2026-09-05.*
 
-## The distinction that saves a rejection
+## The copy rule applies here first, not last
 
-**Almost none of the listing lives in this repo.** Name, subtitle, description,
-keywords, category, age rating, screenshots, the support and marketing URLs and
-the privacy answers are all **App Store Connect** fields, typed into the web UI.
-What the repository controls is narrow and exact:
+`SITE.md`'s rule is that **the page may not promise what the corpus says we cannot deliver**, and
+the store page is where an over-promise costs most: it is read by someone deciding, it is quoted
+back in one-star reviews, and Apple's reviewers check it against the build. The measured position,
+re-measured 2026-09-05:
 
-| In the repo | Where |
+- receipts resolve **188 of 220 asserted cells (85%)**, but only **33 of 48 receipts (69%) come
+  out with every field right** - so about a third of scans still need a correction;
+- **pump-display capture ships OFF** (24 of 178 numeric cells committed, 13% coverage against a
+  60% floor) - it may appear on a roadmap, never in the listing;
+- a fiscal QR is present on **22 of 48** receipts and carries 2 of the 5 fields;
+- Vision misreads a digit at **confidence 1.00**, which is why every value is editable.
+
+**85% is a good number and it is not a promise that a scan finishes the job.** The listing
+therefore leads with *"snap it or type it"*, never with "zero typing", and never says "automatic".
+
+| Never on the page | What we say |
 |---|---|
-| Bundle version and build number | `project.yml` -> `info.properties` |
-| Permission usage strings | `project.yml` -> `info.properties` |
-| Export-compliance answer | `project.yml` -> `ITSAppUsesNonExemptEncryption` |
-| **Privacy manifest** | `ios/App/Resources/PrivacyInfo.xcprivacy` |
+| "Zero typing", "just snap and you're done" | "Snap it or type it - both take seconds" |
+| "AI reads any receipt perfectly" | "A scan fills in what it can read. You fix the rest" |
+| "Automatic" as the headline verb | "Fast", and the cross-check as visible proof |
+| Anything naming the fiscal QR as a feature | nothing - the QR is part of the receipt (product owner, 2026-08-30) |
+| "Pump display scanning" | nothing until the gate passes (P2.7) |
 
-Everything else below is prepared text to paste into App Store Connect.
+---
 
-## The listing NAME is not "Tankbook" (2026-09-02)
+## 1 · Findability: how a Russian speaker and an English speaker each arrive
 
-App Store Connect refused it: *"The app name you entered is already being used."* The listing name
-is checked for uniqueness across the whole store; **nothing else about the product changes.**
+The two audiences do not search the same way, and the difference is not translation.
 
-| Field | Value | Chars |
-|---|---|---|
-| **Name** | `Tankbook: Car Costs & Fuel` | 26 / 30 |
-| **Subtitle** | `Snap the receipt or type it` | 27 / 30 |
+**English-speaking searchers** use the category's own vocabulary - *fuel log, mileage tracker, mpg,
+gas mileage, car expenses*. The field is crowded (Fuelio, Drivvo, Fuelly, Spritmonitor), so we do
+not fight for `fuel log` head-on; we take the qualifiers those apps' reviews complain about:
+**offline, no account, free export, multi-currency, EV and petrol together**.
 
-Why this costs nothing: the store name is independent of the bundle id
-(`app.tankbook.Tankbook`), the domain (`tankbook.live`), and `CFBundleDisplayName` - the home screen
-still reads **Tankbook**, and only the *listing* name must be unique. Measured before deciding: the
-app's string catalogue contains the name **zero times**, so the app never prints it anywhere. No
-code, no docs and no site copy change.
+**Russian-speaking searchers** use *расход топлива, бензин, заправки, расходы на авто, техобслуживание*
+- and, unlike the English field, they search **расход** (consumption) far more than they search
+"log", because the number they want is L/100 km. Two further facts shape the RU listing:
 
-Both strings obey the copy rule above: no automation verb, no promise the corpus cannot support. The
-name leads with **car costs** rather than fuel, which is the wider and truer scope - the app logs
-service, parts, tyres and expenses as well as fill-ups (`docs/VISION.md`), and a fuel-only name would
-undersell what P3 actually built. The subtitle states hard rule 15's two doors - snap **or** type, as
-peers.
+- **The App Store's RU-language storefronts are not only Russia.** Payment restrictions make
+  subscriptions impractical inside RU (`VISION.md` §1), so the RU listing must earn installs from
+  the diaspora and from KZ/AM/GE storefronts too. Nothing in the copy assumes a country.
+- **Receipts in RU/KZ carry a fiscal QR**, which improves our reading - but naming it is
+  forbidden, so the RU page shows the benefit (the total is right) and never the mechanism.
 
-Note this makes the store name and the site's eyebrow ("Fuel & cost log for iPhone") lead with
-different halves of the same thing. That is a deliberate difference, not drift: a store name competes
-for a browse listing while the site is read by someone who already arrived. If the site is ever
-re-worded, they should be reconciled rather than allowed to diverge further.
+**Localise, do not translate.** The RU subtitle is not a translation of the EN one: English leads
+with *log* (what you do), Russian leads with *расход* (what you get).
 
-Renaming the product outright was considered and rejected as far more expensive: the domain, 26 site
-files and the docs. Worth recording that **this was the last cheap moment to change the bundle id**,
-since nothing had been uploaded yet and it is immutable afterwards - the name was kept deliberately,
-not by default.
+### Keywords
 
-## URLs - all live as of 2026-08-28
+Apple's 100-character keyword field, comma-separated, no spaces, no word repeated from the name or
+subtitle (those are already indexed).
 
-| App Store Connect field | Value |
-|---|---|
-| Marketing URL | `https://tankbook.live/` |
-| Support URL | `https://tankbook.live/support/` |
-| Privacy Policy URL | `https://tankbook.live/privacy/` |
-| Terms (EULA, optional) | `https://tankbook.live/terms/` |
-| Account deletion (**required** when the app supports accounts) | `https://tankbook.live/delete-account/` |
+**English (`en-US`, 98 chars):**
 
-The deletion URL is not optional politeness: Apple requires an app offering
-account creation to document deletion, and to offer it in-app. Ours is a
-tombstone - devices learn via `410` and the local log stays on the phone - and
-`/delete-account/` says exactly that in both languages.
+```
+mpg,gas,mileage,odometer,receipt,scanner,vehicle,expenses,maintenance,offline,ev,diesel,economy
+```
 
-## The privacy answers must agree in THREE places
+**Russian (`ru`, 99 chars):**
 
-App Store review compares them, and a mismatch is what gets caught:
+```
+расход,бензин,дизель,заправка,чек,сканер,пробег,одометр,авто,машина,техобслуживание,каско,офлайн
+```
 
-1. `ios/App/Resources/PrivacyInfo.xcprivacy` (in this repo)
-2. The App Store Connect privacy questionnaire
-3. `https://tankbook.live/privacy/`
+Rationale for the non-obvious picks:
 
-The manifest declares, and the other two must match:
+- `odometer` / `одометр` - the field users type most; high intent, low competition.
+- `offline` / `офлайн` - the incumbents cannot claim it; it is also the top complaint tag against
+  apps that lost data behind a login wall.
+- `ev` and `diesel` - the household with both is our differentiator, and neither word appears in
+  the name or subtitle.
+- `каско` (RU motor insurance) - Russian drivers search insurance and service renewals in the same
+  breath as fuel; we ship reminders, so the word is honest.
+- Deliberately **absent**: `AI`, `нейросеть`, `автоматически`. They would index against the promise
+  the copy rule forbids.
 
-- **No tracking**, and no tracking domains. There is no ad SDK, no analytics SDK
-  and no third-party network call in the app at all.
-- **Email address** - collected **only** when the user signs in, which is
-  optional. Linked to the user, App Functionality, not tracking.
-- **Other user content** (the synced record stream: vehicles, fill-ups, services,
-  expenses) - same conditions.
-- Nothing at all is collected from a signed-out user. The app is fully usable
-  with no account and the local database is authoritative (hard rule 1).
-- **Required-reason API**: `UserDefaults`, reason **CA92.1** (the app's own
-  preferences). The other four categories - file timestamps, disk space, system
-  boot time, active keyboards - were checked against the source and are genuinely
-  unused, so they are correctly absent rather than defensively listed.
+---
 
-## Two answers to verify before the first submission
+## 2 · The listing, English
 
-**`ITSAppUsesNonExemptEncryption: false`.** Currently set, and defensible: the app
-uses HTTPS/TLS provided by the OS, Keychain, and file protection - all standard
-exempt uses. It also verifies an Ed25519 signature on the config document, which
-is authentication rather than data encryption. **This is a legal declaration, so
-confirm it deliberately rather than inheriting it.** If in doubt, France's
-declaration requirement is the usual reason to answer differently.
+**Name (30):** `Tankbook: Fuel Log & Costs`
 
-**`UIBackgroundModes` is deliberately NOT set.** `docs/NOTIFICATIONS.md` specifies
-silent APNs nudges, which need `remote-notification` - but the client half is not
-implemented (nothing calls `registerForRemoteNotifications`), and **declaring a
-background mode the app does not use is itself a rejection reason**. Add
-`remote-notification` in the same change that wires silent push, not before.
+**Subtitle (30):** `Snap or type. Costs that add up`
 
-## What is still missing for a submission
+**Promotional text (170, changeable without review):**
 
-- **An App Store id.** Until one exists, the in-app update button stays hidden
-  behind an empty `appStoreId` and the site emits no `apple-itunes-app` banner -
-  both deliberate, so nothing links to a page that does not exist.
-- **Screenshots** at the required device sizes, EN and RU. The repo's
-  `design/screenshots/` set is engineering evidence, not store art: it is
-  captured at one size and carries a simulator status bar.
-- **The listing copy itself**, which is bound by `docs/SITE.md`'s copy rule -
-  never "zero typing", never "automatic" as the headline verb. The corpus numbers
-  that forced that rule apply on a store page exactly as they do on the landing
-  page, and a store listing is harder to correct than a website.
-- **Age rating, category** (Finance or Travel - decide deliberately; the category
-  affects who finds it), and the export-compliance answer above.
+> Every fill-up in seconds - scan the receipt or type it, whichever is faster. Litres x price is
+> checked in front of you, so the numbers you keep are the right ones.
 
-## Release checklist (written 2026-08-30 for SH.2; the "why" is the point of each line)
+**Description:**
 
-The Apple developer portal has three doors – **Certificates, IDs & Profiles**, **App Store
-Connect**, **Services** – and each artefact has exactly one home. Nothing store-related is typed
-twice, and nothing that lives in this repo is re-declared on the portal by hand.
+```
+Tankbook is a fuel and running-cost log for people who actually keep one.
 
-### 1 · Certificates, IDs & Profiles (identity – once per app, rarely touched)
+TWO DOORS, ALWAYS
+Snap the receipt or type the entry - both take seconds, and neither is the
+"failure" path. A scan fills in what it can read and you correct the rest;
+the app remembers your station, fuel and currency for next time.
 
-| Step | Where | Why |
-|---|---|---|
-| **Identifier**: register the App ID `app.tankbook.Tankbook` (explicit, not wildcard) | Identifiers → App IDs | The bundle id in `project.yml` (`bundleIdPrefix: app.tankbook`) is the app's identity everywhere: builds, TestFlight, the store record, Sign in with Apple's `aud` claim. It cannot change after the first upload |
-| Enable the **Sign in with Apple** capability on that App ID | Identifiers → the App ID → Capabilities | The app signs in with `ASAuthorizationController` only (`AppIDTokenProvider.swift`); without the capability the request fails at runtime, and the entitlement must match |
-| Do **not** enable Push Notifications, Background Modes, Associated Domains yet | – | Nothing in the app calls `registerForRemoteNotifications`; declaring what the app does not use is a rejection reason (`UIBackgroundModes` note above). PR.20 adds push and the capability together |
-| **Certificates**: none by hand | Certificates | Let Xcode manage them (automatic signing). The distribution certificate is created on first archive with the team selected. Manual certificates only for CI (SH.2's later half) |
-| **Profiles**: none by hand | Profiles | Same – automatic signing generates the App Store profile. Manual profiles rot |
-| **Devices**: add your iPhone 12 (the iOS 18 floor device) and the phone you test on | Devices | Development builds and ad-hoc installs need the UDID registered; TestFlight builds do not |
-| **Keys**: one **App Store Connect API key** (role App Manager), stored in the platform secret store – never in the repo | Keys | Lets `xcodebuild -exportArchive` / `altool` upload without a session; needed the day CI uploads builds. Not needed for a first manual upload from Xcode |
+THE ARITHMETIC, SHOWN
+Litres x price per litre = total. Tankbook checks it in front of you and says
+plainly when the three numbers disagree. No silent "smart" correction: every
+value is a suggestion you can edit, before and after saving.
 
-Repo side of this section, corrected 2026-09-02 to match what the project actually does:
+WHAT IT TRACKS
+- Fuel-ups with litres, price, total, odometer and station
+- Consumption in L/100 km or MPG, cost per kilometre, monthly spend
+- Service, repairs, parts, tyres, insurance and taxes
+- Petrol, diesel, hybrid and electric - in one history, per car
+- Several cars, switched in a tap. Free, on every tier
 
-- `DEVELOPMENT_TEAM` is **`${TANKBOOK_TEAM_ID}`, an environment variable**, not a committed literal. XcodeGen substitutes it at *generate* time, so it must be exported before `xcodegen generate` - and `scripts/release.sh` runs one internally, so exporting before the script is enough. **Unset, XcodeGen leaves the literal `"${TANKBOOK_TEAM_ID}"` in the project** rather than an empty value, so the archive fails complaining about a team of that name - which reads like a portal problem rather than a missing export. The team id is not a secret (it is in every IPA); keeping it out of the repo is a choice about what a public repo advertises, not a security control.
-- `CODE_SIGN_STYLE: Automatic`, committed.
-- The entitlement lives in **`project.yml` under `entitlements.properties`**, NOT in `ios/App/Tankbook.entitlements`. That file is GENERATED from those properties on every `xcodegen generate`; editing it directly looks like it works and is silently reverted by the next generate, which is how it shipped empty until 2026-09-02.
+MONEY IN ANY CURRENCY, KEPT HONEST
+Fill up abroad and the entry keeps both amounts: what you paid, and what it was
+worth in your car's home currency at that day's rate. Rates are snapshotted at
+entry time, so your history never shifts under you.
 
-### 2 · App Store Connect (the listing and the builds)
+NO ACCOUNT NEEDED
+The app is fully usable with no sign-in at all - the database lives on your
+phone and every screen works offline. Sign in only if you want sync, restore on
+a new phone, or cloud-assisted reading. Export is always free, in a format you
+can open elsewhere. No ads.
 
-| Step | Where | What you type, and its source of truth |
-|---|---|---|
-| **Create the app record**: name `Tankbook`, primary language English, bundle id from step 1, SKU `tankbook-ios` | Apps → + | The App Store id this creates goes into `AppConfigService.compiledAppStoreID` and the site's `params.appStoreId` – the two places that deliberately stay empty until it exists |
-| **App Information**: subtitle, category (Finance vs Travel – decide; see above), content rights, age rating questionnaire, Privacy Policy URL `https://tankbook.live/privacy/` | App Information | Copy comes from this document; the URL from the live site |
-| **Pricing**: Free, all territories except where you decide otherwise | Pricing and Availability | `VISION.md`: free tier fully usable; Pro is v2 |
-| **App Privacy** questionnaire | App Privacy | Must agree with `PrivacyInfo.xcprivacy` (in the build) and `tankbook.live/privacy/` – the three-way rule above. Data collected: email (account, when signed in), device id, the synced records; none for tracking; none linked to identity beyond the account itself |
-| **Localizations**: add Russian; description, keywords, promotional text, What's New – EN and RU | Version → Localizable | Copy bound by `SITE.md`'s rule: never "zero typing", never "automatic" as the verb; never name the QR (VISION, 2026-08-30) |
-| **Screenshots**: 6.9" (1320×2868) required; 6.5" optional; EN and RU sets | Version → App Previews and Screenshots | **Not the `design/screenshots/` files** – those are engineering evidence at one size with a simulator status bar. Store art is captured on the iPhone 17 Pro Max simulator with `simctl status_bar override` (9:41, full battery), dark theme, from the same seeds the capture script uses, and kept under `design/store/` so they are reproducible |
-| **App icon** | – | Nothing to upload: App Store Connect reads the 1024 px icon from the build's asset catalog (`AppIcon.appiconset`). The generated alternative stays in `design/brand/alt-pistol-plug/` and is not uploaded |
-| **Support URL / Marketing URL** | Version | `https://tankbook.live/support/` · `https://tankbook.live/` |
-| **Export compliance** | Version → build → compliance | Answered once by `ITSAppUsesNonExemptEncryption: false` in the build; confirm the legal declaration deliberately (above) |
-| **Sign-in demo account** for App Review | Version → App Review Information | Review must be able to exercise Sign in with Apple; provide notes that the app is fully usable without an account, and that sync needs the backend (SH.1) to be up during review |
-| **TestFlight**: internal group (you, the floor device), then external with Beta App Review; "What to Test" per build | TestFlight | Internal testers get the build minutes after upload; external needs a review pass. The launch-readiness walk (SH.3) runs on the TestFlight build, not on a debug install |
+WHAT WE DO NOT CLAIM
+A scan is a head start, not an answer. On our own test set of real receipts,
+about a third still need a field corrected - which is exactly why every field is
+editable and why typing is a first-class door, not a punishment.
 
-### 3 · Services
+English and Russian throughout.
+```
 
-Nothing today. **Push Notifications** and **CloudKit** stay untouched (no push client yet; CloudKit was rejected by decision – the backend is the sync hub). **Xcode Cloud** is an option for SH.2's CI half but the self-hosted runner that builds the site is the current plan.
+**What's New (first release):**
 
-### 4 · Repo side, before the first archive
+```
+First release. Fuel-ups, service records and expenses; consumption and cost
+trends; multi-currency with historical rates; receipt scanning with the
+arithmetic cross-check shown; full offline use with no account.
+```
 
-1. `project.yml`: `DEVELOPMENT_TEAM`, automatic signing, the entitlements file; `CFBundleVersion` becomes a build number that increases on every upload (the archive step sets it from a counter or the commit count – App Store Connect rejects a reused build number).
-2. `xcodegen generate && xcodebuild -scheme Tankbook -configuration Release archive -archivePath build/Tankbook.xcarchive`, then `-exportArchive` with `method: app-store-connect` and upload (Xcode Organizer or `xcrun altool`/the API key). Record the exact commands in `scripts/release.sh` so SH.2 has one documented path.
-3. Backend (SH.1): set **`Auth:AppleAudiences`** to the bundle id (`app.tankbook.Tankbook`) and **`Auth:GoogleAudiences`** to the Google iOS OAuth client id. These are the audiences of *incoming* Apple/Google id tokens, and they **fail closed** – until they are set, `POST /auth/session` refuses every sign-in with `AudienceNotConfigured`, so this is a deploy-blocking setting rather than a hardening nicety. Do **not** confuse either with `Auth:Audience`, which is the audience stamped on the access tokens this server mints and is unrelated (that conflation is what this line said until 2026-09-01, and following it would have changed our own token audience while validating nothing). Google *is* wired in the app as of SH.4 – set `TANKBOOK_GOOGLE_CLIENT_ID` at build time, or the Sign in screen ships with the Apple button alone.
-4. After the record exists: the App Store id into `compiledAppStoreID`, the site `params.appStoreId`, and `CONFIG.md`'s `appUpdate` document.
+---
 
-### 5 · Why in this order
+## 3 · The listing, Russian
 
-Identity first because the bundle id and the Sign in with Apple capability are immutable inputs to everything after; the store record second because it yields the App Store id the app and the site are waiting for; the archive last because it is the only step that can be repeated freely. Screenshots and copy can be prepared in parallel with all of it – they are typed into App Store Connect, never built.
+**Name (30):** `Tankbook: расход и расходы`
+
+Two senses of one root, deliberately: *расход топлива* (consumption) and *расходы на авто*
+(spending). It reads as a play on words to a native speaker and indexes both stems.
+
+**Subtitle (30):** `Заправки, ТО и деньги на авто`
+
+**Promotional text:**
+
+> Заправка заносится за секунды - сфотографируйте чек или введите вручную. Литры x цена сверяются
+> у вас на глазах, поэтому в истории остаются верные числа.
+
+**Description:**
+
+```
+Tankbook - журнал расхода топлива и трат на машину для тех, кто ведёт его всерьёз.
+
+ДВА ПУТИ, ВСЕГДА
+Сфотографируйте чек или введите вручную - и то и другое занимает секунды, и
+ручной ввод не "запасной вариант". Распознавание заполняет то, что смогло
+прочитать, остальное вы поправляете; заправка, топливо и валюта запоминаются
+на следующий раз.
+
+АРИФМЕТИКА - НА ВИДУ
+Литры x цена за литр = сумма. Tankbook проверяет это при вас и прямо говорит,
+когда три числа не сходятся. Никаких "умных" исправлений втихую: любое значение
+- предложение, которое можно изменить, и до сохранения, и после.
+
+ЧТО ВЕДЁТ
+- Заправки: литры, цена, сумма, пробег, АЗС
+- Расход в л/100 км, стоимость километра, траты за месяц
+- ТО, ремонты, запчасти, шины, страховка и налоги
+- Бензин, дизель, гибрид и электро - в одной истории по каждой машине
+- Несколько машин, переключение одним касанием. Бесплатно
+
+ДЕНЬГИ В ЛЮБОЙ ВАЛЮТЕ
+Заправились за границей - запись хранит обе суммы: сколько заплатили и сколько
+это в валюте машины по курсу того дня. Курс фиксируется в момент записи, и
+история потом не "поедет".
+
+БЕЗ АККАУНТА
+Приложением можно пользоваться вообще без регистрации - база лежит на вашем
+телефоне, и все экраны работают офлайн. Вход нужен только для синхронизации,
+переноса на новый телефон и облачного распознавания. Экспорт всегда бесплатный.
+Без рекламы.
+
+ЧЕГО МЫ НЕ ОБЕЩАЕМ
+Съёмка чека - это фора, а не готовый ответ. На нашем наборе реальных чеков
+примерно в трети случаев одно поле всё-таки приходится поправить - именно
+поэтому любое поле редактируется, а ручной ввод равноправен.
+
+Полностью на русском и английском.
+```
+
+**What's New:**
+
+```
+Первый выпуск. Заправки, ТО и расходы; графики расхода и стоимости; несколько
+валют с историческим курсом; распознавание чеков с показанной проверкой
+арифметики; полная работа офлайн без аккаунта.
+```
+
+---
+
+## 4 · Screenshots: the plan
+
+Ten panels, five per language, 1290 x 2796 (6.9"). Apple shows the first three in search results,
+so those three carry the positioning; the rest carry proof.
+
+**They are not bare screenshots.** Each panel is a composite: a headline that states the benefit, a
+real device screenshot as evidence, and a caption naming the mechanism. Two of the five are
+**feature panels** whose subject is a capability no single screen shows (the cross-check as trust;
+no-account/offline). Built with `imagegen compose` from `design/store/*.yaml`; sources are the
+committed screenshots in `design/screenshots/`, so a panel can never show a screen the build does
+not have.
+
+| # | Panel | Screenshot | EN headline | RU headline |
+|---|---|---|---|---|
+| 1 | Two doors | `RV.57-capture-prefill` | Snap it or type it | Сфотографируйте или введите |
+| 2 | The cross-check, shown | `P2.3-confirm` | Litres x price, checked in front of you | Литры x цена - проверка при вас |
+| 3 | What it costs to drive | `P1.10-trends` | Consumption and cost, per car | Расход и стоимость по каждой машине |
+| 4 | Any currency | `P2.5-confirm-foreign` | Fill up abroad, keep both amounts | Заправка за границей - обе суммы |
+| 5 | Yours to keep | `P6.5-home-log` | No account. Works offline. Export free | Без аккаунта, офлайн, экспорт бесплатно |
+
+Panels 2 and 5 are the feature proposals: panel 2 turns an invisible guarantee into the page's
+strongest claim, and panel 5 answers the complaint every incumbent's reviews carry.
+
+**Rules the panels obey:** dark theme (the brand's home theme, `DESIGN.md`); headline in the
+device's own language, never a translation of the other; numbers in DIN with `tabular-nums`; no
+claim on a panel that is not in the description; no mock screen - every device image is a
+committed screenshot.
+
+---
+
+## 5 · Review notes and metadata
+
+- **Support URL** `https://tankbook.live/support/`, **privacy policy** `https://tankbook.live/privacy/`,
+  support contact **to@belyaev.live** - the same address the site shows (`SITE.md`), and they must
+  never disagree.
+- **Sign-in is optional and the reviewer must be told so**: the review note states that the app is
+  fully functional with no account, and that Sign in with Apple is offered alongside Google, which
+  is what Apple's guideline 4.8 requires.
+- **Age rating** 4+; no user-generated content, no ads, no tracking.
+- **Privacy nutrition labels** must match `SECURITY.md` and `LOGGING.md`: identifiers and the
+  synced record stream are collected **only with an account**, linked to the account, and never
+  used for tracking; images sent to cloud reading are processed transiently. Nothing is collected
+  for a signed-out user.
+- **Data deletion**: `DELETE /account` purges, and the store's account-deletion requirement points
+  at the in-app control, not an email.
+- **No subscription in v1** - Pro is cut (P6.16), so no in-app purchases are declared. The free
+  tier includes cloud reading at 50 reads a day (RV.4).
