@@ -50,18 +50,25 @@ struct PumpExtractorTests {
 
     // MARK: - pump-005: four board prices, the cross-check picks the last
 
-    @Test("pump-005 with no currency marker abstains - the scale cannot be pinned")
+    @Test("pump-005 with no currency marker: the total commits, the pair does not")
     func pump005WithoutCurrencyAbstains() {
         // The Dresser-Wayne photo OCRs no currency word, so the band cannot pin
-        // the bare board price `5256` to 52.56 (525.6 and 5256 also close the
-        // scale-invariant arithmetic). A wrong scale is the worst outcome in
-        // this class, so the whole display abstains rather than guess.
+        // the bare board price `5256` to 52.56 - the PRICE therefore abstains.
+        //
+        // The volume and total do NOT, and the reason is the money-shape rule
+        // (`PumpNumber.moneyCandidates`): a total is printed whole or to the
+        // minor unit, so `462108` is 4621.08 or 462108 and never 46210.8, and
+        // `462108` is 4621.08 or 462108 and never 46210.8. Only 4621.08 can be
+        // reached by any plausible fill, so the TOTAL commits. The volume does
+        // not: with the price's own scale unpinned, several (volume, price)
+        // pairs reach the same total, so it abstains - each field commits on its
+        // own evidence rather than being dragged along by a sibling.
         let lines = ["СУММА", "462108", "ЛИТРЫ", "8792",
                      "52.06", "4932 5256", "ЦЕНА ЗА ЛИТР", "55.18"]
         let result = pumpExtractor().extract(textLines: lines, source: .pump)
         #expect(result.unitPrice == nil)
         #expect(result.liters == nil)
-        #expect(result.total == nil)
+        #expect(result.total == decimal("4621.08"))
     }
 
     @Test("pump-005 with a currency marker: the band pins the one price that closes")
@@ -74,8 +81,8 @@ struct PumpExtractorTests {
                      "52.06", "4932 5256", "ЦЕНА ЗА ЛИТР", "55.18"]
         let result = pumpExtractor().extract(textLines: lines, source: .pump)
         #expect(result.unitPrice == decimal("52.56"))
-        #expect(result.liters == nil)
-        #expect(result.total == nil)
+        #expect(result.liters == 87.92)
+        #expect(result.total == decimal("4621.08"))
     }
 
     // MARK: - pump-010: the preset whose arithmetic legitimately does not close
@@ -119,17 +126,37 @@ struct PumpExtractorTests {
 
     // MARK: - pump-057: the matched pair, and the zero-padded factor-of-ten tie
 
-    @Test("pump-057 pins the price; the zero-padded volume stays a factor-of-ten tie")
-    func pump057ResolvesThePriceAndAbstainsOnTheVolume() {
-        // € 10038 (100.38), L 005580 (55.80), €/L 1,799. The paired receipt-046
-        // prints 55.80 L, but the display's `005580` is equally consistent with
-        // 5.58 L (a real small fill - the pumps print `Vmin 2 LIITRIT`), so the
-        // volume and total abstain and only the EUR-pinned price commits.
+    @Test("pump-057: the money shape breaks the factor-of-ten tie the arithmetic cannot")
+    func pump057ResolvesThroughTheMoneyShape() {
+        // € 10038 (100.38), L 005580 (55.80), €/L 1,799 - the display of the
+        // matched pair whose paper (receipt-046) says 55.80 L at 1.799 = 100.38.
+        //
+        // THE ARITHMETIC ALONE CANNOT CHOOSE, and this fixture is why the money
+        // shape exists: `55.80 x 1.799 = 100.38` and `5.58 x 1.799 = 10.038`
+        // both close exactly, because the cross-check is scale-invariant. A
+        // 5.58 L fill is perfectly real (the pumps print `Vmin 2 LIITRIT`), so
+        // no plausibility bound separates them either. What separates them is
+        // that a TOTAL is money: `10.038` is three decimals and no currency
+        // prints an amount that way, so it is not a candidate at all.
         let lines = ["€", "10038", "L", "005580", "€/L", "1,799"]
         let result = pumpExtractor().extract(textLines: lines, source: .pump)
         #expect(result.unitPrice == decimal("1.799"))
-        #expect(result.liters == nil)
-        #expect(result.total == nil)
+        #expect(result.liters == 55.80)
+        #expect(result.total == decimal("100.38"))
+    }
+
+    @Test("a three-decimal total is not money, so it never breaks the tie the wrong way")
+    func moneyShapeRejectsThreeDecimals() {
+        // The mutation guard for the rule above: if `moneyCandidates` admitted
+        // three decimals, `5.58 x 1.799 = 10.038` would survive alongside the
+        // truth and pump-057 would go back to abstaining - or worse, commit the
+        // factor-of-ten reading. Assert the candidate set itself, not just the
+        // outcome, so a widening is caught here rather than in the corpus.
+        let token = PumpNumber(raw: "10038", hasSeparator: false)
+        #expect(token.moneyCandidates() == [10038, 100.38])
+        // A whole-tenge total is still money: pump-004 prints `3008` for a
+        // 3008.34 fill and pump-006 prints `10980`.
+        #expect(PumpNumber(raw: "10980", hasSeparator: false).moneyCandidates().contains(10980))
     }
 }
 

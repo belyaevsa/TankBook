@@ -107,6 +107,28 @@ struct PumpNumber: Sendable, Equatable {
         guard !hasSeparator else { return [base] }
         return (0...3).map { k in base / pow(10.0, Double(k)) }
     }
+
+    /// The candidates for a MONEY field, which is a narrower set: an amount is
+    /// printed either whole or to the currency's minor unit, never to one or
+    /// three decimals. `10038` on a Gilbarco is `100.38` or `10038`, never
+    /// `1003.8` or `10.038`.
+    ///
+    /// This is what breaks the factor-of-ten tie the arithmetic cannot.
+    /// `pump-057` reads `005580` and `10038` against a price of `1.799`, and
+    /// BOTH `55.80 x 1.799 = 100.38` and `5.58 x 1.799 = 10.038` close exactly -
+    /// the cross-check is scale-invariant, so it cannot choose, and the whole
+    /// fixture abstained. Requiring the total to be money-shaped drops `10.038`,
+    /// which then pins the volume through the arithmetic.
+    ///
+    /// **Zero decimals is kept deliberately, and it is not padding for its own
+    /// sake**: a Kazakh pump truncates to whole tenge (`pump-004` prints `3008`
+    /// for a 3008.34 fill, `pump-006` prints `10980`), so a 0-decimal money
+    /// reading is a real one, not a fallback.
+    func moneyCandidates() -> [Double] {
+        guard let base = value else { return [] }
+        guard !hasSeparator else { return [base] }
+        return [0, 2].map { k in base / pow(10.0, Double(k)) }
+    }
 }
 
 extension NumberScanner {

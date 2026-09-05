@@ -48,7 +48,10 @@ enum PumpExtractor {
         let totalTokens = tokens(for: .total, in: lines, geometry: hasGeometry, claimed: claimed)
         let volumeValues = flattened(volumeTokens)
         let priceValues = flattened(priceTokens)
-        let totalValues = flattened(totalTokens)
+        // The total is money, so its scale search is narrower - see
+        // `PumpNumber.moneyCandidates`. This is what resolves the
+        // factor-of-ten tie the scale-invariant cross-check cannot.
+        let totalValues = flattened(totalTokens, money: true)
         // A grade BOARD carries several distinct price tokens (pump-005, 035);
         // a selected-price WINDOW carries one (`€/L` -> `1,799`). A board price
         // may rank a candidate but never becomes the unit price alone - it must
@@ -98,17 +101,54 @@ enum PumpExtractor {
             }
             return result
         }
-        var best: (dy: CGFloat, numbers: [PumpNumber])?
+        // Among the value lines on the label's row, the label's own value is the
+        // one NEAREST IT HORIZONTALLY - not the one nearest in y. Two fixtures
+        // show why the vertical rule fails, in opposite directions:
+        //
+        //   pump-009  `РУБЛИ` sits at y=0.777 with its total `0203800` at 0.745
+        //             (dy 0.032) while a grade-board price `060,80` sits at
+        //             0.757 (dy 0.020). Nearest-in-y takes the BOARD PRICE.
+        //   pump-057  `€` sits beside `10038`, but the zero pad `0` is split off
+        //             as its own line 3 thousandths closer in y. Nearest-in-y
+        //             takes the fragment, which every arithmetic rejects.
+        //
+        // Horizontal distance settles both: the board price is far to the left
+        // of the display, and the pad fragment is further from the label than
+        // the body it was split from. The vertical window stays, loose enough
+        // for a label printed a little above or below its own row.
+        var best: (dx: CGFloat, numbers: [PumpNumber])?
+        var nearestByRow: (dy: CGFloat, numbers: [PumpNumber])?
         for (otherIndex, other) in lines.enumerated()
             where otherIndex != index && other.boundingBox != .zero {
             guard isCandidateValueLine(other.text) else { continue }
             let dy = abs(other.midY - label.midY)
             guard dy < 0.08 else { continue }
-            if best == nil || dy < best!.dy {
-                best = (dy, NumberScanner.pumpNumbers(in: other.text))
+            if nearestByRow == nil || dy < nearestByRow!.dy {
+                nearestByRow = (dy, NumberScanner.pumpNumbers(in: other.text))
+            }
+            guard dy < 0.05 else { continue }
+            let dx = abs(other.midX - label.midX)
+            if best == nil || dx < best!.dx {
+                best = (dx, NumberScanner.pumpNumbers(in: other.text))
             }
         }
-        return best?.numbers ?? []
+        // The union of the horizontal pick and everything on the label's exact
+        // baseline. Both are needed and neither subsumes the other: the x-rule
+        // rescues pump-009 from the board price, the baseline rule rescues the
+        // displays whose label sits directly over a stack. Union is safe because
+        // `solve` commits only a value that survives UNIQUELY - an extra
+        // candidate can cause an abstention, never a wrong number.
+        var result = best?.numbers ?? []
+        var seen = Set(result.map(\.raw))
+        for (otherIndex, other) in lines.enumerated()
+            where otherIndex != index && other.boundingBox != .zero {
+            guard isCandidateValueLine(other.text),
+                  abs(other.midY - label.midY) < 0.02 else { continue }
+            for number in NumberScanner.pumpNumbers(in: other.text) where seen.insert(number.raw).inserted {
+                result.append(number)
+            }
+        }
+        return result.isEmpty ? (nearestByRow?.numbers ?? []) : result
     }
 
     /// The text-only form (no boxes): the value is the adjacent value line in
@@ -276,11 +316,11 @@ enum PumpExtractor {
 
     // MARK: - The scale search
 
-    private static func flattened(_ numbers: [PumpNumber]) -> [Double] {
+    private static func flattened(_ numbers: [PumpNumber], money: Bool = false) -> [Double] {
         var seen = Set<Double>()
         var result: [Double] = []
         for number in numbers {
-            for candidate in number.candidates() {
+            for candidate in money ? number.moneyCandidates() : number.candidates() {
                 if seen.insert(candidate).inserted {
                     result.append(candidate)
                 }
