@@ -3,8 +3,14 @@ import UIKit
 import TankbookCore
 
 /// The Edit entry screen (P1.6) - design/screens/EditEntry.dc.html. A pushed
-/// route reached from a Home log row, the conflict badge, Recently deleted and
-/// `-presentScreen editEntry` (docs/SCREENMAP.md).
+/// route reached from a Home log row, the conflict badge, the account-wide
+/// flagged list, Recently deleted and `-presentScreen editEntry`
+/// (docs/SCREENMAP.md).
+///
+/// RV.66: an EXPLICIT entry id (the flagged list, the inbox's "use a different
+/// receipt") opens the entry wherever it lives - the screen resolves the id
+/// across every vehicle, never against the selected car's rows alone - so a
+/// conflict on car B is decidable without first switching to car B.
 ///
 /// The fill-up is the 80% case and it reuses the ConfirmManual components
 /// wholesale - the same currency chips, three-number card with live derivation
@@ -23,7 +29,12 @@ struct EditEntryView: View {
     let entryID: UUID?
 
     @Environment(AppToastCenter.self) private var toastCenter
-    @Environment(AppCarSelection.self) private var carSelection
+    // RV.66: `carSelection` (and the form/support state below) is internal, not
+    // private, so the entry-resolution extension in
+    // `EditEntryView+EntryResolution.swift` - split out to keep this file under
+    // the linter's length limits, the EditEntryView+Discard precedent - can
+    // read and write it.
+    @Environment(AppCarSelection.self) var carSelection
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
@@ -39,17 +50,17 @@ struct EditEntryView: View {
     @State var charge: ChargeSession?
     @State var service: ServiceRecord?
     @State var expense: Expense?
-    @State private var otherEntries: [any Entry] = []
-    @State private var stations: [Station] = []
+    @State var otherEntries: [any Entry] = []
+    @State var stations: [Station] = []
     @State var attachments: [Attachment] = []
-    @State private var selectedStation: Station?
+    @State var selectedStation: Station?
     // The fill-up's note (the non-fill note lives inside `nonFillForm`). Internal
     // (not private) so the RV.31 discard extension can read it for the dirty check.
     @State var note = ""
     @State private var showDatePicker = false
     @State private var showDeleteConfirm = false
     @State private var showTankLevel = false
-    @State private var syncOverwrite: SyncOverwrite?
+    @State var syncOverwrite: SyncOverwrite?
     @State private var didLoad = false
     @State var loadFailed = false
     @State var pendingBlobIDs: Set<UUID> = []
@@ -191,86 +202,6 @@ struct EditEntryView: View {
         showDatePicker = true
     }
     #endif
-
-    /// Reads the entry, its attachments and its overwrite log row from the
-    /// repository. Runs on first load and again after "Restore my version" so
-    /// the restored values render in the form.
-    private func reloadData() async {
-        do {
-            let repository = try AppStore.repository()
-            let vehicles = try repository.liveVehicles()
-            // Same selection as Home: an edit belongs to the car on screen.
-            guard let vehicle = carSelection.selectedVehicle(vehicles) else {
-                loadFailed = true
-                return
-            }
-            self.vehicle = vehicle
-            let all = try repository.liveEntries(forVehicle: vehicle.id)
-            let targetID = entryID ?? Self.mostRecentID(all)
-            guard let target = all.first(where: { $0.id == targetID }) else {
-                loadFailed = true
-                return
-            }
-            otherEntries = all.filter { $0.id != target.id }
-            stations = try repository.liveStations()
-            attachments = try repository.liveAttachments()
-                .filter { target.attachments.contains($0.id) }
-            pendingBlobIDs = Set(attachments
-                .filter { !BlobService.isBlobAvailable($0) }
-                .map(\.id))
-            // PR.14: the "Changed by sync" row is real data - the newest
-            // overwrite the sync log recorded for this entry, or nil when none.
-            syncOverwrite = try repository.syncOverwrite(for: target.id)
-            if let fill = target as? FillUp {
-                fillUp = fill
-                selectedStation = stations.first { $0.id == fill.stationId }
-                fillForm.load(from: fill, vehicle: vehicle)
-                note = fill.note ?? ""
-                #if DEBUG
-                seedAttachSuggestionIfRequested()
-                #endif
-            } else {
-                loadNonFill(target)
-            }
-        } catch {
-            AppLog.error(operation: "editEntry.load", category: .ui, error: error)
-            loadFailed = true
-        }
-    }
-
-    private func loadNonFill(_ entry: any Entry) {
-        switch entry {
-        case let charge as ChargeSession: self.charge = charge
-        case let service as ServiceRecord: self.service = service
-        case let expense as Expense: self.expense = expense
-        default: break
-        }
-        // Single source of truth with the RV.31 discard baseline
-        // (`pristineNonFillForm`, EditEntryView+Discard.swift): the form is
-        // loaded through the same builder the dirty check compares against, so
-        // the two cannot drift.
-        guard let vehicle else { return }
-        nonFillForm = Self.pristineNonFillForm(for: entry, vehicle: vehicle)
-    }
-
-    /// P4.6 lazy download: opening the entry fetches the missing full rendition
-    /// (docs/SYNC.md -> Delivery). Signed-out or offline, the fetch fails
-    /// silently and the "photo syncing" shimmer stays - nothing blocks the
-    /// entry (hard rule 1).
-    private func fetchPendingBlobs() async {
-        guard !pendingBlobIDs.isEmpty,
-              let fetcher = SyncService.makeBlobFetcher(sessionStore: KeychainSessionStore()) else { return }
-        for id in pendingBlobIDs {
-            guard let attachment = attachments.first(where: { $0.id == id }) else { continue }
-            if (try? await fetcher.fetch(sha256: attachment.file.sha256)) != nil {
-                pendingBlobIDs.remove(id)
-            }
-        }
-    }
-
-    private static func mostRecentID(_ entries: [any Entry]) -> UUID? {
-        entries.max { $0.date < $1.date }?.id
-    }
 
     // MARK: - Save
 
@@ -585,8 +516,13 @@ private extension EditEntryView {
 }
 
 // MARK: - PJ.48 attach a receipt to a typed entry
+//
+// Internal (not private) extension: the RV.66 entry-resolution extension
+// (`EditEntryView+EntryResolution.swift`, split out for the linter's length
+// limits) invokes `seedAttachSuggestionIfRequested` after binding a resolved
+// entry, so the attach hook must be reachable across files.
 
-private extension EditEntryView {
+extension EditEntryView {
     /// The screenshot/test hook `-seedAttachSuggestion`: applies a synthetic
     /// OCR reading through the REAL merge + apply path (blank fields only,
     /// dimmed until confirmed), so a screenshot can show the post-attach state

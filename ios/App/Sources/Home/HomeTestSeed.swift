@@ -46,6 +46,7 @@ enum HomeTestSeed {
             ("-seedHomeFullHistory", seedFullHistory),
             ("-seedHomeSingleFuelLog", seedSingleFuelLog),
             ("-seedHomeConflict", seedConflict),
+            ("-seedHomeRV66TwoCar", RV66TwoCarTestSeed.seed),
             ("-seedHomeEditHistory", seedEditHistory),
             ("-seedHomePendingRates", seedPendingRates),
             ("-seedHomeRV29Foreign", seedForeignConverted),

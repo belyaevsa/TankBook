@@ -40,7 +40,9 @@ enum Route: Hashable {
     case paywall
     case importWizard
     /// The Log filtered to flagged entries (docs/SYNC.md -> Settings shows a
-    /// count and a link only; resolution lives where the data lives).
+    /// count and a link only; resolution lives where the data lives). Reached
+    /// from Settings' flagged row and, since RV.66, from the sync chip's whole
+    /// body whenever the account-wide flagged count is non-zero.
     case flaggedEntries
     /// RV.38: the in-app notification inbox (the bell on the tab-root header) -
     /// work that finished after the user moved on, plus later reminders.

@@ -85,10 +85,29 @@ struct SyncStateChip: View {
     /// other state navigates to Settings. For the attention states (2) the tap
     /// also records which card to scroll to, so Settings lands on the card that
     /// names the fix (docs/SYNC.md).
+    ///
+    /// RV.66 (2026-09-05): when entries are flagged, the BODY joins the dot and
+    /// taps to the filtered Log instead of Settings. The account-wide conflict
+    /// count rides this chip, but the account-wide list was only reachable
+    /// through the 10 pt dot on the chip's corner - a tap on the 44 pt body (the
+    /// natural target) landed on a Settings page with nothing highlighted while
+    /// the selected car's Home, the other place a user looks, is car-scoped and
+    /// clean. So the whole control becomes the account-wide signal's door when
+    /// the signal is present, exactly as the inbox bell's whole body opens the
+    /// account-wide inbox (hard rule 8: a conflict surfaces where the data
+    /// lives). The redirect is bounded: it applies only when the body would
+    /// otherwise be a plain "to Settings" (no scroll target). State 2's tap
+    /// still scrolls to the card naming ITS fix (device revoked / auth expired /
+    /// quota), and the gear is always the way into Settings.
     @ViewBuilder
     private var chipBody: some View {
         if state == .signedOut {
             Button(action: onSignIn) { chipLabel }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("syncStateChip")
+                .accessibilityLabel(label)
+        } else if showsWarnDot, scrollTarget == nil {
+            NavigationLink(value: Route.flaggedEntries) { chipLabel }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("syncStateChip")
                 .accessibilityLabel(label)

@@ -2,12 +2,20 @@ import SwiftUI
 import TankbookCore
 
 /// The Log filtered to flagged entries (docs/SCREENMAP.md: Settings -->|"N
-/// entries need a look"| Log). Reached only from Settings' flagged row.
+/// entries need a look"| Log). Reached from Settings' flagged row and, since
+/// RV.66, directly from the sync chip's body when the account-wide flagged
+/// count is non-zero.
 ///
 /// This is a **view** of the entries carrying a `ConflictState` - the count is
 /// derived and the screen resolves nothing (hard rule 8): tapping an entry
 /// opens Edit entry, where the F9a inline discrepancy and its ranked fixes
 /// live. A conflict is decidable only with the entry in front of the user.
+///
+/// The list is ACCOUNT-wide (it iterates every live vehicle), which is exactly
+/// why each row names its car: a list reached from an account-wide signal mixes
+/// entries from several cars, and a row whose title is a station name shared by
+/// two cars tells the user nothing about WHERE the problem is (RV.66). The car
+/// name is the first thing the row says.
 struct FlaggedEntriesView: View {
     @State private var rows: [Row] = []
     @State private var didLoad = false
@@ -16,6 +24,9 @@ struct FlaggedEntriesView: View {
         let id: UUID
         let title: String
         let subtitle: String
+        /// The entry's date, kept for ordering (the subtitle is a string that
+        /// leads with the car name and cannot be sorted by).
+        let date: Date
     }
 
     var body: some View {
@@ -94,13 +105,22 @@ struct FlaggedEntriesView: View {
                 where entry.conflict != .none {
                     flagged.append(Row(id: entry.id,
                                        title: Self.title(entry, stations: stations),
-                                       subtitle: HomeFormat.day(entry.date)))
+                                       subtitle: Self.subtitle(entry, vehicleName: vehicle.name),
+                                       date: entry.date))
                 }
             }
-            rows = flagged.sorted { $0.subtitle > $1.subtitle }
+            rows = flagged.sorted { $0.date > $1.date }
         } catch {
             rows = []
         }
+    }
+
+    /// "Volvo V60 · Sep 3" - the car name first, so a list that mixes cars says
+    /// where each problem lives before the date does. The list sorts by the
+    /// entry's date (never this string), so the leading car name cannot disturb
+    /// the order.
+    private static func subtitle(_ entry: any Entry, vehicleName: String) -> String {
+        "\(vehicleName) · \(HomeFormat.day(entry.date))"
     }
 
     private static func title(_ entry: any Entry, stations: [Station]) -> String {

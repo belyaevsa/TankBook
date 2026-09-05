@@ -540,7 +540,20 @@ The decisions inside that table, not just preferences:
 - **`flaggedCount > 0` is not a sixth state.** A `warn` dot rides the chip's corner over whatever
   state is showing and taps to the Log filtered to flagged entries (`docs/ERRORS.md` -> Settings) -
   never Settings. Hard rule 8 keeps conflict badges where the data lives; a global "sync issues"
-  screen is what that rule forbids.
+  screen is what that rule forbids. **RV.66 (2026-09-05): the dot is not the chip's only door to
+  that list.** When `flaggedCount > 0`, the whole chip BODY taps to the filtered Log as well - the
+  dot alone was a 10 pt target riding the chip's corner, and a tap on the 44 pt body (the natural
+  target) landed on a Settings page with nothing highlighted while the selected car's Home, the
+  other place a user looks, is car-scoped and clean: the account-wide signal pointed at evidence
+  that needed a car switch to surface. The redirect is bounded: it applies only to the states whose
+  body would otherwise be a plain "to Settings" (no card to scroll to). State 2's tap still scrolls
+  to the card naming ITS fix (device revoked / auth expired / quota full) and state 1 still signs
+  in; the gear is always the way into Settings. This is the same shape as the inbox bell (RV.38):
+  the account-wide count rides a control whose whole body opens the account-wide screen.
+  The account-wide list's rows name their car for the same reason - a list that mixes cars must say
+  where each problem lives - and an explicit route into Edit entry (the flagged list, the inbox's
+  "use a different receipt") opens the entry on whatever car it lives, never scoped to the selected
+  car (`EditEntryView` resolves an explicit id across every vehicle).
 - **The `headlight` correction stands (2026-09-03).** An earlier revision coloured states 3 and 4
   `headlight`; that is wrong and settled as `action` / `inkSoft`. `docs/DESIGN.md` P6.7 reserves
   `headlight` for genuinely electric things only (enforced by `PaletteAccentGuardTests`' allowlist).
