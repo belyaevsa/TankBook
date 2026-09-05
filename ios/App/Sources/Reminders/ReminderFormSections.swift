@@ -16,6 +16,141 @@ func reminderEyebrow(_ label: LocalizedStringKey) -> some View {
         .foregroundStyle(Theme.Palette.inkSoft)
 }
 
+// MARK: - Car
+
+/// The form's FIRST card (design/screens/ReminderForm.dc.html) and the one the
+/// merged list exists for (docs/SCREENMAP.md -> "the car as its first field"):
+/// a reminder is about a car, so the field is offered explicitly rather than
+/// guessed. The merged list opens it with nothing chosen (Save inert until one
+/// is picked); a car's own list opens it with that car chosen, still
+/// changeable (hard rule 13 - a default input, never a fact). Car names are
+/// user text: each chip keeps its intrinsic width and the flow wraps whole
+/// chips, so a long Russian name is never truncated.
+struct ReminderFormCarCard: View {
+    let vehicles: [Vehicle]
+    let selectedVehicleID: UUID?
+    let onSelect: (UUID) -> Void
+    /// The "nothing is picked for you" caption explains a CREATE's opener (the
+    /// merged list vs a car's own screen). An edit's car comes from the
+    /// reminder itself, so the caption would only mislead there.
+    let showsCaption: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                reminderEyebrow("Car")
+                Spacer(minLength: 8)
+                if selectedVehicleID == nil {
+                    Text("Pick one")
+                        .font(.caption2.weight(.semibold))
+                        .textCase(.uppercase)
+                        .tracking(0.8)
+                        .foregroundStyle(Theme.Palette.warn)
+                        .accessibilityIdentifier("reminderFormCarRequiredHint")
+                }
+            }
+            CarChipFlow(spacing: 6, rowSpacing: 6) {
+                ForEach(vehicles, id: \.id) { vehicle in
+                    chip(vehicle)
+                }
+            }
+            if showsCaption {
+                Text("Nothing is picked for you here – from a car's own screen yours is pre-chosen, still changeable.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.8))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(13)
+        .formCard()
+    }
+
+    private func chip(_ vehicle: Vehicle) -> some View {
+        let selected = vehicle.id == selectedVehicleID
+        return Button {
+            onSelect(vehicle.id)
+        } label: {
+            Text(vehicle.name)
+                .font(.footnote.weight(selected ? .bold : .semibold))
+                .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(Capsule().fill(selected ? Theme.Palette.taillight.opacity(0.14) : Theme.Palette.dash))
+                .overlay(Capsule().stroke(selected ? Theme.Palette.taillight : Theme.Palette.hairline,
+                                          lineWidth: selected ? 1.5 : 1))
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("reminderFormCar_\(vehicle.name)")
+    }
+}
+
+/// Packs the car chips at their intrinsic widths, left-to-right, wrapping a
+/// chip onto the next row only when it genuinely does not fit - the same
+/// behaviour the fuel card's trailing flow delivers, leading-aligned for a
+/// form's left-edge label. A chip is never compressed, so a car name (user
+/// text) cannot be truncated by the layout.
+private struct CarChipFlow: Layout {
+    var spacing: CGFloat
+    var rowSpacing: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews,
+                      cache: inout ()) -> CGSize {
+        guard !subviews.isEmpty else { return .zero }
+        let maxWidth = proposal.width ?? .infinity
+        let rows = rows(of: subviews, maxWidth: maxWidth)
+        let height = rows.reduce(0) { $0 + $1.height }
+            + rowSpacing * CGFloat(max(0, rows.count - 1))
+        return CGSize(width: proposal.width ?? (rows.map(\.width).max() ?? 0), height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize,
+                       subviews: Subviews, cache: inout ()) {
+        guard !subviews.isEmpty else { return }
+        let rows = rows(of: subviews, maxWidth: proposal.width ?? bounds.width)
+        var y = bounds.minY
+        for row in rows {
+            var x = bounds.minX
+            for index in row.indices {
+                let size = subviews[index].sizeThatFits(.unspecified)
+                subviews[index].place(
+                    at: CGPoint(x: x, y: y + (row.height - size.height) / 2),
+                    proposal: ProposedViewSize(size))
+                x += size.width + spacing
+            }
+            y += row.height + rowSpacing
+        }
+    }
+
+    private struct Row {
+        var indices: [Int] = []
+        var width: CGFloat = 0
+        var height: CGFloat = 0
+    }
+
+    private func rows(of subviews: Subviews, maxWidth: CGFloat) -> [Row] {
+        var result: [Row] = []
+        var row = Row()
+        for (index, subview) in subviews.enumerated() {
+            let size = subview.sizeThatFits(.unspecified)
+            let gap = row.indices.isEmpty ? 0 : spacing
+            if maxWidth.isFinite, !row.indices.isEmpty,
+               row.width + gap + size.width > maxWidth {
+                result.append(row)
+                row = Row()
+            }
+            let nextGap = row.indices.isEmpty ? 0 : spacing
+            row.indices.append(index)
+            row.width += nextGap + size.width
+            row.height = max(row.height, size.height)
+        }
+        if !row.indices.isEmpty { result.append(row) }
+        return result
+    }
+}
+
 // MARK: - Title
 
 /// The title field card. The empty-title warn uses the same amber underline

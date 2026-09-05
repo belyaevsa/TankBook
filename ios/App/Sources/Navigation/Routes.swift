@@ -12,14 +12,26 @@ enum Route: Hashable {
     case settings
     case about
     case reminders
+    /// RV.75: the merged "all cars" Reminders screen
+    /// (design/screens/RemindersAll.dc.html) - every active car's live
+    /// reminders in one list, each row naming its car. Reached today only by
+    /// the DEBUG `-presentScreen remindersAll` hook; its permanent entry points
+    /// are RV.76's Home row, RV.79's Garage count and RV.74's notification deep
+    /// link (docs/SCREENMAP.md -> "Reminders across cars").
+    case remindersAll
     /// PJ.5: the notification-tap deep link - Reminders with the tapped
     /// reminder's completion sheet surfaced. Distinct from `.reminders` (which
     /// is the plain list from the Home banner / Vehicle detail) so a tap's
-    /// destination cannot be confused with a navigation link's.
+    /// destination cannot be confused with a navigation link's. RV.74 will move
+    /// this landing to `.remindersAll` where a deep link cannot be the wrong car.
     case reminderDeepLink(UUID)
-    /// The reminder form. `nil` = create a new reminder (the list's "New
-    /// reminder"); otherwise the reminder being edited/rescheduled.
-    case reminderForm(UUID?)
+    /// The reminder form. `reminderID != nil` = the reminder being
+    /// edited/rescheduled. `reminderID == nil` = create; `vehicleID` is then the
+    /// car the opener named ("New reminder" on a car's own Reminders list),
+    /// or `nil` when no car was named - the merged list's "New reminder" opens
+    /// with the car field EMPTY and Save inert until one is picked (hard rule
+    /// 13, docs/SCREENMAP.md: "the car as its first field").
+    case reminderForm(reminderID: UUID?, vehicleID: UUID?)
     case recentlyDeleted
     /// The entry being edited. `nil` = "no specific entry" (a placeholder link
     /// or a debug-launch screenshot): the screen falls back to the most recent
@@ -54,6 +66,7 @@ enum Route: Hashable {
         case .settings: "Settings"
         case .about: "About"
         case .reminders: "Reminders"
+        case .remindersAll: "Reminders"
         case .reminderDeepLink: "Reminders"
         case .reminderForm: "Reminder form"
         case .recentlyDeleted: "Recently deleted"

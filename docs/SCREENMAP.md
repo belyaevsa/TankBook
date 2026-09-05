@@ -233,6 +233,19 @@ does not is unreadable. Grouping and order are unchanged and come from the same 
 **Needs attention** then **Scheduled**, sorted by `dueSortKey`, so a date reminder and an odometer
 reminder interleave by urgency exactly as the Home banner already picks its one row.
 
+**The merged list shows ACTIVE cars only** (RV.75 decision, recorded in the repository query's doc
+comment): an archived car is a sold car (J13), out of active stats, never the default selection,
+and its monthly summary is cancelled on archive - so its reminders are history, not work for the
+coming weekend, and do not compete with live cars' rows. Its rows stay reachable on the per-car
+screen and return to the merged list the moment the car is unarchived; the exclusion is read-time
+derivation, never a stored state.
+
+**RV.75 status:** the merged screen, its route (`Route.remindersAll`) and the form's car-first
+field are built. Its permanent entry points are the RV.76 row, the RV.79 Garage count and the
+RV.74 deep link, so between RV.75 and RV.76 the screen is reached only by the DEBUG
+`-presentScreen remindersAll` hook; a production build has no door to it yet, and the user-visible
+change this task ships is the form's explicit car field on the paths that already exist.
+
 **Three consequences worth stating, because each one is a rule and not a preference:**
 
 - **The notification deep link lands here** (RV.74). Today it pushes the per-car screen without

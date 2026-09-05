@@ -6,10 +6,11 @@ import TankbookCore
 /// idempotent hook pattern as `HomeTestSeed` / `RecentlyDeletedTestSeed`.
 /// `-seedReminders` writes the artboard's list - an attention "Insurance
 /// renewal" due in 12 days (so the amber chip renders the literal "12 days" on
-/// any run date) plus three scheduled rows - and `-homeResetDatabase` wipes
-/// the app database first so the states are isolated from each other within a
-/// test run. The empty state needs no seed: `-homeResetDatabase` alone leaves
-/// nothing to list.
+/// any run date) plus three scheduled rows - `-seedRemindersAll` writes the
+/// merged list's two-car garage (RV.75, design/screens/RemindersAll.dc.html) -
+/// and `-homeResetDatabase` wipes the app database first so the states are
+/// isolated from each other within a test run. The empty state needs no seed:
+/// `-homeResetDatabase` alone leaves nothing to list.
 enum ReminderTestSeed {
     /// PJ.5: the attention reminder's FIXED id, so a UI test or screenshot can
     /// address the seeded "Insurance renewal" through the replay identifier
@@ -21,6 +22,7 @@ enum ReminderTestSeed {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-seedReminders")
             || arguments.contains("-seedReminderComplete")
+            || arguments.contains("-seedRemindersAll")
             || arguments.contains("-homeResetDatabase") else { return }
 
         if arguments.contains("-homeResetDatabase") {
@@ -31,6 +33,10 @@ enum ReminderTestSeed {
 
         if arguments.contains("-seedReminderComplete") {
             seedCompletionReminder(repository)
+            return
+        }
+        if arguments.contains("-seedRemindersAll") {
+            seedAll(repository)
             return
         }
         guard arguments.contains("-seedReminders") else { return }
@@ -111,6 +117,61 @@ enum ReminderTestSeed {
             dueDate: now.addingTimeInterval(45 * 86_400),
             dueOdometer: nil, recurrence: nil)
         try? repository.upsertReminder(tires)
+    }
+
+    /// The RV.75 merged-list state (design/screens/RemindersAll.dc.html): two
+    /// ACTIVE cars, each carrying one attention row and one scheduled row, so
+    /// the "all cars" list renders both groups with every row naming its car.
+    /// Volvo is upserted FIRST so it is the default selection when a per-car
+    /// test reuses this seed (VehicleSelection falls back to the first live
+    /// car). The attention rows are non-recurring and date-only: completing one
+    /// removes exactly it, leaving the other car's attention row - and its car
+    /// chip - untouched, deterministically.
+    private static func seedAll(_ repository: TankbookRepository) {
+        let now = Date()
+        let calendar = Calendar.current
+        let volvo = makeVehicle("Volvo V60", make: "Volvo", at: now, initialOdometer: 118_930)
+        let skoda = makeVehicle("Skoda Octavia", make: "Skoda", at: now, initialOdometer: 82_000)
+        try? repository.upsertVehicle(volvo)
+        try? repository.upsertVehicle(skoda)
+
+        let insurance = ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Insurance renewal", category: .insurance,
+            dueDate: now.addingTimeInterval(12 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(insurance)
+
+        let tires = ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Winter tires", category: .tires,
+            dueDate: now.addingTimeInterval(45 * 86_400),
+            dueOdometer: nil, recurrence: nil)
+        try? repository.upsertReminder(tires)
+
+        let oilChange = ReminderLifecycle.makeReminder(
+            vehicleId: skoda.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(3 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(oilChange)
+
+        let inspection = ReminderLifecycle.makeReminder(
+            vehicleId: skoda.id, title: "Inspection (TÜV)", category: .inspection,
+            dueDate: calendar.date(byAdding: .month, value: 7, to: now),
+            dueOdometer: nil, recurrence: nil)
+        try? repository.upsertReminder(inspection)
+    }
+
+    private static func makeVehicle(_ name: String, make: String,
+                                    at now: Date,
+                                    initialOdometer: Int) -> Vehicle {
+        Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: name, make: make, model: name, year: 2020,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 60, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: initialOdometer)
     }
 }
 #endif

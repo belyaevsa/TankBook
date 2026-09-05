@@ -28,8 +28,10 @@ struct DestinationView: View {
         case .settings: SettingsView()
         case .about: AboutView()
         case .reminders: RemindersView()
+        case .remindersAll: RemindersView(scope: .allCars)
         case .reminderDeepLink(let reminderID): RemindersView(reminderToComplete: reminderID)
-        case .reminderForm(let reminderID): ReminderFormView(reminderID: reminderID)
+        case .reminderForm(let reminderID, let vehicleID):
+            ReminderFormView(reminderID: reminderID, initialVehicleID: vehicleID)
         case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)
         case .vehicleDetail(let vehicleID): VehicleDetailView(vehicleID: vehicleID)

@@ -13504,6 +13504,91 @@
           }
         }
       }
+    },
+    "Car": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Автомобиль"
+          }
+        }
+      }
+    },
+    "Pick one": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick one"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите один"
+          }
+        }
+      }
+    },
+    "Pick a car to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick a car to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите автомобиль, чтобы сохранить"
+          }
+        }
+      }
+    },
+    "Every car you have, one list. New reminder asks which car.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every car you have, one list. New reminder asks which car."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Все ваши автомобили – в одном списке. Новое напоминание спросит, для какой машины."
+          }
+        }
+      }
+    },
+    "Nothing is picked for you here – from a car's own screen yours is pre-chosen, still changeable.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is picked for you here – from a car's own screen yours is pre-chosen, still changeable."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Здесь за вас ничего не выбрано – со страницы машины ваш автомобиль уже выбран, и его можно поменять."
+          }
+        }
+      }
     }
   },
   "version": "1.0"
