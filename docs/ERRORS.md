@@ -301,6 +301,14 @@ docs/API.md), and "Reply to (optional)". **The load-bearing part is the consent*
 scanning – attach this case", default OFF, persisted, and changeable afterwards (hard rule 13). A
 case is queued only with consent; without it Send surfaces the opt-in and queues nothing.
 
+**"Attach diagnostics" (OB.4, docs/LOGGING.md §5)** sits on About beneath the composer: a once-asked
+opt-in, default OFF and persisted (the same consent shape as above; hard rule 13). It is a
+separate consent from the feedback one, because it sends log data where the feedback consent sends
+none. While it is off the preview is unreachable; turning it on reveals **"Preview what will be
+shared"**, which opens the Diagnostics preview sheet showing the exact text that would be sent -
+not a summary (docs/LOGGING.md §5: the user reads the bytes). Sharing goes through the system share
+sheet (`ActivityView`); the bundle is never posted automatically.
+
 | Condition | Shows | Next step |
 |---|---|---|
 | **Update recommended (`.recommended`, docs/CONFIG.md)** | Dismissible row in About: "A newer version of Tankbook is available." The App Store button renders only when a compiled-in app id exists - none today | Update (App Store, when a listing exists) · dismiss. Quiet information - nothing is withheld |
@@ -309,6 +317,8 @@ case is queued only with consent; without it Send surfaces the opt-in and queues
 | Feedback send fails offline | "Saved – sends automatically when you're online." (queued, like everything) | Nothing to do |
 | Rate-limited (`rate_limited`) | "That's a lot of feedback today – this one's queued for tomorrow." | Nothing to do |
 | Service error (other non-202) | "Saved – we'll try again when the service is back." (queued, hard rule 8) | Nothing to do |
+| **Diagnostics opt-in off** | The "Attach diagnostics" row shows its toggle (default OFF) and explanation; no preview affordance | Toggle it on · leave it off |
+| **Diagnostics preview** | The preview sheet renders the exact bundle text, with Share in the bar | Share (system sheet) · Close / swipe-down - nothing was sent |
 
 ### Vehicle catalog updates (background, `SYNC.md` → Reference data)
 

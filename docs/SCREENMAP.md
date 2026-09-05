@@ -144,7 +144,9 @@ flowchart TD
     Settings -->|Recently deleted| RecentlyDeleted
     Settings -->|About| About
     Settings -.->|back| OpenerTabRoot[return to the tab root that pushed it]
+    About -->|Attach diagnostics · opt-in on| DiagnosticsPreview[Diagnostics preview (sheet)]
     About -.->|back| Settings
+    DiagnosticsPreview -.->|Close / swipe-down| About
     RecentlyDeleted -->|Restore| RecentlyDeleted   (row removed; entry back in Log)
     RecentlyDeleted -.->|back| Settings
     AccountDevices -.->|back| Settings
@@ -193,7 +195,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | any tab root's gear (Log, Trends, Garage) | account card (signed in → Account & devices) · **Sign out** (signed in, the mild account exit - revokes the refresh chain server-side and clears the local session, never touches the log) · language, import, export (system), recently deleted, About | back → the tab root that pushed it |
 | Account & devices (P6.4) | Settings account card (signed in) | device list (revoke; **revoked rows stay listed, marked "Signed out"** – the Settings card's count counts the live ones only, RV.54) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
-| About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) | back → Settings |
+| About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) · **Attach diagnostics** (OB.4): a once-asked consent, default OFF and persisted, whose "Preview what will be shared" opens the Diagnostics preview | back → Settings |
+| **Diagnostics preview** (sheet, docs/LOGGING.md §5) | About -> Attach diagnostics (only reachable once the opt-in is on) | Share (system share sheet - the exact text shown) · read the full redacted bundle: 24 h log window, sync state (last success, dirty/flagged counts, last failure kind + code + traceId), per-table row counts | Close / swipe-down → About - nothing was sent |
 
 ### The capture review step (RV.5)
 

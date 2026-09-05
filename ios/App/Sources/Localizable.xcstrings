@@ -13419,6 +13419,91 @@
           }
         }
       }
+    },
+    "Attach diagnostics": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attach diagnostics"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прикрепить диагностику"
+          }
+        }
+      }
+    },
+    "Preview what will be shared": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Preview what will be shared"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показать, что будет отправлено"
+          }
+        }
+      }
+    },
+    "Diagnostics preview": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diagnostics preview"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предпросмотр диагностики"
+          }
+        }
+      }
+    },
+    "This is exactly what will be sent. Read it before you share.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is exactly what will be sent. Read it before you share."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это ровно то, что будет отправлено. Прочитайте, прежде чем отправлять."
+          }
+        }
+      }
+    },
+    "Tankbook's own recent log (last 24 hours), the sync result and entry counts. Stations, notes and amounts never leave – you preview first.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tankbook's own recent log (last 24 hours), the sync result and entry counts. Stations, notes and amounts never leave – you preview first."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Собственный журнал Tankbook (последние 24 часа), результат синхронизации и счётчики записей. Названия станций, заметки и суммы никогда не покидают устройство – вы просматриваете всё заранее."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

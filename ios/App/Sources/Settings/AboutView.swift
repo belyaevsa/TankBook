@@ -12,6 +12,8 @@ import TankbookCore
 struct AboutView: View {
     @Environment(AppConfigService.self) private var config
     @State private var feedbackModel: FeedbackModel?
+    @State private var diagnosticsModel: DiagnosticsModel?
+    @State private var showsDiagnosticsPreview = false
 
     var body: some View {
         ScrollView {
@@ -19,6 +21,11 @@ struct AboutView: View {
                 identityCard
                 if config.requirement == .recommended {
                     UpdateRecommendedRow()
+                }
+                if let diagnosticsModel {
+                    DiagnosticsSection(model: diagnosticsModel) {
+                        showsDiagnosticsPreview = true
+                    }
                 }
                 if let feedbackModel {
                     FeedbackComposerView(model: feedbackModel)
@@ -30,11 +37,23 @@ struct AboutView: View {
             .padding(.bottom, 32)
         }
         .background(Theme.Palette.midnight)
+        .sheet(isPresented: $showsDiagnosticsPreview) {
+            if let diagnosticsModel {
+                DiagnosticsPreviewView(model: diagnosticsModel)
+            }
+        }
         .task {
             if feedbackModel == nil {
                 feedbackModel = FeedbackService.makeModel()
             }
             await feedbackModel?.autoSendIfRequested()
+            // OB.4: the diagnostics row and its consent, plus the DEBUG/test
+            // seams that seed data and drive the screenshot preview.
+            if diagnosticsModel == nil {
+                DiagnosticsTestSeed.seedIfRequested()
+                diagnosticsModel = DiagnosticsService.makeModel()
+            }
+            presentDiagnosticsPreviewIfRequested()
         }
     }
 
@@ -83,5 +102,20 @@ struct AboutView: View {
             .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
             .multilineTextAlignment(.center)
             .padding(.top, 6)
+    }
+
+    /// DEBUG/screenshot only: `-diagnosticsAutoOpenPreview` opens the diagnostics
+    /// preview a beat after About appears, so the preview can be screenshotted
+    /// without a UI test driving a tap (`simctl` cannot tap). Requires the
+    /// consent to be on (`-diagnosticsConsentOn`) - the sheet is only reachable
+    /// through the real affordance path. Production never passes the argument.
+    private func presentDiagnosticsPreviewIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-diagnosticsAutoOpenPreview") else { return }
+        // The seam opens the REAL affordance path only: no consent, no preview.
+        guard diagnosticsModel?.hasConsented == true else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            showsDiagnosticsPreview = true
+        }
     }
 }

@@ -212,6 +212,15 @@ and a crash's breadcrumbs are lost unless the user sends a diagnostics export by
 
 `ERRORS.md`/About already offers "attach app version and device model (no log data)" on the feedback form. This spec adds one more explicit, opt-in step: **"Attach diagnostics"** collects the last 24h of `INFO`+ OSLog entries for our subsystem, runs them through the redactor, and shows the user a **preview of exactly what will be sent** before sending. Never silent, never automatic, never on by default. The bundle carries traceIds, so support can find the matching server lines.
 
+The bundle (OB.4, `DiagnosticsExport` + About's "Attach diagnostics" row) is:
+
+- **The log window**: the breadcrumb ring (the in-memory fallback, what OSLog may have dropped) merged with the last 24h of this app's own OSLog entries (subsystem `live.belyaev.tankbook`, INFO+, window and entry cap as compiled constants - `DiagnosticsLogConstants`). Every OSLog line is **re-scrubbed before it is held** (`OSLogTextRedactor`): the collector cannot reconstruct a line's original classification from opaque text, so it masks the value of any field whose *name* is a known Sensitive carrier - a line is never trusted because OSLog produced it. When the store is unreadable (permissions, simulator), the bundle degrades to the ring alone and says so on a `logStore=unavailable` line, so support can tell a quiet device (`logStore=ok lines=0`) from a missing capability.
+- **The sync state** (OB.3): `lastSuccessAt`, the dirty/flagged counts, and the last failure's class, `code` and `traceId` - the traceId is what maps the report to the server's own lines (§2).
+- **Per-table DB row counts** - counts only (`Repository.rowCount`).
+- The app/device metadata (`appVersion`, `platform`, `deviceId`) and the generated-at stamp.
+
+Every field on the wire is Safe-class (hard rule 12); a field that would still be interesting to someone who wanted to profile the user does not ship (§6). The opt-in is the same once-asked, persisted, default-OFF shape as the feedback consent (hard rule 13); while it is off the preview is unreachable. The preview screen shows `rendered()` verbatim - the exact text the share sheet sends (`docs/SCREENMAP.md` -> Diagnostics preview).
+
 ## 6 · Retention, access, and what we do not build
 
 - Server logs: 30 days hot, then dropped. No log warehouse, no per-user analytics store, no third-party analytics SDK in the app.
