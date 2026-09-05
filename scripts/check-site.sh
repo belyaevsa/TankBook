@@ -186,19 +186,6 @@ else
   pass "copy rule: no over-promises in content"
 fi
 
-# Positive controls for the greps above: strings that must be present, so a
-# wrong pattern can never read as "passed".
-if grep -q 'TestFlight is opening soon' site/public/index.html; then
-  pass "grep sanity: EN landing contains its hero CTA string"
-else
-  fail "grep sanity: EN landing contains its hero CTA string"
-fi
-
-if grep -q 'или введите цифры' site/public/ru/index.html; then
-  pass "grep sanity: RU landing contains its hero accent string"
-else
-  fail "grep sanity: RU landing contains its hero accent string"
-fi
 
 # ── hard rule 15: both doors ship the same screenshot files by treatment ──
 # W12: Hugo's processed variants keep the base name (`P1.4-home_hu_<hash>_...`),
@@ -256,53 +243,22 @@ done
 
 # Every row of SITE.md's legal table, in both languages. Greps are per-language
 # exact substrings of the shipped copy, so a rewrite that drops a claim fails.
-privacy_claims() {
-  # label                      EN pattern                       RU pattern
-  check_claim "no account needed"          "with no account"                "без аккаунта"
-  check_claim "sign-in optional"           "Sign-in is optional"            "Вход необязателен"
-  check_claim "TLS in transit"             "TLS"                            "TLS"
-  check_claim "encrypted at rest"          "encrypted at rest"              "зашифрованы на стороне хранилища"
-  check_claim "no E2E in v1"               "end-to-end encryption"          "Сквозного шифрования"
-  check_claim "never log domain values"    "domain values"                  "никогда не пишем в журналы"
-  check_claim "gateway images transient"   "transiently"                    "на лету"
-  check_claim "gateway images not retained" "never retained"                "не сохраняются"
-  check_claim "import parse stored 30 days" "deliberately"                  "сознательно"
-  check_claim "import parse 30-day window" "30 days"                        "30 дней"
-  check_claim "import needs no sign-in"    "No sign-in is required"         "Аккаунт не нужен"
-  check_claim "deletion is a tombstone"    "tombstone"                      "надгробие"
-  check_claim "devices learn via 410"      "410"                            "410"
-  check_claim "local log stays local"      "stays on your phone"            "остаётся на вашем телефоне"
-  check_claim "export free CSV JSON"       "CSV"                            "CSV"
-  check_claim "export free JSON"           "JSON"                           "JSON"
-  check_claim "no ads"                     "no ads"                         "Никакой рекламы"
-  check_claim "no server-side analytics"   "server-side analytics"          "серверной аналитики"
-  check_claim "site: no cookies"           "no cookies"                     "не ставит cookie"
-  check_claim "site: no third-party analytics" "third-party analytics"      "сторонней аналитик"
-}
-check_claim() {
-  label="$1"; en="$2"; ru="$3"
-  # Newlines survive minification inside paragraphs, so match against
-  # whitespace-flattened HTML - a soft wrap must not hide a real claim.
-  en_html="$(tr '\n' ' ' < site/public/privacy/index.html)"
-  ru_html="$(tr '\n' ' ' < site/public/ru/privacy/index.html)"
-  if printf '%s' "$en_html" | grep -qi "$en" && printf '%s' "$ru_html" | grep -q "$ru"; then
-    pass "S3 privacy claim: $label (EN + RU)"
-  else
-    fail "S3 privacy claim: $label (EN: '$en', RU: '$ru')"
-  fi
-}
-privacy_claims
-
-# Positive control for the claim greps: they must be able to fail.
-if grep -qi 'claim that was never written' site/public/privacy/index.html; then
-  fail "privacy-claim grep sanity: pattern matched nothing yet returned success"
-else
-  if grep -qi 'domain values' site/public/privacy/index.html; then
-    pass "privacy-claim grep sanity: real claim matches, absent pattern does not"
-  else
-    fail "privacy-claim grep sanity: real claim does not match - greps are broken"
-  fi
-fi
+# NOTE (2026-09-05, product owner: "remove checking for page texts, it's
+# excessive"). Twenty greps used to assert that the privacy page CONTAINED
+# particular sentences, in both languages. They were removed because they
+# tested wording, not truth: rewriting the Russian pages natively broke twelve
+# of them at once while every underlying claim stayed true, which trains you to
+# edit the checker until it goes green - the opposite of what a gate is for.
+#
+# What survives below is the inverse and is worth keeping: checks that no FALSE
+# claim is published (an inverted E2E/TLS stance, a subscription clause while
+# Pro is deferred, an over-promise). Asserting the absence of a lie is stable
+# under rewriting; asserting the presence of a sentence is not.
+#
+# One thing the deleted checks did catch, and it is why this note exists rather
+# than a silent deletion: the RU rewrite dropped the HTTP 410 detail from the
+# deletion section. Content loss during a rewrite is a real risk, and nothing
+# automated guards it now - re-read both languages after a copy change.
 
 # Terms: the Pro tier is deferred - the word may not appear at all, EN or RU.
 if grep -in 'subscription' site/public/terms/index.html >/dev/null 2>&1; then
