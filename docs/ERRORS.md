@@ -200,6 +200,8 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Synced, nothing pending | Account card, relative: "Synced just now" / "Synced 3 hours ago" | None. **This is reassurance, not a warning** - it never turns amber with age |
+| Signed in, **never synced on this device** (OB.3) | Account card: "Not synced yet" - the honest reading of a device that has no stored success date. Previously nil mapped to "Synced just now", a claim a cold relaunch could not support | None; the automatic cycle handles it |
+| **Relaunch after a stored failure** (OB.3) | Account card caption (`settingsLastFailure`): the same copy the live cycle would have shown for that class, with its next step - 426/tier/unknown-4xx amber "update the app", an auth-expired/revoked "sign in", a 5xx "service unreachable", a 429 "retrying in a moment". A **statement of the last outcome, never an alarm** (colour follows the live split), shown only until a live cycle supersedes it. `.offline` never captions - offline is never an error surface. The raw `code`/`traceId` are persisted and exported (OB.4), never shown | Per class, the live vocabulary's step (update / sign in / wait / try again). A support id on screen is a separate decision nobody has made |
 | Sync pending (S7) | Passive row: "Waiting to sync · 5 changes" | None needed; tap for detail |
 | Offline with a queue | Same passive row, plus "Will sync when you're back online" | None. **A long queue is not an error state** - a week offline is the same as an hour (S7) |
 | **Sync now** tapped, offline | Row settles back to "Will sync when you're back online" | None. The tap is never punished with an error |

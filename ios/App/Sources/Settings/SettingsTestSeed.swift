@@ -45,6 +45,17 @@ enum SettingsTestSeed {
         /// "Your garage now follows your account" confirmation, rendered by a
         /// frozen-sync screenshot (no real push or device fetch runs).
         case signedIn
+        /// OB.3: a stored sync state survives a relaunch. `restored` = a stored
+        /// success date three hours back and no failure - the relaunch must
+        /// render the AGE ("Synced 3 hours ago"), never the old "just now"
+        /// claim. `lastFailure` = a stored failure (a 426-class refusal, the
+        /// doc's example) with no live outcome - Settings must render its
+        /// caption with the next step before any cycle has run. Both are seeded
+        /// WITHOUT a launch session (the launch cycle would overwrite them), so
+        /// the state is read back through a fresh coordinator at Settings
+        /// appear, exactly as a relaunch reads it.
+        case ob3Restored
+        case ob3LastFailure
     }
 
     static func state(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> State {
@@ -67,7 +78,9 @@ enum SettingsTestSeed {
             "-seedSettingsRevoked410": .revoked410,
             "-seedSettingsRevokedSignedOut": .revokedSignedOut,
             "-seedSettingsLocalLog": .localLog,
-            "-seedSettingsSignedIn": .signedIn
+            "-seedSettingsSignedIn": .signedIn,
+            "-seedSettingsRestoredSync": .ob3Restored,
+            "-seedSettingsLastFailure": .ob3LastFailure
         ]
         for argument in arguments {
             if let state = seeds[argument] { return state }
@@ -127,8 +140,14 @@ enum SettingsTestSeed {
         // real 410 -> drop path, never by racing the launch cycle.
         // The local-log seed is guest: the L4 sign-in flow must START from the
         // guest card, so no session may exist at launch.
+        // The OB.3 seeds (restored sync state / last failure) are deliberately
+        // NOT planted at launch either: the launch opportunistic cycle would run
+        // against the offline seeded transport and overwrite the stored state
+        // it is supposed to prove survives. Seeded at Settings appear instead,
+        // the way the auth-expired seed is.
         guard state != .none, state != .guest, state != .authExpired,
-              state != .localLog, state != .revoked410 else { return }
+              state != .localLog, state != .revoked410,
+              state != .ob3Restored, state != .ob3LastFailure else { return }
         let store = KeychainSessionStore()
         try? store.clear()
         if state == .revokedSignedOut {
@@ -138,6 +157,31 @@ enum SettingsTestSeed {
             try? store.setDeviceRevoked(true)
         } else {
             try? store.save(stubSession())
+        }
+        seedStoredSyncState(for: state)
+    }
+
+    /// OB.3: writes the persisted sync state each seed state must read back
+    /// (the store the coordinator restores from). Deterministic per state - a
+    /// previous test's stored failure must never leak into a later one, so
+    /// every signed-in seed writes what IT needs, and every other state clears.
+    static func seedStoredSyncState(for state: State) {
+        let store = UserDefaultsSyncStateStore()
+        switch state {
+        case .synced, .signedIn:
+            store.save(PersistedSyncState(lastSuccessAt: Date(), lastFailure: nil))
+        case .ob3Restored:
+            store.save(PersistedSyncState(lastSuccessAt: Date().addingTimeInterval(-3 * 3600),
+                                          lastFailure: nil))
+        case .ob3LastFailure:
+            store.save(PersistedSyncState(
+                lastSuccessAt: Date().addingTimeInterval(-2 * 86_400),
+                lastFailure: SyncFailureRecord(at: Date().addingTimeInterval(-86_400),
+                                               kind: .upgradeRequired,
+                                               code: "upgrade_required",
+                                               traceId: "ob3-seed-0001")))
+        default:
+            store.save(PersistedSyncState(lastSuccessAt: nil, lastFailure: nil))
         }
     }
 
@@ -226,6 +270,12 @@ enum SettingsTestSeed {
         if seedsQueue(state) || state == .flagged || state == .localLog {
             seed(repository: try? AppStore.repository(), state: state)
         }
+        // OB.3: write the persisted sync state THIS seed must show. Runs after
+        // the session write so the coordinator AppSync builds on the next
+        // refresh reads exactly the state the seed planted (no leftover from an
+        // earlier test, and - for the launch-planted seeds - overwriting what
+        // the launch offline cycle may have recorded).
+        seedStoredSyncState(for: state)
     }
 
     /// The four server-ahead states refuse the push with a dirty queue still

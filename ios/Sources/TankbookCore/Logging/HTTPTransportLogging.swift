@@ -59,13 +59,26 @@ public struct LoggingHTTPTransport: TankbookHTTPTransport, Sendable {
 
         let response = try await inner.execute(request)
 
+        // OB.3: on a failure the line carries the server's `code` member from
+        // the problem+json body (docs/LOGGING.md §4 promises `errorCode`; the
+        // decorator is the layer that still holds the raw body, so it reads it
+        // here). ONLY the `code` member, only for an error status - never a
+        // title, never a detail, never any other body value (hard rule 12),
+        // and never for a success (a 200 body is user content, not an error).
+        let errorCode: String?
+        if response.status >= 400 {
+            errorCode = TankbookHTTPClient.problemBodyMembers(fromBody: response.body).code
+        } else {
+            errorCode = nil
+        }
         log.emit(NetResponse(
             endpoint: endpoint,
             status: response.status,
             durationMs: Int(Date().timeIntervalSince(startedAt) * 1000),
             requestBytes: requestBytes,
             responseBytes: response.body?.count ?? 0,
-            retryAfter: response.value(forHeader: "Retry-After").flatMap(Int.init)),
+            retryAfter: response.value(forHeader: "Retry-After").flatMap(Int.init),
+            errorCode: errorCode),
             traceId: traceId)
         return response
     }

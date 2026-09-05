@@ -14,11 +14,18 @@ enum SyncService {
         let director = AppConfigStore.shared.director
         let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
         let refresher = AppSessionRefresher.shared
+        // OB.3: one diagnostics sink shared by the transport (which records the
+        // wire code + traceId on a server answer) and the coordinator (which
+        // clears it per cycle and persists it with a failure), and the device
+        // store the sync state survives a relaunch in.
+        let diagnostics = SyncFailureDiagnostics()
+        let syncStateStore = UserDefaultsSyncStateStore()
         let transport = RemoteSyncTransport(
             director: director,
             transport: makeAppTransport(),
             tokenProvider: tokenProvider,
-            refresher: refresher
+            refresher: refresher,
+            diagnostics: diagnostics
         )
         // P4.6: the blob gate hooks attachments into the push loop - a live
         // attachment record uploads its rendition (begin -> PUT -> commit)
@@ -42,7 +49,10 @@ enum SyncService {
             powerState: powerState,
             log: AppLog.shared
         )
-        return SyncCoordinator(engine: engine, powerState: powerState)
+        return SyncCoordinator(engine: engine,
+                               powerState: powerState,
+                               syncStateStore: syncStateStore,
+                               failureDiagnostics: diagnostics)
     }
 
     /// The lazy-download fetcher for opening an entry (docs/SYNC.md -> Delivery):
@@ -124,6 +134,12 @@ final class AppSync {
     private(set) var flaggedCount = 0
     private(set) var lastSyncDate: Date?
     private(set) var lastOutcome: SyncOutcome?
+    /// OB.3: the last failure, restored from the device store so Settings can
+    /// render it on a relaunch before any cycle has run. nil when nothing has
+    /// ever failed, or once a successful cycle cleared it. The raw `code` and
+    /// `traceId` inside are persisted and exported (OB.4), never shown to the
+    /// user.
+    private(set) var lastFailure: SyncFailureRecord?
     private(set) var isSyncing = false
     /// RV.26: whether the session store carries the persisted `authExpired` mark
     /// (a rejected refresh). Read in `refresh` and OR-ed into the surface state,
@@ -326,9 +342,19 @@ final class AppSync {
             // outlive the session it confirmed.
             didJustSignIn = false
         }
+        if session != nil, core == nil {
+            // OB.3: a signed-in relaunch must see its persisted sync state (the
+            // last success date and last failure) even before any cycle runs -
+            // the coordinator restores it from the store when created here. A
+            // guest has no sync surface, so no coordinator is built.
+            _ = coordinator()
+        }
         if let core {
             lastSyncDate = core.lastSyncDate()
             lastOutcome = core.lastOutcome()
+            lastFailure = core.lastFailure()
+        } else {
+            lastFailure = nil
         }
         // The "· N device(s)" suffix (docs/JOURNEYS.md J11a), decided by the
         // `DeviceCountCache` (RV.6): reuse/fetch/clear as it decides. RV.54:

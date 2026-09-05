@@ -40,6 +40,10 @@ public final class SyncCoordinator: @unchecked Sendable {
         var inFlight = false
         var lastSyncDate: Date?
         var lastOutcome: SyncOutcome?
+        // OB.3: the last failure as a persisted `SyncFailureRecord`. Loaded
+        // from the store at init so a relaunch sees it before any cycle runs;
+        // written (and mirrored into the store) when a cycle ends in a failure.
+        var lastFailure: SyncFailureRecord?
         // RV.18: the per-trigger cycle count - how often sync actually fired,
         // by which door asked. Counts only, never what the cycle moved.
         var cycles = SyncCycleCounts()
@@ -61,17 +65,41 @@ public final class SyncCoordinator: @unchecked Sendable {
     /// `Task.sleep`; tests inject a gate or a recorder so no schedule assertion
     /// ever waits on a wall clock.
     private let retryWait: @Sendable (Duration) async -> Void
+    /// OB.3: where the sync state persists across relaunches. nil (the default,
+    /// with an in-memory store substituted) keeps an un-wired embedding's
+    /// behaviour exactly as it was - nothing survives a relaunch.
+    private let syncStateStore: any SyncStateStore
+    /// OB.3: the sink the engine's transport records `(code, traceId)` into.
+    /// The same instance is injected into the `RemoteSyncTransport`; this
+    /// coordinator clears it at the start of each cycle and take()s it when the
+    /// cycle ends in a failure.
+    private let failureDiagnostics: SyncFailureDiagnostics
 
     public init(engine: SyncEngine,
                 powerState: any PowerStateProvider = ProcessInfoPowerState(),
                 lastSyncDate: Date? = nil,
+                syncStateStore: (any SyncStateStore)? = nil,
+                failureDiagnostics: SyncFailureDiagnostics? = nil,
                 jitter: @escaping @Sendable () -> Double = { Double.random(in: 0...1) },
                 retryWait: @escaping @Sendable (Duration) async -> Void = { try? await Task.sleep(for: $0) }) {
         self.engine = engine
         self.powerState = powerState
         self.jitter = jitter
         self.retryWait = retryWait
-        state.withLock { $0.lastSyncDate = lastSyncDate }
+        self.syncStateStore = syncStateStore ?? InMemorySyncStateStore()
+        self.failureDiagnostics = failureDiagnostics ?? SyncFailureDiagnostics()
+        // OB.3: a coordinator built over a store restores the persisted state
+        // before any cycle runs, so the Settings surface can render the stored
+        // success date and last failure on a relaunch. The stored value is the
+        // authority when it exists (SyncService seeds `lastSyncDate:` from it);
+        // the explicit parameter covers the pre-OB.3 call sites that pass a
+        // date without a store.
+        let loaded = self.syncStateStore.load()
+        let restoredDate = loaded.lastSuccessAt ?? lastSyncDate
+        state.withLock {
+            $0.lastSyncDate = restoredDate
+            $0.lastFailure = loaded.lastFailure
+        }
     }
 
     /// True while a cycle is in flight. The "Sync now" row reads this for its
@@ -81,9 +109,11 @@ public final class SyncCoordinator: @unchecked Sendable {
         state.withLock { $0.inFlight }
     }
 
-    /// When the last **non-inert** cycle finished, or nil before the first
-    /// sync. A failed (offline) cycle does not advance this - the status surface
-    /// must not claim "just now" after a transport outage.
+    /// When the last **successful** non-inert cycle finished, or nil before the
+    /// first sync (OB.3: restored from the store at init, so a relaunch reads
+    /// the true age - never a claim of "just now"). A cycle that ends in any
+    /// failure class does not advance this - the status surface must not claim
+    /// "just now" after a transport outage, a refusal, or an auth event.
     public func lastSyncDate() -> Date? {
         state.withLock { $0.lastSyncDate }
     }
@@ -91,6 +121,15 @@ public final class SyncCoordinator: @unchecked Sendable {
     /// The last non-inert cycle's outcome, for the Settings status surface.
     public func lastOutcome() -> SyncOutcome? {
         state.withLock { $0.lastOutcome }
+    }
+
+    /// The last failure (OB.3): restored from the store at init so a relaunch
+    /// renders it before any cycle runs, then kept in step with each cycle. A
+    /// successful cycle clears it; a failing one replaces it. Offline is a
+    /// recordable failure class like any other - the Settings surface decides
+    /// whether to show it (offline is never an error surface).
+    public func lastFailure() -> SyncFailureRecord? {
+        state.withLock { $0.lastFailure }
     }
 
     /// The delay the currently scheduled retry is sleeping for, or nil when no
@@ -152,14 +191,43 @@ public final class SyncCoordinator: @unchecked Sendable {
             }
         }
 
+        // OB.3: clear any diagnostics a PREVIOUS cycle recorded before this one
+        // reaches the engine, so a stale server code cannot be attributed to a
+        // cycle that did not produce it. Cycles are serialized by the inFlight
+        // gate above, so this clear and the take() on a failure cannot interleave.
+        failureDiagnostics.clear()
+
         let outcome = await engine.synchronize(trigger: trigger)
+        let completedAt = Date()
+        // A failure is classified in ONE place (`SyncFailureKind(outcome:)`),
+        // mirroring what the Settings surface already derives; nil means the
+        // cycle did not fail, so it advances the success date and clears any
+        // earlier failure. The wire diagnostics ride the record raw.
+        let failure = SyncFailureKind(outcome: outcome).map { kind in
+            let diagnostics = failureDiagnostics.take()
+            return SyncFailureRecord(at: completedAt, kind: kind,
+                                     code: diagnostics?.code, traceId: diagnostics?.traceId)
+        }
         state.withLock { snapshot in
             snapshot.lastOutcome = outcome
-            if !outcome.offline && !outcome.serverUnavailable {
-                snapshot.lastSyncDate = Date()
+            if let failure {
+                // A failing cycle records the failure and leaves the last
+                // success date alone (OB.3): a transport outage must not read
+                // as "synced just now".
+                snapshot.lastFailure = failure
+            } else {
+                snapshot.lastSyncDate = completedAt
+                snapshot.lastFailure = nil
             }
             snapshot.inFlight = false
         }
+        // Mirror the in-memory decision into the store so a relaunch sees it
+        // (OB.3). Written only for a cycle that actually fired - a deferred or
+        // inert one returned above and writes nothing.
+        let persisted = state.withLock {
+            PersistedSyncState(lastSuccessAt: $0.lastSyncDate, lastFailure: $0.lastFailure)
+        }
+        syncStateStore.save(persisted)
         scheduleRetry(after: outcome)
         return outcome
     }

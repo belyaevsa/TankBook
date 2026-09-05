@@ -10088,13 +10088,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld day ago"
+                  "value": "Synced %lld day ago"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld days ago"
+                  "value": "Synced %lld days ago"
                 }
               }
             }
@@ -10141,13 +10141,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld hour ago"
+                  "value": "Synced %lld hour ago"
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld hours ago"
+                  "value": "Synced %lld hours ago"
                 }
               }
             }
@@ -13365,6 +13365,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "На устройстве неверная дата (%1$@) – для входа она должна быть верной. Откройте Настройки > Дата и время."
+          }
+        }
+      }
+    },
+    "Not synced yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not synced yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ещё не синхронизировано"
           }
         }
       }

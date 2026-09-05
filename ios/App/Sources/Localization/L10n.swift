@@ -308,19 +308,22 @@ enum L10n {
     }
 
     /// The status line's reassurance text (docs/ERRORS.md -> Settings): "Synced
-    /// just now", "Synced 3 hours ago" or "Synced 5 days ago". A full localised
-    /// phrase per language with real plural rules (RU час/часа/часов,
-    /// день/дня/дней) - never concatenation. A nil `lastSyncDate` (signed in,
-    /// nothing has synced yet) reads as "just now": nothing is pending, so it is
-    /// reassurance, never a warning.
+    /// just now", "Synced 3 hours ago" or "Synced 5 days ago". Full localised
+    /// phrases with real plural rules (RU час/часа/часов, день/дня/дней). OB.3:
+    /// nil means genuinely never synced on this device (the date survives a
+    /// relaunch), so it reads its own honest string, never "just now".
     static func syncedAgo(lastSyncDate: Date?, now: Date = Date()) -> String {
-        guard let lastSyncDate else { return localize("Synced just now") }
+        guard let lastSyncDate else { return neverSyncedPhrase }
         let interval = now.timeIntervalSince(lastSyncDate)
         if interval < 3600 { return localize("Synced just now") }
         let hours = Int(interval / 3600)
         if hours < 24 { return syncedHoursAgo(hours) }
         return syncedDaysAgo(Int(interval / 86_400))
     }
+
+    /// "Not synced yet" - honest `inkSoft` reassurance for a signed-in device
+    /// that has never completed a sync (OB.3); the automatic cycle handles it.
+    static var neverSyncedPhrase: String { localize("Not synced yet") }
 
     /// "Synced %lld hours ago" - plural (RU час / часа / часов).
     static func syncedHoursAgo(_ hours: Int) -> String {
@@ -630,15 +633,18 @@ extension L10n {
 
 extension L10n {
     /// "Synced just now · 1 device" - the account card's reassurance line with
-    /// the device count (docs/JOURNEYS.md J11a -> First push: "Synced just now
-    /// · 1 device"). One full localised phrase per language - the count uses the
-    /// String Catalog's real RU plural rules (устройство / устройства /
-    /// устройств, the 11/21 edge) and the `%@` slot receives the app-composed
-    /// `syncedAgo` text, which never governs a case (docs/LOCALIZATION.md).
-    /// `deviceCount` nil hides the count - the plain "Synced just now".
+    /// the device count (docs/JOURNEYS.md J11a -> First push). One full
+    /// localised phrase per language - the count uses the String Catalog's real
+    /// RU plural rules (устройство / устройства / устройств, the 11/21 edge)
+    /// and the `%@` slot receives the app-composed `syncedAgo` text, which never
+    /// governs a case (docs/LOCALIZATION.md). `deviceCount` nil hides the count;
+    /// a nil `lastSyncDate` hides it too - "· N devices" would pretend a sync
+    /// had happened.
     static func syncedStatus(lastSyncDate: Date?, deviceCount: Int?, now: Date = Date()) -> String {
+        guard let deviceCount, let lastSyncDate else {
+            return syncedAgo(lastSyncDate: lastSyncDate, now: now)
+        }
         let ago = syncedAgo(lastSyncDate: lastSyncDate, now: now)
-        guard let deviceCount else { return ago }
         return String(localized: "\(ago) · \(deviceCount) devices")
     }
 

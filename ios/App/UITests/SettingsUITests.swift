@@ -66,6 +66,41 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(app.buttons["settingsSyncNowButton"].exists, "the manual trigger is present")
     }
 
+    // MARK: - OB.3 the sync state survives a relaunch (docs/TASKS.md OB.3)
+
+    /// A stored success date is restored on a relaunch and rendered as its AGE
+    /// ("Synced 3 hours ago"), never the old "just now" claim that nil mapped
+    /// to. The seed writes session + store only at Settings appear, and
+    /// `-freezeSyncState` keeps the launch cycle from racing it - the card
+    /// reads exactly what a cold relaunch reads before its first cycle.
+    func testRestoredSyncDateShowsItsAgeNotJustNow() {
+        let app = launch(["-presentScreen", "settings", "-freezeSyncState",
+                          "-seedSettingsRestoredSync"])
+        let status = syncStatus(app)
+        XCTAssertTrue(status.waitForExistence(timeout: 10))
+        XCTAssertEqual(status.label, "Synced 3 hours ago",
+                       "a relaunch with a stored success date shows the true age, never 'just now'")
+    }
+
+    /// A stored last failure renders on a relaunch, before any cycle re-derives
+    /// it, in the ERRORS.md vocabulary with its next step (hard rule 7). The
+    /// seed is a 426 refusal, never offline - offline never captions. Frozen so
+    /// the launch cycle cannot overwrite the record before the card renders it.
+    func testRestoredLastFailureShowsItsNextStep() {
+        let app = launch(["-presentScreen", "settings", "-freezeSyncState",
+                          "-seedSettingsLastFailure"])
+        let caption = app.staticTexts["settingsLastFailure"]
+        XCTAssertTrue(caption.waitForExistence(timeout: 10),
+                      "the persisted failure must render as a caption on the account card")
+        XCTAssertEqual(caption.label,
+                       "This needs a newer version of Tankbook – update to sync",
+                       "the caption names the same next step the live notice would (hard rule 7)")
+        XCTAssertTrue(app.staticTexts["settingsAccountTitle"].exists,
+                      "the caption rides the signed-in account card")
+        XCTAssertFalse(app.buttons["settingsSignInButton"].exists,
+                       "a stored server-ahead failure is not a session problem - no re-sign-in card")
+    }
+
     func testPendingShowsWaitingToSyncQueue() {
         let app = launchSettings(seed: "-seedSettingsPending")
         let status = syncStatus(app)

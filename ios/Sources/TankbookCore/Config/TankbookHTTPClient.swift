@@ -331,7 +331,12 @@ public struct TankbookHTTPClient: Sendable {
     /// "Error envelope"); both nil when the body is absent, not JSON, or
     /// carries no such member. One JSONSerialization for both - never two
     /// passes over the body.
-    private static func problemBodyMembers(fromBody body: Data?) -> (traceId: String?, code: String?) {
+    ///
+    /// Shared (not private) because the observable-transport decorator reads
+    /// the same `code` member for `net.response`'s `errorCode` (OB.3,
+    /// docs/LOGGING.md §4) - one parse helper, never a second copy that could
+    /// drift.
+    static func problemBodyMembers(fromBody body: Data?) -> (traceId: String?, code: String?) {
         guard let body,
               let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
             return (nil, nil)

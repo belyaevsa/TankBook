@@ -218,6 +218,20 @@ struct SettingsView: View {
                 .foregroundStyle(notice.isAttention ? Theme.Palette.warn : Theme.Palette.inkSoft)
                 .accessibilityIdentifier(notice.accessibilityIdentifier)
         }
+        // OB.3: the persisted last failure, rendered on a relaunch before any
+        // cycle has re-derived it (once one has, the live surface above owns
+        // the copy and this caption is redundant). A statement of the last
+        // outcome, never an alarm - colour follows the live split, copy names
+        // the next step (hard rule 7). `.offline` never captions.
+        if let caption = SyncFailureCaption.resolve(record: sync.lastFailure,
+                                                    hasLiveOutcome: sync.lastOutcome != nil) {
+            Text(caption.text)
+                .font(.caption)
+                .foregroundStyle(caption.isAttention ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                .lineSpacing(1.5)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("settingsLastFailure")
+        }
         if sync.justSignedIn {
             Text(L10n.garageFollowsAccountMessage)
                 .font(.caption)

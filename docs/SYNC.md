@@ -451,6 +451,24 @@ cannot be tested, and this one's whole content is *when it says no*.
 
 Three things live there, and the split between them is what keeps hard rule 8 intact.
 
+**OB.3: the surface's state survives a relaunch.** The device persists when the
+last non-inert cycle succeeded and, separately, how the last cycle failed - a
+`PersistedSyncState` (`lastSuccessAt` + a `SyncFailureRecord` holding the
+failure's class and, when the server answered, the raw problem+json `code` and
+`traceId`) under one UserDefaults key (`ios/Sources/TankbookCore/Sync/
+SyncStateStore.swift`). A success writes the date and clears the failure; a
+failing cycle writes the record and leaves the date alone; a deferred or inert
+cycle writes nothing. The record is **infrastructure** - a timestamp, a class, a
+code, a trace id - and holds no domain value (hard rule 12); OB.4 exports it.
+The coordinator restores it at init, so Settings reads the true age ("Synced 3
+hours ago") and the last failure from the first frame of a relaunch, before any
+cycle has re-derived them. A signed-in device that has never synced on this
+device reads "Not synced yet", never a claim of "just now". The persisted
+last-failure caption is a statement of the last outcome, rendered only until a
+live cycle supersedes it, in the vocabulary of docs/ERRORS.md -> Settings with
+its next step (hard rule 7) and the live surface's colour split - offline is
+never captioned (offline is never an error surface).
+
 1. **Status, always present when signed in.** A relative timestamp on the account card:
    "Synced just now", "Synced 3 hours ago", or "Waiting to sync · 5 changes" with
    "Will sync when you're back online" when there is no connection. It is **reassurance, never a

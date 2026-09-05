@@ -9,14 +9,21 @@ import Foundation
 public struct RemoteSyncTransport: SyncTransport {
     private let client: TankbookHTTPClient
     private let director: ConfigTransportDirector
+    /// OB.3: the sink the `httpError` catch records `(code, traceId)` into so
+    /// the coordinator can persist them with the cycle's failure. The SAME
+    /// instance is injected into the coordinator; a default (unshared) sink is
+    /// harmless - nothing reads it.
+    private let diagnostics: SyncFailureDiagnostics
 
     public init(director: ConfigTransportDirector,
                 transport: any TankbookHTTPTransport,
                 tokenProvider: any AuthorizationTokenProvider,
-                refresher: (any SessionRefreshing)? = nil) {
+                refresher: (any SessionRefreshing)? = nil,
+                diagnostics: SyncFailureDiagnostics = SyncFailureDiagnostics()) {
         self.client = TankbookHTTPClient(transport: transport, tokenProvider: tokenProvider,
                                          refresher: refresher)
         self.director = director
+        self.diagnostics = diagnostics
     }
 
     public func pull(since: Int64, limit: Int) async throws -> SyncPullResponse {
@@ -55,13 +62,20 @@ public struct RemoteSyncTransport: SyncTransport {
             // The host answered - the 401 that triggered the refresh, then the
             // refresh's own non-2xx. The session is gone; the base URL is fine,
             // so this is a response, never evidence the URL is wrong.
+            // OB.3: nothing server-side to record - the refresh's rejection is
+            // not an httpError carrying a code - so clear any earlier cycle's
+            // code rather than let it ride an auth-expired outcome.
             await director.report(.response(status: 401))
+            diagnostics.recordTransportFailure()
             throw SyncServerError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, let retryAfterSeconds) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, let traceId, let retryAfterSeconds) {
             // The host answered with a non-2xx sync status - a response, never
             // a transport failure - mapped by its code when the server named
-            // one, else per status below.
+            // one, else per status below. OB.3: the code and traceId the engine
+            // would otherwise throw away are recorded (raw - a newer server's
+            // code must survive intact for OB.4's export) before the mapping.
             await director.report(.response(status: status))
+            diagnostics.record(code: code, traceId: traceId)
             throw Self.error(for: status, retryAfterSeconds: retryAfterSeconds, code: ServerErrorCode(raw: code))
         } catch {
             // hostNotAllowlisted, tooManyRedirects, a transport error, or a
@@ -69,6 +83,7 @@ public struct RemoteSyncTransport: SyncTransport {
             // answered", so each counts toward auto-revert, and none is a 5xx -
             // the device is offline, not the server down.
             await director.report(.transportFailure)
+            diagnostics.recordTransportFailure()
             throw SyncServerError.offline
         }
     }
