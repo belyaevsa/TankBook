@@ -132,8 +132,7 @@ they would index against the promise the copy rule forbids.
 
 **Promotional text:**
 
-> No account, no subscription, no ads. Your history lives on your phone, and the export takes the
-> receipt photos with it - so the next phone is not where the last five years go missing.
+> No account, no subscription, no ads. Your history lives on your phone, and the export takes the receipt photos with it - so the next phone is not where the last five years go missing.
 
 **Description:**
 
@@ -287,3 +286,56 @@ device's own language.
   at the in-app control, not an email.
 - **No subscription in v1** - Pro is cut (P6.16), so no in-app purchases are declared. The free
   tier includes cloud reading at 50 reads a day (RV.4).
+
+## 6 · App Store Connect: the exact answers (2026-09-05)
+
+Every field on the App Information and age-rating screens, with the reason. These are answers to
+Apple's questions about **this build**, so a change to the build can invalidate one - the paywall
+row at the end is exactly that case.
+
+### App Information
+
+| Field | Answer | Why |
+|---|---|---|
+| Primary language | English (U.S.) | Russian ships as a localisation of the same listing; both sets of copy live in `STORE-COPY.md` |
+| Primary category | **Travel** | Where the incumbents sit (`COMPETITORS.md`); iOS has no automotive category, that is an Android one |
+| Secondary category | **Finance** | The listing leads on cost. Utilities is a dumping ground and Productivity reads as work software; Navigation would invite a review expecting maps |
+| Content rights | **Does not contain, show or access third-party content** | No third-party artwork ships: `Assets.xcassets` holds only the app icon and `BrandMark`. Car makes and models are plain text in `VehicleCatalog.seed.json` ("VW Golf") - nominative use, not content. Station names come from the user's own typing or their receipt. The one arguable item is central-bank reference rates (`Rates.seed.json`, `source: "ecb"`): published facts, reusable with acknowledgement, which is why the conversion card should name its source |
+| License agreement | Apple's standard EULA | Nothing in the app needs custom terms |
+
+### Regulations and permits
+
+- **Digital Services Act - must be set up, or the app is removed from sale in the EU.** v1 is free,
+  has no in-app purchase, no ads and sells nothing, so **non-trader** is the accurate declaration
+  and no personal contact details are published. **This changes at v2**: the Pro tier makes the
+  developer a trader, and Apple then publishes name, address, phone and email on the listing. Decide
+  the publishing entity before that release, not during it.
+- **Vietnam game license** - not a game. Leave empty.
+- **Regulated medical devices** - nothing medical; the category is Travel, not Health & Fitness.
+  Leave empty.
+- **App Store server notifications** and the **app-specific shared secret** - both exist to service
+  in-app purchases. v1 has none, and the notification URL would need a backend endpoint that does
+  not exist. Leave unset until the v2 paywall.
+
+### Age rating - capabilities
+
+All six are **No**, and each is checkable in the code rather than assumed:
+
+| Capability | Answer | Evidence |
+|---|---|---|
+| Unrestricted web access | No | No `WKWebView` and no `SFSafariViewController` anywhere in `ios/App/Sources` or `ios/Sources` |
+| User-generated content | No | Nothing a user writes is distributed to anyone. Sync carries a user's records to **their own** devices |
+| Social media | No | There is no feed, no discovery and no redistribution |
+| Social media disabled under 13 | No | Nothing to disable |
+| Messaging and chat | No | Users cannot reach each other; there is no shared surface |
+| Advertising | No | No ad SDK, no promotion of anything - and the listing claims this, so it must stay true |
+
+Rating stays **4+**.
+
+### One thing that contradicts the answers, and must be fixed before submission
+
+Settings shows a **"Tankbook Pro" card** (`SettingsView.swift:418`, and again on the quota card at
+`:569`) whose route resolves to `LeafContent()` - `Color.clear` (`Destinations.swift:40`, `:174`).
+Tapping it pushes an **empty screen**. That is a guideline 2.1 rejection waiting to happen, and it
+contradicts both the "no paid tier in this version" line in the description and the no-IAP
+declaration above. Registered as **RV.70**.
