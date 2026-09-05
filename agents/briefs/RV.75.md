@@ -1,164 +1,166 @@
-# RV.75 [v1.1] - one reminders list across every car
+# RV.75 – Reminders across every car, on one screen
 
-## The gap
+**[v1.1]** The row is `docs/TASKS.md` -> RV.75. Read it first: it carries the cause, the fix stance
+and the checks, and this brief does not repeat them.
 
-`RemindersView` lists one car, and the data layer cannot do better: `liveReminders(forVehicle:)`
-(`Repository.swift:280`) is the only query there is. A user with three cars checks three places and
-must switch cars to do it - and the Home banner derives from the **selected** car only
-(`ReminderBanner.bannerReminder` over one car's rows), so another car's due work is invisible from
-the surface the user actually looks at.
+This is the **dependency** of the reminders set. RV.74, RV.76 and RV.79 all reuse the query you add
+here, so the query's shape matters more than the screen's.
 
-**Merged is the right shape, and it is not a toggle.** A reminder competes for the user's weekend,
-not for a car's attention: "insurance on the Skoda" and "oil on the Volvo" are one decision. The
-grouping stays exactly what it is today - **Needs attention**, then **Scheduled**, from
-`ReminderLifecycle.derivedStatus` - because the question is "what needs me", never "which car".
+## Where you may write
 
-This was reviewed on 2026-09-05 by two independent agents against the mocks and the code
-(`diagnostics/RESEARCH-reminder-entry-pro.md` and `-qwen.md`); they converged on this placement.
-**Read both before you design anything** - the arguments are already made.
+Only inside this repository:
+
+- `ios/Sources/TankbookCore/Persistence/Repository.swift` (the new query)
+- `ios/App/Sources/Reminders/` (the screen)
+- `ios/App/Sources/Navigation/` (the route, if you add one)
+- `ios/Tests/TankbookCoreTests/` and `ios/App/UITests/`
+- `ios/App/Sources/Localizable.xcstrings` (every user-facing string, hard rule 10)
+- `docs/SCREENMAP.md` only if you change navigation the map states
+
+**Run no `git` command.** Never move, rename or delete a file you did not create - another session
+may be working in this checkout; if something is in your way, report it and carry on.
+**Never `pgrep -f`**: your brief is your command line, so it matches you. Use `pgrep -x`.
+
+## Write code first, explore second
+
+Add the repository query and its unit test **before** touching the screen. It is the part every
+other task in this set depends on, and a run that explores for an hour and lands nothing has
+produced nothing.
+
+## What already exists - build on it, do not redesign it
+
+- `TankbookRepository.liveReminders(forVehicle:)` (`Repository.swift:280`) - the per-car query, which
+  stays. It calls the private `fetchLiveForVehicle(_:vehicleId:in:)` helper (`:639`), which filters
+  `deletedAt == nil` and orders by `createdAt`.
+- `liveVehicles()` (`:97`) - how vehicles are listed, including whether archived ones come back.
+- `ReminderLifecycle` - `derivedStatus`, `isAttentionDue`, `isActive`, `due`. **The screen's
+  grouping and every status transition already live here.** Do not reimplement them.
+- `ReminderBanner.bannerReminder(among:currentOdometer:now:)`
+  (`ios/Sources/TankbookCore/Service/ReminderBanner.swift`) - shows the sort you must match:
+  `ReminderLifecycle.due($0)?.dueSortKey(currentOdometer:now:)`, `createdAt` as the tiebreak.
+- `RemindersView` (`ios/App/Sources/Reminders/RemindersView.swift`) - today's per-car screen: the
+  two sections, `rowView`, the completion sheet, the dismiss and delete alerts, `newReminderCard`.
+- `ReminderNotificationCoordinator.reconcile(vehicleId:)` - per-vehicle, and it stays that way.
+
+## Read before writing
+
+1. **`docs/TASKS.md` -> RV.75** - the authority for this task.
+2. **`docs/SCREENMAP.md` -> "Reminders across cars [v1.1]"** - the decided shape, including what the
+   merged list does that the per-car one does not.
+3. **`docs/JOURNEYS.md` -> J7d** - where a reminder comes from; the Plan-it row is this screen.
+4. `design/screens/RemindersAll.dc.html` and `design/screens/ReminderForm.dc.html` - the mocks. They
+   are HTML: read them as source. Match the structure, not the pixels of a browser render.
+5. `CLAUDE.md` hard rules **2** (stats are derived, never stored) and **13** (the app suggests, the
+   user decides).
 
 ## What to build
 
-1. **A cross-vehicle repository query** for live reminders. **Decide and write down in its doc
-   comment** what it excludes and why: tombstoned rows certainly, and **archived cars' rows** - say
-   which way you went and why. If `RV.74` has already added a by-id resolve, extend that work rather
-   than adding a parallel query; check before writing.
-2. **The merged screen** (`design/screens/RemindersAll.dc.html`): the two existing groups, sorted by
-   `dueSortKey` so a date reminder and an odometer reminder **interleave by urgency**, exactly as
-   `ReminderBanner` already orders them - never grouped by car.
-3. **Every row names its car.** A row that does not say which car is unreadable in a merged list.
-4. **"New reminder" from here must make the car an explicit choice.** Defaulting silently to the
-   selected car is the quiet guess hard rule 13 forbids. Per `design/screens/ReminderForm.dc.html`:
-   **car is the first field**, empty and required when opened from the merged list, **Save inert
-   until it is chosen**; pre-filled and still editable when the opener named a car.
-5. **The per-car screen from Vehicle detail stays.** It is the right screen when you are looking AT
-   a car.
+**1. The query.** `liveReminders(forVehicle:)` gains a sibling that returns live reminders across
+vehicles. Decide and **say in your report**: does it take an optional vehicle id, or is it a
+separate function? Whichever you choose, the per-car call must keep working unchanged - RV.74 and
+RV.79 will both call yours.
 
-**Do not** duplicate the lifecycle rules anywhere: attention, sorting and completion all come from
-the existing core types.
+Two questions the row does not settle, and you must decide and justify **in code comments**:
 
-## Explicitly out of scope
+- **Archived cars.** `liveVehicles()` tells you how archived vehicles are treated elsewhere. A
+  reminder on an archived car is almost certainly not something the user wants nagging them, but
+  deleting it is not your call. Say what you did and why.
+- **Ordering.** Reminders from different cars interleave by urgency, never grouped by car - the
+  sort is `dueSortKey`, the same one `ReminderBanner` uses. A merged list sorted by car is the
+  failure mode this screen exists to avoid.
 
-The permanent entry point that reaches this screen (`RV.76`) and the per-car counts (`RV.79`) - both
-depend on this and are separate rows. Notification actions (`RV.78`). The offer-after-save (`RV.77`).
+**2. The screen.** A merged variant of the reminders list. Every row **names its car** - a merged
+row that does not is unreadable. Sections stay "Needs attention" then "Scheduled", derived through
+`ReminderLifecycle`, never recomputed locally.
+
+**3. The car field on the form.** `ReminderFormView` gains a car field, first in the form:
+
+- opened from the merged list: **empty, required, Save disabled until a car is chosen**;
+- opened from a car's own list or Vehicle detail: **filled in, and still changeable** (hard rule 13);
+- with exactly one live vehicle it still renders - it is the only thing that says which car this is
+  about - and it may arrive pre-selected.
+
+**4. Localisation.** Every new string in `Localizable.xcstrings`, EN and RU, as a complete phrase per
+language - never concatenation (the P1.4 lesson: `"%@ spend"` composed as `"%@ расходы"` rendered
+"АВГУСТ РАСХОДЫ").
+
+## Out of scope - do not build these
+
+- The Home entry row and its count (RV.76), the Garage counts (RV.79), the post-service offer
+  (RV.77), notification actions (RV.78), and the notification deep-link fix (RV.74). **RV.74 is
+  tempting because your query makes it easy. Leave it.**
+- Any change to `reconcile(vehicleId:)` or to how notifications are scheduled.
+- A header `+`. Reviewed and rejected on 2026-09-05: both list headers spend the trailing slot on
+  the car-scope chip, and the dashed card at the end of the list is the app's own idiom
+  (`docs/SCREENMAP.md`). The dashed card stays where it is.
 
 ## Tests
 
-L1: the new query returns live reminders for every vehicle and excludes tombstoned rows (and
-archived cars' rows per your decision - assert whichever you chose).
-L1: sorting **interleaves two cars' reminders by urgency**, not by car.
-L4 `RemindersAllCarsUITests` (new): two seeded cars, each with one attention row - **both appear,
-each naming its car**; completing one leaves the other untouched.
-L4: New reminder from this screen makes the car an explicit choice - **the form arrives with the car
-field EMPTY and Save disabled until one is picked**; opened from a car's list it arrives filled and
-is still editable (hard rule 13).
-Suites to run: `RemindersAllCarsUITests`, `RemindersUITests`.
+Current baseline, measured on this checkout on 2026-09-06, immediately before this brief was
+written: **`swift test` 1469 tests in 157 suites, passed, exit 0.** It must **rise**. Report the number you observed, not the number you expected.
 
-### Vacuous traps, named
-- Asserting a **count** of rows without asserting BOTH cars are represented.
-- Testing with one car - the whole point is the second one.
-- Asserting the new query in isolation while the screen still calls the per-vehicle one. **Assert
-  what the screen shows.**
+- **L1** (`ios/Tests/TankbookCoreTests/`): the new query returns reminders from more than one
+  vehicle; excludes tombstoned rows; treats archived cars the way you decided (assert it either way);
+  and sorting **interleaves two cars' reminders by urgency** - build the fixture so a car-B reminder
+  sorts between two car-A reminders, which is the assertion a per-car implementation cannot pass.
+- **L4** `RemindersUITests` (`ios/App/UITests/RemindersUITests.swift` - extend it, do not add a
+  parallel suite): with two seeded cars each holding one attention row, **both appear and each names
+  its car**; completing one leaves the other in place. Opened from the merged list the form's car
+  field is empty and Save is disabled; opened from a car's own list it arrives filled and can still
+  be changed.
 
-### Mutations (run, report, restore)
-1. Make the query per-vehicle again behind the same signature -> the two-car L4 test must fail.
-2. Sort by car, then urgency -> the interleaving L1 test must fail.
-3. Pre-fill the car field from `AppCarSelection` on the merged path -> the form test must fail.
+**Vacuous traps for this task** - a check that passes today is not a check:
 
-## Screenshots
+- Asserting a row count without asserting that **both cars** are represented. A per-car list of two
+  reminders passes that.
+- Testing with one seeded car, where the bug cannot exist.
+- Asserting the query in isolation while the screen still calls the per-vehicle one - assert the
+  screen shows both cars.
+- Asserting the car field exists rather than its **state** (empty vs filled, Save enabled vs not).
 
-`RV.75-reminders-all.png` / `-ru.png` (the merged list, two cars, both groups) and
-`RV.75-reminder-form-car-empty.png` / `-ru.png` (the form opened from the merged list, car field
-empty, Save inert). **Check the RU car chips do not truncate** - car names are user text.
+Name the seed you add and pass `-homeResetDatabase` with it: seeds are idempotent and silently do
+nothing on a populated database, so without it you capture the previous run's state.
 
-## Docs to reconcile
+## The baseline gate (`CLAUDE.md` rule 14)
 
-`docs/SCREENMAP.md` (the new screen and its back paths), `docs/JOURNEYS.md` J7d (the Plan-it row),
-and `docs/SCHEMA.md` only if the query's exclusion rule needs recording there.
-## Where you may write
+From the **repo root**, judged by exit code, not by reading output:
 
-Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:
-`ios/Sources/TankbookCore/**`, `ios/App/Sources/**`, `ios/Tests/**`, `ios/App/UITests/**`, the docs
-named in this brief, and `design/screenshots/**`.
+```
+cd ios && swift build ; echo "BUILD=$?"
+cd ios && swift test ; echo "IOSTEST=$?"
+swiftlint lint ; echo "LINT=$?"          # from the ROOT - the excludes are root-relative
+```
 
-**Never move, rename or delete a file you did not create.** A second Claude session works in this
-checkout and there is a git worktree under `.claude/worktrees/`. Expect files, and even a red test,
-that are not yours: **report them and carry on** - never "clean the baseline".
-Do NOT tick anything in `docs/TASKS.md` - the orchestrator ticks at merge. Do NOT commit.
-No `git add -A`, `git checkout`, `git stash`, `git clean`.
+Then the named UI suite only:
 
-## The reminders code as it stands (verified 2026-09-05, use these, do not re-derive)
+```
+xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:TankbookUITests/RemindersUITests test ; echo "UITEST=$?"
+```
 
-- **Core lifecycle, all pure, all L1-testable**: `ios/Sources/TankbookCore/Service/ReminderLifecycle.swift`
-  (`derivedStatus`, `isActive`, `due`, `dueSortKey`, `complete`, `reschedule`, `makeReminder`),
-  `ReminderBanner.swift`, `ReminderCompletion.swift`, `ReminderNotification.swift`.
-  **`.attention` is derived at read time; only the transition is stored** so notifications fire
-  once. Terminal rows (`.done`/`.dismissed`) never re-derive. Do not duplicate any of this.
-- **The only repository query is per-vehicle**: `liveReminders(forVehicle:)`,
-  `ios/Sources/TankbookCore/Persistence/Repository.swift:280`.
-- **The screen scopes to the selected car**: `ios/App/Sources/Reminders/RemindersView.swift`, load
-  at `:355-370` via `AppCarSelection.selectedVehicle`, then
-  `notificationCoordinator.reconcile(vehicleId:)`.
-- **The deep link**: `NotificationDelegate.userNotificationCenter(_:didReceive:)`
-  (`ios/App/Sources/Reminders/ReminderNotificationCoordinator.swift:136-147`) ->
-  `NotificationRouteParser.resolve(identifier:)` -> `NotificationRouter.Request.openRemindersFor`
-  (`ios/App/Sources/Navigation/NotificationRouter.swift:17-37`) -> `TabRoots.drive`
-  (`ios/App/Sources/Navigation/TabRoots.swift:428-437`).
-- **The Home banner**: `ReminderBanner.bannerReminder` (one row, `.attention` only) rendered by
-  `ios/App/Sources/Home/HomeBanners.swift:64-82`, whose "View" is a `NavigationLink(value: Route.reminders)`.
-- `ReminderCategory` is `ios/Sources/TankbookCore/Domain/Enums.swift:146-159` (note `.other(String)`).
-- Seeds: `ios/App/Sources/Reminders/ReminderTestSeed.swift`; UI suite `RemindersUITests`.
-
-## Hard rules that decide things in this area
-
-**2** (stats/counts are DERIVED, never stored) · **5** (amber is attention; colour is never the only
-channel) · **7** (every error and every dead end names its next step) · **10** (all strings through
-the String Catalog, EN + RU, full localised phrases - never concatenation) · **12** (never log a
-domain value; ids, counts and codes only) · **13** (the app suggests, the user decides - every
-derived value is editable at the moment it is offered and again afterwards) · **14** (it builds and
-it lints before anything else counts).
-
-## The baseline gate (CLAUDE.md rule 14)
-
-From the **repo ROOT**, judged by exit code (`echo $?`), never by skimming output:
-- `cd ios && swift build` -> 0
-- `cd ios && swift test` -> 0, count reported. **Read the current count yourself before you start**
-  and report before -> after; other rows are landing in parallel, so any number quoted in a brief is
-  stale by the time you run.
-- `swiftlint lint` **from the repo root** -> 0 errors. From `ios/` it prints thousands of phantom
-  violations; that false red has cost two sessions.
-- the localization gate **from the repo root** -> 0
-- `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
-  `swift build` does NOT compile `ios/App`; only `xcodebuild` does. Run `xcodegen generate` first if
-  you added a file. **Check the observed count is non-zero** - a filter matching nothing prints
-  "0 tests ... passed". Do NOT run the whole UI suite (2026-08-29 rule).
-- **Never `pgrep -f` for a build** - your own brief is in your command line and you will match, and
-  could kill, a sibling agent. Use `pgrep -x xcodebuild`.
+Check the test count is non-zero: a filter matching nothing prints "0 tests ... passed".
+Do not run the full UI suite - that belongs to phase completion.
 
 ## Screenshots
 
-EN **and** RU, **dark**, into `design/screenshots/`, named as this brief says.
-- Capture **outside** a test run - `simctl` and `xcodebuild test` fight over the device.
-- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
-- **Verify every EN/RU pair differs: `md5 -q a.png b.png`**, and report the hashes. RV.58 shipped an
-  "RU" shot byte-identical to its EN one and could not tell.
-- A `-` prefixed launch argument can **persist across relaunches**; reinstall between shots when a
-  seeded state sticks (RV.64).
-- **RU is not a formality.** Russian runs 20-30% longer and short strings expand worst. Read the
-  rendered Russian for grammar and word order, not just overflow. **And check every action line
-  actually renders in RU**: RV.80 is an action that appears in EN and silently does not in RU, found
-  only by looking.
-- You cannot see your own screenshots. The orchestrator opens all of them; do not claim they look right.
+EN and RU, dark theme, of the merged list with two cars and of the form with the car field empty:
+
+```
+xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU -homeResetDatabase <your seed>
+```
+
+Commit them to `design/screenshots/` as `RV.75-<screen>.png` / `-ru.png`. **You cannot see them** -
+you have no image input - so do not claim they show the right screen. Say what you captured and let
+the orchestrator open them. Never capture while `xcodebuild test` is running: they fight over the
+device and both lose.
 
 ## Report back
 
-1. Exit code of every gate, and observed test counts (before -> after).
-2. Each mutation: what you broke, which named test failed, that you restored it byte-for-byte.
-   **A mutation that PASSES is a finding** - say so rather than moving on. That has happened twice
-   today and both times the test, not the code, was the problem.
-3. Screenshot paths and md5s.
-4. What the user can now do that they could not before. If the honest answer for some case is
-   "nothing changed", say so.
-5. Anything in this brief that was wrong. A fence can be wrong the same way a diagnosis can (RV.70):
-   report it as a Residual rather than obeying quietly.
-6. Whether the tests were actually **run**, not only written.
+1. The captured exit codes above, verbatim.
+2. `swift test` observed count, and the count before your change.
+3. The UI suite's observed test count (non-zero).
+4. **The query's signature**, and your two decisions with their reasons: archived cars, and ordering.
+5. Which strings you added, and confirmation both languages are present.
+6. Anything you found wrong in the row or this brief. A brief that is wrong gets fixed - say so
+   rather than working around it.
