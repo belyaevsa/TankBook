@@ -119,7 +119,11 @@ struct AddVehicleView: View {
         // user decides (hard rule 13).
         form.selectedFuelKinds = Set(prefill.fuelKinds.prefix(1))
         if let tank = prefill.tankCapacityL {
-            form.capacity = AddVehicleSupport.capacityText(tank)
+            // The catalog stores litres; the form field reads in the user's
+            // volume unit (RV.69). Un-converted, a gallons user saw "50" beside
+            // a "gal" label and got a 50 L tank for a ~190 L figure they could
+            // not question - a wrong fact, inverting hard rule 13.
+            form.capacity = AddVehicleSupport.tankCapacityText(litres: tank, unit: units.volume)
         } else if let battery = prefill.batteryCapacityKWh {
             form.capacity = AddVehicleSupport.capacityText(battery)
         }
@@ -203,7 +207,10 @@ struct AddVehicleView: View {
             plate: trimmedOrNil(form.plate),
             powertrain: form.powertrain,
             fuelKinds: orderedFuelKinds,
-            tankCapacityL: isElectric ? nil : capacityValue,
+            // The field holds the user's display unit; `tankCapacityL` stores
+            // litres, so the figure converts back at the boundary (RV.69).
+            tankCapacityL: isElectric ? nil
+                : capacityValue.map { AddVehicleSupport.tankCapacityLitres(display: $0, unit: units.volume) },
             batteryCapacityKWh: isElectric ? capacityValue : nil,
             homeCurrency: form.homeCurrency,
             units: units,

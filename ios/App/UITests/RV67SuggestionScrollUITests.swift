@@ -24,7 +24,11 @@ final class RV67SuggestionScrollUITests: XCTestCase {
         // `-homeResetDatabase` makes every launch deterministic (empty garage,
         // no session): the Add car screen is reachable from the Garage tab and
         // a saved car lands in a garage that holds exactly that car.
-        app.launchArguments = ["-homeResetDatabase"] + args
+        // The locale is pinned to metric English: the Add-car units come from
+        // the device locale, and these suites assert litre figures ("55",
+        // "50") that are only deterministic under a metric region (RV.69).
+        app.launchArguments = ["-homeResetDatabase",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_GB"] + args
         app.launch()
         return app
     }

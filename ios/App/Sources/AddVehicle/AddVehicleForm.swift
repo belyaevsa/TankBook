@@ -175,12 +175,33 @@ enum AddVehicleSupport {
         return symbol.isEmpty ? code.rawValue : "\(code.rawValue) \(symbol)"
     }
 
-    /// Formats a pre-filled capacity ("71.0" -> "71") for the text field.
+    /// Formats a pre-filled capacity ("71.0" -> "71", "13.2086..." -> "13.2")
+    /// for the text field and the suggestion subtitle. Delegates to the core
+    /// boundary (`VehicleCapacity`) so the app and the L1 suite cannot drift.
     static func capacityText(_ value: Double) -> String {
-        if value == value.rounded() {
-            return String(Int(value))
-        }
-        return String(value)
+        VehicleCapacity.formattedText(value)
+    }
+
+    /// A tank capacity **stored in litres** (docs/SCHEMA.md: the storage unit is
+    /// the authority), rendered as the number the user's volume unit reads. This
+    /// is the single OUTWARD boundary a litre tank capacity crosses into UI or
+    /// form text (RV.69): the suggestion row, the Add-car apply and the Vehicle
+    /// detail load all go through it. The implementation lives in core
+    /// (`VehicleCapacity.displayText`, tested there); the factor is
+    /// `ManualFillUpMath` - the codebase's one litre<->display converter, the
+    /// same one fill volumes use - never a second copy. Battery kWh never
+    /// passes through here: it is unit-invariant.
+    static func tankCapacityText(litres: Double, unit: VolumeUnit) -> String {
+        VehicleCapacity.displayText(litres: litres, unit: unit)
+    }
+
+    /// The stored litres behind a tank capacity figure the user is looking at
+    /// in their display unit ("13.2" gal -> ~50 L). The exact inverse of
+    /// `tankCapacityText`, and the single INWARD boundary a display-unit figure
+    /// crosses back into `Vehicle.tankCapacityL` on save. Battery kWh is never
+    /// routed through here.
+    static func tankCapacityLitres(display: Double, unit: VolumeUnit) -> Double {
+        VehicleCapacity.litres(display: display, unit: unit)
     }
 
     /// The currencies offered in the Home currency menu (the ones the docs name

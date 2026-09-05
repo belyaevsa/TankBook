@@ -78,16 +78,21 @@ struct AddVehicleCatalogArea: View {
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Palette.ink)
                     HStack(spacing: 6) {
+                        // A year is not a quantity: interpolated into a SwiftUI
+                        // `Text` it picks up locale grouping ("2,011–" in EN,
+                        // "2 011–" in RU), so it is built verbatim (RV.69).
                         if let end = suggestion.entry.yearsEnd {
-                            Text("\(suggestion.entry.yearsStart)–\(end)")
+                            Text(verbatim: "\(suggestion.entry.yearsStart)–\(end)")
                         } else {
-                            Text("\(suggestion.entry.yearsStart)–")
+                            Text(verbatim: "\(suggestion.entry.yearsStart)–")
                         }
                         if let tank = suggestion.entry.tankCapacityL {
-                            Text("· \(AddVehicleSupport.capacityText(tank)) \(L10n.volumeUnit(units.volume))")
+                            let tankText = AddVehicleSupport.tankCapacityText(litres: tank, unit: units.volume)
+                            Text("· \(tankText) \(L10n.volumeUnit(units.volume))")
                         }
                         if let battery = suggestion.entry.batteryCapacityKWh {
-                            Text("· \(AddVehicleSupport.capacityText(battery)) \(L10n.kWh)")
+                            let batteryText = AddVehicleSupport.capacityText(battery)
+                            Text("· \(batteryText) \(L10n.kWh)")
                         }
                     }
                     .font(.caption)

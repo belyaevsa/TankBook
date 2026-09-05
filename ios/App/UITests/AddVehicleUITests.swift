@@ -13,13 +13,18 @@ final class AddVehicleUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(args: [String] = []) -> XCUIApplication {
+    private func launch(args: [String] = [],
+                        locale: [String] = ["-AppleLanguages", "(en)", "-AppleLocale", "en_GB"]) -> XCUIApplication {
         let app = XCUIApplication()
         // `-homeResetDatabase` makes every launch deterministic: without it a
         // default launch passes NO arguments, so a pristine device shows
         // Welcome and a dirty device (three cars from earlier suites) hits the
         // free-tier cap - the Add car screen is reachable from neither.
-        app.launchArguments = ["-homeResetDatabase"] + args
+        // The locale is pinned to metric English (en_GB) so the pre-fill
+        // figures below are unit-deterministic: Add-car units come from the
+        // device locale (RV.69), and a simulator defaulting to a US region
+        // would silently run these assertions in gallons.
+        app.launchArguments = ["-homeResetDatabase"] + locale + args
         app.launch()
         return app
     }
@@ -228,6 +233,134 @@ final class AddVehicleUITests: XCTestCase {
         let capacity = app.textFields["addVehicleTankCapacityField"]
         scrollTo(capacity, in: app)
         XCTAssertEqual(capacity.value as? String, "71")
+    }
+
+    // MARK: - RV.69: the catalogue's litres are shown AND saved in the user's unit
+
+    /// Scroll an element on the pushed Vehicle detail clear of its pinned save
+    /// bar (the detail screen's own form scroll view; no keyboard is up when
+    /// arriving from Garage).
+    private func scrollDetailTo(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 14) {
+        func formScrollView() -> XCUIElement {
+            app.scrollViews.allElementsBoundByIndex
+                .max { $0.frame.height < $1.frame.height } ?? app.scrollViews.firstMatch
+        }
+        let clearPoint = app.frame.height * 0.75
+        var swipes = 0
+        while swipes < maxSwipes, !element.isHittable || element.frame.midY > clearPoint {
+            formScrollView().swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(element.exists, "\(element) never entered the hierarchy")
+        XCTAssertTrue(element.isHittable && element.frame.midY <= clearPoint,
+                      "\(element) never reached a tappable position clear of the save bar")
+    }
+
+    /// Replaces a field's whole value (long-press -> Select All -> type). The
+    /// simulator's cmd+A needs a hardware keyboard, so it is deliberately not
+    /// used here.
+    private func replaceText(in field: XCUIElement, app: XCUIApplication, with text: String) {
+        field.tap()
+        field.press(forDuration: 1.2)
+        let selectAll = app.menuItems["Select All"]
+        if selectAll.waitForExistence(timeout: 2) {
+            selectAll.tap()
+        }
+        field.typeText(text)
+    }
+
+    /// The RV.69 headline: the catalogue stores litres, and a Lada Granta is a
+    /// 50 L car. A US user must see and be offered ~13.2 gal - never "50 gal"
+    /// (~190 L, impossible). A metric run cannot see this bug (there "50" is
+    /// right in both units), so the test pins a US locale. The same run also
+    /// proves the year renders ungrouped ("2011–", not "2,011–") under a locale
+    /// that groups thousands.
+    func testSuggestionShowsAndAppliesTankInGallonsAndYearUngrouped() {
+        let app = launch(locale: ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        openAddCar(app)
+
+        let makeModel = app.textFields["addVehicleMakeModelField"]
+        XCTAssertTrue(makeModel.waitForExistence(timeout: 5))
+        makeModel.tap()
+        makeModel.typeText("Lada")
+
+        // The row is a head start the user can JUDGE: the figure must read as a
+        // plausible gallons tank. Granta = 50 L = ~13.2 gal (3.7854 L/gal).
+        let row = app.buttons["addVehicleSuggestion_0"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "the suggestion list must mount")
+        let label = row.label
+        XCTAssertTrue(label.contains("13.2 gal"),
+                      "the row must offer ~13.2 gal for a 50 L tank; label was: \(label)")
+        XCTAssertFalse(label.contains("50 gal"),
+                       "the row must not print the litre figure as gallons; label was: \(label)")
+        XCTAssertTrue(label.contains("2011–"),
+                      "the model year must carry no thousands separator; label was: \(label)")
+        XCTAssertFalse(label.contains("2,011"),
+                       "the model year must not group ('2,011–'); label was: \(label)")
+
+        // Applying the suggestion must put the SAME converted figure in the
+        // form - fixing only the label would leave the saved value wrong.
+        row.tap()
+        let capacity = app.textFields["addVehicleTankCapacityField"]
+        scrollTo(capacity, in: app)
+        XCTAssertEqual(capacity.value as? String, "13.2",
+                       "the applied form.capacity must be the gallons figure, not the raw litres")
+    }
+
+    /// The L1 round-trip: accept the suggestion under gallons, save, and read
+    /// the capacity back off the saved vehicle. Its tank must be ~50 L *as a
+    /// physical volume* - the only UI proof is switching the vehicle's volume
+    /// unit to litres and seeing "50", because a half-conversion (13.2 stored
+    /// as litres) would read "13.2" there. The applied figure also stays
+    /// editable (hard rule 13's second half).
+    func testGallonsSuggestionSavesPhysicalVolumeAndStaysEditable() {
+        let app = launch(locale: ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+        openAddCar(app)
+
+        let makeModel = app.textFields["addVehicleMakeModelField"]
+        XCTAssertTrue(makeModel.waitForExistence(timeout: 5))
+        makeModel.tap()
+        makeModel.typeText("Lada")
+        let row = app.buttons["addVehicleSuggestion_0"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        let capacity = app.textFields["addVehicleTankCapacityField"]
+        scrollTo(capacity, in: app)
+        XCTAssertEqual(capacity.value as? String, "13.2")
+
+        app.buttons["addVehicleSaveButton"].tap()
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5),
+                      "the car was saved back to the Garage")
+
+        let garageRow = app.buttons.matching(identifier: "garageCarRow").firstMatch
+        XCTAssertTrue(garageRow.waitForExistence(timeout: 5))
+        garageRow.tap()
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
+
+        // Under the vehicle's own gallons units the stored 50 L reads 13.2 gal.
+        let detailCapacity = app.textFields["vehicleDetailTankCapacityField"]
+        XCTAssertTrue(detailCapacity.waitForExistence(timeout: 5))
+        scrollDetailTo(detailCapacity, in: app)
+        XCTAssertEqual(detailCapacity.value as? String, "13.2")
+
+        // Switch the volume unit to litres: the SAME physical tank must re-read
+        // ~50 L. If the save had stored the gallons number as litres (the
+        // half-conversion), it would read "13.2" here.
+        let volumeMenu = app.buttons["vehicleDetailVolumeMenu"]
+        scrollDetailTo(volumeMenu, in: app)
+        XCTAssertTrue(volumeMenu.isHittable)
+        volumeMenu.tap()
+        let litresOption = app.buttons["L"]
+        XCTAssertTrue(litresOption.waitForExistence(timeout: 5), "the volume menu must offer litres")
+        litresOption.tap()
+        XCTAssertEqual(detailCapacity.value as? String, "50",
+                       "the stored tank must round-trip to ~50 L physical when the unit changes")
+
+        // Hard rule 13's second half: the value stays a user-editable default.
+        replaceText(in: detailCapacity, app: app, with: "45")
+        XCTAssertEqual(detailCapacity.value as? String, "45",
+                       "the pre-filled tank is a default the user can edit")
     }
 
     // MARK: - P2.3c fuel pills: diesel + petrol is discouraged, never blocked

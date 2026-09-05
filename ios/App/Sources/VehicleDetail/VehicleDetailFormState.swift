@@ -41,8 +41,18 @@ struct VehicleDetailFormState {
         selectedFuelKinds = Set(vehicle.fuelKinds)
         odometer = vehicle.initialOdometer.map(OdometerFormat.grouped) ?? ""
         homeCurrency = vehicle.homeCurrency
-        let capacityValue = vehicle.powertrain == .ev ? vehicle.batteryCapacityKWh : vehicle.tankCapacityL
-        capacity = capacityValue.map(AddVehicleSupport.capacityText) ?? ""
+        // The field reads in the user's display unit. `tankCapacityL` stores
+        // litres, so a tank's stored figure converts OUT at load; battery kWh
+        // is unit-invariant and never converts (RV.69).
+        let isElectric = vehicle.powertrain == .ev
+        let capacityValue = isElectric ? vehicle.batteryCapacityKWh : vehicle.tankCapacityL
+        if let capacityValue {
+            capacity = isElectric
+                ? AddVehicleSupport.capacityText(capacityValue)
+                : AddVehicleSupport.tankCapacityText(litres: capacityValue, unit: vehicle.units.volume)
+        } else {
+            capacity = ""
+        }
         units = vehicle.units
         photo = photoData
         originalPhotoID = vehicle.photo
@@ -83,7 +93,6 @@ struct VehicleDetailFormState {
     func applying(to original: Vehicle, now: Date = Date()) -> Vehicle {
         var vehicle = original
         let parsed = MakeModelParser.parse(makeModel)
-        let capacityValue = capacity.isEmpty ? nil : Double(capacity)
         vehicle.updatedAt = now
         vehicle.name = name.trimmingCharacters(in: .whitespacesAndNewlines)
         vehicle.make = make ?? parsed.make
@@ -92,12 +101,40 @@ struct VehicleDetailFormState {
         vehicle.plate = trimmedOrNil(plate)
         vehicle.powertrain = powertrain
         vehicle.fuelKinds = orderedFuelKinds
-        vehicle.tankCapacityL = isElectric ? nil : capacityValue
-        vehicle.batteryCapacityKWh = isElectric ? capacityValue : nil
+        // The field held the display unit; storage is litres, so a tank figure
+        // converts IN here and kWh does not (RV.69). `units.volume` (the form's
+        // unit - the one the field was shown in) is the source of truth.
+        let capacityValue = capacity.isEmpty ? nil : Double(capacity)
+        if let capacityValue {
+            if isElectric {
+                vehicle.batteryCapacityKWh = capacityValue
+                vehicle.tankCapacityL = nil
+            } else {
+                vehicle.tankCapacityL = AddVehicleSupport.tankCapacityLitres(display: capacityValue, unit: units.volume)
+                vehicle.batteryCapacityKWh = nil
+            }
+        } else {
+            vehicle.tankCapacityL = nil
+            vehicle.batteryCapacityKWh = nil
+        }
         vehicle.homeCurrency = homeCurrency
         vehicle.units = units
         vehicle.initialOdometer = odometerValue
         return vehicle
+    }
+
+    /// The capacity field always holds the volume unit the row currently
+    /// labels. When the units editor changes that axis, the SAME physical
+    /// volume must be re-expressed ("13.2" gal -> "50" for a 50 L tank), or a
+    /// gallons user who switches to litres would save their "13.2" as 13.2 L
+    /// and quietly halve the tank (hard rule 13 - the app must never turn a
+    /// figure into a wrong fact). kWh is unit-invariant, so an EV's battery
+    /// field is untouched.
+    mutating func reconvertCapacityVolume(from oldUnit: VolumeUnit, to newUnit: VolumeUnit) {
+        guard oldUnit != newUnit, !isElectric else { return }
+        guard let value = Double(capacity) else { return }
+        let litres = AddVehicleSupport.tankCapacityLitres(display: value, unit: oldUnit)
+        capacity = AddVehicleSupport.tankCapacityText(litres: litres, unit: newUnit)
     }
 
     private func trimmedOrNil(_ string: String) -> String? {

@@ -385,6 +385,13 @@ struct VehicleDetailAccuracyCard: View {
                                  focus: $focus, idPrefix: "vehicleDetail")
             CardDivider()
             VehicleUnitsEditor(units: $form.units)
+                .onChange(of: form.units.volume) { oldUnit, newUnit in
+                    // The capacity field is labelled in the units the vehicle is
+                    // about to switch away from; re-express the same physical
+                    // volume in the new unit so a unit change never mangles the
+                    // tank (RV.69). kWh is skipped inside the form state.
+                    form.reconvertCapacityVolume(from: oldUnit, to: newUnit)
+                }
         }
         .formCard()
     }
