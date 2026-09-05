@@ -16,10 +16,21 @@ style:
   dark: true
 
 layers:
+  # THE SHARED BACKGROUND - identical on all ten panels, so the set reads as one
+  # family in the store's carousel rather than ten separate pictures. Drawn
+  # locally: a base ground, a taillight glow behind the headline and a headlight
+  # glow under the device, both at low opacity.
+  - id: ground
+    source: image
+    bleed: true
+    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/background.png
+    fit: cover
+
   - id: wash
     source: fill
     area: {cols: 1-12, rows: 1-6}
     color: "#161C25"
+    opacity: 0.92
     radius: 32
 
   - id: kicker
@@ -48,6 +59,5 @@ layers:
   - id: device
     source: image
     area: {cols: 1-12, rows: 7-24}
-    path: ../screenshots/P3.4-reminders-ru.png
+    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/P3.4-reminders-ru-rounded.png
     fit: contain
-    radius: 40

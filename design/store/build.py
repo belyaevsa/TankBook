@@ -14,6 +14,55 @@ import argparse, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
 
+CACHE = os.path.join(HERE, ".cache")
+
+
+def rounded(stem):
+    """A rounded-corner RGBA copy of a committed screenshot.
+
+    The device layer's own `radius` clips the LAYER BOX, and `fit: contain`
+    letterboxes the image inside it, so the screenshot's own corners stayed
+    square. Rounding the source is the reliable way: alpha corners, cached by
+    name, and the committed screenshot is never modified.
+    """
+    from PIL import Image, ImageDraw
+    os.makedirs(CACHE, exist_ok=True)
+    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
+    dst = os.path.join(CACHE, stem + "-rounded.png")
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        return dst
+    im = Image.open(src).convert("RGBA")
+    r = int(im.width * 0.055)          # a phone-like corner on a phone-shaped shot
+    mask = Image.new("L", im.size, 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, im.width - 1, im.height - 1], radius=r, fill=255)
+    im.putalpha(mask)
+    im.save(dst)
+    return dst
+
+
+def shared_background(w=1290, h=2796):
+    """The one background every panel shares, drawn once and reused.
+
+    Ellipse layers gave hard arcs across the frame - a rendering artefact, not a
+    wash. This paints the glows and blurs them heavily, so the ten panels read as
+    one family in the carousel with no visible edge anywhere.
+    """
+    from PIL import Image, ImageDraw, ImageFilter
+    os.makedirs(CACHE, exist_ok=True)
+    dst = os.path.join(CACHE, "background.png")
+    if os.path.exists(dst):
+        return dst
+    base = Image.new("RGB", (w, h), "#0C0F14")
+    glow = Image.new("RGB", (w, h), "#0C0F14")
+    d = ImageDraw.Draw(glow)
+    # taillight behind the headline, headlight under the device
+    d.ellipse([-w // 2, -h // 4, w + w // 2, h // 2], fill="#3A1A18")
+    d.ellipse([-w // 2, h - h // 2, w + w // 2, h + h // 4], fill="#12262E")
+    glow = glow.filter(ImageFilter.GaussianBlur(radius=260))
+    Image.blend(base, glow, 0.85).save(dst)
+    return dst
+
+
 PANELS = [
     # EN and RU are DIFFERENT SETS, in different order, from different complaints
     # (docs/STORE.md section 1). Panel 1-3 are what search results show, so each
@@ -69,10 +118,21 @@ style:
   dark: true
 
 layers:
+  # THE SHARED BACKGROUND - identical on all ten panels, so the set reads as one
+  # family in the store's carousel rather than ten separate pictures. Drawn
+  # locally: a base ground, a taillight glow behind the headline and a headlight
+  # glow under the device, both at low opacity.
+  - id: ground
+    source: image
+    bleed: true
+    path: {bg_path}
+    fit: cover
+
   - id: wash
     source: fill
     area: {{cols: 1-12, rows: 1-6}}
     color: "#161C25"
+    opacity: 0.92
     radius: 32
 
   - id: kicker
@@ -101,9 +161,8 @@ layers:
   - id: device
     source: image
     area: {{cols: 1-12, rows: 7-24}}
-    path: ../screenshots/{shot}.png
+    path: {shot_path}
     fit: contain
-    radius: 40
 """
 
 
@@ -115,7 +174,8 @@ def write_specs():
             path = os.path.join(HERE, f"panel-{pid}-{lang}.yaml")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(SPEC.format(pid=pid, lang=lang, kicker=kicker, headline=headline,
-                                    caption=caption, shot=shot))
+                                    caption=caption, shot_path=rounded(shot),
+                                    bg_path=shared_background()))
             paths.append(path)
     return paths
 
