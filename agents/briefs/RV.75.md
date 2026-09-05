@@ -90,6 +90,9 @@ language - never concatenation (the P1.4 lesson: `"%@ spend"` composed as `"%@ Ñ
   (RV.77), notification actions (RV.78), and the notification deep-link fix (RV.74). **RV.74 is
   tempting because your query makes it easy. Leave it.**
 - Any change to `reconcile(vehicleId:)` or to how notifications are scheduled.
+- **The merged list's EMPTY state belongs to RV.76**, which makes its one action a filled button
+  rather than the dashed card (`design/screens/RemindersEmpty.dc.html`). Render whatever the
+  per-car screen renders today and leave the weight of that action alone.
 - A header `+`. Reviewed and rejected on 2026-09-05: both list headers spend the trailing slot on
   the car-scope chip, and the dashed card at the end of the list is the app's own idiom
   (`docs/SCREENMAP.md`). The dashed card stays where it is.
@@ -128,8 +131,20 @@ From the **repo root**, judged by exit code, not by reading output:
 ```
 cd ios && swift build ; echo "BUILD=$?"
 cd ios && swift test ; echo "IOSTEST=$?"
-swiftlint lint ; echo "LINT=$?"          # from the ROOT - the excludes are root-relative
+swiftlint lint ; echo "LINT=$?"                                   # from the repo ROOT
+swift run --package-path ios localization-gate --sources ios/App/Sources \
+  --catalogue ios/App/Sources/Localizable.xcstrings ; echo "L10N=$?"   # ROOT, must be 0
+# measured on this checkout 2026-09-06: 716 keys, 100% RU, 0 missing, 0 violations
+xcodegen generate && xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+  -destination 'platform=iOS Simulator,name=iPhone 17' build ; echo "APPBUILD=$?"
 ```
+
+**Echo the exit code from the COMMAND, never through a pipe** - a pipe reports the exit code of the
+last stage, so a failing build behind `| tail` reports 0. Redirect to a file instead.
+
+`xcodegen generate` is not optional if you add a FILE: the project is generated from `project.yml`
+and is gitignored, so a new source file that is never regenerated into the project builds in
+`swift build` and is missing from the app.
 
 Then the named UI suite only:
 

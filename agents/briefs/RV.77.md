@@ -96,8 +96,9 @@ passed, exit 0.** It must rise. Report the number you observed.
   which is the assertion a today-anchored implementation cannot pass.
 - **L1**: the suppression rule - with a live reminder of that category on that car, no offer; with a
   completed or dismissed one, the offer returns.
-- **L4** `ServiceEntryUITests` (or the suite that already covers the service save - extend it, do not
-  add a parallel one): saving a service record with an interval category shows the offer; **Create**
+- **L4** `ios/App/UITests/ServiceEntryUITests.swift` - extend it, do not add a parallel suite
+  (`ExpenseCaptureUITests.swift` covers the expense capture door and is the one to extend instead if
+  you wire the offer there too): saving a service record with an interval category shows the offer; **Create**
   produces a reminder anchored at the record and carrying `sourceEntryId`; **Not this time**
   produces none and the record is still saved.
 
@@ -117,15 +118,27 @@ From the **repo root**, judged by exit code:
 ```
 cd ios && swift build ; echo "BUILD=$?"
 cd ios && swift test ; echo "IOSTEST=$?"
-swiftlint lint ; echo "LINT=$?"          # from the ROOT - the excludes are root-relative
+swiftlint lint ; echo "LINT=$?"                                   # from the repo ROOT
+swift run --package-path ios localization-gate --sources ios/App/Sources \
+  --catalogue ios/App/Sources/Localizable.xcstrings ; echo "L10N=$?"   # ROOT, must be 0
+# measured on this checkout 2026-09-06: 716 keys, 100% RU, 0 missing, 0 violations
+xcodegen generate && xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+  -destination 'platform=iOS Simulator,name=iPhone 17' build ; echo "APPBUILD=$?"
 ```
+
+**Echo the exit code from the COMMAND, never through a pipe** - a pipe reports the exit code of the
+last stage, so a failing build behind `| tail` reports 0. Redirect to a file instead.
+
+`xcodegen generate` is not optional if you add a FILE: the project is generated from `project.yml`
+and is gitignored, so a new source file that is never regenerated into the project builds in
+`swift build` and is missing from the app.
 
 Then only the suite you touched:
 
 ```
 xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
   -destination 'platform=iOS Simulator,name=iPhone 17' \
-  -only-testing:TankbookUITests/<the suite you extended> test ; echo "UITEST=$?"
+  -only-testing:TankbookUITests/ServiceEntryUITests test ; echo "UITEST=$?"
 ```
 
 A filter matching nothing prints "0 tests ... passed" - report the observed count.
