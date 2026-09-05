@@ -449,6 +449,21 @@ is usually the machine trains you to re-run instead of read.
 > agents sat finished for twenty minutes while lanes stood idle. Re-arm it after each dispatch,
 > because a one-shot waiter dies with the event it was waiting for.
 >
+> **The monitor MUST be a harness-tracked background task, never `nohup`** (standing instruction,
+> 2026-09-05, product owner, after being told three times in one session). In Claude Code that means
+> the Bash tool with `run_in_background: true`, whose task id shows in `/tasks` and which sends a
+> completion notification. **A `nohup ... &` waiter is not a monitor - it is a log.** It runs, it
+> writes to a file, and it can never wake you; nothing tells you the dispatch finished. That is not
+> theoretical: on 2026-09-05 `OB.2` completed and sat unnoticed because its waiter was `nohup`, and
+> the same session then let `RV.58` finish unwatched - which is how a screenshot that was
+> byte-identical to its EN counterpart nearly got committed as the RU capture. **The agent itself
+> still launches with `nohup` and its own log redirect** - that part is correct and must not change;
+> it is only the WAITER that has to be tracked.
+>
+> **Arm one per dispatch, never one for several.** A combined waiter (`until ! kill -0 A && ! kill -0
+> B`) hides whichever finishes first: on 2026-09-05 it watched `RV.65` and `RV.60` together, `RV.60`
+> finished, and nothing said so until the other exited. One agent, one monitor.
+>
 > **The monitor automates *noticing*, never *verifying*.** Everything that has actually caught a
 > bug - mutating an invariant in its subtlest form, reading rendered Russian for grammar, opening a
 > screenshot to see a card below the fold - is judgment a script cannot do. Wiring "auto-verify and
