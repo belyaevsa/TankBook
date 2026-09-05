@@ -91,7 +91,7 @@ def real_photo_into(stem, top, bottom, receipt):
     os.makedirs(CACHE, exist_ok=True)
     src = os.path.join(HERE, "..", "screenshots", stem + ".png")
     photo = os.path.join(HERE, "..", "..", receipt)
-    dst = os.path.join(CACHE, stem + "-" + os.path.basename(receipt)[:-4] + ".png")
+    dst = os.path.join(CACHE, stem + "-" + os.path.basename(receipt).rsplit(".", 1)[0] + ".png")
     if os.path.exists(dst) and os.path.getmtime(dst) >= max(os.path.getmtime(src),
                                                             os.path.getmtime(photo)):
         return dst
@@ -310,6 +310,30 @@ def source_for(shot):
     return None
 
 
+RECEIPT_PHOTO = "Spike/ReceiptSpike/fixtures/receipts/receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg"
+
+
+def cropped_receipt_photo():
+    """The corpus photo turned upright and cropped to the paper.
+
+    The fixture is a phone photo taken in a car: the receipt lies sideways, a
+    hand holds it and a seat fills a third of the frame. Turned 90 degrees,
+    de-skewed by two, and cropped to the printed area - which also cuts the
+    payment block at the foot, so the terminal id and the card's last four
+    digits are not what gets published.
+    """
+    from PIL import Image
+    os.makedirs(CACHE, exist_ok=True)
+    src = os.path.join(HERE, "..", "..", RECEIPT_PHOTO)
+    dst = os.path.join(CACHE, "receipt-photo-cropped.png")
+    if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
+        return dst
+    im = Image.open(src).rotate(-90, expand=True).rotate(-2.0, resample=Image.BICUBIC)
+    w, h = im.size
+    im.crop((int(w * 0.20), int(h * 0.05), int(w * 0.795), int(h * 0.735))).save(dst)
+    return dst
+
+
 SITE_SHOTS = os.path.join(HERE, "site")
 
 
@@ -327,9 +351,15 @@ def export_site_shots():
     import shutil
     os.makedirs(SITE_SHOTS, exist_ok=True)
     made = []
-    for stem, name in (("RV.5-capture-review", "capture-review-drawn.png"),):
+    # The site shows the REAL receipt, cropped: a page a reader scrolls has room
+    # to be looked at closely, and a photograph answers "will it read MY receipt"
+    # in a way a drawing cannot. The store panels keep the drawing, where the
+    # picture is small, seen for a second, and published forever.
+    for stem, name, photo, top, bottom in (
+        ("RV.5-capture-review", "capture-review-photo.png", cropped_receipt_photo(), 500, 2060),
+    ):
         dst = os.path.join(SITE_SHOTS, name)
-        shutil.copyfile(source_for(stem), dst)
+        shutil.copyfile(real_photo_into(stem, top, bottom, photo), dst)
         made.append(dst)
     return made
 
