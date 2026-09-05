@@ -33,32 +33,78 @@ therefore leads with *"snap it or type it"*, never with "zero typing", and never
 
 ---
 
-## 1 · Findability: how a Russian speaker and an English speaker each arrive
+## 1 · What the two audiences are actually angry about
 
-The two audiences do not search the same way, and the difference is not translation.
+Researched 2026-09-05 across App Store, Google Play and RuStore reviews dated 2025-2026, plus
+Drive2/Дром/Telegram. **The two audiences are not the same market with different words - they are
+angry about different things**, so the listings are not translations of each other and neither are
+the screenshots.
 
-**English-speaking searchers** use the category's own vocabulary - *fuel log, mileage tracker, mpg,
-gas mileage, car expenses*. The field is crowded (Fuelio, Drivvo, Fuelly, Spritmonitor), so we do
-not fight for `fuel log` head-on; we take the qualifiers those apps' reviews complain about:
-**offline, no account, free export, multi-currency, EV and petrol together**.
+### English-speaking: the phone change destroys the history
 
-**Russian-speaking searchers** use *расход топлива, бензин, заправки, расходы на авто, техобслуживание*
-- and, unlike the English field, they search **расход** (consumption) far more than they search
-"log", because the number they want is L/100 km. Two further facts shape the RU listing:
+The strongest low-star trigger in 2025-2026 is **data portability failure**, not accuracy.
 
-- **The App Store's RU-language storefronts are not only Russia.** Payment restrictions make
-  subscriptions impractical inside RU (`VISION.md` §1), so the RU listing must earn installs from
-  the diaspora and from KZ/AM/GE storefronts too. Nothing in the copy assumes a country.
-- **Receipts in RU/KZ carry a fiscal QR**, which improves our reading - but naming it is
-  forbidden, so the RU page shows the benefit (the total is right) and never the mechanism.
+| App | Dated review | What happened |
+|---|---|---|
+| Simply Auto | Google Play, 2026-04-10 | New phone forced a choice between cloud and local with **no merge**; one attempt erased months, the second erased everything: *"lost all my data... I had a few years of data logged"* |
+| Simply Auto | Google Play, 2026-06-20 | A decade-long user: every new phone loses something despite cloud **and** manual backups; scanned receipts *"nearly always"* fail to restore |
+| Fuelly | App Store | A non-dismissable login appeared **mid-road-trip**; after creating the account, *"ALL MY DATA IS GONE"* - no path to migrate the local history in |
+| Drivvo | Google Play, 2026-03-19 | After a forced update an active subscriber was told it had expired, saw ads, and could not view records without creating an account |
+| Drivvo | Apple AU | Pro stopped being recognised, restore failed, reinstalling *"wiped all data"* |
+| Fuelly | App Store | Export produces the records but not the attached images: *"All the images are lost"* |
+| Drivvo | 2026 pricing | A six-year Premium user reported a **4x** increase plus repeated "ABOUT TO EXPIRE" notices with six months left |
 
-**Localise, do not translate.** The RU subtitle is not a translation of the EN one: English leads
-with *log* (what you do), Russian leads with *расход* (what you get).
+**The finding that changes our copy: OCR accuracy is NOT a recurring complaint** in this set. The
+adjacent ones are worse - scanning is paywalled (Fuelio Pro), receipt images vanish from exports
+(Fuelly) and from migrations (Simply Auto). So the EN page must **not** lead on reading quality. It
+leads on *your history survives*, and it can say something none of them can: our export archive
+carries the receipt image bytes under `attachments/<sha256>` (`SCHEMA.md` -> Backup format), not
+just the rows.
+
+### Russian-speaking: the app stops being yours
+
+The RU complaints are sharper and land somewhere else - **the product becomes unusable or
+unpayable through no fault of the user.**
+
+| App | Dated review | What happened |
+|---|---|---|
+| Мой Авто | App Store | *"По-видимому, отключили сервера... само приложение теперь тупо висит при входе"* - the server went away and the LOCAL log could not be opened |
+| Мой Авто | App Store | *"Пользуюсь более 10 лет"*, then it stopped responding after an update |
+| Drivvo | Google Play, 2026-05-10 | The app said 12.2 L/100 km where the driver's own arithmetic gave 11 - *"после этого удалил"* |
+| Моя машина | Google Play, 2025-03-01 | A receipt photo is only **referenced** in the gallery: rename or delete it there and *"картинка в приложении удалится"* |
+| Fuel Manager | RuStore, 2025-06-26 | *"В бесплатной версии ни чего не считает"* |
+| Fuel Manager | RuStore, 2025-02-20 | *"Нет синхронизации с гугл"* |
+| Car Scanner | RuStore, 2026-08-09 | *"Оплатил подписку, данные не показывает... деньги на ветер"* |
+| Мой Авто | App Store | *"Платная версия у многих активируется через одно место"* |
+| Моя машина | App Store | *"Перестали создаваться напоминания"* |
+| Мой Автомобиль | App Store | *"НЕТ возможности редактирования записей по дате"* - old service history cannot be entered |
+| Топливомер | RuStore | Pro cannot be bought at all: the purchase redirects to Google Play, which cannot be paid from Russia |
+| Fuelio | Drive2 | Removed from the RU store; users install an APK from forums, losing updates and restore |
+
+Two RU-only conclusions:
+
+1. **Payment is a feature.** *"Функциональность приложения уже не гарантирует возможность им
+   пользоваться полностью"* - an app can be installable and still unusable because its Pro cannot
+   be paid for. We have **no subscription in v1** (P6.16), so "всё бесплатно, ничего не нужно
+   оплачивать" is a differentiator in RU that means little in EN.
+2. **The consumption number itself is distrusted.** A driver who recomputes 11 against the app's
+   12.2 deletes the app. Our arithmetic cross-check is a *nice-to-have* in EN and an *answer to a
+   dated one-star review* in RU - so it is panel 2 in Russian and panel 4 in English.
+
+Both audiences also search **"how do I move my data from Fuelio/Drivvo/the old phone"**, which our
+importers answer directly.
+
+## 2 · Findability
+
+**English** searchers use the category's vocabulary - *fuel log, mileage tracker, mpg, gas mileage*
+- in a crowded field. We do not fight for `fuel log` head-on; we take the qualifiers the
+incumbents' own reviews complain about: offline, no account, complete export, no subscription.
+
+**Russian** searchers search **расход** far more than "log", because the number they want is
+L/100 km. The RU listing also assumes **no country**: payment limits inside RU mean it must earn
+installs from the diaspora and the KZ/AM/GE storefronts too.
 
 ### Keywords
-
-Apple's 100-character keyword field, comma-separated, no spaces, no word repeated from the name or
-subtitle (those are already indexed).
 
 **English (`en-US`, 98 chars):**
 
@@ -69,180 +115,160 @@ mpg,gas,mileage,odometer,receipt,scanner,vehicle,expenses,maintenance,offline,ev
 **Russian (`ru`, 99 chars):**
 
 ```
-расход,бензин,дизель,заправка,чек,сканер,пробег,одометр,авто,машина,техобслуживание,каско,офлайн
+расход,бензин,дизель,заправка,чек,пробег,одометр,авто,машина,техобслуживание,напоминания,офлайн
 ```
 
-Rationale for the non-obvious picks:
+Non-obvious picks: `odometer`/`одометр` (high intent, low competition); `offline`/`офлайн`, which
+no incumbent can claim and which RU reviews show is the difference between opening your log and
+not; `ev`+`diesel`, the household nobody serves; `напоминания`, because "перестали создаваться
+напоминания" is a live RU complaint. **Deliberately absent**: `ai`, `нейросеть`, `автоматически` -
+they would index against the promise the copy rule forbids.
 
-- `odometer` / `одометр` - the field users type most; high intent, low competition.
-- `offline` / `офлайн` - the incumbents cannot claim it; it is also the top complaint tag against
-  apps that lost data behind a login wall.
-- `ev` and `diesel` - the household with both is our differentiator, and neither word appears in
-  the name or subtitle.
-- `каско` (RU motor insurance) - Russian drivers search insurance and service renewals in the same
-  breath as fuel; we ship reminders, so the word is honest.
-- Deliberately **absent**: `AI`, `нейросеть`, `автоматически`. They would index against the promise
-  the copy rule forbids.
-
----
-
-## 2 · The listing, English
+## 3 · The listing, English - *your history survives*
 
 **Name (30):** `Tankbook: Fuel Log & Costs`
 
-**Subtitle (30):** `Snap or type. Costs that add up`
-
-**Promotional text (170, changeable without review):**
-
-> Every fill-up in seconds - scan the receipt or type it, whichever is faster. Litres x price is
-> checked in front of you, so the numbers you keep are the right ones.
-
-**Description:**
-
-```
-Tankbook is a fuel and running-cost log for people who actually keep one.
-
-TWO DOORS, ALWAYS
-Snap the receipt or type the entry - both take seconds, and neither is the
-"failure" path. A scan fills in what it can read and you correct the rest;
-the app remembers your station, fuel and currency for next time.
-
-THE ARITHMETIC, SHOWN
-Litres x price per litre = total. Tankbook checks it in front of you and says
-plainly when the three numbers disagree. No silent "smart" correction: every
-value is a suggestion you can edit, before and after saving.
-
-WHAT IT TRACKS
-- Fuel-ups with litres, price, total, odometer and station
-- Consumption in L/100 km or MPG, cost per kilometre, monthly spend
-- Service, repairs, parts, tyres, insurance and taxes
-- Petrol, diesel, hybrid and electric - in one history, per car
-- Several cars, switched in a tap. Free, on every tier
-
-MONEY IN ANY CURRENCY, KEPT HONEST
-Fill up abroad and the entry keeps both amounts: what you paid, and what it was
-worth in your car's home currency at that day's rate. Rates are snapshotted at
-entry time, so your history never shifts under you.
-
-NO ACCOUNT NEEDED
-The app is fully usable with no sign-in at all - the database lives on your
-phone and every screen works offline. Sign in only if you want sync, restore on
-a new phone, or cloud-assisted reading. Export is always free, in a format you
-can open elsewhere. No ads.
-
-WHAT WE DO NOT CLAIM
-A scan is a head start, not an answer. On our own test set of real receipts,
-about a third still need a field corrected - which is exactly why every field is
-editable and why typing is a first-class door, not a punishment.
-
-English and Russian throughout.
-```
-
-**What's New (first release):**
-
-```
-First release. Fuel-ups, service records and expenses; consumption and cost
-trends; multi-currency with historical rates; receipt scanning with the
-arithmetic cross-check shown; full offline use with no account.
-```
-
----
-
-## 3 · The listing, Russian
-
-**Name (30):** `Tankbook: расход и расходы`
-
-Two senses of one root, deliberately: *расход топлива* (consumption) and *расходы на авто*
-(spending). It reads as a play on words to a native speaker and indexes both stems.
-
-**Subtitle (30):** `Заправки, ТО и деньги на авто`
+**Subtitle (30):** `Your log. Yours to keep.`
 
 **Promotional text:**
 
-> Заправка заносится за секунды - сфотографируйте чек или введите вручную. Литры x цена сверяются
-> у вас на глазах, поэтому в истории остаются верные числа.
+> No account, no subscription, no ads. Your history lives on your phone, and the export takes the
+> receipt photos with it - so the next phone is not where the last five years go missing.
 
 **Description:**
 
 ```
-Tankbook - журнал расхода топлива и трат на машину для тех, кто ведёт его всерьёз.
+Tankbook is a fuel and running-cost log built around one promise: the history
+you keep is yours, and you can take it out whole.
 
-ДВА ПУТИ, ВСЕГДА
-Сфотографируйте чек или введите вручную - и то и другое занимает секунды, и
-ручной ввод не "запасной вариант". Распознавание заполняет то, что смогло
-прочитать, остальное вы поправляете; заправка, топливо и валюта запоминаются
-на следующий раз.
+WHAT USUALLY GOES WRONG, AND WHAT WE DID ABOUT IT
+Read the reviews of any fuel app and the same story repeats - a new phone, a
+forced login, a sync that overwrites instead of merging, and years of records
+gone. So:
 
-АРИФМЕТИКА - НА ВИДУ
-Литры x цена за литр = сумма. Tankbook проверяет это при вас и прямо говорит,
-когда три числа не сходятся. Никаких "умных" исправлений втихую: любое значение
-- предложение, которое можно изменить, и до сохранения, и после.
+- No account is needed. Ever. The database is on your phone and every screen
+  works offline, with our servers down or unreachable.
+- Export is free, complete and includes the receipt IMAGES, not just the rows.
+  Most exports leave the photos behind; ours puts them in the archive.
+- Nothing is behind a subscription. There is no paid tier in this version.
+- No ads.
 
-ЧТО ВЕДЁТ
+TWO DOORS, ALWAYS
+Snap the receipt or type it - both take seconds, and typing is not the failure
+path. A scan fills in what it can read and you correct the rest; the app
+remembers your station, fuel and currency for next time.
+
+THE ARITHMETIC, SHOWN
+Litres x price per litre = total, checked in front of you, with a plain warning
+when the three numbers disagree. Nothing is silently "corrected": every value is
+a suggestion you can edit before and after saving.
+
+WHAT IT TRACKS
+- Fuel-ups: litres, price, total, odometer, station
+- Consumption in L/100 km or MPG, cost per kilometre, monthly spend
+- Service, repairs, parts, tyres, insurance and taxes, with photos attached
+- Petrol, diesel, hybrid and electric in one history, per car
+- Several cars, free, on every tier
+
+COMING FROM ANOTHER APP
+Import from Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope and My Fuel
+Manager. You see what was read before anything is written.
+
+MONEY IN ANY CURRENCY
+Fill up abroad and the entry keeps both amounts - what you paid, and what it was
+worth in your car's currency at that day's rate, snapshotted so your history
+never shifts.
+
+WHAT WE DO NOT CLAIM
+A scan is a head start, not an answer. On our own test set of real receipts,
+about a third still need one field corrected - which is why every field is
+editable and why typing is a first-class door.
+```
+
+## 4 · The listing, Russian - *приложение, которое не отберут*
+
+Not a translation of the English. The English page answers "will I lose my history when I change
+phones"; the Russian page answers "будет ли оно работать и смогу ли я им пользоваться вообще".
+
+**Name (30):** `Tankbook: расход и расходы`
+
+**Subtitle (30):** `Без подписки. Работает офлайн`
+
+**Promotional text:**
+
+> Без аккаунта, без подписки, без рекламы. Журнал лежит у вас в телефоне и открывается, даже если
+> наши серверы недоступны - и цифры можно проверить самому.
+
+**Description:**
+
+```
+Tankbook - журнал расхода топлива и трат на машину. Работает у вас в телефоне,
+без аккаунта и без подписки.
+
+ПОЧЕМУ ЭТО ВАЖНО ИМЕННО СЕЙЧАС
+В отзывах на другие приложения повторяется одно и то же: "отключили серверы -
+приложение висит при входе", "оплатил подписку, данные не показывает",
+"в бесплатной версии ничего не считает", покупка Pro ведёт в магазин, где её
+нельзя оплатить. Поэтому:
+
+- Аккаунт не нужен вообще. База лежит в телефоне, все экраны работают офлайн -
+  и открываются, даже если наши серверы недоступны.
+- Подписки нет. В этой версии нет платного уровня.
+- Рекламы нет.
+- Экспорт бесплатный и полный: вместе с записями выгружаются сами фотографии
+  чеков, а не только строки.
+
+ЦИФРЫ МОЖНО ПРОВЕРИТЬ
+Литры x цена за литр = сумма. Проверка показана прямо на экране, и если три
+числа не сходятся, приложение говорит об этом прямо. Ничего не правится
+втихую: любое значение - предложение, которое вы можете изменить, и до
+сохранения, и после. Расход считается по вашим заправкам, а не "как-то".
+
+ЧЕК ОСТАЁТСЯ В ПРИЛОЖЕНИИ
+Фотография чека копируется в приложение, а не просто ссылается на файл в
+галерее: удалите или переименуйте снимок в галерее - в журнале он останется,
+и уедет вместе с экспортом.
+
+НЕ ТОЛЬКО ЗАПРАВКИ
 - Заправки: литры, цена, сумма, пробег, АЗС
 - Расход в л/100 км, стоимость километра, траты за месяц
-- ТО, ремонты, запчасти, шины, страховка и налоги
-- Бензин, дизель, гибрид и электро - в одной истории по каждой машине
-- Несколько машин, переключение одним касанием. Бесплатно
+- ТО, ремонты, запчасти, шины, страховка и налоги - с фотографиями
+- Напоминания по пробегу и датам
+- Бензин, дизель, гибрид и электро в одной истории по каждой машине
+- Несколько машин - бесплатно
+- Записи можно вносить задним числом: старое ТО и прошлые заправки
 
-ДЕНЬГИ В ЛЮБОЙ ВАЛЮТЕ
+ПЕРЕХОД ИЗ ДРУГОГО ПРИЛОЖЕНИЯ
+Импорт из Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope и My Fuel
+Manager. Сначала показываем, что распозналось, и только потом записываем.
+
+ЛЮБАЯ ВАЛЮТА
 Заправились за границей - запись хранит обе суммы: сколько заплатили и сколько
-это в валюте машины по курсу того дня. Курс фиксируется в момент записи, и
-история потом не "поедет".
-
-БЕЗ АККАУНТА
-Приложением можно пользоваться вообще без регистрации - база лежит на вашем
-телефоне, и все экраны работают офлайн. Вход нужен только для синхронизации,
-переноса на новый телефон и облачного распознавания. Экспорт всегда бесплатный.
-Без рекламы.
+это в валюте машины по курсу того дня. Курс фиксируется в момент записи.
 
 ЧЕГО МЫ НЕ ОБЕЩАЕМ
-Съёмка чека - это фора, а не готовый ответ. На нашем наборе реальных чеков
-примерно в трети случаев одно поле всё-таки приходится поправить - именно
-поэтому любое поле редактируется, а ручной ввод равноправен.
-
-Полностью на русском и английском.
+Съёмка чека - это фора, а не готовый ответ: примерно в трети случаев одно поле
+всё-таки приходится поправить. Именно поэтому любое поле редактируется, а
+ручной ввод равноправен.
 ```
 
-**What's New:**
+## 4b · Screenshots: two different sets, not one translated set
 
-```
-Первый выпуск. Заправки, ТО и расходы; графики расхода и стоимости; несколько
-валют с историческим курсом; распознавание чеков с показанной проверкой
-арифметики; полная работа офлайн без аккаунта.
-```
+Five panels per language, 1290 x 2796, built by `design/store/build.py`. **The subjects and their
+ORDER differ**, because the first three panels are what search results show and the two audiences
+need different first three.
 
----
+| # | English | Russian |
+|---|---|---|
+| 1 | Your log. Yours to keep. *(no account, offline)* | Открывается, даже когда серверы лежат |
+| 2 | The export takes the photos too | Цифры можно проверить *(арифметика на экране)* |
+| 3 | Snap it or type it | Без подписки. Без рекламы. |
+| 4 | Litres x price, checked in front of you | Чек остаётся в приложении |
+| 5 | Bring your history with you *(importers)* | ТО, страховка и напоминания |
 
-## 4 · Screenshots: the plan
-
-Ten panels, five per language, 1290 x 2796 (6.9"). Apple shows the first three in search results,
-so those three carry the positioning; the rest carry proof.
-
-**They are not bare screenshots.** Each panel is a composite: a headline that states the benefit, a
-real device screenshot as evidence, and a caption naming the mechanism. Two of the five are
-**feature panels** whose subject is a capability no single screen shows (the cross-check as trust;
-no-account/offline). Built with `imagegen compose` from `design/store/*.yaml`; sources are the
-committed screenshots in `design/screenshots/`, so a panel can never show a screen the build does
-not have.
-
-| # | Panel | Screenshot | EN headline | RU headline |
-|---|---|---|---|---|
-| 1 | Two doors | `RV.57-capture-prefill` | Snap it or type it | Сфотографируйте или введите |
-| 2 | The cross-check, shown | `P2.3-confirm` | Litres x price, checked in front of you | Литры x цена - проверка при вас |
-| 3 | What it costs to drive | `P1.10-trends` | Consumption and cost, per car | Расход и стоимость по каждой машине |
-| 4 | Any currency | `P2.5-confirm-foreign` | Fill up abroad, keep both amounts | Заправка за границей - обе суммы |
-| 5 | Yours to keep | `P6.5-home-log` | No account. Works offline. Export free | Без аккаунта, офлайн, экспорт бесплатно |
-
-Panels 2 and 5 are the feature proposals: panel 2 turns an invisible guarantee into the page's
-strongest claim, and panel 5 answers the complaint every incumbent's reviews carry.
-
-**Rules the panels obey:** dark theme (the brand's home theme, `DESIGN.md`); headline in the
-device's own language, never a translation of the other; numbers in DIN with `tabular-nums`; no
-claim on a panel that is not in the description; no mock screen - every device image is a
-committed screenshot.
-
----
+Panel 2 EN and panels 1-3 RU are **feature proposals**, not screen tours: they answer a specific
+dated complaint rather than showing a screen. Every device image is a committed screenshot in the
+device's own language.
 
 ## 5 · Review notes and metadata
 

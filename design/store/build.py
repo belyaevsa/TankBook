@@ -14,37 +14,41 @@ import argparse, os, subprocess, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
 
-# panel id, screenshot stem, EN (kicker, headline, caption), RU (kicker, headline, caption)
 PANELS = [
-    ("01-two-doors", "RV.57-capture-prefill",
-     ("TWO DOORS, ALWAYS", "Snap it or type it",
-      "Both take seconds. Typing is a peer path, never the failure branch."),
-     ("ДВА ПУТИ, ВСЕГДА", "Сфотографируйте или введите",
-      "И то и другое - секунды. Ручной ввод равноправен, а не запасной вариант.")),
+    # EN and RU are DIFFERENT SETS, in different order, from different complaints
+    # (docs/STORE.md section 1). Panel 1-3 are what search results show, so each
+    # language leads with what that audience is actually angry about.
+    #   EN: the phone change destroys the history (Simply Auto, Fuelly, Drivvo)
+    #   RU: the app stops being yours - servers off, Pro unpayable, numbers unverifiable
+    ("01", "P6.5-home-log", "P6.5-home-log",
+     ("YOURS TO KEEP", "Your log. Yours to keep.",
+      "No account, ever. The database is on your phone and every screen works offline."),
+     ("РАБОТАЕТ БЕЗ СЕРВЕРА", "Откроется, даже если серверы лежат",
+      "Аккаунт не нужен. База в телефоне, все экраны работают офлайн.")),
 
-    ("02-cross-check", "P2.3-confirm",
-     ("THE ARITHMETIC, SHOWN", "Litres x price, checked in front of you",
-      "When the three numbers disagree, the app says so. Nothing is corrected behind your back."),
-     ("АРИФМЕТИКА НА ВИДУ", "Литры x цена - проверка при вас",
+    ("02", "RV.9-attachment-viewer", "P2.3-confirm",
+     ("EXPORT, COMPLETE", "The export takes the photos too",
+      "Records and the receipt images, in one archive. Free, and not behind a paid tier."),
+     ("ЦИФРЫ МОЖНО ПРОВЕРИТЬ", "Литры x цена - проверка на экране",
       "Если три числа не сходятся, приложение скажет прямо. Ничего не правится втихую.")),
 
-    ("03-trends", "P1.10-trends",
-     ("WHAT IT COSTS TO DRIVE", "Consumption and cost, per car",
-      "L/100 km or MPG, cost per kilometre, monthly spend - petrol, diesel and EV in one history."),
-     ("СКОЛЬКО СТОИТ ЕЗДА", "Расход и стоимость по каждой машине",
-      "Л/100 км, стоимость километра, траты за месяц - бензин, дизель и электро в одной истории.")),
+    ("03", "RV.57-capture-prefill", "P4.9b-settings-guest",
+     ("TWO DOORS, ALWAYS", "Snap it or type it",
+      "Both take seconds. Typing is a peer path, never the failure branch."),
+     ("БЕЗ ПОДПИСКИ", "Ничего не нужно оплачивать",
+      "Подписки нет, рекламы нет. Экспорт бесплатный и полный.")),
 
-    ("04-currency", "P2.5-confirm-foreign",
-     ("ANY CURRENCY, KEPT HONEST", "Fill up abroad, keep both amounts",
-      "What you paid, and what it was worth at that day's rate. History never shifts under you."),
-     ("ЛЮБАЯ ВАЛЮТА", "Заправка за границей - обе суммы",
-      "Сколько заплатили и сколько это по курсу того дня. История потом не поедет.")),
+    ("04", "P2.3-confirm", "RV.48-attachment-recognised",
+     ("THE ARITHMETIC, SHOWN", "Litres x price, checked in front of you",
+      "A plain warning when the three numbers disagree. Nothing is corrected behind your back."),
+     ("ЧЕК ОСТАЁТСЯ У ВАС", "Фото чека хранится в приложении",
+      "Не ссылка на галерею: удалите снимок там - в журнале он останется.")),
 
-    ("05-yours", "P6.5-home-log",
-     ("YOURS TO KEEP", "No account. Works offline.",
-      "Every screen works with no sign-in at all. Export is always free. No ads, ever."),
-     ("ВСЁ ОСТАЁТСЯ У ВАС", "Без аккаунта. Работает офлайн.",
-      "Все экраны работают без регистрации. Экспорт всегда бесплатный. Без рекламы.")),
+    ("05", "P1.10-trends", "P3.4-reminders",
+     ("BRING YOUR HISTORY", "Consumption and cost, per car",
+      "Petrol, diesel and EV in one history. Import from Fuelio, Drivvo, Fuelly and more."),
+     ("НЕ ТОЛЬКО ЗАПРАВКИ", "ТО, страховка и напоминания",
+      "Ремонты, запчасти, шины и налоги - с фотографиями и напоминаниями по пробегу.")),
 ]
 
 SPEC = """name: store-{pid}-{lang}
@@ -105,13 +109,13 @@ layers:
 
 def write_specs():
     paths = []
-    for pid, shot, en, ru in PANELS:
-        for lang, (kicker, headline, caption) in (("en", en), ("ru", ru)):
-            suffix = "" if lang == "en" else "-ru"
+    for pid, shot_en, shot_ru, en, ru in PANELS:
+        for lang, shot, (kicker, headline, caption) in (("en", shot_en + "", en),
+                                                        ("ru", shot_ru + "-ru", ru)):
             path = os.path.join(HERE, f"panel-{pid}-{lang}.yaml")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(SPEC.format(pid=pid, lang=lang, kicker=kicker, headline=headline,
-                                    caption=caption, shot=shot + suffix))
+                                    caption=caption, shot=shot))
             paths.append(path)
     return paths
 
