@@ -1,11 +1,12 @@
 # Tankbook – Session Handover
 
 *Updated 2026-09-05. **The app is on TestFlight, the backend is deployed, and App Store review is
-under way.** The `RV` (reviewer) backlog carries **70 rows filed from production logs, device walks
-and screenshots**; **all 70 are closed**. Measured now: **iOS 1429 tests / 146 suites**, **backend
-392** (0 skipped), lint 0 and the localization gate 0 (706 keys, 100% RU) - both run **from the repo
-ROOT**. **`T.3` is the only tracked v1 row still open**, and it cannot be closed by a fix: it needs
-two consecutive green full suites. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+under way.** The `RV` (reviewer) backlog carries **71 rows filed from production logs, device walks
+and screenshots**; **70 are closed** and `RV.71` is registered but unbriefed. Measured now: **iOS
+1444 tests / 152 suites**, **backend 396** (0 skipped), lint 0 and the localization gate 0 (708
+keys, 100% RU) - both run **from the repo ROOT**. **`T.3` is the only tracked v1 row still open**,
+and it cannot be closed by a fix: it needs two consecutive green full suites. Read this first, then
+`CLAUDE.md`, then `docs/TASKS.md`.*
 
 ## What changed on 2026-09-05, and what it cost to learn
 
@@ -36,6 +37,24 @@ button pushed the same blank paywall, so the submission blocker survived on the 
 reviewer reaches by adding a fourth car. The agent obeyed, found it, and reported it as a
 **Residual** rather than overreaching; the orchestrator fixed it. **A fence is an instruction, so it
 can be wrong in the same way a diagnosis can.**
+
+## A structural guarantee beats a test, and an honest "it earned nothing" beats a claim
+
+**`OB.1`/`PR.9` made the contract compile-time rather than tested.** The brief asked for a property
+test asserting every problem+json carries a `code`. The agent went further: there are now **zero
+raw `Results.Problem` calls** - all 74 sites route through
+`ProblemResponses.Problem(status, code, title, detail)` with `code` a **required parameter**, so a
+problem site without one *does not build*. I verified that by grep rather than accepting the claim.
+**Prefer the shape that makes the wrong thing inexpressible** over the test that catches it
+afterwards - the same instinct produced `RV.63`'s `ForAccount`/`ForEmail` split and `RV.62`'s
+`ExpensePrefill` with no liters member.
+
+**And its report answered the awkward question honestly.** The brief demanded: for each code family,
+say what the user now sees that they did not before - *if the answer is "the same message", the code
+earned nothing*. The agent said so plainly: today the visible payoff is confined to the auth surface
+(clock-skew and provider-refused on Sign in, previously collapsed into one string), and everywhere
+else the codes buy stability for `OB.3` and the log, not new copy. **Write that down when it is
+true**, because it stops the next reader assuming a row shipped user-visible value it did not.
 
 ## Three things that only an opened screenshot caught
 
@@ -107,8 +126,15 @@ merely contain the text, which is how an agent killed a sibling on 2026-08-24.
 
 ## What is blocked, and on whom (2026-09-05)
 
-**Nothing is blocked on an agent.** All 70 `RV` rows are closed and the OB observability cluster is
-under way (`OB.2`/`PR.10` shipped; `PR.9` dispatched; `PR.12` and `PR.11` follow).
+**Nothing is blocked on an agent.** 70 of 71 `RV` rows are closed, and the OB observability cluster
+is half done: **`OB.2`/`PR.10` and `OB.1`/`PR.9` are shipped and verified**; **`OB.3`/`PR.12` is
+next and unbriefed**, then `OB.4`/`PR.11`. The order is a real dependency chain, not a preference -
+nothing can be exported that was never emitted, and a failure cannot be recorded meaningfully
+without a code to record.
+
+**`OB.3` inherits one loose end from `OB.1`, named deliberately rather than fixed there**:
+`LoggingHTTPTransport`/`NetResponse` do not yet carry the error code onto `net.response`, although
+`docs/LOGGING.md` §4 already promises `errorCode` there. Wire it in `PR.12`.
 
 - **`T.3`** - the only tracked v1 row still open, and **it cannot be closed by a fix**: an
   intermittent `ConfirmOdometerPrefillUITests` failure that needs **two consecutive green full
