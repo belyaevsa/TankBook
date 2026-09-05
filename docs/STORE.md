@@ -330,6 +330,18 @@ All six are **No**, and each is checkable in the code rather than assumed:
 | Messaging and chat | No | Users cannot reach each other; there is no shared surface |
 | Advertising | No | No ad SDK, no promotion of anything - and the listing claims this, so it must stay true |
 
+### Age rating - the questionnaire itself
+
+**None** to every row of steps 2 through 7: profanity or crude humour, horror and fear themes,
+alcohol/tobacco/drug use or references, violence in each of its forms, sexual content and nudity,
+gambling and contests, and medical or treatment information. Every string in the app ships through
+the String Catalogs, so there is no surface that renders anyone else's words; a user's own notes and
+station names are visible only to them, which the questionnaire does not count. Fuel is not a
+licit-substance reference.
+
+Watch the **medical or treatment information** row in particular: anything but None there triggers
+the Regulated Medical Devices declaration on the regulations screen.
+
 Rating stays **4+**.
 
 ### One thing that contradicts the answers, and must be fixed before submission
