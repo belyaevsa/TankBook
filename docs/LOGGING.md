@@ -125,7 +125,7 @@ event name made every request line identical.
 | `sync.nudge` | accountId, candidates, delivered, invalidToken, transient, throttled, config, durationMs – counts and outcome only; **never the push token** (a Never credential) |
 | `blob.begin` / `blob.commit` | sha256, sizeBytes, contentType, `dedupe: hit\|miss`, quotaUsedPct |
 | `blob.get` | sha256, `presignTtlSec` – never the signed URL |
-| `llm.extract` | kind, quotaBefore/After, model, durationMs, outcome. **Never the image, never the extracted values.** |
+| `llm.extract` | kind, requestsUsedBefore/After, model, durationMs, outcome. The two `requestsUsed*` fields count the period's metered requests USED before and after the call - a usage counter going up (RV.60 renamed them from `quotaBefore/After`, which read as a quota increasing). **Never the image, never the extracted values.** |
 | `llm.rendition_failed` | accountId, outcome (Warning) – the ledger's prompt rendition could not be written to blob storage; the row still recorded the call WITHOUT it (RV.53, handled degradation) |
 | `llm.call_queued` | accountId, outcome (Warning) – the ledger row insert failed and the row was queued for a bounded retry (`llm_ledger_pending`, RV.53) |
 | `llm.call_unrecorded` | accountId, outcome (Error) – a paid call's ledger row could not be written anywhere (insert AND queue write both failed); the spend record is lost |

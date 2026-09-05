@@ -184,19 +184,20 @@ public static class TankbookLog
             ("AccountId", accountId),
             ("Deleted", deleted));
 
+    /// <summary>The two fields count the period's metered requests USED before and after the call - a usage counter going up, never a remaining quota (RV.60). Counts are Safe (hard rule 12).</summary>
     public static void LlmExtract(
         ILogger logger,
         LogLevel level,
         string kind,
-        long quotaBefore,
-        long quotaAfter,
+        long requestsUsedBefore,
+        long requestsUsedAfter,
         string model,
         TimeSpan duration,
         string outcome)
         => Emit(logger, level, "llm.extract",
             ("Kind", kind),
-            ("QuotaBefore", quotaBefore),
-            ("QuotaAfter", quotaAfter),
+            ("RequestsUsedBefore", requestsUsedBefore),
+            ("RequestsUsedAfter", requestsUsedAfter),
             ("Model", model),
             ("DurationMs", duration.TotalMilliseconds),
             ("Outcome", outcome));

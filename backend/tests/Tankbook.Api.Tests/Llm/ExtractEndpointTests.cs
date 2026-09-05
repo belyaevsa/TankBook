@@ -202,6 +202,36 @@ public class ExtractEndpointTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("43.61", swept, StringComparison.Ordinal);
     }
 
+    // ---- 5b. RV.60: the usage counter is named as usage, never quota ---------
+
+    [SkippableFact]
+    public async Task Extract_SuccessLog_CountsRequestsUsedBeforeAndAfter_NotQuota()
+    {
+        // QuotaBefore=6 QuotaAfter=7 read as a quota INCREASING when the two
+        // fields are a period-usage counter going up. The renamed fields must say
+        // what they count - requests used before and after the metered call - and
+        // the old names must be gone (a mutation back to Quota* fails this test).
+        var signer = new TestIdTokenSigner();
+        var provider = new RecordingLlmProvider();
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, provider, writer);
+        var (token, account, _) = await CreateSessionAsync(app, signer, "usage-names", "usage-names@example.com");
+        await app.SetTierAsync(account, "pro");
+
+        var response = await ExtractAsync(app.Client, token, "receipt", SmallImage(), null);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var logLines = writer.JsonLines().ToList();
+        var extract = Assert.Single(logLines, l => l.Prop("event") == "llm.extract" && l.Prop("outcome") == "ok");
+
+        // A fresh account: 0 requests used before the call, 1 after it.
+        Assert.Equal("0", extract.Prop("requestsUsedBefore"));
+        Assert.Equal("1", extract.Prop("requestsUsedAfter"));
+        Assert.Null(extract.Prop("quotaBefore"));
+        Assert.Null(extract.Prop("quotaAfter"));
+    }
+
     // ---- 6. The prompt is stored only as the ledger's rendition, by sha256 --
 
     [SkippableFact]
