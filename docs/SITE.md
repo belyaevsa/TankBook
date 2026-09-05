@@ -20,9 +20,14 @@ nothing else - the allowlist is a string guard, not a lookup.
 
 **The site may not promise what the corpus says we cannot deliver.** Hard rule 15 is a product
 decision with measurements behind it: capture is a **head start, not an answer**, and typing is a
-**peer path of equal standing**. The numbers that forced it - receipts **38.3%**, pump displays
-**0%**, a fiscal QR present on **9 of 16** receipts and carrying 2 of 5 fields, Vision misreading a
-digit at **confidence 1.00** - have not moved.
+**peer path of equal standing**. The numbers that forced it have MOVED, and the rule
+survives them (re-measured 2026-09-05): receipts resolve **188 of 220 cells (85%)** but only
+**33 of 48 receipts (69%) come out entirely right**, pump displays commit **24 of 178 numeric
+cells (13%)** with that mode shipped off, a fiscal QR is present on **22 of 48** receipts and
+carries 2 of 5 fields, and Vision still misreads a digit at **confidence 1.00**. A third of
+receipt captures still need a correction, so the copy rule below is unchanged - and note the
+temptation the new numbers create: 85% is a good number to boast with and it is NOT a promise
+that a scan finishes the job.
 
 So:
 

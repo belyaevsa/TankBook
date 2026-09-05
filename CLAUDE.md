@@ -140,9 +140,16 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 15. **Two doors, always: type it or scan it.** Adding an entry manually and capturing one are
     **peer paths of equal standing**, offered side by side at every entry point - never
     "scan, and type only if scanning failed". A camera-first design punishes the user every
-    time the camera cannot deliver, and the corpus says that is often: receipts extract at
-    **38.3%**, pump displays at **0%**, Vision misreads a digit at **confidence 1.00**, and a
-    fiscal QR is present on only **9 of 16** real receipts and carries just 2 of the 5 fields.
+    time the camera cannot deliver, and the corpus still says that is often - even after the
+    parser got good. **Re-measured 2026-09-05** (the rule was written against 38.3% / 0% /
+    9-of-16, kept here as the before): receipts resolve **188 of 220 asserted cells (85%)**, but
+    only **33 of 48 receipts (69%) come out with every cell right**, so about a third of captures
+    still need the user to fix something; **pump displays commit 24 of 178 numeric cells (13%)**
+    and that mode ships off; Vision still misreads a digit at **confidence 1.00**; and a fiscal QR
+    is present on **22 of 48** real receipts while carrying just 2 of the 5 fields. Improving the
+    parser by 37 points did not weaken this rule, it changed the sentence that carries it: the
+    argument is no longer "scanning mostly fails" but **"scanning is usually a good head start and
+    is never the whole entry"**.
     A capture is therefore a **head start, not an answer**: whatever it produces is a default
     input the user edits (rule 13), so a poor scan degrades to "correct two fields", never to
     "start over". Any screen that makes manual entry harder to reach than capture, or that

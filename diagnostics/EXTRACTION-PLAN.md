@@ -8,10 +8,10 @@ Written 2026-09-04 from the day's measurements and seven independent agent analy
 
 | class | this morning | now | note |
 |---|---|---|---|
-| receipts | 101/210 (48%) | **180/220 (82%)** | 4 commits; 61% of receipts fully correct |
+| receipts | 101/210 (48%) | **188/220 (85%)** | 33 of 48 fixtures entirely correct; the total column misses nothing |
 | fiscal | 2/5 | 5/5 | |
-| screenshots | 27/40 | 34/40 | |
-| pump | 51/251 (20%) | 53/261 (20%) | **and the 20% is not the real number - see B0** |
+| screenshots | 27/40 | 35/40 | |
+| pump | 51/251 (20%) | **24/178 numeric, 100% precision** | the gate was re-scoped (B1); the old 20% mixed three unlike things - see B0 |
 
 Receipts have three confident-wrong values left, all totals, and `RV.56` is in flight against
 them. Everything else in the receipt class is an honest abstention.
@@ -74,11 +74,15 @@ tank capacity, label and make anchors (the make logo and field labels survive in
 - the cheapest accuracy available), then the existing cross-check and digit repair, then
 abstention. Kimi's estimate: **~4/178 → ~110/178 on the OCR text that already exists.**
 
-**B3. Then measure the crop experiment.** The two analysts who opened the photographs disagree
-about whether cropping the LCD window and upscaling recovers the decimal point - same fixture,
-opposite conclusions. It is an afternoon: crop `pump-005`'s total window, upscale, re-run Vision,
-see whether the dot returns. **Measure; do not arbitrate by argument.** Worth ~+20 cells if it
-works, nothing if it does not.
+**B3. MEASURED AND CLOSED, 2026-09-05** (`diagnostics/RESEARCH-pump-B3-crop-experiment.md`). Run
+over all 66 fixtures: of 148 separator-less digit runs, a crop recovers a separator on 19 and the
+CORRECT value on only 7, while producing ten wrong ones - several off by a factor of ten, which is
+the error class the cross-check cannot see. Upscaling is strictly worse (7 correct at 1x, 5 at 2x,
+4 outright regressions): interpolating a seven-segment glyph invents edges that were never
+photographed. Both analysts were half right - the separator IS in the pixels, and it is recovered
+by ISOLATION at 1x rather than by resolution. **Do not build it as a recogniser.** A 1x crop is
+usable only as a candidate generator for B2's scale search, where the arithmetic validates the
+reading instead of the reading being believed, and only after the ladder is finished.
 
 **B4. Refusal behaviours, which earn no cells and matter anyway.** An idle pump, a display still
 holding the previous customer's transaction, and a factor-of-ten tie must be **refused**, not
@@ -119,13 +123,18 @@ requirement, RV.58 a corrected data-leak filing). The research artefacts are now
 research is not a task and should never have claimed a backlog id. Task rows for the work below get
 fresh ids when they are filed.
 
-**D2. Hard rule 15 quotes stale numbers.** `CLAUDE.md` still says *"receipts extract at 38.3%, pump
-displays at 0%"*. Receipts are 82% and pump's honest figure is 2.2% on numeric fields. The rule's
-*conclusion* is unchanged - typing stays a peer path - but a hard rule citing numbers that are two
-and a half times off invites someone to relitigate it on stale evidence.
+**D2. DONE 2026-09-05.** The stale corpus numbers are refreshed everywhere they are a LIVE claim:
+hard rule 15 in `CLAUDE.md`, `docs/JOURNEYS.md` (J3b's "why this is a journey"), `docs/VISION.md`
+and `docs/SITE.md`. Each keeps the old figures visible as the "before", because the interesting
+fact is that the rule survived a 37-point improvement: the argument is no longer "scanning mostly
+fails" but "scanning is usually a good head start and is never the whole entry". `SITE.md` also
+gains the new temptation in writing - 85% is a good number to boast with and is not a promise that
+a scan finishes the job. Historical task rows are deliberately NOT rewritten: they record what was
+known when the decision was taken.
 
-**D3. `docs/EXTRACTION.md` measured-reality section** needs the 180/220 figure and the pump
-re-scoping.
+**D3. DONE 2026-09-05.** `docs/EXTRACTION.md`'s measured-reality section now carries the per-class
+table, the pump gate's re-scoping, and the two things measured and closed so they are not
+re-proposed (recognition knobs for receipts, and B3).
 
 ---
 

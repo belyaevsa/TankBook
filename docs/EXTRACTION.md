@@ -22,17 +22,40 @@ the same change.
 Vision reads the characters; **the hard part is deciding what each number means**, and every
 value this pipeline produces is a suggestion the user can overwrite forever (hard rule 13).
 
-## Measured reality, 2026-09-04 (receipts re-measured after RV.48 stage one)
+## Measured reality, 2026-09-05
 
-The receipt class scores **138/210 cells (65.7%)**, up from 101/210 (48.1%) on the same 46
-fixtures - the corpus did not change, the parser did (`Spike/ReceiptSpike/fixtures/high-water.json`
-carries the per-change breakdown). Fiscal moved 2/5 -> 3/5 and screenshots 27/40 -> 30/40 as a side
-effect of the same fixes; pump is unchanged at 51/251 and its mode still ships off.
+| class | score | note |
+|---|---|---|
+| receipts | **188/220 cells (85%)** | 33 of 48 fixtures resolve every asserted cell (69%) |
+| fiscal | 5/5 | |
+| screenshots | 35/40 | |
+| pump | **24/178 numeric cells** | committed 24, correct 24 - see the gate note below |
 
-The largest remaining block is **26 abstentions in `resolveUnmarked`**, which begins
-`guard let provider = bandProvider else { return (nil, nil) }` - and nothing injects a provider, so
-ladder steps 3 and 4 are dead code. See "the resolution ladder" below; a band pack must be keyed by
-**fuel kind and era**, because a currency-only RUB band gets receipt-012 (LPG at 23.99) wrong.
+Receipts were **101/210 (48%)** on the morning of 2026-09-04 and the corpus has only grown since,
+so the movement is the parser, not the fixtures (`Spike/ReceiptSpike/fixtures/high-water.json`
+carries the per-change breakdown). **The total column now misses nothing**, and the class holds no
+confident-wrong value: every remaining miss is an honest abstention.
+
+**The pump number is scored differently on purpose (B1, 2026-09-04).** The old pump mark - "53/261,
+20%" - was a recall average over a denominator that mixed the 178 numeric cells the mode exists to
+read, a near-free `currency` marker lookup (66 cells), and `fuelKind` (17), which this document
+says a pump parser must never produce. Worse, recall scores a correct `nil` as a miss and a
+confident-wrong value as a hit - hard rule 13 inverted - and the two idle pumps' ground-truth zeros
+made it reward logging a zero-litre fill. `PumpPhotoGate` now measures **precision on committed
+numeric fields plus a coverage floor**: today 24 of 24 committed cells are correct (100% precision)
+at 13% coverage, so the mode stays off, below the 0.60 floor.
+
+**Two things measured and closed, so they are not re-proposed:**
+
+- **Image preparation and recognition knobs are no-ops for receipts.** Every operand the parser
+  misses is already recognised at confidence 1.00; the losses are in role assignment, not reading.
+- **Cropping a pump display's number window and re-reading it is not an accuracy stage**
+  (`diagnostics/RESEARCH-pump-B3-crop-experiment.md`, measured over all 66 pump fixtures). Of 148
+  separator-less digit runs, a crop recovers a separator on 19 and the *correct* value on only 7 -
+  while producing ten wrong ones, several off by a factor of ten. Upscaling makes it strictly
+  worse (7 correct at 1x, 5 at 2x, and 4 outright regressions), because interpolating a
+  seven-segment glyph invents edges that were never photographed. A 1x crop is usable only as a
+  candidate generator for the scale search, never as a value source.
 
 ## Measured reality, 2026-08-26
 

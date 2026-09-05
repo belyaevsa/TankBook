@@ -106,11 +106,14 @@ points, a corporate fuel-card slip with no QR, or simply a preference.
 | Later (PJ.48, **[v1.1]**) | Finds the receipt in a pocket, opens the entry, taps "Add receipt" | "I can still keep the paper" | → The typed door is a peer, so its entries can carry the receipt too: attach from camera or Photos on Edit entry; OCR may then **fill blank fields only**, never overwrite a typed value (hard rule 13). The paperclip appears in the Log like a scanned entry's |
 
 **Why this is a journey and not a fallback.** A capture-first design punishes the user on every
-capture the camera cannot serve, and the measured corpus says that is common: receipts extract
-at **38.3%**, pump displays at **0%**, Vision misreads digits at **confidence 1.00**, and a
-fiscal QR exists on **9 of 16** real receipts while carrying only 2 of 5 fields. Making typing
-the punishment for a failed scan would make the app feel broken precisely when it is being
-honest about uncertainty.
+capture the camera cannot serve, and the measured corpus still says that is common. **Re-measured
+2026-09-05** (this paragraph was written against 38.3% / 0% / 9-of-16): receipts resolve **188 of
+220 asserted cells (85%)**, yet only **33 of 48 receipts (69%) come out with every cell right**;
+**pump displays commit 24 of 178 numeric cells (13%)** and that mode ships off; Vision still
+misreads digits at **confidence 1.00**; and a fiscal QR exists on **22 of 48** real receipts while
+carrying only 2 of 5 fields. So roughly a third of receipt captures still need the user to correct
+something, and making typing the punishment for a failed scan would make the app feel broken
+precisely when it is being honest about uncertainty.
 
 So the two paths are peers, and a capture is a **head start rather than an answer**: everything
 it produces is a default input the user edits (hard rule 13), which means a thin scan degrades
