@@ -4,7 +4,7 @@ import TankbookCore
 /// The inbox's labels (RV.38, docs/JOURNEYS.md F4). In its own file so
 /// `L10n.swift` stays under its lint budget. Every key has an EN + RU entry -
 /// the three action labels are the RU overflow test (docs/TASKS.md RV.38):
-/// "Update from the receipt" / "Leave it as it is" / "Replace the receipt"
+/// "Update from the receipt" / "Leave it as it is" / "Use a different receipt"
 /// expand hard in Russian and sit in a crowded header.
 extension L10n {
     /// The bell's spoken name and the Inbox screen's title.
@@ -42,8 +42,14 @@ extension L10n {
     }
 
     /// The third action: routes to the entry, where the receipt lives.
-    static var inboxReplaceReceipt: String {
-        localize("Replace the receipt")
+    ///
+    /// Deliberately NOT called "replace" (RV.64, product owner 2026-09-05).
+    /// "Replaces what you entered" already names what a ticked FIELD does, so
+    /// a control that swaps the PHOTO must not borrow the same verb - one card
+    /// was using "replace" for three different acts. This reuses the wording
+    /// the attachment surfaces already use for swapping a file.
+    static var inboxUseDifferentReceipt: String {
+        localize("Use a different receipt")
     }
 
     /// The reassuring empty state (Recently deleted's "nothing here" sibling).

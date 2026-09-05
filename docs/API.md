@@ -78,7 +78,7 @@ GET /sync/pull?since=<SCN>&limit=500        // since=0 → full dataset
 → 200 { records: [ { id, entityType, schemaVersion, scn, payload, clientUpdatedAt, deleted } ],
         nextSince: <SCN>, more: bool,
         schemaPolicy: { minSupported: int, current: int } }   // clients upcast to `current` on read
-→ 410 device revoked / account deleted → client re-onboards or detaches
+→ 410 device revoked / account deleted → client ends the cycle, drops the session, routes to sign-in
 ```
 Strictly SCN-ordered, paginated; the client persists `nextSince` per device only after applying the page.
 
@@ -93,6 +93,21 @@ Strictly SCN-ordered, paginated; the client persists `nextSince` per device only
                          // PULL still works – never lock a user out of their own data.
 ```
 Per-item outcomes; `conflict` returns the server's current record for client-side LWW merge + re-push (SYNC.md S1/S6). Payloads with `clientUpdatedAt` >24h in the future are clamped to server time and the accepted result carries `"clamped": true` so the client can warn.
+
+**The 410 contract on push (answered for RV.58 - written down, not coded around).** A revoked device
+answers `410` on `pull` today because the pull endpoint checks the `devices` row; `push` (and the
+blob endpoints) authenticate only the bearer token, and an access token stays valid for up to ~1 h
+after a revoke, so those endpoints still accept a revoked device's writes in that window. **The
+answer: no - push should not accept a revoked device's writes.** Revocation means access is gone
+(`docs/SYNC.md`), and a token that outlives the revoke is still a bearer the server never asked to
+revoke; the "a revoked device or deleted account gets `410` on all three" line in the Attachments
+section is the intended norm. This is filed as a
+backend change (the server should answer `410` to `sync/push` for a revoked device row, in the same
+place `pull` checks it) and is deliberately **not** done in RV.58, which is client-only. It is also
+defence in depth rather than the primary stop: RV.58 makes the client treat the FIRST `410` it sees
+as terminal - the cycle stops, the session's tokens are discarded, and the revoked device routes to
+sign-in - so a compliant client issues no second request for the server to refuse. The client change
+is what ends the ~3-minute post-410 traffic tail seen in production (14:53:10 -> 14:56:04).
 
 **Payload validation** (per-item `rejected` codes, full contract in `SYNC.md` → "Payload contract and versioning"): `payload_invalid` (not an object, >256 KB, bad entityType), `schema_version_unsupported` (newer than the server knows – the *server* needs updating, and the message says so), `payload_schema_violation` (fails the registered JSON Schema; `pointer` names the offending field). A **known** entityType is strictly validated; an **unknown** one with a well-formed envelope is accepted unvalidated, which is what keeps the entity set open for older servers.
 

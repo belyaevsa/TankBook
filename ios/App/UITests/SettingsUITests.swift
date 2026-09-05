@@ -33,6 +33,18 @@ final class SettingsUITests: XCTestCase {
                 "-presentScreen", "settings", seed])
     }
 
+    /// Launches Settings signed in and forces the account card's LIVE device
+    /// count to `count` (`-seedSettingsDeviceCount`, RV.54), so the rendered
+    /// plural forms can be asserted at 1/2/5 in either language without a real
+    /// device fetch. The value semantics (live-only counting) are the L1
+    /// contract; this pins the account card's rendering of it.
+    private func launchSettingsDeviceCount(_ count: Int, language: String) -> XCUIApplication {
+        launch(["-presentScreen", "settings", "-seedSettingsSynced",
+                "-seedSettingsDeviceCount", "\(count)",
+                "-AppleLanguages", "(\(language))", "-AppleLocale",
+                language == "ru" ? "ru_RU" : "en_US"])
+    }
+
     /// The status line's rendered text (the account card subtitle).
     private func syncStatus(_ app: XCUIApplication) -> XCUIElement {
         app.staticTexts["settingsSyncStatus"]
@@ -117,6 +129,73 @@ final class SettingsUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["settingsRevokedCard"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.buttons["settingsRevokedSignInButton"].exists,
                       "the revoked card names its next step: sign in")
+    }
+
+    // MARK: - RV.58 the real 410 path is terminal (docs/TASKS.md RV.58)
+
+    /// A REAL 410 (the seed transport answers 410 to every request, so the
+    /// whole 410 -> cycle-stop -> session-drop path runs - nothing is forced)
+    /// must end the account on this device: the signed-in account card and its
+    /// sync surface are gone, the signed-out revoked card with its "sign in"
+    /// next step appears, and the card's sign-in opens the flow. The vacuous
+    /// trap the row names is asserting the card while the three minutes of
+    /// traffic still happen behind it - here the session drop IS the traffic
+    /// stop, asserted by the account surface no longer believing it is signed
+    /// in (no account title, no "Sync now").
+    func testReal410DropsTheSessionAndRoutesToSignIn() {
+        let app = launchSettings(seed: "-seedSettingsRevoked410")
+        // Drive the cycle deterministically, exactly as the auth-expired seed
+        // does: the seed writes the session at Settings appear, then the tap
+        // runs the real path against the 410-answering transport. The launch
+        // foreground cycle can already have run that path (and dropped the
+        // session) before Settings appears - if "Sync now" is still there, tap
+        // it; either way the drop's card is what we assert.
+        let syncNow = app.buttons["settingsSyncNowButton"]
+        if syncNow.waitForExistence(timeout: 5) {
+            syncNow.tap()
+        }
+
+        let revokedCard = app.otherElements["settingsRevokedCard"]
+        XCTAssertTrue(revokedCard.waitForExistence(timeout: 10),
+                      "a 410 must surface the revoked card, never 'update the app'")
+        XCTAssertTrue(app.buttons["settingsRevokedSignInButton"].exists,
+                      "the revoked card names its next step: sign in")
+
+        // The session was dropped: the signed-in account card is gone, and so
+        // is the sync surface it guarded. This is what ends the three-minute
+        // tail - no session means no future trigger can start another cycle.
+        XCTAssertFalse(app.staticTexts["settingsAccountTitle"].exists,
+                       "the dropped session must not still render the signed-in account card")
+        XCTAssertFalse(app.buttons["settingsSyncNowButton"].exists,
+                       "a dropped session must not still offer 'Sync now'")
+
+        // Sign-in is reachable: the card's button opens the flow.
+        app.buttons["settingsRevokedSignInButton"].tap()
+        XCTAssertTrue(app.buttons["signInAppleButton"].waitForExistence(timeout: 10),
+                      "the revoked card's next step opens the sign-in flow")
+    }
+
+    /// Hard rules 1 and 8 after a 410: a revoked device keeps using the app
+    /// locally. The signed-out revoked state (the session a 410 dropped, the
+    /// mark persisted) still opens every screen and still owns its local log -
+    /// the vehicle and its last odometer survive, exactly as after a sign-out.
+    func testRevokedDeviceStillOpensItsScreensOffline() {
+        let app = launch(["-presentScreen", "settings", "-seedSettingsRevokedSignedOut"])
+        XCTAssertTrue(app.otherElements["settingsRevokedCard"].waitForExistence(timeout: 10),
+                      "the signed-out revoked state renders the revoked card")
+        XCTAssertFalse(app.buttons["settingsSyncNowButton"].exists,
+                       "a revoked device has no sync surface - there is no session to sync with")
+
+        // Pop back to Home: the local log opens and the last odometer survives
+        // (119 000 only because the five seeded fills exist - a 410 that wiped
+        // the log would show the vehicle's initial 118 000 and fail this).
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Volvo V60"].waitForExistence(timeout: 10),
+                      "the vehicle survives a 410 (nothing local is deleted)")
+        let odometer = app.staticTexts["homeOdometer"]
+        XCTAssertTrue(odometer.waitForExistence(timeout: 5))
+        XCTAssertTrue(odometer.label.contains("119\u{00A0}000"),
+                      "the last entry's odometer survives; got '\(odometer.label)'")
     }
 
     func testQuotaShowsStorageCard() {
@@ -300,5 +379,48 @@ final class SettingsUITests: XCTestCase {
                       "the just-signed-in card shows 'Your garage now follows your account.'")
         XCTAssertFalse(app.buttons["settingsSignInButton"].exists,
                        "the guest card is gone once signed in")
+    }
+
+    // MARK: - RV.54 the account card's count is LIVE and pluralises (docs/JOURNEYS.md J11a)
+
+    /// The card's "· N device(s)" suffix renders with the real plural forms in
+    /// EN (device/devices) at 1, 2 and 5. RV.54 changed what the NUMBER means
+    /// (live devices only, the L1 contract in `LiveDeviceCountTests`); this
+    /// pins that whatever number the card is given still renders with the
+    /// catalog's plural rules - a count that stopped pluralising would pass a
+    /// value test and fail here.
+    func testAccountCardDeviceCountPluralisesInEnglish() {
+        let expected = [
+            1: "Synced just now · 1 device",
+            2: "Synced just now · 2 devices",
+            5: "Synced just now · 5 devices"
+        ]
+        for (count, label) in expected.sorted(by: { $0.key < $1.key }) {
+            let app = launchSettingsDeviceCount(count, language: "en")
+            let status = syncStatus(app)
+            XCTAssertTrue(status.waitForExistence(timeout: 10))
+            XCTAssertEqual(status.label, label,
+                           "the card must render '\(label)' at a live count of \(count)")
+        }
+    }
+
+    /// The RU plural is the risk RV.54 names: Russian has THREE plural forms
+    /// (устройство / устройства / устройств at 1/2/5) and a revoked device is
+    /// exactly what moves a count across them. A count that no longer
+    /// pluralises, or pluralises by the total instead of the live count, fails
+    /// here.
+    func testAccountCardDeviceCountPluralisesInRussian() {
+        let expected = [
+            1: "Синхронизировано только что · 1 устройство",
+            2: "Синхронизировано только что · 2 устройства",
+            5: "Синхронизировано только что · 5 устройств"
+        ]
+        for (count, label) in expected.sorted(by: { $0.key < $1.key }) {
+            let app = launchSettingsDeviceCount(count, language: "ru")
+            let status = syncStatus(app)
+            XCTAssertTrue(status.waitForExistence(timeout: 10))
+            XCTAssertEqual(status.label, label,
+                           "the card must render '\(label)' at a live count of \(count)")
+        }
     }
 }

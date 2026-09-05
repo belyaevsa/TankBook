@@ -151,9 +151,21 @@ public struct SyncEngine {
         } catch SyncServerError.authExpired {
             outcome.authExpired = true
             try? repository.recoverStuckPushes()
+        } catch SyncServerError.deviceRevoked {
+            // RV.58: a 410 is a revocation, wherever in the cycle it lands. On
+            // the PUSH half it used to fold into `applyTransportFailure` (a 5xx
+            // "server down"), which the retry policy then retried with backoff -
+            // a revoked device kept pulling and pushing for minutes. It is
+            // terminal exactly as it is on pull: the cycle stops, the outcome
+            // surfaces `deviceRevoked`, and nothing is retried (SyncRetryPolicy
+            // never schedules a refusal).
+            outcome.deviceRevoked = true
+            try? repository.recoverStuckPushes()
         } catch {
-            // A 5xx, a 410 during push, or an undecodable body: the host
-            // answered, so this is the service being down - never offline.
+            // A 5xx, an offline transport, or an undecodable body: `offline`
+            // (the host never answered) and a 5xx (the host answered but the
+            // service is down) are the two transient classes - never a
+            // revocation, which has its own catch above.
             outcome.applyTransportFailure(error)
             try? repository.recoverStuckPushes()
         }

@@ -459,7 +459,14 @@ Three things live there, and the split between them is what keeps hard rule 8 in
    the user to babysit a queue the app is supposed to drain by itself.
 
    The signed-in reassurance line also carries the account's device count – "Synced just now ·
-   1 device" (docs/JOURNEYS.md J11a -> Confirm). **The count is fetched from `GET
+   1 device" (docs/JOURNEYS.md J11a -> Confirm). **RV.54 (product owner, 2026-09-04): the
+   number counts LIVE devices only.** It answers "how many devices can reach my data", and a
+   revoked device's next pull gets 410, so it cannot reach the data and does not count – which is
+   also what makes a revoke visibly decrement the number (the RV.6 acceptance that was unwritable
+   while the count included revoked rows). The revoked rows stay in the Account & devices LIST,
+   marked, never omitted: the history is the point of showing them. This is a client-side
+   counting decision (`liveDeviceCount`) – `GET /account/devices` is unchanged and keeps
+   returning revoked rows marked. **The count is fetched from `GET
    /account/devices` once per membership, not once per appearance (RV.6).** It is a reassurance
    detail that changes on **events** – a sign-in, a sign-out, a revoke, an account delete – never
    on a clock, so it is cached across every surface refresh (Settings re-appearing after a pop
@@ -471,7 +478,9 @@ Three things live there, and the split between them is what keeps hard rule 8 in
    Deliberately **not** a time interval: an interval would make the count *sometimes* stale for
    reasons the user cannot see, while event invalidation keeps it correct on exactly the moments
    the user can act on. The Account & devices screen itself always reads the full list on each
-   visit (didLoad-guarded per push) – this cache governs only the Settings card's suffix.
+   visit (didLoad-guarded per push) – this cache governs only the Settings card's suffix, and the
+   list and the count always agree because the count is derived from that same list, live rows
+   only.
 
 2. **"Sync now" - a manual trigger, never a requirement.** Sync is automatic; this exists because
    a user who has just edited something on another device wants to *pull now* rather than wonder.
@@ -546,10 +555,12 @@ tests:
 
 - `status()` is untouched: its callers (Settings) keep their exhaustive switches and never see a
   `signedOut` verdict they have no card for.
-- `chipState` evaluates the attention conditions **before** `!isSignedIn`, because an expired
-  session *clears the Keychain* (so `isSignedIn` reads false too) but is still an account issue the
-  user must act on - "Sign in again", never the colourless "Not signed in". This is the precedence
-  the mutation check below guards.
+- `chipState` evaluates the attention conditions **before** `!isSignedIn`, because an expired session
+  *clears the Keychain* (so `isSignedIn` reads false too) but is still an account issue the
+  user must act on - "Sign in again", never the colourless "Not signed in". **RV.58 adds the same
+  rule for a revoked device**: a 410 drops the session and persists a `deviceRevoked` mark, so a
+  revoked-but-signed-out device still reads as the amber "Device signed out", never as the
+  colourless guest. This is the precedence the mutation check below guards.
 
 ## Offline & failure behavior (ties to JOURNEYS)
 
@@ -564,7 +575,18 @@ tests:
   `401` (authExpired, PR.1's refresher owns it), `402`, `410`, `426` and an unknown 4xx name a next
   step that is not "try again". Partial batch acceptance is fine (idempotent by id + baseScn); only
   idempotent calls are retried at all.
-- A device deleted server-side (user revokes it) gets `410` on its cursor → re-onboards via full pull.
+- **A 410 (device revoked / account deleted) is TERMINAL for the cycle (RV.58), wherever it lands.**
+  A 410 on pull stops the cycle before any push; a 410 on push stops the batch loop and surfaces
+  `deviceRevoked` (it used to fold into the 5xx "server down" class, which the retry policy then
+  retried - a revoked device kept cycling for ~3 minutes in production). Either way nothing is
+  retried, and the app then **drops the session**: the still-valid access token is discarded and a
+  `deviceRevoked` mark is persisted (docs/SECURITY.md: a revoked device discards its tokens and stops
+  syncing), so no later trigger can start another cycle. The surface routes to sign-in
+  (docs/ERRORS.md -> Settings); the local log and the dirty queue are untouched (hard rules 1 and 8)
+  and push again when the user signs in on this device, which re-attaches the device row (RV.41).
+- A device deleted server-side (user revokes it) gets `410` on its cursor → the cycle ends as above;
+  after a re-attaching sign-in, sync resumes from the applied cursor (nothing local was lost, so no
+  full re-pull is needed - the pull is resumable by `since`).
 - Account deletion: tombstone the account (`accounts.deleted_at`), purge `records`/`blobs` after the grace period; devices get `410` → local data stays local (the user keeps their log; it just stops syncing). The grace period defaults to the 30-day undo window (hard rule 8) and is configurable (`Account:DeletionGraceDays`); it must never be shorter than the undo window, so a tombstoned account stays fully recoverable for the whole window before the purge job deletes anything.
 - Restore-on-new-device shows the F7 verification stats from the pull stream before finishing (entries count, date range, last odometer).
 

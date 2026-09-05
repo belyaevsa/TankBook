@@ -264,9 +264,8 @@ struct AttachmentViewerView: View {
 
     /// The moving part of the fetch. A system `ProgressView` (the same small
     /// spinner the rest of the app uses); under Reduce Motion it degrades to a
-    /// static hourglass, matching `GatewayReadingBanner` (RV.8) - the
-    /// accessibility floor is non-negotiable and the "Downloading..." line
-    /// carries the meaning on its own.
+    /// static hourglass - the accessibility floor is non-negotiable and the
+    /// "Downloading..." line carries the meaning on its own.
     @ViewBuilder
     private var downloadIndicator: some View {
         if reduceMotion {

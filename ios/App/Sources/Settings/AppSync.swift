@@ -131,6 +131,13 @@ final class AppSync {
     /// on RV.22's chip. Distinct from `lastOutcome.authExpired`, which is the
     /// in-memory outcome of the last sync cycle.
     private(set) var storedAuthExpired = false
+    /// RV.58: whether the session store carries the persisted `deviceRevoked`
+    /// mark (a 410, docs/SECURITY.md: a revoked device discards its tokens and
+    /// stops syncing). The revoked session is dropped the moment a cycle answers
+    /// 410; this mark is what keeps the surface reading "this device was signed
+    /// out - sign in to reconnect" (never a plain guest) across relaunches,
+    /// until the user signs in again and the device row re-attaches.
+    private(set) var storedDeviceRevoked = false
     /// PR.14: the number of entries the last sync batch flagged (docs/SYNC.md
     /// -> the post-batch toast "Synced. N entries need a look"). Nil while no
     /// batch has flagged anything; the Home toast reads it and clears it when
@@ -143,8 +150,8 @@ final class AppSync {
     /// flow's first push, cleared on sign-out or relaunch; in-memory only.
     private var didJustSignIn = false
     /// The Settings card's device count (`GET /account/devices`,
-    /// docs/JOURNEYS.md J11a -> "Synced just now · 1 device"), behind a
-    /// `DeviceCountCache` (RV.6).
+    /// docs/JOURNEYS.md J11a) behind a `DeviceCountCache` (RV.6); LIVE devices
+    /// only, revoked rows stay in the list but do not count (RV.54).
     private var deviceCountCache = DeviceCountCache()
     /// RV.18: when the last opportunistic (launch/foreground) cycle started, so
     /// a burst of `.active` transitions is one cycle, not one each. Only the
@@ -218,9 +225,8 @@ final class AppSync {
     /// render the just-signed-in card.
     var justSignedIn: Bool { didJustSignIn || forcedJustSignedIn }
 
-    /// The device count for the account card's "· N device(s)" suffix, or nil
-    /// while unknown (guest, offline, or the fetch failed). The fixture lets a
-    /// frozen-sync screenshot render the count.
+    /// The live device count for the account card's "· N device(s)" suffix, or
+    /// nil while unknown; the fixture lets a frozen-sync screenshot render it.
     var deviceCount: Int? { forcedDeviceCount ?? deviceCountCache.count }
 
     /// RV.6: an event changed the account's devices (a revoke, account delete,
@@ -237,7 +243,8 @@ final class AppSync {
             offline: forcedOffline || (lastOutcome?.offline ?? false),
             serverUnavailable: forcedServerUnavailable
                 || (lastOutcome?.serverUnavailable ?? false),
-            deviceRevoked: forcedRevoked || (lastOutcome?.deviceRevoked ?? false),
+            deviceRevoked: forcedRevoked || storedDeviceRevoked
+                || (lastOutcome?.deviceRevoked ?? false),
             authExpired: storedAuthExpired || (lastOutcome?.authExpired ?? false),
             quotaUsedPercent: forcedQuotaPercent,
             flaggedCount: flaggedCount,
@@ -263,6 +270,16 @@ final class AppSync {
     /// (RV.26 - the cloud gateway sets the same mark on its own 401). The
     /// account card shows the re-sign-in card for this, never "update the app".
     var authExpired: Bool { storedAuthExpired || (lastOutcome?.authExpired ?? false) }
+
+    /// RV.58: whether this device was revoked server-side (a 410). The persisted
+    /// mark (`storedDeviceRevoked`) is what outlives the dropped session and a
+    /// relaunch; the in-memory outcome covers the moments before the mark is
+    /// written; `forcedRevoked` is the screenshot/test fixture. The account card
+    /// renders the "device signed out - sign in to reconnect" card for this,
+    /// never a plain guest and never "update the app".
+    var deviceRevoked: Bool {
+        forcedRevoked || storedDeviceRevoked || (lastOutcome?.deviceRevoked ?? false)
+    }
 
     /// The server-ahead notice the Settings account card surfaces: the forced
     /// fixture when a seed set one, else the coordinator's last outcome. It is
@@ -302,6 +319,7 @@ final class AppSync {
     func refresh() async {
         session = try? sessionStore.load()
         storedAuthExpired = (try? sessionStore.isAuthExpired()) ?? false
+        storedDeviceRevoked = (try? sessionStore.isDeviceRevoked()) ?? false
         if session == nil {
             // The account is gone; the just-signed-in confirmation must not
             // outlive the session it confirmed.
@@ -312,11 +330,12 @@ final class AppSync {
             lastOutcome = core.lastOutcome()
         }
         // The "· N device(s)" suffix (docs/JOURNEYS.md J11a), decided by the
-        // `DeviceCountCache` (RV.6): reuse a cached count, forget it as a
-        // guest, fetch only when unknown.
+        // `DeviceCountCache` (RV.6): reuse/fetch/clear as it decides. RV.54:
+        // the count is LIVE only (`liveDeviceCount`) - revoked rows stay in
+        // the list, the counting excludes them.
         if case .fetch = deviceCountCache.refreshAction(signedIn: session != nil),
-           let count = try? await accountDevicesClient().devices().count {
-            deviceCountCache.record(count)
+           let devices = try? await accountDevicesClient().devices() {
+            deviceCountCache.record(devices.liveDeviceCount)
         }
         do {
             let repository = try AppStore.repository()
@@ -349,7 +368,14 @@ final class AppSync {
         guard !isSyncing, configService.allowsServerBacked, let coordinator = coordinator() else {
             return SyncOutcome()
         }
-        return await coordinator.syncNow(trigger: .userInitiated)
+        let outcome = await coordinator.syncNow(trigger: .userInitiated)
+        // RV.58: a first push that answers 410 is still a revocation - the
+        // device row was revoked between the exchange and the push, so the
+        // fresh session must not survive. Same terminal handling as runSync.
+        if outcome.deviceRevoked {
+            await detachRevokedDevice()
+        }
+        return outcome
     }
 
     /// The host-bound account client for the card's device count - the same
@@ -448,10 +474,46 @@ final class AppSync {
             trigger: trigger.name,
             backgroundCount: counts.background,
             userInitiatedCount: counts.userInitiated))
-        await refresh()
+        if outcome.deviceRevoked {
+            // RV.58: a 410 is terminal for this device's account, and the drop
+            // is what actually stops the tail - keep the tokens and every
+            // opportunistic trigger re-fires a doomed cycle. Drop first, then
+            // refresh so the surface reads the cleared session and the mark.
+            await detachRevokedDevice()
+        } else {
+            await refresh()
+        }
         // PR.14: the post-batch toast count. A batch that flagged nothing
         // clears any earlier count; the toast is about what just arrived.
         lastBatchFlaggedEntries = outcome.flaggedEntries > 0 ? outcome.flaggedEntries : nil
+    }
+
+    /// RV.58: a 410 (device revoked) ends this device's session. The server
+    /// answers 410 to a revoked device's pull, but the access token it handed
+    /// out is still valid - keep the session and every later trigger (foreground,
+    /// timer, nudge, "Sync now") starts another pull that the server refuses
+    /// (the three-minute 410 tail in the production log, 14:53:10 -> 14:56:04).
+    /// So the credentials are dropped - docs/SECURITY.md: "a device revoked
+    /// server-side gets 410, discards its tokens, and stops syncing" - and a
+    /// `deviceRevoked` mark is persisted (the RV.26 `authExpired` pattern) so
+    /// the surface keeps naming "sign in" instead of reading as a plain sign-out.
+    /// Hard rule 8: nothing here touches the repository - the log and the dirty
+    /// queue stay on the device, unsynced rows wait dirty (S7) and go up when
+    /// the user signs in again (a re-attaching sign-in reuses the device row).
+    /// Hard rule 1: no screen is gated on this - a revoked device keeps working
+    /// locally, it just stops reaching the account.
+    private func detachRevokedDevice() async {
+        // clear() removes the credentials AND any stale marks, so the mark must
+        // be written after it - the same order SessionRefresher uses for
+        // authExpired. Best-effort exactly like sign-out: even a failed write
+        // leaves the in-memory outcome driving the surface this run.
+        try? sessionStore.clear()
+        try? sessionStore.setDeviceRevoked(true)
+        didJustSignIn = false
+        // RV.6: a revoke is an invalidation event - the count fetch must re-read
+        // next refresh rather than reuse a stale live count.
+        invalidateDeviceCount()
+        await refresh()
     }
 
     /// Clears the post-batch toast once the user taps through to the flagged

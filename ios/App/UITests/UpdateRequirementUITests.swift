@@ -154,8 +154,8 @@ final class UpdateRequirementUITests: XCTestCase {
 
         XCTAssertTrue(notice(app).waitForExistence(timeout: 10),
                       "the required notice must render on the cloud-extract surface")
-        XCTAssertFalse(app.staticTexts["gatewayTimeoutMessage"].exists,
-                       "with no request in flight there is no 3 s budget message")
+        XCTAssertFalse(app.descendants(matching: .any)["gatewayProceedNote"].exists,
+                       "with no request in flight there is no proceed note")
     }
 
     func testRequiredNoticeNeverAppearsOnThePureManualForm() {

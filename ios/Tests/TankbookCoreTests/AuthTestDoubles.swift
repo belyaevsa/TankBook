@@ -14,6 +14,7 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
     private struct State {
         var session: AuthSession?
         var authExpired = false
+        var deviceRevoked = false
         var loadCount = 0
     }
 
@@ -32,6 +33,7 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
         lock.withLock {
             $0.session = session
             $0.authExpired = false
+            $0.deviceRevoked = false
         }
     }
 
@@ -39,6 +41,7 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
         lock.withLock {
             $0.session = nil
             $0.authExpired = false
+            $0.deviceRevoked = false
         }
     }
 
@@ -48,6 +51,14 @@ final class InMemorySessionStore: SessionStore, @unchecked Sendable {
 
     func isAuthExpired() throws -> Bool {
         lock.withLock { $0.authExpired }
+    }
+
+    func setDeviceRevoked(_ revoked: Bool) throws {
+        lock.withLock { $0.deviceRevoked = revoked }
+    }
+
+    func isDeviceRevoked() throws -> Bool {
+        lock.withLock { $0.deviceRevoked }
     }
 
     var loadCount: Int { lock.withLock { $0.loadCount } }

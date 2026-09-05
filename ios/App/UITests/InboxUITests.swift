@@ -96,6 +96,51 @@ final class InboxUITests: XCTestCase {
                       "the 'replace the receipt' action must be present")
     }
 
+    // MARK: - RV.64 which act is loud follows the ticks, and never sticks
+
+    /// The whole point of RV.64: WHICH act carries the prominent treatment must
+    /// follow the tick count, and leave-as-is must not stay loud once the user
+    /// has decided. The buttons' accessible VALUE carries the treatment
+    /// ("primary" / "secondary"), produced by the same core decision the styling
+    /// reads (`GatewayInboxPolicy.recommendedAction`), so this asserts the
+    /// TREATMENT - not mere presence, not the enabled flag (which already moved
+    /// before RV.64 and was the whole insufficiency), and never a colour literal.
+    func testProminenceFollowsTheTicks() {
+        let app = launch(["-seedInboxComparison"])
+        app.buttons["inboxBellButton"].tap()
+
+        let leave = app.buttons["inboxLeaveButton"]
+        let update = app.buttons["inboxUpdateButton"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 5))
+
+        // Zero ticks: nothing is decided yet, so leave-as-is stays the loud
+        // default (hard rule 13) and the update is a disabled no-op.
+        XCTAssertEqual(leave.value as? String, "primary",
+                       "with nothing ticked, leave-as-is must carry the prominent treatment")
+        XCTAssertEqual(update.value as? String, "secondary",
+                       "with nothing ticked, the update must carry the secondary treatment")
+        XCTAssertFalse(update.isEnabled,
+                       "with nothing ticked the update is a no-op and must be disabled (hard rule 7)")
+
+        // One tick: a ticked field IS the user deciding, so the update - the act
+        // that honours the ticks - becomes prominent and leave-as-is dims (hard
+        // rule 8: the loudest control must not be the one that discards the ticks).
+        app.buttons["inboxTick_volume"].tap()
+        XCTAssertEqual(update.value as? String, "primary",
+                       "once a field is ticked, the UPDATE must carry the prominent treatment")
+        XCTAssertEqual(leave.value as? String, "secondary",
+                       "once a field is ticked, leave-as-is must drop to the dimmed treatment")
+        XCTAssertTrue(update.isEnabled,
+                      "a tick makes the update a real act, so it is enabled")
+
+        // Symmetry: unticking the last field restores the default weighting.
+        app.buttons["inboxTick_volume"].tap()
+        XCTAssertEqual(leave.value as? String, "primary",
+                       "unticking the last field must return the prominence to leave-as-is")
+        XCTAssertEqual(update.value as? String, "secondary",
+                       "the empty state is the same state, however it was reached")
+    }
+
     // MARK: - The comparison offers a tick per decision, and only per decision
 
     func testComparisonCardOffersExactlyTwoTicks() {

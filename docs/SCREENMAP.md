@@ -181,7 +181,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log) · Compare (presentational until the merge log lands, P4) | back → Settings |
 | Settings | any tab root's gear (Log, Trends, Garage) | account card (signed in → Account & devices) · **Sign out** (signed in, the mild account exit - revokes the refresh chain server-side and clears the local session, never touches the log) · language, import, export (system), recently deleted, Pro, About | back → the tab root that pushed it |
-| Account & devices (P6.4) | Settings account card (signed in) | device list (revoke) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
+| Account & devices (P6.4) | Settings account card (signed in) | device list (revoke; **revoked rows stay listed, marked "Signed out"** – the Settings card's count counts the live ones only, RV.54) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
 | About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) | back → Settings |
 
 ### The capture review step (RV.5)
