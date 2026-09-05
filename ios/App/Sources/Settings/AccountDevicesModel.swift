@@ -73,6 +73,11 @@ final class AccountDevicesModel {
         do {
             devices = try await client.devices()
             phase = .loaded
+        } catch AccountClientError.cancelled {
+            // RV.68: a `.task` cancelled by a view update is not a failure -
+            // the screen must not claim the connection is the problem. Revert
+            // to idle so a re-fired `.task` reloads cleanly.
+            phase = .idle
         } catch {
             phase = .failed(message: Self.message(for: error, fallback: Self.loadFailedMessage))
         }
@@ -94,6 +99,8 @@ final class AccountDevicesModel {
             try await client.revoke(deviceID: device.id)
             await load()
             return true
+        } catch AccountClientError.cancelled {
+            return false
         } catch {
             revokeErrorFor = device.id
             return false
@@ -113,6 +120,8 @@ final class AccountDevicesModel {
             try await client.deleteAccount()
             try? sessionStore.clear()
             return true
+        } catch AccountClientError.cancelled {
+            return false
         } catch {
             deleteError = Self.message(for: error, fallback: Self.deleteFailedMessage)
             return false
@@ -132,6 +141,11 @@ final class AccountDevicesModel {
         switch error {
         case AccountClientError.transportUnreachable, AccountClientError.client:
             return L10n.localize("Couldn't reach Tankbook – check your connection and try again.")
+        case AccountClientError.transportFailure:
+            // RV.68: the device's network was fine - never "check your
+            // connection". Same copy as the server row: it is on the far side,
+            // not the user's side.
+            return L10n.localize("Something went wrong on our side – try again in a moment.")
         case AccountClientError.unauthorized:
             return L10n.localize("Your session has expired – sign in again. Your data on this phone is untouched.")
         case AccountClientError.notFound:

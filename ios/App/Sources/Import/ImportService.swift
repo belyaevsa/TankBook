@@ -1,4 +1,5 @@
 import Foundation
+import os
 import TankbookCore
 
 /// Where the import lands: an existing car (a merge, with the S2 duplicate
@@ -86,6 +87,20 @@ enum ImportService {
         #if DEBUG
         if arguments.contains("-importTransportOffline") {
             transport = FailingImportTransport()
+        } else if let scenario = ImportScenarioTransport(launchArguments: arguments) {
+            // RV.68 screenshot seam: renders each non-offline source-list
+            // failure card (server error / contract break / transport failure)
+            // against a real, reachable-looking response or transport error.
+            transport = scenario
+        } else if arguments.contains("-importCancelFirstFormats") {
+            // RV.68 L4 seam: the first `/v1/import/formats` request is cancelled
+            // (as a SwiftUI `.task` cancelled by a view update would cancel the
+            // URLSession call) and every later request is healthy - so a test
+            // can assert the wizard does NOT conclude "offline" from a
+            // cancellation that is not a connectivity failure.
+            let inner = ImportStubTransport(launchArguments: arguments)
+                ?? appTransport(URLSessionTransport())
+            transport = ImportCancelFirstTransport(inner: inner)
         } else if let stub = ImportStubTransport(launchArguments: arguments) {
             transport = stub
         } else {
@@ -99,7 +114,8 @@ enum ImportService {
             httpClient: TankbookHTTPClient(transport: transport,
                                            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore)),
             director: AppConfigStore.shared.director,
-            deviceID: Self.deviceID(sessionStore: sessionStore))
+            deviceID: Self.deviceID(sessionStore: sessionStore),
+            log: AppLog.shared)
         return ImportFlowModel(client: client, repository: repository,
                                configService: configService)
     }
@@ -142,14 +158,14 @@ struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
 
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         let path = request.url.path
-        if path == "/import/formats", let formatsName {
+        if path == "/v1/import/formats", let formatsName {
             return Self.resource("import-formats-\(formatsName)")
         }
-        if path.hasPrefix("/import/"), request.method == "DELETE" {
+        if path.hasPrefix("/v1/import/"), request.method == "DELETE" {
             // Idempotent delete, exactly as the endpoint promises.
             return TankbookHTTPResponse(status: 204)
         }
-        if path.hasPrefix("/import/") {
+        if path.hasPrefix("/v1/import/") {
             if parse422 { return TankbookHTTPResponse(status: 422) }
             // PR.6: hold the parse in flight so the Cancel affordance (and its
             // UI-test/screenshot state) is visible. `Task.sleep` is cancellation-
@@ -184,6 +200,68 @@ struct ImportStubTransport: TankbookHTTPTransport, @unchecked Sendable {
 struct FailingImportTransport: TankbookHTTPTransport, @unchecked Sendable {
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         throw URLError(.notConnectedToInternet)
+    }
+}
+
+/// RV.68 screenshot seam: fails exactly the `GET /v1/import/formats` request in
+/// a named way (`-importTransportScenario server|contract|transportFailure`) so
+/// each non-offline source-list failure card renders without a server. Every
+/// other request answers 404, matching the pre-RV.68 real-world shape where the
+/// unversioned import path did not exist.
+struct ImportScenarioTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private enum Scenario: String {
+        case server
+        case contract
+        case transportFailure
+    }
+
+    private let scenario: Scenario?
+
+    init?(launchArguments: [String]) {
+        guard let index = launchArguments.firstIndex(of: "-importTransportScenario"),
+              launchArguments.indices.contains(index + 1) else { return nil }
+        scenario = Scenario(rawValue: launchArguments[index + 1])
+    }
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        guard request.url.path == "/v1/import/formats", request.method == "GET" else {
+            return TankbookHTTPResponse(status: 404)
+        }
+        switch scenario {
+        case .server:
+            return TankbookHTTPResponse(status: 500)
+        case .contract:
+            return TankbookHTTPResponse(status: 200, body: Data("not the formats json".utf8))
+        case .transportFailure:
+            throw URLError(.secureConnectionFailed)
+        case nil:
+            return TankbookHTTPResponse(status: 404)
+        }
+    }
+}
+
+/// RV.68 L4 seam: cancels exactly the FIRST `/v1/import/formats` request, then
+/// delegates every later request to a healthy inner transport. Models a
+/// SwiftUI `.task` cancelled by a view update: the request is stopped before it
+/// has a conclusion, and the wizard must not read that as "offline".
+struct ImportCancelFirstTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private let inner: any TankbookHTTPTransport
+    private let lock = OSAllocatedUnfairLock(initialState: false)
+
+    init(inner: any TankbookHTTPTransport) {
+        self.inner = inner
+    }
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        let isFirstFormatsFetch = request.url.path == "/v1/import/formats"
+            && request.method == "GET"
+        let shouldCancel = lock.withLock { cancelled in
+            guard !cancelled, isFirstFormatsFetch else { return false }
+            cancelled = true
+            return true
+        }
+        if shouldCancel { throw URLError(.cancelled) }
+        return try await inner.execute(request)
     }
 }
 #endif

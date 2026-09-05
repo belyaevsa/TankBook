@@ -46,9 +46,19 @@ extension Array where Element == AccountDevice {
 /// Errors the account client surfaces, each mapped from a specific wire status
 /// (docs/API.md -> Account & devices, docs/ERRORS.md -> the screen's rows).
 public enum AccountClientError: Error, Sendable, Equatable {
-    /// The request could not reach the server (offline, DNS, timeout). Never an
-    /// error a user can fix by doing anything other than being online again.
+    /// The request could not reach the server because the device genuinely has
+    /// no route to it (offline, the network path dropped, DNS failed, timeout).
+    /// Never an error a user can fix by doing anything other than being online
+    /// again.
     case transportUnreachable
+    /// The request was stopped before it had a conclusion (a cancelled task).
+    /// Not a failure at all - the screen must not surface an error state
+    /// (RV.68, docs/ERRORS.md).
+    case cancelled
+    /// A transport failure that is not a connectivity signal (TLS, an unknown
+    /// error type). Never "check your connection" - that next step would send
+    /// the user to fix something that is not broken (RV.68, hard rule 7).
+    case transportFailure
     /// The transport or host allowlist refused the request outright - a bug or
     /// a security violation, never the user's offline state.
     case client
@@ -143,8 +153,24 @@ public struct AccountClient: Sendable {
             await director.report(.transportFailure)
             throw AccountClientError.client
         } catch {
+            // RV.68: this catch-all used to map every non-HTTP error to
+            // `.transportUnreachable` (shared verbatim with the import and
+            // feedback clients). Only a genuine connectivity failure is that;
+            // a cancellation is not a failure at all and is no evidence against
+            // the base URL (docs/CONFIG.md).
+            let classification = TransportErrorClassifier.classify(error)
+            if case .cancelled = classification {
+                throw AccountClientError.cancelled
+            }
             await director.report(.transportFailure)
-            throw AccountClientError.transportUnreachable
+            switch classification {
+            case .connectivity:
+                throw AccountClientError.transportUnreachable
+            case .other:
+                throw AccountClientError.transportFailure
+            case .cancelled:
+                preconditionFailure("handled above")
+            }
         }
     }
 

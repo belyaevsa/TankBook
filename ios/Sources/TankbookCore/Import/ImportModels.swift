@@ -6,7 +6,7 @@ import Foundation
 // numeric fields that arrive as JSON strings stay strings here and resolve via
 // a POSIX locale, so a comma-decimal device locale can never corrupt a parse.
 
-/// A supported import source as listed by `GET /import/formats` - server-driven,
+/// A supported import source as listed by `GET /v1/import/formats` - server-driven,
 /// never hardcoded (a format the picker cannot list is a format that does not
 /// exist; API.md). `id` is the wire token the user's declaration is sent as.
 public struct ImportFormat: Codable, Sendable, Equatable, Hashable {
@@ -212,7 +212,7 @@ public struct ImportAmbiguity: Codable, Sendable, Equatable {
     }
 }
 
-/// The full `POST /import/parse` / `GET /import/{id}` response.
+/// The full `POST /v1/import/parse` / `GET /import/{id}` response.
 public struct ImportParseResponse: Codable, Sendable, Equatable {
     public let importId: String
     public let format: String

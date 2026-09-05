@@ -134,9 +134,10 @@ struct ImportClientTests {
         #expect(many.map(\.id) == ["mfm", "fuelio"])
         #expect(many != one, "the list must follow the transport, not a constant")
 
-        // And the request really hit GET /import/formats.
+        // And the request really hit GET /v1/import/formats (the versioned
+        // surface: every import endpoint lives under /v1, docs/API.md -> Ops).
         let sent = transport.receivedRequests()
-        #expect(sent.last?.url.path == "/import/formats")
+        #expect(sent.last?.url.path == "/v1/import/formats")
     }
 
     @Test func aWrongDeclaredFormatShowsTheSpecificMessage() async throws {
@@ -205,7 +206,7 @@ struct ImportClientTests {
 
         let request = transport.receivedRequests().last
         #expect(request?.method == "POST")
-        #expect(request?.url.path == "/import/parse")
+        #expect(request?.url.path == "/v1/import/parse")
         #expect(request?.headers["Content-Type"]?.hasPrefix("multipart/form-data; boundary=") == true)
         #expect(request?.headers["X-Device-Id"] == "device-123",
                 "a signed-out parse is attributed to the device id (docs/API.md)")
@@ -225,7 +226,7 @@ struct ImportClientTests {
         let sent = transport.receivedRequests()
         #expect(sent.count == 1)
         #expect(sent[0].method == "DELETE")
-        #expect(sent[0].url.path == "/import/import-42")
+        #expect(sent[0].url.path == "/v1/import/import-42")
     }
 
     @Test func fetchParseReadsABackStoredParse() async throws {

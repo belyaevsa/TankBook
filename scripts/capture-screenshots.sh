@@ -474,6 +474,19 @@ capture PR.6-restore-cancel-ru ru -presentScreen signIn -signInRestore -seedRest
 capture PR.6b-import-cancel    en -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 capture PR.6b-import-cancel-ru ru -presentScreen importWizard -importStubFormats one -importStubParseSlow -seedImportParsing
 
+# RV.68: the source screen's offline card is reserved for a GENUINE
+# connectivity failure, and each non-offline load failure gets its own honest
+# card - never the "Importing needs a connection" lie on an online device. The
+# offline pair is the legitimate case (kept); the server and contract pairs are
+# the new cards whose Russian copy runs longest ("Приложение и сервер не
+# совпадают – повторите попытку и обновите Tankbook, если это не поможет.").
+capture RV.68-import-offline      en -presentScreen importWizard -importTransportOffline
+capture RV.68-import-offline-ru   ru -presentScreen importWizard -importTransportOffline
+capture RV.68-import-servererror  en -presentScreen importWizard -importTransportScenario server
+capture RV.68-import-servererror-ru ru -presentScreen importWizard -importTransportScenario server
+capture RV.68-import-contract     en -presentScreen importWizard -importTransportScenario contract
+capture RV.68-import-contract-ru  ru -presentScreen importWizard -importTransportScenario contract
+
 # PJ.3b: the Welcome root (design/screens/Welcome.dc.html) - the fresh-install
 # screen a reinstall or an Android migrant meets, with its three equal paths.
 # `-presentWelcome` runs the REAL onboarding decision under the seed harness's

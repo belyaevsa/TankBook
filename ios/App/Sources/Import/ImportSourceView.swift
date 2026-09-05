@@ -5,7 +5,7 @@ import TankbookCore
 // docs/ERRORS.md -> Import wizard -> "Choosing the source"). The user DECLARES
 // the format - the app never sniffs it, because two vendors' CSVs look alike
 // and a confident mis-mapping is worse than a question (hard rule 13). The list
-// is the transport's `GET /import/formats` response, rendered as-is; a
+// is the transport's `GET /v1/v1/import/formats` response, rendered as-is; a
 // hardcoded list would make the server-side parser unselectable and defeat the
 // architecture (docs/API.md). Offline is stated here, before the tap.
 struct ImportSourceView: View {
@@ -106,8 +106,23 @@ struct ImportSourceView: View {
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 40)
-        case .offline, .failed:
+        case .offline:
             offlineCard
+        case .contractError:
+            loadErrorCard(
+                title: Text("We couldn't read the list of apps"),
+                message: Text("The app and server don't match – try again, and update Tankbook if it keeps happening."),
+                identifier: "importContractErrorCard")
+        case .serverError:
+            loadErrorCard(
+                title: Text("The server couldn't load the list"),
+                message: Text("It's on our side – try again in a moment."),
+                identifier: "importServerErrorCard")
+        case .failed:
+            loadErrorCard(
+                title: Text("We couldn't load the list"),
+                message: Text("Something went wrong – try again in a moment."),
+                identifier: "importLoadFailedCard")
         case .loaded:
             VStack(spacing: 9) {
                 ForEach(model.formats, id: \.id) { format in
@@ -283,6 +298,37 @@ struct ImportSourceView: View {
         .padding(16)
         .formCard()
         .accessibilityIdentifier("importOfflineCard")
+        .padding(.top, 6)
+    }
+
+    /// A non-offline failure to load the supported-app list, each with its own
+    /// honest message and its own Retry (RV.68). These exist so a server error,
+    /// a client/server contract break or an unknown failure never render as
+    /// "Importing needs a connection" - the offline card is reserved for a
+    /// genuine connectivity failure, and a wrong next step ("check your
+    /// connection") is worse than none (hard rule 7).
+    private func loadErrorCard(title: Text, message: Text,
+                               identifier: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            title
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Palette.ink)
+            message
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+            Button("Retry") {
+                Task { await model.loadFormats() }
+            }
+            .buttonStyle(.plain)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(Theme.Palette.action)
+            .padding(.top, 6)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .formCard()
+        .accessibilityIdentifier(identifier)
         .padding(.top, 6)
     }
 

@@ -5704,6 +5704,23 @@
         }
       }
     },
+    "It's on our side – try again in a moment.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's on our side – try again in a moment."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дело на нашей стороне – повторите через минуту."
+          }
+        }
+      }
+    },
     "It's right": {
       "extractionState": "manual",
       "localizations": {
@@ -9807,6 +9824,23 @@
         }
       }
     },
+    "Something went wrong – try again in a moment.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Something went wrong – try again in a moment."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Что-то пошло не так – повторите через минуту."
+          }
+        }
+      }
+    },
     "Something's wrong": {
       "extractionState": "manual",
       "localizations": {
@@ -10510,6 +10544,23 @@
         }
       }
     },
+    "The app and server don't match – try again, and update Tankbook if it keeps happening.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app and server don't match – try again, and update Tankbook if it keeps happening."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложение и сервер не совпадают – повторите попытку и обновите Tankbook, если это не поможет."
+          }
+        }
+      }
+    },
     "The entry this reading was about no longer exists.": {
       "extractionState": "manual",
       "localizations": {
@@ -10644,6 +10695,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Чек будет удалён из этой записи."
+          }
+        }
+      }
+    },
+    "The server couldn't load the list": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The server couldn't load the list"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сервер не смог загрузить список"
           }
         }
       }
@@ -11638,6 +11706,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Мойка"
+          }
+        }
+      }
+    },
+    "We couldn't load the list": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't load the list"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось загрузить список"
+          }
+        }
+      }
+    },
+    "We couldn't read the list of apps": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't read the list of apps"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать список приложений"
           }
         }
       }

@@ -18,13 +18,19 @@ final class ImportFlowModel {
         case review
     }
 
-    /// The format list's state (docs/ERRORS.md -> Import wizard): offline is
+    /// The format list's state (docs/ERRORS.md -> Import wizard). Offline is
     /// said plainly before the tap, never discovered as a failure after it.
+    /// RV.68: `.offline` is reserved for a genuine connectivity failure - a
+    /// server error (`.serverError`), a client/server contract break
+    /// (`.contractError`) and anything else (`.failed`) each get their own
+    /// honest card, never the "needs a connection" one.
     enum FormatsState: Equatable {
         case idle
         case loading
         case loaded
         case offline
+        case contractError
+        case serverError
         case failed
     }
 
@@ -222,19 +228,35 @@ final class ImportFlowModel {
 
     // MARK: - Source step
 
-    /// Loads `GET /import/formats` - the picker renders this response and
-    /// nothing else. Offline is a distinct, named state. Withheld under
-    /// `.required` (P6.18b) - the source screen shows the update notice instead.
+    /// Loads `GET /v1/import/formats` - the picker renders this response and
+    /// nothing else. Offline is a distinct, named state, reachable ONLY from a
+    /// genuine connectivity failure (RV.68): a cancellation is not an error at
+    /// all, a decode failure is a contract bug, and a 5xx is a server problem -
+    /// none of them may render as "Importing needs a connection". Withheld
+    /// under `.required` (P6.18b) - the source screen shows the update notice
+    /// instead.
     func loadFormats() async {
         guard !serverBackedPaused else { return }
-        guard formatsState == .idle || formatsState == .failed
-            || formatsState == .offline else { return }
+        guard formatsState != .loading && formatsState != .loaded else { return }
         formatsState = .loading
         do {
             formats = try await client.fetchFormats()
             formatsState = .loaded
-        } catch ImportClientError.transportUnreachable {
-            formatsState = .offline
+        } catch let error as ImportClientError {
+            // RV.68: the outcome is decided in core (ImportFormatsOutcome) so
+            // the L1 tests assert the mapping over the wire's error classes.
+            // `.offline` is reachable only from `.transportUnreachable`; a
+            // `.noError` (cancellation) reverts to idle rather than leaving
+            // `.loading`, so a `.task` SwiftUI re-fires after a view update
+            // reloads instead of spinning forever.
+            switch error.formatsOutcome {
+            case .offline: formatsState = .offline
+            case .contractError: formatsState = .contractError
+            case .serverError: formatsState = .serverError
+            case .failed: formatsState = .failed
+            case .noError:
+                if formatsState == .loading { formatsState = .idle }
+            }
         } catch {
             formatsState = .failed
         }
@@ -245,7 +267,7 @@ final class ImportFlowModel {
         parseFailure = nil
     }
 
-    /// Uploads the picked file to `POST /import/parse` and classifies the
+    /// Uploads the picked file to `POST /v1/import/parse` and classifies the
     /// response into ready fills and review rows. The server commits nothing;
     /// neither does this. The parse runs in a tracked task so `cancelParse`
     /// can stop it (PR.6 - a half-connected radio must not freeze the wizard
@@ -289,17 +311,6 @@ final class ImportFlowModel {
             targetCar = .existing(preferred)
         } else {
             targetCar = .newCar(named: newCarName)
-        }
-    }
-
-    private static func failure(for error: ImportClientError, format: ImportFormat) -> ParseFailure {
-        switch error {
-        case .transportUnreachable: return .transportUnreachable
-        case .oversize: return .oversize
-        case .unrecognisedFormat: return .unrecognisedFormat
-        case .doesNotMatchDeclared: return .doesNotMatchDeclared(displayName: format.displayName)
-        case .server(let status): return .server(status: status)
-        case .invalidResponse, .missingIdentity, .client: return .unknown
         }
     }
 
@@ -514,7 +525,7 @@ final class ImportFlowModel {
 
     // MARK: - Cancel (F6a: nothing is written, and the stored parse is deleted)
 
-    /// Cancel deletes the stored parse (`DELETE /import/{id}`) and writes
+    /// Cancel deletes the stored parse (`DELETE /v1/import/{id}`) and writes
     /// nothing. The garage is untouched.
     func cancelImport() async {
         if let importId = parse?.importId {
@@ -623,6 +634,22 @@ final class ImportFlowModel {
 // MARK: - Parse (PR.6)
 
 extension ImportFlowModel {
+    /// Maps a parse error to the parse-failure surface (RV.68: a transport
+    /// failure that is not a connectivity signal and a decode break never mean
+    /// "you need a connection"; `.cancelled` is handled in `performParse`
+    /// before this switch).
+    private static func failure(for error: ImportClientError, format: ImportFormat) -> ParseFailure {
+        switch error {
+        case .transportUnreachable: return .transportUnreachable
+        case .oversize: return .oversize
+        case .unrecognisedFormat: return .unrecognisedFormat
+        case .doesNotMatchDeclared: return .doesNotMatchDeclared(displayName: format.displayName)
+        case .server(let status): return .server(status: status)
+        case .invalidResponse, .missingIdentity, .client, .transportFailure, .cancelled:
+            return .unknown
+        }
+    }
+
     /// The in-flight parse's body: reads the server response and advances the
     /// wizard. Cancellation-aware - a user Cancel leaves `parseFailure` nil and
     /// the wizard on the source step, with nothing written (F6a).
@@ -645,6 +672,11 @@ extension ImportFlowModel {
             step = .preview
         } catch let error as ImportClientError {
             guard !Task.isCancelled else { return }
+            // RV.68: a cancelled parse is not a failure - the user's Cancel (or a
+            // torn-down task) stops the upload and nothing surfaces. Identical
+            // to the `Task.isCancelled` path above, reached when the cancellation
+            // arrived through the transport rather than the task flag.
+            if case .cancelled = error { return }
             parseFailure = Self.failure(for: error, format: format)
             step = .source
         } catch {
