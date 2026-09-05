@@ -4493,6 +4493,23 @@
         }
       }
     },
+    "Everything on this phone keeps working – new photos upload when space frees up.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Everything on this phone keeps working – new photos upload when space frees up."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё на этом телефоне продолжает работать – новые фото загрузятся, когда освободится место."
+          }
+        }
+      }
+    },
     "Everything stays on this phone. Sign in later only if you want a second device.": {
       "extractionState": "manual",
       "localizations": {
@@ -4816,19 +4833,19 @@
         }
       }
     },
-    "Free keeps up to 3 cars. Archive one, or go Pro.": {
+    "Free keeps up to 3 cars. Archive one to add another.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Free keeps up to 3 cars. Archive one, or go Pro."
+            "value": "Free keeps up to 3 cars. Archive one to add another."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "В бесплатной версии до 3 автомобилей. Архивируйте один или перейдите на Pro."
+            "value": "Бесплатно можно вести до трёх машин. Уберите одну в архив, чтобы добавить новую."
           }
         }
       }
@@ -10527,23 +10544,6 @@
         }
       }
     },
-    "The app works fully without an account – this only adds sync.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The app works fully without an account – this only adds sync."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Приложение полностью работает без аккаунта – вход лишь добавляет синхронизацию."
-          }
-        }
-      }
-    },
     "The app and server don't match – try again, and update Tankbook if it keeps happening.": {
       "extractionState": "manual",
       "localizations": {
@@ -10557,6 +10557,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Приложение и сервер не совпадают – повторите попытку и обновите Tankbook, если это не поможет."
+          }
+        }
+      }
+    },
+    "The app works fully without an account – this only adds sync.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app works fully without an account – this only adds sync."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приложение полностью работает без аккаунта – вход лишь добавляет синхронизацию."
           }
         }
       }
@@ -11332,23 +11349,6 @@
         }
       }
     },
-    "Unlimited cars · cloud reading for tough receipts": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Unlimited cars · cloud reading for tough receipts"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Безлимит машин · облачное распознавание сложных чеков"
-          }
-        }
-      }
-    },
     "Unlink": {
       "extractionState": "manual",
       "localizations": {
@@ -11727,23 +11727,6 @@
         }
       }
     },
-    "We couldn't read the list of apps": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "We couldn't read the list of apps"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось прочитать список приложений"
-          }
-        }
-      }
-    },
     "We couldn't read that file – try again, or send it to us.": {
       "extractionState": "manual",
       "localizations": {
@@ -11757,6 +11740,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не удалось прочитать файл – попробуйте ещё раз или пришлите его нам."
+          }
+        }
+      }
+    },
+    "We couldn't read the list of apps": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't read the list of apps"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать список приложений"
           }
         }
       }
@@ -12205,23 +12205,6 @@
         }
       }
     },
-    "Your session has expired – sign in again. Your data on this phone is untouched.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your session has expired – sign in again. Your data on this phone is untouched."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Сессия истекла – войдите снова. Ваши данные на этом телефоне не тронуты."
-          }
-        }
-      }
-    },
     "Your session has expired – sign in again to use cloud reading. This entry still saves.": {
       "extractionState": "manual",
       "localizations": {
@@ -12235,6 +12218,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Сессия истекла – войдите снова, чтобы использовать облачное распознавание. Эту запись всё равно можно сохранить."
+          }
+        }
+      }
+    },
+    "Your session has expired – sign in again. Your data on this phone is untouched.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session has expired – sign in again. Your data on this phone is untouched."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия истекла – войдите снова. Ваши данные на этом телефоне не тронуты."
           }
         }
       }

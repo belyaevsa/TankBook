@@ -121,22 +121,26 @@ final class CarSwitcherUITests: XCTestCase {
         addCar.tap()
 
         // The cap explanation, verbatim from docs/ERRORS.md.
-        XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one, or go Pro."]
+        XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one to add another."]
             .waitForExistence(timeout: 5))
 
-        // All three next steps are present and reachable.
+        // Both next steps are present and reachable. The "Pro" button that used
+        // to sit between them is gone (RV.70): it pushed Route.paywall, which
+        // resolves to a blank LeafContent, and a reachable placeholder is an App
+        // Review rejection. Asserting its ABSENCE is the point - a test that only
+        // checked the other two would pass with the dead button still shipping.
         let archive = app.buttons["carLimitArchiveButton"]
-        let pro = app.buttons["carLimitProButton"]
         let cancel = app.buttons["carLimitCancelButton"]
         XCTAssertTrue(archive.waitForExistence(timeout: 5) && archive.isHittable)
-        XCTAssertTrue(pro.exists && pro.isHittable)
         XCTAssertTrue(cancel.exists && cancel.isHittable)
+        XCTAssertFalse(app.buttons["carLimitProButton"].exists,
+                       "the car-limit sheet must not offer Pro while the paywall is a blank screen")
 
         // Cancel: the limit sheet goes away, nothing was removed or changed.
         cancel.tap()
         let dismissed = NSPredicate(format: "NOT (exists == 1)")
         expectation(for: dismissed, evaluatedWith: app.staticTexts[
-            "Free keeps up to 3 cars. Archive one, or go Pro."])
+            "Free keeps up to 3 cars. Archive one to add another."])
         waitForExpectations(timeout: 5)
         XCTAssertEqual(rows(app).count, 3, "cancelling must leave all cars intact")
         XCTAssertEqual(app.buttons.matching(identifier: "carSwitcherArchivedRow").count, 1,

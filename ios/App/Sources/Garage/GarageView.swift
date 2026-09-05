@@ -254,10 +254,6 @@ struct GarageView: View {
                 // the screen where archiving actually happens.
                 onNavigate(.vehicleDetail(nil))
             },
-            onPro: {
-                showsLimitSheet = false
-                onNavigate(.paywall)
-            },
             onCancel: { showsLimitSheet = false })
             .presentationDetents([.height(340)])
     }

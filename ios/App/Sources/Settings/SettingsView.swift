@@ -40,7 +40,6 @@ struct SettingsView: View {
                     }
                     preferencesCard
                     yourDataSection
-                    proCard
                     aboutCard
                     footer
                 }
@@ -412,33 +411,7 @@ struct SettingsView: View {
         .contentShape(Rectangle())
     }
 
-    // MARK: - Pro & About
-
-    private var proCard: some View {
-        NavigationLink(value: Route.paywall) {
-            HStack(spacing: 12) {
-                Image(systemName: "star")
-                    .font(.system(size: 17))
-                    .foregroundStyle(Theme.Palette.taillight)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("Tankbook Pro")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                    Text("Unlimited cars · cloud reading for tough receipts")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-                Spacer(minLength: 8)
-                chevron
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 13)
-            .contentShape(Rectangle())
-            .formCard()
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("settingsProCard")
-    }
+    // MARK: - About
 
     private var aboutCard: some View {
         NavigationLink(value: Route.about) {
@@ -560,17 +533,24 @@ private struct SettingsSyncSurface: View {
             // branch, so this status never reaches the signed-in issue cards.
             EmptyView()
         case .quotaFull:
+            // RV.70: the card's action was a "Tankbook Pro" link to a blank
+            // screen (Route.paywall resolved to LeafContent - Color.clear). Pro
+            // is cut from v1 (docs/STORE.md §5), so the honest next step names
+            // the wait and the resilience instead of a purchase that does not
+            // exist (hard rule 7): the disclosure stays amber (the state is
+            // attention), the next step is a sentence, never a dead button.
             transportCard(
                 icon: "photo.badge.exclamationmark",
                 iconColor: Theme.Palette.warn,
                 message: L10n.quotaFull(percent: sync.forcedQuotaPercent ?? 95),
                 identifier: "settingsQuotaCard"
             ) {
-                NavigationLink("Tankbook Pro", value: Route.paywall)
-                    .buttonStyle(.plain)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.action)
-                    .accessibilityIdentifier("settingsQuotaProButton")
+                Text(L10n.quotaNextStep)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .lineSpacing(1.5)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("settingsQuotaNextStep")
             }
             .id(SettingsScrollTarget.quotaCard)
         case .serverUnreachable:

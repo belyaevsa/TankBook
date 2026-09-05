@@ -124,11 +124,12 @@ final class GarageUITests: XCTestCase {
         XCTAssertTrue(addCar.waitForExistence(timeout: 5), "garageAddCar never appeared")
         addCar.tap()
 
-        XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one, or go Pro."]
+        XCTAssertTrue(app.staticTexts["Free keeps up to 3 cars. Archive one to add another."]
             .waitForExistence(timeout: 5), "the cap explanation is the sheet, not an error")
         XCTAssertTrue(app.buttons["carLimitArchiveButton"].exists)
-        XCTAssertTrue(app.buttons["carLimitProButton"].exists)
         XCTAssertTrue(app.buttons["carLimitCancelButton"].exists)
+        // RV.70: no Pro button while Route.paywall is a blank screen.
+        XCTAssertFalse(app.buttons["carLimitProButton"].exists)
 
         app.buttons["carLimitCancelButton"].tap()
         XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5),

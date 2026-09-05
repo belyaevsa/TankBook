@@ -363,13 +363,6 @@ enum L10n {
         return String(localized: "You have \(dirtyCount) unsynced changes. They stay on this phone and sync when you sign in again.")
     }
 
-    /// "Photo storage 95% full – older photos stay on this phone only."
-    /// (docs/ERRORS.md -> Settings). One full localised phrase; the percent is
-    /// runtime data.
-    static func quotaFull(percent: Int) -> String {
-        String(format: localize("Photo storage %lld%% full – older photos stay on this phone only."), percent)
-    }
-
     /// "This device was signed out – sign in to reconnect. Your data on this
     /// phone is untouched." (docs/ERRORS.md -> Settings, the 410 card).
     static var deviceRevokedMessage: String {

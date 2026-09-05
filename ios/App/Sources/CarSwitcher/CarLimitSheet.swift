@@ -12,8 +12,12 @@ struct CarLimitSheet: View {
     /// "Archive a car" - the way to free a slot. Leads to the vehicle detail
     /// that will hold archiving (P1.12).
     let onArchive: () -> Void
-    /// "Pro" - the paywall (P6). Present and reachable now, real later.
-    let onPro: () -> Void
+    // NOTE: there was a "Pro" button here that pushed Route.paywall (RV.70,
+    // 2026-09-05). It is gone for the same reason the Settings entry points
+    // went: `.paywall` resolves to LeafContent - a blank pushed screen - and
+    // App Review rejects a reachable placeholder, while the metadata we submit
+    // declares no in-app purchases and no paid tier. The sheet keeps its two
+    // real actions. Restore it with the paywall it needs, not before.
     /// Cancel: dismiss, everything intact.
     let onCancel: () -> Void
 
@@ -28,7 +32,7 @@ struct CarLimitSheet: View {
                 .overlay(Circle().stroke(Theme.Palette.hairline, lineWidth: 1))
                 .padding(.top, 16)
 
-            Text("Free keeps up to 3 cars. Archive one, or go Pro.")
+            Text("Free keeps up to 3 cars. Archive one to add another.")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .multilineTextAlignment(.center)
@@ -47,20 +51,6 @@ struct CarLimitSheet: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("carLimitArchiveButton")
-
-                Button(action: onPro) {
-                    Text("Pro")
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Theme.Palette.dash)
-                        .clipShape(RoundedRectangle(cornerRadius: 13))
-                        .overlay(RoundedRectangle(cornerRadius: 13)
-                            .stroke(Theme.Palette.hairline, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("carLimitProButton")
 
                 Button("Cancel", action: onCancel)
                     .font(.body.weight(.semibold))

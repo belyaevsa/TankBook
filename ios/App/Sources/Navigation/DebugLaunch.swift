@@ -36,7 +36,9 @@ enum DebugLaunch {
 
     /// `-presentScreen` names for pushed routes (SheetRoutes match their own
     /// raw values directly). The map keeps the lookup linear instead of a long
-    /// switch.
+    /// switch. RV.70: `paywall` is deliberately absent - nothing reachable may
+    /// push the placeholder destination, DEBUG launch hooks included; the v2
+    /// paywall re-registers its name when it becomes a real screen.
     private static let routes: [String: Route] = [
         "settings": .settings,
         "about": .about,
@@ -49,7 +51,6 @@ enum DebugLaunch {
         "tireSetForm": .tireSetForm(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
-        "paywall": .paywall,
         "importWizard": .importWizard,
         "flaggedEntries": .flaggedEntries,
         "inbox": .inbox

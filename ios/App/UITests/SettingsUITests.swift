@@ -198,11 +198,63 @@ final class SettingsUITests: XCTestCase {
                       "the last entry's odometer survives; got '\(odometer.label)'")
     }
 
-    func testQuotaShowsStorageCard() {
+    // MARK: - RV.70 no reachable entry point to the (v1-absent) paywall
+
+    /// The Pro card is GONE from Settings, not merely disabled - a disabled
+    /// control is still a reviewer-visible dead affordance, and a Pro entry
+    /// point contradicts the listing's no-IAP declaration while the screen it
+    /// pushed was blank (guideline 2.1). The card was the Settings root's only
+    /// always-present `.paywall` door; asserting its absence is asserting that
+    /// no control on the root reaches the blank pushed screen.
+    func testSettingsHasNoProCardEntryPoint() {
+        let app = launchSettings(seed: "-seedSettingsSynced")
+        XCTAssertTrue(syncStatus(app).waitForExistence(timeout: 10),
+                      "the synced Settings root rendered (the screen the Pro card used to sit on)")
+        XCTAssertFalse(app.buttons["settingsProCard"].exists,
+                       "the Pro card must be absent, never present-but-disabled")
+        XCTAssertFalse(app.staticTexts["Tankbook Pro"].exists,
+                       "no 'Tankbook Pro' affordance may remain anywhere on Settings")
+    }
+
+    /// The quota card (the second `.paywall` door, RV.70) renders ONLY under a
+    /// forced `.quotaFull` - it is invisible by default, so a test that skipped
+    /// the seed would pass against the bug. Forced, the card must render, name a
+    /// real next step, and carry no control that leads to the blank paywall
+    /// push (hard rule 7: Pro is cut from v1, so the next step is a wait and a
+    /// reassurance, never a purchase).
+    func testForcedQuotaCardNamesItsNextStepAndHasNoDeadControl() {
         let app = launchSettings(seed: "-seedSettingsQuota")
-        XCTAssertTrue(app.otherElements["settingsQuotaCard"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["settingsQuotaProButton"].exists,
-                      "the quota card names its next step: Pro")
+        let card = app.otherElements["settingsQuotaCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "the quota card must render when .quotaFull is forced")
+        let nextStep = app.staticTexts["settingsQuotaNextStep"]
+        XCTAssertTrue(nextStep.exists,
+                      "the quota card names its next step in text")
+        XCTAssertEqual(nextStep.label,
+                       "Everything on this phone keeps working – new photos upload when space frees up.",
+                       "the quota card's next step is the RV.70 copy, never an upsell")
+        XCTAssertFalse(app.buttons["settingsQuotaProButton"].exists,
+                       "the quota card's dead 'Tankbook Pro' control is gone, not disabled")
+        XCTAssertFalse(app.staticTexts["Tankbook Pro"].exists,
+                       "no 'Tankbook Pro' affordance may remain on the quota card")
+    }
+
+    /// The RV.70 copy in Russian: the quota card's next step is a full localised
+    /// phrase (never a concatenation), and it must render without truncation on
+    /// the forced state.
+    func testForcedQuotaCardNamesItsNextStepInRussian() {
+        let app = launchSettingsRU(seed: "-seedSettingsQuota")
+        let card = app.otherElements["settingsQuotaCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "the quota card must render when .quotaFull is forced (RU)")
+        let nextStep = app.staticTexts["settingsQuotaNextStep"]
+        XCTAssertTrue(nextStep.exists,
+                      "the quota card names its next step in text (RU)")
+        XCTAssertEqual(nextStep.label,
+                       "Всё на этом телефоне продолжает работать – новые фото загрузятся, когда освободится место.",
+                       "the RU quota card's next step is the RV.70 copy")
+        XCTAssertFalse(app.buttons["settingsQuotaProButton"].exists,
+                       "the dead 'Tankbook Pro' control is gone in RU too")
     }
 
     /// PR.1: an expired session shows the re-sign-in card, never "update the
