@@ -114,6 +114,17 @@ flowchart TD
     AddVehicle -->|Save| Home
     AddVehicle -.->|X| Back2[return to opener]
 
+    Home -->|"Reminders · N due" row [v1.1]| RemindersAll
+    Garage -->|car row's attention count [v1.1]| RemindersAll
+    RemindersAll -->|car chip: one car| Reminders
+    RemindersAll -->|row| ReminderComplete
+    RemindersAll -->|New reminder → pick a car| ReminderForm
+    RemindersAll -.->|back| Back3b[return to opener]
+    ServiceEntry -->|saved: offer the next one [v1.1]| ServiceReminderOffer
+    ServiceReminderOffer -->|Create the reminder| Home
+    ServiceReminderOffer -.->|Not this time| Home
+    Notification3["Push action: Mark done [v1.1]"] --> ReminderComplete
+    Notification4["Push action: Push a week [v1.1]"] --> Silent[no screen - rescheduled in place]
     Reminders -->|complete| ReminderComplete
     Reminders -->|New reminder| ReminderForm
     Reminders -.->|back| Back3[return to opener]
@@ -174,6 +185,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
 | Reminders | Home banner, VehicleDetail, push notification (a tapped reminder also surfaces that reminder's completion sheet, PJ.5) | complete → ReminderComplete · New reminder → form | back → opener |
+| **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids | back → opener |
+| **Service reminder offer** **[v1.1]** (RV.77, sheet, `design/screens/ServiceReminderOffer.dc.html`) | saving a ServiceRecord or Expense whose category has an interval, and no live reminder of that category exists on that car | **Create the reminder** (anchored at the record's own date and odometer, never at today) · **Not this time** - a peer button, not a dismissal X | either exit returns to the opener; the record is already saved, so nothing here can lose it |
 | Reminder form (P3.4) | Reminders (New reminder / row edit, incl. reschedule) | Save → Reminders | back → Reminders |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
 | Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
@@ -203,6 +216,36 @@ and **Type it**.
   carries Apple's own retake affordance (J7).
 - It is **not an error surface**. Nothing on it is amber, and it carries no message about the
   scan having failed - at this point nothing has been read (`docs/ERRORS.md` → Capture).
+
+### Reminders across cars **[v1.1]** (RV.74-RV.79)
+
+Artboards: `RemindersAll.dc.html`, `RemindersEntry.dc.html`, `GarageReminderCounts.dc.html`,
+`ServiceReminderOffer.dc.html`, `ReminderNotification.dc.html` (drawn 2026-09-05 from the
+`Reminders.dc.html` vocabulary - same card metrics, eyebrows, amber attention border).
+
+**One list, every car.** A reminder competes for the user's weekend, not for a car's attention, so
+the merged list is the primary screen and the per-car one (reached from Vehicle detail, or by
+narrowing with the car chip) is the special case. Every row **names its car** - a merged row that
+does not is unreadable. Grouping and order are unchanged and come from the same core types:
+**Needs attention** then **Scheduled**, sorted by `dueSortKey`, so a date reminder and an odometer
+reminder interleave by urgency exactly as the Home banner already picks its one row.
+
+**Three consequences worth stating, because each one is a rule and not a preference:**
+
+- **The notification deep link lands here** (RV.74). Today it pushes the per-car screen without
+  switching the selected car, so a reminder on another car is simply absent and the app takes its
+  own "stale tap" branch. A list that is not car-scoped cannot land on the wrong car at all - the
+  bug is fixed by construction rather than by a second lookup.
+- **The way in exists when nothing is due** (RV.76). The amber Home banner is the urgent path and
+  stays; the "Reminders · N due" row is the calm one, always present, and it carries the count that
+  makes it worth a tap. The count is derived at read time (hard rule 2) and never stored.
+- **A count marks a car only when something needs attention** (RV.79). Scheduled work shows nothing:
+  a badge that is always lit stops meaning anything. Amber is attention (hard rule 5) and the count
+  reads as words for VoiceOver - colour is never the only channel.
+
+**New reminder from the merged list asks which car.** Defaulting silently to the selected car is
+exactly the quiet guess hard rule 13 forbids, and on this screen the user may not have looked at a
+car at all.
 
 ### Saving inside capture (RV.12)
 
@@ -287,5 +330,6 @@ The map names screens that exist as nodes but have no artboard yet – listed so
   (tap-to-verify), degrading to a no-op when no crop is attached. A fiscal QR anchor
   outranks the OCR total (docs/SCHEMA.md -> FISCAL QR): `.disagrees` fills the QR total,
   a mixed receipt keeps the fuel line (hard rule 4), and the difference is P2.4's job.
+- **A reminder notification is actionable from the banner** **[v1.1]** (RV.78, `design/screens/ReminderNotification.dc.html`): **Mark done** opens the app on the completion sheet rather than completing silently - declining the cost log is first-class but it stays the user's choice (J7c) - and **Push a week** reschedules in place and re-arms, the one action that needs no screen. Both route through the same lifecycle the Reminders screen uses, never a second implementation. ✓
 - **Notifications deep-link** into Reminders/Trends – both roots with full navigation, never into a bare sheet with no context. ✓ **(PJ.5):** the tap routes by the identifier's family - `reminder.<uuid>.<kind>` switches to Log, pushes Reminders and surfaces that reminder's completion sheet; `monthly-summary.*` switches to the Trends tab. An unknown or malformed identifier (a stale notification for a reminder deleted since it was scheduled) is inert: the app opens normally and routes nowhere (hard rule 7). The mapping is a pure value type in core (`NotificationRoute`, `NotificationRouteParser`); `didReceive` resolves through it and hands the route to the `NotificationRouter`, which `AppRootView` drives.
 - Welcome is unreachable after onboarding except via Restoring's cancel (over an empty garage) – a full sign-out with a car lands on the **guest Home**, not Welcome, because Welcome shows only with *no vehicle* AND *no session* (PJ.3); intentional, it is not part of the daily graph. ✓
