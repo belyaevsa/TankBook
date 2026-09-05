@@ -204,6 +204,33 @@ struct GatewayInboxPolicyTests {
         #expect(merged.date == original.date, "an unread date ticked is not invented")
     }
 
+    // MARK: - RV.64 which action is loud (the recommendation follows the ticks)
+
+    @Test("zero ticks: leave-as-is is the recommended action")
+    func zeroTicksRecommendsLeaveAsIs() {
+        #expect(GatewayInboxPolicy.recommendedAction(tickedCount: 0) == .leaveAsIs,
+                "nothing is decided yet, so leave-as-is stays the loud default (hard rule 13)")
+    }
+
+    @Test("one tick: the update becomes the recommended action")
+    func oneTickRecommendsUpdate() {
+        #expect(GatewayInboxPolicy.recommendedAction(tickedCount: 1) == .update,
+                "a ticked field IS the user deciding - the update takes the loud treatment")
+    }
+
+    @Test("every further tick keeps the update recommended")
+    func manyTicksKeepTheUpdateRecommended() {
+        #expect(GatewayInboxPolicy.recommendedAction(tickedCount: 5) == .update,
+                "two ticks are not less of a decision than one")
+    }
+
+    @Test("unticking the last field returns the recommendation to leave-as-is")
+    func untickingTheLastFieldReturnsTheRecommendation() {
+        #expect(GatewayInboxPolicy.recommendedAction(tickedCount: 1) == .update)
+        #expect(GatewayInboxPolicy.recommendedAction(tickedCount: 0) == .leaveAsIs,
+                "the state is symmetric - the last untick is the empty state again")
+    }
+
     // MARK: - Clearing is the resolution's job, not the policy's
 
     @Test("the policy offers and fills but never clears - resolution clears")

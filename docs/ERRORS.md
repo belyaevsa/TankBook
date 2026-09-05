@@ -212,7 +212,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
 | **Language changed (RV.24, RV.42)** | On the Settings Language row itself: "Language changes the next time you open Tankbook". RV.42 moved it there because the picker-only caption died with the sheet, leaving a setting that visibly took effect against an app that visibly did not change (a broken switch, not a pending one). The prompt renders exactly while the stored choice differs from the language actually running - **derived, never stored** - and self-clears on the next launch; it also still shows below the list while the picker is open | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
-### Inbox (RV.38, RV.45)
+### Inbox (RV.38, RV.45, RV.64)
 
 The bell's screen: work that finished after the user moved on. The first case is a cloud
 reading that landed **after** the entry was saved (`docs/JOURNEYS.md` F4, amended). It is a
@@ -224,10 +224,20 @@ receipt**, and the user ticks per field what to take. A field that matches is no
 offers no update action (hard rule 7 - an action must name what it does, and one that does
 nothing is not offered).
 
+**RV.64 (2026-09-05) made the button WEIGHT follow the state, never the position.** The two
+acts keep their ORDER; only which one is loud changes. While NOTHING is ticked, "leave it as
+it is" stays the prominent filled action (hard rule 13 - nothing is decided yet, so the
+default is loud). Once at least one field is ticked, a tick IS the user deciding, so "update
+from the receipt" - the act that honours the ticks - becomes the prominent filled action and
+leave-as-is dims to the secondary treatment. The loudest control must never be the one that
+throws the ticks away (hard rule 8 - they are user work, and discarding them with no
+confirmation and no undo is "lost silently"). The decision lives in core
+(`GatewayInboxPolicy.recommendedAction`), in one place, so the two buttons cannot drift apart.
+
 | Condition | Shows | Next step |
 |---|---|---|
 | Nothing pending (the normal case) | Reassuring empty state: "Nothing needs your attention" (the Recently-deleted sibling - the screen existing at all is the reassurance) | Nothing to do |
-| A cloud reading landed after save, and it differs or fills a blank | An item: "Receipt reading ready · Finished after you saved." with a **per-field comparison** - every field the receipt read that differs or fills a blank renders "you entered X · receipt Y", marked, with a tick. The two acts read differently: a blank field carries **"Fills the empty field"**, a differing one **"Replaces what you entered"**. The entry keeps its own badge (hard rule 8). | Tick the fields to take · **Update from the receipt** (disabled until at least one field is ticked) · **Leave it as it is** (the default - nothing changes) · **Replace the receipt** (routes to Edit entry, where the receipt lives) |
+| A cloud reading landed after save, and it differs or fills a blank | An item: "Receipt reading ready · Finished after you saved." with a **per-field comparison** - every field the receipt read that differs or fills a blank renders "you entered X · receipt Y", marked, with a tick. The two acts read differently: a blank field carries **"Fills the empty field"**, a differing one **"Replaces what you entered"**. The entry keeps its own badge (hard rule 8). | Tick the fields to take · **Update from the receipt** (takes the ticked fields only, disabled until one is ticked; the prominent filled action once a field is ticked - RV.64) · **Leave it as it is** (nothing changes; the prominent filled action only while nothing is ticked - RV.64) · **Replace the receipt** (routes to Edit entry, where the receipt lives) |
 | A reading that would change nothing | The card says "Nothing to change – the receipt matches what you saved." and offers **no update action** - an item whose entry has since come to agree with the reading (the user edited it, or sync brought it in line) | **Leave it as it is** (clears the item) · **Replace the receipt** |
 | The reading agrees with what was saved (at creation) | **Nothing.** An answer that adds no blank and disagrees with nothing is noise, not work - no item is created | Nothing to do; the answer is silently absorbed |
 | The entry the item is about no longer exists | "The entry this reading was about no longer exists." The item routes to the entry; a deleted entry has nothing to update | Leave it as it is - the item clears and nothing is written |

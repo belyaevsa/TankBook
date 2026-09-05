@@ -190,4 +190,28 @@ public enum GatewayInboxPolicy {
         result.updatedAt = Date()
         return result
     }
+
+    // MARK: - RV.64 the recommended action (which button is the loud one)
+
+    /// The two acts the comparison card offers - "leave it as it is" and
+    /// "update from the receipt" - keep their ORDER but swap WEIGHT with the
+    /// tick count. The card's position of the loud action is decided HERE, in
+    /// one place, so the two buttons can never drift apart (RV.64).
+    public enum RecommendedInboxAction: Equatable, Sendable {
+        /// "Leave it as it is" carries the prominent filled treatment.
+        case leaveAsIs
+        /// "Update from the receipt" carries the prominent filled treatment.
+        case update
+    }
+
+    /// Which of the two acts the card presents as its loud, prominent one for a
+    /// given number of ticked fields. Zero ticks: the user has not decided yet,
+    /// so leave-as-is is the correct default and stays loud (hard rule 13). One
+    /// or more ticks: a ticked field IS the user deciding, so the update - the
+    /// act that honours those ticks - takes the loud treatment and leave-as-is
+    /// dims (hard rule 8: the loudest control must never discard the ticks the
+    /// user took the effort to make).
+    public static func recommendedAction(tickedCount: Int) -> RecommendedInboxAction {
+        tickedCount == 0 ? .leaveAsIs : .update
+    }
 }

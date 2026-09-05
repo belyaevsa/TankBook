@@ -12,7 +12,10 @@ import TankbookCore
 // differs from or fills what the user saved is shown as "yours vs the receipt",
 // and the user ticks per field what to take. A field that agrees is not shown
 // (agreement is not a decision), and a card with nothing to change says so and
-// offers no update. "Leave it as it is" remains the default (hard rule 13).
+// offers no update. "Leave it as it is" remains the default while nothing is
+// ticked (hard rule 13); RV.64 (2026-09-05) made the WEIGHT follow the state -
+// once a field is ticked the update takes the prominent filled treatment and
+// leave-as-is dims, with the ORDER never changing.
 //
 // Hard rule 8: the inbox is a SECOND route to the entry, never the only place a
 // problem is visible - the entry keeps its own badge (the Log's
@@ -64,7 +67,26 @@ private struct InboxItemCard: View {
 
     @Environment(AppInbox.self) private var inbox
     @Environment(AppToastCenter.self) private var toastCenter
-    @State private var ticked: Set<FieldRef> = []
+    @State private var ticked: Set<FieldRef>
+
+    init(item: GatewayInboxItem) {
+        self.item = item
+        // RV.64 screenshot seam: `-inboxScreenshotTick` pre-ticks the offered
+        // volume field so a simctl launch (which cannot tap) can shoot the
+        // ticked state - the whole point of the row is which button is loud.
+        _ticked = State(initialValue: Self.screenshotTicks())
+    }
+
+    /// The DEBUG-only launch-argument pre-tick; empty in every real session and
+    /// in the L4 suite, which drives the tick buttons by tap.
+    private static func screenshotTicks() -> Set<FieldRef> {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-inboxScreenshotTick") {
+            return [.volume]
+        }
+        #endif
+        return []
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -201,12 +223,22 @@ private struct InboxItemCard: View {
             .accessibilityIdentifier("inboxEntryGone")
     }
 
-    // MARK: The actions - ORDER AND WEIGHT are the rule, not decoration
+    // MARK: The actions - ORDER never changes; WEIGHT follows the ticks (RV.64)
 
-    /// "Leave it as it is" is the DEFAULT (hard rule 13), so it comes FIRST and
-    /// carries the prominent filled treatment; the update is the secondary,
-    /// taken only on an explicit tap - and only when at least one field is
-    /// ticked (a disabled update names its own no-op).
+    /// The two acts keep their ORDER (a button moving under a finger already in
+    /// motion is its own hazard) but the WEIGHT follows the state, and the rule
+    /// is not the same in both states. While NOTHING is ticked, "leave it as it
+    /// is" is the right default (hard rule 13 - the app suggests, the user
+    /// decides, and the suggestion while nothing is decided is that the entry
+    /// stays untouched), so it comes FIRST and carries the prominent filled
+    /// treatment. A ticked field IS the user deciding, and the loudest control
+    /// must then be the act that HONOURS those ticks - the update - not the act
+    /// that throws them away: leave-as-is dims to the secondary treatment. That
+    /// is hard rule 8 as much as rule 13 - the ticks are user work, and a
+    /// prominent control that discards them with no confirmation and no undo is
+    /// "lost silently". The prominence decision lives in core
+    /// (`GatewayInboxPolicy.recommendedAction`, RV.64), in ONE place, so the two
+    /// buttons cannot drift apart.
     private var actions: some View {
         VStack(alignment: .leading, spacing: 12) {
             leaveAsIsAction
@@ -215,40 +247,71 @@ private struct InboxItemCard: View {
         }
     }
 
+    /// The single decision both action buttons read: which act is prominent.
+    /// Derived from the tick count in core, never restated here.
+    private var recommendedAction: GatewayInboxPolicy.RecommendedInboxAction {
+        GatewayInboxPolicy.recommendedAction(tickedCount: ticked.count)
+    }
+
     private var leaveAsIsAction: some View {
-        Button {
+        cardActionButton(
+            title: L10n.inboxLeaveAsIs,
+            isProminent: recommendedAction == .leaveAsIs,
+            enabled: true,
+            identifier: "inboxLeaveButton"
+        ) {
             inbox.resolve(item, as: .leaveAsIs)
-        } label: {
-            Text(L10n.inboxLeaveAsIs)
-                .font(.body.weight(.bold))
-                .foregroundStyle(Theme.Palette.midnight)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .background(Theme.Palette.taillight)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("inboxLeaveButton")
     }
 
     private var updateAction: some View {
-        Button {
+        cardActionButton(
+            title: L10n.inboxUpdateFromReceipt,
+            isProminent: recommendedAction == .update,
+            enabled: !ticked.isEmpty,
+            identifier: "inboxUpdateButton"
+        ) {
             inbox.resolve(item, as: .update(fields: ticked))
             toastCenter.noteEntryChanged()
-        } label: {
-            Text(L10n.inboxUpdateFromReceipt)
-                .font(.body.weight(.semibold))
-                .foregroundStyle(ticked.isEmpty ? Theme.Palette.inkSoft : Theme.Palette.ink)
+        }
+    }
+
+    /// ONE treatment for both acts, so "prominent" and "secondary" are defined
+    /// in exactly one place (RV.64). Prominent = filled `taillight` with bold
+    /// `midnight` text (docs/DESIGN.md P6.19: text on an accent fill is
+    /// `midnight`, never white). Secondary = `dash` + hairline stroke with `ink`
+    /// text - `inkSoft` while the act is a disabled no-op. The accessible VALUE
+    /// carries the treatment ("primary" / "secondary") so the L4 suite can
+    /// assert WHICH act is loud, never a colour literal and never mere presence.
+    private func cardActionButton(title: String,
+                                  isProminent: Bool,
+                                  enabled: Bool,
+                                  identifier: String,
+                                  action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(title)
+                .font(.body.weight(isProminent ? .bold : .semibold))
+                .foregroundStyle(actionTextColor(isProminent: isProminent, enabled: enabled))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                .background(Theme.Palette.dash)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Theme.Palette.hairline, lineWidth: 1))
+                .background(isProminent ? Theme.Palette.taillight : Theme.Palette.dash)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+                .overlay {
+                    if !isProminent {
+                        RoundedRectangle(cornerRadius: Theme.Radius.card)
+                            .stroke(Theme.Palette.hairline, lineWidth: 1)
+                    }
+                }
         }
         .buttonStyle(.plain)
-        .disabled(ticked.isEmpty)
-        .accessibilityIdentifier("inboxUpdateButton")
+        .disabled(!enabled)
+        .accessibilityIdentifier(identifier)
+        .accessibilityValue(isProminent ? "primary" : "secondary")
+    }
+
+    private func actionTextColor(isProminent: Bool, enabled: Bool) -> Color {
+        if isProminent { return Theme.Palette.midnight }
+        return enabled ? Theme.Palette.ink : Theme.Palette.inkSoft
     }
 
     private var replaceReceiptLink: some View {
