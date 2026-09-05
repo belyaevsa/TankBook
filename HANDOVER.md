@@ -105,17 +105,22 @@ session's agents as yours - it announced three exits while my agent was still ru
 not an identity. `pgrep -f "<title>"` is not the fix either: `-f` matches any process whose arguments
 merely contain the text, which is how an agent killed a sibling on 2026-08-24.
 
-## What is blocked, and on whom
+## What is blocked, and on whom (2026-09-05)
 
-- **`RV.51`, `RV.54`** - product decisions, not work. RV.51: the cloud read measured **12-36 s
-  against a 3 s budget**, so the late answer is the normal path and the inbox is the primary receipt
-  experience, not a fallback. RV.54: "N devices" counts revoked devices, so revoking one changes
-  nothing on screen.
-- **`RV.53`** - a live defect: an unguarded `PutObjectAsync` on the critical path means an S3 outage
-  destroys a recognition the user already paid for **and burns their quota**. A regression `RV.33`
-  introduced. Briefed, not yet dispatched.
-- **`SH.3`** - the launch-readiness walk on a real device. Only a human can do it, and with `T.3`
-  (an intermittent `ConfirmOdometerPrefillUITests` failure) it is one of only two things gating v1.
+**Nothing is blocked on an agent.** All 70 `RV` rows are closed and the OB observability cluster is
+under way (`OB.2`/`PR.10` shipped; `PR.9` dispatched; `PR.12` and `PR.11` follow).
+
+- **`T.3`** - the only tracked v1 row still open, and **it cannot be closed by a fix**: an
+  intermittent `ConfirmOdometerPrefillUITests` failure that needs **two consecutive green full
+  suites** before it counts, having failed once in three runs.
+- **App Store Connect, on the product owner.** The Privacy Policy URL field is **empty** and the App
+  Privacy questionnaire has **not been started**. The URL itself is live and verified
+  (`https://tankbook.live/privacy/`, HTTP 200, with `/support/`, `/terms/`, `/delete-account/` and
+  all four RU variants). Neither is a repo change.
+- **`SH.3` is DEPRECATED as a tracked row** (product owner, 2026-09-05: *"out of scope, I will do it
+  anyway"*). It is marked `[~]` rather than `[x]` because it is not done, and kept rather than
+  deleted because its journey list is the checklist for the walk. Nothing else should treat it as a
+  blocker.
 
 ## Housekeeping done 2026-09-04
 
@@ -208,35 +213,21 @@ looks exactly like a record with nothing to push (hard rule 8). The evidence to 
 pattern - the loop test goes red with the old behaviour restored, while the "still pushes" tests stay
 green.
 
-## What is waiting on the product owner
+## What is waiting on the product owner (2026-09-05)
 
-*(Refreshed 2026-09-04. Everything previously listed here - `RV.33`/`RV.34`'s rule-9 amendment,
-`RV.23`, `RV.6`, `RV.38` - has since shipped and been verified.)*
+*(Everything previously listed here - `RV.51`, `RV.54`, `RV.53`, `RV.50`, `RV.52`, `RV.43`, `RV.48`,
+`RV.6`, `RV.23`, `RV.33`/`RV.34`, `RV.38` - has shipped and been verified. The list is now short
+because the backlog is, not because it stopped being maintained.)*
 
-- **`RV.51`** - the cloud read measures **12-36 s against a 3 s budget**, so the late answer is the
-  normal path, not the edge case the design assumed. That makes the inbox the **primary** receipt
-  experience rather than a fallback. Three directions - accept it and polish the inbox, make the
-  cloud fast enough to matter, or raise the budget deliberately - and the choice is a product one.
-- **`RV.54`** - "N devices" counts revoked devices, because `GET /account/devices` returns them
-  marked rather than omitted. So revoking a device changes nothing on screen and the user concludes
-  it failed. Decide what the number means: live devices, a relabel, or "2 devices, 1 revoked".
-- **`SH.3`** - the launch-readiness walk on a real device. **Only a human can do it**, and with
-  `T.3` it is one of only two things gating v1.
-
-## What is open and actionable (2026-09-04)
-
-- **`RV.53`** - briefed, not dispatched. A live defect: an unguarded `PutObjectAsync` sits on the
-  critical path *after* the metered provider call, so an S3 outage destroys a recognition the user
-  already paid for **and burns their quota**. A regression `RV.33` introduced - before the ledger, a
-  storage outage could not touch `/extract`.
-- **`RV.50`**, **`RV.52`** - dispatched. `RV.52`'s acceptance is re-enabling `RV.49`'s rotated-fixture
-  test, which is currently the only honest proof that camera orientation reaches Vision and cannot
-  run in CI.
-- **`RV.43`** - briefed. A Trends test that fails the 1st-6th of every month; it will go red again on
-  **1 October** whatever else changes.
-- **`RV.48`** - deferred by the product owner. Worth re-weighing: `RV.51` makes the persisted role
-  assignment more valuable than when it was filed, and the "What was read" viewer keeps showing raw
-  OCR soup - merchant registration and VAT numbers included - until it lands.
+- **App Store Connect**: the two fields above.
+- **`RV.71`** - registered 2026-09-05, unbriefed. A scanned receipt whose fuel kind disagrees with
+  the car's saves in silence. The design question inside it is what an EMPTY `Vehicle.fuelKinds`
+  should mean, since that is the state most cars start in.
+- **The RU store panels have no garage.** EN panel 02 is the three-car garage; the RU set is five
+  different screens with no equivalent, and "several cars, free" is as strong a pitch in RU.
+- **11 JSON Schema `$id`s still name `tankbook.app`**, a domain nobody owns - the same argument `W0`
+  made for the allowlist. Deliberately untouched: `$id` is schema identity, and `W0` records that the
+  signed `parity.*` fixtures were left on the old domain on purpose.
 
 ## Two more things this session's parallel dispatch taught (2026-09-03 evening)
 
@@ -424,14 +415,21 @@ is usually the machine trains you to re-run instead of read.
 > wrong once.
 >
 > **Dispatch:** `opencode run --auto --thinking -m <model> --title "<id>" "$(cat
-> agents/briefs/<id>.md)"`, from the task's own worktree. **Fully qualify the provider** -
-> `deepseek/deepseek-v4-pro` for anything whose invariant is subtle enough that a plausible test
-> could be vacuous; `deepseek/deepseek-v4-flash` for implementation against a fixed artboard or a
-> well-diagnosed one-line fix; `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
-> A bare model name silently resolves to another provider that returns an instant error.
+> agents/briefs/<id>.md)"`, **from the checkout - no worktrees** (product owner). Launch the agent
+> with `nohup ... &` and its own log; then **arm a HARNESS-TRACKED monitor** on that pid, one per
+> agent (see the monitor rules further down - a `nohup` waiter is a log, not a monitor).
+>
+> **Flash is the DEFAULT; pro is the fallback** (product owner, 2026-09-05). Diagnose the cause
+> yourself first, name the file and line in the brief, then dispatch to
+> `deepseek/deepseek-v4-flash`. Escalate to `deepseek/deepseek-v4-pro` only after flash has actually
+> been tried and failed, or for genuine architecture work. **One cheap exception:** a READ-ONLY
+> investigation may go to pro first - `RV.6-INVESTIGATE` cost 89 KB and produced the brief flash
+> then executed cleanly. `deepseek/deepseek-v4-flash-vision-exp` when an image must be read.
+> **Fully qualify the provider** - a bare model name silently resolves to another provider that
+> returns an instant ~166-byte error that reads like a finished run.
 >
 > **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
-> `swift build` and `swiftlint` continuously, **all 1062 unit tests** (30 s, never subsetted), and
+> `swift build` and `swiftlint` continuously, **all 1429 unit tests** (~50 s, never subsetted), and
 > `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
 > not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
 > genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
@@ -450,8 +448,13 @@ is usually the machine trains you to re-run instead of read.
 > **Reading a test tells you its claim; only breaking the code tells you its coverage.**
 >
 > **Open every screenshot yourself, EN and RU** - agents have no image input, and no test asserts
-> appearance. Zoom in before judging: a spinner is invisible at thumbnail scale. Read the rendered
-> Russian for **grammar**, not just for overflow.
+> appearance. **First check the pair actually differs (`md5 -q a.png b.png`)**: `RV.58` shipped an
+> "RU" screenshot byte-identical to its EN one because the `-AppleLanguages "(ru)"` launch did not
+> take, and the agent could not tell. A `-` prefixed launch argument can also PERSIST across
+> relaunches, so reinstall between shots when a state flag sticks. Zoom in before judging: a spinner
+> is invisible at thumbnail scale. Read the rendered Russian for **grammar**, not just overflow -
+> and for calque: `2026-09-05` rewrote all eight RU site pages because they were English sentence
+> shapes in Russian words.
 >
 > **Measure before you fix.** Instrument an assertion rather than guessing at a cause. **Check
 > state, don't read messages** - `git` will report "Already up to date" for a merge you ran in the
@@ -1101,11 +1104,11 @@ Verified by running it, not by assertion:
   receipts and foreign currency, and **all of P3**: service entry (typed and scanned), the parts
   shelf with install linking, tire sets, the reminder lifecycle end to end, and local
   notifications.
-- **iOS: 1088 unit tests (0 failures)**, UI **263 declared** (252 was the last full green run;
-   the evening's lanes added the rest and the closing full run is owed) - measured on `iPhone 17`,
-   2026-08-30, run alone, **no exclusions**: the `ConfirmManual` pair that used to be
-  excused as device-specific is fixed, not excused. `swiftlint lint` exit **0** from the repo
-  root. **Backend: 268 tests, `dotnet format` 0.**
+- **iOS: 1429 unit tests in 146 suites (0 failures)**, measured 2026-09-05 on `iPhone 17`, run
+  alone, **no exclusions**. `swiftlint lint` **0** and the localization gate **0** (706 keys, 100%
+  RU) - **both from the repo ROOT**. **Backend: 392 tests, `dotnet build`/`format`/`test` all 0.**
+  (For the record, this line read 1088 iOS / 268 backend on 2026-08-30; the growth is the RV
+  backlog, the OB observability work and the corpus, not a change of counting.)
 - **Backend serves real traffic against real Postgres** – `bash backend/scripts/dev-up.sh`, then
   `dotnet run --project src/Tankbook.Api`.
 - The consumption engine reproduces the D1–D4 golden vectors.
