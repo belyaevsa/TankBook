@@ -9,7 +9,7 @@ does not have.
     python3 design/store/build.py --dry-run     # layout only, free
     python3 design/store/build.py               # build all ten
 """
-import argparse, os, subprocess, sys
+import argparse, glob, os, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "out")
@@ -95,7 +95,7 @@ def viewer_with_real_photo(stem="RV.9-attachment-viewer"):
     return dst
 
 
-def shared_background(w=1290, h=2796):
+def shared_background(w=1284, h=2778):
     """The one background every panel shares, drawn once and reused.
 
     Ellipse layers gave hard arcs across the frame - a rendering artefact, not a
@@ -104,7 +104,7 @@ def shared_background(w=1290, h=2796):
     """
     from PIL import Image, ImageDraw, ImageFilter
     os.makedirs(CACHE, exist_ok=True)
-    dst = os.path.join(CACHE, "background.png")
+    dst = os.path.join(CACHE, f"background-{w}x{h}.png")
     if os.path.exists(dst):
         return dst
     base = Image.new("RGB", (w, h), "#0C0F14")
@@ -116,6 +116,32 @@ def shared_background(w=1290, h=2796):
     glow = glow.filter(ImageFilter.GaussianBlur(radius=260))
     Image.blend(base, glow, 0.85).save(dst)
     return dst
+
+
+FINAL = os.path.join(HERE, "final")
+APP_STORE_SIZES = {(1242, 2688), (2688, 1242), (1284, 2778), (2778, 1284)}
+
+
+def export_final():
+    """Copy the built panels into final/ as upload-ready files, and check them.
+
+    App Store Connect takes 1242x2688 or 1284x2778 in this slot and REJECTS a PNG
+    that carries an alpha channel - imagegen writes RGBA, so each panel is
+    flattened onto black here. Returns the list of failures, empty when the set
+    is submittable.
+    """
+    from PIL import Image
+    os.makedirs(FINAL, exist_ok=True)
+    bad = []
+    for src in sorted(glob.glob(os.path.join(OUT, "compositions", "*", "store-*.png"))):
+        im = Image.open(src)
+        if im.size not in APP_STORE_SIZES:
+            bad.append(f"{os.path.basename(src)}: {im.size[0]}x{im.size[1]} is not an accepted size")
+            continue
+        flat = Image.new("RGB", im.size, (0, 0, 0))
+        flat.paste(im, mask=im.split()[3] if im.mode == "RGBA" else None)
+        flat.save(os.path.join(FINAL, os.path.basename(src)))
+    return bad
 
 
 PANELS = [
@@ -158,8 +184,8 @@ PANELS = [
 SPEC = """name: store-{pid}-{lang}
 
 canvas:
-  width: 1290
-  height: 2796
+  width: 1284
+  height: 2778
   background: "#101318"
   padding: 96
   gap: 24
@@ -336,6 +362,12 @@ def main():
         print(f"{os.path.basename(spec):28} {' | '.join(t.strip() for t in tail) or 'ok'}")
         if r.returncode != 0:
             failures += 1
+    if not args.dry_run:
+        bad = export_final()
+        for b in bad:
+            print("REJECT " + b)
+        print(f"exported {len(glob.glob(os.path.join(FINAL, '*.png')))} panels to final/")
+        failures += len(bad)
     sys.exit(1 if failures else 0)
 
 

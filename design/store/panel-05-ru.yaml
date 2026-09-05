@@ -1,8 +1,8 @@
 name: store-05-ru
 
 canvas:
-  width: 1290
-  height: 2796
+  width: 1284
+  height: 2778
   background: "#101318"
   padding: 96
   gap: 24
@@ -23,7 +23,7 @@ layers:
   - id: ground
     source: image
     bleed: true
-    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/background.png
+    path: /Users/sbelyaev/repos/fuel-counter-ios/design/store/.cache/background-1284x2778.png
     fit: cover
 
   - id: wash
