@@ -15,7 +15,7 @@
         <p class="door-card__text">{{ .text }}</p>
         <figure class="door-card__shot">
           <div class="shot shot--crop" style="--crop: 0px;">
-            {{ partial "screenshot.html" (dict "name" .shot "alt" .shot_alt) }}
+            {{ partial "screenshot.html" (dict "name" .shot "alt" .shot_alt "photo" .shot_photo) }}
           </div>
         </figure>
       </article>

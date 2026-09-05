@@ -25,8 +25,14 @@
 {{- if not $res -}}
   {{- errorf (printf "screenshot %s: not found in assets/screenshots - check the explicit filename" $name) -}}
 {{- end -}}
-{{- $png1x := $res.Resize "336x" -}}
-{{- $png2x := $res.Resize "672x" -}}
+{{- /* W3: the fallback is PNG for a flat UI capture, which compresses to a few
+      tens of KB and stays lossless. A screen that holds a PHOTOGRAPH - the
+      capture-review door, where the receipt fills the frame - does not: its
+      672 px PNG is ~600 KB, six times a whole page's budget, for a file only
+      pre-WebP browsers ever fetch. Those pass photo=true and get JPEG. */ -}}
+{{- $fallback := cond .photo "jpg q82" "" -}}
+{{- $png1x := $res.Resize (printf "336x %s" $fallback | strings.TrimSpace) -}}
+{{- $png2x := $res.Resize (printf "672x %s" $fallback | strings.TrimSpace) -}}
 {{- $webp1x := $res.Resize "336x webp q85" -}}
 {{- $webp2x := $res.Resize "672x webp q85" -}}
 <picture>

@@ -218,9 +218,17 @@ assumption about where it came from.
 - **OpenGraph and Twitter cards** with a per-language OG image composed at build time (`head/seo.html`, 2026-08-30): the app icon, the wordmark, the hero's own three-line title and the eyebrow on the left, the real Home screenshot on the right. Text is set with `images.Text` from bundled faces - Archivo for Latin, **Golos Text for the Russian lines** (Archivo has no Cyrillic) - so it is composited from a real render, never generated. JPEG, under `check-site`'s 750 KB cap; `png_size` reads JPEG headers too.
 - `apple-itunes-app` smart banner meta - **only once an App Store id exists**, not before.
 - Performance is an SEO input and this stack makes it nearly free: no framework, Hugo-processed
-  responsive images (**WebP with a PNG fallback**, `srcset`), inline critical CSS, everything else
+  responsive images (**WebP with a PNG fallback**, `srcset`; **JPEG instead of PNG for a screen
+  holding a photograph** - see below), inline critical CSS, everything else
   deferred. **Not AVIF**: Hugo's pipeline encodes JPEG/PNG/WebP/GIF and cannot emit AVIF, so
   "AVIF/WebP" would be a spec nobody can implement. WebP alone reaches the target here.
+  **The fallback format is per image, not global.** A flat UI capture compresses to a few
+  tens of KB as lossless PNG and stays PNG. A screen whose content is a PHOTOGRAPH - the
+  capture-review door, where a receipt fills the frame - does not: its 672 px PNG measured
+  ~600 KB, over three times the 180 KB asset cap `scripts/check-site.sh` enforces, for a
+  file only pre-WebP browsers ever fetch. Those pages pass `shot_photo = true`, and the
+  fallback is rendered `jpg q82` (measured 40 KB at 1x, 108 KB at 2x). WebP is unchanged
+  and is what almost every visitor actually receives.
   **Target Lighthouse 100/100/100/100**, and treat anything less as a defect.
 
 **Search consoles, both of them.** Google Search Console for the EN side; **Yandex.Webmaster for the

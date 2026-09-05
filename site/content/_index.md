@@ -70,6 +70,7 @@ icon = "camera"
 text = "Point the camera at the receipt. The scan fills in what it can read – you check the numbers, correct the rest, and it remembers your corrections. A head start, not an answer."
 shot = "capture-review-photo.png"
 shot_alt = "After a capture: the photographed receipt filling the screen under \"Check the photo - can you read the total on it?\", showing 45,22 L at 1,754 EUR per litre and a total of 79,32 EUR, with Use this, Re-take and Type it side by side"
+shot_photo = true   # W3: the receipt fills this one, so the fallback is JPEG
 
 [[doors]]
 title = "Type it"
