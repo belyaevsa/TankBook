@@ -97,7 +97,7 @@ private struct InboxItemCard: View {
                 if offers.isEmpty {
                     nothingToChange
                     leaveAsIsAction
-                    replaceReceiptLink
+                    useDifferentReceiptLink
                 } else {
                     comparisonTable(entry: entry, offers: offers)
                     actions
@@ -243,7 +243,7 @@ private struct InboxItemCard: View {
         VStack(alignment: .leading, spacing: 12) {
             leaveAsIsAction
             updateAction
-            replaceReceiptLink
+            useDifferentReceiptLink
         }
     }
 
@@ -314,9 +314,9 @@ private struct InboxItemCard: View {
         return enabled ? Theme.Palette.ink : Theme.Palette.inkSoft
     }
 
-    private var replaceReceiptLink: some View {
+    private var useDifferentReceiptLink: some View {
         NavigationLink(value: Route.editEntry(item.entryId)) {
-            Text(L10n.inboxReplaceReceipt)
+            Text(L10n.inboxUseDifferentReceipt)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.action)
                 .frame(maxWidth: .infinity, alignment: .center)

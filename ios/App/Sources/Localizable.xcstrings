@@ -909,6 +909,59 @@
         }
       }
     },
+    "%lld items in inbox": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld item in inbox"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld items in inbox"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld уведомления во входящих"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld уведомлений во входящих"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld уведомление во входящих"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld уведомлений во входящих"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld items on this receipt": {
       "extractionState": "manual",
       "localizations": {
@@ -1344,6 +1397,23 @@
         }
       }
     },
+    "A more reliable reading may still arrive. You can proceed now.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A more reliable reading may still arrive. You can proceed now."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Более точное распознавание может прийти позже. Вы можете продолжать."
+          }
+        }
+      }
+    },
     "A newer version of Tankbook is available.": {
       "extractionState": "manual",
       "localizations": {
@@ -1391,23 +1461,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Напоминанию нужна дата или пробег – укажите одно, чтобы сохранить."
-          }
-        }
-      }
-    },
-    "A more reliable reading may still arrive. You can proceed now.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "A more reliable reading may still arrive. You can proceed now."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Более точное распознавание может прийти позже. Вы можете продолжать."
           }
         }
       }
@@ -3197,23 +3250,6 @@
         }
       }
     },
-    "Couldn't revoke – try again.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Couldn't revoke – try again."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Не удалось отозвать – попробуйте снова."
-          }
-        }
-      }
-    },
     "Couldn't replace the photo – the entry is unchanged.": {
       "extractionState": "manual",
       "localizations": {
@@ -3227,6 +3263,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не удалось заменить фото – запись не изменена."
+          }
+        }
+      }
+    },
+    "Couldn't revoke – try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couldn't revoke – try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось отозвать – попробуйте снова."
           }
         }
       }
@@ -3675,23 +3728,6 @@
         }
       }
     },
-    "Delete this receipt?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Delete this receipt?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Удалить этот чек?"
-          }
-        }
-      }
-    },
     "Delete this entry?": {
       "extractionState": "manual",
       "localizations": {
@@ -3705,6 +3741,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить эту запись?"
+          }
+        }
+      }
+    },
+    "Delete this receipt?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this receipt?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить этот чек?"
           }
         }
       }
@@ -4610,6 +4663,23 @@
         }
       }
     },
+    "Fills the empty field": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fills the empty field"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заполнит пустое поле"
+          }
+        }
+      }
+    },
     "Filters": {
       "extractionState": "manual",
       "localizations": {
@@ -4674,6 +4744,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Точно"
+          }
+        }
+      }
+    },
+    "Finished after you saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finished after you saved."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Готово после сохранения."
           }
         }
       }
@@ -5443,6 +5530,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "В %@"
+          }
+        }
+      }
+    },
+    "Inbox": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inbox"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Входящие"
           }
         }
       }
@@ -6297,6 +6401,23 @@
         }
       }
     },
+    "More entry types": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "More entry types"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Другие типы записей"
+          }
+        }
+      }
+    },
     "More…": {
       "extractionState": "manual",
       "localizations": {
@@ -6922,6 +7043,57 @@
           "stringUnit": {
             "state": "translated",
             "value": "Всё в порядке"
+          }
+        }
+      }
+    },
+    "Nothing needs your attention": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing needs your attention"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ничего не требует внимания"
+          }
+        }
+      }
+    },
+    "Nothing to change – the receipt matches what you saved.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to change – the receipt matches what you saved."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нечего менять – чек совпадает с сохранённым."
+          }
+        }
+      }
+    },
+    "Nothing usable was read from this receipt.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing usable was read from this receipt."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Из чека не удалось извлечь полезные данные."
           }
         }
       }
@@ -7776,23 +7948,6 @@
         }
       }
     },
-    "Re-take": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Re-take"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Переснять"
-          }
-        }
-      }
-    },
     "Re-read this and update the entry?": {
       "extractionState": "manual",
       "localizations": {
@@ -7806,6 +7961,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Перечитать чек и обновить запись?"
+          }
+        }
+      }
+    },
+    "Re-take": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Re-take"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переснять"
           }
         }
       }
@@ -7912,6 +8084,23 @@
         }
       }
     },
+    "Receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чек"
+          }
+        }
+      }
+    },
     "Receipt attached": {
       "extractionState": "manual",
       "localizations": {
@@ -7959,6 +8148,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Фото чеков"
+          }
+        }
+      }
+    },
+    "Receipt reading ready": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Receipt reading ready"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Чек распознан"
           }
         }
       }
@@ -8316,6 +8522,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Заменено %@"
+          }
+        }
+      }
+    },
+    "Replaces what you entered": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Replaces what you entered"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заменит введённое"
           }
         }
       }
@@ -9431,23 +9654,6 @@
         }
       }
     },
-    "Sign out?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Sign out?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выйти?"
-          }
-        }
-      }
-    },
     "Sign out and try another account": {
       "extractionState": "manual",
       "localizations": {
@@ -9461,6 +9667,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Выйти и попробовать другую учётную запись"
+          }
+        }
+      }
+    },
+    "Sign out?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign out?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выйти?"
           }
         }
       }
@@ -10287,6 +10510,23 @@
         }
       }
     },
+    "The entry this reading was about no longer exists.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The entry this reading was about no longer exists."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записи, к которой относится это распознавание, больше нет."
+          }
+        }
+      }
+    },
     "The full photo is not on this device yet": {
       "extractionState": "manual",
       "localizations": {
@@ -10956,23 +11196,6 @@
         }
       }
     },
-    "More entry types": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "More entry types"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Другие типы записей"
-          }
-        }
-      }
-    },
     "Type it or scan it – seconds either way": {
       "extractionState": "manual",
       "localizations": {
@@ -11092,6 +11315,23 @@
         }
       }
     },
+    "Update from the receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update from the receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновить по чеку"
+          }
+        }
+      }
+    },
     "Update in the App Store": {
       "extractionState": "manual",
       "localizations": {
@@ -11126,23 +11366,6 @@
         }
       }
     },
-    "Use a different receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Use a different receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Выбрать другой чек"
-          }
-        }
-      }
-    },
     "Use %@ instead": {
       "extractionState": "manual",
       "localizations": {
@@ -11156,6 +11379,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Использовать %@ вместо этого"
+          }
+        }
+      }
+    },
+    "Use a different receipt": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Use a different receipt"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать другой чек"
           }
         }
       }
@@ -11674,6 +11914,76 @@
         }
       }
     },
+    "You entered": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You entered"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы ввели"
+          }
+        }
+      }
+    },
+    "You have %lld unsynced changes. They stay on this phone and sync when you sign in again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have %lld unsynced change. It stays on this phone and syncs when you sign in again."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "You have %lld unsynced changes. They stay on this phone and sync when you sign in again."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменения. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированное изменение. Оно останется на этом телефоне и синхронизируется, когда вы войдёте снова."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Your account is deleted now. Our server copy is removed after 30 days. Your other devices stop syncing. The log on this phone is not touched.": {
       "extractionState": "manual",
       "localizations": {
@@ -11725,76 +12035,6 @@
         }
       }
     },
-    "Your entries stay on this phone. You can sign in again anytime.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Your entries stay on this phone. You can sign in again anytime."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записи останутся на этом телефоне. Вы сможете войти снова в любой момент."
-          }
-        }
-      }
-    },
-    "You have %lld unsynced changes. They stay on this phone and sync when you sign in again.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "You have %lld unsynced change. It stays on this phone and syncs when you sign in again."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "You have %lld unsynced changes. They stay on this phone and sync when you sign in again."
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "У вас %lld несинхронизированное изменение. Оно останется на этом телефоне и синхронизируется, когда вы войдёте снова."
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "У вас %lld несинхронизированных изменения. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "У вас %lld несинхронизированных изменений. Они останутся на этом телефоне и синхронизируются, когда вы войдёте снова."
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "Your data stays on your phone – an account adds cloud features": {
       "extractionState": "manual",
       "localizations": {
@@ -11808,6 +12048,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Данные остаются на телефоне – аккаунт добавляет облачные возможности"
+          }
+        }
+      }
+    },
+    "Your entries stay on this phone. You can sign in again anytime.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your entries stay on this phone. You can sign in again anytime."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записи останутся на этом телефоне. Вы сможете войти снова в любой момент."
           }
         }
       }
@@ -12955,280 +13212,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "≈ – · пересчитается онлайн"
-          }
-        }
-      }
-    },
-    "Inbox": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Inbox"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Входящие"
-          }
-        }
-      }
-    },
-    "Receipt reading ready": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receipt reading ready"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Чек распознан"
-          }
-        }
-      }
-    },
-    "Finished after you saved.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finished after you saved."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Готово после сохранения."
-          }
-        }
-      }
-    },
-    "Update from the receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Update from the receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Обновить по чеку"
-          }
-        }
-      }
-    },
-    "Replace the receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Replace the receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Заменить чек"
-          }
-        }
-      }
-    },
-    "Nothing needs your attention": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing needs your attention"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ничего не требует внимания"
-          }
-        }
-      }
-    },
-    "%lld items in inbox": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld item in inbox"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld items in inbox"
-                }
-              }
-            }
-          }
-        },
-        "ru": {
-          "variations": {
-            "plural": {
-              "one": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld уведомление во входящих"
-                }
-              },
-              "few": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld уведомления во входящих"
-                }
-              },
-              "many": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld уведомлений во входящих"
-                }
-              },
-              "other": {
-                "stringUnit": {
-                  "state": "translated",
-                  "value": "%lld уведомлений во входящих"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "You entered": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "You entered"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Вы ввели"
-          }
-        }
-      }
-    },
-    "Receipt": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Receipt"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Чек"
-          }
-        }
-      }
-    },
-    "Replaces what you entered": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Replaces what you entered"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Заменит введённое"
-          }
-        }
-      }
-    },
-    "Fills the empty field": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fills the empty field"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Заполнит пустое поле"
-          }
-        }
-      }
-    },
-    "Nothing to change – the receipt matches what you saved.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing to change – the receipt matches what you saved."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Нечего менять – чек совпадает с сохранённым."
-          }
-        }
-      }
-    },
-    "Nothing usable was read from this receipt.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing usable was read from this receipt."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Из чека не удалось извлечь полезные данные."
-          }
-        }
-      }
-    },
-    "The entry this reading was about no longer exists.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "The entry this reading was about no longer exists."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Записи, к которой относится это распознавание, больше нет."
           }
         }
       }
