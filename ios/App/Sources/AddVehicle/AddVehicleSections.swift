@@ -10,9 +10,19 @@ import TankbookCore
 /// Below the identity card: either the offline hint or the live suggestion
 /// list. The hint is a Hint (docs/ERRORS.md -> Add car, row 3) - nothing is
 /// blocked, "continue manually" is the next step.
+///
+/// `showsSuggestions` is DECOUPLED from focus (RV.67): it is a pure function
+/// of the field text and whether that text was just accepted from a suggestion
+/// (`ModelSuggestionGate`), never of which field is first responder. Gating the
+/// list on `focus == .makeModel` made it unmount the moment a scroll gesture
+/// dismissed the keyboard (`.scrollDismissesKeyboard(.immediately)` clears
+/// `@FocusState`) - the exact gesture a user needs to reach the lower rows of a
+/// five-row match. The list now stays mounted while the text reads as a query,
+/// and unmounts on apply, on clear, or when the field is edited back onto a new
+/// query.
 struct AddVehicleCatalogArea: View {
     @Binding var form: AddVehicleFormState
-    @FocusState.Binding var focus: AddVehicleFocus?
+    let showsSuggestions: Bool
     let entries: [VehicleCatalogEntry]
     let unavailable: Bool
     let units: Vehicle.Units
@@ -22,7 +32,7 @@ struct AddVehicleCatalogArea: View {
     var body: some View {
         if unavailable {
             hintRow
-        } else if focus == .makeModel, !form.makeModel.isEmpty {
+        } else if showsSuggestions {
             suggestionsList
         }
     }

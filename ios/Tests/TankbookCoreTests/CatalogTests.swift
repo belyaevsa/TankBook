@@ -215,6 +215,64 @@ private func makeTestEntries() -> [VehicleCatalogEntry] {
     #expect(present.prefill(currentYear: 2026).year == 2026)
 }
 
+// MARK: - Suggestion-list visibility (RV.67)
+
+/// The Add-car suggestion list's mount predicate, pinned as a pure function of
+/// the field's text and the applied state (RV.67). The signature is the rule:
+/// it takes NO focus argument, so a later change that re-ties the list to
+/// first-responder state has to leave this function behind - and the L4
+/// scroll-and-tap test catches that at the screen level. Focus is deliberately
+/// not an input: gating on focus unmounted the list the instant a scroll
+/// dismissed the keyboard, which is the gesture the lower rows of a five-row
+/// match need to become reachable.
+
+@Test func suggestionsShowWhileQueryIsBeingTyped() {
+    #expect(ModelSuggestionGate.shouldShow(query: "Vol", accepted: nil))
+    #expect(ModelSuggestionGate.shouldShow(query: "Volvo V60", accepted: nil))
+}
+
+@Test func suggestionsHideWhenFieldIsEmpty() {
+    #expect(!ModelSuggestionGate.shouldShow(query: "", accepted: nil))
+    #expect(!ModelSuggestionGate.shouldShow(query: "   ", accepted: nil))
+    #expect(!ModelSuggestionGate.shouldShow(query: "", accepted: "Volvo · V60 · 2026"))
+}
+
+@Test func suggestionsHideWhenQueryIsTheAcceptedText() {
+    // Right after apply the field holds exactly what the suggestion wrote;
+    // showing the list again would cover the values the user just chose.
+    let accepted = "Volvo · V60 · 2026"
+    #expect(!ModelSuggestionGate.shouldShow(query: accepted, accepted: accepted))
+}
+
+@Test func editingTheAcceptedTextReoffersSuggestions() {
+    // Hard rule 13's second half: the applied value stays editable, and editing
+    // it turns the field back into a query - the list must re-offer.
+    let accepted = "Volvo · V60 · 2026"
+    #expect(ModelSuggestionGate.shouldShow(query: "Volvo · V60 CC · 2026", accepted: accepted))
+    #expect(ModelSuggestionGate.shouldShow(query: "Volvo V60", accepted: accepted))
+}
+
+@Test func clearedFieldThenRetypedQueryShowsAgain() {
+    let accepted = "Volvo · V60 · 2026"
+    #expect(!ModelSuggestionGate.shouldShow(query: "", accepted: accepted))
+    #expect(ModelSuggestionGate.shouldShow(query: "VW", accepted: accepted))
+}
+
+/// Pins the ranking RV.67's L4 scroll test depends on: typing "Lada" offers
+/// five rows (the Add-car limit) and the LAST one - the row that needs a
+/// scroll to reach - is the Vesta with its 55 L tank. If the catalog or the
+/// tie-break ever reorders this, the L4 assertion would be silently asserting
+/// the wrong car, so the coupling is stated here.
+@Test func ladaQueryRanksFiveRowsWithVestaLast() throws {
+    let suggester = CatalogSuggester(entries: try VehicleCatalogStore.bundledEntries())
+    let results = suggester.suggestions(for: "Lada", limit: 5)
+    #expect(results.count == 5)
+    #expect(results.allSatisfy { $0.entry.make == "Lada" })
+    let last = try #require(results.last)
+    #expect(last.entry.model == "Vesta")
+    #expect(last.entry.tankCapacityL == 55)
+}
+
 // MARK: - Decoupling rule
 
 @Test func savedVehicleCarriesNoCatalogIdOrPackVersion() throws {

@@ -51,6 +51,35 @@ extension VehicleCatalogEntry {
     }
 }
 
+/// RV.67: whether the Add-car screen keeps the live suggestion list mounted
+/// under the "Make · model · year" field.
+///
+/// The list must be visible while the user is CHOOSING a model, never merely
+/// while that field is first responder. Gating on focus made the list unmount
+/// the instant a scroll gesture dismissed the keyboard
+/// (`.scrollDismissesKeyboard(.immediately)` clears `@FocusState`), which is
+/// exactly the gesture needed to reach the lower rows of a five-row match -
+/// a suggestion that unmounts when reached for was never offered at all
+/// (hard rule 13). So the gate is a pure function of two DATA inputs, never
+/// of focus:
+///
+/// - `query` - the field's current text;
+/// - `accepted` - the exact text a suggestion last wrote into the field
+///   (`nil` when none has yet).
+///
+/// Dismissal falls out of the same two inputs: applying a suggestion makes
+/// `query == accepted`; clearing the field empties `query`; editing the
+/// accepted text turns it back into a query and re-offers the list. A
+/// whitespace-only field counts as cleared, mirroring `CatalogSuggester`, which
+/// normalizes such a query to empty.
+public enum ModelSuggestionGate {
+    public static func shouldShow(query: String, accepted: String?) -> Bool {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return false }
+        return trimmed != accepted?.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 /// Pure, injectable prefix/fuzzy matcher over make + model. No I/O in the hot
 /// path; ranking is deterministic and stable (score descending, then a fixed
 /// lexical tie-break), so identical queries always return identical results.

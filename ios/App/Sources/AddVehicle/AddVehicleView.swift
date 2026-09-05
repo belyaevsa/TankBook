@@ -17,6 +17,11 @@ struct AddVehicleView: View {
     @State private var catalogEntries: [VehicleCatalogEntry] = []
     @State private var catalogUnavailable = false
     @State private var photoItem: PhotosPickerItem?
+    /// The exact text the last applied suggestion wrote into `form.makeModel`
+    /// (nil when none has). RV.67: the suggestion list's visibility is decided
+    /// from the field text + this applied state (`ModelSuggestionGate`), never
+    /// from focus - see AddVehicleSections.swift.
+    @State private var acceptedModelText: String?
 
     private let units = AddVehicleFormState.units()
 
@@ -29,7 +34,8 @@ struct AddVehicleView: View {
                                     model: $form.model, year: $form.year,
                                     focus: $focus, showNameWarning: form.showNameWarning,
                                     idPrefix: "addVehicle")
-                AddVehicleCatalogArea(form: $form, focus: $focus,
+                AddVehicleCatalogArea(form: $form,
+                                      showsSuggestions: showsModelSuggestions,
                                       entries: catalogEntries,
                                       unavailable: catalogUnavailable,
                                       units: units,
@@ -52,6 +58,9 @@ struct AddVehicleView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await loadCatalog() }
+        #if DEBUG
+        .task { await presentModelSuggestionsIfRequested() }
+        #endif
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -74,10 +83,25 @@ struct AddVehicleView: View {
         }
     }
 
+    /// Whether the live catalog suggestion list is mounted. RV.67: decided
+    /// from the field text and the applied state - "the user is choosing a
+    /// model" - NOT from `focus == .makeModel`, so the scroll gesture that
+    /// dismisses the keyboard can no longer unmount the very list it was
+    /// reaching for.
+    private var showsModelSuggestions: Bool {
+        ModelSuggestionGate.shouldShow(query: form.makeModel, accepted: acceptedModelText)
+    }
+
     /// Selecting a suggestion copies catalog values into the form; every one
     /// stays user-overridable (docs/SCHEMA.md -> Vehicle catalog).
     func apply(_ prefill: CatalogPrefill) {
-        form.makeModel = "\(prefill.make) · \(prefill.model) · \(prefill.year)"
+        let canonical = "\(prefill.make) · \(prefill.model) · \(prefill.year)"
+        // Record the applied text BEFORE the field holds it: the suggestion
+        // list unmounts the moment query == accepted (ModelSuggestionGate),
+        // so the user can see what they just chose instead of a re-filtered
+        // list of near-matches.
+        acceptedModelText = canonical
+        form.makeModel = canonical
         form.make = prefill.make
         form.model = prefill.model
         form.year = prefill.year
@@ -212,4 +236,21 @@ struct AddVehicleView: View {
             catalogUnavailable = true
         }
     }
+
+    #if DEBUG
+    /// RV.67 screenshot hook `-addVehicleModelSuggestions`: focuses the
+    /// Make · model field and puts a five-row query ("Lada") in it, so a
+    /// capture shows the suggestion list WITH the keyboard raised - the exact
+    /// state the RV.67 bug lives in (the lower rows sit under the keyboard).
+    /// simctl cannot tap or type, so the state a screenshot needs is driven
+    /// here, like the other DEBUG hooks. The text is set first and the focus
+    /// lands a beat later, once the screen is on screen, so the keyboard
+    /// actually raises.
+    private func presentModelSuggestionsIfRequested() async {
+        guard ProcessInfo.processInfo.arguments.contains("-addVehicleModelSuggestions") else { return }
+        try? await Task.sleep(nanoseconds: 700_000_000)
+        form.makeModel = "Lada"
+        focus = .makeModel
+    }
+    #endif
 }
