@@ -129,10 +129,13 @@ final class GatewayScanSession {
         do {
             outcome = try await GatewayWaiter.wait(work, timeout: budget)
         } catch {
-            // The transport refused or failed within the budget (402/429/426/
-            // 5xx/offline). The on-device result stands (F4) - there is no
-            // error surface and no upsell, nothing to fix.
-            phase = .answered
+            // The transport refused or failed within the budget. An auth
+            // refusal (RV.65: /extract 401'd and the refresh could not fix it)
+            // names its next step - sign in - on the capture surface instead of
+            // failing silently; every other failure (402/429/426/5xx/offline)
+            // leaves the on-device result standing (F4) with no error surface
+            // and no upsell, nothing to fix.
+            phase = GatewayReadingPhase.phase(after: error)
             return
         }
         switch outcome {
@@ -198,26 +201,38 @@ enum GatewayScanStarter {
 /// that the 3 s budget fires first, which is the state the UI tests exercise).
 /// The answer is deterministic and deliberately distinctive so a late-answer
 /// fill is observable in a UI test.
+///
+/// `-seedGatewayAuthExpired` (RV.65) makes the seeded transport REFUSE with
+/// `SyncServerError.authExpired` after the delay (default 0.5 - inside the
+/// 3 s budget, so the sheet's monitor maps the failure to the `.authExpired`
+/// phase and the sign-in notice shows). It exists because a UI test cannot hit
+/// a real server to produce a 401 the refresh cannot fix; the seed stands in
+/// for the dead-session outcome.
 struct GatewaySeedTransport: GatewayExtractTransport {
     let delay: Duration
     let extraction: GatewayExtraction
+    let failure: SyncServerError?
 
     func extract(_ request: GatewayExtractRequest) async throws -> GatewayExtraction {
         try await Task.sleep(for: delay)
+        if let failure { throw failure }
         return extraction
     }
 
     static func from(arguments: [String]) -> GatewaySeedTransport? {
         guard arguments.contains("-seedGateway") else { return nil }
+        let authExpired = arguments.contains("-seedGatewayAuthExpired")
         let delay: Duration
         if let index = arguments.firstIndex(of: "-seedGatewayDelay"),
            arguments.indices.contains(index + 1),
            let seconds = Double(arguments[index + 1]) {
             delay = .seconds(seconds)
         } else {
-            delay = .seconds(6)
+            delay = authExpired ? .milliseconds(500) : .seconds(6)
         }
-        return GatewaySeedTransport(delay: delay, extraction: Self.seededExtraction(arguments))
+        return GatewaySeedTransport(delay: delay,
+                                    extraction: Self.seededExtraction(arguments),
+                                    failure: authExpired ? .authExpired : nil)
     }
 
     /// The scripted answer. The values are distinctive (99.99 total, 1.679

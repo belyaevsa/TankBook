@@ -215,6 +215,68 @@ final class GatewayCaptureUITests: XCTestCase {
                        "the derived total must stand - a late answer lands in the inbox, never the entry")
     }
 
+    // MARK: - RV.65 a dead session names its next step and never blocks saving
+
+    /// The L4 half of the row: a capture whose `/extract` died on the session
+    /// (the seeded transport refuses with authExpired) shows the "sign in to use
+    /// cloud reading" next step on the Confirm sheet - and the manual form still
+    /// saves, because the on-device result stands and typing is a peer door
+    /// (hard rules 1 and 15). Asserting the notice text exists is not enough:
+    /// Save must be reachable WITH the notice on screen, and the save must
+    /// actually land an entry.
+    func testADeadSessionShowsTheSignInNextStepAndTheManualFormStillSaves() {
+        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
+                                "-seedConfirmPrefillLocked", "-seedGateway",
+                                "-seedGatewayAuthExpired"])
+        openSheet(app)
+
+        let notice = app.descendants(matching: .any)["gatewayAuthExpiredNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10),
+                      "a dead session must surface its next step on the capture")
+        let copy = app.staticTexts.matching(NSPredicate(format: "label CONTAINS %@",
+                                                        "sign in again to use cloud reading")).firstMatch
+        XCTAssertTrue(copy.exists,
+                      "the notice must name sign-in as the next step (hard rule 7)")
+
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled,
+                      "Save must be reachable with the notice on screen - the notice blocks nothing")
+
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "a dead session must not block the manual entry - it saves like any other")
+        let row = app.buttons.matching(identifier: "logEntryButton").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "the saved entry must be on Home")
+    }
+
+    /// The message must survive being ignored: dismiss it (the ×) and Save still
+    /// works. The notice is a warning, not a gate - a dismissed auth notice must
+    /// never take the manual form down with it.
+    func testTheAuthExpiredNoticeSurvivesBeingDismissedAndSaveStillWorks() {
+        let app = launch(args: ["-seedVehicleForUITests", "-presentScreen", "confirmManual",
+                                "-seedConfirmPrefillLocked", "-seedGateway",
+                                "-seedGatewayAuthExpired"])
+        openSheet(app)
+
+        let notice = app.descendants(matching: .any)["gatewayAuthExpiredNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10),
+                      "precondition: the dead-session notice is on screen")
+
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.waitForExistence(timeout: 5))
+        XCTAssertTrue(save.isEnabled)
+
+        app.buttons["gatewayAuthExpiredNoticeDismissButton"].tap()
+        XCTAssertFalse(notice.exists,
+                       "dismissing the notice must remove it from the sheet")
+        XCTAssertTrue(save.isEnabled,
+                      "Save must stay reachable after the notice is dismissed")
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5),
+                      "saving after dismissing the notice must still work (the entry is saveable)")
+    }
+
     // MARK: - No paywall or upsell reachable from any capture flow
 
     private func assertNoPaywall(_ app: XCUIApplication, context: String) {

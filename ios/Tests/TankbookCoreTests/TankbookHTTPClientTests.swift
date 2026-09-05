@@ -57,6 +57,19 @@ private final class RecordingTokenProvider: AuthorizationTokenProvider, @uncheck
     }
 }
 
+/// A refresher that returns a fixed bearer without a round trip - the seam for
+/// deciding "the token did not change" (RV.65). The real refresher always
+/// rotates or throws; a stub that hands back the SAME token is exactly the
+/// dead-session shape the production log showed (no `/auth/refresh` line, the
+/// replay re-sending the image against the same rejected bearer).
+private struct FixedTokenRefresher: SessionRefreshing {
+    let token: String
+
+    func refresh() async throws -> String {
+        token
+    }
+}
+
 @Suite("TankbookHTTPClient (P0.12c)")
 struct TankbookHTTPClientTests {
 
@@ -306,6 +319,78 @@ struct TankbookHTTPClientTests {
 
         let response = try await client.send(TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/x")!))
         #expect(response.status == 304)
+    }
+
+    // MARK: RV.65 - the 401 replay sends a large body only when the token changed
+
+    /// The headline L1: a 401 whose refresh hands back the SAME bearer must NOT
+    /// replay the request. The production defect was re-sending a 53 KB image
+    /// against a token the server had already rejected - bytes sent for
+    /// nothing. This asserts the request COUNT **and** the total bytes the
+    /// transport received: "the call failed" passes against this bug, and one
+    /// request with a tiny body hides the cost the row exists to remove.
+    @Test func a401WithAnUnchangedTokenDoesNotReplayTheBody() async throws {
+        let transport = RecordingTransport()
+        // The refresher returns the very token the request already carried:
+        // nothing changed, so there is nothing to retry.
+        let refresher = FixedTokenRefresher(token: "test-token")
+        let client = TankbookHTTPClient(
+            transport: transport,
+            tokenProvider: RecordingTokenProvider(token: "test-token"),
+            refresher: refresher)
+
+        // A realistic rendition-sized body, not a toy: the whole point of the
+        // row is that the bytes are large enough to matter.
+        let body = Data(repeating: 0xAB, count: 53_457)
+        transport.script([TankbookHTTPResponse(status: 401)])
+
+        var request = TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/v1/extract")!,
+                                          method: "POST", body: body)
+        request.headers["Content-Type"] = "application/json"
+
+        await #expect(throws: TankbookHTTPClientError.httpError(
+            status: 401, traceId: nil, retryAfterSeconds: nil)) {
+            _ = try await client.send(request)
+        }
+
+        let sent = transport.receivedRequests()
+        #expect(sent.count == 1,
+                "an unchanged token means nothing to retry - the body must go out ONCE")
+        let totalBytes = sent.reduce(0) { $0 + ($1.body?.count ?? 0) }
+        #expect(totalBytes == body.count,
+                "exactly one body's bytes must be sent, never two (RV.65: 855 KB for nothing)")
+    }
+
+    /// A genuine rotation still replays exactly once - the 401 refresh-and-retry
+    /// is load-bearing when the token really changed (RV.65: the defect was the
+    /// UNCHANGED case, never rotation).
+    @Test func a401WithARotatedTokenReplaysTheBodyOnceAndSucceeds() async throws {
+        let transport = RecordingTransport()
+        let refresher = FixedTokenRefresher(token: "rotated-token")
+        let client = TankbookHTTPClient(
+            transport: transport,
+            tokenProvider: RecordingTokenProvider(token: "test-token"),
+            refresher: refresher)
+
+        let body = Data(repeating: 0xAB, count: 53_457)
+        transport.script([
+            TankbookHTTPResponse(status: 401),
+            TankbookHTTPResponse(status: 200, body: Data("ok".utf8))
+        ])
+
+        var request = TankbookHTTPRequest(url: URL(string: "https://api.tankbook.live/v1/extract")!,
+                                          method: "POST", body: body)
+        request.headers["Content-Type"] = "application/json"
+        let response = try await client.send(request)
+
+        #expect(response.status == 200)
+        let sent = transport.receivedRequests()
+        #expect(sent.count == 2, "a genuine rotation replays exactly once")
+        let totalBytes = sent.reduce(0) { $0 + ($1.body?.count ?? 0) }
+        #expect(totalBytes == body.count * 2,
+                "rotation replays the body once: two bodies total, never three")
+        #expect(sent[1].headers["Authorization"] == "Bearer rotated-token",
+                "the replay must carry the rotated bearer, never the stale one")
     }
 
     /// The trace id is generated only after the allowlist check, so a refused

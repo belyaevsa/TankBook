@@ -15,19 +15,40 @@ public enum GatewayReadingPhase: Equatable, Sendable {
     /// The request finished and a within-budget answer was applied (or a
     /// transport error left the on-device result standing).
     case answered
+    /// The request was refused because the session cannot authenticate (RV.65):
+    /// `/extract` 401'd and the refresh could not fix it (it was rejected, or it
+    /// handed back the same bearer). The on-device result still stands - the
+    /// entry is saveable - but cloud reading stays off until the user signs in
+    /// again. `.authExpired` is the capture surface's name for the condition
+    /// the Settings account card already calls "sign in again" (RV.26).
+    case authExpired
     /// The entry was saved; a late answer is routed to the inbox (RV.38).
     case saved
 
     /// Whether a request is still in flight - the trigger for the proceed note
     /// (RV.57): a more reliable reading may still arrive while this is true, and
     /// only while this is true. `.idle` is the local-only parse (no transport
-    /// was armed), so the note is absent there; `.answered` and `.saved` mean
-    /// nothing more is coming.
+    /// was armed), so the note is absent there; `.answered`, `.authExpired` and
+    /// `.saved` mean nothing more is coming.
     public var isInFlight: Bool {
         switch self {
         case .running, .budgetExpired: return true
-        case .idle, .answered, .saved: return false
+        case .idle, .answered, .authExpired, .saved: return false
         }
+    }
+
+    /// The phase a failed reading should land in, named by the failure (RV.65).
+    /// An auth-expired refusal - `/extract` 401'd and the refresh could not fix
+    /// it (rejected, or it handed back the same bearer) - must surface as
+    /// `.authExpired` so the capture can name "sign in" as the next step instead
+    /// of failing silently. Every other refusal or transport failure leaves the
+    /// on-device result standing as `.answered` (F4): the cloud half is a
+    /// head start, never the whole entry.
+    public static func phase(after error: any Error) -> GatewayReadingPhase {
+        if let sync = error as? SyncServerError, sync == .authExpired {
+            return .authExpired
+        }
+        return .answered
     }
 }
 

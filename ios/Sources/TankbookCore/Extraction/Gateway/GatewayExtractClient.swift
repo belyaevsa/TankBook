@@ -103,12 +103,15 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
         return try GatewayExtraction.decode(body)
     }
 
-    /// The P6.11 classification (docs/API.md -> LLM gateway): 402 -> tier,
-    /// 429 -> rate limited with the server's own wait, 426 -> upgrade, unknown
-    /// 4xx -> refusal, 5xx -> transport (so the one silent retry in `extract`
-    /// fires only on the transient class).
+    /// The P6.11 classification (docs/API.md -> LLM gateway): 401 -> auth (RV.65
+    /// - a 401 that outlived refresh-and-retry is a session the server rejects,
+    /// exactly like sync's), 402 -> tier, 429 -> rate limited with the server's
+    /// own wait, 426 -> upgrade, unknown 4xx -> refusal, 5xx -> transport (so
+    /// the one silent retry in `extract` fires only on the transient class).
     private static func error(for status: Int, retryAfterSeconds: Int?) -> SyncServerError {
         switch status {
+        case 401:
+            return .authExpired
         case 402:
             return .tierRefused
         case 429:

@@ -59,7 +59,11 @@ identity").
 auth event, never a gate from a newer server: the client refreshes **once** through a single shared
 `SessionRefresher` actor (concurrent `401`s await the one in-flight refresh, because a reuse of a
 rotated refresh token revokes the chain), persists the rotated pair, and replays the original
-request with the new bearer. A refresh that itself answers `401` clears the session locally and
+request with the new bearer. **The replay happens only when the bearer actually changed (RV.65).**
+The whole request – body included – is re-sent on a replay, and for `/extract` or `/blobs` that body
+is a large upload; if the refresher hands back the same token value the server has already rejected
+exactly that bearer, so the client treats the `401` as final rather than re-uploading for a
+guaranteed second refusal. A refresh that itself answers `401` clears the session locally and
 surfaces "sign in again" - the honest next step, never "update the app". Sign-out calls
 `DELETE /auth/session` best-effort and clears the Keychain even when that call fails, so offline
 sign-out still signs out locally.

@@ -19,6 +19,7 @@ struct GatewayProceedNoteTests {
         #expect(GatewayProceedNote.shouldShow(phase: .budgetExpired))
         #expect(!GatewayProceedNote.shouldShow(phase: .idle))
         #expect(!GatewayProceedNote.shouldShow(phase: .answered))
+        #expect(!GatewayProceedNote.shouldShow(phase: .authExpired))
         #expect(!GatewayProceedNote.shouldShow(phase: .saved))
     }
 
@@ -35,7 +36,21 @@ struct GatewayProceedNoteTests {
         #expect(GatewayReadingPhase.budgetExpired.isInFlight)
         #expect(!GatewayReadingPhase.idle.isInFlight)
         #expect(!GatewayReadingPhase.answered.isInFlight)
+        #expect(!GatewayReadingPhase.authExpired.isInFlight)
         #expect(!GatewayReadingPhase.saved.isInFlight)
+    }
+
+    // MARK: - RV.65 a dead session names itself, and only auth does
+
+    /// The failure classification the capture surface reads: only an auth-
+    /// expired refusal is `.authExpired`; every other transport failure is the
+    /// ordinary F4 `.answered` (the on-device result stands, nothing to fix).
+    @Test("an auth-expired failure is the only one that resolves to authExpired")
+    func phaseAfterFailureClassifiesOnlyAuthAsAuthExpired() {
+        #expect(GatewayReadingPhase.phase(after: SyncServerError.authExpired) == .authExpired)
+        #expect(GatewayReadingPhase.phase(after: SyncServerError.transportUnavailable) == .answered)
+        #expect(GatewayReadingPhase.phase(after: SyncServerError.tierRefused) == .answered)
+        #expect(GatewayReadingPhase.phase(after: SyncServerError.refused(status: 402)) == .answered)
     }
 
     // MARK: - The note is a hint, never amber, never a spinner (hard rule 7)

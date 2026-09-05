@@ -136,7 +136,15 @@ struct GatewayExtractClientTests {
             _ = try await Self.makeClient(StubTransport(status: 451, body: nil, retryAfter: nil))
                 .extract(Self.request())
         }
-        await #expect(throws: SyncServerError.refused(status: 401)) {
+    }
+
+    /// A 401 is an auth event, never an unknown gate (PR.1, RV.65): a 401 that
+    /// outlives refresh-and-retry means the server rejects this session, so the
+    /// honest next step is "sign in again", not "update the app" - the same
+    /// classification the sync and blob transports use.
+    @Test("a 401 is authExpired, never refused(status:)")
+    func a401IsAuthExpired() async {
+        await #expect(throws: SyncServerError.authExpired) {
             _ = try await Self.makeClient(StubTransport(status: 401, body: nil, retryAfter: nil))
                 .extract(Self.request())
         }

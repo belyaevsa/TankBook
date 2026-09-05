@@ -72,6 +72,12 @@ struct ManualFillUpView: View {
     /// hint, so dismissing it survives being ignored exactly like the note
     /// itself does (hard rule 7).
     @State private var proceedNoteDismissed = false
+    /// RV.65: the "sign in to use cloud reading" notice was dismissed (the ×).
+    /// Per-sheet, never persisted; the session stays dead until the user signs
+    /// in, and a dead session on the NEXT capture surfaces the notice again
+    /// (hard rule 7: the message survives being ignored, but the condition is
+    /// not dismissed away). Dismissing must never block Save.
+    @State private var authExpiredNoticeDismissed = false
 
     // PJ.48: the quiet "Attach receipt" row on the typed path. The picked photo
     // is held as a second, blank-fields-only prefill; Save writes it with
@@ -149,6 +155,13 @@ struct ManualFillUpView: View {
                     if GatewayProceedNote.shouldShow(phase: gatewaySession.phase),
                        !proceedNoteDismissed {
                         GatewayProceedNoteView(dismiss: { proceedNoteDismissed = true })
+                    }
+                    // RV.65: the dead-session notice - `/extract` 401'd and the
+                    // refresh could not fix it. Shown once the reading ends that
+                    // way, dismissable, and never blocking: Save stays reachable
+                    // with it on screen (hard rule 7; the entry still saves).
+                    if gatewaySession.phase == .authExpired, !authExpiredNoticeDismissed {
+                        GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
                     }
                     ManualFillUpOdometerCard(form: $form, focus: $focus, distanceUnit: distanceUnit,
                                              conflict: odometerConflict,

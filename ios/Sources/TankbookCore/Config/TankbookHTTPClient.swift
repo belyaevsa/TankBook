@@ -173,6 +173,18 @@ public struct TankbookHTTPClient: Sendable {
     /// `SessionRefresherError`, so no transport ever maps a 401 to an
     /// "update the app" refusal again.
     ///
+    /// **RV.65: the replay happens only when the bearer actually changed.** The
+    /// whole request - body included - is re-sent on a replay, and for `/extract`
+    /// or `/blobs` that body is the upload this row exists to protect. A refresh
+    /// that hands back the SAME token value has changed nothing: the server
+    /// already rejected exactly this bearer, so a replay would re-send the
+    /// payload for a guaranteed second 401. "Unchanged" is decided by comparing
+    /// the token the rejected request carried (read from the provider once, at
+    /// send time, and threaded through as the override so the wire value is
+    /// exactly what is compared) against the refresher's result - equality means
+    /// nothing to retry, so the 401 is treated as final. A genuine rotation
+    /// (token value differs) still replays exactly once.
+    ///
     /// A final non-2xx, non-304 response is thrown as
     /// `TankbookHTTPClientError.httpError` carrying the status and the `traceId`
     /// read from the problem+json body - the client is the only layer that sees
@@ -183,10 +195,19 @@ public struct TankbookHTTPClient: Sendable {
         }
         var traced = request
         attachHeaders(&traced)
-        var response = try await follow(traced, remainingRedirects: maxRedirects, overrideToken: nil)
+        // RV.65: capture the bearer THIS request goes out under, and pass it as
+        // the override so every hop of the original request carries exactly the
+        // value we compare against - never a re-read that a concurrent refresh
+        // could have rotated between the check and the wire.
+        let sentBearer = tokenProvider.token()
+        var response = try await follow(traced, remainingRedirects: maxRedirects,
+                                        overrideToken: sentBearer)
         if response.status == 401, let refresher {
             let token = try await refresher.refresh()
-            response = try await follow(traced, remainingRedirects: maxRedirects, overrideToken: token)
+            if token != sentBearer {
+                response = try await follow(traced, remainingRedirects: maxRedirects,
+                                            overrideToken: token)
+            }
         }
         guard Self.isError(response.status) else { return response }
         throw TankbookHTTPClientError.httpError(
@@ -197,8 +218,11 @@ public struct TankbookHTTPClient: Sendable {
     }
 
     /// Executes one hop, then follows a redirect if present and allowed.
-    /// `overrideToken` carries a freshly rotated bearer through the replay; when
-    /// nil the token is read from the provider as usual.
+    /// `overrideToken` is the bearer every hop of this logical request carries -
+    /// for the original send it is the provider value captured up front (RV.65,
+    /// so the 401 replay compares against exactly what the server rejected), and
+    /// for a replay it is the freshly rotated bearer. When nil the token is read
+    /// from the provider as usual (a request that set no bearer).
     private func follow(_ request: TankbookHTTPRequest,
                         remainingRedirects: Int,
                         overrideToken: String?) async throws -> TankbookHTTPResponse {

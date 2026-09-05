@@ -12120,6 +12120,23 @@
         }
       }
     },
+    "Your session has expired – sign in again to use cloud reading. This entry still saves.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session has expired – sign in again to use cloud reading. This entry still saves."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сессия истекла – войдите снова, чтобы использовать облачное распознавание. Эту запись всё равно можно сохранить."
+          }
+        }
+      }
+    },
     "added %@": {
       "extractionState": "manual",
       "localizations": {
