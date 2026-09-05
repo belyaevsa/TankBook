@@ -64,28 +64,31 @@ def rounded(stem, src=None):
     return dst
 
 
-RECEIPT = "Spike/ReceiptSpike/fixtures/receipts/receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg"
+# EUR receipts, for the ENGLISH panels. An English panel showing a Russian fiscal
+# receipt tells an English reader the app is meant for someone else; the Russian
+# panels use the app's own screenshots, whose fixture receipt is already Russian.
+RECEIPT_EE_PORTRAIT = "Spike/ReceiptSpike/fixtures/receipts/receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg"
+RECEIPT_EE_INCAR = "Spike/ReceiptSpike/fixtures/receipts/receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg"
 
 
-def viewer_with_real_photo(stem="RV.9-attachment-viewer"):
-    """The attachment viewer showing a REAL corpus receipt, not the test mock.
+def real_photo_into(stem, top, bottom, receipt):
+    """A committed screenshot with a real corpus receipt in its photo area.
 
-    The committed screenshot is captured from a seeded build, so its viewer holds
-    a grey placeholder - honest as a UI record, useless as a store panel about
-    keeping the photo. This drops a real fixture receipt into the same image
-    region the viewer draws into, so the chrome, the title and the hint are still
-    the shipping screen's own pixels.
+    Screenshots come from a seeded build, so the receipt on screen is a grey
+    placeholder or a fixture picked for the parser - honest as a UI record,
+    wrong for a store panel. Only the drawn image is substituted: the chrome,
+    the title and the buttons stay the shipping screen's own pixels, and the
+    committed screenshot is never modified.
     """
     from PIL import Image
     os.makedirs(CACHE, exist_ok=True)
     src = os.path.join(HERE, "..", "screenshots", stem + ".png")
-    photo = os.path.join(HERE, "..", "..", RECEIPT)
-    dst = os.path.join(CACHE, stem + "-real.png")
+    photo = os.path.join(HERE, "..", "..", receipt)
+    dst = os.path.join(CACHE, stem + "-" + os.path.basename(receipt)[:-4] + ".png")
     if os.path.exists(dst) and os.path.getmtime(dst) >= max(os.path.getmtime(src),
                                                             os.path.getmtime(photo)):
         return dst
     im = Image.open(src).convert("RGB")
-    top, bottom = 620, 2380          # the viewer's content area, between the nav bar and the hint
     box_w, box_h = im.width, bottom - top
     im.paste((0, 0, 0), [0, top, box_w, bottom])
     ph = Image.open(photo).convert("RGB")
@@ -293,8 +296,10 @@ def source_for(shot):
     """The image a panel actually draws - a real receipt where the shot is a mock."""
     if shot == "RV.48-attachment-recognised-ru":
         return collapse_interior_gap(shot)
-    if shot == "RV.9-attachment-viewer":
-        return viewer_with_real_photo(shot)
+    if shot == "RV.9-attachment-viewer":       # the viewer's content area
+        return real_photo_into(shot, 620, 2380, RECEIPT_EE_PORTRAIT)
+    if shot == "RV.5-capture-review":          # between the question and the buttons
+        return real_photo_into(shot, 500, 2060, RECEIPT_EE_INCAR)
     return None
 
 
