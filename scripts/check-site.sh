@@ -280,8 +280,16 @@ baseurl="$(cd site && hugo config | sed -n "s/^baseurl = '\\(.*\\)'\$/\1/p")"
 if [ -n "$baseurl" ]; then
   pass "S4: baseurl read from hugo config ($baseurl)"
 else
-  baseurl="https://tankbook.app/"
-  fail "S4: could not read baseurl from hugo config - falling back to $baseurl"
+  # No fallback on purpose. This used to fall back to a hardcoded
+  # "https://tankbook.app/" - a domain the project does not own and never
+  # did (the site is tankbook.live). Every check below - canonical
+  # self-reference, the hreflang loop, the OG file lookup - is built from
+  # $baseurl, so a wrong value does not make them fail loudly; it makes them
+  # compare the built site against a host that does not exist and report
+  # whatever that produces. Stop instead: an unreadable baseurl is a broken
+  # run, not a run with a guessed domain.
+  fail "S4: could not read baseurl from hugo config - refusing to guess a domain"
+  exit 1
 fi
 
 # Canonical self-reference + full hreflang set on EVERY built page. Redirect
