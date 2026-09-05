@@ -33,7 +33,7 @@ A fuel pump whose hose ends in a checkmark, in the brand red on night blue. Down
 The captures below are the real app, dark theme – not renders, not mockups. Need light theme,
 another language or another size? Write to us.
 
-{{< screenshot name="P1.4-home.png" alt="Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, August spend 390 EUR, and a stream of real entries" >}}
+{{< screenshot name="P1.4-home.png" alt="Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, September spend 147 EUR, and a stream of real entries" >}}
 
 {{< screenshot name="P2.3-confirm.png" alt="The fill-up card mid-entry: total 71.02, litres 42.30, price 1.679, with the cross-check line reading 'checks as you type'" >}}
 

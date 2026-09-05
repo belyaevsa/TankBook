@@ -99,9 +99,19 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 xcrun simctl install "${DEVICE}" "${APP}" || exit 1
 
 # capture <output-name> <lang: en|ru> <launch args...>
+# FILTER="P1.4 P2.3" re-captures only the names that contain one of those words.
+# Without it every screenshot is taken, which is the default because a shared
+# change invalidates them across tasks at once.
 capture() {
     local name="$1" lang="$2"; shift 2
     local path="${OUT}/${name}.png"
+    if [ -n "${FILTER:-}" ]; then
+        local wanted=1 pattern
+        for pattern in ${FILTER}; do
+            case "${name}" in *"${pattern}"*) wanted=0 ;; esac
+        done
+        [ "${wanted}" -eq 0 ] || return 0
+    fi
     xcrun simctl terminate "${DEVICE}" "${BUNDLE}" >/dev/null 2>&1
     if [ "${lang}" = "ru" ]; then
         xcrun simctl launch "${DEVICE}" "${BUNDLE}" \

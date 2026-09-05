@@ -13,7 +13,7 @@ hero_cta_secondary = "See what's shipped"
 hero_cta_secondary_url = "/roadmap/"
 hero_note = "In testing now – no badge, no fake ratings. The mail reaches a human."
 hero_shot = "P1.4-home.png"
-hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, August spend 390 €, and a stream of real entries'''
+hero_shot_alt = '''Tankbook's Log screen: a Volvo V60 at 123 600 km, average consumption 5.3 L/100km set large, September spend 147 €, and a stream of real entries'''
 hero_shot_caption = '''The real app, not a render – note "Type it" sits beside the camera.'''
 
 doors_eyebrow = "The two doors"
@@ -68,8 +68,8 @@ faq_title = "Questions, answered straight."
 title = "Snap it"
 icon = "camera"
 text = "Point the camera at the receipt. The scan fills in what it can read – you check the numbers, correct the rest, and it remembers your corrections. A head start, not an answer."
-shot = "P2.1-capture.png"
-shot_alt = "The Capture screen framing a Shell receipt: 42.30 L at 1.679 per litre, total 71.02 EUR, inside taillight-red corner guides"
+shot = "RV.5-capture-review.png"
+shot_alt = "After a capture: the photographed receipt filling the screen under \"Check the photo - can you read the total on it?\", with Use this, Re-take and Type it side by side"
 
 [[doors]]
 title = "Type it"
