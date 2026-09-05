@@ -207,13 +207,21 @@ final class LowPowerModeUITests: XCTestCase {
     }
 
     // MARK: - RU renders the same states (the localization-blind-spot guard)
+    //
+    // These two hardcode the RU chip copy on purpose - that is the point of
+    // the guard - so they MUST be updated whenever that copy changes. RV.22
+    // shortened it (the screenshot showed the old string truncating and
+    // dropping the change count) and updated LocalizationGateP53Tests but not
+    // this file, so both cases sat red from RV.22 until RV.59's agent found
+    // them. Per-task suite selection is what hid it: nothing that ran
+    // afterwards touched Low Power.
 
     func testLowPowerReasonRendersInRussian() {
         let app = launchSettingsRU(seed: "-seedSettingsLowPower", "-forceLowPower")
         let status = syncStatus(app)
         XCTAssertTrue(status.waitForExistence(timeout: 10))
         XCTAssertEqual(status.label,
-                       "Ожидает синхронизации · 5 изменений · включён режим энергосбережения")
+                       "Ожидают отправки: 5 · энергосбережение")
         let hint = lowPowerHint(app)
         XCTAssertTrue(hint.waitForExistence(timeout: 5))
         let expectedRU = "Включён режим энергосбережения – фоновая синхронизация и загрузка фото "
@@ -225,7 +233,7 @@ final class LowPowerModeUITests: XCTestCase {
         let app = launchSettingsRU(seed: "-seedSettingsLowPower")
         let status = syncStatus(app)
         XCTAssertTrue(status.waitForExistence(timeout: 10))
-        XCTAssertEqual(status.label, "Ожидает синхронизации · 5 изменений")
+        XCTAssertEqual(status.label, "Ожидают отправки: 5")
         XCTAssertFalse(lowPowerHint(app).exists)
     }
 }

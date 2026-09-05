@@ -200,11 +200,42 @@ public struct TankbookHTTPClient: Sendable {
         // value we compare against - never a re-read that a concurrent refresh
         // could have rotated between the check and the wire.
         let sentBearer = tokenProvider.token()
+        var effectiveBearer = sentBearer
+        // RV.59: pre-refresh a KNOWN-expired bearer before the first I/O. The
+        // production log shows a cold start firing three authenticated requests
+        // that all 401, then a single refresh, then three replays - the client
+        // spent three round trips learning what its own token's `exp` claim
+        // already said. When the token carries a readable `exp` that has passed
+        // (or is within the leeway, so a server clock a little ahead of the
+        // device cannot reject a "valid" token), rotate first and send the fresh
+        // bearer. An unreadable `exp` means "unknown" and skips the pre-refresh
+        // (JWTAccessToken): the ordinary 401 -> refresh -> replay path below then
+        // owns it, so a wrong hint can never block a request.
+        if let refresher,
+           let bearer = sentBearer,
+           let expiry = JWTAccessToken.expiryDate(of: bearer),
+           expiry.timeIntervalSinceNow < Self.preemptiveRefreshLeeway {
+            do {
+                let fresh = try await refresher.refresh()
+                if fresh != bearer { effectiveBearer = fresh }
+            } catch SessionRefresherError.authExpired {
+                // The refresh token is dead and the session was cleared. Surface
+                // the auth-expired outcome WITHOUT sending a request the server
+                // would reject; every owner that wires a refresher (sync,
+                // outbox, blobs, gateway, account) already maps this error.
+                throw SessionRefresherError.authExpired
+            } catch {
+                // transportUnavailable: the device is offline. Keep the stale
+                // bearer - a lost network cannot answer 401, so the request
+                // fails offline exactly as a valid token would, and nothing is
+                // gained by holding it back.
+            }
+        }
         var response = try await follow(traced, remainingRedirects: maxRedirects,
-                                        overrideToken: sentBearer)
+                                        overrideToken: effectiveBearer)
         if response.status == 401, let refresher {
             let token = try await refresher.refresh()
-            if token != sentBearer {
+            if token != effectiveBearer {
                 response = try await follow(traced, remainingRedirects: maxRedirects,
                                             overrideToken: token)
             }
@@ -278,6 +309,16 @@ public struct TankbookHTTPClient: Sendable {
     private static func isError(_ status: Int) -> Bool {
         !(200...299).contains(status) && status != 304
     }
+
+    /// RV.59: how early before its `exp` a bearer is pre-emptively refreshed
+    /// rather than risked on the wire. The access token lives ~1 hour
+    /// (docs/API.md -> Auth), so a 60-second margin never rotates more than
+    /// once per token and absorbs a server clock running a little ahead of the
+    /// device - a request a client counts as valid can otherwise 401, which
+    /// costs a round trip AND a rotation anyway. A compiled constant
+    /// (docs/PRACTICES.md): the token lifetime is a server property, not a
+    /// tunable worth exposing remotely.
+    private static let preemptiveRefreshLeeway: TimeInterval = 60
 
     /// Reads `traceId` from a problem+json body (docs/API.md conventions); nil
     /// when the body is absent, not JSON, or carries no traceId.

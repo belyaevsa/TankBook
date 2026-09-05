@@ -106,6 +106,11 @@ public final class ConfigStore: @unchecked Sendable {
         var floor: Int?
         var consecutiveFailures: Int
         var activeBaseURL: String?
+        /// RV.59: the refresh currently on the wire. Two triggers for one logical
+        /// foreground event (the launch `.task` and the launch `.active`
+        /// transition) must fire one fetch, not two - a second refresh joins
+        /// this task instead of opening a second request. Nil when idle.
+        var inFlightRefresh: Task<Void, Never>?
     }
 
     private let lock: OSAllocatedUnfairLock<State>
@@ -256,8 +261,18 @@ public final class ConfigStore: @unchecked Sendable {
     /// A user-initiated refresh bypasses the throttle; the background/foreground
     /// paths do not. A `304` answer (fetcher returns nil) is "no change", not a
     /// failure.
+    ///
+    /// **RV.59: concurrent refreshes collapse to one fetch.** The launch `.task`
+    /// and the launch `.active` transition are two triggers for ONE logical
+    /// foreground event; a second trigger arriving while the first fetch is on
+    /// the wire joins the in-flight refresh instead of opening a second request
+    /// (the two `GET /v1/config/` with matched durations in the production log).
+    /// This is a control-flow dedupe, never a throttle: a refresh that starts
+    /// after the in-flight one finished still fetches, and the automatic
+    /// 6-hour window (`automaticRefreshInterval`) is the only interval that
+    /// gates a foreground refresh.
     public func refresh(userInitiated: Bool = false) async {
-        guard let fetcher else { return }
+        guard fetcher != nil else { return }
 
         let now = clock()
         if !userInitiated {
@@ -267,6 +282,27 @@ public final class ConfigStore: @unchecked Sendable {
             }
         }
 
+        // The throttle read, the join check and the task creation are one
+        // synchronous region (no await between them), so two racing refresh()
+        // calls cannot both decide to fetch.
+        if let existing = lock.withLock({ $0.inFlightRefresh }) {
+            await existing.value
+            return
+        }
+        let task = Task { await self.fetchAndApply(now: now) }
+        lock.withLock { $0.inFlightRefresh = task }
+        await task.value
+        // Only the creator reaches this line (a joiner returned earlier), and a
+        // newer refresh cannot be created while `inFlightRefresh` is still set,
+        // so clearing unconditionally can never drop a newer task.
+        lock.withLock { $0.inFlightRefresh = nil }
+    }
+
+    /// The single-flight fetch body: read the etag, fetch, validate and apply.
+    /// Runs inside the in-flight task so a duplicate `refresh()` joins it rather
+    /// than issuing a second request (RV.59).
+    private func fetchAndApply(now: Date) async {
+        guard let fetcher else { return }
         let etag = lock.withLock { $0.remoteEtag }
         let result: ConfigFetchResult?
         do {
@@ -275,7 +311,18 @@ public final class ConfigStore: @unchecked Sendable {
             return
         }
         guard let result else {
-            // 304: the held document stands. Not a change, not a failure.
+            // 304: the held document stands. Not a change, not a failure - but
+            // the server WAS checked, so the check advances the cadence: record
+            // `fetchedAt` (and persist it) exactly as a 200 does. Without this a
+            // string of unchanged configs never advances the throttle and every
+            // foreground re-checks, which is what the 6-hour window exists to
+            // space out (docs/CONFIG.md -> Delivery).
+            let advanced = lock.withLock { state -> Bool in
+                guard state.remote != nil else { return false }
+                state.remoteFetchedAt = now
+                return true
+            }
+            if advanced { persist(now: now) }
             return
         }
 

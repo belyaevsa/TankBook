@@ -30,6 +30,12 @@ public final class RateStore: @unchecked Sendable {
 
     private struct State {
         var rates: [ExchangeRate]
+        /// RV.59: the pack refresh currently on the wire. Two launch triggers
+        /// (the root's foreground pass and - until RV.59 removed it - Home's own
+        /// first-load trigger) used to fire two `/rates/pack` requests for one
+        /// launch; a second `refresh()` joins this task instead of opening a
+        /// second fetch. Nil when idle.
+        var inFlightRefresh: Task<Void, Never>?
     }
 
     private let lock: OSAllocatedUnfairLock<State>
@@ -153,15 +159,32 @@ public final class RateStore: @unchecked Sendable {
                                  lowPowerMode: powerState.isLowPowerModeEnabled) {
             return false
         }
-        let now = clock()
-        let from = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
-        do {
-            let rates = try await fetcher.fetchPack(from: from, to: now, base: .eur)
-            merge(rates)
-        } catch {
+        // RV.59: single-flight - a second trigger while a pack refresh is on the
+        // wire joins it instead of opening a second `/rates/pack` request. The
+        // check and the task creation are one synchronous region (no await
+        // between them), so two racing calls cannot both decide to fetch.
+        if let existing = lock.withLock({ $0.inFlightRefresh }) {
+            await existing.value
             return true
         }
+        let task = Task { await self.fetchAndMerge(fetcher: fetcher) }
+        lock.withLock { $0.inFlightRefresh = task }
+        await task.value
+        // Only the creator reaches this line (a joiner returned earlier), and a
+        // newer refresh cannot be created while `inFlightRefresh` is still set,
+        // so clearing unconditionally can never drop a newer task.
+        lock.withLock { $0.inFlightRefresh = nil }
         return true
+    }
+
+    /// The single-flight fetch body: fetch the rolling `packWindowDays` pack and
+    /// merge it into the cache. A fetch failure is silent - a miss is not an
+    /// error (docs/SCHEMA.md -> Exchange rates, F9).
+    private func fetchAndMerge(fetcher: any RateFetcher) async {
+        let now = clock()
+        let from = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
+        guard let rates = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else { return }
+        merge(rates)
     }
 }
 

@@ -571,10 +571,16 @@ tests:
   capped at 5 min, with equal jitter so the delay lands uniformly in [half, full] (a fleet retrying in
   lockstep after an outage is a self-inflicted second outage, `PRACTICES.md` U7). The server's
   `Retry-After` **wins over the curve, exactly** - retrying earlier would just be refused again. Only
-  the transient class retries (offline, 5xx, a 429 wait); the refusal classes are never retried -
-  `401` (authExpired, PR.1's refresher owns it), `402`, `410`, `426` and an unknown 4xx name a next
-  step that is not "try again". Partial batch acceptance is fine (idempotent by id + baseScn); only
-  idempotent calls are retried at all.
+   the transient class retries (offline, 5xx, a 429 wait); the refusal classes are never retried -
+   `401` (authExpired, PR.1's refresher owns it), `402`, `410`, `426` and an unknown 4xx name a next
+   step that is not "try again". Partial batch acceptance is fine (idempotent by id + baseScn); only
+   idempotent calls are retried at all. **RV.59: a bearer the client can already tell is expired is
+   refreshed BEFORE the first request** - the access token's `exp` claim is read (unverified, as a
+   hint only - the server stays the verifier) and a passed expiry triggers one rotation up front, so
+   a cold start with an expired token does not spend round trips learning it 401s. An unreadable
+   `exp` means "unknown" and skips the pre-refresh, and the ordinary 401 -> refresh -> replay path
+   below still owns a server-side rejection. The refresh is still single-flighted (PR.1): concurrent
+   pre-refreshes collapse to one `POST /auth/refresh`.
 - **A 410 (device revoked / account deleted) is TERMINAL for the cycle (RV.58), wherever it lands.**
   A 410 on pull stops the cycle before any push; a 410 on push stops the batch loop and surfaces
   `deviceRevoked` (it used to fold into the 5xx "server down" class, which the retry policy then

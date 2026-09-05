@@ -76,6 +76,15 @@ struct AppRootView: View {
     @State private var trendsModal: ModalRoute?
     @State private var garageModal: ModalRoute?
     @State private var didRunStartupPurge = false
+    /// RV.59: whether the automatic pass (config, sync, rates, outbox) has run
+    /// for the CURRENT activation. Set before the pass's first await so a burst
+    /// of `.active` transitions runs one pass, not one each; reset when the
+    /// scene resigns so the next real foreground runs it again. This is the
+    /// control-flow dedupe that stops ONE launch from firing the same request
+    /// twice (the two-requests-per-launch family), with no time throttle: the
+    /// launch `.task` and the launch `.active` transition are two triggers for
+    /// one logical foreground event.
+    @State private var didRunAutomaticPass = false
     /// The app's one Low Power Mode seam (P6.8): the injected power state the
     /// sync surface, the coordinator and the rate store all consult, plus the
     /// resumer that drains deferred work when the mode ends.
@@ -294,40 +303,23 @@ struct AppRootView: View {
                 notificationRouter.handle(NotificationRouteParser.resolve(identifier: identifier))
             }
             #endif
-            // Launch counts as a foreground event (docs/CONFIG.md -> Delivery):
-            // the requirement is re-evaluated, but the UI already drew from the
-            // held snapshot - nothing waits on this (P6.18b).
-            await configService.refresh()
-            // P6.2: the monthly summary (if enabled) is re-armed with whatever
-            // data exists now - the fire date is the next 1st at 10:00, so a
-            // launch after more entries refreshes the figure by identifier.
-            await notificationCoordinator.reconcileMonthlySummary()
-            // P6.8: launch is an OPPORTUNISTIC sync cycle (docs/SYNC.md ->
-            // Low Power Mode table). It passes `.background`, so it defers while
-            // Low Power Mode is on and is registered with the resumer, which
-            // drains it when the mode ends - never gated on anything a user
-            // tapped, never a second door into sync (hard rule 1: the automatic
-            // cycle and the Settings button both go through `syncNow`).
-            // P6.21: a SCREENSHOT launch freezes the seeded sync state.
-            // Two concerns, deliberately separated. UI TESTS want the real
-            // cycle - LowPowerModeUITests drains the resumer through it - and
-            // get determinism from the offline transport instead. SCREENSHOTS
-            // want the seeded state to stand, because an offline transport
-            // alone is not enough: the launch cycle's outcome (offline hint,
-            // or a server-down card under PR.13's 5xx seed) would overwrite
-            // the state the seed asked for.
-            // So only `-freezeSyncState`, passed by capture-screenshots.sh,
-            // skips the cycle. A blanket skip on any seed broke
-            // testLowPowerReasonVanishesWhenTheModeEnds, which is the test that
-            // proves the drain works.
-            if !Self.freezesSyncState {
-                await sync.runOpportunisticSync()
+            // RV.59: the automatic pass (config, sync, rates, outbox) is OWNED
+            // by the `scenePhase == .active` transition below - launch
+            // transitions to `.active`, so the launch pass fires there exactly
+            // once, and every real foreground after a resign fires it again.
+            // Previously the same work ran from BOTH this `.task` AND the launch
+            // `.active` transition, which is the two-requests-per-launch family
+            // (config, `/rates/pack`, the outbox) in the production log.
+            //
+            // This `.task` is the fallback for the one launch shape a `.active`
+            // transition would miss: a scene that is ALREADY `.active` when this
+            // view attaches (no phase *change* is then delivered). It runs the
+            // pass only in that shape and only when the transition has not
+            // already claimed it, so the two paths can never double.
+            if scenePhase == .active, !didRunAutomaticPass {
+                didRunAutomaticPass = true
+                await runAutomaticPass()
             }
-            // RV.44: drain the delivery outbox - a gateway answer that landed
-            // while the app was gone becomes an inbox suggestion, never a silent
-            // rewrite (hard rule 13). Signed-in only and best-effort: a guest
-            // has no outbox and a failure just retries next launch.
-            await inbox.drainOutbox()
         }
         .onChange(of: scenePhase) { _, phase in
             // OB.2: the app.lifecycle edge - foreground/background transitions
@@ -335,24 +327,21 @@ struct AppRootView: View {
             // rate refresh, so "did the app come back and what did it run" is
             // observable. A phase name is a stable code, never a domain value.
             AppLog.shared.emit(AppLifecycle(phase: Self.appPhase(phase)))
-            if phase == .active {
-                runPurgeIfNeeded()
-                Task { await configService.refresh() }
-                // P6.2: foreground re-arms the monthly summary too - same
-                // replace-by-identifier discipline as the launch reconcile.
-                Task { await notificationCoordinator.reconcileMonthlySummary() }
-                // P6.8: foreground is the other opportunistic cycle; same
-                // `.background` trigger, same deferral-and-drain contract.
-                if !Self.freezesSyncState {
-                    Task { await sync.runOpportunisticSync() }
-                }
-                // PJ.8: foreground is also an S8 backfill trigger - a rate that
-                // arrived while the app was backgrounded fills rate-pending
-                // entries (silently). `refresh` fetches, merges and backfills.
-                Task { await AppRates.refresh() }
-                // RV.44: foreground drains the delivery outbox too - same
-                // signed-in, best-effort shape as the launch drain.
-                Task { await inbox.drainOutbox() }
+            switch phase {
+            case .active:
+                // RV.59: one `.active` = one automatic pass. The flag is set
+                // BEFORE the pass's first await, so a burst of `.active`
+                // transitions (permission-alert dismissal, Control Centre, the
+                // app switcher) cannot start a second pass for the same
+                // activation. The flag is reset the moment the scene resigns
+                // (below), so a REAL foreground still runs the full pass.
+                guard !didRunAutomaticPass else { return }
+                didRunAutomaticPass = true
+                Task { await runAutomaticPass() }
+            case .inactive, .background:
+                didRunAutomaticPass = false
+            @unknown default:
+                break
             }
         }
         // PJ.5: a tapped notification (real, or replayed by a test) drives the
@@ -458,6 +447,55 @@ struct AppRootView: View {
         didRunStartupPurge = true
         guard let repository = try? AppStore.repository() else { return }
         try? repository.purgeTombstones()
+    }
+
+    /// RV.59: the ONE automatic pass a launch or a real foreground runs - the
+    /// work the `.task` and the `scenePhase == .active` handler used to run
+    /// SEPARATELY at launch (the duplicate-request family). Owning it here means
+    /// a launch that transitions to `.active` fires each work item exactly once:
+    ///
+    /// - `configService.refresh()` (docs/CONFIG.md -> Delivery; a launch counts
+    ///   as a foreground event, and the UI never waits on it - P6.18b),
+    /// - the monthly-summary re-arm (P6.2),
+    /// - the OPPORTUNISTIC sync cycle (docs/SYNC.md -> Low Power Mode), still
+    ///   gated by RV.18's `OpportunisticSyncPolicy` so an `.active` burst is one
+    ///   cycle, and still frozen under `-freezeSyncState` (P6.21),
+    /// - the rate pack refresh + S8 backfill (PJ.8),
+    /// - the delivery-outbox drain (RV.44).
+    ///
+    /// The callers that decide WHEN this runs are the `.task` fallback (a scene
+    /// already `.active` at attach, where no `.active` transition will arrive)
+    /// and the `.active` transition handler above; `didRunAutomaticPass` is what
+    /// keeps two launch-time triggers from each running it.
+    @MainActor
+    private func runAutomaticPass() async {
+        runPurgeIfNeeded()
+        // Launch counts as a foreground event: the requirement is re-evaluated,
+        // but the UI already drew from the held snapshot - nothing waits on this.
+        await configService.refresh()
+        // P6.2: the monthly summary (if enabled) is re-armed with whatever data
+        // exists now - the fire date is the next 1st at 10:00, so a launch after
+        // more entries refreshes the figure by identifier.
+        await notificationCoordinator.reconcileMonthlySummary()
+        // P6.8: the automatic cycle passes `.background`, so it defers while Low
+        // Power Mode is on and is registered with the resumer, which drains it
+        // when the mode ends - never gated on anything a user tapped, never a
+        // second door into sync (hard rule 1: the automatic cycle and the
+        // Settings button both go through `syncNow`). P6.21: a SCREENSHOT launch
+        // freezes the seeded sync state - only `-freezeSyncState`, passed by
+        // capture-screenshots.sh, skips the cycle; a blanket seed skip broke
+        // testLowPowerReasonVanishesWhenTheModeEnds.
+        if !Self.freezesSyncState {
+            await sync.runOpportunisticSync()
+        }
+        // PJ.8: a rate pack refresh that arrives now fills rate-pending entries
+        // (S8 backfill) - silently, never a rewrite (hard rule 13).
+        await AppRates.refresh()
+        // RV.44: drain the delivery outbox - a gateway answer that landed while
+        // the app was gone becomes an inbox suggestion, never a silent rewrite.
+        // Signed-in only and best-effort: a guest has no outbox and a failure
+        // just retries next launch.
+        await inbox.drainOutbox()
     }
 
     /// The delta toast sits just above the owned bar (and its raised circle):

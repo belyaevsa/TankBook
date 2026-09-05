@@ -424,12 +424,12 @@ struct HomeView: View {
                 toastCenter.noteEntryChanged()
             }
             #endif
-            // PJ.8: the launch S8 trigger - refresh the rate pack and backfill
-            // rate-pending entries. Fire-and-forget so Home's first paint is
-            // never gated on the fetch (hard rule 1); the seed above has already
-            // written any pending entries, and a fill reloads Home through
-            // `AppRates.onBackfilled` (a silent revision bump, S8).
-            Task { await AppRates.refresh() }
+            // PJ.8's launch S8 trigger is OWNED by the app root's automatic pass
+            // (`AppRootView.runAutomaticPass`, RV.59) - Home firing `AppRates.refresh()`
+            // here as well was the second of the two `/rates/pack` requests a launch
+            // used to make (the root's `.active` pass and Home's first load both ran
+            // it). A fill still reloads Home through `AppRates.onBackfilled` (a silent
+            // revision bump, S8), so Home needs no rate trigger of its own.
         }
         do {
             let repository = try AppStore.repository()
