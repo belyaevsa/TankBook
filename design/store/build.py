@@ -17,7 +17,7 @@ OUT = os.path.join(HERE, "out")
 CACHE = os.path.join(HERE, ".cache")
 
 
-def rounded(stem):
+def rounded(stem, src=None):
     """A rounded-corner RGBA copy of a committed screenshot.
 
     The device layer's own `radius` clips the LAYER BOX, and `fit: contain`
@@ -27,8 +27,8 @@ def rounded(stem):
     """
     from PIL import Image, ImageDraw
     os.makedirs(CACHE, exist_ok=True)
-    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
-    dst = os.path.join(CACHE, stem + "-rounded.png")
+    src = src or os.path.join(HERE, "..", "screenshots", stem + ".png")
+    dst = os.path.join(CACHE, os.path.basename(src)[:-4] + "-rounded.png")
     if os.path.exists(dst) and os.path.getmtime(dst) >= os.path.getmtime(src):
         return dst
     im = Image.open(src).convert("RGBA")
@@ -36,6 +36,37 @@ def rounded(stem):
     mask = Image.new("L", im.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, im.width - 1, im.height - 1], radius=r, fill=255)
     im.putalpha(mask)
+    im.save(dst)
+    return dst
+
+
+RECEIPT = "Spike/ReceiptSpike/fixtures/receipts/receipt-046-circlek-sikupilli-pump5-db0-5580l-ee.jpg"
+
+
+def viewer_with_real_photo(stem="RV.9-attachment-viewer"):
+    """The attachment viewer showing a REAL corpus receipt, not the test mock.
+
+    The committed screenshot is captured from a seeded build, so its viewer holds
+    a grey placeholder - honest as a UI record, useless as a store panel about
+    keeping the photo. This drops a real fixture receipt into the same image
+    region the viewer draws into, so the chrome, the title and the hint are still
+    the shipping screen's own pixels.
+    """
+    from PIL import Image
+    os.makedirs(CACHE, exist_ok=True)
+    src = os.path.join(HERE, "..", "screenshots", stem + ".png")
+    photo = os.path.join(HERE, "..", "..", RECEIPT)
+    dst = os.path.join(CACHE, stem + "-real.png")
+    if os.path.exists(dst) and os.path.getmtime(dst) >= max(os.path.getmtime(src),
+                                                            os.path.getmtime(photo)):
+        return dst
+    im = Image.open(src).convert("RGB")
+    top, bottom = 620, 2380          # the viewer's content area, between the nav bar and the hint
+    box_w, box_h = im.width, bottom - top
+    im.paste((0, 0, 0), [0, top, box_w, bottom])
+    ph = Image.open(photo).convert("RGB")
+    ph.thumbnail((box_w, box_h), Image.LANCZOS)
+    im.paste(ph, ((box_w - ph.width) // 2, top + (box_h - ph.height) // 2))
     im.save(dst)
     return dst
 
@@ -166,6 +197,13 @@ layers:
 """
 
 
+def source_for(shot):
+    """The image a panel actually draws - a real receipt where the shot is a mock."""
+    if shot == "RV.9-attachment-viewer":
+        return viewer_with_real_photo(shot)
+    return None
+
+
 def write_specs():
     paths = []
     for pid, shot_en, shot_ru, en, ru in PANELS:
@@ -174,7 +212,7 @@ def write_specs():
             path = os.path.join(HERE, f"panel-{pid}-{lang}.yaml")
             with open(path, "w", encoding="utf-8") as f:
                 f.write(SPEC.format(pid=pid, lang=lang, kicker=kicker, headline=headline,
-                                    caption=caption, shot_path=rounded(shot),
+                                    caption=caption, shot_path=rounded(shot, source_for(shot)),
                                     bg_path=shared_background()))
             paths.append(path)
     return paths
