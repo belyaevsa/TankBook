@@ -1,12 +1,133 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-05. **The app is on TestFlight, the backend is deployed, and App Store review is
-under way.** The `RV` (reviewer) backlog carries **71 rows filed from production logs, device walks
-and screenshots**; **70 are closed** and `RV.71` is registered but unbriefed. Measured now: **iOS
-1444 tests / 152 suites**, **backend 396** (0 skipped), lint 0 and the localization gate 0 (708
-keys, 100% RU) - both run **from the repo ROOT**. **`T.3` is the only tracked v1 row still open**,
-and it cannot be closed by a fix: it needs two consecutive green full suites. Read this first, then
-`CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-06. **The app is on TestFlight, the backend is deployed, and App Store review is
+under way.** Measured now: **iOS 1521 tests / 165 suites**, lint 0 and the localization gate 0 from
+the repo **ROOT**. The `OB` observability cluster is **complete** (all four rows), the **six-row
+reminders series is complete**, and the `RV` backlog now runs to **RV.89** - the newest nine came
+from the product owner using the app on their own data, which found more in an hour than the
+backlog had in a day. **`T.3` is still the only tracked v1 row that cannot be closed by a fix**: it
+needs two consecutive green full suites. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+
+## What changed on 2026-09-06
+
+**Shipped and verified, each with the orchestrator's own mutation:** `PR.12`/`OB.3` (the device
+remembers when it last synced and how it last failed), `PR.11`/`OB.4` (diagnostics the user can
+send - the OB cluster is now complete), `RV.73` (a picked import file is read under its security
+scope), `RV.80` (the dead-end card's action line renders in Russian), and the reminders six:
+`RV.75` merged all-cars list, `RV.74` deep link lands on the right car, `RV.76` permanent entry
+point, `RV.79` per-car counts, `RV.77` offer the next reminder after a save, `RV.78` banner actions.
+
+### The gate had a hole, and it shipped a break under my own verification
+
+`PR.11`/`OB.4` left `AboutView` calling the `#if DEBUG`-only `DiagnosticsTestSeed` **unguarded**.
+`swift build` and the ordinary `xcodebuild` gate compile **Debug**, where that type exists, so it
+passed every check I run, reached `main`, and broke the **Release** build - which would have
+surfaced at `SH.2` or a TestFlight upload. `RV.78` found it two rows later.
+
+**Hard rule 14 and `docs/TESTING.md` now require a Release build for any task touching a DEBUG
+seam** (seeds, test hooks, `-seed*` arguments, preview helpers). Measured both ways before and
+after: Release at HEAD exited **65**, with the guard **0**.
+
+**And the fix was left out of its own commit.** I verified Release green with the guard in the
+working tree, then assembled RV.78's explicit path list from the row's files and dropped
+`AboutView.swift`, so the commit message claimed a fix it did not contain. Committed separately with
+the correction rather than amended, because another session shares this checkout. **The narrow
+lesson**: an explicit path list is right - `git add -A` scattered two agents' work once - but it is
+built by hand from the row, so **a fix made while verifying someone else's row is exactly the one it
+drops**. Stage it the moment it is made.
+
+### Four defects that only an opened screenshot could catch
+
+Every one passed a green suite, and no agent could see any of them.
+
+- **`RV.75`: titles rendered "Oi..." and "In-su..." in BOTH languages.** The car chip held
+  `layoutPriority(1)` against the title's `0`. My first fix flipped it and broke the chips instead
+  ("Sko...", and on the longest row a bare "..."), which fails the row's own "every row names its
+  car". Neither element can win: `ViewThatFits` now keeps the chip beside the title while both fit
+  whole and drops it underneath when they do not.
+- **`RV.76`: the committed empty-state screenshots were STALE** - captured before the agent's own
+  final refactor, showing a filled button and the dashed card together. The agent's OCR saw exactly
+  that and **explained it away** as "the footer being double-read". The code was right; the evidence
+  was wrong.
+- **`RV.77`: «3 сент..» and «сент. 2027 г..»** - a doubled period, because a Russian abbreviated
+  month carries its own and the catalogue phrase adds the sentence's. **A full localised phrase per
+  language cannot fix this**, which is the interesting part: the doubling comes from the VALUE, not
+  the phrase - the same Russian sentence is right with a number and wrong with a date. Fixed as
+  `SentenceEnding` in core, three tests, one keeping an ellipsis intact.
+- **`RV.80`: an action that renders in EN and silently not in RU.** I checked the catalogue before
+  briefing - key resolves, RU translated, no duplicates, all 741 keys have RU - and **wrote that
+  negative result into the brief**, which is why the agent looked at layout instead. The mechanism:
+  RU runs 20-30% longer, the card is the **last scroll child**, and bottom-anchored chrome grew
+  until the action line rested **below the fold while staying tappable**.
+
+**XCUITest asserts existence, never truncation, never a fold.** That is the whole argument for the
+screenshot convention, and it earned its keep four times in one day.
+
+### A wedged agent, and why agent-health.sh could not tell
+
+`RV.74`'s first dispatch ran **two hours and wrote nothing**, reasoning in circles about a question
+the brief left open (what a deep link should do when the reminder's car is archived).
+`scripts/agent-health.sh` reported **WORKING** throughout, because CPU keeps accumulating during a
+stall. **The decisive signal was a log byte count identical across 45 minutes** - freshness alone
+proves nothing (nothing is written during inference), but an unchanged count plus zero file writes
+at two hours is a stall.
+
+**The brief was the defect, not the agent.** Killed it, wrote the decision into the brief, added a
+standing line - *take the smallest correct option, write down which and why, and keep going* - and
+the re-dispatch produced clean work. **An open design question can wedge an agent indefinitely.**
+
+Also: **the monitors are killed, never the agents** - it happened seven times today, and each
+notification says "stopped" while the agent is still running. `kill -0 <pid>` before believing any
+"exited"; a killed monitor read as a finished agent is how a bad screenshot nearly shipped on
+`RV.58`.
+
+### Mutations: six caught, two passed, and the two that passed were the finding
+
+Caught in their subtlest forms - persist only on failure, count scheduled rows as attention, drop
+the per-vehicle filter, suppression that ignores the car, snooze from today rather than the due
+date, collapse the two reminder queries into one. **Two passed**, and both meant the test grew:
+
+- **`RV.73`**: releasing the security scope BEFORE the copy left every assertion green, because the
+  test counted scope starts and stops without asserting they **framed** the copy - which is exactly
+  the production bug. `ScopeRecorder` now records the order. **A count is not a sequence.**
+- **`RV.80`**: dropping the `.transportUnreachable` carve-out left the offline state with **nothing
+  on screen at all** and the whole suite stayed green. Two tests now pin both directions.
+
+### The product owner used the app on their own data, and it found nine rows
+
+`~/Downloads/myfuelmanager/fuel.csv` - a real My Fuel Manager export, 513 rows - exposed more in an
+hour than the backlog had in a day. **All four import rows are measured against that file, not
+described**, and `RV.86` says to copy it into the fixtures because it *is* the reproduction.
+
+- **`RV.86` (the big one): the file holds FIVE cars and the import merges them all.** The last
+  column is `Vehicle name`; `MfmParser` never reads it. **One defect behind three reported
+  symptoms**: the Volvo card reading **426 220 km** (that is the Audi A4's odometer), the "117
+  entries excluded", and same-day rows whose odometer runs backwards (two different cars on one
+  day). It corrupts every derived number.
+- **`RV.88`: imported money never converts, and nothing ever heals it.** `ImportConversion.makeFill`
+  writes `Money` with no rate snapshot - correct, since `rateDate` is the entry date - but
+  **`MoneyBackfillService` has no production caller on the import path** (only a DEBUG hook and the
+  confirm-manual flow). 500 rows stay pending and every month total reads **0 €**.
+- **`RV.85`: the app asks the date format the file answers.** The parser counts *individually*
+  ambiguous rows and asks if any exist, never checking whether another row settles it. Measured:
+  **215 ambiguous rows, and the file proves M/D.**
+- **`RV.87`: same-day fills tie-break on `id.uuidString`** - creation order, not travel order - so
+  the odometer appears to fall and both entries flag. Fix `RV.86` first and re-measure.
+- **`RV.89`: the log shows no year**, on the log, the flagged list, Recently deleted, Trends and the
+  parts shelf. A decade of rows all read "3 Jun". `ReminderRowFormat` already does the right thing.
+
+Plus `RV.81` (archiving strips the reminders - owner decision), `RV.82` (the deep-link suite only
+passes in company), `RV.83` (the Garage strip is a tap target nothing marks as tappable), `RV.84`
+(the 422 card still clips in RU - and **`isHittable` LIES there**, reporting a clipped element as
+hittable).
+
+### The queue, and why it is sequential
+
+`/private/tmp/.../scratchpad/QUEUE.md` carries it, in order: **RV.86 -> RV.88 -> RV.85 -> RV.87 ->
+RV.89**, then `RV.72` (running), `RV.81`, `RV.71`, `RV.82`, `RV.83`. **Sequential, one agent at a
+time**, because most of these touch `ios/App/Sources/Localizable.xcstrings`, where two agents
+**overwrite each other's keys with no git conflict** - the loss is silent until the localization
+gate fails. Every one of the nine is briefed.
 
 ## What changed on 2026-09-05, and what it cost to learn
 
@@ -454,11 +575,36 @@ is usually the machine trains you to re-run instead of read.
 > **Fully qualify the provider** - a bare model name silently resolves to another provider that
 > returns an instant ~166-byte error that reads like a finished run.
 >
+> **Amended 2026-09-06 by the controlled head-to-head** (RV.77 re-run against pro from its parent
+> commit, brief byte-identical, both verified by exit code -
+> `diagnostics/model-experiment-RV.77/ANALYSIS.md`): **escalate on WALL CLOCK, not on difficulty.**
+> On the hardest row of the reminders series pro was **39% faster** (1h27m vs 2h16m), used **2.5x
+> fewer tokens** and cost **~14% more, not 4x** - so "pro is the slow expensive option" holds for
+> routine rows and is false on hard ones. Difficulty did not predict supervision cost: RV.77 was the
+> largest row (1538+ lines, 20 files) and needed the least. And **pro is not the higher-fidelity
+> tier** - it shipped both screenshots in the LIGHT theme against a bolded "dark" instruction flash
+> obeyed, while flash put the shared RU fix in core (`SentenceEnding`) where pro patched one call
+> site. Reach for pro when elapsed time is the binding constraint, never expecting fewer defects.
+>
 > **The full UI suite runs at PHASE completion, not after every task** (2026-08-29). Per task:
-> `swift build` and `swiftlint` continuously, **all 1429 unit tests** (~50 s, never subsetted), and
+> `swift build` and `swiftlint` continuously, **all 1521 unit tests** (~52 s, never subsetted), and
 > `-only-testing:` the UI suites that task touched. The whole suite is ~28 min and it is a **gate,
 > not a search tool**. Measured before the rule was made: five full runs in one day, ~2h15m, **one**
 > genuine defect, **two** false reds from contention. `docs/TESTING.md` has the table.
+>
+> **A task that touches a `#if DEBUG` seam also builds RELEASE** (added 2026-09-06, hard rule 14):
+> the ordinary gate compiles Debug, where every DEBUG type exists, so an unguarded call to a
+> DEBUG-only type passes every check and breaks only the release path. `PR.11`/`OB.4` shipped
+> exactly that under my own verification and `RV.78` found it two rows later.
+>
+> **A killed monitor is not a finished agent.** It happened seven times on 2026-09-06 - the
+> notification says "stopped" while the agent runs on. `kill -0 <pid>` before believing it. And a
+> **wedged** agent looks healthy to `agent-health.sh` (CPU accumulates while it reasons in circles):
+> the signal is a **log byte count unchanged across 45 minutes** plus zero file writes.
+>
+> **Stage a fix made while verifying someone else's row AT THE MOMENT IT IS MADE.** The explicit
+> path list is assembled from the row's files, so a repair that belongs to no row is exactly the one
+> it drops - which is how `RV.78` claimed a Release fix its commit did not carry.
 >
 > **Verification is the job, and it is not delegable to the agent's own report.** Re-run
 > `swift build`, `swift test`, `xcodebuild test`, `swiftlint` (from the **repo root**) and, for
@@ -1207,6 +1353,11 @@ notification lands nowhere; and **PJ.36/PJ.38** - "Export everything" is a dead 
   forced on demand, so its regression value is unproven. The screenshot is the gate there.
 
 ## Model routing (2026-08-29, corrected twice by the owner)
+
+**SUPERSEDED - historical record only.** The by-kind split below was replaced by "flash by default,
+diagnose first" (2026-09-05) and amended again 2026-09-06 ("escalate on wall clock, not on
+difficulty"). The live policy is the standing-instruction block above and the
+`agent-model-routing` memory.
 
 **Code writing** - implementation against a fixed spec or artboard, wiring an existing seam, adding
 strings - goes to `deepseek/deepseek-v4-flash` or `zai-coding-plan/glm-5.3-flash`.
