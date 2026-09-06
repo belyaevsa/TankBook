@@ -1,12 +1,53 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-06 (late). **The app is on TestFlight, the backend is deployed, and App Store review
-is under way.** Measured now: **iOS 1537 tests / 169 suites**, **backend 398**, lint 0 and the
-localization gate 0 from the repo **ROOT**, and a **Release build 0**. The `OB` cluster and the
-six-row reminders series are complete. The `RV` backlog runs to **RV.92**, and the newest twelve came
-from the product owner using the app on their own data - a single real My Fuel Manager export found
-more in an hour than the backlog had in a day. **`T.3` is still the only tracked v1 row that cannot
-be closed by a fix.** Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-06 (night). **The app is on TestFlight, the backend is deployed, and App Store
+review is under way - and the product owner is now using it on their own data, which is where every
+new row comes from.** Measured: **iOS 1559 tests / 172 suites**, **backend 407**, lint 0 and the
+localization gate 0 from the repo **ROOT**, Release build 0. The `RV` backlog runs to **RV.100**.
+**`RV.97` is the most urgent open row: sync push is in a livelock on the owner's device right now.**
+Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+
+## RV.97 first: sync push cannot succeed after an import
+
+Two production logs, seventeen minutes apart, same device (`787c4f6f`, `1.0.0+788`). Every
+`POST /v1/sync/push` is **145-151 KB** and ends **499** (client gone) at 4-32 s, while every pull in
+the same minutes finishes in **under a second**.
+
+**The cause is in our own constants.** `TransportTimeouts.readJSON = 30` is the budget for "ordinary
+JSON calls (sign-in, **sync**, rates...)", and `upload = 120` exists because "blob PUT and import
+multipart carry megabytes over a mobile uplink". After an import **sync push carries megabytes too,
+and never asks for the upload budget** - `RemoteSyncTransport` sets no per-request timeout.
+
+**The loop is measured, not hypothesised.** The write is `INSERT`-or-`UPDATE` keyed on
+`(account_id, id)`, so retries do not duplicate - but each assigns a **new SCN**:
+
+1. push 150 KB; the server does ~31 s of real work and commits;
+2. the client abandons at 30 s and never learns the outcome, so **the rows stay dirty**;
+3. the pull hands the device its OWN just-written rows back, fifty at a time (`SinceScn` 492 -> 546
+   -> 596 on a single-device account, where nothing else can be writing);
+4. still dirty -> the same 150 KB goes again.
+
+`batchLimit` is **200 records, never bytes**, so the oversized batch is rebuilt every cycle. Both
+halves need fixing: raising only the timeout converts a 30 s failure into a 120 s one on the next
+larger import.
+
+## The car-deletion cluster: three rows, one broken flow
+
+Found by the owner in a single sitting, and they compound:
+
+- **`RV.99`** - the delete confirmation. The report says there is none; the source shows an alert on
+  the only delete path, so the row **reproduces on a device first**. Either way the alert never
+  names *which* car.
+- **`RV.98`** - the alert promises "It moves to Recently deleted for 30 days" and
+  **`RecentlyDeletedView` never queries deleted vehicles**. The car is tombstoned, invisible and
+  unrestorable: hard rule 8 broken in the words the app says out loud.
+- **`RV.100`** - delete the last car and `HomeView.load()` returns early without clearing state, so
+  Home keeps rendering the deleted car's name, odometer, consumption and rows - statistics derived
+  from deleted data. `RemindersView` has the identical guard and clears first, so the correct shape
+  is already in the codebase.
+
+The sync half of `RV.100` (what a second device does with a last car's tombstones) is recorded as
+**unanswered**, not guessed.
 
 ## The four things this session would tell its successor
 
@@ -22,7 +63,41 @@ be closed by a fix.** Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
 4. **The product owner using the app beats any backlog.** RV.84-RV.90 exist because one real file
    went through the real import.
 
-## What shipped on 2026-09-06
+## What shipped later on 2026-09-06
+
+`RV.90` (a log line could crash the server), `RV.88` (imported money never converted), `RV.86`
+(import merged every car in the file into one), `RV.85` (the date question the file answers),
+`RV.87` (same-day ordering), `RV.89` (the year in the log), `RV.81` (archiving silences a car).
+
+**Two more mutations that passed, both on a row's headline claim:**
+
+- **`RV.88`**: "fall back to today's rate" made every row convert and **all 1529 tests stayed
+  green** - hard rule 3's central promise was documented and unenforced, because every existing test
+  seeded a rate FOR the entry's own day.
+- **`RV.86`**: validating every lane against the union of all cars' entries left **1528 tests
+  green** - the existing lane tests pass an **empty** `existingEntriesByVehicle`, where the union
+  and the per-car lookup are the same empty list.
+
+**The shared shape, and the thing to look for first: a fixture too clean to tell right from wrong.**
+A test whose fixture omits the state the rule is about cannot test the rule.
+
+**And one defect found by READING, not mutating (`RV.87`).** In a new switch, `case (nil, _)` also
+matches `(nil, nil)` and came first, so the `(nil, nil)` case the comment relied on was unreachable:
+two same-day entries that both record no odometer compared `true` in **both** directions - not a
+strict weak ordering. 1542 tests passed over it. `EntryOrder` is read by the engines, the log
+stream, the validator and the repository's live union, so a broken comparator there reaches every
+list in the app.
+
+**A merge that would have deleted a shipped fix, greenly.** `RV.86` split `ImportFlowModel`, and
+`main` had `RV.88`'s `scheduleDrainAfterImport` inside the block that moved. Taking either side
+wholesale was wrong, and the loss would have broken **no test** - RV.88's are L1 and never run the
+app-layer commit. **When a refactor moves a block, diff what the block CONTAINED.**
+
+**My own explicit path list dropped files twice** - RV.78's Release guard and RV.85's three
+client-half files. The rule against `git add -A` is right; the matching practice is to **diff the
+staged set against `git status` and account for every remaining line** before committing.
+
+## What shipped earlier on 2026-09-06
 
 `PR.12`/`OB.3`, `PR.11`/`OB.4` (the OB cluster is complete), `RV.73`, `RV.80`, `RV.72`, the reminders
 six (`RV.74`-`RV.79`), and then the import cluster the owner's file exposed: **`RV.90`** (a log line
