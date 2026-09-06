@@ -60,6 +60,41 @@ deleted since its notification was scheduled must land on the Reminders list –
 end, and never somewhere arbitrary (hard rule 7). The parser is strict deliberately: an
 identifier the app itself cannot produce is treated as unknown, never guessed at.
 
+## The fired-reminder actions (RV.78)
+
+The three reminder rows in the scenario catalog share one banner, and since RV.78 that banner
+can be acted on (`design/screens/ReminderNotification.dc.html`, `docs/SCREENMAP.md`). One
+notification category (`reminder.actions`) with **two actions** is registered at launch and
+attached to every reminder request, so a fired banner offers them without opening the app:
+
+| Action | Identifier | What it does | Why this shape |
+|---|---|---|---|
+| **Mark done** | `reminder.action.complete` | Opens the app on that reminder's **completion sheet** (foreground action) | **Never a silent `.done(nil)`.** J7c makes declining the cost log first-class, but it has to be a *choice the user made* – the sheet is where that choice already lives. Mark done lands exactly where a tap lands: same route, same sheet, no second completion implementation to drift from `ReminderLifecycle.complete` |
+| **Push a week** | `reminder.action.snooze` | Defers the fired reminder by **7 days** and re-arms it, in the background – the one action that needs no screen | "Snoozing beats ignoring" (J7c): at a red light the snooze must cost one tap, not the four taps of open-app → find-car → open-sheet → Reschedule |
+
+**What "a week" defers is the DATE.** `ReminderLifecycle.snooze` is a reschedule with a fixed
+7-day delta (`ReminderLifecycle.snoozeDays`, a compiled number – the banner has two buttons,
+no pickers): the due date moves forward seven days, and a fired `.attention` resets to
+`.scheduled` so the planner re-arms from the new due – the notification comes back a week
+later instead of staying quiet. **A reminder due only by odometer has no time dimension to
+push**: moving its km threshold by "a week" would require the app to guess how far the driver
+travels in a week (hard rule 13 forbids exactly that unasked derivation), so the odometer is
+left untouched and only the fired state resets – the odometer rule re-arms it on its own
+schedule (armed at write time, so the next time the app reconciles a still-due reminder it
+notifies again).
+
+The two actions are the *user's* verbs; the cost-log decision and the exact new due stay the
+screen's. **The response routes through the same lifecycle the Reminders screen uses** – the
+core `NotificationResponseParser` resolves (action, identifier) to a decision, the delegate
+handles it, and both Mark done's completion sheet and Push a week's
+`ReminderNotificationCoordinator.snooze` reach the same `ReminderLifecycle` transitions and the
+same reconcile that arms every notification. A **dismissal**, an **unknown action identifier**
+(a banner scheduled by an older build) or a **stale notification** (the reminder deleted since
+scheduling) is inert: the app opens normally, routes nowhere and mutates nothing (hard rule 7).
+This is the second reason the (action, identifier) mapping is a pure value type in core,
+alongside `NotificationRouteParser`: the app has no unit-test target, and the mapping must not
+drift from the registered strings.
+
 ## Monthly summary (J8) – the decisions (P6.2)
 
 The catalog row names the shape; these are the decisions implementation forced, so they are

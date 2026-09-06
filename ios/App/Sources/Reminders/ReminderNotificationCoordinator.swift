@@ -17,6 +17,11 @@ struct UNNotificationScheduler: LocalNotificationScheduling {
             let content = UNMutableNotificationContent()
             content.body = ReminderNotificationText.body(for: notification.body)
             content.sound = .default
+            // RV.78: the request carries the category whose actions a fired
+            // banner shows (Mark done / Push a week). Registration happens once
+            // at launch (ensureDelegate); attaching here makes the request
+            // actionable (docs/NOTIFICATIONS.md -> the actions).
+            content.categoryIdentifier = ReminderBannerAction.categoryIdentifier
             let components = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute, .second], from: notification.fireDate)
             let request = UNNotificationRequest(
@@ -92,6 +97,39 @@ struct UNNotificationScheduler: LocalNotificationScheduling {
         delegate.onOpen = handler
     }
 
+    /// Wires the "Push a week" response to the notification coordinator
+    /// (RV.78, docs/NOTIFICATIONS.md -> the actions). Called once at launch by
+    /// the root view, which owns the coordinator; the delegate forwards a
+    /// snoozed reminder id here. Like the open handler, it must be set before
+    /// any response can arrive, so it is configured in `AppRootView.init`.
+    @MainActor
+    static func configureSnoozeHandler(_ handler: @escaping @MainActor (UUID) -> Void) {
+        ensureDelegate()
+        delegate.onSnooze = handler
+    }
+
+    #if DEBUG
+    /// The `-replayNotificationAction <action> <identifier>` launch hook
+    /// (RV.78): drives a banner ACTION response through the delegate's own
+    /// `handle` - the exact decision path a real response takes - so the L4
+    /// suites and screenshots exercise the shipped handling without staging a
+    /// real notification (which a simulator cannot do reliably). A
+    /// `-replayNotificationResponse <identifier>` tap is driven through the
+    /// same method with a nil action. A snooze additionally applies its DB
+    /// transition synchronously first, so a replayed launch is deterministic
+    /// however the launch's async tasks interleave with a screen's own load.
+    /// Compiled out of release builds: this cannot ship.
+    @MainActor
+    static func replayForTests(actionIdentifier: String?, requestIdentifier: String) {
+        if case .snooze(let reminderID) =
+            NotificationResponseParser.resolve(actionIdentifier: actionIdentifier,
+                                               requestIdentifier: requestIdentifier) {
+            ReminderNotificationCoordinator.deferReminderForSnooze(reminderID: reminderID)
+        }
+        delegate.handle(actionIdentifier: actionIdentifier, requestIdentifier: requestIdentifier)
+    }
+    #endif
+
     /// Keeps the foreground-presentation delegate alive and installed once, so a
     /// reminder firing at 09:00/10:00 while the app is open still shows its
     /// banner rather than silently vanishing.
@@ -101,6 +139,16 @@ struct UNNotificationScheduler: LocalNotificationScheduling {
     /// installs the delegate too, so a cold-start tap is not dropped.
     fileprivate static func ensureDelegate() {
         UNUserNotificationCenter.current().delegate = delegate
+        // RV.78: register the fired-reminder category (and its two actions)
+        // whenever the delegate is ensured - at launch, and again before any
+        // response handling. Registration is a replace-by-identifier set, so
+        // repeating it is harmless; a request scheduled before this launch
+        // would otherwise still show actions from the last registered set.
+        UNUserNotificationCenter.current()
+            .setNotificationCategories([ReminderNotificationActions.category()])
+        #if DEBUG
+        ReminderBannerDemo.scheduleIfRequested()
+        #endif
     }
 }
 
@@ -118,6 +166,11 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
     /// a reference type held by the view, so a background-thread tap can reach
     /// MainActor state through a hop.
     @MainActor var onOpen: ((NotificationRoute) -> Void)?
+    /// Where the "Push a week" response should defer a reminder (RV.78), set by
+    /// `AppRootView` at launch to the notification coordinator. The one action
+    /// that needs no screen: it mutates the reminder in place and re-arms, so
+    /// it never routes.
+    @MainActor var onSnooze: ((UUID) -> Void)?
 
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
@@ -127,22 +180,45 @@ final class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate, @u
         completionHandler([.banner, .sound])
     }
 
-    /// The tap: resolve the tapped identifier to a route and hand it to the
-    /// app's navigation router. Unknown or malformed identifiers resolve to
-    /// `.none`, which routes nowhere - the app just opens (hard rule 7: a stale
-    /// notification - a reminder deleted since it was scheduled - must never
-    /// dead-end, and never route somewhere arbitrary). Called off the main
-    /// thread, so the router is reached through a MainActor hop.
+    /// The response: a tap, or one of the banner's two actions (RV.78). The
+    /// request identifier resolves exactly as before; the action decides what
+    /// that resolution means (core `NotificationResponseParser`): a plain tap
+    /// and **Mark done** both drive the promised screen - the completion sheet
+    /// for a reminder, never a silent `.done(nil)`, because declining the cost
+    /// log is the sheet's choice to present (J7c) - while **Push a week**
+    /// defers in place through the coordinator. A dismissal or an unrecognised
+    /// action is inert (hard rule 7: a stale notification must never
+    /// dead-end, and never detour). Called off the main thread, so everything
+    /// after the decision is reached through a MainActor hop.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse,
         withCompletionHandler completionHandler: @escaping () -> Void
     ) {
-        let route = NotificationRouteParser.resolve(
-            identifier: response.notification.request.identifier)
+        let actionIdentifier = response.actionIdentifier == UNNotificationDefaultActionIdentifier
+            ? nil
+            : response.actionIdentifier
+        let requestIdentifier = response.notification.request.identifier
         completionHandler()
         Task { @MainActor in
-            self.onOpen?(route)
+            self.handle(actionIdentifier: actionIdentifier, requestIdentifier: requestIdentifier)
+        }
+    }
+
+    /// The single response decision point, shared by the real `didReceive` and
+    /// the DEBUG response replay - so a replayed L4 test cannot drift from the
+    /// shipped path. Translates the core decision into the app's two effects:
+    /// route, or snooze.
+    @MainActor
+    func handle(actionIdentifier: String?, requestIdentifier: String) {
+        switch NotificationResponseParser.resolve(actionIdentifier: actionIdentifier,
+                                                  requestIdentifier: requestIdentifier) {
+        case .open(let route):
+            onOpen?(route)
+        case .snooze(let reminderID):
+            onSnooze?(reminderID)
+        case .none:
+            break
         }
     }
 }
@@ -303,6 +379,40 @@ final class ReminderNotificationCoordinator {
     /// the delete site calls this with the reminder it just removed.
     func cancelNotifications(for reminder: Reminder) async {
         await scheduling.cancel(identifiers: ReminderNotificationPlanner.identifiers(for: reminder))
+    }
+
+    /// The "Push a week" response (RV.78, docs/NOTIFICATIONS.md -> the
+    /// actions): defer a fired reminder by seven days in place and re-arm it.
+    /// Routes through the SAME transition the Reminders screen reschedules
+    /// with (`ReminderLifecycle.snooze`, itself a reschedule) and the same
+    /// reconcile that arms every notification, so a banner snooze can never
+    /// drift into a second implementation - the L1 one-code-path rule. An
+    /// unresolved or terminal reminder id (deleted since its notification was
+    /// scheduled) is inert (hard rule 7).
+    func snooze(reminderID: UUID) async {
+        guard let vehicleID = Self.deferReminderForSnooze(reminderID: reminderID) else { return }
+        await reconcile(vehicleId: vehicleID)
+    }
+
+    /// The synchronous DB half of a snooze response: resolve the live reminder
+    /// and defer it in place (`ReminderLifecycle.snooze`). Returns the vehicle
+    /// to reconcile, or nil when the reminder no longer exists or is terminal -
+    /// a stale notification must never dead-end and never mutate nothing (hard
+    /// rule 7). Shared by the coordinator's async `snooze` and the DEBUG replay,
+    /// so a replayed L4 launch applies the transition before any screen can
+    /// load - deterministic regardless of how the launch's async tasks interleave.
+    @discardableResult
+    static func deferReminderForSnooze(reminderID: UUID) -> UUID? {
+        guard let repository = try? AppStore.repository(),
+              let reminder = try? repository.liveReminder(id: reminderID),
+              ReminderLifecycle.isActive(reminder) else { return nil }
+        do {
+            try repository.upsertReminder(ReminderLifecycle.snooze(reminder))
+            return reminder.vehicleId
+        } catch {
+            AppLog.error(operation: "reminders.snooze", category: .notifications, error: error)
+            return nil
+        }
     }
 
     /// The permission request at the first reminder creation (never at launch,

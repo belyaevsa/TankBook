@@ -249,6 +249,41 @@ public enum ReminderLifecycle {
         return updated
     }
 
+    // MARK: - Snooze (RV.78, the banner's "Push a week")
+
+    /// How far the notification banner's Snooze action defers a fired
+    /// reminder: seven days (docs/NOTIFICATIONS.md, design/screens/
+    /// ReminderNotification.dc.html's "Push a week"). A compiled number, not a
+    /// user setting - the banner has two buttons, no pickers (hard rule 7
+    /// keeps the dead end away; a picker would be the reminder form's job, and
+    /// the form is where a custom defer already lives).
+    public static let snoozeDays = 7
+
+    /// The SNOOZE transition (RV.78, docs/NOTIFICATIONS.md -> the actions): a
+    /// RESCHEDULE with a defined defer, so it routes through the SAME
+    /// transition the Reminders form edits with - there is no second
+    /// reschedule implementation for the banner. A fired `.attention` resets
+    /// to `.scheduled`, so the planner re-arms (docs/SCHEMA.md: "a fired
+    /// .attention resets so it can notify again").
+    ///
+    /// What a week defers is the DATE half. A reminder due only by odometer
+    /// has no time dimension to push - moving its km threshold by "a week"
+    /// would require the app to guess how far the driver travels in one
+    /// (hard rule 13 forbids exactly that unasked derivation), so its
+    /// odometer is left untouched and only the fired state resets, letting the
+    /// odometer rule re-arm on its own schedule. Terminal rows (history) come
+    /// back unchanged, exactly as reschedule leaves them.
+    public static func snooze(_ reminder: Reminder,
+                              by days: Int = ReminderLifecycle.snoozeDays,
+                              now: Date = Date()) -> Reminder {
+        guard isActive(reminder) else { return reminder }
+        let pushedDate = reminder.dueDate.map { date in
+            Calendar.current.date(byAdding: .day, value: days, to: date) ?? date
+        }
+        return reschedule(reminder, dueDate: pushedDate,
+                          dueOdometer: reminder.dueOdometer, now: now)
+    }
+
     // MARK: - Dismiss
 
     /// The DISMISS-with-reason transition, deliberately distinct from delete

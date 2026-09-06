@@ -95,6 +95,37 @@ import Testing
                 "armed at write time, fires the next humane morning")
     }
 
+    // MARK: - RV.78: snoozing a fired date reminder re-arms
+
+    /// Snoozing a fired date reminder (due inside its window, stored
+    /// `.attention`) moves the due date out of the window and resets to
+    /// `.scheduled`; the plan then re-arms the date notification for the new
+    /// due - the banner's "Push a week" must not just quiet the row, it must
+    /// come back. This is the planner half of the L4 "re-arms" assertion.
+    @Test func snoozedDateReminderReArmsFromTheNewDue() {
+        let now = date(2025, 6, 1, 12, 0)
+        let fired = makeReminder(status: .attention,
+                                 dueDate: date(2025, 6, 12, 23, 30), dueOdometer: nil)
+        let snoozed = ReminderLifecycle.snooze(fired, now: now)
+        #expect(snoozed.status == .scheduled,
+                "snooze resets the fired .attention so it can notify again")
+        #expect(snoozed.dueDate == date(2025, 6, 19, 23, 30),
+                "a week's defer pushes the due date forward by 7 days")
+        #expect(ReminderLifecycle.daysRemaining(until: snoozed.dueDate!, from: now)
+                    > ReminderLifecycle.attentionWindowDays,
+                "the defer pushes the due out of the attention window")
+
+        // The date notification re-arms from the NEW due (due - 12 days at
+        // 09:00): 2025-06-19 - 12 = 2025-06-07, never the old 2025-05-31.
+        let plan = self.plan([snoozed], now: now, odometer: nil)
+        let dateEntry = plan.scheduled.first { $0.kind == .date }
+        #expect(dateEntry != nil, "a snoozed date reminder re-arms its date notification")
+        #expect(dateEntry?.fireDate == date(2025, 6, 7, 9, 0),
+                "the re-armed fire lands at the new window start, 09:00")
+        #expect(dateEntry?.fireDate != date(2025, 5, 31, 9, 0),
+                "arming from the old due is exactly the stale re-arm this test proves wrong")
+    }
+
     // MARK: - 2. Humane hours
 
     /// Every scheduled time is 09:00 or 10:00 local, asserted as components

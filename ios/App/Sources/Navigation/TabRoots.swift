@@ -29,8 +29,9 @@ struct AppRootView: View {
     /// Carries the RV.77 post-save "Remind you next time?" offer from the
     /// service/expense save path to the tab root that presented the entry sheet.
     @State private var reminderOfferSession = ReminderOfferSession()
-    /// Owns local-notification arming, cancellation and permission (P3.6).
-    @State private var notificationCoordinator = ReminderNotificationCoordinator()
+    /// Owns local-notification arming, cancellation and permission (P3.6);
+    /// created in `init` so the "Push a week" response can be wired to it.
+    @State private var notificationCoordinator: ReminderNotificationCoordinator
     /// The app's one config surface (P6.18b): the update requirement derived
     /// from the held config snapshot at launch, refreshed on foreground.
     @State private var configService: AppConfigService
@@ -154,6 +155,11 @@ struct AppRootView: View {
             notificationRouter.handle(route)
         }
         _notificationRouter = State(initialValue: notificationRouter)
+        let notificationCoordinator = ReminderNotificationCoordinator()
+        UNNotificationScheduler.configureSnoozeHandler { [notificationCoordinator] reminderID in
+            Task { await notificationCoordinator.snooze(reminderID: reminderID) }
+        }
+        _notificationCoordinator = State(initialValue: notificationCoordinator)
         // The rate store's refresh consults the same injected power state
         // (P6.8): configure it BEFORE the store is first touched (it is a lazy
         // static), so a -forceLowPower launch can reach the deferral.
@@ -307,13 +313,8 @@ struct AppRootView: View {
             pathMonitor.start()
             runPurgeIfNeeded()
             #if DEBUG
-            // PJ.5: `-replayNotificationResponse <identifier>` drives a
-            // notification tap without a real notification (L4 + screenshots).
-            // It goes through the SAME handle -> drive path as a real tap, so
-            // the replay cannot drift from the shipped behavior.
-            if let identifier = NotificationResponseReplay.identifier() {
-                notificationRouter.handle(NotificationRouteParser.resolve(identifier: identifier))
-            }
+            // PJ.5/RV.78: replay a tap/action via the delegate's own handle.
+            NotificationReplayDriver.driveIfRequested()
             #endif
             // RV.59: the automatic pass (config, sync, rates, outbox) is OWNED
             // by the `scenePhase == .active` transition below - launch

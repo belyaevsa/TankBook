@@ -233,6 +233,15 @@ the reminder's own live car first, never an archived one, so the app context - a
 which logs to the selected car - follows the reminder; a deleted reminder still lands on the plain
 list, hard rule 7. `docs/SCREENMAP.md` -> "Reminders across cars".)*
 
+*(RV.78: a fired reminder is actionable FROM THE BANNER, so snoozing beats ignoring at the red
+light. The banner's two actions are **Mark done** and **Push a week**
+(`design/screens/ReminderNotification.dc.html`): Mark done opens the app on the completion sheet
+rather than completing silently - declining the cost log is first-class but it stays the user's
+choice, exactly as the sheet below makes it - and Push a week defers by seven days and re-arms,
+needing no screen. Both route through the same lifecycle the Reminders screen uses, never a
+second implementation; what "a week" defers and how an odometer-only reminder behaves are written
+in `docs/NOTIFICATIONS.md` -> the actions.)*
+
 | Action | What happens | Notes |
 |---|---|---|
 | **Complete** | Sheet: "Done! Log the cost?" → one tap opens the service/expense entry pre-filled (category, title, today, current odometer); scan the invoice or type a lump sum. Then: "Next oil change in 15 000 km or Aug 2027" – the next cycle is already scheduled, anchored at *completion* (not the original due date, so schedules never drift) | Declining the cost log is first-class – completion never forces bookkeeping (.done without entry) |

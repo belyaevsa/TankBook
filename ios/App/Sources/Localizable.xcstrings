@@ -6524,6 +6524,23 @@
         }
       }
     },
+    "Mark done": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mark done"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отметить выполненным"
+          }
+        }
+      }
+    },
     "Merge": {
       "extractionState": "manual",
       "localizations": {
@@ -8118,6 +8135,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Покупка"
+          }
+        }
+      }
+    },
+    "Push a week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push a week"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Через неделю"
           }
         }
       }

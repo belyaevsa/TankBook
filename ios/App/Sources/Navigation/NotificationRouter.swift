@@ -44,16 +44,55 @@ final class NotificationRouter {
 }
 
 #if DEBUG
-/// The `-replayNotificationResponse <identifier>` launch hook (PJ.5): drives a
-/// notification tap without a real notification, so the L4 suites and the
-/// simctl-driven screenshots exercise the exact `didReceive` path - resolve
-/// through the same core mapping, forward through the same router. Compiled
-/// out of release builds: this cannot ship.
+/// The notification-response replay launch hooks (PJ.5 for the tap, RV.78 for
+/// the banner actions): drive a notification response without a real
+/// notification, so the L4 suites and the simctl-driven screenshots exercise
+/// the exact response path. Two shapes:
+///
+/// - `-replayNotificationResponse <identifier>` - a plain tap (the default
+///   action).
+/// - `-replayNotificationAction <complete|snooze> <identifier>` - one of the
+///   two banner actions.
+///
+/// The identifier is the request identifier the seeded reminder was scheduled
+/// under (`reminder.<id>.<kind>`); the action token is the `ReminderBannerAction`
+/// case name so a test never spells the platform string. Compiled out of
+/// release builds: this cannot ship.
 enum NotificationResponseReplay {
-    static func identifier(arguments: [String] = ProcessInfo.processInfo.arguments) -> String? {
-        guard let index = arguments.firstIndex(of: "-replayNotificationResponse"),
-              arguments.indices.contains(index + 1) else { return nil }
-        return arguments[index + 1]
+    struct Request {
+        var actionIdentifier: String?
+        var requestIdentifier: String
+    }
+
+    static func request(arguments: [String] = ProcessInfo.processInfo.arguments) -> Request? {
+        if let index = arguments.firstIndex(of: "-replayNotificationResponse"),
+           arguments.indices.contains(index + 1) {
+            return Request(actionIdentifier: nil, requestIdentifier: arguments[index + 1])
+        }
+        if let index = arguments.firstIndex(of: "-replayNotificationAction"),
+           arguments.indices.contains(index + 1),
+           arguments.indices.contains(index + 2) {
+            let token = arguments[index + 1]
+            let actionID = ReminderBannerAction(rawValue: token)
+                ?? ReminderBannerAction(rawValue: "reminder.action.\(token)")
+            return Request(actionIdentifier: actionID?.rawValue,
+                           requestIdentifier: arguments[index + 2])
+        }
+        return nil
+    }
+}
+
+/// Drives a replayed notification response (a tap, or a banner action) through
+/// the notification delegate's own `handle` at launch - the same decision path
+/// a real `didReceive` response takes - so the L4 replay cannot drift from the
+/// shipped behavior. Kept out of `TabRoots` so a DEBUG hook costs the launch
+/// path one call.
+enum NotificationReplayDriver {
+    @MainActor
+    static func driveIfRequested(arguments: [String] = ProcessInfo.processInfo.arguments) {
+        guard let replay = NotificationResponseReplay.request(arguments: arguments) else { return }
+        UNNotificationScheduler.replayForTests(actionIdentifier: replay.actionIdentifier,
+                                               requestIdentifier: replay.requestIdentifier)
     }
 }
 #endif
