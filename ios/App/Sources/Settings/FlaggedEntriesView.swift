@@ -17,6 +17,7 @@ import TankbookCore
 /// two cars tells the user nothing about WHERE the problem is (RV.66). The car
 /// name is the first thing the row says.
 struct FlaggedEntriesView: View {
+    @Environment(AppToastCenter.self) private var toastCenter
     @State private var rows: [Row] = []
     @State private var didLoad = false
 
@@ -70,6 +71,24 @@ struct FlaggedEntriesView: View {
         }
         .background(Theme.Palette.midnight)
         .task { await load() }
+        // RV.72: this list is a resolution surface (hard rule 8) - the row a
+        // user fixes in Edit entry must leave the list when they come back. A
+        // save bumps the toast-center revision (Edit entry, Inbox, Recently
+        // deleted - every place that resolves or retires an entry), exactly as
+        // Home/Trends/Garage reload on it; the .task one-shot cannot see that
+        // pop-back because the pushed destination stays alive in the stack.
+        .onChange(of: toastCenter.revision) { _, _ in
+            Task { await reload() }
+        }
+        #if DEBUG
+        // RV.72 test seam: resolves one flagged entry and bumps the revision
+        // WHILE THE LIST STAYS ON SCREEN - the case the pop-back test cannot
+        // reach, because a pop-back also fires `.onAppear` and would pass
+        // against an appear-only reload. Found by the orchestrator's mutation:
+        // swapping the revision observation for `.onAppear` left the suite
+        // green, so the reason this fix is the right one was untested.
+        .task { await FlaggedEntriesTestSeed.resolveOneInPlaceIfRequested(toastCenter) }
+        #endif
     }
 
     private var emptyState: some View {
@@ -95,6 +114,12 @@ struct FlaggedEntriesView: View {
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
+        await reload()
+    }
+
+    /// The query, unguarded - called on the first appearance by `load()` and on
+    /// every revision bump since (RV.72). Account-wide, live rows only.
+    private func reload() async {
         do {
             let repository = try AppStore.repository()
             let stations = try repository.liveStations()

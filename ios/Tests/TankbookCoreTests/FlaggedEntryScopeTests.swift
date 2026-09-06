@@ -125,4 +125,43 @@ struct FlaggedEntryScopeTests {
         #expect(try repository.flaggedEntryCount() == 0,
                 "a deleted entry must leave the derived count - nothing ghost-counts")
     }
+
+    /// RV.72: the flagged list is a resolution surface (hard rule 8) - a user
+    /// fixes an entry in Edit entry, and that fix must retire the row when the
+    /// screen re-reads. The FIX clears the stored conflict exactly as an
+    /// edit-save writes it (the validator's `.none` verdict replaces the old
+    /// flag). The count and every live row are derived from what the reload
+    /// re-reads, so this is the data-layer contract behind the screen's refresh:
+    /// once `.none` is stored, the account-wide count returns to zero and no
+    /// live row still carries the flag. The L4 test proves the SCREEN re-reads
+    /// on the way back from Edit entry; this pins that the re-read has
+    /// something new to see.
+    @Test("an edited-away flag leaves the account-wide count and every live row")
+    func resolvedFlagLeavesTheCountAndLiveRows() throws {
+        let repository = try makeRepository()
+        let car = makeVehicle(name: "Volvo V60")
+        try repository.upsertVehicle(car)
+        // An out-of-order pair: the newer fill at 87 500 km sits below the older
+        // one at 88 000, so the timeline genuinely violates CHECK 1.
+        try repository.upsertFillUp(makeFill(vehicleId: car.id, odometer: 88_000, daysAgo: 60))
+        let flagged = makeFill(vehicleId: car.id, odometer: 87_500, daysAgo: 2,
+                               conflict: flaggedOrder())
+        try repository.upsertFillUp(flagged)
+        #expect(try repository.flaggedEntryCount() == 1)
+
+        // The user's fix in Edit entry: the odometer is corrected to a value
+        // that fits the timeline, and the save writes the validator's `.none`
+        // verdict over the old flag (EditEntryView.saveFill -> buildUpdatedFill).
+        var fixed = flagged
+        fixed.odometer = 89_000
+        fixed.conflict = .none
+        try repository.upsertFillUp(fixed)
+
+        #expect(try repository.flaggedEntryCount() == 0,
+                "the fixed entry must leave the account-wide count")
+        let live = try repository.liveEntries(forVehicle: car.id)
+        #expect(live.allSatisfy { $0.conflict == .none },
+                "no live row may still carry the old flag after the fix")
+        #expect(live.count == 2, "the fix replaces the entry, never deletes it")
+    }
 }
