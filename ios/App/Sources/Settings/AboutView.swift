@@ -50,7 +50,13 @@ struct AboutView: View {
             // OB.4: the diagnostics row and its consent, plus the DEBUG/test
             // seams that seed data and drive the screenshot preview.
             if diagnosticsModel == nil {
+                // The seed is DEBUG-only (it writes fixture data); the model is
+                // production. Guarding the call is what keeps a Release build
+                // compiling - RV.78 caught this the only way it can be caught,
+                // by building Release, which the per-task gate does not.
+                #if DEBUG
                 DiagnosticsTestSeed.seedIfRequested()
+                #endif
                 diagnosticsModel = DiagnosticsService.makeModel()
             }
             presentDiagnosticsPreviewIfRequested()
