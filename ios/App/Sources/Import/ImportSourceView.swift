@@ -13,6 +13,9 @@ struct ImportSourceView: View {
     let onChooseFile: () -> Void
     let onNotSupported: () -> Void
     let onBack: () -> Void
+    /// RV.93: the whole-export pick's "Continue with N files" (some of the pick
+    /// failed to parse - the failures are shown above; the survivors go on).
+    let onContinueBatch: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -29,6 +32,7 @@ struct ImportSourceView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         titleBlock
                         formatList
+                        batchFailureCards
                         notYetBlock
                         notSupportedCard
                     }
@@ -323,6 +327,149 @@ struct ImportSourceView: View {
     /// which is how RU (20-30% longer text) pushed the dead-end card's action
     /// below the fold and dropped it from the screen. `.transportUnreachable`
     /// renders NO card - the standing notice IS its surface - so it stays.
+}
+
+// MARK: - The "How to export" link and the inconsistent-dates card (RV.85)
+
+extension ImportSourceView {
+    /// The shared "How to export" link into the source app's guide page
+    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
+    fileprivate func helpLink(_ url: URL, identifier: String) -> some View {
+        Link(destination: url) {
+            HStack(spacing: 6) {
+                Image(systemName: "questionmark.circle")
+                    .font(.caption)
+                Text("How to export")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(Theme.Palette.action)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
+    /// The mixed-date-order file's own card (RV.85). Lives in an extension so
+    /// `parseErrorCard`'s switch and this struct stay under the lint ceilings.
+    fileprivate var inconsistentDatesCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("This file mixes two date formats.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Some dates only read one way, others the other way.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+            Text("Fix the dates in the export, then pick the file again.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .formCard()
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.bottom, 10)
+        .accessibilityIdentifier("importInconsistentDatesCard")
+    }
+
+    /// The whole-export pick's per-file failures (RV.93, hard rule 7): each
+    /// card names its file, says what happened, and the bar below offers the
+    /// next step - continue with the files that parsed, or pick again when none
+    /// did. One bad file never hides the rest. In an extension so the source
+    /// picker's struct stays under the lint ceilings.
+    @ViewBuilder
+    private var batchFailureCards: some View {
+        if !model.fileFailures.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Text(L10n.someFilesFailed(model.fileFailures.count))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.warn)
+                    .accessibilityIdentifier("importBatchFailuresTitle")
+                ForEach(model.fileFailures) { failure in
+                    batchFailureCard(failure)
+                }
+            }
+            .padding(.bottom, 14)
+        }
+    }
+
+    private func batchFailureCard(_ failure: ImportFileFailure) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(verbatim: failure.fileName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Palette.ink)
+                .lineLimit(2)
+            failureMessage(failure.failure)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(Theme.Palette.dash.opacity(0.5))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.Radius.card)
+                .stroke(Theme.Palette.warn.opacity(0.6), lineWidth: 1)
+        )
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("importBatchFailure-\(failure.fileName)")
+    }
+
+    /// The per-file failure's message and its next step (hard rule 7), reusing
+    /// the single-file cards' copy so one failure means one set of words.
+    @ViewBuilder
+    private func failureMessage(_ failure: ImportFlowModel.ParseFailure) -> some View {
+        switch failure {
+        case .couldNotRead:
+            Text("We couldn't read that file.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("It may still be downloading from iCloud Drive. In Files, open it once, then pick it again.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+        case .doesNotMatchDeclared(let displayName):
+            Text(L10n.doesNotLookLike(displayName: displayName))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Pick another app from the list, or send us the file.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        case .inconsistentDates:
+            Text("This file mixes two date formats.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Fix the dates in the export, then pick the file again.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        case .oversize:
+            Text("That file is larger than 8 MB – try a smaller export.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+        case .unrecognisedFormat:
+            Text("We don't recognise that format.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+        case .server:
+            Text("The server couldn't read the file right now – try again.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+        case .transportUnreachable:
+            Text("This file needs a connection to be read.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Check your connection, then pick the files again.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        case .unknown:
+            Text("We read the file, but couldn't process it.")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Try it again, or send us the file.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        }
+    }
     private var showsParseErrorCard: Bool {
         guard let failure = model.parseFailure else { return false }
         if case .transportUnreachable = failure { return false }
@@ -358,40 +505,57 @@ struct ImportSourceView: View {
             if let failure = model.parseFailure {
                 parseErrorCard(failure)
             }
-            ImportPrimaryBar(action: onChooseFile,
-                             enabled: model.pickedFormat != nil && !model.isParsing) {
-                if model.isParsing {
-                    // PR.6b: a spinner with no text tells the user nothing
-                    // about what is happening - the parse state is legible on
-                    // the bar itself, never only through the Cancel.
-                    HStack(spacing: 10) {
-                        ProgressView().tint(Theme.Palette.inkSoft)
-                        Text("Reading file…")
-                    }
-                } else {
-                    Text("Choose file")
+            if model.batchHasFailures {
+                // RV.93: part of the whole-export pick failed. The failures are
+                // named on the cards above; the survivors are one tap away - the
+                // run continues, nothing was written (hard rule 7).
+                ImportPrimaryBar(action: onContinueBatch,
+                                 enabled: !model.isParsing) {
+                    Text(L10n.continueWithFiles(model.parseFiles.count))
                 }
-            }
-            .accessibilityIdentifier("importChooseFileButton")
-            .padding(.bottom, 12)
-            .padding(.top, 6)
-            if model.isParsing {
-                // PR.6: the parse is the one part of import that needs the
-                // connection (hard rule 9's exception), and it can sit on a
-                // half-connected radio for the upload budget. The user must be
-                // able to stop it (hard rule 7 - the next step exists).
-                // PR.6b: the Cancel's visibility is asserted by frame, not by
-                // existence - `isHittable` does not model occlusion.
-                Button {
-                    model.cancelParse()
-                } label: {
-                    Text("Cancel")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("importCancelButton")
+                .accessibilityIdentifier("importContinueBatchButton")
                 .padding(.bottom, 12)
+                .padding(.top, 6)
+                Text("Nothing has been saved yet. Cancel leaves your garage untouched.")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .padding(.bottom, 12)
+            } else {
+                ImportPrimaryBar(action: onChooseFile,
+                                 enabled: model.pickedFormat != nil && !model.isParsing) {
+                    if model.isParsing {
+                        // PR.6b: a spinner with no text tells the user nothing
+                        // about what is happening - the parse state is legible on
+                        // the bar itself, never only through the Cancel.
+                        HStack(spacing: 10) {
+                            ProgressView().tint(Theme.Palette.inkSoft)
+                            Text("Reading file…")
+                        }
+                    } else {
+                        Text("Choose file")
+                    }
+                }
+                .accessibilityIdentifier("importChooseFileButton")
+                .padding(.bottom, 12)
+                .padding(.top, 6)
+                if model.isParsing {
+                    // PR.6: the parse is the one part of import that needs the
+                    // connection (hard rule 9's exception), and it can sit on a
+                    // half-connected radio for the upload budget. The user must be
+                    // able to stop it (hard rule 7 - the next step exists).
+                    // PR.6b: the Cancel's visibility is asserted by frame, not by
+                    // existence - `isHittable` does not model occlusion.
+                    Button {
+                        model.cancelParse()
+                    } label: {
+                        Text("Cancel")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("importCancelButton")
+                    .padding(.bottom, 12)
+                }
             }
         }
     }
@@ -489,50 +653,5 @@ struct ImportSourceView: View {
         .padding(.horizontal, Theme.Spacing.screenMargin)
         .padding(.bottom, 10)
     }
-}
 
-// MARK: - The "How to export" link and the inconsistent-dates card (RV.85)
-
-extension ImportSourceView {
-    /// The shared "How to export" link into the source app's guide page
-    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
-    fileprivate func helpLink(_ url: URL, identifier: String) -> some View {
-        Link(destination: url) {
-            HStack(spacing: 6) {
-                Image(systemName: "questionmark.circle")
-                    .font(.caption)
-                Text("How to export")
-                    .font(.caption.weight(.semibold))
-            }
-            .foregroundStyle(Theme.Palette.action)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
-        }
-        .accessibilityIdentifier(identifier)
-    }
-
-    /// The mixed-date-order file's own card (RV.85). Lives in an extension so
-    /// `parseErrorCard`'s switch and this struct stay under the lint ceilings.
-    fileprivate var inconsistentDatesCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("This file mixes two date formats.")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.warn)
-            Text("Some dates only read one way, others the other way.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .lineSpacing(1.4)
-            Text("Fix the dates in the export, then pick the file again.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .lineSpacing(1.4)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .formCard()
-        .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.bottom, 10)
-        .accessibilityIdentifier("importInconsistentDatesCard")
-    }
 }

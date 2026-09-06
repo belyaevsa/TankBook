@@ -25,7 +25,9 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportResolvedDates")
             || arguments.contains("-seedImportService")
             || arguments.contains("-seedImportCars")
-            || arguments.contains("-seedImportCarsDecided") else { return }
+            || arguments.contains("-seedImportCarsDecided")
+            || arguments.contains("-seedImportBatch")
+            || arguments.contains("-seedImportBatchAnomaly") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
             try? repository.upsertVehicle(HomeTestSeed.makeVehicle())
@@ -82,6 +84,14 @@ enum ImportTestSeed {
             model.installSeededCarsParse(resourceName: "import-parse-mfm-cars",
                                          fileName: "MyFuelManager_2026-08.csv",
                                          rawFileResource: "import-mfm-cars")
+        } else if arguments.contains("-seedImportBatch") {
+            // RV.93: a whole-export pick of two files (fuel + costs) whose
+            // merged mapping must ask ONCE per distinct car and land both kinds.
+            model.installSeededBatchParse()
+        } else if arguments.contains("-seedImportBatchAnomaly") {
+            // RV.93: a two-file pick whose same-car rows contradict ACROSS the
+            // files - only a merged single timeline flags it before the write.
+            model.installSeededBatchAnomalyParse()
         } else if arguments.contains("-seedImportTimeline") {
             model.installSeededTimelineParse()
             model.showReview()

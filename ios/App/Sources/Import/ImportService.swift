@@ -58,6 +58,40 @@ struct ImportCarRow: Identifiable, Equatable {
     var destinationVehicleID: UUID? { destinationVehicle?.id }
 }
 
+/// RV.93: one successfully-parsed file of a whole-export pick. The batch holds
+/// one of these per file that parsed; the wizard's merged view (`ImportBatchMerge`)
+/// re-keys their rows into one space and unions their cars, but the per-file
+/// parse is kept so the stored server parse can be deleted on cancel/confirm.
+struct ImportParseFile {
+    let fileName: String
+    let rawData: Data
+    let parse: ImportParseResponse
+}
+
+/// RV.93: a staged, already-read pick waiting to be uploaded. The bytes are in
+/// the app's own container (RV.73), read under the pick's scope; this is what a
+/// whole-export pick hands to `beginBatchParse` - N uploads, N parse calls.
+struct ImportFileUpload {
+    let fileName: String
+    let data: Data
+}
+
+/// RV.93: one picked file that failed to parse, named with its own failure, so
+/// the source step can report it per file and the run survives the rest (hard
+/// rule 7). The successful files are unaffected - a failed file never kills the
+/// batch.
+struct ImportFileFailure: Identifiable {
+    let id: UUID
+    let fileName: String
+    let failure: ImportFlowModel.ParseFailure
+
+    init(fileName: String, failure: ImportFlowModel.ParseFailure) {
+        self.id = UUID()
+        self.fileName = fileName
+        self.failure = failure
+    }
+}
+
 /// One source car's file facts, derived from ITS OWN candidates (RV.86: the
 /// odometer span of one car is a real number; the span across five cars is the
 /// lie that shipped).

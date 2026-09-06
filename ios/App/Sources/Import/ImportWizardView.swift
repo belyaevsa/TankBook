@@ -59,27 +59,63 @@ struct ImportWizardView: View {
         }
         .fileImporter(isPresented: $showingFilePicker,
                       allowedContentTypes: [.commaSeparatedText, .plainText, .item],
-                      allowsMultipleSelection: false) { result in
-            guard case .success(let urls) = result, let url = urls.first,
+                      allowsMultipleSelection: true) { result in
+            guard case .success(let urls) = result, !urls.isEmpty,
                   let model else { return }
             // RV.73: a picked URL is security-scoped and the scope dies with
             // this handler, but the bytes are read later (the parse upload,
-            // the review). Copy the pick into the app container UNDER the
-            // scope first; `stage` releases the scope on every path and logs a
-            // read failure's type/code (never the path or name). If the copy
-            // fails, the file could not be read at all - that is the
+            // the review). Each pick is copied into the app container UNDER
+            // the scope first; `stage` releases the scope on every path and
+            // logs a read failure's type/code (never the path or name). If the
+            // copy fails, the file could not be read at all - that is the
             // read-failure state, NOT a parse rejection.
+            // RV.93: `allowsMultipleSelection: true` - a whole-export pick is
+            // several files. Each is staged under its OWN scope and parsed as
+            // its own `/import/parse` call; one file must keep working exactly
+            // as it did, so a single pick still runs the single-file path.
             let stager = ImportService.makePickedFileStager()
             let preferred = carSelection.selectedVehicle((try? model.repository.liveVehicles()) ?? [])?.id
-            switch stager.stage(url, log: AppLog.shared) {
-            case .staged(let copy):
-                model.parse(fileURL: copy, preferredVehicleID: preferred)
-                // parse() reads the copy synchronously before starting the
-                // upload, so the staged file has served its purpose (it holds
-                // user data and must not outlive its use).
-                stager.dispose(copy)
-            case .readFailed:
+            model.preparePick()
+            var staged: [URL] = []
+            var readFailedNames: [String] = []
+            for url in urls {
+                switch stager.stage(url, log: AppLog.shared) {
+                case .staged(let copy):
+                    staged.append(copy)
+                case .readFailed:
+                    readFailedNames.append(url.lastPathComponent)
+                }
+            }
+            if readFailedNames.isEmpty, staged.count == 1 {
+                // The single-file path, byte-for-byte today's flow. parse() reads
+                // the copy synchronously before starting the upload, so the
+                // staged file has served its purpose once it returns.
+                model.parse(fileURL: staged[0], preferredVehicleID: preferred)
+                stager.dispose(staged[0])
+            } else if staged.isEmpty {
+                // Nothing could be read at all - the single read-failure state,
+                // exactly as a single unreadable pick renders it.
                 model.reportPickedFileCouldNotBeRead()
+            } else {
+                // A whole-export pick (several files, or a mixed pick where some
+                // could not be read): read every staged copy now, dispose it (its
+                // bytes live in the uploads), then parse each as its own
+                // `/import/parse` call. A per-file failure joins `fileFailures`
+                // and the run survives the rest (hard rule 7).
+                var uploads: [ImportFileUpload] = []
+                for copy in staged {
+                    if let data = try? Data(contentsOf: copy) {
+                        uploads.append(ImportFileUpload(fileName: copy.lastPathComponent,
+                                                        data: data))
+                    } else {
+                        readFailedNames.append(copy.lastPathComponent)
+                    }
+                    stager.dispose(copy)
+                }
+                for name in readFailedNames {
+                    model.reportBatchReadFailure(fileName: name)
+                }
+                model.beginBatchParse(uploads: uploads, preferredVehicleID: preferred)
             }
         }
         .sheet(isPresented: $showingCarPicker) {
@@ -98,7 +134,8 @@ struct ImportWizardView: View {
                 model: model,
                 onChooseFile: { showingFilePicker = true },
                 onNotSupported: { showingNotSupported = true },
-                onBack: { dismiss() })
+                onBack: { dismiss() },
+                onContinueBatch: { model.continueAfterBatchFailures() })
         case .cars:
             // RV.86: a file holding several source cars lands here - the mapping
             // gate. Its Continue bar performs the SAME one write as the preview's.

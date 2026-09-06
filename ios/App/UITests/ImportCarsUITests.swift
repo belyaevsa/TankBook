@@ -155,4 +155,106 @@ extension ImportUITests {
         XCTAssertTrue(app.staticTexts["Landing in 2 cars."].exists,
                       "the gate summary names the two destination cars")
     }
+
+    /// RV.93 - same-car rows from DIFFERENT files are ONE timeline at the
+    /// review gate: a second file's fill (4/27 @ 107500) above the first
+    /// file's 5/3 fill (107292) must be flagged "Breaks the timeline" BEFORE
+    /// anything is written. Classifying each file alone - the RV.93 defect -
+    /// sees two internally-monotonic files and misses it entirely.
+    func testWholeExportCrossFileContradictionIsFlaggedBeforeTheWrite() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportBatchAnomaly"])
+        XCTAssertTrue(app.otherElements["importCarsScreen"].waitForExistence(timeout: 10),
+                      "the two-file pick reaches the mapping gate")
+
+        // Map both source cars so the lanes classify (undecided lanes classify
+        // nothing).
+        let card0 = app.otherElements["importCarCard-0"]
+        let existingVolvo = card0.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "importCarExisting-0-")).firstMatch
+        XCTAssertTrue(existingVolvo.waitForExistence(timeout: 5))
+        existingVolvo.tap()
+        app.buttons["importCarNewCar-1"].tap()
+
+        // The cross-file contradiction must surface in the review list.
+        let reviewDoor = app.buttons["importCarsReviewRow"]
+        XCTAssertTrue(reviewDoor.waitForExistence(timeout: 8),
+                      "a cross-file order break must put a row behind the review door")
+        XCTAssertTrue(reviewDoor.isHittable)
+        reviewDoor.tap()
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Breaks the timeline"].waitForExistence(timeout: 5),
+                      "the merged timeline must flag the across-file fall before the write")
+    }
+
+    /// RV.93 - a whole-export pick of TWO files (fuel + costs) asks the car
+    /// mapping ONCE per distinct car - two cards, never three (the fuel file's
+    /// Volvo + AUDI and the costs file's Volvo would be three per-file
+    /// questions) - and the single commit lands BOTH kinds: the fuel fills on
+    /// the mapped cars AND the costs service as a ServiceRecord.
+    func testWholeExportPickMapsCarsOnceAndLandsBothKinds() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportBatch"])
+        XCTAssertTrue(app.otherElements["importCarsScreen"].waitForExistence(timeout: 10),
+                      "a two-file pick reaches the mapping gate")
+
+        // One mapping per DISTINCT source car: exactly two cards. A per-file
+        // mapping would render the Volvo twice (once from each file) - three
+        // cards - so the assertion is the count, not the names.
+        let cards = app.otherElements.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "importCarCard-"))
+        let deadline = Date().addingTimeInterval(8)
+        while cards.count != 2, Date() < deadline {
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+        XCTAssertEqual(cards.count, 2,
+                       "two files sharing the Volvo must ask TWO questions, never three")
+        XCTAssertFalse(app.otherElements["importCarCard-2"].exists,
+                       "no third mapping card may appear")
+
+        // Map the Volvo into the existing garage car, the AUDI into a new car.
+        let card0 = app.otherElements["importCarCard-0"]
+        let existingVolvo = card0.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "importCarExisting-0-")).firstMatch
+        XCTAssertTrue(existingVolvo.waitForExistence(timeout: 5),
+                      "the garage car is offered for the Volvo")
+        existingVolvo.tap()
+        app.buttons["importCarNewCar-1"].tap()
+
+        // The costs file's service row is one row needing a look (PJ.9): it is
+        // offered as the service it is and lands as one unless left out, so
+        // Done keeps it.
+        let reviewDoor = app.buttons["importCarsReviewRow"]
+        XCTAssertTrue(reviewDoor.waitForExistence(timeout: 5),
+                      "the costs service is one row needing a look")
+        reviewDoor.tap()
+        XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Import as service"].waitForExistence(timeout: 5),
+                      "the service row offers the import-as-service action")
+        app.buttons["importReviewDoneButton"].tap()
+
+        XCTAssertTrue(app.otherElements["importCarsScreen"].waitForExistence(timeout: 5))
+        let continueButton = app.buttons["importCarsConfirmButton"]
+        XCTAssertTrue(continueButton.isEnabled,
+                      "mapping both cars and keeping the service enables the one write")
+        continueButton.tap()
+
+        // Both kinds land. The seeded existing car's log must show the imported
+        // Service row (the exact surface PJ.9's single-file test asserts); it is
+        // dated April, older than the imported August fills, so scroll the log
+        // down to it. Then the garage holds the new AUDI car beside the Volvo.
+        let service = app.staticTexts["Service"]
+        let logDeadline = Date().addingTimeInterval(15)
+        while !service.exists, Date() < logDeadline {
+            app.swipeUp()
+        }
+        XCTAssertTrue(service.exists,
+                      "the costs service lands as a ServiceRecord in the log")
+        openGarage(app)
+        waitForLiveCarRowCount(2, in: app)
+        let rows = liveCarRows(app)
+        XCTAssertTrue(rows.matching(
+            NSPredicate(format: "label CONTAINS %@", "AUDI A4")).firstMatch.exists,
+            "the AUDI mapped to a new car is in the garage")
+    }
 }

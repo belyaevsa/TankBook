@@ -32,24 +32,29 @@ extension ImportFlowModel {
     /// answered (PJ.10).
     var canConfirm: Bool { parse?.canCommit(dateFormatAnswer: dateFormatAnswer) ?? false }
 
-    /// Answers the `dateFormat` question, once per file. Choosing the flip
-    /// reading re-dates the ambiguous candidates (month and day swap); the
-    /// M/D reading is already what the wire carries. Either way the preview and
-    /// the review list rebuild against the corrected dates, so the number the
-    /// user approves is the number that lands (F6a).
+    /// Answers the `dateFormat` question, once per export (RV.93: the whole
+    /// batch shares one exporter, so one answer governs it; a file that PROVED
+    /// its dates never flips - the per-file flip happens inside the merge).
+    /// Choosing the flip reading re-dates the ambiguous candidates (month and
+    /// day swap); the M/D reading is already what the wire carries. Either way
+    /// the merged parse, the preview and the review list rebuild, so the number
+    /// the user approves is the number that lands (F6a).
     func answerDateFormat(_ option: String) {
         guard let ambiguity = dateFormatAmbiguity,
               ambiguity.options.contains(option) else { return }
         dateFormatAnswer = option
+        syncMergedParse()
         rebuildClassification()
     }
 
-    /// The candidates with the chosen date reading applied: the wire's M/D set
-    /// as-is, or the D/M flip when the user answered with `options[1]`. The
-    /// pristine parse is never mutated, so re-answering stays correct.
+    /// The candidates with the chosen date reading applied. The merged parse is
+    /// ALREADY the answer applied - `ImportBatchMerge` re-dates per file that
+    /// needs it, and re-dating the merged list again would double-flip an
+    /// ambiguous file and corrupt a file that proved its dates (RV.85). So this
+    /// is simply the merged candidates; the pristine per-file parses are never
+    /// mutated, so re-answering stays correct.
     var effectiveCandidates: [ImportCandidate] {
-        guard let parse else { return [] }
-        return ImportDateFormat.candidates(for: parse, answer: dateFormatAnswer)
+        parse?.candidates ?? []
     }
 
     /// The `outOfScope` message the preview surfaces, if the server reported
@@ -203,17 +208,30 @@ extension ImportFlowModel {
 
     // MARK: - Cancel (F6a: nothing is written, and the stored parse is deleted)
 
-    /// Cancel deletes the stored parse (`DELETE /v1/import/{id}`) and writes
-    /// nothing. The garage is untouched.
+    /// Cancel deletes every stored parse of the pick (`DELETE /v1/import/{id}`
+    /// per file - a batch stored N parses, RV.93) and writes nothing. The
+    /// garage is untouched.
     func cancelImport() async {
-        if let importId = parse?.importId {
-            try? await client.deleteParse(importId: importId)
-        }
+        await deleteStoredParses()
         resetFlow()
     }
 
+    /// Drops the server-side parse storage for every successfully-parsed file
+    /// (each file was its own `POST /v1/import/parse` - hard rule 9's per-file
+    /// pure function - so each has its own stored parse to delete). Best effort:
+    /// `DELETE` is idempotent and a failure here is server storage, not user
+    /// data on the device.
+    func deleteStoredParses() async {
+        for file in parseFiles {
+            try? await client.deleteParse(importId: file.parse.importId)
+        }
+    }
+
     func resetFlow() {
+        parseFiles = []
+        fileFailures = []
         parse = nil
+        mergedRawLines = [:]
         pickedFileName = nil
         uploadedFileData = nil
         reviewRows = []
@@ -229,27 +247,33 @@ extension ImportFlowModel {
 
     // MARK: - Confirm (the ONE write)
 
-    /// Writes the kept records and drops the stored parse. Returns whether the
+    /// Writes the kept records and drops the stored parses. Returns whether the
     /// repository write succeeded. This is the only mutation the whole flow
     /// performs - hard rule 8 has nothing to lose because nothing was staged.
     /// The commit is refused until every F6 question is answered (PJ.10): a
-    /// `dateFormat` question unanswered would write the file under the parser's
-    /// M/D guess. RV.86: a multi-car file's records already carry each lane's
-    /// destination vehicle (the per-lane classification stamped them), so this
-    /// one write lands every car in its own place; the only extra step is
+    /// `dateFormat` question unanswered would write the export under the
+    /// parser's M/D guess. RV.86: a multi-car file's records already carry each
+    /// lane's destination vehicle (the per-lane classification stamped them), so
+    /// this one write lands every car in its own place; the only extra step is
     /// creating the NEW cars the mapping chose, exactly as the single-car flow
-    /// creates its one new target.
+    /// creates its one new target. RV.93: a whole-export pick is still ONE write
+    /// - `commitImport` receives every file's records at once, so a half-imported
+    /// export can never become a state nothing can undo (F6a).
     @discardableResult
     func confirmImport() async -> Bool {
-        guard let parse else { return false }
+        guard parse != nil else { return false }
         guard canConfirm else { return false }
         let records = importRecords
         guard !records.isEmpty else {
-            try? await client.deleteParse(importId: parse.importId)
+            await deleteStoredParses()
             didConfirm = true
             return true
         }
         do {
+            // RV.93: the write order is vehicles first, entries second. Creating
+            // the NEW cars before `commitImport` is what lets one transaction
+            // land every file's entries on the cars the mapping chose; entries
+            // written before their vehicle existed could not reference it.
             if carPlan.isEmpty {
                 if let targetCar {
                     if case .new(let newCar) = targetCar {
@@ -269,7 +293,7 @@ extension ImportFlowModel {
                 }
             }
             try repository.commitImport(records, source: source)
-            try? await client.deleteParse(importId: parse.importId)
+            await deleteStoredParses()
             // RV.88: the rows land rate-pending (a foreign-currency file into a
             // different-currency car), and nothing else on this path resolves
             // them - drain them now, each at its OWN entry date. Re-planted
@@ -299,10 +323,14 @@ extension ImportFlowModel {
     /// car (byte-for-byte today's flow). A multi-car file classifies LANE BY
     /// LANE (`partitionByLanes`) - each source group against ITS destination
     /// vehicle and that car's own entries - so two cars can never corrupt each
-    /// other's odometers.
+    /// other's odometers. RV.93: the candidates and raw lines are the MERGED
+    /// view (`parse`/`mergedRawLines`, re-keyed into one global source-row
+    /// space), so a whole-export pick validates per lane exactly as one file
+    /// does - a service from costs.csv and the fills from fuel.csv that bracket
+    /// it are ONE timeline, never two validations that cannot see each other.
     func rebuildClassification() {
         guard let parse else { return }
-        let lines = ImportRawLines.dataLines(from: uploadedFileData)
+        let lines = mergedRawLines
         var candidates = effectiveCandidates
         // Fold the user's review-list edits in at the CANDIDATE level: the
         // partition then applies the SAME conversion and timeline validation to
@@ -393,11 +421,13 @@ extension ImportFlowModel {
         }
     }
 
-    /// The in-flight parse's body: reads the server response and advances the
-    /// wizard. Cancellation-aware - a user Cancel leaves `parseFailure` nil and
-    /// the wizard on the source step, with nothing written (F6a). RV.86: a
-    /// file holding several source cars lands on the `.cars` mapping step, a
-    /// single-car file on today's `.preview`.
+    /// The in-flight single-file parse's body: reads the server response and
+    /// advances the wizard. Cancellation-aware - a user Cancel leaves
+    /// `parseFailure` nil and the wizard on the source step, with nothing
+    /// written (F6a). RV.86: a file holding several source cars lands on the
+    /// `.cars` mapping step, a single-car file on today's `.preview`. RV.93: the
+    /// result joins the pick as a parsed file and the merged view re-derives,
+    /// so single-file and whole-export picks share one downstream path.
     func performParse(data: Data, fileName: String, format: ImportFormat,
                       preferredVehicleID: UUID?) async {
         defer {
@@ -409,9 +439,9 @@ extension ImportFlowModel {
                                                     fileName: fileName,
                                                     format: format)
             guard !Task.isCancelled else { return }
-            pickedFileName = fileName
-            uploadedFileData = data
-            parse = result
+            parseFiles = []
+            fileFailures = []
+            adoptSingleFile(fileName: fileName, rawData: data, parse: result)
             routeAfterParse(preferredVehicleID: preferredVehicleID)
             step = carPlan.isEmpty ? .preview : .cars
         } catch let error as ImportClientError {
@@ -428,5 +458,116 @@ extension ImportFlowModel {
             parseFailure = .unknown
             step = .source
         }
+    }
+
+    // MARK: - Whole-export pick (RV.93)
+
+    /// A fresh pick replaces the previous batch state: whatever the source step
+    /// was showing (a prior batch's per-file failures, an undecided preview) is
+    /// dropped before the new files stage. Nothing is written - this is the
+    /// same nothing-was-staged promise as `cancelParse`.
+    func preparePick() {
+        parseFiles = []
+        fileFailures = []
+        parse = nil
+        mergedRawLines = [:]
+        reviewRows = []
+        readyFills = []
+        skippedSourceRows = []
+        odometerEdits = [:]
+        totalEdits = [:]
+        carPlan = []
+        targetCar = nil
+        dateFormatAnswer = nil
+        parseFailure = nil
+        step = .source
+    }
+
+    /// Parses a whole-export pick of N files, one `POST /v1/import/parse` call
+    /// per file (the server stays a per-file pure function - hard rule 9). Each
+    /// upload is parsed independently; a file that fails is recorded per-file
+    /// (`fileFailures`) and the rest continue - one bad file never kills the
+    /// batch (hard rule 7: every failure names its file, and the successful
+    /// files survive it). When every file has been tried, the successful parses
+    /// become the merged whole-export view. A read failure (the bytes never got
+    /// into the container) is reported before this, via `reportBatchReadFailure`.
+    func beginBatchParse(uploads: [ImportFileUpload], preferredVehicleID: UUID?) {
+        guard let format = pickedFormat else { return }
+        guard !serverBackedPaused else { return }
+        guard !uploads.isEmpty else { return }
+        isParsing = true
+        parseFailure = nil
+        parseFiles = []
+        fileFailures = []
+        parse = nil
+        mergedRawLines = [:]
+        parseTask?.cancel()
+        parseTask = Task { [weak self] in
+            await self?.performBatchParse(uploads: uploads, format: format,
+                                          preferredVehicleID: preferredVehicleID)
+        }
+    }
+
+    /// A staged pick whose bytes could not be read (RV.73) joins the per-file
+    /// failures so a whole-export pick reports it by name and survives the rest
+    /// (hard rule 7) - the same honest card the single-file path shows, per file.
+    func reportBatchReadFailure(fileName: String) {
+        fileFailures.append(ImportFileFailure(fileName: fileName, failure: .couldNotRead))
+    }
+
+    /// The batch's body. Uploads each file in turn, appending the successful
+    /// parses and recording per-file failures.
+    func performBatchParse(uploads: [ImportFileUpload], format: ImportFormat,
+                           preferredVehicleID: UUID?) async {
+        defer {
+            isParsing = false
+            parseTask = nil
+        }
+        for upload in uploads {
+            if Task.isCancelled { return }
+            do {
+                let result = try await client.parseFile(data: upload.data,
+                                                        fileName: upload.fileName,
+                                                        format: format)
+                guard !Task.isCancelled else { return }
+                parseFiles.append(ImportParseFile(fileName: upload.fileName,
+                                                  rawData: upload.data,
+                                                  parse: result))
+            } catch let error as ImportClientError {
+                guard !Task.isCancelled else { return }
+                if case .cancelled = error { return }
+                fileFailures.append(ImportFileFailure(
+                    fileName: upload.fileName,
+                    failure: Self.failure(for: error, format: format)))
+            } catch {
+                guard !Task.isCancelled else { return }
+                fileFailures.append(ImportFileFailure(fileName: upload.fileName,
+                                                      failure: .unknown))
+            }
+        }
+        guard !Task.isCancelled else { return }
+        finishBatch(preferredVehicleID: preferredVehicleID)
+    }
+
+    /// Routes the wizard after a whole-export pick has been parsed. With no
+    /// failures the batch advances straight to the mapping/preview gate; with
+    /// per-file failures it stops at the source step, where every failure names
+    /// its file and its next step, and the bar offers to continue with the
+    /// files that did parse (hard rule 7 - the run survives).
+    func finishBatch(preferredVehicleID: UUID?) {
+        if parseFiles.isEmpty {
+            step = .source
+            return
+        }
+        syncMergedParse()
+        routeAfterParse(preferredVehicleID: preferredVehicleID)
+        step = fileFailures.isEmpty ? (carPlan.isEmpty ? .preview : .cars) : .source
+    }
+
+    /// "Continue with N files" - the source step's bar when part of the pick
+    /// failed: the successful files advance to the mapping/preview gate, and
+    /// the failed ones stay behind as the cards the user already saw.
+    func continueAfterBatchFailures() {
+        step = carPlan.isEmpty ? .preview : .cars
     }
 }

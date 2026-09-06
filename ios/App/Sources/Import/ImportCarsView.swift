@@ -54,7 +54,7 @@ struct ImportCarsView: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.4)
-            Text(L10n.fromFileNothingSaved(fileName: model.pickedFileName ?? ""))
+            Text(model.pickedFileSummary)
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.4)

@@ -71,9 +71,28 @@ final class ImportFlowModel {
     var pickedFormat: ImportFormat?
     var pickedFileName: String?
     var uploadedFileData: Data?
+    /// RV.93: the successfully-parsed files of the current pick. ONE for a
+    /// single-file pick (the flow stays byte-for-byte); several for a
+    /// whole-export pick, which is N separate `POST /v1/import/parse` calls -
+    /// the server stays a per-file pure function (hard rule 9) and the grouping
+    /// happens here, in `syncMergedParse`.
+    var parseFiles: [ImportParseFile] = []
+    /// RV.93: the picked files that failed to parse, each with its own failure.
+    /// A failed file names its next step and the run survives the rest (hard
+    /// rule 7) - the successful files above are committed together.
+    var fileFailures: [ImportFileFailure] = []
+    /// The merged parse (`parse`'s value) plus its raw lines under the SAME
+    /// global source rows, re-derived from `parseFiles` + `dateFormatAnswer` by
+    /// `syncMergedParse`. `parse` stays a stored var so the many readers of
+    /// today's single-file model read the merged view unchanged.
+    var mergedRawLines: [Int: String] = [:]
     var parse: ImportParseResponse?
     var isParsing = false
     var parseFailure: ParseFailure?
+    /// True while the source step holds a batch result that PARTLY failed:
+    /// successful files are waiting behind the per-file failure cards, and the
+    /// bar offers "Continue with N files" (the run survives - hard rule 7).
+    var batchHasFailures: Bool { !fileFailures.isEmpty && !parseFiles.isEmpty }
     /// The in-flight parse, so the user's Cancel can stop the upload (a wait the
     /// user cannot escape is the bug hard rule 7 exists to remove - PR.6).
     var parseTask: Task<Void, Never>?
@@ -143,8 +162,21 @@ final class ImportFlowModel {
     var confirmFailed = false
 
     /// The parse's source id (`mfm`, ...) - the provenance every committed row
-    /// carries (P5.4: `provenance = { tag: "import", source: <format> }`).
-    var source: String { pickedFormat?.id ?? parse?.format ?? "unknown" }
+    /// carries (P5.4: `provenance = { tag: "import", source: <format> }`). All
+    /// of a batch's files share the format (they come from one exporter).
+    var source: String {
+        parseFiles.first?.parse.format ?? pickedFormat?.id ?? parse?.format ?? "unknown"
+    }
+
+    /// The one source line the wizard shows ("from fuel.csv · nothing is saved
+    /// yet", or its whole-export form). Single file = the file's name, exactly
+    /// as before; a batch names its size (hard rule 10: full localised phrases).
+    var pickedFileSummary: String {
+        if let pickedFileName, parseFiles.count <= 1 {
+            return L10n.fromFileNothingSaved(fileName: pickedFileName)
+        }
+        return L10n.fromFilesNothingSaved(count: parseFiles.count)
+    }
 
     init(client: ImportClient, repository: TankbookRepository, configService: AppConfigService) {
         self.client = client
@@ -163,173 +195,6 @@ final class ImportFlowModel {
     /// Re-reads the garage (a test seed may have added a car after init).
     func reloadVehicles() {
         liveVehicles = (try? repository.liveVehicles()) ?? []
-    }
-
-    // MARK: - DEBUG/test seam
-
-    /// Installs a stub parse response directly (no file picker) so the UI tests
-    /// and screenshots drive the preview/review against a known fixture. The
-    /// parse bytes come from the same bundle resources the stub transport
-    /// serves; `rawFileResource` is the ORIGINAL file (the real CSV export) the
-    /// parse claims to have read, so the review list's "Original row" renders a
-    /// real source line instead of the wire envelope (P6.15c).
-    func installSeededParse(resourceName: String, fileName: String,
-                            rawFileResource: String? = nil) {
-        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "json"),
-              let data = try? Data(contentsOf: url) else { return }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        guard let result = try? decoder.decode(ImportParseResponse.self, from: data) else { return }
-        pickedFileName = fileName
-        if let rawFileResource,
-           let rawURL = Bundle.main.url(forResource: rawFileResource, withExtension: "csv"),
-           let rawData = try? Data(contentsOf: rawURL) {
-            uploadedFileData = rawData
-        } else {
-            uploadedFileData = data
-        }
-        parse = result
-        dateFormatAnswer = nil
-        ensureTargetCar(preferredVehicleID: nil)
-        rebuildClassification()
-    }
-
-    /// Installs a stub parse whose candidates mix fill-ups and a `serviceRecord`
-    /// row (PJ.9), so the UI tests and screenshots drive the non-fuel action and
-    /// the mixed commit against a known fixture without a server. The uploaded
-    /// file data is a real-looking MFM costs fragment so "Original row" renders
-    /// a source line.
-    func installSeededServiceParse() {
-        let money = ImportMoney(amount: "125.50", currency: "USD")
-        let item = ImportServiceItem(title: "Oil change", category: ImportCategoryTag(tag: "oil"),
-                                     cost: money)
-        let serviceCandidate = ImportCandidate(
-            entityType: "serviceRecord",
-            date: Date(timeIntervalSince1970: 1_752_307_200),  // 2026-07-20
-            odometer: 119_486, volumeL: nil, unitPrice: nil, money: money,
-            fuelKind: nil, isFull: nil, tankLevelAfterPct: nil, note: "Oil change",
-            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
-            sourceRow: 1, items: [item])
-        let fillCandidate = ImportCandidate(
-            entityType: "fillUp",
-            date: Date(timeIntervalSince1970: 1_752_393_600),  // 2026-07-21
-            odometer: 119_486, volumeL: 55, unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
-            fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100, note: "Neste",
-            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "mfm"),
-            sourceRow: 2)
-        parse = ImportParseResponse(
-            importId: "00000000-0000-4000-8000-000000000303", format: "mfm",
-            scope: "vehicle", candidates: [serviceCandidate, fillCandidate],
-            unparsed: [], ambiguities: [])
-        dateFormatAnswer = nil
-        pickedFileName = "MyFuelManager_costs_2026.csv"
-        uploadedFileData = Data("""
-        My Fuel Manager - Costs
-        Date;Category;Odometer;Total price;Currency;Note;Vehicle name
-        7/20/2026;Oil;119486;125.50;USD;Oil change;"Volvo"
-        """.utf8)
-        ensureTargetCar(preferredVehicleID: nil)
-        rebuildClassification()
-    }
-
-    /// Installs a stub parse whose fills break the odometer order (PJ.11): row
-    /// 2's `9` mirrors the real MFM defect (`Spike/ImportFixtures/mfm/README.md`)
-    /// and must appear in the review list badged "Breaks the timeline".
-    func installSeededTimelineParse() {
-        func fill(_ row: Int, _ date: Date, _ odo: Int, _ note: String) -> ImportCandidate {
-            ImportCandidate(
-                entityType: "fillUp", date: date, odometer: odo, volumeL: 55,
-                unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
-                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100, note: note,
-                vehicleName: "Volvo",
-                provenance: ImportProvenance(tag: "import", source: "mfm"),
-                sourceRow: row)
-        }
-        let fillCandidates = [
-            fill(1, Date(timeIntervalSince1970: 1_787_529_600), 121_727, "Neste"),
-            fill(2, Date(timeIntervalSince1970: 1_786_320_000), 9, "Shell"),
-            fill(3, Date(timeIntervalSince1970: 1_784_332_800), 120_559, "Circle K")
-        ]
-        parse = ImportParseResponse(
-            importId: "00000000-0000-4000-8000-000000000304", format: "mfm",
-            scope: "vehicle", candidates: fillCandidates,
-            unparsed: [], ambiguities: [])
-        dateFormatAnswer = nil
-        pickedFileName = "MyFuelManager_2026-08.csv"
-        uploadedFileData = Data("""
-        My Fuel Manager - Fuel
-        Date;Odometer;Fillup volume;Total price;Currency;Note;Vehicle name
-        8/24/2026;121727;55;101.75;USD;Neste;"Volvo"
-        8/10/2026;9;55;101.75;USD;Shell;"Volvo"
-        7/18/2026;120559;55;101.75;USD;Circle K;"Volvo"
-        """.utf8)
-        ensureTargetCar(preferredVehicleID: nil)
-        rebuildClassification()
-    }
-
-    /// RV.85: installs a stub parse for a DETECTABLE file - one whose own rows
-    /// prove D/M (12/01 and 13/05 only read day-first), so the post-fix server
-    /// resolves every date and returns NO `dateFormat` ambiguity. The preview
-    /// must not ask, and the dates it shows are the resolved readings: January
-    /// and May 2026, never the M/D misreading (which would read 12/01 as
-    /// December and could not read 13/05 at all).
-    func installSeededResolvedDatesParse() {
-        func fill(_ row: Int, _ date: Date, _ odo: Int) -> ImportCandidate {
-            ImportCandidate(
-                entityType: "fillUp", date: date, odometer: odo, volumeL: 55,
-                unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
-                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100,
-                note: nil, vehicleName: "Volvo",
-                provenance: ImportProvenance(tag: "import", source: "mfm"),
-                sourceRow: row)
-        }
-        parse = ImportParseResponse(
-            importId: "00000000-0000-4000-8000-000000000305", format: "mfm",
-            scope: "vehicle",
-            candidates: [
-                fill(1, Date(timeIntervalSince1970: 1_768_176_000), 100_000),  // 2026-01-12
-                fill(2, Date(timeIntervalSince1970: 1_778_630_400), 100_500),  // 2026-05-13
-            ],
-            unparsed: [], ambiguities: [])
-        dateFormatAnswer = nil
-        pickedFileName = "MyFuelManager_2026.csv"
-        uploadedFileData = Data("""
-        My Fuel Manager - Fuel
-        Date;Fillup volume;Odometer;Total price;Currency;Fuel;Tank status after fillup;%;Note;Vehicle name
-        12/01/2026;50;100000;92;USD;2;F;100;"";"Volvo"
-        13/05/2026;55;100500;101;USD;2;F;100;"";"Volvo"
-        """.utf8)
-        ensureTargetCar(preferredVehicleID: nil)
-        rebuildClassification()
-    }
-
-    // MARK: - Source step
-
-    /// RV.86: installs a stub MULTI-CAR parse (no file picker/server) so the UI
-    /// tests and screenshots drive the `.cars` mapping step against a known
-    /// fixture. Same discipline as `installSeededParse`: the raw CSV is the
-    /// ORIGINAL file the parse claims to have read, so "Original row" renders a
-    /// real source line. Routing goes through `routeAfterParse`, so the wizard
-    /// lands on the mapping step with every destination undecided.
-    func installSeededCarsParse(resourceName: String, fileName: String,
-                                rawFileResource: String?) {
-        guard let url = Bundle.main.url(forResource: resourceName, withExtension: "json"),
-              let data = try? Data(contentsOf: url) else { return }
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        guard let result = try? decoder.decode(ImportParseResponse.self, from: data) else { return }
-        pickedFileName = fileName
-        if let rawFileResource,
-           let rawURL = Bundle.main.url(forResource: rawFileResource, withExtension: "csv"),
-           let rawData = try? Data(contentsOf: rawURL) {
-            uploadedFileData = rawData
-        } else {
-            uploadedFileData = data
-        }
-        parse = result
-        dateFormatAnswer = nil
-        routeAfterParse(preferredVehicleID: nil)
-        step = .cars
     }
 
     // MARK: - Source step
@@ -377,7 +242,9 @@ final class ImportFlowModel {
     /// response into ready fills and review rows. The server commits nothing;
     /// neither does this. The parse runs in a tracked task so `cancelParse`
     /// can stop it (PR.6 - a half-connected radio must not freeze the wizard
-    /// for the full upload budget with no escape).
+    /// for the full upload budget with no escape). RV.93: this is the
+    /// SINGLE-file path, byte-for-byte today's flow - a whole-export pick of
+    /// several files goes through `beginBatchParse` instead.
     func parse(fileURL: URL, preferredVehicleID: UUID? = nil) {
         guard let format = pickedFormat else { return }
         guard !serverBackedPaused else { return } // P6.18b: parse is withheld under `.required`.
@@ -392,6 +259,10 @@ final class ImportFlowModel {
         }
         isParsing = true
         parseFailure = nil
+        parseFiles = []
+        fileFailures = []
+        parse = nil
+        mergedRawLines = [:]
         parseTask?.cancel()
         parseTask = Task { [weak self] in
             await self?.performParse(data: data,

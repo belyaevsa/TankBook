@@ -55,7 +55,7 @@ struct ImportPreviewView: View {
             Text("Here's what we read")
                 .font(.title2.weight(.bold))
                 .foregroundStyle(Theme.Palette.ink)
-            Text(L10n.fromFileNothingSaved(fileName: model.pickedFileName ?? ""))
+            Text(model.pickedFileSummary)
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
         }

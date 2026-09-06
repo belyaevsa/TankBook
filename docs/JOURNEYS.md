@@ -379,7 +379,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 ### F6 · Import file won't parse (J2's failure)
 **Trigger:** truncated export, exotic CSV dialect, an app version we haven't seen, wrong file shared entirely.
 
-- Partial parse is the goal: import what parses, then show "214 of 220 entries imported – 6 rows need a look," with the 6 raw rows listed for inline fix or skip. All-or-nothing imports are how switchers bounce.
+- Partial parse is the goal: import what parses, then show "214 of 220 entries imported – 6 rows need a look," with the 6 raw rows listed for inline fix or skip. All-or-nothing imports are how switchers bounce. **RV.93 (2026-09-07): this now also applies across files of one export** - a whole-export pick where one file fails to parse names the file and its next step, and the rest of the export continues (the run survives; hard rule 7).
 - Nothing parses at all → name the reason plainly ("this looks like a PDF report, not a data export – here's where the CSV export lives in Drivvo") and offer to send us the file (explicit consent) so the importer learns. **The "here's where the CSV export lives" step is the site's per-source guide (PJ.33)**: the import wizard's format row and its 422 / not-listed messages link to `tankbook.live/import-guide/` via the format's `helpUrl`, so a stuck switcher lands on a page that exists (hard rule 7). With only My Fuel Manager shipping, the guide covers that one source and says so - never implying the deferred importers (P5.4b).
 - ⚠ Never import with guessed units/currency: ambiguity pauses those rows for one question ("MPG or L/100km?"), asked once for the whole file.
 
@@ -407,6 +407,16 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
   is decided, and each car's odometers validated and committed against ITS OWN destination - two
   cars can never corrupt each other's timeline. A single-car file keeps this preview exactly as
   before, byte-for-byte.
+- **The journey now takes an export, not a file** (RV.93, 2026-09-07): a My Fuel Manager history
+  is six files (`fuel.csv`, `costs.csv`, `vehicles.csv`, `trips.csv`, `incomes.csv`,
+  `reminders.csv`), and the picker accepts several at once (`allowsMultipleSelection: true`, one
+  staged copy and one `POST /import/parse` call per file - the server stays a per-file pure
+  function). The **car mapping is asked once for the whole export**: the `Vehicle name` column is
+  identical across files, so one mapping answers for all of them, and the merged view validates
+  one car's rows from different files as **one timeline** (a costs service at 106 722 km sits
+  between fuel fills and must not flag). The write stays ONE `commitImport` - a half-imported
+  export can never become a state nothing can undo. A single-file pick keeps the pre-RV.93 flow
+  exactly as it was.
 - **Everything shown is adjustable here** - currency, units, the target car, and the individual
   rows that need a look (hard rule 13: editable at the moment it is offered). The F6 ambiguity
   question is answered in this screen, once per file.
