@@ -28,15 +28,12 @@ public enum TireMileage {
                                records: [ServiceRecord],
                                latestOdometer: Int?) -> Int? {
         // Only a record carrying `tireSetId` is a swap; a tombstoned record
-        // never belonged to the car's life. Order by (date, createdAt, id) - the
-        // same tiebreak the Log's union uses.
+        // never belonged to the car's life. Order by the shared chronological
+        // order (docs/SCHEMA.md, Entry -> ordering rule) - the same one the
+        // Log and the engines read, so two same-day swaps never flip.
         let swaps = records
             .filter { $0.deletedAt == nil && $0.tireSetId != nil }
-            .sorted { lhs, rhs in
-                if lhs.date != rhs.date { return lhs.date < rhs.date }
-                if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
-                return lhs.id.uuidString < rhs.id.uuidString
-            }
+            .sorted(by: EntryOrder.ascending)
 
         var total = 0
         var hasUsableSpan = false

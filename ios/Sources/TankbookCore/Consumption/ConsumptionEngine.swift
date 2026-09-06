@@ -287,13 +287,17 @@ public enum ConsumptionEngine {
         return result
     }
 
+    /// The one chronological order both the fill and charge engines read
+    /// (`EntryOrder`), so a recompute, the log list and the timeline validator
+    /// can never disagree about which same-day fill came first
+    /// (docs/SCHEMA.md, Entry -> ordering rule). Odometer ties (a splash fill -
+    /// two fills, one date, one reading) fall to creation order, which is
+    /// deterministic and never reorders history.
     private static func fillOrder(_ a: FillUp, _ b: FillUp) -> Bool {
-        if a.date != b.date { return a.date < b.date }
-        return a.id.uuidString < b.id.uuidString
+        EntryOrder.ascending(a, b)
     }
 
     private static func chargeOrder(_ a: ChargeSession, _ b: ChargeSession) -> Bool {
-        if a.date != b.date { return a.date < b.date }
-        return a.id.uuidString < b.id.uuidString
+        EntryOrder.ascending(a, b)
     }
 }

@@ -3,9 +3,12 @@ import Foundation
 /// The Log stream, derived (never stored - hard rule 2) from a vehicle and its
 /// entries. This is the decision layer the SwiftUI stream renders:
 ///
-/// - Entries ordered by `date` descending (`createdAt` as the tiebreak), the
-///   four entry types interleaved (docs/SCHEMA.md, Entry: "The Log renders
-///   their union ordered by date").
+/// - Entries ordered by `date` descending, ties broken by `EntryOrder` - the
+///   one chronological order the Log, the consumption engines and the timeline
+///   validator share (docs/SCHEMA.md, Entry -> ordering rule): same-day fills
+///   read by odometer, so a top-up and a full fill on one date never display
+///   backwards. The four entry types interleaved (docs/SCHEMA.md, Entry: "The
+///   Log renders their union ordered by date").
 /// - Calendar-month sections, newest first, each carrying the month's total
 ///   spend in the vehicle's home currency (docs/DESIGN.md: "Monthly dividers
 ///   carry the month's total spend in DIN"). A month's total sums every entry
@@ -178,10 +181,11 @@ public struct LogStream: Equatable, Sendable {
                 duplicateResolutions: Set<DuplicateDetector.PairKey> = []) {
         self.calendar = calendar
 
-        let sorted = entries.sorted { (lhs, rhs) in
-            if lhs.date != rhs.date { return lhs.date > rhs.date }
-            return lhs.createdAt > rhs.createdAt
-        }
+        // The one chronological order the Log, the consumption engines and the
+        // timeline validator share (docs/SCHEMA.md, Entry -> ordering rule):
+        // same-day fills read by odometer, so two fills on one date never
+        // display backwards and never reorder a recompute. Newest first.
+        let sorted = entries.sorted(by: EntryOrder.descending)
 
         // The S2 pair detection is the stream's decision layer too: an
         // unresolved duplicate pair renders as ONE combined card, and its
@@ -202,44 +206,48 @@ public struct LogStream: Equatable, Sendable {
                                       uniquingKeysWith: { $1 })
 
         var groupMembers: [UUID: [any Entry]] = [:]
-        var standalone: [any Entry] = []
         for entry in sorted {
             if let groupID = entry.purchaseGroupId {
                 groupMembers[groupID, default: []].append(entry)
-            } else {
-                standalone.append(entry)
             }
         }
 
-        let entryRows: [Row] = standalone.flatMap { entry in
+        // Rows are emitted in the same canonical order the entries were sorted
+        // into, so no later re-sort can scramble two same-day rows. A purchase
+        // group appears once, at the position of its NEWEST member (a receipt's
+        // other lines collapse into it); its excluded S2 member never renders.
+        var rows: [Row] = []
+        var emittedGroups = Set<UUID>()
+        for entry in sorted {
             if excludedIDs.contains(entry.id) {
                 // Represented by the combined card - never rendered twice.
-                return [Row]()
+                continue
+            }
+            if let groupID = entry.purchaseGroupId {
+                guard !emittedGroups.contains(groupID) else { continue }
+                emittedGroups.insert(groupID)
+                let members = groupMembers[groupID] ?? []
+                let logMembers = members
+                    .sorted(by: EntryOrder.descending)
+                    .map { LogEntry(vehicle: vehicle, entry: $0) }
+                let grandTotal = logMembers.reduce(Decimal.zero) { partial, member in
+                    partial + (member.money?.homeAmount ?? Decimal.zero)
+                }
+                rows.append(.group(LogGroup(id: groupID, members: logMembers,
+                                            grandTotal: grandTotal,
+                                            hasAttachment: logMembers.contains { $0.hasAttachment })))
+                continue
             }
             if let pair = pairByCountedID[entry.id],
                let countedEntry = logEntryByID[entry.id],
                let excludedEntry = logEntryByID[pair.excludedID] {
-                return [.duplicate(DuplicateGroup(counted: countedEntry,
-                                                  excluded: excludedEntry))]
+                rows.append(.duplicate(DuplicateGroup(counted: countedEntry,
+                                                      excluded: excludedEntry)))
+                continue
             }
-            return [.entry(LogEntry(vehicle: vehicle, entry: entry))]
-        }
-        let groupRows: [Row] = groupMembers.map { groupID, members in
-            let logMembers = members
-                .sorted { (lhs, rhs) in
-                    if lhs.date != rhs.date { return lhs.date > rhs.date }
-                    return lhs.createdAt > rhs.createdAt
-                }
-                .map { LogEntry(vehicle: vehicle, entry: $0) }
-            let grandTotal = logMembers.reduce(Decimal.zero) { partial, member in
-                partial + (member.money?.homeAmount ?? Decimal.zero)
-            }
-            return .group(LogGroup(id: groupID, members: logMembers,
-                                   grandTotal: grandTotal,
-                                   hasAttachment: logMembers.contains { $0.hasAttachment }))
+            rows.append(.entry(LogEntry(vehicle: vehicle, entry: entry)))
         }
 
-        let rows = (entryRows + groupRows).sorted { $0.date > $1.date }
         self.sections = Self.buildSections(rows: rows, calendar: calendar)
     }
 

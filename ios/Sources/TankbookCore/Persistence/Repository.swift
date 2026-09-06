@@ -249,7 +249,7 @@ extension TankbookRepository {
             let expenses: [any Entry] = try ExpenseRow.filter(predicate)
                 .order(Column("date"), Column("createdAt")).fetchAll(db).map(\.expense)
             return (fills + charges + services + expenses)
-                .sorted { ($0.date, $0.createdAt) < ($1.date, $1.createdAt) }
+                .sorted(by: EntryOrder.ascending)
         }
     }
 }

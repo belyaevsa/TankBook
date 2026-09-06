@@ -201,8 +201,10 @@ public enum TimelineValidator {
     }
 
     private static func entryOrder(_ a: any Entry, _ b: any Entry) -> Bool {
-        if a.date != b.date { return a.date < b.date }
-        if a.createdAt != b.createdAt { return a.createdAt < b.createdAt }
-        return a.id.uuidString < b.id.uuidString
+        // The one chronological order the validator, the engines and the log
+        // share (docs/SCHEMA.md, Entry -> ordering rule). Two same-day fills
+        // are ordered by odometer, so a pair the import wrote in arbitrary id
+        // order never looks like a falling odometer (RV.87).
+        EntryOrder.ascending(a, b)
     }
 }

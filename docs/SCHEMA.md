@@ -60,6 +60,8 @@ It is optional, never blocks saving a car (`ERRORS.md` → Add car: the implausi
 
 `FillUp`, `ChargeSession`, `ServiceRecord`, and `Expense` are distinct types sharing this envelope. The Log renders their union ordered by `date`.
 
+**Ordering rule for entries (one rule, all readers):** date ascending; when two entries share the same timestamp (a dateless import day – MFM exports carry a date and no time), the **odometer** is the only ordering fact either carries, so it orders them: the fill at 110 843 km is the day's first, the fill at 111 436 km the day's second. Equal timestamps AND equal odometers (two fills, same day, same reading – a splash fill) have no remaining ordering fact: they fall to creation order (`createdAt`, then `id`), which is **stable** – a recompute over the same stored data can never reorder history, and no time is invented to separate them (hard rule 13). Every consumer that orders entries in time reads this same rule: the consumption engines (`ConsumptionEngine`), the Log (`LogStream`), the timeline validator (`TimelineValidator`) and the repository's live union – implemented once as `EntryOrder` (`ios/Sources/TankbookCore/Domain/EntryOrder.swift`). Before this rule (RV.87) the same-day tie broke on `id.uuidString` – creation order, not travel order – so a later fill could sort first, the odometer appear to fall, and both entries be flagged.
+
 ```swift
 EntryCommon {
   id, createdAt, updatedAt, deletedAt
@@ -382,7 +384,8 @@ Devices fill this cache from the backend's public `/rates` endpoint (see Referen
 ## Validation (runs on every write)
 
 ```
-INVARIANT  For a vehicle's entries with odometer set, sorted by date: odometer strictly increases.
+INVARIANT  For a vehicle's entries with odometer set, sorted by date (same-day ties by odometer,
+           per the Entry ordering rule above): odometer strictly increases.
 CHECK 1    Order: odometer fits between date-neighbors. Violation → discrepancy UI.
 CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
