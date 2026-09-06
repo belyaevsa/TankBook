@@ -35,7 +35,7 @@ struct ImportSourceView: View {
                     .padding(.horizontal, Theme.Spacing.screenMargin)
                 }
             }
-            if !model.serverBackedPaused {
+            if !model.serverBackedPaused && !showsParseErrorCard {
                 offlineNotice
             }
         }
@@ -332,6 +332,23 @@ struct ImportSourceView: View {
         .padding(.top, 6)
     }
 
+    /// True when the bottom bar shows a parse-error card (RV.80). The standing
+    /// offline notice yields to it - the error names its own next step (hard
+    /// rule 7), and showing BOTH doubles the fixed chrome below the ScrollView,
+    /// which is how RU (20-30% longer text) pushed the dead-end card's action
+    /// below the fold and dropped it from the screen. `.transportUnreachable`
+    /// renders NO card - the standing notice IS its surface - so it stays.
+    private var showsParseErrorCard: Bool {
+        guard let failure = model.parseFailure else { return false }
+        if case .transportUnreachable = failure { return false }
+        return true
+    }
+
+    /// Offline is stated here, not discovered at tap time (docs/ERRORS.md ->
+    /// Import wizard): reading these files happens on our server - hard rule
+    /// 1's named exception, and the ONLY part of import that needs a
+    /// connection. It is the default bottom strip; a parse-error card (with
+    /// its own message and next step) takes its place while shown.
     private var offlineNotice: some View {
         HStack(alignment: .top, spacing: 8) {
             Image(systemName: "info.circle")
@@ -346,6 +363,7 @@ struct ImportSourceView: View {
         }
         .padding(.horizontal, Theme.Spacing.screenMargin)
         .padding(.vertical, 10)
+        .accessibilityIdentifier("importServerNotice")
     }
 
     // MARK: - Bottom bar

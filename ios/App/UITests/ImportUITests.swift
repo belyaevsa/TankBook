@@ -542,3 +542,94 @@ extension ImportUITests {
                        "an unreadable file must NOT render the RU parse-failure card")
     }
 }
+
+// MARK: - RV.80 the not-supported card's action line stays visible in RU
+
+/// The read-failure state photographs the defect (RV.73's screenshots): the
+/// bottom bar then holds BOTH the standing offline notice AND the parse-error
+/// card, so a RU picker - whose text runs 20-30% longer and wraps the header
+/// block onto more lines - ends ~35pt below the ScrollView fold. The
+/// notSupported card is the LAST scroll child, so the fold cut exactly its
+/// action line ("Send us the file", the dead end's next step, hard rule 7):
+/// present in the accessibility tree, laid out, but clipped from the screen.
+/// The tree never lost it - which is why a mere `exists` assertion is the
+/// vacuous trap this test exists to avoid. The assertion is that the RU action
+/// line is HITTABLE at rest - i.e. actually on the screen the user sees, not
+/// reachable only by a scroll nothing hints at.
+@MainActor
+extension ImportUITests {
+
+    func testNotSupportedCardActionLineIsVisibleInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportReadFailed"])
+        XCTAssertTrue(app.staticTexts["Не удалось прочитать файл."].waitForExistence(timeout: 10),
+                      "the RU read-failure card must render for an unreadable pick")
+        let action = app.staticTexts["Отправить файл"]
+        XCTAssertTrue(action.waitForExistence(timeout: 5),
+                      "the RU action line is localised ('Отправить файл', never the English key)")
+        let window = app.windows.firstMatch
+        XCTAssertTrue(action.frame.maxY <= window.frame.maxY,
+                      "the RU action line must sit inside the window, never clipped off-screen")
+        XCTAssertTrue(action.isHittable,
+                      "the RU action line must be visible at rest - below the ScrollView fold it "
+                      + "exists for the test but not for the user (the RV.80 defect)")
+    }
+
+    func testNotSupportedCardActionLineIsVisibleInEnglish() {
+        let app = launch(["-presentScreen", "importWizard",
+                          "-importStubFormats", "one", "-seedImportReadFailed"])
+        XCTAssertTrue(app.staticTexts["We couldn't read that file."].waitForExistence(timeout: 10),
+                      "the read-failure card must render for an unreadable pick")
+        let action = app.staticTexts["Send us the file"]
+        XCTAssertTrue(action.waitForExistence(timeout: 5),
+                      "the action line is labelled 'Send us the file'")
+        let window = app.windows.firstMatch
+        XCTAssertTrue(action.frame.maxY <= window.frame.maxY)
+        XCTAssertTrue(action.isHittable,
+                      "the EN action line must be visible at rest, exactly as the RU one is")
+    }
+}
+
+// MARK: - RV.80 residual: the notice yields only to a card that replaces it
+
+/// The RV.80 fix hides the standing server notice while a parse-error card is
+/// showing, because two next steps for one problem is the redundancy that
+/// overflowed the vertical budget and pushed the dead-end card's action line
+/// below the fold in RU.
+///
+/// **The carve-out is the load-bearing half and it was untested**: a
+/// `.transportUnreachable` failure renders NO card (`ImportSourceView` returns
+/// `EmptyView` for it), so the notice IS that state's only surface. Written by
+/// the orchestrator after a mutation that dropped the carve-out - leaving the
+/// offline state with nothing on screen at all - passed the whole suite.
+extension ImportUITests {
+    private func launchWizard(_ arguments: [String]) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-presentScreen", "importWizard"] + arguments
+        app.launch()
+        return app
+    }
+
+    func testTheServerNoticeSurvivesWhenNoCardReplacesIt() {
+        let app = launchWizard(["-importTransportOffline"])
+
+        let notice = app.staticTexts["importServerNotice"]
+        XCTAssertTrue(notice.waitForExistence(timeout: 10),
+                      "a transport failure renders no card, so the notice is the state's only "
+                      + "surface and must stay - hiding it leaves the screen saying nothing")
+    }
+
+    func testTheServerNoticeYieldsToACardThatDoesReplaceIt() {
+        let app = launchWizard(["-importStubFormats", "one", "-seedImportReadFailed"])
+
+        // The card is a VStack of Texts, so the identifier lands on whichever
+        // element type SwiftUI collapses it to - match on any descendant.
+        let card = app.descendants(matching: .any)["importReadFailedCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "the read-failure card is the state under test")
+        XCTAssertFalse(app.staticTexts["importServerNotice"].exists,
+                       "the card names its own next step, so the standing notice yields to it")
+    }
+}
+

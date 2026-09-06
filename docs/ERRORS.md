@@ -291,6 +291,12 @@ path. It never survives to the end of the wizard, it holds user data and must no
 and the Caches location is additionally evictable by the OS. `SECURITY.md`'s
 `completeUntilFirstUserAuthentication` class is applied to the copy on write.
 
+The source picker's standing offline strip ("Reading the file happens on our server…") **yields to a
+parse-error card** (RV.80): the error names its own next step, and showing both doubles the fixed
+chrome below the list - which pushed the dead-end card's action below the fold in RU, whose text runs
+20-30% longer. `.transportUnreachable` renders no card, so the standing strip is its surface and
+stays.
+
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 
 ### About & feedback
