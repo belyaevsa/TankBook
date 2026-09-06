@@ -1,12 +1,125 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-06. **The app is on TestFlight, the backend is deployed, and App Store review is
-under way.** Measured now: **iOS 1521 tests / 165 suites**, lint 0 and the localization gate 0 from
-the repo **ROOT**. The `OB` observability cluster is **complete** (all four rows), the **six-row
-reminders series is complete**, and the `RV` backlog now runs to **RV.89** - the newest nine came
-from the product owner using the app on their own data, which found more in an hour than the
-backlog had in a day. **`T.3` is still the only tracked v1 row that cannot be closed by a fix**: it
-needs two consecutive green full suites. Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-06 (late). **The app is on TestFlight, the backend is deployed, and App Store review
+is under way.** Measured now: **iOS 1537 tests / 169 suites**, **backend 398**, lint 0 and the
+localization gate 0 from the repo **ROOT**, and a **Release build 0**. The `OB` cluster and the
+six-row reminders series are complete. The `RV` backlog runs to **RV.92**, and the newest twelve came
+from the product owner using the app on their own data - a single real My Fuel Manager export found
+more in an hour than the backlog had in a day. **`T.3` is still the only tracked v1 row that cannot
+be closed by a fix.** Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+
+## The four things this session would tell its successor
+
+1. **A green suite is not a verified change.** Four screenshot-only defects, two mutations that
+   passed, one merge that would have silently deleted a shipped fix - none of it visible to a test
+   run. `docs/TESTING.md` -> "Which gates for which change" now names, per gate, what it has actually
+   caught and what it costs.
+2. **A mutation that passes is a finding.** Four did today. Each meant the test did not cover the
+   claim its row was written for, and each grew a test that now fails when the claim is broken.
+3. **Measure before attributing.** A stack overflow, two "regressions" and a red UI suite all turned
+   out to be something other than what they looked like - and the wrong answer was cheap to reach in
+   every case.
+4. **The product owner using the app beats any backlog.** RV.84-RV.90 exist because one real file
+   went through the real import.
+
+## What shipped on 2026-09-06
+
+`PR.12`/`OB.3`, `PR.11`/`OB.4` (the OB cluster is complete), `RV.73`, `RV.80`, `RV.72`, the reminders
+six (`RV.74`-`RV.79`), and then the import cluster the owner's file exposed: **`RV.90`** (a log line
+could crash the server), **`RV.88`** (imported money never converted), **`RV.86`** (import merged
+every car in the file into one).
+
+### The gate had a hole, and it shipped a Release break under my own verification
+
+`PR.11`/`OB.4` left `AboutView` calling the `#if DEBUG`-only `DiagnosticsTestSeed` **unguarded**.
+`swift build` and the ordinary `xcodebuild` gate compile **Debug**, where that type exists, so it
+passed every check, reached `main`, and broke the **Release** build. `RV.78` found it two rows later.
+Hard rule 14 and `docs/TESTING.md` now require a Release build for any task touching a DEBUG seam.
+
+**And the fix was left out of its own commit.** I verified Release green with the guard in the
+working tree, then built RV.78's explicit path list from the row's files and dropped
+`AboutView.swift` - so the commit claimed a fix it did not contain. **An explicit path list is right,
+but it is assembled by hand from the row, so a fix made while verifying SOMEONE ELSE'S row is exactly
+the one it drops.** Stage it the moment it is made.
+
+### Four mutations that passed, and what each was hiding
+
+- **`RV.73`**: releasing the security scope BEFORE the copy left every assertion green - the test
+  counted scope starts and stops without asserting they **framed** the copy. **A count is not a
+  sequence.**
+- **`RV.80`**: dropping the `.transportUnreachable` carve-out left the offline state with **nothing
+  on screen at all**, suite still green.
+- **`RV.88`**: "fall back to today's rate" made every row convert, the pending count reach zero and
+  the totals fill in - **all 1529 tests stayed green**. Hard rule 3's central promise (`rateDate` is
+  the entry date, never today) was documented and **unenforced**, because every existing test seeded
+  a rate FOR the entry's own day and so could never see a fallback.
+- **`RV.86`**: validating every lane against the union of all cars' entries - rows still landing in
+  the right vehicle, only the validation contaminated - left **1528 tests green**. The existing lane
+  tests pass an **empty** `existingEntriesByVehicle`, where the union and the per-car lookup are the
+  same empty list.
+
+**The shared shape: a fixture too clean to tell right from wrong.** A test whose fixture omits the
+state the rule is about cannot test the rule. Both new tests reproduce the owner's actual symptom -
+the RV.86 one flags a Volvo fill with `previousOdometer: 420000`, the Audi's.
+
+### Diagnosis: three times the obvious answer was wrong
+
+- **The redactor stack overflow (`RV.90`)** looked like `JsonNode.Parent` walking. I applied that
+  fix, rebuilt, **the crash survived**, and I reverted rather than leave an unproven fix in the diff.
+  Instrumenting with a depth trap named the real cycle in one run:
+  `RuntimeType -> StructLayoutAttribute -> RuntimeType`. **`Type.StructLayoutAttribute` returns an
+  attribute that points back at a type**, so one `Type`-valued property walks the runtime's own graph
+  forever. It crashed the process from a real `POST /v1/import/parse` **and** from the blob flow.
+- **Two backend tests failing in the RV.86 worktree** looked like a privacy regression in the row.
+  They still failed with `main`'s import files swapped in, and those four files were the entire
+  backend diff - so it is **environmental to worktrees** (`RV.92`), not the row.
+- **A red UI suite** looked like RV.88 breaking Home. The failing set **changed between runs**, the
+  suite reported "Executed 0 tests" beside its failures (kills, not assertions), and RV.88's own two
+  tests passed once the load dropped. A clean run on a quiet machine: 54/54.
+
+### The merge that would have deleted a shipped fix, greenly
+
+`RV.86` split `ImportFlowModel` into `+Wizard`/`+Cars` to stay under the lint ceiling, and `main` had
+`RV.88`'s `scheduleDrainAfterImport` **inside the block that moved**. Git offered "keep main's 350
+lines" or "take rv86's empty side" - and the second **silently deletes the only call site that makes
+imported money convert**. No test would have caught it: RV.88's tests are L1 over the service and
+never run the app-layer commit. Re-planted in its new home with a comment saying why it is there.
+
+**When a refactor moves a block, diff what the block CONTAINED, not just whether the merge resolved.**
+
+### What the owner's own file found
+
+`~/Downloads/myfuelmanager/fuel.csv`, 513 rows - and it has been the committed fixture
+(`Spike/ImportFixtures/mfm/fuel.csv`) since P5.4, so the parser was tested against a five-car export
+all along and nobody read the column. It produced `RV.85`-`RV.89`: the multi-car merge (**one defect
+behind three reported symptoms** - the 426 220 km Volvo is the Audi's odometer), money that never
+converted, a date-format question the file answers (215 ambiguous rows, file proves M/D), same-day
+fills ordered by `uuidString`, and a log with no year.
+
+### Agents pushing back, which is what makes "diagnose then flash" work
+
+- **`RV.86`'s first dispatch stopped and asked** rather than build unverifiable UI with no artboard.
+  The orchestrator chose option A; the second dispatch built it cleanly.
+- It then **corrected two fences in its own brief**: `fuel.csv` was already a fixture, and the write
+  path pointed at the main checkout another session was using. Its corpus check answered the open
+  question - **every** MFM fixture carries `Vehicle name`.
+- **`RV.88` refused to overclaim**: it did not promise the drain completes for rows the ECB archive
+  cannot serve, and wrote the honest outcome into `SCHEMA.md`/`ERRORS.md` instead.
+
+### Operational notes that cost time today
+
+- **A wedged agent looks healthy to `agent-health.sh`** (CPU accumulates while it reasons in
+  circles). `RV.74`'s first dispatch ran **two hours and wrote nothing**, stuck on a design question
+  the brief left open. The signal is a **log byte count unchanged across ~45 minutes** plus zero file
+  writes. The brief was the defect: decide the question, and add *take the smallest correct option
+  and keep going*.
+- **Monitors are killed, never the agents** - a dozen times today. `kill -0 <pid>` before believing
+  any "exited".
+- **`$?` after a pipe is the pipe's exit code.** `dotnet test | tail` reported 0 while the run
+  aborted; "66 passed" of ~396 nearly read as green.
+- **Simulator contention produces false reds** with a *different* failing set each run. Shut the
+  simulators down and re-run on a quiet machine before believing one.
+- **Removing a worktree leaves its DerivedData behind** - 2.2 GB reclaimed today from two orphans.
 
 ## What changed on 2026-09-06
 
