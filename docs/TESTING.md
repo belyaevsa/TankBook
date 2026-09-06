@@ -78,6 +78,45 @@ The rule of thumb: if a test can fail because something *else* is broken, it is 
 6. **Importer per format**: round-trips + known-value assertions.
 7. **Backup format**: round-trip + schema-version migrator test (v1→v2 fixture from day one, so additive evolution stays honest).
 
+## Which gates for which change (standing rule, 2026-09-06)
+
+**The gate is chosen by what the change TOUCHES, never by how big it feels or how confident the
+agent's report sounds.** Everything below is measured, and the evidence column names what each gate
+has actually caught - a gate that has never caught anything at its cost is not kept out of respect.
+
+| Gate | Cost | Run it when | What it has caught |
+|---|---|---|---|
+| **Baseline**: `swift build` + `swiftlint` + the localization gate, both **from the repo ROOT** | seconds | **Always. Every task, no exceptions, including doc-only changes** | Doc changes alter generated output more often than anyone expects; this is the floor that makes every other gate trustworthy |
+| **Full unit suite** (`swift test`, ~52 s at 1522 tests) | ~1 min | **Always. Never subsetted** | It is a minute. Subsetting has never once been worth the reasoning about whether it was safe |
+| **Named UI suites** via `-only-testing:` | 5-30 min | The change touches `ios/App/Sources/**` - any view, navigation, or state a screen reads | Regressions in the flow that was touched. **Name them in the brief**; "run the UI tests" is not a check |
+| **Screenshots, EN *and* RU, opened by the orchestrator** | ~10 min | The change alters **anything on screen**: copy, layout, a new state, a new row | **The highest-yield gate in the project.** On 2026-09-06 alone it caught four defects no test could see: crushed titles in both languages (`RV.75`), a stale capture showing an affordance the code no longer rendered (`RV.76`), a doubled Russian period (`RV.77`), and an action line resting below the fold while staying tappable (`RV.80`) |
+| **Mutation of the load-bearing invariant** | 5-15 min | The change makes or modifies the claim the row exists for | Vacuous tests. Two of eight passed on 2026-09-06, and each meant the test grew: a scope released before the copy it was meant to frame (`RV.73`), and a carve-out whose removal left a state with nothing on screen (`RV.80`) |
+| **RELEASE build** | 2-4 min | The change touches a `#if DEBUG` seam: a seed, a test hook, a `-seed*` argument, a preview helper | `PR.11`/`OB.4` shipped an unguarded call to a DEBUG-only type. Debug compiled, every gate passed, `main` broke for Release, and `RV.78` found it two rows later |
+| **Backend** `dotnet build` + `format --verify-no-changes` + `test` | ~2 min | Any change under `backend/` | Its own tier's floor |
+| **FULL UI suite** (~28 min) | 28 min | **Phase completion, before a release build or a TestFlight upload, and after merging parallel work** - never per task | See the section below: five full runs in one day cost 2h15m and produced one genuine defect and two false reds |
+
+### When lint and compile alone are enough
+
+Only when **nothing that runs is different**:
+
+- documentation, `agents/briefs/**`, queue and scratch files;
+- `docs/TASKS.md` ticks and row registrations;
+- comments, doc comments, and renames the compiler proves are total.
+
+Everything else runs at least the baseline **plus the full unit suite**, because a minute is not a
+saving worth reasoning about.
+
+### The three traps this rule exists to close
+
+1. **A green suite is not a verified change.** XCUITest asserts existence - never truncation, never
+   a fold, never a colour, never a doubled period. Four defects on one day proved it; all four were
+   found by opening a PNG.
+2. **A mutation that PASSES is a finding, not a formality.** It means the test does not cover the
+   claim the row was written for. Strengthen the test, then re-run the mutation and watch it fail.
+3. **The cheap gates are cheap.** The temptation is always to skip the unit suite or the Release
+   build to save a minute; both have cost far more than a minute exactly once, which is why they are
+   now unconditional in their column.
+
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
 **Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE
