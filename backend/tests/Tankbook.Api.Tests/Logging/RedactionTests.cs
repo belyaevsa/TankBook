@@ -288,6 +288,51 @@ public class RedactionTests
     }
 }
 
+/// RV.90: the redactor is the enforcement point for hard rule 12 on every
+/// backend log line, so a value that makes it recurse does not "fail a test" -
+/// it takes the process down. Both were measured: a real POST /v1/import/parse
+/// crashed the test host with "Stack overflow", and the captured path read
+/// `RuntimeType -> StructLayoutAttribute -> RuntimeType -> ...` - the runtime's
+/// own type graph, entered because one logged value was a `Type`.
+public sealed class RedactorCycleTests
+{
+    // `label`, not `name`: the redactor masks a field CALLED name, so a
+    // fixture using it would assert against its own masking rather than
+    // against termination (the orchestrator's first version did exactly that).
+    private sealed class Node
+    {
+        public string Label { get; init; } = "";
+        public Node? Next { get; set; }
+    }
+
+    [Fact]
+    public void AValueThatIsAType_IsRenderedByName_NotWalked()
+    {
+        var redacted = new TankbookRedactor("salt").RedactProperty("subject", typeof(RedactorCycleTests));
+
+        Assert.NotNull(redacted);
+        Assert.Equal(nameof(RedactorCycleTests), redacted!.Value);
+    }
+
+    [Fact]
+    public void ACyclicObjectGraph_Terminates_AndSaysWhereItWasCut()
+    {
+        var a = new Node { Label = "a" };
+        var b = new Node { Label = "b", Next = a };
+        a.Next = b;
+
+        // The claim is termination: before RV.90 this never returned.
+        var redacted = new TankbookRedactor("salt").RedactValue(a);
+
+        var rendered = System.Text.Json.JsonSerializer.Serialize(redacted);
+        // System.Text.Json escapes `<` as \u003C, so match the word rather
+        // than the decorated marker - asserting the raw constant would fail on
+        // the encoder, not on the behaviour.
+        Assert.Contains("truncated", rendered, StringComparison.Ordinal);
+        Assert.Contains("\"a\"", rendered, StringComparison.Ordinal);
+    }
+}
+
 internal static class RedactionTestExtensions
 {
     public static string ShouldHaveSingleLine(this IReadOnlyList<string> lines)
