@@ -60,6 +60,42 @@ enum RemindersEntryTestSeed {
         try? repository.upsertReminder(oilChange)
     }
 
+    /// The RV.79 two-car badge state (design/screens/GarageReminderCounts.dc.html):
+    /// the artboard garage (`CarSwitcherTestSeed.seedGarage`: Volvo petrol +
+    /// ID.4 EV live, BMW archived) with Volvo carrying TWO attention reminders
+    /// plus one scheduled, so its Garage / Car switcher card must badge "2" -
+    /// and the scheduled row proves the badge counts attention only. ID.4
+    /// carries a scheduled reminder ONLY, so its card must stay quiet: a badge
+    /// that is always lit stops meaning anything. Volvo is the default
+    /// selection (seeded first, VehicleSelection falls back to the first live
+    /// car).
+    static func seedGarageCounts(_ repository: TankbookRepository) {
+        CarSwitcherTestSeed.seedGarage(repository)
+        let vehicles = (try? repository.liveVehicles()) ?? []
+        let now = Date()
+
+        if let volvo = vehicles.first(where: { $0.name == "Volvo V60" }) {
+            try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+                vehicleId: volvo.id, title: "Insurance renewal", category: .insurance,
+                dueDate: now.addingTimeInterval(3 * 86_400), dueOdometer: nil,
+                recurrence: nil))
+            try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+                vehicleId: volvo.id, title: "Brake check", category: .brakes,
+                dueDate: now.addingTimeInterval(8 * 86_400), dueOdometer: nil,
+                recurrence: nil))
+            try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+                vehicleId: volvo.id, title: "Winter tires", category: .tires,
+                dueDate: now.addingTimeInterval(40 * 86_400), dueOdometer: nil,
+                recurrence: nil))
+        }
+        if let id4 = vehicles.first(where: { $0.name == "ID.4" }) {
+            try? repository.upsertReminder(ReminderLifecycle.makeReminder(
+                vehicleId: id4.id, title: "Inspection (TÜV)", category: .inspection,
+                dueDate: now.addingTimeInterval(60 * 86_400), dueOdometer: nil,
+                recurrence: nil))
+        }
+    }
+
     private static func makeSkodaOctavia(at now: Date) -> Vehicle {
         Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,

@@ -78,6 +78,16 @@ struct GarageView: View {
             // reload so the new car appears without relaunching the app.
             Task { await load() }
         }
+        .onAppear {
+            // Returning from a pushed screen (the merged Reminders list, a
+            // vehicle detail edit) can change data Garage does not observe
+            // through `toastCenter` - most importantly a reminder completed in
+            // the merged list must retire this car's attention count on the
+            // way back (hard rule 2: the count is derived, so it re-derives).
+            // Home carries the same onAppear reload for its banner; first
+            // appearance is `.task`'s job (`didSeed` is still false then).
+            if didSeed { Task { await load() } }
+        }
         .sheet(isPresented: $showsLimitSheet) { limitSheet }
     }
 
@@ -95,11 +105,40 @@ struct GarageView: View {
     /// A live car: name, its own vitals, the selected marker - and the whole
     /// card leads to that car's detail (per-car settings, docs/DESIGN.md). The
     /// accent (taillight fuel, headlight EV) encodes the powertrain, exactly as
-    /// the Car switcher artboard draws it (hard rule 5).
+    /// the Car switcher artboard draws it (hard rule 5). RV.79: when the car
+    /// has work waiting, the card carries the per-car attention count in its
+    /// own strip below a hairline divider (design/screens/
+    /// GarageReminderCounts.dc.html) - a separate tap target that navigates to
+    /// the merged reminders list, never creates, and is absent entirely when
+    /// nothing needs attention.
     private func liveRow(_ row: GarageRow) -> some View {
         let isSelected = row.vehicle.id == selectedID
         let accent = Self.accent(row.vehicle)
-        return NavigationLink(value: Route.vehicleDetail(row.vehicle.id)) {
+        return VStack(spacing: 0) {
+            vehicleDetailLink(row, isSelected: isSelected, accent: accent)
+            if row.attentionCount > 0 {
+                Rectangle()
+                    .fill(Theme.Palette.hairline)
+                    .frame(height: 1)
+                    .padding(.horizontal, 14)
+                attentionLink(row)
+            }
+        }
+        .background(Theme.Palette.dash)
+        .clipShape(RoundedRectangle(cornerRadius: 15))
+        .overlay(
+            RoundedRectangle(cornerRadius: 15)
+                .stroke(isSelected ? accent : Theme.Palette.hairline,
+                        lineWidth: isSelected ? 1.5 : 1)
+        )
+    }
+
+    /// The card's own job: the top strip leads to that car's detail. The whole
+    /// strip is the tap target (`contentShape`), so the row stays a single
+    /// easy-to-hit button even though the card below it may carry a count.
+    private func vehicleDetailLink(_ row: GarageRow, isSelected: Bool,
+                                   accent: Color) -> some View {
+        NavigationLink(value: Route.vehicleDetail(row.vehicle.id)) {
             HStack(spacing: 12) {
                 carIcon
                 VStack(alignment: .leading, spacing: 2) {
@@ -131,17 +170,41 @@ struct GarageView: View {
             }
             .contentShape(Rectangle())
             .padding(14)
-            .background(Theme.Palette.dash)
-            .clipShape(RoundedRectangle(cornerRadius: 15))
-            .overlay(
-                RoundedRectangle(cornerRadius: 15)
-                    .stroke(isSelected ? accent : Theme.Palette.hairline,
-                            lineWidth: isSelected ? 1.5 : 1)
-            )
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("garageCarRow")
         .accessibilityLabel(rowAccessibilityLabel(row, isSelected: isSelected))
+    }
+
+    /// The per-car attention count strip (RV.79): bell + "N needs attention",
+    /// amber because attention is amber (hard rule 5) and reading as words for
+    /// VoiceOver - the count is never colour alone, and the label names the
+    /// car and the number. It navigates to the merged reminders list and never
+    /// creates: the row's job is picking a car, and a create action there
+    /// would compete with the count for meaning.
+    private func attentionLink(_ row: GarageRow) -> some View {
+        NavigationLink(value: Route.remindersAll) {
+            HStack(spacing: 7) {
+                Image(systemName: "bell")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Theme.Palette.warn)
+                Text(ReminderAttentionFormat.text(row.attentionCount))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.warn)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 14)
+            .padding(.vertical, 11)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(attentionAccessibilityLabel(row))
+        .accessibilityIdentifier("garageAttentionCount")
+    }
+
+    private func attentionAccessibilityLabel(_ row: GarageRow) -> String {
+        "\(row.vehicle.name), \(ReminderAttentionFormat.text(row.attentionCount))"
     }
 
     /// An archived car (J13): history kept, out of active stats. The row dims
@@ -306,12 +369,24 @@ struct GarageView: View {
             let vehicles = try repository.liveVehicles()
             selectedID = selection.selectedVehicle(vehicles)?.id
             let resolutions = (try? repository.resolvedDuplicateKeys()) ?? []
+            // RV.79: ONE cross-vehicle query feeds every row's attention count
+            // (the same live rows the merged list groups, so a badge and the
+            // list can never disagree) - never N per-car queries inside a list
+            // render.
+            let acrossReminders = try repository.liveRemindersAcrossVehicles()
             rows = try vehicles.map { vehicle in
                 let entries = try repository.liveEntries(forVehicle: vehicle.id)
-                let vitals = vehicle.archived ? nil : VehicleVitals.line(
-                    HomeStats(vehicle: vehicle, entries: entries,
-                              duplicateResolutions: resolutions))
-                return GarageRow(vehicle: vehicle, vitals: vitals)
+                let stats = vehicle.archived ? nil : HomeStats(
+                    vehicle: vehicle, entries: entries,
+                    duplicateResolutions: resolutions)
+                let vitals = stats.map { VehicleVitals.line($0) }
+                let attentionCount = stats.map {
+                    ReminderListGroups.attentionCount(forVehicle: vehicle.id,
+                                                      among: acrossReminders,
+                                                      currentOdometer: $0.odometer)
+                } ?? 0
+                return GarageRow(vehicle: vehicle, vitals: vitals,
+                                 attentionCount: attentionCount)
             }
         } catch {
             AppLog.error(operation: "garage.load", category: .ui, error: error)
@@ -320,10 +395,14 @@ struct GarageView: View {
 }
 
 /// One garage row: the vehicle plus its derived vitals line (nil for an
-/// archived car - the artboard shows no vitals there).
+/// archived car - the artboard shows no vitals there) and its per-car
+/// attention count (RV.79 - derived at read time from the live reminders,
+/// never stored and never cached on the row; 0 for an archived car, whose
+/// work is history, J13).
 private struct GarageRow: Identifiable {
     let vehicle: Vehicle
     let vitals: String?
+    let attentionCount: Int
     var id: UUID { vehicle.id }
 }
 

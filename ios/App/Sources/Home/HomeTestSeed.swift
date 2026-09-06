@@ -56,7 +56,8 @@ enum HomeTestSeed {
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
             ("-seedHomeReminderDue", seedReminderDue),
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
-            ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue)
+            ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue),
+            ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }

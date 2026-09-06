@@ -240,11 +240,13 @@ coming weekend, and do not compete with live cars' rows. Its rows stay reachable
 screen and return to the merged list the moment the car is unarchived; the exclusion is read-time
 derivation, never a stored state.
 
-**RV.75/RV.74/RV.76 status:** the merged screen, its route (`Route.remindersAll`) and the form's
-car-first field are built; **RV.74 wired the notification deep link into it** - a tapped reminder
-lands on this list, never on a car-scoped one; and **RV.76 built the permanent Home row**
-(`design/screens/RemindersEntry.dc.html`), so the screen is no longer DEBUG-reached-only. The one
-remaining planned door is the RV.79 Garage count.
+**RV.75/RV.74/RV.76/RV.79 status:** the merged screen, its route (`Route.remindersAll`) and the
+form's car-first field are built; **RV.74 wired the notification deep link into it** - a tapped
+reminder lands on this list, never on a car-scoped one; **RV.76 built the permanent Home row**
+(`design/screens/RemindersEntry.dc.html`), so the screen is no longer DEBUG-reached-only; and
+**RV.79 built the last planned door** - the per-car attention count on a Garage / Car switcher row
+navigates here, so the merged list is reachable from every surface that shows a car
+(`design/screens/GarageReminderCounts.dc.html`).
 
 **The Home row's placement was a decision, recorded here so it is not relitigated.** The row lives
 on Home, directly UNDER the urgent banner strip in the content stack (`HomeView.fullLayout`,
@@ -282,9 +284,11 @@ nothing), and the row itself is ALWAYS present, count or no count.
   stored. A list with no reminders at all shows the empty state whose ONE action is the FILLED
   "New reminder" (`RemindersEmpty.dc.html`) - the discovery path for a driver who has never made a
   reminder; the dashed card stays the idiom for a list that has rows.
-- **A count marks a car only when something needs attention** (RV.79). Scheduled work shows nothing:
-  a badge that is always lit stops meaning anything. Amber is attention (hard rule 5) and the count
-  reads as words for VoiceOver - colour is never the only channel.
+- **A count marks a car only when something needs attention** (RV.79, built). Scheduled work shows
+  nothing: a badge that is always lit stops meaning anything. Amber is attention (hard rule 5) and
+  the count reads as words for VoiceOver - colour is never the only channel. The count strip is
+  derived at read time over the same live cross-car rows (hard rule 2), is its OWN tap target that
+  navigates here, and never creates (the row's job is picking a car).
 
 **Where a reminder is born: the form, with the car as its first field.** There is one creation
 screen and it is reached from three places - the merged list, a car's own Reminders list, and (in

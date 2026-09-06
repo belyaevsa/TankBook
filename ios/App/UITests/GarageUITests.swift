@@ -100,6 +100,49 @@ final class GarageUITests: XCTestCase {
                        "the tapped car's detail, not another car's")
     }
 
+    // MARK: - RV.79: the per-car attention count
+
+    /// A car with work waiting says so on its own row: with Volvo carrying TWO
+    /// attention reminders and Skoda carrying only scheduled ones, exactly one
+    /// badge renders - on Volvo's card, never Skoda's - and it names the count
+    /// (the accessibility label is the channel, hard rule 5: colour is never
+    /// the only one). The count is derived from the seeded reminders, never a
+    /// seeded number.
+    func testGarageBadgesOnlyTheCarWithWorkWaiting() {
+        let app = launch(["-seedHomeGarageCounts"])
+        openGarage(app)
+        waitForLiveRowCount(2, in: app)
+
+        let counts = app.buttons.matching(identifier: "garageAttentionCount")
+        XCTAssertEqual(counts.count, 1,
+                       "only the car whose reminders are due may be badged")
+        let label = counts.firstMatch.label
+        XCTAssertTrue(label.contains("Volvo V60"),
+                      "the badge must belong to the car with the due work, got \(label)")
+        XCTAssertTrue(label.contains("2"),
+                      "two seeded attention reminders must read as 2, got \(label)")
+        XCTAssertTrue(label.contains("needs attention"),
+                      "the count must read as words, got \(label)")
+    }
+
+    /// The badge's next step is the merged reminders list, never a create
+    /// action (the row's job is picking a car, and a create affordance there
+    /// would compete with the count for meaning).
+    func testGarageAttentionCountNavigatesToTheMergedList() {
+        let app = launch(["-seedHomeGarageCounts"])
+        openGarage(app)
+        waitForLiveRowCount(2, in: app)
+
+        let count = app.buttons["garageAttentionCount"]
+        XCTAssertTrue(count.waitForExistence(timeout: 5))
+        count.tap()
+
+        XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5),
+                      "the count must open the merged reminders list")
+        XCTAssertTrue(app.staticTexts["remindersAttentionHeader"].waitForExistence(timeout: 5),
+                      "the merged list shows the due rows")
+    }
+
     // MARK: - Empty and limit states
 
     /// A garage with no cars is an honest empty state, not a wall - Add car is

@@ -50,6 +50,31 @@ public enum ReminderListGroups {
         grouped(rows, now: now).attention.count
     }
 
+    /// The attention count for ONE vehicle (RV.79: the per-car badge on a
+    /// Garage / Car switcher row) - how many of ITS live reminders need the
+    /// user NOW, judged against the vehicle's OWN current odometer, never a
+    /// shared reading, exactly as the merged list judges each of its rows.
+    ///
+    /// Derived at read time (hard rule 2): a pure function over the caller's
+    /// live reminders, never stored, never seeded as a number, never cached on
+    /// the row. It is defined as "the merged list's 'Needs attention' group for
+    /// that vehicle" - the caller passes the SAME live rows the merged list
+    /// would group (`liveRemindersAcrossVehicles`), so the badge and the list
+    /// can never disagree about what is due. Terminal rows (`.done` /
+    /// `.dismissed`) never count, and a row whose only due half cannot be
+    /// judged (an odometer reminder on a car with no reading) is not attention.
+    public static func attentionCount(forVehicle vehicleId: UUID,
+                                      among reminders: [Reminder],
+                                      currentOdometer: Int?,
+                                      now: Date = Date()) -> Int {
+        reminders.filter {
+            $0.vehicleId == vehicleId
+                && ReminderLifecycle.isAttentionDue($0,
+                                                    currentOdometer: currentOdometer,
+                                                    now: now)
+        }.count
+    }
+
     public static func grouped(_ rows: [ReminderListRow],
                                now: Date = Date()) -> (attention: [ReminderListRow],
                                                        scheduled: [ReminderListRow]) {
