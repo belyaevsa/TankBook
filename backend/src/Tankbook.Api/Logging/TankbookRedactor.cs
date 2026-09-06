@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Reflection;
 
 namespace Tankbook.Api.Logging;
 
@@ -78,6 +79,22 @@ public sealed class TankbookRedactor
             case string or bool or byte or sbyte or short or ushort or int or uint or long or ulong
                 or float or double or decimal or char or Guid or DateTime or DateTimeOffset or TimeSpan or DateOnly:
                 return value;
+            // RV.90: reflection types are rendered by NAME, never walked.
+            // `Type.StructLayoutAttribute` returns an attribute that points
+            // back at a type, so reflecting over one `Type` value sends the
+            // walker around the runtime's own type graph until the stack is
+            // gone - measured as a test-host "Stack overflow" crash on a real
+            // POST /v1/import/parse, with the captured path reading
+            // `RuntimeType -> StructLayoutAttribute -> RuntimeType -> ...`.
+            // A name is also all a log line could honestly want from one.
+            case Type type:
+                return type.Name;
+            case MemberInfo member:
+                return member.Name;
+            case Assembly assembly:
+                return assembly.GetName().Name;
+            case Attribute attribute:
+                return attribute.GetType().Name;
             case IDictionary<string, object?> map:
                 {
                     var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -124,35 +141,65 @@ public sealed class TankbookRedactor
         }
     }
 
+    /// <summary>
+    /// RV.90: how deep the walker may follow an object graph before it stops
+    /// and says so. A cap is the guard that cannot be out-thought: naming the
+    /// one cyclic type that caused the crash (`Type`, above) fixes the case we
+    /// measured, and this fixes the case we have not - a log line must never be
+    /// able to take the process down, whatever graph a caller hands it. 40 is
+    /// far past any real log payload; the deepest shape in the app is a parsed
+    /// import candidate at single digits.
+    /// </summary>
+    private const int MaxDepth = 40;
+
+    /// <summary>Marks where a graph was cut, so a reader is never told a
+    /// truncated object ended naturally.</summary>
+    public const string Truncated = "<truncated: too deep>";
+
+    [ThreadStatic] private static int _depth;
+
     private object? RedactObject(object value)
     {
-        var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-
-        foreach (var property in value.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+        if (_depth >= MaxDepth)
         {
-            if (property.GetIndexParameters().Length > 0)
-            {
-                continue;
-            }
-
-            object? propertyValue;
-            try
-            {
-                propertyValue = property.GetValue(value);
-            }
-            catch
-            {
-                continue;
-            }
-
-            var redacted = RedactProperty(property.Name, propertyValue);
-            if (redacted is not null)
-            {
-                result[redacted.Name] = redacted.Value;
-            }
+            return Truncated;
         }
 
-        return result;
+        _depth++;
+        try
+        {
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var property in value.GetType().GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance))
+            {
+                if (property.GetIndexParameters().Length > 0)
+                {
+                    continue;
+                }
+
+                object? propertyValue;
+                try
+                {
+                    propertyValue = property.GetValue(value);
+                }
+                catch
+                {
+                    continue;
+                }
+
+                var redacted = RedactProperty(property.Name, propertyValue);
+                if (redacted is not null)
+                {
+                    result[redacted.Name] = redacted.Value;
+                }
+            }
+
+            return result;
+        }
+        finally
+        {
+            _depth--;
+        }
     }
 }
 
