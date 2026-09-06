@@ -197,6 +197,20 @@ Rules that make this stick:
 4. **Never silence a violation by loosening the rule.** Fix the code, or exclude genuinely generated output (`**/.build`). Widening a threshold to fit new code is how a lint stops meaning anything. If a rule is genuinely wrong for this project, change it deliberately and say why in the same change.
 5. **A refactor for lint must not change behaviour.** Where output is generated or ordered – schema `required` arrays, canonical bytes, error ordering – re-run the generator and diff, and say in the report that you did.
 6. **Warnings do not block, but do not add them casually.** New code should not introduce warnings a reviewer has to learn to skip past.
+7. **A task that touches a `#if DEBUG` seam also builds RELEASE** (added 2026-09-06, after it cost a shipped break):
+
+   ```
+   xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
+     -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17' build
+   ```
+
+   `swift build` and the ordinary `xcodebuild` gate compile **Debug**, where every `#if DEBUG` type
+   exists. A production call site that references a DEBUG-only type therefore passes the whole gate
+   and fails only when someone builds for release. That is not hypothetical: `PR.11`/`OB.4` shipped
+   `AboutView` calling the DEBUG-only `DiagnosticsTestSeed` unguarded, was verified green by the
+   orchestrator, reached `main`, and was found two rows later by `RV.78` - which would have surfaced
+   at `SH.2` or a TestFlight upload instead. **Seeds, test hooks, `-seed*` launch arguments and
+   preview helpers are all DEBUG seams**; if a row adds or calls one, build Release before ticking it.
 
 ## Snapshot baselines are runtime-specific (temporary, until iOS 18 is installed)
 
