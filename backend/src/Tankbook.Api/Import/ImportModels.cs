@@ -33,7 +33,20 @@ public sealed class MfmParseResult
     public required IReadOnlyList<ImportAmbiguity> Ambiguities { get; init; }
 
     public required int DataRowCount { get; init; }
+
+    /// <summary>
+    /// The candidates grouped by the source file's vehicle-name column
+    /// (RV.86). Ordered by first appearance of each name in the file; a
+    /// single-name file yields one group covering every candidate. Each group
+    /// lists the 1-based data-row numbers of its members, so the device can
+    /// present "this file holds five cars, which do you want and into which
+    /// garage car does each go" without re-deriving the parser's grouping.
+    /// </summary>
+    public required IReadOnlyList<MfmVehicleGroup> VehicleGroups { get; init; }
 }
+
+/// <summary>One distinct source vehicle in a parsed file (RV.86).</summary>
+public sealed record MfmVehicleGroup(string Name, IReadOnlyList<int> SourceRows);
 
 /// <summary>
 /// The file does not look like the format the user declared (docs/API.md:
@@ -72,4 +85,5 @@ public sealed record ImportParseResponse(
     string Scope,
     JsonNode? Candidates,
     JsonNode? Unparsed,
-    JsonNode? Ambiguities);
+    JsonNode? Ambiguities,
+    JsonNode? VehicleGroups);

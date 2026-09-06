@@ -75,6 +75,71 @@ the shape the tests need. Copy it into the repo's fixtures rather than reading f
 
 `docs/API.md` (the `/import/parse` response gains grouping - **this is a contract change, say so**),
 `docs/SCREENMAP.md` (the new wizard step), `docs/JOURNEYS.md` (the import journey).
+## This is the SECOND dispatch. The backend and core halves are DONE.
+
+A first run built them, verified them, and then **stopped to ask a design
+question rather than build UI it could not verify** - the right call, and the
+orchestrator answered it. Read this section before anything else; do not
+re-explore what it settles.
+
+**Already committed on this branch (`c3ef9b0`), green, do not redo:**
+
+- `MfmParser` reads the `Vehicle name` column and returns `MfmVehicleGroup`
+  (name + source rows); `GroupByVehicleName` is public and tested.
+- The parse response carries **`vehicleGroups` as a NEW field**, not a
+  restructured candidate list, so an older client is unaffected.
+- `ImportParseResponse` re-derives the grouping from stored candidates when a
+  parse predates the field (the 30-day resume window).
+- Core: `resolvedVehicleGroups`, `candidates(in:)`, and a commit that writes each
+  group to its own vehicle.
+- **Backend import tests: 28/28, exit 0.** 16 parser + the endpoint suite.
+
+**The blocker that stopped the first run is fixed and merged in** (`RV.90`,
+`db80eec`): `TankbookRedactor` reflected into `Type` and recursed until the
+stack died, crashing the test host on every `POST /v1/import/parse`. If you see
+a stack overflow, it is new and it is yours - report it, do not work around it.
+
+## Your job: the client half, option A (DECIDED - do not re-ask)
+
+Insert a `.cars` wizard step **only when the parse exposes more than one distinct
+vehicle**:
+
+1. It lists each source car with its **row count**, and an explicit destination
+   per car: **Leave out / New car / an existing garage car**. Continue stays
+   disabled until every car is decided - the wizard never guesses a mapping
+   (hard rule 13) and never funnels into the pre-selected car.
+2. On Continue, resolve **lanes** (source group -> destination vehicle) and
+   classify **per lane** against that destination's own existing entries, so two
+   cars can never corrupt each other's odometers.
+3. The `.cars` screen **is the gate** for a multi-car file: it shows, per chosen
+   car, its count, odometer span and date range, plus the duplicate count when
+   merging into an existing car. Then an "Import N fills into M cars" bar.
+4. **Commit stays the ONE write.**
+5. **A single-car file keeps today's flow byte-for-byte** - preview, review,
+   commit, untouched. This is the acceptance that protects every existing test.
+
+**There is no artboard for this screen.** Build it from the wizard's existing
+vocabulary (`ImportSourceView`, `ImportPreviewView`), and say in your report
+which existing components you reused.
+
+## You are running in a git worktree
+
+`/Users/sbelyaev/repos/fc-rv86`, branch `rv86` - **authorized by the product owner for this
+dispatch**, which is why it does not contradict `CLAUDE.md`'s standing "no worktrees" convention.
+Work here and nowhere else. The main checkout at `/Users/sbelyaev/repos/fuel-counter-ios` is being
+used for verification at the same time: **do not read from it, write to it, or run anything against
+it.**
+
+Two consequences that are yours to handle:
+
+- **This worktree has its own DerivedData.** Build and test here; the first `xcodebuild` will be slow.
+- `xcodegen generate` before any `xcodebuild`, because `Tankbook.xcodeproj` is generated and
+  gitignored, so this tree does not have one yet.
+
+**The evidence file is at the worktree root: `fuel.csv`** - the product owner's real My Fuel
+Manager export, already copied for you. Copy it into the repo's test fixtures as part of your work
+(it is the reproduction), and say where you put it.
+
 ## Where you may write
 
 Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:

@@ -99,6 +99,20 @@ struct ImportWizardView: View {
                 onChooseFile: { showingFilePicker = true },
                 onNotSupported: { showingNotSupported = true },
                 onBack: { dismiss() })
+        case .cars:
+            // RV.86: a file holding several source cars lands here - the mapping
+            // gate. Its Continue bar performs the SAME one write as the preview's.
+            ImportCarsView(
+                model: model,
+                onBack: { model.backToSource() },
+                onCancel: {
+                    Task {
+                        await model.cancelImport()
+                        dismiss()
+                    }
+                },
+                onShowReview: { model.showReview() },
+                onImport: { confirm(model) })
         case .preview:
             ImportPreviewView(
                 model: model,
@@ -111,20 +125,24 @@ struct ImportWizardView: View {
                 },
                 onChangeCar: { showingCarPicker = true },
                 onShowReview: { model.showReview() },
-                onImport: {
-                    Task {
-                        let ok = await model.confirmImport()
-                        if ok {
-                            toastCenter.show(L10n.importedFillUps(model.commitCount))
-                            dismiss()
-                        }
-                    }
-                })
+                onImport: { confirm(model) })
         case .review:
             ImportReviewView(
                 model: model,
-                onBack: { model.showPreview() },
-                onDone: { model.showPreview() })
+                onBack: { model.reviewReturn() },
+                onDone: { model.reviewReturn() })
+        }
+    }
+
+    /// The one write, shared by the preview and the multi-car gate: confirm and,
+    /// on success, toast the count and leave the wizard.
+    private func confirm(_ model: ImportFlowModel) {
+        Task {
+            let ok = await model.confirmImport()
+            if ok {
+                toastCenter.show(L10n.importedFillUps(model.commitCount))
+                dismiss()
+            }
         }
     }
 }

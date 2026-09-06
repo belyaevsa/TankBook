@@ -354,7 +354,20 @@ reasoning as the currency chip on Confirm.
 
 `multipart` upload of a third-party export (`format: "mfm" | ...` **as declared by the user**, file <= 8 MB) ->
 `{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
-   ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ] }`
+   ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ],
+   vehicleGroups: [ { name, sourceRows } ]? }`
+
+- **The response gained `vehicleGroups` on 2026-09-06 (RV.86) - a contract change, additive
+  only.** A file can hold several cars (the real MFM export has five), and before RV.86 the parser
+  silently ignored the file's vehicle-name column, so every row landed on one car. `vehicleGroups`
+  is the parse grouped by that column: one `{ name, sourceRows }` per distinct vehicle in **first
+  appearance order**, `sourceRows` being the 1-based data-row numbers of the group's candidates.
+  The field is **new**: an older client that never heard of it decodes `candidates` exactly as
+  before (it ignores the extra key), and a stored parse that predates the field omits it - the
+  device re-derives the same groups from each candidate's `vehicleName`. A format whose rows carry
+  no vehicle name emits a single group. Grouping never guesses a mapping: the **device** asks the
+  user which groups to bring in and where each lands, and the server never sees the answer
+  (the endpoint still commits nothing).
 
 - **It commits nothing.** `candidates` are *proposals*; the device reviews, edits and writes them
   (hard rule 13). The server holds no user data beyond the stored file and its parse result, and

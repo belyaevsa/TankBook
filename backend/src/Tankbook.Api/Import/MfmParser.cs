@@ -81,6 +81,33 @@ public static class MfmParser
         }
     }
 
+    /// <summary>
+    /// Groups candidates by their <c>vehicleName</c> column (RV.86), in order of
+    /// first appearance in the file. A candidate whose file row carried no name
+    /// (a blank <c>Vehicle name</c>) forms its own unnamed group so nothing is
+    /// silently dropped. A single-name file yields one group covering every
+    /// candidate.
+    /// </summary>
+    public static IReadOnlyList<MfmVehicleGroup> GroupByVehicleName(IEnumerable<JsonObject> candidates)
+    {
+        var orderedNames = new List<string>();
+        var rowsByName = new Dictionary<string, List<int>>(StringComparer.Ordinal);
+        foreach (var candidate in candidates)
+        {
+            var name = candidate["vehicleName"]?.GetValue<string>()?.Trim() ?? "";
+            if (!rowsByName.TryGetValue(name, out var rows))
+            {
+                rows = [];
+                rowsByName[name] = rows;
+                orderedNames.Add(name);
+            }
+
+            rows.Add(candidate["sourceRow"]!.GetValue<int>());
+        }
+
+        return orderedNames.Select(name => new MfmVehicleGroup(name, rowsByName[name])).ToArray();
+    }
+
     private static MfmParseResult ParseCore(TextFieldParser parser, CancellationToken cancellationToken)
     {
         // Line 1: the title. This is the "does this look like the declared
@@ -189,6 +216,7 @@ public static class MfmParser
             Unparsed = unparsed,
             Ambiguities = ambiguities,
             DataRowCount = rowNumber,
+            VehicleGroups = GroupByVehicleName(candidates),
         };
     }
 

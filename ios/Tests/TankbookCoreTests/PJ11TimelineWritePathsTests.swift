@@ -265,7 +265,9 @@ struct PJ11WritePathGuardTests {
     /// - ManualFillUpView.save (upsertFillUp) - the manual fill, stamped inside
     ///   `buildFillUp`
     /// - ImportFlowModel.confirmImport (commitImport) - stamped at commit by
-    ///   core's `stampingImportConflicts` (Repository+ArchiveImport.swift)
+    ///   core's `stampingImportConflicts` (Repository+ArchiveImport.swift).
+    ///   Lives in `ImportFlowModel+Wizard.swift`, so the scan reports it under
+    ///   that file's name (RV.86 split the model across files).
     ///
     /// JUSTIFIED EXEMPTIONS - the write cannot introduce a timeline violation:
     /// - ManualFillUpView.save (upsertExpense) - the mixed-receipt expense is
@@ -306,7 +308,7 @@ struct PJ11WritePathGuardTests {
             "(EditEntryView, upsertExpense)",
             "(EditEntryView, upsertFillUp)",
             "(ManualFillUpView, upsertFillUp)",
-            "(ImportFlowModel, commitImport)",
+            "(ImportFlowModel+Wizard, commitImport)",
         ]
         let exemptions: Set<String> = [
             "(ManualFillUpView, upsertExpense)",
@@ -320,10 +322,11 @@ struct PJ11WritePathGuardTests {
 
         // Every stamped site consults the validator. The four app-local stamp
         // sites hold a TimelineValidator.validate call in the same file; the
-        // import commit's stamp lives in core and is pinned separately.
+        // import commit's stamp lives in core and is pinned separately below
+        // (its file carries confirmImport but not the validator call).
         for site in stamps {
             let file = String(site.split(separator: ",")[0].dropFirst())
-            if file == "ImportFlowModel" { continue }
+            if file == "ImportFlowModel+Wizard" { continue }
             #expect(try Self.appSource(named: file).contains("TimelineValidator.validate"),
                     "\(file) must consult TimelineValidator.validate on its write (a stamped path)")
         }

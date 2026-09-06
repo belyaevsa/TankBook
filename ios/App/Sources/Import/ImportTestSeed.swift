@@ -22,10 +22,29 @@ enum ImportTestSeed {
         guard arguments.contains("-seedImportPreview")
             || arguments.contains("-seedImportReview")
             || arguments.contains("-seedImportTimeline")
-            || arguments.contains("-seedImportService") else { return }
+            || arguments.contains("-seedImportService")
+            || arguments.contains("-seedImportCars")
+            || arguments.contains("-seedImportCarsDecided") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
             try? repository.upsertVehicle(HomeTestSeed.makeVehicle())
+        }
+        // RV.86: the `.cars` mapping gate's merge lane is demonstrated against a
+        // real S2 duplicate - the existing Volvo V60 holds one fill that matches
+        // the file's Volvo row 3 (same date 2026-08-17, same 64 L), so mapping
+        // the file's Volvo into it surfaces the duplicate count. Seeded for the
+        // multi-car screenshots and the L4 mapping test alike; the odometer
+        // continuity assertions read the MAX, which this pair never touches.
+        if (arguments.contains("-seedImportCars") || arguments.contains("-seedImportCarsDecided")),
+           let repository = try? AppStore.repository(),
+           let existing = try? repository.liveVehicles().first {
+            let duplicateFill = HomeTestSeed.makeFill(
+                vehicleID: existing.id,
+                HomeTestSeed.FillSpec(daysAgo: 0, odometer: 119_486, litres: 64,
+                                      amount: "110", price: "1.71875",
+                                      stationID: nil),
+                date: Date(timeIntervalSince1970: 1_786_924_800)) // 2026-08-17T00:00:00Z
+            try? repository.upsertFillUp(duplicateFill)
         }
     }
 
@@ -38,6 +57,25 @@ enum ImportTestSeed {
                                      fileName: "MyFuelManager_2026-08.csv",
                                      rawFileResource: "import-mfm-sample")
             model.showPreview()
+        } else if arguments.contains("-seedImportCarsDecided") {
+            // RV.86 screenshot state: the multi-car mapping gate with two cars
+            // already decided (Volvo -> the existing Volvo V60, AUDI -> a new
+            // car), so the figures, the merge duplicate count and the summary
+            // bar all render at once.
+            model.installSeededCarsParse(resourceName: "import-parse-mfm-cars",
+                                         fileName: "MyFuelManager_2026-08.csv",
+                                         rawFileResource: "import-mfm-cars")
+            if let existing = model.liveVehicles.first {
+                model.importIntoExistingVehicle(existing, at: 0)
+            }
+            model.importAsNewCar(at: 1)
+        } else if arguments.contains("-seedImportCars") {
+            // RV.86: the multi-car mapping gate, freshly reached - every source
+            // car undecided, Continue disabled (the L4 "never default the
+            // mapping" surface).
+            model.installSeededCarsParse(resourceName: "import-parse-mfm-cars",
+                                         fileName: "MyFuelManager_2026-08.csv",
+                                         rawFileResource: "import-mfm-cars")
         } else if arguments.contains("-seedImportTimeline") {
             model.installSeededTimelineParse()
             model.showReview()
