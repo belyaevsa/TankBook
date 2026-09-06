@@ -25,6 +25,10 @@ struct HomeView: View {
     @State private var entries: [any Entry] = []
     @State private var stations: [Station] = []
     @State private var reminders: [Reminder] = []
+    /// RV.76: how many reminders demand attention ACROSS every live car - the
+    /// count RV.76's Home row carries. Derived at read time (hard rule 2) from
+    /// the same live rows the merged Reminders list groups, never stored.
+    @State private var dueRemindersAcrossCars = 0
     @State private var photoData: Data?
     @State private var didSeed = false
     @State private var presentables = HomePresentables.fromLaunchArguments()
@@ -194,6 +198,14 @@ struct HomeView: View {
                     vehicleName: stats.vehicle.name,
                     bannerReminder: bannerReminder,
                     currentOdometer: currentOdometer)
+        // RV.76: the calm door to Reminders, present whether or not anything is
+        // due. It sits directly under the urgent banner area - "the row, with
+        // its count, beside the banner" (design/screens/RemindersEntry.dc.html)
+        // - and always navigates to the merged list, never creates (docs/
+        // SCREENMAP.md -> "Reminders across cars": a "+" here could only guess
+        // the car). Its count comes from the same live rows the merged list
+        // groups, so the two surfaces cannot disagree.
+        HomeRemindersEntryRow(attentionCount: dueRemindersAcrossCars)
         headerRow(stats.vehicle)
         HomeGarageCard(vehicle: stats.vehicle, odometer: stats.odometer,
                        updatedAt: stats.updatedAt, photoData: photoData)
@@ -415,6 +427,13 @@ struct HomeView: View {
             didSeed = true
             #if DEBUG
             HomeTestSeed.seedIfRequested()
+            // RV.76: the reminder seeds belong to the Reminders screen's load,
+            // but RV.76's Home row COUNT needs them present at Home's first
+            // load - a test landing on Home (no `-presentScreen`) must show the
+            // seeded count, not 0. Both seeds are idempotent and share the
+            // once-per-launch `-homeResetDatabase` reset, so this is harmless
+            // when no reminder argument is present or the screen seeds first.
+            ReminderTestSeed.seedIfRequested()
             EditEntryTestSeed.seedSyncFlaggedBatchIfRequested()
             RateBackfillDebugHook.runIfRequested {
                 // A backfill filled rate-pending entries: reload so the F9
@@ -445,6 +464,14 @@ struct HomeView: View {
             entries = try repository.liveEntries(forVehicle: selected.id)
             stations = try repository.liveStations()
             reminders = try repository.liveReminders(forVehicle: selected.id)
+            // RV.76: the cross-car count, derived from the same live rows the
+            // merged list groups (`RemindersAllRows` + `attentionCount`) so the
+            // Home row and the merged list can never disagree about what is due.
+            let acrossReminders = try repository.liveRemindersAcrossVehicles()
+            let mergedRows = try RemindersAllRows.rows(vehicles: vehicles,
+                                                       acrossReminders: acrossReminders,
+                                                       repository: repository)
+            dueRemindersAcrossCars = ReminderListGroups.attentionCount(mergedRows)
             resolvedDuplicateKeys = (try? repository.resolvedDuplicateKeys()) ?? []
             photoData = try loadPhoto(repository: repository, vehicle: selected)
         } catch {

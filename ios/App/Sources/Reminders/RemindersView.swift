@@ -90,8 +90,8 @@ struct RemindersView: View {
                             .accessibilityIdentifier("remindersScheduledHeader")
                         ForEach(groups.scheduled, id: \.id) { row in rowView(row, group: .scheduled) }
                     }
+                    newReminderCard
                 }
-                newReminderCard
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -235,33 +235,20 @@ struct RemindersView: View {
 
     // MARK: - Empty state
 
-    /// The list's empty state. The merged list renders what the per-car screen
-    /// renders today; RV.76 replaces it with the filled action of
-    /// `RemindersEmpty.dc.html` (out of RV.75's scope by agreement, so the two
-    /// tasks do not fight over one view).
+    /// The discovery path (design/screens/RemindersEmpty.dc.html): rendered by
+    /// `RemindersEmptyStateView`, whose ONE action is a FILLED "New reminder"
+    /// (never the dashed card, which stays the idiom for a list that has rows).
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "bell")
-                .font(.title3)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Text("No reminders yet")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-            Text("Reminders track the date, the odometer, or both – whichever comes first.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-        }
-        .multilineTextAlignment(.center)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
-        .padding(.horizontal, 20)
-        .formCard()
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("reminderEmptyState")
+        RemindersEmptyStateView(createRoute: createRoute)
     }
 
     // MARK: - New reminder + footer
 
+    /// The dashed "New reminder" card - the "add one more" idiom that belongs
+    /// at the END of a populated list. On an empty list it is replaced by the
+    /// empty state's filled action (RemindersEmpty.dc.html) and deliberately
+    /// not rendered, so a screen with nothing on it has exactly one, loud,
+    /// create affordance.
     private var newReminderCard: some View {
         NavigationLink(value: createRoute) {
             HStack(spacing: 7) {
@@ -365,7 +352,7 @@ struct RemindersView: View {
               let repository = try? AppStore.repository(),
               let reminder = try? repository.liveReminder(id: id),
               ReminderLifecycle.isActive(reminder) else { return nil }
-        let odometer = (try? Self.currentOdometer(for: reminder.vehicleId, repository: repository)) ?? nil
+        let odometer = (try? RemindersAllRows.currentOdometer(for: reminder.vehicleId, repository: repository)) ?? nil
         return ReminderSheetTarget(reminder: reminder, currentOdometer: odometer)
     }
 
@@ -393,40 +380,29 @@ struct RemindersView: View {
                     return
                 }
                 self.vehicle = selected
-                let odometer = try Self.currentOdometer(for: selected.id, repository: repository)
+                let odometer = try RemindersAllRows.currentOdometer(for: selected.id, repository: repository)
                 let reconciled = await notificationCoordinator.reconcile(vehicleId: selected.id)
                 rows = reconciled
                     .filter { ReminderLifecycle.isActive($0) }
                     .map { ReminderListRow(reminder: $0, currentOdometer: odometer) }
             case .allCars:
-                // The displayed rows come from the cross-vehicle query - the one
-                // query that cannot silently fall back to one car - then each
-                // active car is reconciled for its stored transitions and its
-                // notifications.
+                // The displayed rows come from the cross-vehicle query - the
+                // one query that cannot silently fall back to one car - via the
+                // shared loader (`RemindersAllRows`), then each active car is
+                // reconciled for its stored transitions and its notifications.
+                // The loader is also what RV.76's Home row counts, so the two
+                // surfaces can never disagree about what is due.
                 let across = try repository.liveRemindersAcrossVehicles()
-                var merged: [ReminderListRow] = []
+                rows = try RemindersAllRows.rows(vehicles: live,
+                                                 acrossReminders: across,
+                                                 repository: repository)
                 for car in live where !car.archived {
-                    let odometer = try Self.currentOdometer(for: car.id, repository: repository)
-                    let carRows = across
-                        .filter { $0.vehicleId == car.id && ReminderLifecycle.isActive($0) }
-                        .map { ReminderListRow(reminder: $0, currentOdometer: odometer) }
-                    merged.append(contentsOf: carRows)
                     await notificationCoordinator.reconcile(vehicleId: car.id)
                 }
-                rows = merged
             }
         } catch {
             AppLog.error(operation: "reminders.load", category: .notifications, error: error)
         }
-    }
-
-    /// The vehicle's current odometer: the latest entry's reading, else its
-    /// initial odometer - the same derivation the per-car list used.
-    private static func currentOdometer(for vehicleId: UUID,
-                                        repository: TankbookRepository) throws -> Int? {
-        let entries = try repository.liveEntries(forVehicle: vehicleId)
-        if let reading = entries.compactMap(\.odometer).max() { return reading }
-        return try repository.vehicle(id: vehicleId)?.initialOdometer
     }
 }
 

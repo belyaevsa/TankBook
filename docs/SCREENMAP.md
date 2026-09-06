@@ -240,11 +240,29 @@ coming weekend, and do not compete with live cars' rows. Its rows stay reachable
 screen and return to the merged list the moment the car is unarchived; the exclusion is read-time
 derivation, never a stored state.
 
-**RV.75 status:** the merged screen, its route (`Route.remindersAll`) and the form's car-first
-field are built. **RV.74 wired the notification deep link into it** - a tapped reminder lands on
-this list, never on a car-scoped one - so the screen has one production door. The remaining
-planned doors are the RV.76 Home row and the RV.79 Garage count; until RV.76 the screen is
-otherwise reached only by the DEBUG `-presentScreen remindersAll` hook.
+**RV.75/RV.74/RV.76 status:** the merged screen, its route (`Route.remindersAll`) and the form's
+car-first field are built; **RV.74 wired the notification deep link into it** - a tapped reminder
+lands on this list, never on a car-scoped one; and **RV.76 built the permanent Home row**
+(`design/screens/RemindersEntry.dc.html`), so the screen is no longer DEBUG-reached-only. The one
+remaining planned door is the RV.79 Garage count.
+
+**The Home row's placement was a decision, recorded here so it is not relitigated.** The row lives
+on Home, directly UNDER the urgent banner strip in the content stack (`HomeView.fullLayout`,
+rendered before the vehicle header row) - the calm path is always the next thing under the amber
+one, beside the banner as `RemindersEntry.dc.html` draws it, and it never scrolls below the fold.
+A Garage-level row above the cars was the alternative and was rejected for the doorway just as for
+the create action (below): Garage rows carry one-line vitals and RV.79's per-car attention count,
+and their job is picking a car, not a cross-car door - two reminders on two cars cannot be counted
+on one garage row without re-architecting the surface. The tab bar stays decided (five slots, the
+fifth reserved for Ask). **The row navigates and never creates** - a "+" there could only guess the
+car (hard rule 13) or open the form car-empty one tap later than the merged list's own card.
+
+**The count is the row's point and it is derived** (hard rule 2): the same live cross-car rows the
+merged list groups (`liveRemindersAcrossVehicles` -> `ReminderListGroups`) are counted at read
+time by `ReminderListGroups.attentionCount`, so the chip and the list's "Needs attention" group
+can never disagree. It is never stored and never seeded as a number; the amber chip renders only
+when the count is non-zero (amber is attention, hard rule 5 - a "0 due" chip would warn about
+nothing), and the row itself is ALWAYS present, count or no count.
 
 **Three consequences worth stating, because each one is a rule and not a preference:**
 
@@ -258,9 +276,12 @@ otherwise reached only by the DEBUG `-presentScreen remindersAll` hook.
   surfaces its completion flow over this list without making the sold car current again (J13).
   The switch lives in the router (`TabRoots.driveReminder`), the only place that can write the
   selection before the pushed screen loads.
-- **The way in exists when nothing is due** (RV.76). The amber Home banner is the urgent path and
-  stays; the "Reminders · N due" row is the calm one, always present, and it carries the count that
-  makes it worth a tap. The count is derived at read time (hard rule 2) and never stored.
+- **The way in exists when nothing is due** (RV.76, built). The amber Home banner is the urgent
+  path and stays; the "Reminders · N due" row is the calm one, always present, and it carries the
+  count that makes it worth a tap. The count is derived at read time (hard rule 2) and never
+  stored. A list with no reminders at all shows the empty state whose ONE action is the FILLED
+  "New reminder" (`RemindersEmpty.dc.html`) - the discovery path for a driver who has never made a
+  reminder; the dashed card stays the idiom for a list that has rows.
 - **A count marks a car only when something needs attention** (RV.79). Scheduled work shows nothing:
   a badge that is always lit stops meaning anything. Amber is attention (hard rule 5) and the count
   reads as words for VoiceOver - colour is never the only channel.
@@ -283,11 +304,14 @@ field still shows - it says which car this is about, and it is the only place th
 
 **The empty state is the discovery path, so its one action is loud** (`RemindersEmpty.dc.html`).
 Reviewed 2026-09-05 by two models against the mocks and the code (`diagnostics/RESEARCH-reminder-entry-pro.md`,
-`-qwen.md`); they converged on this independently. The dashed card is the app's idiom for "add one
-more" at the END of a populated list - Add car uses it in both Garage and the Car switcher - and it
-is the wrong weight for the single thing a screen with nothing on it can do, where it reads as an
-empty slot rather than an invitation. So: filled, accent, and stated plainly ("Nothing to remember
-yet" plus what a reminder is for). The dashed card keeps its job on a list that has rows.
+`-qwen.md`); they converged on this independently, and **RV.76 built it** (both the merged and the
+per-car list render the same filled-action empty state, `RemindersEmptyStateView`). The dashed card
+is the app's idiom for "add one more" at the END of a populated list - Add car uses it in both
+Garage and the Car switcher - and it is the wrong weight for the single thing a screen with nothing
+on it can do, where it reads as an empty slot rather than an invitation. So: filled, accent, and
+stated plainly ("Nothing to remember yet" plus what a reminder is for). The dashed card keeps its
+job on a list that has rows - and is NOT rendered on an empty one, so the screen never offers two
+weights for the same action.
 
 **What the create action must NOT be attached to**, argued and rejected in the same review: the tab
 bar (five decided slots, the fifth reserved for Ask); the Home header's "Type it" menu, whose items

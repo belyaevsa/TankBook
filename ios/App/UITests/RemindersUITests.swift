@@ -43,11 +43,17 @@ final class RemindersUITests: XCTestCase {
     func testEmptyStateRenders() {
         let app = launch([])
 
-        XCTAssertTrue(app.staticTexts["No reminders yet"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["reminderEmptyState"].exists)
-        // The empty state is a calm starting point, not a dead end: the "New
-        // reminder" action is still there.
-        XCTAssertTrue(app.buttons["remindersNewReminderButton"].exists)
+        // RV.76 (RemindersEmpty.dc.html): the empty state is the discovery
+        // path, so its ONE action is a FILLED "New reminder" - not the dashed
+        // card, which is this app's idiom for "add one more" at the end of a
+        // list that HAS rows (docs/SCREENMAP.md -> "Reminders across cars").
+        XCTAssertTrue(app.staticTexts["Nothing to remember yet"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.otherElements["reminderEmptyState"].exists)
+        let filled = app.buttons["remindersEmptyNewReminderButton"]
+        XCTAssertTrue(filled.exists,
+                      "the empty state must render its FILLED create action")
+        XCTAssertFalse(app.buttons["remindersNewReminderButton"].exists,
+                       "the dashed card must not render on an empty list")
         XCTAssertFalse(app.staticTexts["remindersAttentionHeader"].exists)
         XCTAssertFalse(app.staticTexts["remindersScheduledHeader"].exists)
     }
@@ -162,7 +168,7 @@ final class RemindersUITests: XCTestCase {
         remindersRow.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5),
                       "the Vehicle detail reminders row must reach the Reminders screen")
-        XCTAssertTrue(app.staticTexts["No reminders yet"].waitForExistence(timeout: 5),
+        XCTAssertTrue(app.staticTexts["Nothing to remember yet"].waitForExistence(timeout: 5),
                       "the seeded car has no reminders - the list's empty state is the honest landing")
     }
 

@@ -644,6 +644,59 @@
         }
       }
     },
+    "%lld due": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld due"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld due"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld напоминания"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld напоминаний"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld напоминание"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld напоминаний"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld entries": {
       "extractionState": "manual",
       "localizations": {
@@ -1563,6 +1616,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Аккаунт и устройства"
+          }
+        }
+      }
+    },
+    "Across all your cars": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Across all your cars"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "По всем машинам"
           }
         }
       }
@@ -5636,6 +5706,23 @@
         }
       }
     },
+    "Insurance, the next oil change, the tyre swap – a date, an odometer, or both.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Insurance, the next oil change, the tyre swap – a date, an odometer, or both."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Страховка, замена масла, смена шин – дата, пробег или и то, и другое."
+          }
+        }
+      }
+    },
     "It may have been deleted on another device.": {
       "extractionState": "manual",
       "localizations": {
@@ -7111,6 +7198,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Нечего менять – чек совпадает с сохранённым."
+          }
+        }
+      }
+    },
+    "Nothing to remember yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing to remember yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пока нечего напоминать"
           }
         }
       }

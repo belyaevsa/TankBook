@@ -39,6 +39,17 @@ public enum ReminderListGroups {
     /// Partitions the active rows into the two groups and sorts each by
     /// whichever-comes-first due point (soonest first, oldest `createdAt`
     /// breaking a tie - the list's own rule and `ReminderBanner`'s).
+    /// The number of rows that demand attention (RV.76's Home row count): how
+    /// many reminders need the user, ACROSS every live car. This is the count
+    /// `grouped(rows).attention.count` by a name, so the count and the merged
+    /// list's "Needs attention" group are the same number by construction and
+    /// can never disagree. Derived at read time (hard rule 2): it is a pure
+    /// function over the live rows, never stored, never seeded.
+    public static func attentionCount(_ rows: [ReminderListRow],
+                                      now: Date = Date()) -> Int {
+        grouped(rows, now: now).attention.count
+    }
+
     public static func grouped(_ rows: [ReminderListRow],
                                now: Date = Date()) -> (attention: [ReminderListRow],
                                                        scheduled: [ReminderListRow]) {

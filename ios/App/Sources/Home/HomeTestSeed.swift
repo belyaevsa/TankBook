@@ -54,7 +54,9 @@ enum HomeTestSeed {
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
-            ("-seedHomeReminderDue", seedReminderDue)
+            ("-seedHomeReminderDue", seedReminderDue),
+            ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
+            ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
@@ -79,6 +81,11 @@ enum HomeTestSeed {
             recurrence: nil)
         try? repository.upsertReminder(reminder)
     }
+
+    /// RV.76's two-car seeds live in `RemindersEntryTestSeed` (kept out of this
+    /// file to stay under the lint body-length budget): `-seedHomeRemindersDue`
+    /// (two cars, one attention reminder each) and
+    /// `-seedHomeRemindersNothingDue` (two cars, reminders all scheduled).
 
     /// The D4 state: a car, one full tank logged, no segment closed yet.
     ///

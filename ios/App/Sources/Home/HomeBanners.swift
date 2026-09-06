@@ -145,6 +145,68 @@ enum HomeReminderBannerFormat {
     }
 }
 
+// MARK: - The reminders entry row (RV.76)
+
+/// The calm door into Reminders (design/screens/RemindersEntry.dc.html): a
+/// permanent Home row, present whether or not anything is due, that navigates
+/// to the merged all-cars list - it never creates (a `+` here could only guess
+/// the car, hard rule 13, or open the form one tap later than the list's own
+/// card). It is deliberately placed directly below the urgent banner strip in
+/// `HomeView.fullLayout`, so the calm path is always the next thing under the
+/// amber one and never scrolls below the fold.
+///
+/// The count is the point: the amber chip ("2 due") is what makes the row worth
+/// a tap, and it is derived at read time (hard rule 2) from the same live rows
+/// the merged list groups - never stored, never seeded as a number. It renders
+/// only when something is actually due: amber is attention (hard rule 5), so a
+/// chip that showed "0 due" would be a warning that warns about nothing. At
+/// zero the row is the plain calm doorway; the count's voice is the chip.
+struct HomeRemindersEntryRow: View {
+    /// How many live reminders across every active car demand attention.
+    let attentionCount: Int
+
+    var body: some View {
+        NavigationLink(value: Route.remindersAll) {
+            HStack(spacing: 12) {
+                Image(systemName: "bell")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Reminders")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    Text("Across all your cars")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                Spacer(minLength: 8)
+                if attentionCount > 0 {
+                    Text(countText)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Theme.Palette.warn)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Capsule().fill(Theme.Palette.warn.opacity(0.12)))
+                        .accessibilityIdentifier("homeRemindersDueCount")
+                }
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.7))
+            }
+            .contentShape(Rectangle())
+            .padding(14)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("homeRemindersRow")
+    }
+
+    /// "2 due" - a full localized count phrase (real Russian plural rules: 2
+    /// needs «напоминания», never «напоминаний»), never concatenation.
+    private var countText: String {
+        String(localized: "\(attentionCount) due")
+    }
+}
+
 // MARK: - Sync toast (S7)
 
 /// The post-outage sync toast (docs/ERRORS.md -> Home, row S7). Fixture-driven
