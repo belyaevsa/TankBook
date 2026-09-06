@@ -2,6 +2,29 @@ import Foundation
 import os
 import TankbookCore
 
+/// RV.86: one distinct source car in the file, and the user's decision about
+/// where it lands. `.undecided` until the mapping step decides it; the wizard
+/// never guesses a destination (hard rule 13), so a multi-car file shows the
+/// cars and asks.
+enum ImportCarDestination: Equatable {
+    case undecided
+    case leaveOut
+    /// Import into an existing garage car (a merge, with the S2 duplicate count
+    /// surfaced) or a new car. `.new` carries a synthesized `Vehicle` built ONCE
+    /// when the user picks it, so the classification, the preview and the
+    /// commit all share the same id (a fresh id per build would orphan the fills).
+    case existing(Vehicle)
+    case new(Vehicle)
+
+    var targetCar: TargetCar? {
+        switch self {
+        case .undecided, .leaveOut: return nil
+        case .existing(let vehicle): return .existing(vehicle)
+        case .new(let vehicle): return .new(vehicle)
+        }
+    }
+}
+
 /// Where the import lands: an existing car (a merge, with the S2 duplicate
 /// count surfaced) or a new car. `.new` carries a synthesized `Vehicle` built
 /// ONCE when the user picks it, so the classification, the preview and the

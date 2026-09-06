@@ -220,8 +220,13 @@ public sealed class ImportService
             ["options"] = new JsonArray(a.Options.Select(o => (JsonNode)o).ToArray()),
             ["rowCount"] = a.RowCount,
         }).ToArray());
+        var vehicleGroups = new JsonArray(result.VehicleGroups.Select(g => (JsonNode)new JsonObject
+        {
+            ["name"] = g.Name,
+            ["sourceRows"] = new JsonArray(g.SourceRows.Select(r => (JsonNode)r).ToArray()),
+        }).ToArray());
 
-        return new ImportParseResponse(importId, format, Scope, candidates, unparsed, ambiguities);
+        return new ImportParseResponse(importId, format, Scope, candidates, unparsed, ambiguities, vehicleGroups);
     }
 
     private static byte[] ToJsonBytes(ImportParseResponse response)
@@ -234,13 +239,36 @@ public sealed class ImportService
         var candidates = JsonSerializer.Deserialize<JsonNode>(root.GetProperty("candidates").GetRawText(), WireJson);
         var unparsed = JsonSerializer.Deserialize<JsonNode>(root.GetProperty("unparsed").GetRawText(), WireJson);
         var ambiguities = JsonSerializer.Deserialize<JsonNode>(root.GetProperty("ambiguities").GetRawText(), WireJson);
+        // RV.86: a parse stored before the grouping field existed (older server
+        // build, within the 30-day window) has no vehicleGroups - re-derive it
+        // from the stored candidates so a resumed review still sees the cars.
+        JsonNode? vehicleGroups = null;
+        if (root.TryGetProperty("vehicleGroups", out var stored))
+        {
+            vehicleGroups = JsonSerializer.Deserialize<JsonNode>(stored.GetRawText(), WireJson);
+        }
+        else if (candidates is JsonArray candidateArray)
+        {
+            var objects = candidateArray
+                .Where(n => n is JsonObject)
+                .Cast<JsonObject>()
+                .ToArray();
+            var groups = MfmParser.GroupByVehicleName(objects);
+            vehicleGroups = new JsonArray(groups.Select(g => (JsonNode)new JsonObject
+            {
+                ["name"] = g.Name,
+                ["sourceRows"] = new JsonArray(g.SourceRows.Select(r => (JsonNode)r).ToArray()),
+            }).ToArray());
+        }
+
         return new ImportParseResponse(
             root.GetProperty("importId").GetGuid(),
             root.GetProperty("format").GetString()!,
             root.GetProperty("scope").GetString()!,
             candidates,
             unparsed,
-            ambiguities);
+            ambiguities,
+            vehicleGroups);
     }
 
     private static async Task<byte[]> ReadWithLimitAsync(Stream stream, long maxBytes, CancellationToken cancellationToken)

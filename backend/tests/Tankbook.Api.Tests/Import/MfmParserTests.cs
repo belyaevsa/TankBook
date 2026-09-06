@@ -158,6 +158,68 @@ public class MfmParserTests
         Assert.Equal("1.868955", candidate["unitPrice"]!.GetValue<string>());
     }
 
+    // ---- RV.86: candidates are grouped by their vehicle name -----------------
+
+    [Fact]
+    public void FuelCsv_CandidatesAreGroupedByVehicleName()
+    {
+        using var stream = MfmFixture.Open(MfmFixture.FuelCsv);
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        // The real export holds five cars; the parse must expose them as five
+        // ordered groups, each naming the source car and listing the 1-based
+        // data rows that belong to it (RV.86 - the device asks the user which
+        // cars to bring in rather than silently merging them).
+        Assert.Equal(5, result.VehicleGroups.Count);
+
+        var expected = new (string Name, int Count)[]
+        {
+            ("Volvo", 67),
+            ("AUDI A4 Avant 2.0 TDI Komfort - 105.00kW [2009]", 389),
+            ("AUDI A6 Avant 2.5 TDI [2002]", 31),
+            ("LADA 2110 1.5 16V Komfort [2004]", 8),
+            ("NISSAN X-Trail 2.5 Columbia Elegance A/T [2006]", 18),
+        };
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            var group = result.VehicleGroups[i];
+            Assert.Equal(expected[i].Name, group.Name);
+            Assert.Equal(expected[i].Count, group.SourceRows.Count);
+            foreach (var row in group.SourceRows)
+            {
+                Assert.Equal(expected[i].Name,
+                    result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == row)["vehicleName"]!.GetValue<string>());
+            }
+        }
+
+        // Membership is exhaustive and disjoint: every candidate is in exactly
+        // one group, and the row counts sum to the candidate count.
+        var allRows = result.VehicleGroups.SelectMany(g => g.SourceRows).ToArray();
+        Assert.Equal(result.Candidates.Count, allRows.Length);
+        Assert.Equal(allRows.Length, allRows.Distinct().Count());
+    }
+
+    [Fact]
+    public void SingleNameFile_ReturnsOneGroup()
+    {
+        // A file whose rows all carry one vehicle name yields exactly one group
+        // - the case that must keep today's single-car flow unchanged.
+        var csv = """
+        My Fuel Manager - Fuel
+        Date;Fillup volume;Odometer;Total price;Currency;Fuel;Tank status after fillup;%;Note;Vehicle name
+        4/1/2026;50;100000;80;USD;1;F;100;"";"Volvo"
+        4/10/2026;45;100400;72;USD;1;F;100;"";"Volvo"
+        """;
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        var group = Assert.Single(result.VehicleGroups);
+        Assert.Equal("Volvo", group.Name);
+        Assert.Equal(new[] { 1, 2 }, group.SourceRows);
+        Assert.Equal(2, result.Candidates.Count);
+    }
+
     // ---- costs / vehicles / incomes ----------------------------------------
 
     [Fact]

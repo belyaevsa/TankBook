@@ -75,6 +75,24 @@ the shape the tests need. Copy it into the repo's fixtures rather than reading f
 
 `docs/API.md` (the `/import/parse` response gains grouping - **this is a contract change, say so**),
 `docs/SCREENMAP.md` (the new wizard step), `docs/JOURNEYS.md` (the import journey).
+## You are running in a git worktree
+
+`/Users/sbelyaev/repos/fc-rv86`, branch `rv86` - **authorized by the product owner for this
+dispatch**, which is why it does not contradict `CLAUDE.md`'s standing "no worktrees" convention.
+Work here and nowhere else. The main checkout at `/Users/sbelyaev/repos/fuel-counter-ios` is being
+used for verification at the same time: **do not read from it, write to it, or run anything against
+it.**
+
+Two consequences that are yours to handle:
+
+- **This worktree has its own DerivedData.** Build and test here; the first `xcodebuild` will be slow.
+- `xcodegen generate` before any `xcodebuild`, because `Tankbook.xcodeproj` is generated and
+  gitignored, so this tree does not have one yet.
+
+**The evidence file is at the worktree root: `fuel.csv`** - the product owner's real My Fuel
+Manager export, already copied for you. Copy it into the repo's test fixtures as part of your work
+(it is the reproduction), and say where you put it.
+
 ## Where you may write
 
 Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:

@@ -14,6 +14,7 @@ final class ImportFlowModel {
 
     enum Step: Equatable {
         case source
+        case cars
         case preview
         case review
     }
@@ -72,6 +73,10 @@ final class ImportFlowModel {
 
     private(set) var liveVehicles: [Vehicle] = []
     private(set) var targetCar: TargetCar?
+    /// RV.86: one row per distinct source car in a multi-car file, holding the
+    /// user's decision about where each lands. Empty for a file with one
+    /// distinct name, which keeps the single `targetCar` flow untouched.
+    private(set) var carPlan: [ImportCarRow] = []
 
     /// The unit every odometer in the review list renders in. Taken from the
     /// target car when there is one; a brand-new car has not chosen yet, so it
@@ -80,6 +85,32 @@ final class ImportFlowModel {
     var distanceUnit: DistanceUnit {
         if case .existing(let vehicle) = targetCar { return vehicle.units.distance }
         return liveVehicles.first?.units.distance ?? .km
+    }
+
+    /// A review row's odometer renders in ITS car's unit (RV.86: a multi-car
+    /// file's rows can land in cars with different units). Resolves the row's
+    /// fill/non-fuel vehicle through the mapping; a single-name file's rows all
+    /// carry the target car's id, so this equals `distanceUnit` there.
+    func distanceUnit(for row: ImportReviewRow) -> DistanceUnit {
+        let vehicleID = row.fill?.vehicleId ?? row.nonFuelVehicleID
+        if let vehicleID, let unit = vehicleDistanceUnit(for: vehicleID) {
+            return unit
+        }
+        return distanceUnit
+    }
+
+    /// The distance unit of the car a review row belongs to, when that car is
+    /// known through the current mapping or the single target car.
+    private func vehicleDistanceUnit(for vehicleID: UUID) -> DistanceUnit? {
+        if case .existing(let vehicle) = targetCar, vehicle.id == vehicleID {
+            return vehicle.units.distance
+        }
+        for row in carPlan {
+            if row.destinationVehicleID == vehicleID {
+                return row.destinationVehicle?.units.distance
+            }
+        }
+        return liveVehicles.first(where: { $0.id == vehicleID })?.units.distance
     }
 
     private(set) var readyFills: [FillUp] = []

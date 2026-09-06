@@ -212,6 +212,59 @@ public struct ImportAmbiguity: Codable, Sendable, Equatable {
     }
 }
 
+/// One distinct source vehicle in a parsed file (RV.86). `sourceRows` are the
+/// 1-based data-row numbers of the candidates that belong to the car, in file
+/// order; the device matches them against each candidate's `sourceRow` so it
+/// never re-derives grouping by string equality.
+public struct ImportVehicleGroup: Codable, Sendable, Equatable, Hashable {
+    public let name: String
+    public let sourceRows: [Int]
+
+    public init(name: String, sourceRows: [Int]) {
+        self.name = name
+        self.sourceRows = sourceRows
+    }
+}
+
+extension ImportParseResponse {
+    /// The vehicles the file holds, in first-appearance order. Uses the wire's
+    /// `vehicleGroups` when the parse was stored after RV.86; older stored
+    /// parses and seeds lack the field, so the device derives the same groups
+    /// from the candidates' `vehicleName`. A blank or missing name forms its
+    /// own unnamed group only when present - nothing is silently dropped.
+    public var resolvedVehicleGroups: [ImportVehicleGroup] {
+        if let vehicleGroups, !vehicleGroups.isEmpty {
+            return vehicleGroups
+        }
+        return ImportVehicleGrouping.groups(of: candidates)
+    }
+
+    /// The candidates belonging to a group, resolved by `sourceRow`.
+    public func candidates(in group: ImportVehicleGroup) -> [ImportCandidate] {
+        let wanted = Set(group.sourceRows)
+        return candidates.filter { wanted.contains($0.sourceRow) }
+    }
+}
+
+/// The parser's grouping rule re-derived client-side when the stored parse
+/// predates the wire field (RV.86). Pure: given the candidates, returns the
+/// ordered distinct vehicles with their member source rows.
+public enum ImportVehicleGrouping {
+    public static func groups(of candidates: [ImportCandidate]) -> [ImportVehicleGroup] {
+        var rowsByName: [String: [Int]] = [:]
+        var order: [String] = []
+        for candidate in candidates {
+            let name = (candidate.vehicleName ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if rowsByName[name] == nil {
+                rowsByName[name] = []
+                order.append(name)
+            }
+            rowsByName[name]?.append(candidate.sourceRow)
+        }
+        return order.map { name in ImportVehicleGroup(name: name, sourceRows: rowsByName[name] ?? []) }
+    }
+}
+
 /// The full `POST /v1/import/parse` / `GET /import/{id}` response.
 public struct ImportParseResponse: Codable, Sendable, Equatable {
     public let importId: String
@@ -220,16 +273,22 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
     public let candidates: [ImportCandidate]
     public let unparsed: [ImportUnparsedRow]
     public let ambiguities: [ImportAmbiguity]
+    /// RV.86: the candidates grouped by the source file's vehicle-name column,
+    /// in file order of first appearance. Absent on parses stored before the
+    /// field existed - the device derives groups from the candidates then.
+    public let vehicleGroups: [ImportVehicleGroup]?
 
     public init(importId: String, format: String, scope: String,
                 candidates: [ImportCandidate], unparsed: [ImportUnparsedRow],
-                ambiguities: [ImportAmbiguity]) {
+                ambiguities: [ImportAmbiguity],
+                vehicleGroups: [ImportVehicleGroup]? = nil) {
         self.importId = importId
         self.format = format
         self.scope = scope
         self.candidates = candidates
         self.unparsed = unparsed
         self.ambiguities = ambiguities
+        self.vehicleGroups = vehicleGroups
     }
 
     /// The currency the file declares, if any (the `currency` ambiguity's first
@@ -265,7 +324,8 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
         return ImportParseResponse(
             importId: importId, format: format, scope: scope,
             candidates: candidates.map { $0.reDatingToDMY(calendar: calendar) ?? $0 },
-            unparsed: unparsed, ambiguities: ambiguities)
+            unparsed: unparsed, ambiguities: ambiguities,
+            vehicleGroups: vehicleGroups)
     }
 }
 
