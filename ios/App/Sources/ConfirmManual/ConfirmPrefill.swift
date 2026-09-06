@@ -73,6 +73,9 @@ struct ConfirmPrefill {
 ///   total (a VAT/rounding line was grabbed): the QR total fills the field.
 /// - `-seedConfirmPrefillMixed` - a mixed receipt: the fuel line stands
 ///   (hard rule 4), never the grand total.
+/// - `-seedConfirmPrefillFuelMismatch` - a diesel receipt scanned against the
+///   default petrol-95 car (RV.71): the mismatch warn renders at scan moment
+///   and never blocks the save.
 /// - `-seedConfirmForeign` / `-seedConfirmForeignPending` /
 ///   `-seedConfirmForeignLowConfidence` - the P2.5 foreign-currency states:
 ///   converted (rate in the seed pack), rate-pending (date outside it), and
@@ -96,6 +99,7 @@ enum ConfirmPrefillSeed {
     }
 
     private static func rawPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        if let mismatch = fuelMismatchPrefill(from: arguments) { return mismatch }
         if let foreign = foreignPrefill(from: arguments) { return foreign }
         if let pump = pumpPrefill(from: arguments) { return pump }
         if arguments.contains("-seedConfirmPrefillEmpty") {
@@ -174,6 +178,20 @@ enum ConfirmPrefillSeed {
                                   crops: crops(for: [.volume, .unitPrice]))
         }
         return nil
+    }
+
+    /// RV.71: a DIESEL receipt scanned against the default petrol-95 test car
+    /// (ManualFillUpTestSeed). The two disagree, the extraction's diesel is NOT
+    /// applied (apply guards on `vehicle.fuelKinds`), and the confirm screen
+    /// must show the mismatch warn at scan moment - without blocking the save
+    /// (the numbers are complete so Save is enabled with the warn on screen).
+    private static func fuelMismatchPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        guard arguments.contains("-seedConfirmPrefillFuelMismatch") else { return nil }
+        return ConfirmPrefill(extraction: FuelExtraction(liters: 42.30, unitPrice: 1.679,
+                                                         total: 71.02, currency: .eur,
+                                                         fuelKind: .diesel,
+                                                         date: "17.08.2026"),
+                              crops: crops(for: [.volume, .unitPrice]))
     }
 
     /// P2.7: a pump detection, routed through the accuracy gate. Off (the

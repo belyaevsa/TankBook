@@ -10958,6 +10958,23 @@
         }
       }
     },
+    "The receipt reads %1$@, but this car is set up for %2$@. Check the fuel kind before saving.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The receipt reads %1$@, but this car is set up for %2$@. Check the fuel kind before saving."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В чеке – %1$@, а эта машина настроена на %2$@. Проверьте вид топлива перед сохранением."
+          }
+        }
+      }
+    },
     "The server couldn't load the list": {
       "extractionState": "manual",
       "localizations": {

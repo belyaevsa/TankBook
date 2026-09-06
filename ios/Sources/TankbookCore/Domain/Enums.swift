@@ -53,6 +53,45 @@ extension FuelKind {
         }
         return allCases.filter { result.contains($0) }
     }
+
+    /// RV.71 (2026-09-05, product owner): whether a scanned receipt's fuel kind
+    /// must raise the confirm screen's "doesn't match this car" warning.
+    ///
+    /// The rule is exactly: warn when `scannedKind` is not in the offer set
+    /// `offeredKinds(for: vehicleFuelKinds)` - the SAME set the confirm screen's
+    /// chips already render (docs/DESIGN.md), so this decision can never drift
+    /// from what the row shows a driver. Reusing the offer set is what keeps the
+    /// grade case quiet: a car declaring any petrol grade is offered all of
+    /// them, because 92/95/98/100 share one tank and choosing between them is a
+    /// driver's choice, not a fuel switch (the P2.3c comment on `offeredKinds`).
+    ///
+    /// Two carve-outs, both decided:
+    /// 1. **Empty `vehicleFuelKinds` never warns.** A car that has declared
+    ///    nothing cannot disagree with anything, and that is the state most cars
+    ///    start in - a rule that fired on every scan for a fresh car would be
+    ///    noise, and noise is how a warning stops being read.
+    /// 2. **`electricity` never warns, in either direction.** A charge session
+    ///    is a different entry path; `electricity` on the receipt is never
+    ///    warned against, and a car whose only declared kind is `electricity`
+    ///    (an EV) never warns on a liquid scan either - warning there would fire
+    ///    on every hybrid and every charging shot.
+    ///
+    /// Why the comparison is worth a row at all: fuel kind feeds the
+    /// consumption maths (docs/SCHEMA.md, litres vs kWh) and stats are derived
+    /// (hard rule 2), so a wrong kind propagates on every recompute. The
+    /// warning is a DEFAULT-INPUT guard (hard rule 13) - it never blocks the
+    /// save and never rewrites either value.
+    public static func shouldWarnFuelMismatch(scannedKind: FuelKind?,
+                                              vehicleFuelKinds: Set<FuelKind>) -> Bool {
+        guard let scannedKind, scannedKind != .electricity else { return false }
+        // Carve-out 2, car side: a hybrid's `electricity` is not a fuel the
+        // fill-up warning is about - only the declared liquid/gas kinds take
+        // part. A car left with only electricity therefore falls through to the
+        // empty-set rule below and never warns.
+        let declared = vehicleFuelKinds.subtracting([.electricity])
+        guard !declared.isEmpty else { return false } // Carve-out 1.
+        return !offeredKinds(for: declared).contains(scannedKind)
+    }
 }
 
 /// Vehicle drivetrain (docs/SCHEMA.md, Vehicle.powertrain).

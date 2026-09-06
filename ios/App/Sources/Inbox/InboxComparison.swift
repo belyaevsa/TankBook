@@ -103,18 +103,10 @@ enum InboxValueFormat {
 
 extension FuelKind {
     /// The fuel kind's localized display label as a `String` (the `labelKey`
-    /// `LocalizedStringKey` cannot be read back for a comparison cell).
+    /// `LocalizedStringKey` cannot be read back for a comparison cell). The
+    /// one label source lives in `L10n.fuelKindLabel`; this is its Inbox
+    /// spelling so a comparison cell reads the same words as the chips.
     var inboxLabel: String {
-        switch self {
-        case .diesel: return L10n.localize("Diesel")
-        case .petrol92: return L10n.localize("92")
-        case .petrol95: return L10n.localize("95")
-        case .petrol98: return L10n.localize("98")
-        case .petrol100: return L10n.localize("100")
-        case .lpg: return L10n.localize("LPG")
-        case .cng: return L10n.localize("CNG")
-        case .e85: return L10n.localize("E85")
-        case .electricity: return L10n.localize("Electricity")
-        }
+        L10n.fuelKindLabel(self)
     }
 }

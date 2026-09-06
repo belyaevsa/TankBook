@@ -5,7 +5,6 @@ import TankbookCore
 /// The ConfirmManual sheet (P1.3): the manual fill-up form, and the fallback
 /// the whole capture pipeline degrades to (docs/JOURNEYS.md F1 - the failure
 /// state IS this form). Stands alone: no camera, no OCR, no network.
-///
 /// Matches design/screens/ConfirmManual.dc.html: the three-number card with
 /// live derivation and the cross-check line, fuel kind, full-tank toggle, the
 /// last-known odometer, station, date, and the taillight Save bar. The core
@@ -170,6 +169,7 @@ struct ManualFillUpView: View {
                                              paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
                     ManualFillUpStationRow(stations: stations, selection: $selectedStation)
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
+                    FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {
                         TankLevelRow(isFull: form.isFull,
                                      tankLevelAfterPct: form.tankLevelAfterPct,
