@@ -59,7 +59,8 @@ enum HomeTestSeed {
             ("-seedHomeReminderDue", seedReminderDue),
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
             ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue),
-            ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts)
+            ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts),
+            ("-seedHomeMultiYearLog", seedMultiYearLog)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }
@@ -189,6 +190,44 @@ enum HomeTestSeed {
             vehicleID: vehicle.id, date: washDate, odometer: nil,
             amount: "8.00", title: "Car wash",
             purchaseGroupID: groupID, attachments: [groupReceipt.id]))
+    }
+
+    /// RV.89: a log that spans calendar years, so the dated rows and the month
+    /// dividers MUST say which year an entry is in. This year's fill (dated
+    /// today, the top of the stream) and last year's rows (an old service and
+    /// expense, 380/396 days back - always in a previous calendar year,
+    /// whatever the run date) sit close enough that one screen shows the
+    /// boundary: this year's row without a year directly above last year's
+    /// divider and rows carrying it. The old rows are deliberately NOT
+    /// fills - a full-tank fill a year before the next would stretch one
+    /// consumption segment across an empty year and produce a nonsense
+    /// headline, while the fix under test is about the RENDERED date.
+    private static func seedMultiYearLog(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        let neste = makeStation(repository, name: "Neste")
+
+        // This calendar year: one fill dated TODAY so it is in the current year
+        // on ANY run date (a "daysAgo: N" fill crosses into the previous year
+        // during the first N days of January). A single recent row keeps the
+        // previous-year divider and rows inside the first screen, so the
+        // screenshot shows both years' rows in one list without scrolling.
+        try? repository.upsertFillUp(makeFill(
+            vehicleID: vehicle.id,
+            FillSpec(daysAgo: 0, odometer: 123_600, litres: 42.0,
+                     amount: "68.46", price: "1.630", stationID: neste.id)))
+
+        // A previous calendar year (380/396 days back is always outside the
+        // current one). Odometer values stay below this year's and increase
+        // with date, so no F9a order conflict fires.
+        let lastYearService = Date().addingTimeInterval(-380 * 86_400)
+        try? repository.upsertServiceRecord(makeService(
+            vehicleID: vehicle.id, date: lastYearService, odometer: 118_100,
+            amount: "148.00", vendor: "Bosch Service"))
+        let lastYearExpense = Date().addingTimeInterval(-396 * 86_400)
+        try? repository.upsertExpense(makeExpense(
+            vehicleID: vehicle.id, date: lastYearExpense, odometer: 117_900,
+            amount: "6.00", title: "Parking"))
     }
 
     /// A single-fuel car's log: the fuel kind is the car's usual one, so no

@@ -255,6 +255,70 @@ final class HomeUITests: XCTestCase {
         XCTAssertEqual(app.buttons.matching(identifier: "logGroupMemberButton").count, 0)
     }
 
+    // MARK: - RV.89 the log must say which year
+
+    /// A multi-year log must print the year on rows OUTSIDE the current
+    /// calendar year and nothing on this year's rows. The two-digit year is
+    /// asserted structurally - the WHOLE rendered date label is matched, never
+    /// a "contains 24" substring, which an odometer, a volume or a day-of-month
+    /// can all satisfy (RV.89's named trap). Runs in en_US, the suite default.
+    func testMultiyearLogShowsYearOnOlderRowsAndNotOnThisYears() {
+        let app = launch(args: ["-seedHomeMultiYearLog"])
+
+        // The newest row is dated TODAY (the seed pins it to the current year
+        // on any run date): its date renders month + day and no year.
+        let dates = app.staticTexts.matching(identifier: "logEntryDate")
+        XCTAssertTrue(dates.firstMatch.waitForExistence(timeout: 10),
+                      "the log must render its date segments")
+        let newestLabel = dates.firstMatch.label
+        XCTAssertEqual(firstCapture("^[A-Za-z]{3} [0-9]{1,2}$", in: newestLabel), newestLabel,
+                       "this year's row must render month + day with no year, got '\(newestLabel)'")
+
+        // The oldest rows are a previous calendar year (380/396 days back is
+        // always outside the current year): scrolled into view, their dates
+        // must carry the exact two-digit year of that date.
+        scrollToBottomLog(in: app)
+        let oldestLabel = app.staticTexts.matching(identifier: "logEntryDate")
+            .allElementsBoundByIndex.last!.label
+        // The seed's OLDEST row is the expense dated 396 days back.
+        let expectedYY = twoDigitYear(of: Date().addingTimeInterval(-396 * 86_400))
+        let yy = firstCapture("^[A-Za-z]{3} [0-9]{1,2}, ([0-9]{2})$", in: oldestLabel)
+        XCTAssertEqual(yy, expectedYY,
+                       "the previous-year row must carry its two-digit year, got '\(oldestLabel)'")
+    }
+
+    // MARK: - Helpers
+
+    /// Swipes the Home scroll view to its end, the way the stream's last row is
+    /// reached elsewhere in this suite (the log is short for this seed, so a
+    /// bounded number of swipes always reaches the bottom).
+    private func scrollToBottomLog(in app: XCUIApplication) {
+        let scrollView = app.scrollViews.firstMatch
+        for _ in 0..<8 {
+            scrollView.swipeUp()
+        }
+    }
+
+    /// The first regex capture group in `text` (the whole match when the
+    /// pattern has no group). Used to assert a date label's SHAPE, never a
+    /// bare substring.
+    private func firstCapture(_ pattern: String, in text: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, range: range) else { return nil }
+        if match.numberOfRanges > 1, let group = Range(match.range(at: 1), in: text) {
+            return String(text[group])
+        }
+        guard let whole = Range(match.range, in: text) else { return nil }
+        return String(text[whole])
+    }
+
+    /// The two-digit year a date must render under the formatter ("25" for
+    /// 2025), computed the same way the row renders it.
+    private func twoDigitYear(of date: Date) -> String {
+        String(format: "%02d", Calendar.current.component(.year, from: date) % 100)
+    }
+
     // MARK: - Sync-shaped presentation states (fixtures until P4)
 
     func testSyncShapedPresentationStatesAreReachable() {

@@ -50,6 +50,7 @@ struct FlaggedEntriesView: View {
                                     Text(row.subtitle)
                                         .font(.caption)
                                         .foregroundStyle(Theme.Palette.inkSoft)
+                                        .accessibilityIdentifier("flaggedEntrySubtitle")
                                 }
                                 Spacer(minLength: 8)
                                 Image(systemName: "chevron.right")

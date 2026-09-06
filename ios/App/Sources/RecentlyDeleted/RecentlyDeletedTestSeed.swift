@@ -163,7 +163,7 @@ struct RecentlyDeletedFixtures {
             // The artboard's Shell row: replaced 2 days ago, 28 days left on
             // any run date.
             let replacedAt = now.addingTimeInterval(-2 * 86_400)
-            let replacedDay = replacedAt.formatted(.dateTime.month(.abbreviated).day())
+            let replacedDay = HomeFormat.day(replacedAt)
             let remaining = TombstoneCountdown.daysRemaining(deletedAt: replacedAt, now: now)
             let daysLeft = String(localized: "\(remaining) days left")
             syncRows = [SyncOverwrittenRow(

@@ -16,6 +16,11 @@ enum SettingsTestSeed {
         case pending
         case serverDown
         case flagged
+        /// RV.89: two flagged entries dated in DIFFERENT calendar years - one
+        /// dated today (always the current year) and one 380 days back (always
+        /// a previous year) - so the "needs a look" list must show the year on
+        /// the older row and not on this year's.
+        case flaggedMultiyear
         case revoked
         case quota
         case upgradeRequired
@@ -67,6 +72,7 @@ enum SettingsTestSeed {
             "-seedSettingsPending": .pending,
             "-seedSettingsServerDown": .serverDown,
             "-seedSettingsFlagged": .flagged,
+            "-seedSettingsFlaggedMultiyear": .flaggedMultiyear,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
             "-seedSettingsUpgradeRequired": .upgradeRequired,
@@ -267,7 +273,8 @@ enum SettingsTestSeed {
         sync.forcedRefused = refusedError(for: state)
         sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
 
-        if seedsQueue(state) || state == .flagged || state == .localLog {
+        if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
+            || state == .localLog {
             seed(repository: try? AppStore.repository(), state: state)
         }
         // OB.3: write the persisted sync state THIS seed must show. Runs after
@@ -331,6 +338,24 @@ enum SettingsTestSeed {
                 conflict: .flagged(kind: .pace, detectedAt: Date()))
             try? repository.upsertFillUp(flagged1, syncState: .synced(scn: 2))
             try? repository.upsertFillUp(flagged2, syncState: .synced(scn: 3))
+        } else if state == .flaggedMultiyear {
+            // RV.89: one flagged entry dated TODAY (always the current year)
+            // and one dated 380 days back (always a previous calendar year), so
+            // the "needs a look" list proves it shows the year on the older
+            // row and not on this year's.
+            let thisYear = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 0, odometer: 118_500, litres: 42.3,
+                                      amount: "71.02", price: "1.679", stationID: nil),
+                conflict: .flagged(kind: .order, detectedAt: Date()))
+            let olderYear = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 0, odometer: 118_000, litres: 41.0,
+                                      amount: "68.50", price: "1.671", stationID: nil),
+                conflict: .flagged(kind: .pace, detectedAt: Date()),
+                date: Date().addingTimeInterval(-380 * 86_400))
+            try? repository.upsertFillUp(thisYear, syncState: .synced(scn: 2))
+            try? repository.upsertFillUp(olderYear, syncState: .synced(scn: 3))
         }
     }
 

@@ -105,4 +105,69 @@ final class FlaggedEntriesUITests: XCTestCase {
         // navigation happens, so nothing appears and nothing re-enters.
         waitForFlaggedRowCount(1, in: app)
     }
+
+    // MARK: - RV.89 the flagged list must say which year
+
+    /// The "needs a look" list spans the account's whole log, so it mixes
+    /// years - exactly the product owner's report (a flagged 2015 entry was
+    /// indistinguishable from a flagged 2026 one, all reading "3 Jun"). The
+    /// seeded list holds one flagged entry dated TODAY (always the current
+    /// year) and one dated 380 days back (always a previous year): the older
+    /// row's subtitle must carry the year and this year's must not. The year is
+    /// asserted structurally on the rendered subtitle - never a bare "contains
+    /// 24" (RV.89's named trap). Runs pinned to en_US, where a two-digit year
+    /// renders as ", YY".
+    func testMultiyearFlaggedListShowsYearOnTheOlderRowOnly() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsFlaggedMultiyear",
+                               "-presentScreen", "settings",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let row = app.buttons["settingsFlaggedRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Needs a look"].waitForExistence(timeout: 10))
+        waitForFlaggedRowCount(2, in: app)
+
+        let subtitles = app.staticTexts.matching(identifier: "flaggedEntrySubtitle")
+        let labels = subtitles.allElementsBoundByIndex.map(\.label)
+        XCTAssertEqual(labels.count, 2,
+                       "the two seeded flagged entries must render their subtitles")
+
+        // Exactly one subtitle carries a rendered ", YY" two-digit year...
+        let yearSuffix = ", ([0-9]{2})$"
+        let withYear = labels.filter { firstCapture(yearSuffix, in: $0) != nil }
+        XCTAssertEqual(withYear.count, 1,
+                       "exactly the previous-year row must show a year, got \(labels)")
+        let expectedYY = twoDigitYear(of: Date().addingTimeInterval(-380 * 86_400))
+        XCTAssertEqual(firstCapture(yearSuffix, in: withYear[0]), expectedYY,
+                       "the older row must carry the exact two-digit year of its date")
+
+        // ...and the other subtitle ends in a bare month + day.
+        let withoutYear = labels.first { firstCapture(yearSuffix, in: $0) == nil }!
+        XCTAssertNotNil(firstCapture("[A-Za-z]{3} [0-9]{1,2}$", in: withoutYear),
+                        "this year's flagged row must render no year, got '\(withoutYear)'")
+    }
+
+    // MARK: - Helpers
+
+    /// The first regex capture group in `text` (the whole match when the
+    /// pattern has no group). Date labels are asserted by SHAPE, never by a
+    /// bare substring.
+    private func firstCapture(_ pattern: String, in text: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(text.startIndex..., in: text)
+        guard let match = regex.firstMatch(in: text, range: range) else { return nil }
+        if match.numberOfRanges > 1, let group = Range(match.range(at: 1), in: text) {
+            return String(text[group])
+        }
+        guard let whole = Range(match.range, in: text) else { return nil }
+        return String(text[whole])
+    }
+
+    /// The two-digit year a date must render under the formatter ("25" for
+    /// 2025), computed the same way the row renders it.
+    private func twoDigitYear(of date: Date) -> String {
+        String(format: "%02d", Calendar.current.component(.year, from: date) % 100)
+    }
 }

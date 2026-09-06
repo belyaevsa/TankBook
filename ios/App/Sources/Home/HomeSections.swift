@@ -42,16 +42,16 @@ enum HomeFormat {
         return "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2))\u{00A0}\(symbol)"
     }
 
-    /// "Aug 17" for the "updated <date>" caption.
+    /// "Aug 17" in the current year, "Aug 17, 15" otherwise - the one
+    /// formatter behind every dated-entry surface (RV.89; core `EntryDateText`).
     static func day(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.abbreviated).day())
+        EntryDateText.dayMonth(date)
     }
 
-    /// The month's name for the stream dividers ("August"), localized by the
-    /// device locale - the divider's total is composed separately (see the
-    /// divider in `HomeRecentEntries`).
-    static func monthName(_ date: Date) -> String {
-        date.formatted(.dateTime.month(.wide))
+    /// "September" this year, "September 2015" otherwise - the month-divider
+    /// heading: a header's year is FULL, the rows' two digits (RV.89).
+    static func monthHeading(_ date: Date) -> String {
+        EntryDateText.monthHeading(date)
     }
 
     /// The current month's name for the vitals and the entries section header.
@@ -350,10 +350,10 @@ struct HomeRecentEntries: View {
     }
 
     /// The month's divider: name on the left, the month's total spend in DIN on
-    /// the right (docs/DESIGN.md). One accessibility element - the composed
-    /// label is a full localized phrase per language, never concatenation.
+    /// the right (docs/DESIGN.md); the name carries the year outside the current
+    /// one (RV.89). One accessibility element, label a full localised phrase.
     private func monthDivider(_ section: LogStream.Section) -> some View {
-        let monthName = HomeFormat.monthName(section.monthStart)
+        let monthName = HomeFormat.monthHeading(section.monthStart)
         let spend = HomeFormat.spend(section.totalSpend, symbol: currencySymbol)
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(monthName)
