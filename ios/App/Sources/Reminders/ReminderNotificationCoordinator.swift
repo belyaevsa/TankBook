@@ -340,6 +340,16 @@ final class ReminderNotificationCoordinator {
     /// transition first so a `.scheduled -> .attention` crossing arms once. The
     /// plan is computed from the PRE-transition statuses for exactly that
     /// reason. Returns the reminders with their updated statuses for rendering.
+    ///
+    /// For an ARCHIVED vehicle (RV.81, decided 2026-09-06) the reconcile is the
+    /// STRIP, never an arm: the planner cancels every identifier the car's rows
+    /// own and schedules nothing, and no stored `.attention` transition is
+    /// written - a car that is put away must not accumulate "already notified"
+    /// state it never earned, or an odometer reminder unarchived inside its km
+    /// window could not re-arm. This is the single arming path for both
+    /// directions: the archive toggle and every ordinary live-car reconcile call
+    /// the same method, and the vehicle's `archived` flag decides which side it
+    /// is (docs/NOTIFICATIONS.md -> Reminders & archiving).
     @discardableResult
     func reconcile(vehicleId: UUID) async -> [Reminder] {
         guard let repository = try? AppStore.repository() else { return [] }
@@ -348,25 +358,31 @@ final class ReminderNotificationCoordinator {
         let live = (try? repository.liveReminders(forVehicle: vehicleId)) ?? []
         let now = Date()
         let vehicle = try? repository.vehicle(id: vehicleId)
+        let isArchived = vehicle?.archived ?? false
         let entries = (try? repository.liveEntries(forVehicle: vehicleId)) ?? []
         let odometer = entries.compactMap(\.odometer).max() ?? vehicle?.initialOdometer
 
         hasActiveReminders = live.contains { ReminderLifecycle.isActive($0) }
 
         let plan = ReminderNotificationPlanner.plan(
-            reminders: live, now: now, currentOdometer: odometer)
+            reminders: live,
+            vehicleArchived: isArchived,
+            now: now,
+            currentOdometer: odometer)
 
         var updated: [Reminder] = []
-        for reminder in live where ReminderLifecycle.isActive(reminder) {
-            let derived = ReminderLifecycle.derivedStatus(
-                reminder, currentOdometer: odometer, now: now)
-            if derived != reminder.status {
-                var next = reminder
-                next.status = derived
-                try? repository.upsertReminder(next)
-                updated.append(next)
-            } else {
-                updated.append(reminder)
+        if !isArchived {
+            for reminder in live where ReminderLifecycle.isActive(reminder) {
+                let derived = ReminderLifecycle.derivedStatus(
+                    reminder, currentOdometer: odometer, now: now)
+                if derived != reminder.status {
+                    var next = reminder
+                    next.status = derived
+                    try? repository.upsertReminder(next)
+                    updated.append(next)
+                } else {
+                    updated.append(reminder)
+                }
             }
         }
 

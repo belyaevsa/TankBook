@@ -17,14 +17,15 @@ extension TankbookRepository {
     /// - **Archived cars' rows.** This is a decision, recorded here because it
     ///   is load-bearing: the merged list answers "what needs me", and an
     ///   archived car is a sold car - out of active stats, never the default
-    ///   selection, with its monthly summary cancelled on archive (J13,
+    ///   selection, with its reminders stripped on archive (RV.81; J13,
     ///   `VehicleSelection.resolve`, `VehicleDetailView.toggleArchive`). A sold
     ///   car's pending oil change is history, not a task for the coming
     ///   weekend; surfacing it here would compete with live cars' work for the
-    ///   user's attention. Its rows are not lost: they stay on the per-car
-    ///   screen (`liveReminders(forVehicle:)` is unchanged) and return to this
-    ///   list the moment the car is unarchived - the exclusion is a read-time
-    ///   derivation, never a stored state.
+    ///   user's attention. Its rows are not lost: archive never deletes or
+    ///   tombstones them (hard rule 8) - they are hidden from every display
+    ///   surface while the car is archived (the per-car door is gone with the
+    ///   car, RV.81) and return to this list the moment the car is unarchived -
+    ///   the exclusion is a read-time derivation, never a stored state.
     ///
     /// A soft-deleted vehicle cannot leak rows here: `softDeleteVehicle`
     /// tombstones every vehicle-scoped table at the same stamp, so its rows are
@@ -59,9 +60,14 @@ extension TankbookRepository {
     /// - The merged-list query feeds "what needs me now", so it excludes
     ///   archived cars' rows by decision (their work is history, J13).
     /// - A resolve answers "which car does this id belong to", and must answer
-    ///   for every LIVE reminder, archived car or not - archive does not cancel
-    ///   armed notifications, so an armed notification on an archived car is
-    ///   still a tap the user can make. Reusing the list query would make that
+    ///   for every LIVE reminder, archived car or not. RV.81 changed WHY that
+    ///   is: archiving now CANCELS a car's pending notifications, but nothing
+    ///   can recall one the system already delivered, and a tap can race the
+    ///   archive action (the notification was handed to the system a moment
+    ///   before the user archived). Those taps must still land somewhere honest
+    ///   rather than dead-end, which is hard rule 7 - so the resolve stays, and
+    ///   a notification that slipped through the strip still surfaces its
+    ///   completion over the merged list. Reusing the list query would make that
     ///   tap unresolvable, which is the dead end hard rule 7 forbids.
     ///
     /// Live-row-only, exactly like every list query: a tombstoned row

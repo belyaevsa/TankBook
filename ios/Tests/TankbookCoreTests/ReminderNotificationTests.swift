@@ -253,6 +253,40 @@ import Testing
         #expect(ids.contains(ReminderNotificationPlanner.identifier(.overdue, for: reminder)))
     }
 
+    // MARK: - RV.81: the archived-vehicle strip (plan side)
+
+    /// The archive side of the plan (RV.81, decided 2026-09-06): with
+    /// `vehicleArchived` the reconcile schedules NOTHING and cancels EVERY
+    /// identifier the car's rows own - active AND terminal alike - because a
+    /// put-away car must never arm again until it is unarchived. Every other
+    /// test above plans a LIVE car (`vehicleArchived: false`, the default), so
+    /// this is the half of the strip that could silently be lost if the flag
+    /// did nothing: the mutation that drops the archived branch leaves a
+    /// `.scheduled` row re-arming on the next reconcile.
+    @Test func archivedVehiclePlanCancelsEverythingAndSchedulesNothing() {
+        let now = date(2025, 6, 1, 12, 0)
+        let current = 118_930
+        let reminders = [
+            makeReminder(dueDate: date(2025, 7, 1), dueOdometer: 119_400),
+            makeReminder(title: "Fired oil", status: .attention,
+                         dueDate: nil, dueOdometer: 119_400),
+            makeReminder(title: "Done oil", status: .done(entryId: nil),
+                         dueDate: date(2025, 8, 1))
+        ]
+
+        let plan = ReminderNotificationPlanner.plan(
+            reminders: reminders, vehicleArchived: true,
+            now: now, currentOdometer: current, calendar: Self.calendar)
+
+        #expect(plan.scheduled.isEmpty,
+                "an archived car's plan must never arm - it is a strip, not a schedule")
+        let expected = reminders.reduce(into: Set<String>()) { partial, reminder in
+            partial.formUnion(ReminderNotificationPlanner.identifiers(for: reminder))
+        }
+        #expect(plan.cancelled == expected,
+                "archiving must cancel every identifier every row owns, active or terminal")
+    }
+
     // MARK: - 5. Rescheduling re-arms
 
     /// A fired `.attention` is already armed (it does not re-arm on every

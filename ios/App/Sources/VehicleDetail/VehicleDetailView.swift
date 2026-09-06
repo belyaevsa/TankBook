@@ -99,11 +99,25 @@ struct VehicleDetailView: View {
                         Route.tireSets
                     }
                 }
-                section("Reminders") {
-                    linkRow(title: "Reminders",
-                            subtitle: "Track dates and odometer limits",
-                            identifier: "vehicleDetailRemindersLink") {
-                        Route.reminders
+                // The Reminders management row (PJ.4) is HIDDEN on an archived
+                // car (RV.81, decided 2026-09-06). Archiving strips the car's
+                // armed notifications and every reminder surface answers "what
+                // needs doing", so a sold car's rows are not shown anywhere
+                // while it is archived - the merged list already excludes them
+                // by the same decision (docs/SCHEMA.md -> Reminder lifecycle).
+                // The rows are never deleted or tombstoned (hard rule 8): they
+                // come back on THIS row, the per-car list and the merged list
+                // when the car is unarchived. A visible row here could only
+                // open the SELECTED car's list for a car the user is not
+                // looking at, which is a misleading door - removing it is part
+                // of putting the car away, and the row returns with Unarchive.
+                if !vehicle.archived {
+                    section("Reminders") {
+                        linkRow(title: "Reminders",
+                                subtitle: "Track dates and odometer limits",
+                                identifier: "vehicleDetailRemindersLink") {
+                            Route.reminders
+                        }
                     }
                 }
                 section("Your data") {
@@ -282,6 +296,16 @@ struct VehicleDetailView: View {
     /// Archiving is reversible (Unarchive restores the car to active stats), so
     /// it acts immediately - no confirmation, exactly the asymmetry a
     /// reversible action deserves. Delete is the one place red lives.
+    ///
+    /// RV.81 (decided 2026-09-06): the reconcile after EITHER direction is the
+    /// reminder lifecycle's archive hook. The reconcile is archive-aware - the
+    /// planner cancels every armed notification for an archived car and arms
+    /// for a live one - so archiving strips the sold car's reminders and
+    /// unarchiving re-arms them, both through the SAME code path that arms
+    /// every other reminder (no second cancellation implementation, docs/
+    /// NOTIFICATIONS.md -> Reminders & archiving). The rows themselves are
+    /// never deleted or tombstoned (hard rule 8 - archiving is put-away, and
+    /// the Garage row's "history preserved" promise).
     private func toggleArchive() {
         guard let vehicle else { return }
         do {
@@ -294,6 +318,9 @@ struct VehicleDetailView: View {
                 // (docs/NOTIFICATIONS.md -> Multi-device cleanup).
                 Task { await notificationCoordinator.cancelMonthlySummary(forVehicle: vehicle.id) }
             }
+            // RV.81: cancels on archive (the car is now archived), re-arms on
+            // unarchive - the one arming path, decided by the car's own flag.
+            Task { await notificationCoordinator.reconcile(vehicleId: vehicle.id) }
             toastCenter.noteEntryChanged()
             reload()
         } catch {
@@ -330,7 +357,9 @@ struct VehicleDetailView: View {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
             let selected = carSelection.selectedVehicle(vehicles)
-            let target = vehicleID.flatMap { id in vehicles.first { $0.id == id } } ?? selected
+            let target = Self.resolvePresentationTarget(vehicleID: vehicleID,
+                                                        vehicles: vehicles,
+                                                        selected: selected)
             guard let target else {
                 loadFailed = true
                 return
@@ -365,6 +394,30 @@ struct VehicleDetailView: View {
         let url = try VehiclePhotoStore.attachmentsDirectory()
             .appendingPathComponent(attachment.file.relativePath)
         return try? Data(contentsOf: url)
+    }
+}
+
+// MARK: - Presentation target (kept out of the struct body's lint budget)
+
+extension VehicleDetailView {
+    /// Resolves which vehicle the detail screen loads: the `vehicleID` the
+    /// route named (the Garage / Car switcher archived row), else the selected
+    /// car. The RV.81 DEBUG hook `-presentArchivedVehicleDetail` forces the
+    /// target to the first ARCHIVED car, so the archived Vehicle detail (the
+    /// reminders management row hidden, RV.81) can be presented by simctl,
+    /// which cannot tap the Car switcher's archived row. Mirrors the
+    /// `-presentScreen vehicleDetail` path with the archived target.
+    static func resolvePresentationTarget(vehicleID: UUID?,
+                                          vehicles: [Vehicle],
+                                          selected: Vehicle?) -> Vehicle? {
+        var target = vehicleID.flatMap { id in vehicles.first { $0.id == id } } ?? selected
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-presentArchivedVehicleDetail"),
+           let archived = vehicles.first(where: { $0.archived }) {
+            target = archived
+        }
+        #endif
+        return target
     }
 }
 

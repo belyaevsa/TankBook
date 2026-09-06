@@ -95,6 +95,41 @@ This is the second reason the (action, identifier) mapping is a pure value type 
 alongside `NotificationRouteParser`: the app has no unit-test target, and the mapping must not
 drift from the registered strings.
 
+## Reminders & archiving (RV.81)
+
+The three reminder rows above are the decisions; archiving (J13) is the lifecycle event that
+strips them (product-owner decision 2026-09-06: *"archived cars strip the reminders"*). The rule
+is recorded here because NOTIFICATIONS.md is the authority for what archiving does to armed
+requests:
+
+- **Archiving cancels the car's pending reminder notifications.** `VehicleDetailView.toggleArchive`
+  archives the car and reconciles it; the reconcile is archive-aware - `ReminderNotificationPlanner`
+  schedules nothing for an archived car and cancels every identifier its rows own. A sold car can
+  never fire a banner for work nobody will do.
+- **Unarchiving re-arms.** The same reconcile arms a live car, so the archive toggle is one code
+  path for both directions: archive strips, unarchive re-arms. A car that comes back is never
+  silently mute. No stored `.attention` transition is written while the car is archived - a
+  put-away car must not accumulate "already notified" state it never earned, or an odometer
+  reminder unarchived inside its km window could not re-arm (the odometer entry only arms from
+  `.scheduled`).
+- **The strip is not a delete.** The reminder rows are never tombstoned or dismissed (hard rule 8:
+  archiving is "put it away", and the Garage row's "history preserved" promise depends on it).
+- **A delivered or racing notification still lands.** Nothing can recall a notification the system
+  already presented, or one handed over a moment before the archive action. The tap resolve
+  (`liveReminder(id:)`) stays live for archived cars, so those taps still surface the reminder's
+  completion over the merged list - a landing, never a dead end (hard rule 7).
+- **While archived, the rows are hidden on every screen.** The merged list already excludes them
+  (RV.75: history, not work); the per-car management row is removed from an archived car's Vehicle
+  detail (RV.81), so no surface presents a sold car's tasks. The rows return - on the per-car
+  screen, this list and its notifications - when the car is unarchived. The exclusion and the
+  arming are both read-time derivations from `Vehicle.archived`, never a stored state.
+
+Multi-device: this section states the LOCAL action's contract. A car archived on one device
+stops firing on that device immediately. A second device learns of the archive only when it
+syncs, and the merge-time strip for reminders is the sync layer's half of the same decision,
+**not yet wired** - see the last paragraph of "Multi-device behavior" for what that means for a
+stale armed request on another device.
+
 ## Monthly summary (J8) – the decisions (P6.2)
 
 The catalog row names the shape; these are the decisions implementation forced, so they are
@@ -131,7 +166,7 @@ written down rather than implied by code:
 
 ## Multi-device behavior
 
-Local notifications schedule on **every signed-in device** (each device knows the reminders via sync). Acceptable and honest – Apple's own Reminders does the same. The cleanup contract matters more: **any change that resolves a notification's reason cancels it everywhere** – completing/rescheduling a reminder syncs, and each device cancels its pending local notification for it on merge. A user who did the oil change never hears about it again from the iPad.
+Local notifications schedule on **every signed-in device** (each device knows the reminders via sync). Acceptable and honest – Apple's own Reminders does the same. The cleanup contract matters more: **any change that resolves a notification's reason cancels it everywhere** – completing/rescheduling a reminder syncs, and each device cancels its pending local notification for it on merge. Archiving is the same contract for the whole car, with one half shipped: RV.81 makes the LOCAL archive action strip immediately (the reconcile that cancels the car's armed requests runs on the device where the user archived); the OTHER device's strip when the `Vehicle.archived` change arrives through sync is the sync-layer half and is **not yet wired** - an archived car's armed reminder on a second device stays pending until that device's own reconcile of the car (e.g. a later unarchive, or the same cleanup hook on merge) strips it. A user who did the oil change never hears about it again from the iPad.
 
 ## Permission & quiet behavior
 

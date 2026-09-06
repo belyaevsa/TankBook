@@ -119,10 +119,26 @@ public enum ReminderNotificationPlanner {
     /// whose reason no longer exists (a reschedule that removed a field). A
     /// deleted reminder is absent from `reminders` - its cancellation goes
     /// through `identifiers(for:)` at the delete site.
+    ///
+    /// With `vehicleArchived` the plan is the ARCHIVE side of the same
+    /// reconcile (RV.81): schedule nothing and cancel every identifier the
+    /// car's rows own. Archiving is "put the car away", so nothing on that car
+    /// may arm again until it is unarchived; routing the strip through the plan
+    /// keeps one code path for arming AND disarming (the same reconcile arms a
+    /// live car and strips an archived one - docs/NOTIFICATIONS.md).
     public static func plan(reminders: [Reminder],
+                            vehicleArchived: Bool = false,
                             now: Date,
                             currentOdometer: Int?,
                             calendar: Calendar = .current) -> ReminderNotificationPlan {
+        if vehicleArchived {
+            var cancelled: Set<String> = []
+            for reminder in reminders {
+                cancelled.formUnion(identifiers(for: reminder))
+            }
+            return ReminderNotificationPlan(scheduled: [], cancelled: cancelled)
+        }
+
         var scheduled: [ReminderNotification] = []
         var cancelled: Set<String> = []
 

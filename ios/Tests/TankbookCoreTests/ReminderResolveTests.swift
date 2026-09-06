@@ -64,10 +64,12 @@ import Testing
     }
 
     /// The recorded difference from the merged-list query: a resolve must answer
-    /// for EVERY live reminder, archived car or not - archive does not cancel
-    /// armed notifications, so an archived car's reminder can still be tapped.
-    /// The merged-list query excludes the same row by decision; that is exactly
-    /// why the deep link cannot reuse it.
+    /// for EVERY live reminder, archived car or not. RV.81 changed the reason -
+    /// archiving now cancels a car's PENDING notifications, but nothing can
+    /// recall one already delivered, and a tap can race the archive action - so
+    /// an archived car's reminder can still be tapped and must still land
+    /// somewhere honest (hard rule 7). The merged-list query excludes the same
+    /// row by decision; that is exactly why the deep link cannot reuse it.
     @Test func liveReminderResolvesAnArchivedCarsReminder() throws {
         let repo = try makeRepository()
         let volvo = makeVehicle("Volvo V60")

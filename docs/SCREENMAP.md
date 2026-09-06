@@ -182,7 +182,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | **Attachment viewer** (RV.9 + RV.17 + RV.37, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | Share/save the full rendition via the system share sheet (RV.17, offered only once the rendition is local – never the 44 pt thumbnail) · swipe to the recognised-data page when the attachment carried any, absent rather than empty otherwise. **RV.48 changed what that page IS**: the headline is now the ASSIGNMENT the parse concluded - date, fuel kind, volume, price per litre, total, currency, each with the value it read - and the raw OCR lines are demoted behind a disclosure rather than being the page. An attachment whose parse assigned nothing SAYS SO instead of rendering an empty card. The page presents STORED data and never re-runs OCR: a fresh read could contradict a value the user has already confirmed (hard rule 13) · **Delete** (system-confirmed: tombstones the attachment and unlinks it from the entry, hard rule 8) · **Replace photo** (the same camera/Photos door as "Add receipt"; a new attachment plus a tombstone for the old, then the ask – "Re-read this and update the entry?" with "Leave it as it is" the default, hard rule 13). Rotate, crop and edit remain their own decisions | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
 | Trends | tab root | gear → Settings · insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | gear → Settings · vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
-| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due) | back → Garage (or opener) |
+| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (entries restorable) · Tire sets → Tire sets · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due; **hidden for an archived car**, RV.81) | back → Garage (or opener) |
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
@@ -236,8 +236,11 @@ reminder interleave by urgency exactly as the Home banner already picks its one 
 **The merged list shows ACTIVE cars only** (RV.75 decision, recorded in the repository query's doc
 comment): an archived car is a sold car (J13), out of active stats, never the default selection,
 and its monthly summary is cancelled on archive - so its reminders are history, not work for the
-coming weekend, and do not compete with live cars' rows. Its rows stay reachable on the per-car
-screen and return to the merged list the moment the car is unarchived; the exclusion is read-time
+coming weekend, and do not compete with live cars' rows. **RV.81 (product owner, 2026-09-06) went further: archiving STRIPS the
+reminders** - every armed notification for that car is cancelled, and the per-car Reminders door is
+hidden for an archived car, so a sold car neither fires nor offers to be managed. The rows are never
+deleted, tombstoned or dismissed: they are put away, not lost (hard rule 8), they
+return to the merged list the moment the car is unarchived, and unarchiving re-arms them; the exclusion is read-time
 derivation, never a stored state.
 
 **RV.75/RV.74/RV.76/RV.79 status:** the merged screen, its route (`Route.remindersAll`) and the

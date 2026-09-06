@@ -120,6 +120,160 @@ final class ReminderNotificationActionTests: XCTestCase {
                       "a completed reminder must not leave its notification armed; still pending: \(leftover)")
     }
 
+    // MARK: - RV.81 archiving strips, unarchiving re-arms
+
+    /// Archiving a car must cancel EVERY pending reminder request that car
+    /// owns while leaving another car's requests armed. The first half is the
+    /// assertion that fails if archiving cancels nothing (mutation 1's other
+    /// side); the second half is the one that fails if the archive cancels
+    /// EVERYTHING on the center (over-cancel). The archived car carries TWO
+    /// armed reminders so "every request for that car" means more than one.
+    /// Drives the real coordinator reconcile over the real center - the exact
+    /// path `VehicleDetailView.toggleArchive` runs after the repository write.
+    func testArchivingCancelsThatCarsRequestsAndLeavesAnotherCarsArmed() async throws {
+        let coordinator = ReminderNotificationCoordinator()
+
+        // Car A: two reminders. Car B: one. Both far-future so each reconcile
+        // arms a deterministic date notification at due - 12 days.
+        let carA = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+        let carAextra = ReminderNotificationActionTestSupport
+            .seedScheduledReminder(onVehicle: carA.vehicleID, dueInDays: 120)
+        let carB = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+
+        await coordinator.reconcile(vehicleId: carA.vehicleID)
+        await coordinator.reconcile(vehicleId: carB.vehicleID)
+
+        let aIdentifiers = [carA.reminderID, carAextra].map { "reminder.\($0.uuidString).date" }
+        let bIdentifier = "reminder.\(carB.reminderID.uuidString).date"
+        let pending = await ReminderNotificationActionTestSupport.allPendingIdentifiers()
+        for identifier in aIdentifiers + [bIdentifier] {
+            XCTAssertTrue(pending.contains(identifier),
+                          "precondition: reconcile must arm \(identifier)")
+        }
+
+        // Archive car A and reconcile it - the RV.81 strip.
+        ReminderNotificationActionTestSupport.archive(carA.vehicleID)
+        await coordinator.reconcile(vehicleId: carA.vehicleID)
+
+        let after = await ReminderNotificationActionTestSupport.allPendingIdentifiers()
+        for identifier in aIdentifiers {
+            XCTAssertFalse(after.contains(identifier),
+                           "archiving must cancel the archived car's pending request; still pending: "
+                               + identifier)
+        }
+        XCTAssertTrue(after.contains(bIdentifier),
+                      "archiving car A must not touch car B's armed requests - only the archived car's")
+    }
+
+    /// The reverse direction, which a one-way fix hides: unarchiving a car
+    /// must RE-ARM its reminders. A car that comes back from the archive is
+    /// not silently mute (mutation 2). Same real-center, real-coordinator path
+    /// as the strip.
+    func testUnarchivingReArmsThatCarsReminders() async throws {
+        let coordinator = ReminderNotificationCoordinator()
+
+        let car = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+        let identifier = "reminder.\(car.reminderID.uuidString).date"
+        let armed = await ReminderNotificationActionTestSupport.allPendingIdentifiers()
+        XCTAssertTrue(armed.contains(identifier),
+                      "precondition: the live car must arm before archiving")
+
+        // Archive: the request is cancelled.
+        ReminderNotificationActionTestSupport.archive(car.vehicleID)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+        let stripped = await ReminderNotificationActionTestSupport.allPendingIdentifiers()
+        XCTAssertFalse(stripped.contains(identifier),
+                       "precondition: archiving must strip the car's armed request")
+
+        // Unarchive: the same reconcile that stripped now re-arms.
+        ReminderNotificationActionTestSupport.unarchive(car.vehicleID)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+
+        let rearmed = try await waitForPending(identifier: identifier, timeout: 5)
+        XCTAssertEqual(rearmed, identifier,
+                       "unarchiving must re-arm the car's reminders - a restored car is not mute")
+    }
+
+    // MARK: - RV.81 coordinator orchestration (recording seam)
+
+    /// The real-center tests above cannot run on every host: the simulator's
+    /// notification daemon has been observed dropping every `add` from a
+    /// test-hosted process, so "the request is not pending" would be vacuous
+    /// there. This suite drives the REAL coordinator - same repository, same
+    /// plan, same archive/unarchive calls - against a recording scheduler, and
+    /// asserts the IDENTIFIERS the reconcile asked the seam to cancel and the
+    /// reminders it asked to arm. The seam is the only difference from the
+    /// center-based tests; the orchestration under test is identical.
+    func testCoordinatorArchiveStripCancelsOnlyTheArchivedCarsIdentifiers() async throws {
+        let scheduler = RecordingNotificationScheduler()
+        let coordinator = ReminderNotificationCoordinator(scheduling: scheduler)
+
+        let carA = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+        let carAextra = ReminderNotificationActionTestSupport
+            .seedScheduledReminder(onVehicle: carA.vehicleID, dueInDays: 120)
+        let carB = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+
+        await coordinator.reconcile(vehicleId: carA.vehicleID)
+        await coordinator.reconcile(vehicleId: carB.vehicleID)
+
+        let aDateIDs = [carA.reminderID, carAextra].map {
+            "reminder.\($0.uuidString).date"
+        }
+        XCTAssertTrue(aDateIDs.allSatisfy { id in
+            scheduler.scheduled.contains { $0.identifier == id }
+        }, "precondition: reconciling the live car arms both its reminders")
+        XCTAssertTrue(scheduler.scheduled.contains { $0.identifier == "reminder.\(carB.reminderID.uuidString).date" })
+
+        // Archive car A and reconcile it: the strip asks the seam to cancel A's
+        // identifiers (all three kinds, matching the identifier format), never
+        // B's. The assertions are scoped to the cancels the ARCHIVE reconcile
+        // added: an earlier live reconcile of B legitimately cancelled B's
+        // `.odometer` identifier (B has no odometer due), so the accumulated
+        // record would otherwise trip the "never B" assertion on a fixture, not
+        // a bug.
+        let cancelledBefore = scheduler.cancelledIdentifiers.count
+        ReminderNotificationActionTestSupport.archive(carA.vehicleID)
+        await coordinator.reconcile(vehicleId: carA.vehicleID)
+        let stripCancels = scheduler.cancelledIdentifiers[cancelledBefore...]
+
+        for reminderID in [carA.reminderID, carAextra] {
+            for kind in ["date", "odometer", "overdue"] {
+                XCTAssertTrue(stripCancels.contains("reminder.\(reminderID.uuidString).\(kind)"),
+                              "the strip must cancel every kind the archived car's reminder owns")
+            }
+        }
+        XCTAssertFalse(stripCancels.contains { $0.hasPrefix("reminder.\(carB.reminderID.uuidString).") },
+                       "archiving car A must never cancel car B's identifiers - the other car stays armed")
+        XCTAssertTrue(ReminderNotificationActionTestSupport.reminderIsStillScheduled(carA.reminderID),
+                      "the strip must not advance the archived car's reminder lifecycle (no stored .attention)")
+    }
+
+    func testCoordinatorUnarchiveReArmsThroughTheSameReconcile() async throws {
+        let scheduler = RecordingNotificationScheduler()
+        let coordinator = ReminderNotificationCoordinator(scheduling: scheduler)
+
+        let car = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+        let identifier = "reminder.\(car.reminderID.uuidString).date"
+        let armedBefore = scheduler.scheduled.filter { $0.identifier == identifier }.count
+        XCTAssertEqual(armedBefore, 1, "precondition: the live car arms its date notification")
+
+        // Archive: the strip schedules nothing.
+        ReminderNotificationActionTestSupport.archive(car.vehicleID)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+        XCTAssertEqual(scheduler.scheduled.filter { $0.identifier == identifier }.count,
+                       armedBefore,
+                       "an archived car's reconcile must schedule nothing - it is a strip")
+
+        // Unarchive: the same reconcile arms again - the car is not mute.
+        ReminderNotificationActionTestSupport.unarchive(car.vehicleID)
+        await coordinator.reconcile(vehicleId: car.vehicleID)
+        XCTAssertEqual(scheduler.scheduled.filter { $0.identifier == identifier }.count,
+                       armedBefore + 1,
+                       "unarchiving must re-arm the car's reminders through the same reconcile that stripped")
+    }
+
     // MARK: - Helpers
 
     private func waitForPending(identifier: String, timeout: TimeInterval) async throws -> String? {

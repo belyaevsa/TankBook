@@ -11,8 +11,9 @@ import TankbookCore
 /// `-seedRemindersDeepLink` writes the RV.74 deep-link state (two cars, car A
 /// the default selection, car B carrying the deep-link reminder plus a
 /// tombstoned one; `-seedRemindersDeepLinkArchived` is that same state with
-/// car B archived after its reminder was armed) - and `-homeResetDatabase`
-/// wipes the app database first so
+/// car B archived after its reminder was armed - since RV.81 a racing /
+/// already-delivered residue, the case the resolve stays live for) - and
+/// `-homeResetDatabase` wipes the app database first so
 /// the states are isolated from each other within a test run. The empty state
 /// needs no seed: `-homeResetDatabase` alone leaves nothing to list.
 enum ReminderTestSeed {
@@ -194,10 +195,13 @@ enum ReminderTestSeed {
     /// must not switch to its car.
     ///
     /// With `archiveCarB` the reminder is seeded on a car that is then
-    /// ARCHIVED - the state an armed notification can reach, because archiving
-    /// does not cancel pending reminders. The deep link must then reach the
-    /// reminder (its completion flow surfaces) without making the sold car
-    /// current again.
+    /// ARCHIVED. Since RV.81 archiving CANCELS a car's pending notifications,
+    /// this is no longer a state the app's own archive action leaves behind -
+    /// it is the racing/already-delivered residue that CAN still exist (a
+    /// notification handed to the system a moment before the archive, or one
+    /// already delivered), which is exactly why the resolve stays live for
+    /// archived cars. The deep link must reach the reminder (its completion
+    /// flow surfaces) without making the sold car current again.
     private static func seedDeepLink(_ repository: TankbookRepository,
                                      archiveCarB: Bool = false) {
         let now = Date()

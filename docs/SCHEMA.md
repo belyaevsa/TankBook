@@ -226,6 +226,20 @@ Reminder {
 //                state resets for the odometer rule to re-arm. docs/NOTIFICATIONS.md -> the actions.
 //   DELETE     → tombstone (syncs like everything). Distinct from .dismissed, which keeps the row
 //                with a reason and feeds anomaly/insight logic ("dismissed: sold the tires").
+//   ARCHIVE    → (RV.81, decided 2026-09-06: "archived cars strip the reminders".) NOT a row
+//                transition - the rows are untouched (never tombstoned, never dismissed; hard
+//                rule 8 - archiving is put-away, the "history preserved" promise). What archive
+//                changes is the ARMING: the reconcile after the archive toggle is archive-aware,
+//                so it cancels the car's pending reminder notifications and schedules nothing
+//                while `Vehicle.archived` stays true; unarchive re-arms through the same reconcile.
+//                No stored `.attention` transition is written while archived (a put-away car must
+//                not accumulate "already notified" state it never earned - an odometer reminder
+//                unarchived inside its km window must still be able to arm). The rows are hidden
+//                on every screen while archived (the merged list excludes them, RV.75; the per-car
+//                management row is gone, RV.81) and return when the car is unarchived. The
+//                by-id tap resolve still answers for an archived car's live row: archiving cannot
+//                recall a notification already delivered, or one racing the archive (NOTIFICATIONS.md
+//                -> Reminders & archiving).
 ```
 
 **Post-save "remind you next time?" offer (RV.77, docs/JOURNEYS.md J7d "Just did it"):** after a
