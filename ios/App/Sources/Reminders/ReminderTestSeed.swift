@@ -7,15 +7,28 @@ import TankbookCore
 /// `-seedReminders` writes the artboard's list - an attention "Insurance
 /// renewal" due in 12 days (so the amber chip renders the literal "12 days" on
 /// any run date) plus three scheduled rows - `-seedRemindersAll` writes the
-/// merged list's two-car garage (RV.75, design/screens/RemindersAll.dc.html) -
-/// and `-homeResetDatabase` wipes the app database first so the states are
-/// isolated from each other within a test run. The empty state needs no seed:
-/// `-homeResetDatabase` alone leaves nothing to list.
+/// merged list's two-car garage (RV.75, design/screens/RemindersAll.dc.html),
+/// `-seedRemindersDeepLink` writes the RV.74 deep-link state (two cars, car A
+/// the default selection, car B carrying the deep-link reminder plus a
+/// tombstoned one; `-seedRemindersDeepLinkArchived` is that same state with
+/// car B archived after its reminder was armed) - and `-homeResetDatabase`
+/// wipes the app database first so
+/// the states are isolated from each other within a test run. The empty state
+/// needs no seed: `-homeResetDatabase` alone leaves nothing to list.
 enum ReminderTestSeed {
     /// PJ.5: the attention reminder's FIXED id, so a UI test or screenshot can
     /// address the seeded "Insurance renewal" through the replay identifier
     /// `reminder.<id>.date` without reading a runtime UUID.
     static let deepLinkReminderID = UUID(uuidString: "0D4B0F2A-3E1C-4B6A-9C5D-8E7F1A2B3C4D")!
+    /// RV.74: the two-car deep-link seed's car-B reminder (the Skoda "Oil
+    /// change", due +10 days - LATER than car A's attention row, so a test can
+    /// prove the surfaced sheet belongs to the id the tap named, not to
+    /// whichever row is first).
+    static let deepLinkCarBReminderID = UUID(uuidString: "5C1A2B3C-4D5E-4F60-8A7B-6C5D4E3F2A1B")!
+    /// RV.74: the two-car deep-link seed's DELETED reminder (a Skoda row
+    /// tombstoned at seed time), so the stale-tap test replays an identifier
+    /// for a reminder that no longer exists and must land on the plain list.
+    static let deepLinkDeletedReminderID = UUID(uuidString: "7A9B8C7D-6E5F-4A3B-8C2D-1E0F9A8B7C6D")!
 
     @MainActor
     static func seedIfRequested() {
@@ -23,6 +36,8 @@ enum ReminderTestSeed {
         guard arguments.contains("-seedReminders")
             || arguments.contains("-seedReminderComplete")
             || arguments.contains("-seedRemindersAll")
+            || arguments.contains("-seedRemindersDeepLink")
+            || arguments.contains("-seedRemindersDeepLinkArchived")
             || arguments.contains("-homeResetDatabase") else { return }
 
         if arguments.contains("-homeResetDatabase") {
@@ -37,6 +52,14 @@ enum ReminderTestSeed {
         }
         if arguments.contains("-seedRemindersAll") {
             seedAll(repository)
+            return
+        }
+        if arguments.contains("-seedRemindersDeepLinkArchived") {
+            seedDeepLink(repository, archiveCarB: true)
+            return
+        }
+        if arguments.contains("-seedRemindersDeepLink") {
+            seedDeepLink(repository)
             return
         }
         guard arguments.contains("-seedReminders") else { return }
@@ -160,9 +183,58 @@ enum ReminderTestSeed {
         try? repository.upsertReminder(inspection)
     }
 
+    /// The RV.74 deep-link state
+    /// (design/screens/RemindersAll.dc.html, the two-car landing): car A
+    /// (Volvo, upserted FIRST so it is the default selection) carries the
+    /// EARLIEST attention row, while the deep-linked reminder lives on car B
+    /// (Skoda) and is due LATER - so a test can prove the surfaced completion
+    /// sheet belongs to the id the tap named, not to whichever row renders
+    /// first. A third, tombstoned Skoda reminder carries the stale-tap
+    /// identifier: deleted at seed time, it must never surface, and the app
+    /// must not switch to its car.
+    ///
+    /// With `archiveCarB` the reminder is seeded on a car that is then
+    /// ARCHIVED - the state an armed notification can reach, because archiving
+    /// does not cancel pending reminders. The deep link must then reach the
+    /// reminder (its completion flow surfaces) without making the sold car
+    /// current again.
+    private static func seedDeepLink(_ repository: TankbookRepository,
+                                     archiveCarB: Bool = false) {
+        let now = Date()
+        let volvo = makeVehicle("Volvo V60", make: "Volvo", at: now, initialOdometer: 118_930)
+        let skoda = makeVehicle("Skoda Octavia", make: "Skoda", at: now, initialOdometer: 82_000,
+                                archived: archiveCarB)
+        try? repository.upsertVehicle(volvo)
+        try? repository.upsertVehicle(skoda)
+
+        let volvoInsurance = ReminderLifecycle.makeReminder(
+            vehicleId: volvo.id, title: "Insurance renewal", category: .insurance,
+            dueDate: now.addingTimeInterval(2 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(volvoInsurance)
+
+        let skodaOil = ReminderLifecycle.makeReminder(
+            vehicleId: skoda.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(10 * 86_400), dueOdometer: nil,
+            recurrence: nil,
+            createdAt: now.addingTimeInterval(-90 * 86_400),
+            id: Self.deepLinkCarBReminderID)
+        try? repository.upsertReminder(skodaOil)
+
+        let deleted = ReminderLifecycle.makeReminder(
+            vehicleId: skoda.id, title: "Brake check", category: .brakes,
+            dueDate: now.addingTimeInterval(3 * 86_400), dueOdometer: nil,
+            recurrence: nil,
+            createdAt: now.addingTimeInterval(-200 * 86_400),
+            id: Self.deepLinkDeletedReminderID)
+        try? repository.upsertReminder(deleted)
+        try? repository.softDeleteReminder(id: deleted.id)
+    }
+
     private static func makeVehicle(_ name: String, make: String,
                                     at now: Date,
-                                    initialOdometer: Int) -> Vehicle {
+                                    initialOdometer: Int,
+                                    archived: Bool = false) -> Vehicle {
         Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: name, make: make, model: name, year: 2020,
@@ -170,7 +242,7 @@ enum ReminderTestSeed {
             tankCapacityL: 60, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
-            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            photo: nil, archived: archived, paceLimitKmPerDay: 1500,
             initialOdometer: initialOdometer)
     }
 }

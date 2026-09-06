@@ -9,28 +9,27 @@ enum RemindersScope {
     /// car's reminders, reached from the Home banner and Vehicle detail. The
     /// right screen when the user is looking AT a car.
     case selectedVehicle
-    /// The merged "all cars" screen (RV.75, design/screens/RemindersAll.dc.html):
-    /// every active car's live reminders in one list, each row naming its car,
-    /// grouped exactly as the per-car list is - because the question a reminder
-    /// answers is "what needs me", never "which car". Each row's km half is
-    /// judged and sorted against ITS OWN car's odometer, never one shared
-    /// reading (`ReminderListRow`). Today reached only by the DEBUG
-    /// `-presentScreen remindersAll` hook; RV.76/RV.79/RV.74 own the permanent
-    /// entry points.
+    /// The merged "all cars" screen (RV.75, RemindersAll.dc.html): every active
+    /// car's live reminders in one list, each row naming its car, grouped as
+    /// the per-car list is - the question is "what needs me", never "which
+    /// car"; each row's km half is judged against ITS OWN car's odometer
+    /// (`ReminderListRow`). Reached from the DEBUG `-presentScreen remindersAll`
+    /// hook, RV.76's Home row and, since RV.74, the notification deep link
+    /// (`.reminderDeepLink` maps here too) - not car-scoped, never the wrong car.
     case allCars
 }
 
-/// The Reminders screen (P3.4). A pushed route reached from the Home banner,
-/// Vehicle detail and push notifications (docs/SCREENMAP.md), and since RV.75
-/// also the merged "all cars" list.
-///
-/// The list draws two groups the artboard specifies - "Needs attention" then
-/// "Scheduled" - and the rows carry the complete affordance whose status
-/// transition P3.5 routes through the completion sheet. Grouping and ordering
-/// are decided once, in `ReminderListGroups.grouped` (core), so the per-car
-/// and merged lists cannot drift apart and the lifecycle rules are never
-/// duplicated: attention, sorting and completion all come from the existing
-/// core types.
+    /// The Reminders screen (P3.4). A pushed route reached from the Home banner,
+    /// Vehicle detail and push notifications (docs/SCREENMAP.md), and since RV.75
+    /// also the merged "all cars" list.
+    ///
+    /// The list draws two groups the artboard specifies - "Needs attention" then
+    /// "Scheduled" - and the rows carry the complete affordance whose status
+    /// transition P3.5 routes through the completion sheet. Grouping and ordering
+    /// are decided once, in `ReminderListGroups.grouped` (core), so the per-car
+    /// and merged lists cannot drift apart and the lifecycle rules are never
+    /// duplicated: attention, sorting and completion all come from the existing
+    /// core types.
 struct RemindersView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
@@ -40,7 +39,9 @@ struct RemindersView: View {
     /// the reminder no longer exists (deleted since the notification was
     /// scheduled), it is simply the plain list - a stale tap is a landing, not
     /// a dead end (hard rule 7). `nil` from the ordinary navigation links
-    /// (Home banner, Vehicle detail).
+    /// (Home banner, Vehicle detail). Since RV.74 the deep link lands on the
+    /// merged scope; an ARCHIVED-car reminder is absent from its rows by
+    /// decision, and `load()` resolves the id and surfaces it anyway.
     var reminderToComplete: UUID?
 
     /// Which list this route draws; `.selectedVehicle` unless the merged
@@ -326,6 +327,12 @@ struct RemindersView: View {
             if let target = rows.first(where: { $0.reminder.id == id }) {
                 completeTarget = ReminderSheetTarget(reminder: target.reminder,
                                                      currentOdometer: target.currentOdometer)
+            } else if let resolved = resolveDeepLinkedReminder(id) {
+                // RV.74 archived landing: the reminder's car is archived (rows
+                // excluded by decision, J13), so surface its completion here,
+                // selection untouched. `nil` (deleted/terminal) keeps the
+                // plain-list landing.
+                completeTarget = resolved
             }
         } else {
             #if DEBUG
@@ -347,6 +354,19 @@ struct RemindersView: View {
             }
             #endif
         }
+    }
+
+    /// RV.74 archived-landing resolve: the completion target for a deep-linked
+    /// reminder that is NOT among the loaded rows - on the merged list, exactly
+    /// an ARCHIVED car's reminder (excluded by decision). `nil` for a deleted
+    /// or terminal reminder keeps the plain-list landing (hard rule 7).
+    private func resolveDeepLinkedReminder(_ id: UUID) -> ReminderSheetTarget? {
+        guard scope == .allCars,
+              let repository = try? AppStore.repository(),
+              let reminder = try? repository.liveReminder(id: id),
+              ReminderLifecycle.isActive(reminder) else { return nil }
+        let odometer = (try? Self.currentOdometer(for: reminder.vehicleId, repository: repository)) ?? nil
+        return ReminderSheetTarget(reminder: reminder, currentOdometer: odometer)
     }
 
     private func reload() {

@@ -46,3 +46,35 @@ extension TankbookRepository {
         }
     }
 }
+
+// MARK: - Resolve by id (RV.74)
+
+extension TankbookRepository {
+    /// The by-id resolve behind a tapped reminder notification (RV.74,
+    /// docs/SCREENMAP.md -> "Reminders across cars"): the ONE live reminder
+    /// matching an id, across EVERY vehicle - **archived cars included**. It
+    /// answers a different question than `liveRemindersAcrossVehicles`, which is
+    /// why it is not that query and deliberately does not reuse it:
+    ///
+    /// - The merged-list query feeds "what needs me now", so it excludes
+    ///   archived cars' rows by decision (their work is history, J13).
+    /// - A resolve answers "which car does this id belong to", and must answer
+    ///   for every LIVE reminder, archived car or not - archive does not cancel
+    ///   armed notifications, so an armed notification on an archived car is
+    ///   still a tap the user can make. Reusing the list query would make that
+    ///   tap unresolvable, which is the dead end hard rule 7 forbids.
+    ///
+    /// Live-row-only, exactly like every list query: a tombstoned row
+    /// (`deletedAt != nil`) - a reminder deleted since its notification was
+    /// scheduled - resolves to `nil`, so the caller takes its stale-tap landing
+    /// (a plain list, never an error). A row whose vehicle was soft-deleted is
+    /// tombstoned with it, so it resolves to `nil` too.
+    public func liveReminder(id: UUID) throws -> Reminder? {
+        try database.read { db in
+            try ReminderRow
+                .filter(Column("id") == id.uuidString && Column("deletedAt") == nil)
+                .fetchOne(db)?
+                .reminder
+        }
+    }
+}

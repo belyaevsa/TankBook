@@ -186,8 +186,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
-| Reminders | Home banner, VehicleDetail, push notification (a tapped reminder also surfaces that reminder's completion sheet, PJ.5) | complete → ReminderComplete · New reminder → form | back → opener |
-| **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids | back → opener |
+| Reminders | Home banner, VehicleDetail | complete → ReminderComplete · New reminder → form | back → opener |
+| **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car, and the reminder's own car is selected first, never an archived one) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids | back → opener |
 | **Service reminder offer** **[v1.1]** (RV.77, sheet, `design/screens/ServiceReminderOffer.dc.html`) | saving a ServiceRecord or Expense whose category has an interval, and no live reminder of that category exists on that car | **Create the reminder** (anchored at the record's own date and odometer, never at today) · **Not this time** - a peer button, not a dismissal X | either exit returns to the opener; the record is already saved, so nothing here can lose it |
 | Reminder form (P3.4, artboard `design/screens/ReminderForm.dc.html` from **[v1.1]**) | Reminders and **Reminders, all cars** (New reminder / row edit, incl. reschedule) · ReminderComplete's "Reschedule instead" · **[v2]** the Ask tab's `draftReminder`, pre-filled | Save → the list it came from | back → opener |
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
@@ -241,17 +241,23 @@ screen and return to the merged list the moment the car is unarchived; the exclu
 derivation, never a stored state.
 
 **RV.75 status:** the merged screen, its route (`Route.remindersAll`) and the form's car-first
-field are built. Its permanent entry points are the RV.76 row, the RV.79 Garage count and the
-RV.74 deep link, so between RV.75 and RV.76 the screen is reached only by the DEBUG
-`-presentScreen remindersAll` hook; a production build has no door to it yet, and the user-visible
-change this task ships is the form's explicit car field on the paths that already exist.
+field are built. **RV.74 wired the notification deep link into it** - a tapped reminder lands on
+this list, never on a car-scoped one - so the screen has one production door. The remaining
+planned doors are the RV.76 Home row and the RV.79 Garage count; until RV.76 the screen is
+otherwise reached only by the DEBUG `-presentScreen remindersAll` hook.
 
 **Three consequences worth stating, because each one is a rule and not a preference:**
 
-- **The notification deep link lands here** (RV.74). Today it pushes the per-car screen without
-  switching the selected car, so a reminder on another car is simply absent and the app takes its
-  own "stale tap" branch. A list that is not car-scoped cannot land on the wrong car at all - the
-  bug is fixed by construction rather than by a second lookup.
+- **The notification deep link lands here** (RV.74). It used to push the per-car screen without
+  switching the selected car, so a reminder on another car was simply absent and the app took its
+  own "stale tap" branch. Now the tap resolves the reminder id first - the id is the fact, the
+  selected car is not - and lands on this merged list, which cannot be the wrong car at all. The
+  reminder's own live car is selected before the push (never an archived one): the app context
+  follows the tap, and the completion sheet's "Type amount" logs the cost to the right car. A
+  deleted reminder still lands on the plain list (hard rule 7); an archived car's reminder
+  surfaces its completion flow over this list without making the sold car current again (J13).
+  The switch lives in the router (`TabRoots.driveReminder`), the only place that can write the
+  selection before the pushed screen loads.
 - **The way in exists when nothing is due** (RV.76). The amber Home banner is the urgent path and
   stays; the "Reminders · N due" row is the calm one, always present, and it carries the count that
   makes it worth a tap. The count is derived at read time (hard rule 2) and never stored.

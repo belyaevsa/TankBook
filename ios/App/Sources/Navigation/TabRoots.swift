@@ -166,6 +166,13 @@ struct AppRootView: View {
         // signed-in screenshot/test launch never shows onboarding. Read here,
         // in init, so the first frame is already correct.
         _showWelcome = State(initialValue: WelcomeGate.shouldShowWelcome())
+        // RV.74: seed the reminder states at LAUNCH - the reminder-tap deep
+        // link resolves the tapped id in the router BEFORE any screen loads, so
+        // a seed deferred to a screen would resolve nothing. Idempotent; the
+        // screens' own `seedIfRequested` calls remain and become no-ops.
+        #if DEBUG
+        ReminderTestSeed.seedIfRequested()
+        #endif
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
         // tap). DEBUG/test-only.
@@ -422,9 +429,9 @@ struct AppRootView: View {
 
     /// The deep link a tapped notification promised (PJ.5, docs/SCREENMAP.md):
     /// `monthly-summary.*` switches to the Trends tab; `reminder.<id>.<kind>`
-    /// switches to Log and pushes Reminders for that reminder (whose view then
-    /// surfaces the reminder's completion flow). `.none` never reaches here -
-    /// it is swallowed by the router.
+    /// switches to Log and drives the reminder-tap deep link (`driveReminder`)
+    /// - the reminder's OWN vehicle decides the car, never the current
+    /// selection. `.none` never reaches here - it is swallowed by the router.
     private func drive(_ request: NotificationRouter.Request?) {
         guard let request else { return }
         switch request {
@@ -432,8 +439,37 @@ struct AppRootView: View {
             tabSelection = .trends
         case .openRemindersFor(let reminderID):
             tabSelection = .log
-            logPath = [.reminderDeepLink(reminderID)]
+            driveReminder(reminderID)
         }
+    }
+
+    /// RV.74 - the reminder-tap deep link. **The reminder id is the fact; the
+    /// selected car is not.** Resolve the id and let the resolved vehicle
+    /// decide: a LIVE, non-archived reminder's car is selected before pushing
+    /// (unless already current) so the app context - and the completion
+    /// sheet's "Type amount", which logs to the selected car - follows the
+    /// tap; an ARCHIVED reminder's car is never selected (a sold car, J13)
+    /// but the merged-list landing still surfaces its completion flow; an id
+    /// that no longer resolves (deleted since scheduled) lands on the plain
+    /// list - a stale tap is a landing, never a dead end (hard rule 7).
+    ///
+    /// The switch lives HERE, in the router, not the Reminders screen: only
+    /// the router can write `AppCarSelection` before the pushed screen loads.
+    @MainActor
+    private func driveReminder(_ reminderID: UUID) {
+        guard let repository = try? AppStore.repository() else {
+            logPath = [.reminderDeepLink(reminderID)]
+            return
+        }
+        if let reminder = try? repository.liveReminder(id: reminderID),
+           let vehicle = try? repository.vehicle(id: reminder.vehicleId),
+           !vehicle.archived {
+            let live = (try? repository.liveVehicles()) ?? []
+            if carSelection.selectedVehicle(live)?.id != vehicle.id {
+                try? carSelection.select(vehicle)
+            }
+        }
+        logPath = [.reminderDeepLink(reminderID)]
     }
 
     /// The scheduled tombstone purge (docs/SYNC.md: 30-day undo window; P1.7

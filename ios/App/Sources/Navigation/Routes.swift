@@ -14,16 +14,23 @@ enum Route: Hashable {
     case reminders
     /// RV.75: the merged "all cars" Reminders screen
     /// (design/screens/RemindersAll.dc.html) - every active car's live
-    /// reminders in one list, each row naming its car. Reached today only by
-    /// the DEBUG `-presentScreen remindersAll` hook; its permanent entry points
-    /// are RV.76's Home row, RV.79's Garage count and RV.74's notification deep
-    /// link (docs/SCREENMAP.md -> "Reminders across cars").
+    /// reminders in one list, each row naming its car. The plain list from the
+    /// DEBUG `-presentScreen remindersAll` hook and RV.76's Home row; its
+    /// OTHER doors are RV.74's notification deep link (which maps onto this
+    /// same screen via `.reminderDeepLink`) and RV.79's Garage count
+    /// (docs/SCREENMAP.md -> "Reminders across cars").
     case remindersAll
     /// PJ.5: the notification-tap deep link - Reminders with the tapped
     /// reminder's completion sheet surfaced. Distinct from `.reminders` (which
     /// is the plain list from the Home banner / Vehicle detail) so a tap's
-    /// destination cannot be confused with a navigation link's. RV.74 will move
-    /// this landing to `.remindersAll` where a deep link cannot be the wrong car.
+    /// destination cannot be confused with a navigation link's. Since RV.74 the
+    /// landing is the MERGED all-cars list (`.remindersAll`'s screen), because
+    /// a list that is not car-scoped cannot land on the wrong car at all - the
+    /// reminder the identifier named is present no matter which car was
+    /// selected, and its row names its car. The tapped id resolves across every
+    /// live reminder, archived cars included (`Repository.liveReminder`); an id
+    /// that no longer exists is simply the plain list - a stale tap is a
+    /// landing, not a dead end (hard rule 7).
     case reminderDeepLink(UUID)
     /// The reminder form. `reminderID != nil` = the reminder being
     /// edited/rescheduled. `reminderID == nil` = create; `vehicleID` is then the
