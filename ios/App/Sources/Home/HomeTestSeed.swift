@@ -50,6 +50,8 @@ enum HomeTestSeed {
             ("-seedHomeEditHistory", seedEditHistory),
             ("-seedHomePendingRates", seedPendingRates),
             ("-seedHomeRV29Foreign", seedForeignConverted),
+            ("-seedHomeRV88USDPending", RV88HomeTestSeed.seedPending),
+            ("-seedHomeRV88USDConverted", RV88HomeTestSeed.seedConverted),
             ("-seedHomeDuplicate", seedDuplicate),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),

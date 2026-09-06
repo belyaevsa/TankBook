@@ -324,3 +324,101 @@ private let serverMaxPackDays = 400
     // shrink the history available for backfilling older entries.
     #expect(inclusiveDays == serverMaxPackDays)
 }
+
+// MARK: - RV.88 fetchSpan: demand-driven fetch over an arbitrary span
+
+/// Records every `fetchPack` range a caller asks for, so a multi-chunk span can
+/// be asserted against the server's 400-day cap.
+private final class MultiRangeRecordingFetcher: RateFetcher, @unchecked Sendable {
+    private struct State {
+        var ranges: [(from: Date, to: Date)] = []
+    }
+    private let lock = OSAllocatedUnfairLock(initialState: State())
+    private let rows: [ExchangeRate]
+
+    init(rows: [ExchangeRate] = []) { self.rows = rows }
+
+    var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
+
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+        lock.withLock { state in
+            state.ranges.append((from, to))
+        }
+        return rows
+    }
+}
+
+/// A multi-year import asks `fetchSpan` for dates far older than the rolling
+/// 400-day refresh window. The server rejects a single wider request with a
+/// 400 (`Rates:MaxPackDays`), so the span must be requested in consecutive
+/// <= 400-day chunks that together cover the whole span - never one oversized
+/// request, never a silently truncated tail.
+@Test func fetchSpanChunksAWideSpanUnderTheServerCap() async {
+    // A 319-day span fits ONE chunk (2015-01-01 .. 2015-11-15).
+    let single = MultiRangeRecordingFetcher()
+    let singleStore = RateStore(seed: [], fetcher: single, calendar: utcCalendar)
+    _ = await singleStore.fetchSpan(from: day(2015, 1, 1), to: day(2015, 11, 15))
+    #expect(single.ranges.count == 1, "a sub-400-day span is one request, got \(single.ranges.count)")
+
+    // A ~1095-day span needs three consecutive chunks.
+    let fetcher = MultiRangeRecordingFetcher()
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar)
+    _ = await store.fetchSpan(from: day(2015, 1, 1), to: day(2017, 12, 31))
+
+    let ranges = fetcher.ranges
+    #expect(ranges.count == 3, "a ~1095-day span is three chunks, got \(ranges.count)")
+
+    // Every request is within the server's cap (inclusive days <= 400).
+    for (from, to) in ranges {
+        let inclusiveDays = utcCalendar.dateComponents([.day], from: from, to: to).day! + 1
+        #expect(inclusiveDays <= serverMaxPackDays,
+                "each chunk must fit the server's \(serverMaxPackDays)-day cap, asked for \(inclusiveDays)")
+    }
+
+    // The chunks are contiguous and cover the whole span (no gap, no overlap
+    // beyond the shared boundary, nothing dropped at either end).
+    let sorted = ranges.sorted { $0.from < $1.from }
+    #expect(sorted.first?.from == day(2015, 1, 1))
+    #expect(sorted.last?.to == day(2017, 12, 31))
+    for pair in zip(sorted, sorted.dropFirst()) {
+        let nextAfterChunk = utcCalendar.date(byAdding: .day, value: 1, to: pair.0.to) ?? pair.1.from
+        #expect(nextAfterChunk == pair.1.from,
+                "chunks must be contiguous: \(pair.0.to) must be followed by \(pair.1.from)")
+    }
+}
+
+/// A fetched span actually lands in the cache and converts an entry dated in
+/// it - the reason the import drain asks in the first place.
+@Test func fetchSpanMergedRowsAnswerLookupsInTheSpan() async {
+    let date = day(2015, 3, 12)
+    let fetcher = MultiRangeRecordingFetcher(rows: [
+        row(.eur, .usd, date, "1.10"),
+    ])
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar)
+    let money = Money(amount: decimal("110"), currency: .usd, homeCurrency: .eur)
+    #expect(store.convert(money, on: date).homeAmount == nil, "before the fetch nothing answers")
+
+    _ = await store.fetchSpan(from: day(2015, 1, 1), to: day(2015, 12, 31))
+
+    let converted = store.convert(money, on: date)
+    #expect(converted.homeAmount == decimal("100.00"))
+    #expect(converted.rateDate == date)
+}
+
+/// `fetchSpan` offline is a non-event (F9): a transport failure must not throw
+/// to the caller - the drain is best-effort and everything after an import must
+/// survive without a connection (hard rule 1).
+@Test func fetchSpanFailureIsSilent() async {
+    struct FetchError: Error {}
+    let fetcher = StubRateFetcher()
+    fetcher.set(result: .failure(FetchError()))
+    let store = RateStore(seed: [row(.eur, .usd, day(2015, 3, 12), "1.10")],
+                          fetcher: fetcher, calendar: utcCalendar)
+
+    let attempted = await store.fetchSpan(from: day(2015, 1, 1), to: day(2015, 12, 31))
+
+    #expect(attempted == false, "a failed fetch reports no merge")
+    // The seed still answers; the failed fetch changed nothing.
+    let money = Money(amount: decimal("110"), currency: .usd, homeCurrency: .eur)
+    #expect(store.convert(money, on: day(2015, 3, 12)).homeAmount == decimal("100.00"))
+}

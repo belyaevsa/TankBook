@@ -22,8 +22,10 @@ public enum ArchiveImportRecord: Sendable {
     case attachment(Attachment)
 
     /// The entry this record carries, if any (PJ.11: the four entry types are
-    /// the ones the timeline validator stamps).
-    var entryValue: (any Entry)? {
+    /// the ones the timeline validator stamps). Public so the app-layer import
+    /// drain can ask which of the committed records are rate-pending and back
+    /// a scoped backfill with exactly them (RV.88).
+    public var entryValue: (any Entry)? {
         switch self {
         case .fillUp(let fill): fill
         case .chargeSession(let charge): charge

@@ -186,6 +186,52 @@ public final class RateStore: @unchecked Sendable {
         guard let rates = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else { return }
         merge(rates)
     }
+
+    /// Fetches the rate pack for an explicit date span and merges it - the
+    /// demand-driven form the rolling refresh cannot cover (RV.88). An import
+    /// of a multi-year file needs rates on dates older than the rolling 400-day
+    /// window, and the backend's `/rates/pack` serves any bounded range and
+    /// backfills missing dates on demand (docs/SCHEMA.md -> Exchange rates:
+    /// "the request IS the statement 'I need these dates'"). The span is
+    /// requested in consecutive `packWindowDays`-wide chunks because the server
+    /// rejects a wider single request with a 400 (`Rates:MaxPackDays`, RV.1).
+    ///
+    /// Same silence as `refresh`: a transport failure breaks the loop and is a
+    /// non-event (F9) - whatever the cache already holds still answers, and the
+    /// call is safe offline (hard rule 1). An empty pack (the server has no row
+    /// for a date) is not a failure either. Returns true when at least one chunk
+    /// was fetched and merged, false when there is no fetcher, the work was
+    /// deferred under Low Power Mode (background trigger), or nothing could be
+    /// fetched.
+    @discardableResult
+    public func fetchSpan(from: Date, to: Date, base: CurrencyCode = .eur,
+                          trigger: PowerWorkTrigger = .userInitiated) async -> Bool {
+        guard let fetcher else { return false }
+        if LowPowerPolicy.defers(work: .ratePackRefresh, trigger: trigger,
+                                 lowPowerMode: powerState.isLowPowerModeEnabled) {
+            return false
+        }
+        let first = calendar.startOfDay(for: from)
+        let last = calendar.startOfDay(for: to)
+        guard last >= first else { return false }
+        var cursor = first
+        var mergedAny = false
+        while cursor <= last {
+            let chunkEnd = calendar.date(byAdding: .day, value: Self.packWindowDays - 1,
+                                         to: cursor).map { min($0, last) } ?? last
+            guard let rates = try? await fetcher.fetchPack(from: cursor, to: chunkEnd, base: base) else {
+                // A transport failure is one silent miss, not a reason to keep
+                // hammering a dead host - stop, like `refresh` swallows once.
+                break
+            }
+            merge(rates)
+            mergedAny = true
+            guard let next = calendar.date(byAdding: .day, value: 1, to: chunkEnd),
+                  next > cursor else { break }
+            cursor = next
+        }
+        return mergedAny
+    }
 }
 
 private extension ExchangeRate {

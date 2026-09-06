@@ -55,12 +55,29 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) | Edit the entry → the conversion card offers a manual rate · wait (it converts when a rate arrives) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) | Edit the entry → the conversion card offers a manual rate · wait (imported rows drain automatically at commit and on refresh - RV.88; a rate the service cannot serve needs the manual rate, see the note below) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
 | Consumption drift detected (J9) | Amber insight card in the Log, in the car's own unit, naming BOTH windows compared ("Consumption is up 21% vs a year ago" + "Last 90 days: 6.5 L/100km · a year earlier: 5.4 L/100km"); tap → evidence (chart of the drift + possible causes: tire pressure, air filter, winter) | Act → creates a service reminder · dismiss with reason (teaches the model) – both always present (a card with only dismiss teaches nothing; only act is a nag) |
 | First fill logged, no segment yet (D4) | Hint on vitals: "One more full tank and your consumption appears" | Capture (the card links it) |
+
+**Imported money and the drain (F9, RV.88).** The import commit writes foreign rows
+rate-pending on purpose (hard rule 3: `rateDate` is the ENTRY date, and a 2015 rate is not
+on the device at import time). It then runs a drain over exactly the rows it wrote: it asks
+the rate service for the dates they span (`GET /rates/pack`, chunked under the server's
+400-day cap) and backfills each at its OWN day's rate - never today's - silently (S8). The
+footnote drains as rows fill and disappears at zero.
+
+**A row the drain cannot resolve is told apart from one that will convert.** The rate
+service's archive is bounded (docs/SCHEMA.md -> Exchange rates): the app-bundle seed pack
+covers one month, the rolling refresh the last 400 days, and the server's ECB feed carries
+only *today* (RV.50) - so a row dated before the service's first daily run (or in a pair its
+feeds never carried) has no rate that will ever arrive. Such a row stays rate-pending and is
+counted: it shows its original amount and is excluded from home-currency totals. The honest
+next step for it is the entry's conversion card, where the user sets a rate manually (hard
+rule 13) - the footnote never promises a conversion the service cannot deliver. Nothing is
+silently zeroed and nothing is converted at the wrong date.
 
 ### Capture (camera)
 | Condition | Shows | Next step |
@@ -180,7 +197,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) – a hint, never amber: nothing is wrong, the home amount is simply not known yet | Edit the entry → the conversion card offers a manual rate · wait (it converts when a rate arrives) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) – a hint, never amber: nothing is wrong, the home amount is simply not known yet | Edit the entry → the conversion card offers a manual rate · wait (imported rows drain automatically at commit and on refresh - RV.88; a rate the service cannot serve needs the manual rate, see Home's F9 note) |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

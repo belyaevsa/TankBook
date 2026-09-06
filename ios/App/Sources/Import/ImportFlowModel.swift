@@ -558,9 +558,8 @@ final class ImportFlowModel {
     /// Writes the kept records and drops the stored parse. Returns whether the
     /// repository write succeeded. This is the only mutation the whole flow
     /// performs - hard rule 8 has nothing to lose because nothing was staged.
-    /// The commit is refused until every F6 question is answered (PJ.10): a
-    /// `dateFormat` question unanswered would write the file under the parser's
-    /// M/D guess.
+    /// Refused until every F6 question is answered (PJ.10) - a `dateFormat`
+    /// question unanswered would write the file under the parser's M/D guess.
     @discardableResult
     func confirmImport() async -> Bool {
         guard let parse else { return false }
@@ -579,6 +578,7 @@ final class ImportFlowModel {
             }
             try repository.commitImport(records, source: source)
             try? await client.deleteParse(importId: parse.importId)
+            AppRates.scheduleDrainAfterImport(records) // RV.88: rows land rate-pending; drain them now
             didConfirm = true
             return true
         } catch {

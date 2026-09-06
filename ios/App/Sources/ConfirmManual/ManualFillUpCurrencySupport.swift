@@ -97,6 +97,65 @@ enum AppRates {
         return result
     }
 
+    /// RV.88: schedules `drainAfterImport` off the import commit's critical
+    /// path - the commit returns immediately, the drain runs in the background
+    /// and never gates the wizard's close or needs a connection (hard rule 1).
+    @MainActor
+    static func scheduleDrainAfterImport(_ records: [ArchiveImportRecord]) {
+        Task { await drainAfterImport(records) }
+    }
+
+    /// RV.88: the drain an import commit runs over the rows it just wrote.
+    ///
+    /// Imported rows are written rate-pending on purpose (hard rule 3: `rateDate`
+    /// is the ENTRY date, and a 2015 rate is not on the device at import time).
+    /// The drain is what resolves them: it asks the rate service for the span
+    /// those rows cover (`fetchSpan`, chunked under the server's 400-day cap),
+    /// then backfills SCOPED to exactly the committed entries - never anything
+    /// the user did not just import. Each row converts at its OWN date's rate,
+    /// never today's (hard rule 3); a miss is silent and the row stays
+    /// rate-pending, counted by the F9 footnote (docs/SYNC.md S8 - nothing was
+    /// wrong). Offline-safe: a failed fetch is a non-event and the backfill
+    /// still fills whatever the cache already holds (hard rule 1: import
+    /// parsing is the ONE network exception, so everything after it must
+    /// survive without a connection).
+    @MainActor
+    static func drainAfterImport(_ records: [ArchiveImportRecord]) async {
+        guard let repository = try? AppStore.repository() else { return }
+        let pending = records.compactMap(\.entryValue)
+            .filter { $0.money?.isRatePending == true }
+        guard !pending.isEmpty else { return }
+
+        let calendar = Calendar.current
+        let days = pending.compactMap { calendar.startOfDay(for: $0.date) }
+        if let from = days.min(), let to = days.max() {
+            // Best-effort demand fetch over the imported span. The rolling
+            // refresh covers the last 400 days only; a multi-year import needs
+            // these explicit dates asked for.
+            _ = await store.fetchSpan(from: from, to: to, base: .eur, trigger: .userInitiated)
+            persist(store.allRates())
+        }
+
+        // Re-read the CURRENT rows (the commit stamped conflicts onto them; a
+        // backfill write must not clobber that) and fill-blanks-only the ones
+        // this import wrote. `isRatePending` was captured from the pre-commit
+        // records; a row that already resolved (same-currency) is filtered by
+        // the service's own guard anyway.
+        let ids = Set(pending.map(\.id))
+        var current: [any Entry] = []
+        for vehicleID in Set(pending.map(\.vehicleId)) {
+            current += ((try? repository.liveEntries(forVehicle: vehicleID)) ?? [])
+        }
+        let imported = current.filter { ids.contains($0.id) }
+        let result = try? MoneyBackfillService(store: store).backfill(repository,
+                                                                       limitedTo: imported)
+        // S8: a backfill that filled something is silent - no toast - but Home
+        // must re-read so the F9 footnote drains and the spend appears.
+        if result?.filledCount ?? 0 > 0 {
+            onBackfilled?()
+        }
+    }
+
     /// One stable id per refresh deferral, so re-registering replaces rather
     /// than stacking a second drain closure.
     private static let deferredRefreshID = UUID()
@@ -132,12 +191,18 @@ enum AppRates {
 
     /// The rate transport. `-stubRates` (UI tests + screenshots) answers the
     /// `/rates/pack` endpoint with a deterministic pack so the refresh -> S8
-    /// backfill path runs without a live feed; otherwise the transport is the
-    /// app-wide seeded/real one (offline under a seeded launch, P6.21).
+    /// backfill path runs without a live feed; `-stubRatesEcho` answers ANY
+    /// requested date range (RV.88's L4 + screenshots, which import USD rows
+    /// dated in the current month and need a rate for exactly those days);
+    /// otherwise the transport is the app-wide seeded/real one (offline under
+    /// a seeded launch, P6.21).
     private static func makeTransport() -> any TankbookHTTPTransport {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-stubRates") {
             return RateStubTransport()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-stubRatesEcho") {
+            return RateEchoStubTransport()
         }
         return appTransport(SeededLaunch.transport())
         #else

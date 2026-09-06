@@ -10,6 +10,13 @@ import Foundation
 /// ordinary `.dirty` sync state so they travel to the other devices (S8). A
 /// miss is not an error: the entry stays rate-pending and is counted, never
 /// surfaced.
+///
+/// Two call shapes: the full pass (`backfill(_:)`) sweeps the whole garage -
+/// the S8 trigger after a refresh - and the scoped pass
+/// (`backfill(_:limitedTo:)`) resolves exactly the entries a caller names,
+/// which is what an import commit runs over its own just-written rows (RV.88:
+/// the rows an import wrote must not wait on the next whole-garage sweep to
+/// reach the car's currency).
 public struct MoneyBackfillService {
     /// The outcome of one pass: counts only, no domain values (hard rule 12).
     public struct Result: Equatable, Sendable {
@@ -38,23 +45,61 @@ public struct MoneyBackfillService {
         for vehicle in try repository.liveVehicles() {
             let entries = try repository.liveEntries(forVehicle: vehicle.id)
             for entry in entries {
-                guard let money = entry.money, money.isRatePending else { continue }
-                guard let snapshot = store.snapshot(original: money.currency,
-                                                    home: money.homeCurrency,
-                                                    on: entry.date) else {
-                    stillPending += 1
-                    continue
+                switch try outcome(for: entry, in: repository) {
+                case .filled: filled += 1
+                case .stillPending: stillPending += 1
+                case .notPending: break
                 }
-                let converted = money.converted(using: snapshot)
-                guard converted.hasSnapshot else {
-                    stillPending += 1
-                    continue
-                }
-                try Self.persist(entry, with: converted, in: repository)
-                filled += 1
             }
         }
         return Result(filledCount: filled, stillPendingCount: stillPending)
+    }
+
+    /// A backfill over EXACTLY the given entries - the shape the import commit
+    /// needs (RV.88): a rate pack that just arrived must not spend a full pass
+    /// rewriting history the user did not just import. Same semantics as the
+    /// full pass, scoped: fill-blanks-only, each entry resolved on its OWN date
+    /// (hard rule 3), a miss stays pending and is counted. Idempotent.
+    ///
+    /// `entries` must be the CURRENT rows (a caller that passes a pre-write
+    /// struct could clobber a field the write changed - e.g. the commit's
+    /// conflict stamp), so a caller re-reads the rows it committed before
+    /// calling this.
+    @discardableResult
+    public func backfill(_ repository: TankbookRepository,
+                         limitedTo entries: [any Entry]) throws -> Result {
+        var filled = 0
+        var stillPending = 0
+        for entry in entries {
+            switch try outcome(for: entry, in: repository) {
+            case .filled: filled += 1
+            case .stillPending: stillPending += 1
+            case .notPending: break
+            }
+        }
+        return Result(filledCount: filled, stillPendingCount: stillPending)
+    }
+
+    /// The per-entry fill decision, shared by the full pass and the scoped one
+    /// so they can never disagree about what fills and what waits.
+    private func outcome(for entry: any Entry,
+                         in repository: TankbookRepository) throws -> Outcome {
+        guard let money = entry.money, money.isRatePending else { return .notPending }
+        guard let snapshot = store.snapshot(original: money.currency,
+                                            home: money.homeCurrency,
+                                            on: entry.date) else {
+            return .stillPending
+        }
+        let converted = money.converted(using: snapshot)
+        guard converted.hasSnapshot else { return .stillPending }
+        try Self.persist(entry, with: converted, in: repository)
+        return .filled
+    }
+
+    private enum Outcome {
+        case filled
+        case stillPending
+        case notPending
     }
 
     /// The product-side trigger for S8 (docs/SYNC.md, PJ.8): refresh the rate
