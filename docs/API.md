@@ -382,11 +382,20 @@ reasoning as the currency chip on Confirm.
   parse is governed by the importId itself (the id is the capability). **`DELETE /import/{importId}`**
   drops it early, **idempotently** (`204` whether or not it existed); otherwise it is **purged after
   30 days** (`docs/SECURITY.md` -> Import files at rest).
-- **Ambiguity is returned, never guessed** - the F6 once-per-file questions, applied client-side:
-  - `dateFormat` (`M/D/YYYY` vs `D/M/YYYY`, the real MFM export contains genuinely ambiguous dates):
-    `options` names both readings and `rowCount` is the number of rows whose day is also ≤ 12, so
-    the same string would parse either way. The candidates carry the format's M/D reading; if the
-    user answers D/M, the client flips exactly the counted rows.
+- **Ambiguity is returned, never guessed** - the F6 once-per-file questions, applied client-side.
+  The date order is a property of the WHOLE file, not of any one row (RV.85): one export has one
+  format, so the parser reads every row before deciding whether to ask:
+  - `dateFormat` (`M/D/YYYY` vs `D/M/YYYY`): emitted **only when the file's own rows cannot settle
+    the order** - every date has both components ≤ 12, so no row proves which reading the file uses.
+    `options` names both readings and `rowCount` is the number of genuinely ambiguous rows (both
+    components ≤ 12, so the same string would parse either way). The candidates carry the format's
+    M/D convention; if the user answers D/M, the client flips exactly the counted rows. A file any
+    row settles is **resolved, not asked**: a row only M/D can read (a day > 12 in the second slot,
+    e.g. `05/13`) proves M/D, a row only D/M can read (a day > 12 in the first slot, e.g. `13/05`)
+    proves D/M, and the parser applies the proven order to **every** row - including the
+    individually ambiguous ones - and returns no `dateFormat` ambiguity. **A file whose rows prove
+    BOTH orders is not an ambiguity: it is an inconsistent file** (below, the `import_inconsistent_dates`
+    422) - no single answer exists for the user to pick, so it errors rather than asks.
   - `currency`: `options` is the single currency the file declares on every row (the real export
     reads `USD` regardless of where fuel was bought) - a **default the user corrects** (hard rule
     13), never a fact.
@@ -407,6 +416,12 @@ reasoning as the currency chip on Confirm.
   `422` **the file does not look like the format the
   user declared** (`import_mismatch`) - the client says so specifically ("this does not look like a My Fuel Manager
   export") and offers the picker again, never a generic failure (F7 forbids "something went wrong").
+  `422` `import_inconsistent_dates` (RV.85): the file IS the declared format, but its dates mix two
+  orders - some rows only parse `M/D/YYYY`, others only `D/M/YYYY` - and one export has one format,
+  so no single reading fits. Not the `dateFormat` question (a file with no single answer cannot be
+  answered correctly), the whole file is refused and the client shows the inconsistent-file message
+  with its next step (correct the dates in the export), never the mismatch card and never the
+  date-format question.
 - **Logs carry shape only**: format, file kind, row counts, error counts. Never a station, note,
   amount or coordinate (hard rule 12). `POST` is a public native-app endpoint with no browser
   cookies, so the anti-forgery metadata that multipart binding would otherwise attach is disabled.

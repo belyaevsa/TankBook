@@ -85,6 +85,9 @@ public static class TankbookErrorCodes
     /// <summary>The file does not look like the format the user declared (422).</summary>
     public const string ImportMismatch = "import_mismatch";
 
+    /// <summary>The file's dates mix two orders - some only parse M/D, others only D/M (422, RV.85).</summary>
+    public const string ImportInconsistentDates = "import_inconsistent_dates";
+
     /// <summary>No stored parse has this id (404).</summary>
     public const string ImportNotFound = "import_not_found";
 

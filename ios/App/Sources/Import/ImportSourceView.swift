@@ -194,23 +194,8 @@ struct ImportSourceView: View {
     }
 
     /// The shared "How to export" link into the source app's guide page
-    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
-    @ViewBuilder
-    private func helpLink(_ url: URL, identifier: String) -> some View {
-        Link(destination: url) {
-            HStack(spacing: 6) {
-                Image(systemName: "questionmark.circle")
-                    .font(.caption)
-                Text("How to export")
-                    .font(.caption.weight(.semibold))
-            }
-            .foregroundStyle(Theme.Palette.action)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 11)
-        }
-        .accessibilityIdentifier(identifier)
-    }
+    /// (PJ.33) - defined in the `ImportSourceView` extension below, out of this
+    /// struct body, so the type stays under the lint ceiling.
 
     // MARK: - Not yet / not supported
 
@@ -445,6 +430,13 @@ struct ImportSourceView: View {
             .formCard()
             .padding(.horizontal, Theme.Spacing.screenMargin)
             .padding(.bottom, 10)
+        case .inconsistentDates:
+            // RV.85: an inconsistent file - rows proving M/D and rows proving
+            // D/M - has no single answer for the dateFormat question to offer,
+            // so it is its own message naming its next step, never a question
+            // the user cannot answer correctly. The card body lives in an
+            // extension so this struct stays under the lint ceiling.
+            inconsistentDatesCard
         case .transportUnreachable:
             EmptyView()
         case .couldNotRead:
@@ -496,5 +488,51 @@ struct ImportSourceView: View {
         .formCard()
         .padding(.horizontal, Theme.Spacing.screenMargin)
         .padding(.bottom, 10)
+    }
+}
+
+// MARK: - The "How to export" link and the inconsistent-dates card (RV.85)
+
+extension ImportSourceView {
+    /// The shared "How to export" link into the source app's guide page
+    /// (PJ.33). `Text` is a literal so the label localises (never a `String`).
+    fileprivate func helpLink(_ url: URL, identifier: String) -> some View {
+        Link(destination: url) {
+            HStack(spacing: 6) {
+                Image(systemName: "questionmark.circle")
+                    .font(.caption)
+                Text("How to export")
+                    .font(.caption.weight(.semibold))
+            }
+            .foregroundStyle(Theme.Palette.action)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 11)
+        }
+        .accessibilityIdentifier(identifier)
+    }
+
+    /// The mixed-date-order file's own card (RV.85). Lives in an extension so
+    /// `parseErrorCard`'s switch and this struct stay under the lint ceilings.
+    fileprivate var inconsistentDatesCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("This file mixes two date formats.")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Theme.Palette.warn)
+            Text("Some dates only read one way, others the other way.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+            Text("Fix the dates in the export, then pick the file again.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .lineSpacing(1.4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .formCard()
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.bottom, 10)
+        .accessibilityIdentifier("importInconsistentDatesCard")
     }
 }

@@ -277,6 +277,23 @@ struct ImportCodeMappingTests {
         }
     }
 
+    @Test("import_inconsistent_dates maps to its own error, not the 422 mismatch")
+    func inconsistentDatesKeepTheirOwnClass() async {
+        // RV.85: a mixed-date-order file is not "this doesn't look like a My
+        // Fuel Manager export" - it IS one, and the message must say the dates
+        // are inconsistent, never offer the dateFormat question a file with no
+        // single answer cannot be answered correctly against.
+        let transport = ScriptTransport()
+        transport.script([TankbookHTTPResponse(status: 422, body: problemBody(code: "import_inconsistent_dates"))])
+        let format = ImportFormat(id: "mfm", displayName: "My Fuel Manager",
+                                  fileKinds: ["csv"], helpUrl: nil,
+                                  addedInPackVersion: 1)
+        await #expect(throws: ImportClientError.inconsistentDates) {
+            _ = try await makeClient(transport).parseFile(data: Data("x".utf8),
+                                                          fileName: "x.csv", format: format)
+        }
+    }
+
     @Test("an unknown code falls back to the status classification")
     func unknownCodeFallsBackToStatus() async {
         let transport = ScriptTransport()

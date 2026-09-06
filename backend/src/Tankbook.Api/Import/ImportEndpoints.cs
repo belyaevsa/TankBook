@@ -123,6 +123,14 @@ public static class ImportEndpoints
                 "This does not look like a My Fuel Manager export.",
                 ex.Detail);
         }
+        catch (InconsistentDateOrderException ex)
+        {
+            return Problem(
+                StatusCodes.Status422UnprocessableEntity,
+                TankbookErrorCodes.ImportInconsistentDates,
+                "This file mixes two date formats.",
+                ex.Detail);
+        }
     }
 
     /// <summary>GET /v1/import/{importId} - re-reads a stored parse so a review can be resumed.</summary>

@@ -35,7 +35,7 @@ extension ImportClientError {
         case .invalidResponse: return .contractError
         case .server: return .serverError
         case .client, .transportFailure, .oversize, .unrecognisedFormat,
-             .doesNotMatchDeclared, .missingIdentity:
+             .doesNotMatchDeclared, .inconsistentDates, .missingIdentity:
             return .failed
         }
     }

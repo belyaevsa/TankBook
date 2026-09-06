@@ -12,7 +12,9 @@ namespace Tankbook.Api.Import;
 ///   1. the header is on line 2 - line 1 is a title ("My Fuel Manager - Fuel");
 ///   2. the delimiter is ';', not ',';
 ///   3. dates are M/D/YYYY and ambiguous against D/M/YYYY for any day &lt;= 12 -
-///      the ambiguity is returned in <see cref="ImportAmbiguity"/>, never resolved;
+///      the order is decided from the WHOLE file (RV.85), never row by row:
+///      one export has one format, so a single row only one order can read
+///      settles every row, and only a file no row settles still asks;
 ///   4. there is no unit-price column - price/L is derived (total / volume);
 ///   5. Fuel is a numeric code (a bitmask: 1 = petrol, 2 = diesel), not a name.
 ///
@@ -138,17 +140,21 @@ public static class MfmParser
                 $"The header on line 2 does not match a {kindToken} export ({ColumnsByKind[fileKind]} columns expected).");
         }
 
-        var rowNumber = 0;
-        var candidates = new List<JsonObject>();
-        var unparsed = new List<UnparsedRow>();
-        int ambiguousDates = 0;
-        int rowsWithCurrency = 0;
-        string? currency = null;
-
-        string[]? fields;
-        while ((fields = ReadRow(parser)) is not null)
+        // Buffer the data rows before mapping any of them (RV.85): the date
+        // order is a property of the WHOLE file - one export has one format -
+        // so it is decided over every row first, then applied to each. The real
+        // exports are ~500 rows, so buffering costs nothing and keeps the parse
+        // a single read -> decide -> map pass.
+        var rows = new List<string[]>();
+        while (true)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            var fields = ReadRow(parser);
+            if (fields is null)
+            {
+                break;
+            }
+
             fields = fields.Select(f => f.Trim()).ToArray();
 
             // A fully empty trailing line is not a data row.
@@ -157,8 +163,28 @@ public static class MfmParser
                 continue;
             }
 
+            rows.Add(fields);
+        }
+
+        var expectedColumns = ColumnsByKind[fileKind];
+        // RV.85: decide the date order from the whole file. Only the kinds whose
+        // dates map to a candidate participate (fuel and costs); vehicles has no
+        // date column and incomes/reminders are unmapped, so neither ever asked.
+        DateOrderDecision? dates = fileKind is "fuel" or "costs"
+            ? DecideDateOrder(rows, expectedColumns)
+            : null;
+
+        var rowNumber = 0;
+        var candidates = new List<JsonObject>();
+        var unparsed = new List<UnparsedRow>();
+        int rowsWithCurrency = 0;
+        string? currency = null;
+
+        foreach (var fields in rows)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
             rowNumber++;
-            if (fields.Length != ColumnsByKind[fileKind])
+            if (fields.Length != expectedColumns)
             {
                 unparsed.Add(new UnparsedRow(rowNumber, ReasonWrongColumnCount));
                 continue;
@@ -166,7 +192,7 @@ public static class MfmParser
 
             try
             {
-                var candidate = MapRow(fileKind, fields, ref ambiguousDates, ref rowsWithCurrency, ref currency, rowNumber);
+                var candidate = MapRow(fileKind, fields, dates, ref rowsWithCurrency, ref currency, rowNumber);
                 if (candidate is not null)
                 {
                     candidates.Add(candidate);
@@ -183,12 +209,18 @@ public static class MfmParser
         }
 
         var ambiguities = new List<ImportAmbiguity>();
-        if (ambiguousDates > 0)
+        // RV.85: the dateFormat question is asked ONLY when the file's own rows
+        // cannot settle the order (every date has both components <= 12, so no
+        // row proves which reading the file uses). A file any single row proves
+        // M/D or D/M is resolved by that proof and does not ask - the parser
+        // applies the proven order to every row, including the individually
+        // ambiguous ones, and the ambiguity is gone from the wire.
+        if (dates?.Ask == true && dates.AmbiguousRows > 0)
         {
             ambiguities.Add(new ImportAmbiguity(
                 "dateFormat",
                 ["M/D/YYYY", "D/M/YYYY"],
-                ambiguousDates));
+                dates.AmbiguousRows));
         }
 
         if (rowsWithCurrency > 0 && currency is not null)
@@ -226,7 +258,7 @@ public static class MfmParser
     private static JsonObject? MapRow(
         string fileKind,
         string[] f,
-        ref int ambiguousDates,
+        DateOrderDecision? dates,
         ref int rowsWithCurrency,
         ref string? currency,
         int rowNumber)
@@ -234,11 +266,11 @@ public static class MfmParser
         switch (fileKind)
         {
             case "fuel":
-                return MapFuelRow(f, ref ambiguousDates, ref rowsWithCurrency, ref currency, rowNumber);
+                return MapFuelRow(f, dates!, ref rowsWithCurrency, ref currency, rowNumber);
             case "vehicles":
                 return MapVehicleRow(f, rowNumber);
             case "costs":
-                return MapCostsRow(f, ref ambiguousDates, ref rowsWithCurrency, ref currency, rowNumber);
+                return MapCostsRow(f, dates!, ref rowsWithCurrency, ref currency, rowNumber);
             case "incomes":
             case "reminders":
                 return null;
@@ -249,14 +281,14 @@ public static class MfmParser
 
     private static JsonObject MapFuelRow(
         string[] f,
-        ref int ambiguousDates,
+        DateOrderDecision dates,
         ref int rowsWithCurrency,
         ref string? currency,
         int rowNumber)
     {
         // Columns: Date; Fillup volume; Odometer; Total price; Currency; Fuel;
         //          Tank status after fillup; %; Note; Vehicle name
-        var date = ParseDate(f[0], ref ambiguousDates);
+        var date = ParseDate(f[0], dates.DayFirst);
         var volume = ParseDouble(f[1], ReasonInvalidNumber);
         var odometer = ParseOdometer(f[2]);
         var totalPrice = ParseDecimal(f[3], ReasonInvalidNumber);
@@ -368,14 +400,14 @@ public static class MfmParser
 
     private static JsonObject MapCostsRow(
         string[] f,
-        ref int ambiguousDates,
+        DateOrderDecision dates,
         ref int rowsWithCurrency,
         ref string? currency,
         int rowNumber)
     {
         // Columns: Date; Total price; Currency; Finance category; Odometer;
         //          Note; Vehicle name
-        var date = ParseDate(f[0], ref ambiguousDates);
+        var date = ParseDate(f[0], dates.DayFirst);
         var totalPrice = ParseDecimal(f[1], ReasonInvalidNumber);
         var rowCurrency = f[2];
         var category = f[3];
@@ -511,36 +543,131 @@ public static class MfmParser
         }
     }
 
-    /// <summary>Parses M/D/YYYY, the format's convention, and counts a row as genuinely ambiguous when its day is also &lt;= 12 (the same string would parse as D/M/YYYY).</summary>
-    private static DateTime ParseDate(string text, ref int ambiguousDates)
+    /// <summary>
+    /// Decides the date order the WHOLE file uses (RV.85). One export has one
+    /// format, so a row only one order can read proves that order for every
+    /// row - a "13/05" anywhere proves D/M, a "05/13" proves M/D - and the
+    /// individually ambiguous rows follow the proof. A row neither order can
+    /// read is not evidence (a corrupt "99/99" must not flip a real file's
+    /// order); it stays invalid for the mapping pass. A file whose rows prove
+    /// BOTH orders is inconsistent - not an ambiguity a question could answer,
+    /// and an error rather than a guess (docs/API.md, docs/ERRORS.md). A file
+    /// no row proves stays undecidable and keeps the dateFormat question
+    /// exactly as it did before RV.85.
+    /// </summary>
+    private static DateOrderDecision DecideDateOrder(IReadOnlyList<string[]> rows, int columnCount)
     {
-        if (!TryParseMdy(text, out var date))
+        var sawMonthFirstOnly = false; // rows only M/D can read prove M/D
+        var sawDayFirstOnly = false;   // rows only D/M can read prove D/M
+        var ambiguous = 0;
+
+        foreach (var row in rows)
         {
-            throw new RowParseException(ReasonInvalidDate);
+            if (row.Length != columnCount)
+            {
+                continue; // a wrong-column row never reaches the date column
+            }
+
+            switch (ClassifyDate(row[0]))
+            {
+                case DateValidity.OnlyMonthFirst:
+                    sawMonthFirstOnly = true;
+                    break;
+                case DateValidity.OnlyDayFirst:
+                    sawDayFirstOnly = true;
+                    break;
+                case DateValidity.Ambiguous:
+                    ambiguous++;
+                    break;
+                case DateValidity.Invalid:
+                    break;
+            }
         }
 
-        var parts = text.Split('/');
-        if (parts.Length == 3 && int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var day) && day <= 12)
+        if (sawMonthFirstOnly && sawDayFirstOnly)
         {
-            ambiguousDates++;
+            throw new InconsistentDateOrderException(
+                "The file mixes two date orders: some rows only read as M/D/YYYY and others only as D/M/YYYY. One export has one format, so correct the dates in the file and import it again.");
+        }
+
+        return new DateOrderDecision
+        {
+            // M/D is the format's convention; only a file proven day-first by
+            // its own rows parses D/M.
+            DayFirst = sawDayFirstOnly,
+            // A file no row proves has no answer on disk - the question stays.
+            Ask = !sawMonthFirstOnly && !sawDayFirstOnly,
+            AmbiguousRows = ambiguous,
+        };
+    }
+
+    /// <summary>
+    /// Classifies one date cell by which readings are valid dates: only M/D
+    /// (a component &gt; 12 in the second position proves M/D), only D/M (a
+    /// component &gt; 12 in the first position proves D/M), both (individually
+    /// undecidable), or neither (an invalid date, never evidence). A reading is
+    /// valid only when the month is 1-12 and the day fits that month - a
+    /// "99/05" is not D/M evidence, because day 99 is not a day.
+    /// </summary>
+    private static DateValidity ClassifyDate(string text)
+    {
+        var monthFirst = TryParseDate(text, dayFirst: false, out _);
+        var dayFirst = TryParseDate(text, dayFirst: true, out _);
+        if (monthFirst && dayFirst)
+        {
+            return DateValidity.Ambiguous;
+        }
+
+        if (monthFirst)
+        {
+            return DateValidity.OnlyMonthFirst;
+        }
+
+        if (dayFirst)
+        {
+            return DateValidity.OnlyDayFirst;
+        }
+
+        return DateValidity.Invalid;
+    }
+
+    /// <summary>Parses a date cell under the whole-file-decided order (RV.85); an invalid date throws the row's reason.</summary>
+    private static DateTime ParseDate(string text, bool dayFirst)
+    {
+        if (!TryParseDate(text, dayFirst, out var date))
+        {
+            throw new RowParseException(ReasonInvalidDate);
         }
 
         return date;
     }
 
-    private static bool TryParseMdy(string text, out DateTime date)
+    /// <summary>
+    /// Parses <c>a/b/YYYY</c> under one order: month-first (M/D) or day-first
+    /// (D/M). A reading is valid only when the month is 1-12 and the day fits
+    /// that month's length - the same strictness the old M/D-only parse
+    /// applied to its single reading.
+    /// </summary>
+    private static bool TryParseDate(string text, bool dayFirst, out DateTime date)
     {
         date = default;
         var parts = text.Split('/');
         if (parts.Length != 3 ||
-            !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var month) ||
-            !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var day) ||
+            !int.TryParse(parts[0], NumberStyles.None, CultureInfo.InvariantCulture, out var first) ||
+            !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var second) ||
             !int.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var year))
         {
             return false;
         }
 
-        if (month is < 1 or > 12 || year is < 1000 or > 9999)
+        if (year is < 1000 or > 9999)
+        {
+            return false;
+        }
+
+        var month = dayFirst ? second : first;
+        var day = dayFirst ? first : second;
+        if (month is < 1 or > 12)
         {
             return false;
         }
@@ -600,6 +727,42 @@ public static class MfmParser
         }
 
         return (int)Math.Round(value, 0, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// The whole-file date decision (RV.85). One export has one date order;
+    /// the parser reads every row before mapping any, so a single row only one
+    /// order can read settles the file. <see cref="Ask"/> is true only when no
+    /// row settles it - every date has both components &lt;= 12 - and only then
+    /// does the file keep the dateFormat question, because there the M/D
+    /// convention is a guess the user must confirm rather than a proven order.
+    /// </summary>
+    private sealed class DateOrderDecision
+    {
+        /// <summary>true = parse dates day-first (D/M/YYYY); false = month-first (M/D/YYYY).</summary>
+        public required bool DayFirst { get; init; }
+
+        /// <summary>True only when the file's own rows cannot settle the order, so the F6 dateFormat question is still asked.</summary>
+        public required bool Ask { get; init; }
+
+        /// <summary>Rows that genuinely read either way (both components &lt;= 12) - the count the question carries.</summary>
+        public required int AmbiguousRows { get; init; }
+    }
+
+    /// <summary>How one date cell reads, under the two orders the format could use (RV.85).</summary>
+    private enum DateValidity
+    {
+        /// <summary>Neither M/D nor D/M can read the string - an invalid date, never evidence of an order.</summary>
+        Invalid,
+
+        /// <summary>Both readings are valid dates (both components &lt;= 12): individually undecidable.</summary>
+        Ambiguous,
+
+        /// <summary>Only the month-first reading (M/D/YYYY) is a valid date - the row proves the file is M/D.</summary>
+        OnlyMonthFirst,
+
+        /// <summary>Only the day-first reading (D/M/YYYY) is a valid date - the row proves the file is D/M.</summary>
+        OnlyDayFirst,
     }
 
     private sealed class RowParseException : Exception

@@ -34,6 +34,7 @@ public enum ServerErrorCode: String, Sendable, Equatable, CaseIterable {
     // ---- Import ----
     case importFormatUnsupported = "import_format_unsupported"
     case importMismatch = "import_mismatch"
+    case importInconsistentDates = "import_inconsistent_dates"
     case importNotFound = "import_not_found"
 
     // ---- Config ----

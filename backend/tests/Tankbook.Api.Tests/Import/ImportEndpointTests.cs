@@ -57,7 +57,9 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(513, body.GetProperty("candidates").GetArrayLength());
 
         var ambiguities = body.GetProperty("ambiguities");
-        Assert.Contains(ambiguities.EnumerateArray(), a => a.GetProperty("kind").GetString() == "dateFormat");
+        // RV.85: the real export proves M/D (rows with days past the 12th), so
+        // no dateFormat question is asked - the ambiguity is gone from the wire.
+        Assert.DoesNotContain(ambiguities.EnumerateArray(), a => a.GetProperty("kind").GetString() == "dateFormat");
         Assert.Contains(ambiguities.EnumerateArray(), a => a.GetProperty("kind").GetString() == "currency");
 
         // Hard rule 9: the parse commits nothing. No account, no domain rows.
@@ -308,6 +310,31 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         var notMfm = Encoding.UTF8.GetBytes("date,volume,price\n1,2,3\n");
         using var response = await ParseAsync(app.Client, "mfm", notMfm, "some.csv", deviceId);
         Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
+    [SkippableFact]
+    public async Task AFileMixingTwoDateOrders_Is422_WithItsOwnCode_NotTheQuestion()
+    {
+        // RV.85: a file one row proves M/D and another proves D/M is not the
+        // dateFormat ambiguity (a question the user could answer) - no single
+        // answer exists, so the parse answers 422 with its own code, and the
+        // client renders the inconsistent-file message, never the dateFormat
+        // question and never the "doesn't look like an MFM export" mismatch.
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var deviceId = Guid.NewGuid();
+
+        var mixed = Encoding.UTF8.GetBytes(
+            "My Fuel Manager - Fuel\n" +
+            "Date;Fillup volume;Odometer;Total price;Currency;Fuel;Tank status after fillup;%;Note;Vehicle name\n" +
+            "13/05/2024;50;100000;80;USD;1;F;100;\"\";\"Volvo\"\n" +
+            "05/13/2024;45;100400;72;USD;1;F;100;\"\";\"Volvo\"\n");
+
+        using var response = await ParseAsync(app.Client, "mfm", mixed, "mixed.csv", deviceId);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(TankbookErrorCodes.ImportInconsistentDates,
+            body.RootElement.GetProperty("code").GetString());
     }
 
     [SkippableFact]

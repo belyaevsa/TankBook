@@ -37,6 +37,11 @@ public enum ImportClientError: Error, Sendable, Equatable {
     /// `422` - the file does not look like the format the user declared.
     /// `displayName` is the declared format's name, so the message is specific.
     case doesNotMatchDeclared(displayName: String)
+    /// `422` (RV.85) - the file is an MFM export but its dates mix two orders:
+    /// some rows only parse M/D and others only D/M. Not the `dateFormat`
+    /// question (no single answer exists) - the file is inconsistent and gets
+    /// its own message, never a question the user cannot answer correctly.
+    case inconsistentDates
     /// `400` - neither a bearer token nor an X-Device-Id was available to
     /// attribute the parse.
     case missingIdentity
@@ -203,6 +208,7 @@ public struct ImportClient: Sendable {
         switch code {
         case .importFormatUnsupported: return .unrecognisedFormat
         case .importMismatch: return .doesNotMatchDeclared(displayName: declaredDisplayName ?? "unknown")
+        case .importInconsistentDates: return .inconsistentDates
         case .importNotFound: return .server(status: status)
         default: break
         }

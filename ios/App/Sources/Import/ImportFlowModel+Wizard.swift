@@ -386,6 +386,7 @@ extension ImportFlowModel {
         case .oversize: return .oversize
         case .unrecognisedFormat: return .unrecognisedFormat
         case .doesNotMatchDeclared: return .doesNotMatchDeclared(displayName: format.displayName)
+        case .inconsistentDates: return .inconsistentDates
         case .server(let status): return .server(status: status)
         case .invalidResponse, .missingIdentity, .client, .transportFailure, .cancelled:
             return .unknown

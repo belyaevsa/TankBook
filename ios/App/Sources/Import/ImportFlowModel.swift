@@ -45,6 +45,10 @@ final class ImportFlowModel {
         /// Distinct from the parse-failure cases below, whose next step differs.
         case couldNotRead
         case doesNotMatchDeclared(displayName: String)
+        /// RV.85: the file is an MFM export whose dates mix two orders. Not the
+        /// `dateFormat` question - no single answer exists - so it is its own
+        /// message, never a question the user cannot answer correctly.
+        case inconsistentDates
         case transportUnreachable
         case oversize
         case unrecognisedFormat
@@ -258,6 +262,42 @@ final class ImportFlowModel {
         8/24/2026;121727;55;101.75;USD;Neste;"Volvo"
         8/10/2026;9;55;101.75;USD;Shell;"Volvo"
         7/18/2026;120559;55;101.75;USD;Circle K;"Volvo"
+        """.utf8)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
+    /// RV.85: installs a stub parse for a DETECTABLE file - one whose own rows
+    /// prove D/M (12/01 and 13/05 only read day-first), so the post-fix server
+    /// resolves every date and returns NO `dateFormat` ambiguity. The preview
+    /// must not ask, and the dates it shows are the resolved readings: January
+    /// and May 2026, never the M/D misreading (which would read 12/01 as
+    /// December and could not read 13/05 at all).
+    func installSeededResolvedDatesParse() {
+        func fill(_ row: Int, _ date: Date, _ odo: Int) -> ImportCandidate {
+            ImportCandidate(
+                entityType: "fillUp", date: date, odometer: odo, volumeL: 55,
+                unitPrice: "1.85", money: ImportMoney(amount: "101.75", currency: "USD"),
+                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100,
+                note: nil, vehicleName: "Volvo",
+                provenance: ImportProvenance(tag: "import", source: "mfm"),
+                sourceRow: row)
+        }
+        parse = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000305", format: "mfm",
+            scope: "vehicle",
+            candidates: [
+                fill(1, Date(timeIntervalSince1970: 1_768_176_000), 100_000),  // 2026-01-12
+                fill(2, Date(timeIntervalSince1970: 1_778_630_400), 100_500),  // 2026-05-13
+            ],
+            unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        pickedFileName = "MyFuelManager_2026.csv"
+        uploadedFileData = Data("""
+        My Fuel Manager - Fuel
+        Date;Fillup volume;Odometer;Total price;Currency;Fuel;Tank status after fillup;%;Note;Vehicle name
+        12/01/2026;50;100000;92;USD;2;F;100;"";"Volvo"
+        13/05/2026;55;100500;101;USD;2;F;100;"";"Volvo"
         """.utf8)
         ensureTargetCar(preferredVehicleID: nil)
         rebuildClassification()

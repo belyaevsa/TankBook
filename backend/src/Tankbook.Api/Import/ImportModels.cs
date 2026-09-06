@@ -64,6 +64,26 @@ public sealed class NotMfmExportException : Exception
     public string Detail { get; }
 }
 
+/// <summary>
+/// The file's dates cannot be read as one order (RV.85): some rows only parse
+/// as M/D/YYYY and others only as D/M/YYYY. One export has one format, so no
+/// single answer exists - this is not the F6 <c>dateFormat</c> ambiguity (a
+/// question the user could answer correctly), it is an inconsistent file, and
+/// it surfaces as its own 422 (docs/API.md, docs/ERRORS.md) rather than a
+/// guess. The parser is still a pure function - it commits nothing, and a file
+/// that cannot be trusted is refused whole rather than half-read.
+/// </summary>
+public sealed class InconsistentDateOrderException : Exception
+{
+    public InconsistentDateOrderException(string detail)
+        : base(detail)
+    {
+        Detail = detail;
+    }
+
+    public string Detail { get; }
+}
+
 /// <summary>The stored-parse metadata row (migration 012). Counts only - never values (hard rule 12).</summary>
 public sealed record ImportParseRow(
     Guid Id,

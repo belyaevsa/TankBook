@@ -83,35 +83,38 @@ public class MfmParserTests
         Assert.Equal(116, decimalOdometer!["sourceRow"]!.GetValue<int>());
     }
 
-    // ---- date ambiguity is reported, never resolved ------------------------
+    // ---- the date order is decided from the WHOLE file (RV.85) ------------
 
     [Fact]
-    public void FuelCsv_DateAmbiguityIsReported_WithTheCountOfGenuinelyAmbiguousRows()
+    public void FuelCsv_ProvesMdy_SoTheFileDoesNotAsk()
     {
         using var stream = MfmFixture.Open(MfmFixture.FuelCsv);
         var result = MfmParser.Parse(stream, CancellationToken.None);
 
-        var dateFormat = Assert.Single(result.Ambiguities, a => a.Kind == "dateFormat");
-        Assert.Equal(["M/D/YYYY", "D/M/YYYY"], dateFormat.Options);
+        // The real export is month-first: rows carry days past the 12th
+        // (8/24/2026, 6/26/2026), which only M/D can read - so the file proves
+        // M/D and the dateFormat question is gone from the wire. It used to ask
+        // whenever ANY row had a day <= 12 - here 215 of 513 individually
+        // ambiguous rows, answered by the file itself.
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
 
-        // The count is recounted independently here from the raw file: a row is
-        // genuinely ambiguous when its day is also <= 12, so the same string
-        // would parse as D/M/YYYY.
-        var rows = MfmFixture.ReadDataRows(MfmFixture.FuelCsv);
-        var expectedAmbiguous = rows.Count(r => int.Parse(r[0].Split('/')[1], System.Globalization.CultureInfo.InvariantCulture) <= 12);
-        Assert.Equal(expectedAmbiguous, dateFormat.RowCount);
-        Assert.Equal(215, dateFormat.RowCount);
+        // And the resolution reaches the individually ambiguous rows: the named
+        // row 8/9/2026 (day 9, would read either way) still reads August 9 -
+        // M/D, the order the file proved - never September 8 (the D/M swap).
+        var row = result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == 5);
+        Assert.Equal("2026-08-09T00:00:00Z", row["date"]!.GetValue<string>());
     }
 
     [Fact]
-    public void FuelCsv_NoCandidateCarriesAGuessedDate()
+    public void FuelCsv_ProvingMdy_AppliesTheProvenOrderToEveryRow()
     {
         using var stream = MfmFixture.Open(MfmFixture.FuelCsv);
         var result = MfmParser.Parse(stream, CancellationToken.None);
 
-        // Every candidate's date must be the M/D/YYYY reading of its source row,
-        // including the genuinely ambiguous ones - never the D/M swap. The
-        // parser applied one convention and surfaced the rest in `ambiguities`.
+        // Not just "no question": every candidate must carry the M/D reading of
+        // its source row, including the individually ambiguous ones. A parser
+        // that dropped the question and guessed the OTHER order would pass a
+        // no-question assertion alone - the dates are the half that matters.
         var rows = MfmFixture.ReadDataRows(MfmFixture.FuelCsv);
         foreach (var candidate in result.Candidates)
         {
@@ -126,6 +129,154 @@ public class MfmParserTests
         // read August 9, 2026 (M/D), never September 8 (the D/M swap).
         var row5 = result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == 5);
         Assert.Equal("2026-08-09T00:00:00Z", row5["date"]!.GetValue<string>());
+    }
+
+    // ---- a file a single row proves resolves, and does not ask ------------
+
+    [Fact]
+    public void OneDmyOnlyRowAmongAmbiguousOnes_ResolvesEveryRowAsDmy_AndDoesNotAsk()
+    {
+        // The mirror of the measured defect: a genuinely D/M file. One row only
+        // D/M can read (13/05/2024) settles the order for the other twenty,
+        // whose dates would read either way. The proof row sits LAST, so a
+        // parser that decided from the first row alone would miss it - the
+        // whole-file decision is what resolves this file. Before RV.85 the
+        // 13/05 row was INVALID under the parser's M/D convention (landed
+        // unparsed) and the twenty ambiguous ones raised a question the file
+        // already answered.
+        var dates = Enumerable.Repeat("02/03/2024", 20).Append("13/05/2024");
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(FuelCsv(dates)));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        // No dateFormat ambiguity: the file proved D/M.
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
+        Assert.Empty(result.Unparsed);
+
+        // The proof is applied to EVERY row, and the dates prove it: the
+        // decidable row (sourceRow 21) reads 13 May 2024, and each ambiguous
+        // row reads day-first too (02/03 -> 2 March 2024), never the M/D
+        // "3 February".
+        Assert.Equal(21, result.Candidates.Count);
+        var proof = result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == 21);
+        Assert.Equal("2024-05-13T00:00:00Z", proof["date"]!.GetValue<string>());
+        foreach (var candidate in result.Candidates.Where(c => c["sourceRow"]!.GetValue<int>() < 21))
+        {
+            var sourceRow = candidate["sourceRow"]!.GetValue<int>();
+            Assert.True(candidate["date"]!.GetValue<string>() == "2024-03-02T00:00:00Z",
+                $"data row {sourceRow} must carry the D/M reading of 02/03/2024");
+        }
+    }
+
+    [Fact]
+    public void OneMdyOnlyRowAmongAmbiguousOnes_ResolvesEveryRowAsMdy_AndDoesNotAsk()
+    {
+        // The measured owner's export in miniature: a month-first file whose
+        // proof row (05/13/2024, only M/D can read it) settles the twenty
+        // ambiguous rows - proof row LAST again, so only a whole-file decision
+        // catches it. No question, and every date keeps the M/D reading.
+        var dates = Enumerable.Repeat("02/03/2024", 20).Append("05/13/2024");
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(FuelCsv(dates)));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
+        Assert.Empty(result.Unparsed);
+        Assert.Equal(21, result.Candidates.Count);
+
+        var proof = result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == 21);
+        Assert.Equal("2024-05-13T00:00:00Z", proof["date"]!.GetValue<string>());
+        foreach (var candidate in result.Candidates.Where(c => c["sourceRow"]!.GetValue<int>() < 21))
+        {
+            var sourceRow = candidate["sourceRow"]!.GetValue<int>();
+            Assert.True(candidate["date"]!.GetValue<string>() == "2024-02-03T00:00:00Z",
+                $"data row {sourceRow} must carry the M/D reading of 02/03/2024");
+        }
+    }
+
+    [Fact]
+    public void ARowOnlyDayFirstCanRead_ProvesDmy_ForTheWholeFile()
+    {
+        // The single-row proof at its smallest: one 13/05 row and nothing else
+        // proves the file D/M - there is no question to ask and the one row the
+        // old parser could not read at all now maps.
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(FuelCsv(["13/05/2024"])));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Equal("2024-05-13T00:00:00Z", candidate["date"]!.GetValue<string>());
+        Assert.Empty(result.Unparsed);
+    }
+
+    // ---- a file proving both orders is inconsistent, not ambiguous --------
+
+    [Fact]
+    public void AFileProvingBothOrders_IsInconsistent_NotAQuestion()
+    {
+        // One row only D/M can read (13/05) and one only M/D can read (05/13)
+        // cannot both be right: one export has one format. This is not the
+        // dateFormat ambiguity (no single answer exists for the user to pick),
+        // so the parser refuses the file rather than asking a question no
+        // answer fits - the whole-file 422, never a dateFormat row.
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(
+            FuelCsv(["13/05/2024", "05/13/2024"])));
+
+        var ex = Assert.Throws<InconsistentDateOrderException>(
+            () => MfmParser.Parse(stream, CancellationToken.None));
+        Assert.Contains("date order", ex.Detail, StringComparison.OrdinalIgnoreCase);
+    }
+
+    // ---- a file nothing settles keeps today's question --------------------
+
+    [Fact]
+    public void ANothingDisambiguatesFile_KeepsTheDateFormatQuestion()
+    {
+        // Every date has both components <= 12, so no row proves which order
+        // the file uses and there is no answer on disk to read. The parser
+        // keeps exactly the pre-RV.85 behaviour for this file: it parses under
+        // the format's M/D convention, reports the ambiguity and lets the user
+        // decide - it never guesses silently. (The product owner's "drop it"
+        // reading - land these rows unresolved in the review list instead - was
+        // NOT confirmed before this build, so it was not implemented.)
+        var dates = Enumerable.Repeat("02/03/2024", 3);
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(FuelCsv(dates)));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        var dateFormat = Assert.Single(result.Ambiguities, a => a.Kind == "dateFormat");
+        Assert.Equal(["M/D/YYYY", "D/M/YYYY"], dateFormat.Options);
+        Assert.Equal(3, dateFormat.RowCount);
+
+        // And the candidates still carry the M/D reading the question can flip
+        // (02/03/2024 -> 3 February 2024), so the client's answer path has a
+        // real job to do for this file.
+        Assert.Equal(3, result.Candidates.Count);
+        Assert.All(result.Candidates, c =>
+            Assert.Equal("2024-02-03T00:00:00Z", c["date"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void ACorruptDateRow_IsNoEvidence_AndCannotFlipAResolvedFile()
+    {
+        // A garbage date ("99/05/2024" - neither order can read day 99) must
+        // not count as evidence for either order. In an M/D-proven file it
+        // lands in `unparsed` and the file still resolves M/D without asking -
+        // a parser that took "first component > 12 proves D/M" at face value
+        // would read the corrupt row as a D/M proof and mis-date the whole file.
+        var dates = new List<string> { "08/24/2026", "99/05/2024", "06/14/2026" };
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(FuelCsv(dates)));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
+        Assert.Equal(2, result.Candidates.Count);
+        var bad = Assert.Single(result.Unparsed);
+        Assert.Equal(2, bad.Row);
+        Assert.Equal(MfmParser.ReasonInvalidDate, bad.Reason);
+
+        Assert.Equal("2026-08-24T00:00:00Z",
+            result.Candidates.Single(c => c["sourceRow"]!.GetValue<int>() == 1)["date"]!.GetValue<string>());
     }
 
     // ---- currency is a reported default, never a fact ----------------------
@@ -251,8 +402,10 @@ public class MfmParserTests
         // Categories present in the real file all map; nothing lands unparsed.
         Assert.Empty(result.Unparsed);
 
-        // The costs file has its own date-format ambiguity (dates are M/D/YYYY too).
-        Assert.Contains(result.Ambiguities, a => a.Kind == "dateFormat" && a.RowCount > 0);
+        // The costs file's dates are M/D/YYYY too, and it proves M/D the same
+        // way fuel.csv does (rows with days past the 12th) - so RV.85 resolves
+        // it and no dateFormat question is asked.
+        Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
     }
 
     [Fact]
@@ -357,6 +510,23 @@ public class MfmParserTests
     }
 
     // ---- helpers -----------------------------------------------------------
+
+    /// <summary>A synthetic fuel export over the given date cells (RV.85: the whole-file
+    /// date-order tests need files whose dates are chosen, not a real export's).</summary>
+    private static string FuelCsv(IEnumerable<string> dates)
+    {
+        var rows = dates.Select((date, i) =>
+            $"{date};{45 + i};{100000 + i * 100};{80 + i};USD;1;F;100;\"\";\"Volvo\"");
+        var sb = new StringBuilder();
+        sb.AppendLine("My Fuel Manager - Fuel");
+        sb.AppendLine("Date;Fillup volume;Odometer;Total price;Currency;Fuel;Tank status after fillup;%;Note;Vehicle name");
+        foreach (var row in rows)
+        {
+            sb.AppendLine(row);
+        }
+
+        return sb.ToString();
+    }
 
     private static string ParseMdy(string text)
     {

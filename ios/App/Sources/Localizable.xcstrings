@@ -7935,6 +7935,57 @@
         }
       }
     },
+    "Fix the dates in the export, then pick the file again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fix the dates in the export, then pick the file again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исправьте даты в экспорте и выберите файл снова."
+          }
+        }
+      }
+    },
+    "Some dates only read one way, others the other way.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some dates only read one way, others the other way."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Часть дат читается только в одном порядке, часть — в другом."
+          }
+        }
+      }
+    },
+    "This file mixes two date formats.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file mixes two date formats."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В файле смешаны два формата дат."
+          }
+        }
+      }
+    },
     "Pick one and keep it.": {
       "extractionState": "manual",
       "localizations": {

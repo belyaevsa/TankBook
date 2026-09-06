@@ -22,6 +22,7 @@ enum ImportTestSeed {
         guard arguments.contains("-seedImportPreview")
             || arguments.contains("-seedImportReview")
             || arguments.contains("-seedImportTimeline")
+            || arguments.contains("-seedImportResolvedDates")
             || arguments.contains("-seedImportService")
             || arguments.contains("-seedImportCars")
             || arguments.contains("-seedImportCarsDecided") else { return }
@@ -56,6 +57,11 @@ enum ImportTestSeed {
             model.installSeededParse(resourceName: "import-parse-mfm",
                                      fileName: "MyFuelManager_2026-08.csv",
                                      rawFileResource: "import-mfm-sample")
+            model.showPreview()
+        } else if arguments.contains("-seedImportResolvedDates") {
+            // RV.85: the detectable-file preview - the server resolved the
+            // dates from the file itself, so no dateFormat question renders.
+            model.installSeededResolvedDatesParse()
             model.showPreview()
         } else if arguments.contains("-seedImportCarsDecided") {
             // RV.86 screenshot state: the multi-car mapping gate with two cars
