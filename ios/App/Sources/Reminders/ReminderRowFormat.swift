@@ -103,6 +103,13 @@ enum ReminderRowFormat {
         return date.formatted(.dateTime.month(.abbreviated).year())
     }
 
+    /// Ends a composed sentence without doubling the period (RV.77). The rule
+    /// lives in core as `SentenceEnding`; this is the app-side alias the offer
+    /// sheet calls.
+    static func endingSentence(_ text: String) -> String {
+        SentenceEnding.normalized(text)
+    }
+
     /// The count phrase with the artboard's unit switch: days while there are
     /// fewer than ~30 left, months beyond that ("in 12 days", "in 7 months").
     static func daysPhrase(_ days: Int) -> String {

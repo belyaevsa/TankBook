@@ -26,6 +26,9 @@ struct AppRootView: View {
     /// Carries the P3.5 "type amount" hand-off from the ReminderComplete sheet
     /// into the entry screen and back.
     @State private var reminderCompletionSession = ReminderCompletionSession()
+    /// Carries the RV.77 post-save "Remind you next time?" offer from the
+    /// service/expense save path to the tab root that presented the entry sheet.
+    @State private var reminderOfferSession = ReminderOfferSession()
     /// Owns local-notification arming, cancellation and permission (P3.6).
     @State private var notificationCoordinator = ReminderNotificationCoordinator()
     /// The app's one config surface (P6.18b): the update requirement derived
@@ -172,6 +175,7 @@ struct AppRootView: View {
         // screens' own `seedIfRequested` calls remain and become no-ops.
         #if DEBUG
         ReminderTestSeed.seedIfRequested()
+        ServiceReminderOfferTestSeed.seedIfRequested()
         #endif
         // `-selectTrendsTab`: land on the Trends tab at launch so simctl-driven
         // screenshots and UI tests can reach it without a tab tap (simctl cannot
@@ -294,6 +298,7 @@ struct AppRootView: View {
         .environment(invoiceSession)
         .environment(expenseEntrySession)
         .environment(reminderCompletionSession)
+        .environment(reminderOfferSession)
         .environment(notificationCoordinator)
         .environment(configService)
         .environment(sync)
@@ -582,12 +587,15 @@ struct HomeTabView: View {
     @Binding var modal: ModalRoute?
     @State private var sheet: SheetRoute?
     @State private var didPresentDebugLaunch = false
+    @Environment(ReminderOfferSession.self) private var offerSession
 
     var body: some View {
-        RootedNavigationStack(path: $path) {
-            HomeRootView(presentSheet: { sheet = $0 })
-        }
-        .sheet(item: $sheet) { route in
+        TabRootSheetHost(sheet: $sheet, modal: $modal) {
+            RootedNavigationStack(path: $path) {
+                HomeRootView(presentSheet: { sheet = $0 })
+            }
+            .onAppear(perform: presentDebugLaunch)
+        } sheetContent: { route in
             SheetDestinationView(route: route) { target in
                 // The switcher's forward exits land on THIS tab's stack: close
                 // the sheet, push the route (docs/SCREENMAP.md CarSwitcher).
@@ -595,22 +603,19 @@ struct HomeTabView: View {
                 path = [target]
             }
         }
-        .fullScreenCover(item: $modal) {
-            ModalDestinationView(route: $0) {
-                modal = nil
-                sheet = .serviceEntry
-            }
-        }
-        .onAppear(perform: presentDebugLaunch)
     }
 
-    /// `-presentScreen <route>` / `-openManualForm`: DEBUG-only launch hook
-    /// (DebugLaunch) so `simctl`-driven screenshots can reach sheet screens
-    /// without a UI test tap. Compiled out of release builds.
+    /// DEBUG launch hooks for screenshots (see DebugLaunch). Compiled out of
+    /// release; `-presentServiceReminderOffer` shows the RV.77 offer over the
+    /// seeded log so simctl can capture it without a tap.
     private func presentDebugLaunch() {
         #if DEBUG
         guard !didPresentDebugLaunch else { return }
         didPresentDebugLaunch = true
+        if ProcessInfo.processInfo.arguments.contains("-presentServiceReminderOffer") {
+            offerSession.presented = ServiceReminderOfferTestSeed.makeTarget()
+            return
+        }
         let request = DebugLaunch.resolve()
         if let sheet = request.sheet {
             self.sheet = sheet
@@ -629,15 +634,12 @@ struct TrendsTabView: View {
     @State private var sheet: SheetRoute?
 
     var body: some View {
-        RootedNavigationStack(path: $path) {
-            TrendsRootView(presentSheet: { sheet = $0 })
-        }
-        .sheet(item: $sheet) { SheetDestinationView(route: $0) }
-        .fullScreenCover(item: $modal) {
-            ModalDestinationView(route: $0) {
-                modal = nil
-                sheet = .serviceEntry
+        TabRootSheetHost(sheet: $sheet, modal: $modal) {
+            RootedNavigationStack(path: $path) {
+                TrendsRootView(presentSheet: { sheet = $0 })
             }
+        } sheetContent: { route in
+            SheetDestinationView(route: route)
         }
     }
 }
@@ -648,16 +650,13 @@ struct GarageTabView: View {
     @State private var sheet: SheetRoute?
 
     var body: some View {
-        RootedNavigationStack(path: $path) {
-            GarageRootView(onNavigate: { path = [$0] },
-                           presentSheet: { sheet = $0 })
-        }
-        .sheet(item: $sheet) { SheetDestinationView(route: $0) }
-        .fullScreenCover(item: $modal) {
-            ModalDestinationView(route: $0) {
-                modal = nil
-                sheet = .serviceEntry
+        TabRootSheetHost(sheet: $sheet, modal: $modal) {
+            RootedNavigationStack(path: $path) {
+                GarageRootView(onNavigate: { path = [$0] },
+                               presentSheet: { sheet = $0 })
             }
+        } sheetContent: { route in
+            SheetDestinationView(route: route)
         }
     }
 }

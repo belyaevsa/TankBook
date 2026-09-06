@@ -69,6 +69,7 @@ struct ExpenseEntryView: View {
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
+    @Environment(ReminderOfferSession.self) private var offerSession
 
     @State private var form = ExpenseEntryFormState()
     @State private var vehicle: Vehicle?
@@ -207,6 +208,10 @@ struct ExpenseEntryView: View {
                     completionOdometer: pending.completionOdometer,
                     coordinator: notificationCoordinator)
                 pendingCompletion = nil
+            } else {
+                // RV.77: a plain expense save proposes the next reminder only
+                // after the record is on disk - an offer, never an auto-create.
+                offerSession.stage(afterExpense: expense, repository: repository)
             }
             hasUnsavedChanges = false
             // Tell Home to reload (a `.sheet` never re-triggers the presenter's

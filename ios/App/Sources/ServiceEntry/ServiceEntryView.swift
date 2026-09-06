@@ -27,6 +27,7 @@ struct ServiceEntryView: View {
     @Environment(ExpenseEntrySession.self) private var expenseSession
     @Environment(ReminderCompletionSession.self) private var completionSession
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
+    @Environment(ReminderOfferSession.self) private var offerSession
 
     @State private var form = ServiceEntryFormState()
     @FocusState private var focus: ServiceEntryFocus?
@@ -401,6 +402,9 @@ struct ServiceEntryView: View {
                     completionOdometer: pending.completionOdometer,
                     coordinator: notificationCoordinator)
                 pendingCompletion = nil
+            } else {
+                // RV.77: after the record is on disk, propose the next reminder.
+                offerSession.stage(afterService: service, repository: repository)
             }
             hasUnsavedChanges = false
             // A new record was written with no delta toast - tell Home to

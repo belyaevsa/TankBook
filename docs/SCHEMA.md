@@ -218,6 +218,35 @@ Reminder {
 //                with a reason and feeds anomaly/insight logic ("dismissed: sold the tires").
 ```
 
+**Post-save "remind you next time?" offer (RV.77, docs/JOURNEYS.md J7d "Just did it"):** after a
+ServiceRecord or Expense saves, the app OFFERS the next reminder for the record's category - it never
+creates one. `ReminderOffer` in core (tier-C compiled, tests in `ReminderOfferTests`) decides:
+
+- the offer is keyed on the record's titled items reducing to exactly ONE distinct category that has
+  a curated interval (a mixed visit with two schedulable categories offers nothing rather than
+  silently choosing);
+- the offer is SUPPRESSED when a live reminder (`.scheduled`/`.attention`) of that category already
+  exists on that car - the "three oil reminders" failure mode;
+- ACCEPTING builds the reminder anchored at the record's own date/odometer (never at today, the same
+  no-drift rule as completion): `dueDate = record.date + months`, `dueOdometer = record.odometer + km`
+  when the record has an odometer, `sourceEntryId = record.id`, `recurrence` = the accepted interval;
+- declining ("Not this time") writes nothing.
+
+**The curated per-category interval table.** A default interval is a SUGGESTION the user edits in
+the same breath (hard rule 13), never a fact. The table is compiled (`ReminderOffer.defaultInterval`,
+tier C - it defines the meaning of each category, so a change is a release + a review). Why each
+number, and why the rest are absent:
+
+| Category | Interval | Why |
+|---|---|---|
+| `.oil` | everyKm 15 000, everyMonths 12 | The app's own documented oil-change cadence ("Oil change in 15 000 km or 12 months" - JOURNEYS J7/J7c, VISION, the artboards) and the value the reminder seeds use |
+| `.insurance` | everyMonths 12 | Annual policy renewal - SCHEMA's recurring-expense example and the seed insurance recurrence are 12 months |
+
+Everything else (`.brakes`, `.tires`, `.battery`, `.filters`, `.inspection`, `.repair`, `.parts`,
+`.wash`, `.custom`, `.other`) has no interval a service network would agree on: brakes and tires are
+wear/seasonal, filters vary by part, and inspection cadence is jurisdiction law, not a schedule.
+Offering a number there would invent a fact; the Reminders form remains the honest door for those.
+
 ### Attachment & extraction provenance
 
 ```swift
