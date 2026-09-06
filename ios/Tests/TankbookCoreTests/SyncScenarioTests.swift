@@ -384,6 +384,11 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
 
 // MARK: - Batch cap
 
+/// The 200-record bound in isolation. Since RV.97 a push batch is bounded by
+/// records AND by encoded bytes, and ~700 B of fillUp payload times 250 already
+/// exceeds the 64 KB byte cap - so this fixture widens the byte cap past where
+/// it can bind and pins the record bound alone. The byte bound has its own
+/// suite (`SyncPushByteBoundTests`).
 @Test func batchCapSplitsTwoHundredFiftyDirtyRowsIntoTwoBatches() async throws {
     let repo = try makeSyncRepository()
     let vehicleId = UUID.v7()
@@ -396,7 +401,9 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     }
 
     let transport = SyncTransportDouble()
-    let engine = makeSyncEngine(repository: repo, transport: transport)
+    let engine = SyncEngine(repository: repo, transport: transport,
+                            cursorStore: InMemorySyncCursorStore(),
+                            maxBatchBytes: 16 * 1024 * 1024)
     _ = await engine.synchronize()
 
     #expect(transport.recordedPushBatches.count == 2, "250 dirty rows produce two batches, not one")

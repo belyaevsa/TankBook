@@ -70,6 +70,20 @@ public struct SyncEngine {
     public let payloadMemory: any SyncPayloadMemory
     public let maxConflictRetries: Int
     public let batchLimit: Int
+    /// The second push-batch bound, alongside `batchLimit` (RV.97): the maximum
+    /// encoded size of one push request body. The server's own `/sync/push` body
+    /// cap (~52 MB - 200 x 256 KB payloads + envelope, docs/API.md -> Request
+    /// body caps) is NOT the binding constraint - the mobile uplink is: the
+    /// observed production livelock body was ~150 KB of imported history, which
+    /// died at the push request's 30 s read budget and was rebuilt identically
+    /// every cycle because a count-only batch of 200 is unbounded in bytes.
+    /// 64 KB splits that body into three requests that each finish inside the
+    /// upload budget (`TransportTimeouts.upload`). It is a client transport
+    /// constant, so it is compiled here, never remote-configurable
+    /// (docs/PRACTICES.md -> constants placement: transport tunables are
+    /// compiled).
+    public static let defaultMaxBatchBytes = 64 * 1024
+    public let maxBatchBytes: Int
     public let pullPageLimit: Int
     /// The blob gate attachments hook into the existing push loop through
     /// (docs/SYNC.md, upload step 5). Nil (the default) keeps the pre-P4.6
@@ -94,6 +108,7 @@ public struct SyncEngine {
         payloadMemory: any SyncPayloadMemory = InMemorySyncPayloadMemory(),
         maxConflictRetries: Int = 3,
         batchLimit: Int = 200,
+        maxBatchBytes: Int = SyncEngine.defaultMaxBatchBytes,
         pullPageLimit: Int = 500,
         blobGate: (any BlobPushGate)? = nil,
         powerState: any PowerStateProvider = ProcessInfoPowerState(),
@@ -105,6 +120,7 @@ public struct SyncEngine {
         self.payloadMemory = payloadMemory
         self.maxConflictRetries = maxConflictRetries
         self.batchLimit = batchLimit
+        self.maxBatchBytes = maxBatchBytes
         self.pullPageLimit = pullPageLimit
         self.blobGate = blobGate
         self.powerState = powerState
@@ -325,6 +341,14 @@ public struct SyncEngine {
         var touched = Set<UUID>()
     }
 
+    /// One row of the dirty snapshot that survived to push: the wire `change`
+    /// plus the local `record` its accepted outcome must remember for the
+    /// payload memory. Built once per row, then chunked into push batches.
+    private struct PushCandidate {
+        let change: SyncPushChange
+        let record: SyncRecord
+    }
+
     /// The per-cycle merge tally behind the single `sync.merge` line (OB.2).
     /// Counts only - never a record list, never a domain value. A reference
     /// box (not a struct) because it crosses async calls; it is touched only
@@ -344,101 +368,138 @@ public struct SyncEngine {
         // cycle rather than looping here (S6's bound is per conflict, and the
         // cycle must terminate even when the server conflicts forever).
         let dirty = try repository.fetchDirtyRows()
-        var index = 0
-        while index < dirty.count {
-            let batch = Array(dirty[index ..< min(index + batchLimit, dirty.count)])
-            index += batch.count
 
-            var changes: [SyncPushChange] = []
-            var items: [(id: UUID, entityType: String)] = []
-            var localRecords: [UUID: SyncRecord] = [:]
-
-            for change in batch {
-                guard let local = try repository.localSyncRecord(id: change.id, entityType: change.entityType) else { continue }
-                // Upload ordering (docs/SYNC.md, step 5): a live attachment
-                // record must have its blob committed before it pushes. The gate
-                // runs the begin -> PUT -> commit chain here, before the batch's
-                // push; a deferral (missing file, 413/429, transport down) leaves
-                // the record dirty for the next cycle - the entry syncs
-                // text-first with the blob pending (S7).
-                if change.entityType == Attachment.entityType, !local.record.deleted, let gate = blobGate {
-                    // P6.8: blob upload is the heaviest work there is and
-                    // defers while Low Power Mode is on (docs/SYNC.md), even
-                    // inside a user-initiated sync - the record stays dirty and
-                    // the entry syncs text-first with the blob pending (S7),
-                    // exactly as it does when the blob transport is down.
-                    // Nothing is lost: the row is not pushed, so it stays dirty
-                    // for the next cycle.
-                    if LowPowerPolicy.defers(work: .blobUpload, trigger: trigger,
-                                             lowPowerMode: powerState.isLowPowerModeEnabled) {
-                        continue
-                    }
-                    guard let attachment = try? attachment(from: local.record),
-                          await gate.ensureBlobCommitted(for: attachment) else {
-                        continue
-                    }
-                }
-                var record = local.record
-                if local.record.entityType == Vehicle.entityType {
-                    let versions = VehicleFieldVersions.compute(
-                        current: local.record.payload,
-                        lastSynced: payloadMemory.lastSyncedPayload(for: change.id),
-                        updatedAt: local.record.clientUpdatedAt
-                    )
-                    record.fieldVersions = versions
-                    record.payload = VehicleFieldVersions.write(into: local.record.payload, versions: versions)
-                }
-                localRecords[change.id] = record
-                changes.append(SyncPushChange(
-                    id: record.id,
-                    entityType: record.entityType,
-                    schemaVersion: record.schemaVersion,
-                    baseScn: local.baseScn,
-                    payload: record.payload,
-                    clientUpdatedAt: record.clientUpdatedAt,
-                    deleted: record.deleted
-                ))
-                items.append((change.id, change.entityType))
+        // Stream the rows into batches bounded by BOTH bounds (docs/SYNC.md ->
+        // Protocol, RV.97): the server's record cap (`batchLimit`,
+        // SyncService.MaxChangesPerBatch) AND the encoded request-body size
+        // (`maxBatchBytes`, measured by `SyncPushWire` - the exact bytes
+        // `RemoteSyncTransport` puts on the wire, payloads plus the envelope).
+        // The size bound is the one that was missing: 200 records of imported
+        // history made an unbounded ~150 KB body that outlived the request's
+        // read budget and was rebuilt identically every cycle.
+        //
+        // A batch is flushed as soon as the next row would exceed a bound, not
+        // after every candidate has been built: a cycle interrupted part-way has
+        // already pushed what it built, the blob gate's uploads stay interleaved
+        // with the pushes they belong to (as they were before RV.97), and no
+        // more than one batch of payloads is ever held in memory.
+        //
+        // A change that exceeds the size cap on its own still ships, alone - a
+        // record that cannot be pushed is a record lost silently (hard rule 8),
+        // and the server accepts a payload up to 256 KB (docs/API.md -> Payload
+        // validation). The flush is guarded by the batch being non-empty, so a
+        // batch is never empty and an oversize row is never deferred forever.
+        var batch: [PushCandidate] = []
+        var batchWireBytes = SyncPushWire.wrapperBytes
+        for pending in dirty {
+            guard let candidate = try await pushCandidate(for: pending, trigger: trigger) else { continue }
+            let elementBytes = SyncPushWire.elementBytes(for: candidate.change)
+            let wouldOverflowBytes = batchWireBytes + elementBytes + 1 > maxBatchBytes
+            if !batch.isEmpty, batch.count >= batchLimit || wouldOverflowBytes {
+                try await push(batch, summary: &summary, tally: tally)
+                batch = []
+                batchWireBytes = SyncPushWire.wrapperBytes
             }
-
-            // Every live attachment record in this batch was deferred (blob not
-            // committed yet); nothing to push, nothing to mark in flight.
-            if changes.isEmpty { continue }
-
-            let entityTypes = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0.entityType) })
-            try repository.markPushing(ids: items)
-
-            let response = try await transport.push(changes)
-            for result in response.results {
-                let entityType = entityTypes[result.id] ?? ""
-                switch result.status {
-                case .accepted(let newScn, let isClamped):
-                    try repository.markSynced(id: result.id, entityType: entityType, scn: newScn)
-                    if let record = localRecords[result.id] {
-                        payloadMemory.recordSynced(id: result.id, payload: record.payload)
-                    }
-                    if isClamped {
-                        summary.clamped.append(result.id)
-                        tally.clamped += 1
-                    }
-                    summary.pushed += 1
-                case .conflict(let current):
-                    let (resolved, conflictTouched) = try await resolveConflict(
-                        id: result.id,
-                        local: localRecords[result.id],
-                        current: current,
-                        entityType: entityType,
-                        tally: tally
-                    )
-                    summary.conflicts += resolved
-                    tally.pushTransportConflicts += resolved
-                    summary.touched.formUnion(conflictTouched)
-                case .rejected:
-                    try repository.markDirty(id: result.id, entityType: entityType)
-                }
-            }
+            batch.append(candidate)
+            batchWireBytes += elementBytes + (batch.count > 1 ? 1 : 0)
+        }
+        if !batch.isEmpty {
+            try await push(batch, summary: &summary, tally: tally)
         }
         return summary
+    }
+
+    /// One dirty row turned into the change that goes on the wire, or nil when
+    /// the row is not pushable this cycle (its local record vanished, or a live
+    /// attachment's blob is not committed yet).
+    private func pushCandidate(for pending: PendingChange,
+                               trigger: PowerWorkTrigger) async throws -> PushCandidate? {
+        guard let local = try repository.localSyncRecord(id: pending.id, entityType: pending.entityType) else { return nil }
+        // Upload ordering (docs/SYNC.md, step 5): a live attachment record must
+        // have its blob committed before it pushes. The gate runs the
+        // begin -> PUT -> commit chain here, before the batch's push; a deferral
+        // (missing file, 413/429, transport down) leaves the record dirty for the
+        // next cycle - the entry syncs text-first with the blob pending (S7).
+        if pending.entityType == Attachment.entityType, !local.record.deleted, let gate = blobGate {
+            // P6.8: blob upload is the heaviest work there is and defers while
+            // Low Power Mode is on (docs/SYNC.md), even inside a user-initiated
+            // sync - the record stays dirty and the entry syncs text-first with
+            // the blob pending (S7), exactly as it does when the blob transport
+            // is down. Nothing is lost: the row is not pushed, so it stays dirty
+            // for the next cycle.
+            if LowPowerPolicy.defers(work: .blobUpload, trigger: trigger,
+                                     lowPowerMode: powerState.isLowPowerModeEnabled) {
+                return nil
+            }
+            guard let attachment = try? attachment(from: local.record),
+                  await gate.ensureBlobCommitted(for: attachment) else {
+                return nil
+            }
+        }
+        var record = local.record
+        if local.record.entityType == Vehicle.entityType {
+            let versions = VehicleFieldVersions.compute(
+                current: local.record.payload,
+                lastSynced: payloadMemory.lastSyncedPayload(for: pending.id),
+                updatedAt: local.record.clientUpdatedAt
+            )
+            record.fieldVersions = versions
+            record.payload = VehicleFieldVersions.write(into: local.record.payload, versions: versions)
+        }
+        return PushCandidate(
+            change: SyncPushChange(
+                id: record.id,
+                entityType: record.entityType,
+                schemaVersion: record.schemaVersion,
+                baseScn: local.baseScn,
+                payload: record.payload,
+                clientUpdatedAt: record.clientUpdatedAt,
+                deleted: record.deleted
+            ),
+            record: record
+        )
+    }
+
+    /// One push request: mark the rows in flight, send the batch, apply each
+    /// result. Never called with an empty batch.
+    private func push(_ batch: [PushCandidate], summary: inout PushSummary,
+                      tally: SyncCycleTally) async throws {
+        let changes = batch.map(\.change)
+        let items = batch.map { (id: $0.change.id, entityType: $0.change.entityType) }
+        let entityTypes = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0.entityType) })
+        let localRecords = Dictionary(uniqueKeysWithValues: batch.map { ($0.change.id, $0.record) })
+
+        try repository.markPushing(ids: items)
+
+        let response = try await transport.push(changes)
+        for result in response.results {
+            let entityType = entityTypes[result.id] ?? ""
+            switch result.status {
+            case .accepted(let newScn, let isClamped):
+                try repository.markSynced(id: result.id, entityType: entityType, scn: newScn)
+                if let record = localRecords[result.id] {
+                    payloadMemory.recordSynced(id: result.id, payload: record.payload)
+                }
+                if isClamped {
+                    summary.clamped.append(result.id)
+                    tally.clamped += 1
+                }
+                summary.pushed += 1
+            case .conflict(let current):
+                let (resolved, conflictTouched) = try await resolveConflict(
+                    id: result.id,
+                    local: localRecords[result.id],
+                    current: current,
+                    entityType: entityType,
+                    tally: tally
+                )
+                summary.conflicts += resolved
+                tally.pushTransportConflicts += resolved
+                summary.touched.formUnion(conflictTouched)
+            case .rejected:
+                try repository.markDirty(id: result.id, entityType: entityType)
+            }
+        }
     }
 
     /// S6: a stale `baseScn` conflict re-merges against the server's current and

@@ -150,6 +150,15 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
 - **Pull:** strictly ordered by SCN, paginated, cursor stored per device (`last_pull_scn`). A device that was offline for a year just replays the stream. Fresh install + sign-in = pull from 0 (this IS restore).
 - Sync cycle: pull → merge → push, triggered on app foreground, after every local write (debounced), and by push notification nudge (silent APNs "there's news" – no content in the push).
 
+**Push batches are bounded by records AND by encoded bytes (RV.97, 2026-09-06).** One push request is a batch of dirty changes, capped two ways at once (`SyncEngine`):
+
+- **`batchLimit` = 200 records** – the server's own `MaxChangesPerBatch` cap.
+- **`maxBatchBytes` = 64 KB of encoded request body** – measured as the exact bytes `RemoteSyncTransport` puts on the wire (`payload` JSON plus the `{ id, entityType, schemaVersion, baseScn, payload, clientUpdatedAt, deleted }` envelope, plus the `{"changes":[...]}` wrapper), not a record count in disguise. The server's `/sync/push` body cap (~52 MB) is **not** the binding constraint – the mobile uplink is: a body of ~150 KB (a real post-import push, production 2026-09-06) outlived the request's read budget and the same oversized batch was rebuilt every cycle because a count-only bound of 200 is unbounded in bytes. 64 KB splits that body into three requests that each finish inside the budget. A single change larger than 64 KB still ships, **alone** – a record that cannot be pushed is a record lost silently (hard rule 8), and the server accepts a payload up to 256 KB. The cap is a client transport constant (compiled, never remote-configurable – `docs/PRACTICES.md` → constants placement).
+
+**Push carries the upload budget; pull carries the JSON one (RV.97).** `RemoteSyncTransport.push` asks for `TransportTimeouts.upload` (120 s) per request, the same budget blob PUT and import multipart ask for – after an import a push body is megabyte-class over a mobile uplink. `pull` keeps the JSON budget (`TransportTimeouts.readJSON`, 30 s): it is a query string and returns in well under a second.
+
+**A push whose outcome the client never learned (the RV.97 livelock, folded into S7).** When a push body outlives the client's read budget, the client abandons the request while the server has already done the work and committed – the server's answer goes nowhere and the rows **stay dirty** (the outcome was never learned, so nothing can be marked synced). Because the write is idempotent by id + `baseScn`, the retry does not duplicate rows, but the pull then hands the device its own just-written rows back and the dirty rows re-push. That is not data loss and not a conflict – it is a self-sustaining loop that the two bounds above exist to break: bounded batches fit the upload budget, so the client stays alive long enough to learn the outcome normally. The rows that looped are never dropped silently; they are exactly the rows the next successful cycle clears.
+
 ## Client state & merge
 
 Each local row carries `syncState: synced(scn) | dirty | pushing`, plus the SCHEMA.md envelope (`updatedAt` = `clientUpdatedAt`).

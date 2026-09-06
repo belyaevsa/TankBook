@@ -45,7 +45,14 @@ public struct RemoteSyncTransport: SyncTransport {
 
     public func push(_ changes: [SyncPushChange]) async throws -> SyncPushResponse {
         let body = try encodePush(changes)
-        var request = TankbookHTTPRequest(url: endpoint("sync/push"), method: "POST", body: body)
+        // RV.97: a push after an import is a megabyte-class body over a mobile
+        // uplink - the same long path blob PUT and import multipart already are -
+        // so it asks for the upload budget explicitly, never the session's 30 s
+        // readJSON budget a half-transmitted body silently exhausts. `pull` keeps
+        // the JSON budget: it is a query string and returns in well under a second.
+        var request = TankbookHTTPRequest(
+            url: endpoint("sync/push"), method: "POST", body: body,
+            timeoutInterval: TransportTimeouts.upload)
         request.headers["Content-Type"] = "application/json"
         let response = try await send(request)
         return try decodePush(response.body)
@@ -138,18 +145,10 @@ public struct RemoteSyncTransport: SyncTransport {
     // MARK: - Encoding
 
     private func encodePush(_ changes: [SyncPushChange]) throws -> Data {
-        let items: [JSONValue] = changes.map { change in
-            .object([
-                "id": .string(change.id.uuidString),
-                "entityType": .string(change.entityType),
-                "schemaVersion": .number(String(change.schemaVersion)),
-                "baseScn": .number(String(change.baseScn)),
-                "payload": change.payload,
-                "clientUpdatedAt": .string(PayloadFormat.dateString(change.clientUpdatedAt)),
-                "deleted": .bool(change.deleted),
-            ])
-        }
-        return try JSONValue.object(["changes": .array(items)]).jsonData()
+        // The element/envelope tree lives in `SyncPushWire` - the same builder
+        // `SyncEngine` measures against when it bounds a batch by encoded bytes,
+        // so the engine's cap and this wire encoding cannot drift apart.
+        try SyncPushWire.envelope(for: changes).jsonData()
     }
 
     // MARK: - Decoding

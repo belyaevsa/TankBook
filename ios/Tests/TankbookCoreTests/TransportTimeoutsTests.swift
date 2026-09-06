@@ -207,6 +207,35 @@ struct TransportTimeoutsTests {
                 "the import parse uploads a file; it must ask for the upload budget")
     }
 
+    @Test("sync push asks for the upload budget explicitly")
+    func syncPushAsksForTheUploadBudget() async throws {
+        // RV.97: a push after an import is a megabyte-class body over a mobile
+        // uplink - the same long path blob PUT and import multipart already are -
+        // but it used to inherit the session's 30 s JSON read budget, die
+        // mid-flight on the upload, and leave the rows dirty forever. Assert the
+        // REQUEST carries the upload budget, never the constant's own value.
+        let transport = RecordingRequestTransport()
+        let sync = RemoteSyncTransport(
+            director: ConfigTransportDirector(baseURL: { URL(string: "https://api.tankbook.live")! },
+                                              report: { _ in }),
+            transport: transport,
+            tokenProvider: StaticTokenProvider())
+
+        transport.script([TankbookHTTPResponse(status: 200, body: Data(#"{"results":[]}"#.utf8))])
+        let change = SyncPushChange(
+            id: UUID(),
+            entityType: "fillUp",
+            schemaVersion: 1,
+            baseScn: 0,
+            payload: .object(["volumeL": .number("42.3")]),
+            clientUpdatedAt: Date(),
+            deleted: false)
+        _ = try await sync.push([change])
+
+        #expect(transport.received().first?.timeoutInterval == TransportTimeouts.upload,
+                "a megabyte-class push must ask for the upload budget, never the JSON read budget")
+    }
+
     // MARK: - A timeout surfaces as the offline/unavailable class
 
     @Test("a timeout surfaces as transport-unreachable, never a generic failure")

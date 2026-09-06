@@ -195,7 +195,7 @@ review is about placement, duplication and disagreement.
 
 | Where | Value | Governs | Today | Should be | Consequence |
 |---|---|---|---|---|---|
-| `SyncEngine.swift:58-59` vs `SyncService.cs:28-29` | 200 / 500 | Push batch, pull page | a, **duplicated across tiers** | C both, **stated once in `API.md`**, L2 test that the client never exceeds the server cap | If the server is lowered by env, every push 413s and the client has no idea why (S9) |
+| `SyncEngine.swift` (`batchLimit`, `defaultMaxBatchBytes`, `pullPageLimit`) vs `SyncService.cs:28-29` | 200 records / **64 KB encoded body** / 500 | Push batch (both bounds, RV.97), pull page | a, **duplicated across tiers** (the byte bound is client-only: the uplink, not the server cap, is what it answers - `docs/SYNC.md` -> Protocol) | C both, **stated once in `API.md`**, L2 test that the client never exceeds the server cap | If the server is lowered by env, every push 413s and the client has no idea why (S9) |
 | `AttachmentRendition.swift:19` vs `BlobOptions.cs:22` | 10 MB | PDF cap | a / e | same as above; user-facing error must name the number (§6 rule 2) | Duplicate; env-changeable on one side only |
 | `GatewayRendition.swift:45` vs `LlmGatewayOptions.cs:20` | 4 MB | Extract envelope | a / e | same | Duplicate |
 | `BlobOptions.cs:16,19`, `ImportOptions.cs:17` | 5 GB / 25 MB / 8 MB | Quota, image, import | e | e + **client-side pre-check with a named error** | The user learns the limit from a failure, not before it (U5) |
