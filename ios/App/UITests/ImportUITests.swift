@@ -10,7 +10,7 @@ final class ImportUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(_ arguments: [String]) -> XCUIApplication {
+    func launch(_ arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase"] + arguments
         app.launch()

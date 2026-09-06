@@ -25,6 +25,67 @@ enum ImportCarDestination: Equatable {
     }
 }
 
+/// RV.86: one distinct source car in a parsed file and the user's mapping
+/// decision for it (`.cars` wizard step). `group` is the parse's vehicle group
+/// (name + source rows); `destination` is undecided until the mapping screen
+/// asks - the wizard never guesses a destination (hard rule 13), so a
+/// multi-car file shows the cars and asks.
+struct ImportCarRow: Identifiable, Equatable {
+    let group: ImportVehicleGroup
+    var destination: ImportCarDestination = .undecided
+
+    init(group: ImportVehicleGroup, destination: ImportCarDestination = .undecided) {
+        self.group = group
+        self.destination = destination
+    }
+
+    /// Group names are distinct by construction (the parser groups by name), so
+    /// the name is a stable identity within a parse.
+    var id: String { group.name }
+
+    var isDecided: Bool { destination != .undecided }
+
+    /// The destination garage car, when the user chose one (an existing car or
+    /// a new one). nil while undecided or left out.
+    var destinationVehicle: Vehicle? {
+        switch destination {
+        case .undecided, .leaveOut: return nil
+        case .existing(let vehicle): return vehicle
+        case .new(let vehicle): return vehicle
+        }
+    }
+
+    var destinationVehicleID: UUID? { destinationVehicle?.id }
+}
+
+/// One source car's file facts, derived from ITS OWN candidates (RV.86: the
+/// odometer span of one car is a real number; the span across five cars is the
+/// lie that shipped).
+struct ImportCarFigures: Equatable {
+    let count: Int
+    let firstDate: Date?
+    let lastDate: Date?
+    let odometerMin: Int?
+    let odometerMax: Int?
+}
+
+extension ArchiveImportRecord {
+    /// The vehicle the record belongs to, when it has one (the import writes
+    /// only vehicle-scoped records, so a kept record always has one). Lets the
+    /// multi-car mapping count the distinct destinations a commit will touch.
+    var importVehicleID: UUID? {
+        switch self {
+        case .vehicle(let vehicle): return vehicle.id
+        case .fillUp(let fill): return fill.vehicleId
+        case .chargeSession(let charge): return charge.vehicleId
+        case .serviceRecord(let service): return service.vehicleId
+        case .expense(let expense): return expense.vehicleId
+        case .reminder(let reminder): return reminder.vehicleId
+        case .station, .tariff, .attachment: return nil
+        }
+    }
+}
+
 /// Where the import lands: an existing car (a merge, with the S2 duplicate
 /// count surfaced) or a new car. `.new` carries a synthesized `Vehicle` built
 /// ONCE when the user picks it, so the classification, the preview and the

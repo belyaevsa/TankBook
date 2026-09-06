@@ -39,6 +39,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 |---|---|---|---|
 | Export | Finds export in old app (Fuelio/Drivvo/Fuelly/Spritmonitor/CarScope/My Fuel Manager) | Anxious – "will it all come across?" | → In-app illustrated guide per source app, since their UIs hide export |
 | Import | Shares the file to Tankbook (share sheet / file picker) | Skeptical | → Declare the source app, never the format: "Which app is this from?" against the server-driven supported list (`GET /import/formats`). The app never sniffs the file – a format the picker cannot list is a format that does not exist, and a confident mis-mapping is worse than a question (hard rule 13; `ERRORS.md` → Import wizard) |
+| Map the cars (RV.86, 2026-09-06) | A file whose parse exposes several source cars gets one extra question: **which cars do you want, and into which garage car does each go** (leave out / a new car / an existing one) | "Oh – that export holds all three cars" | → The old apps export per account, not per car: the real MFM export holds **five** cars, and before RV.86 every row landed on one car – the Volvo card read the Audi's 426 220 km. The wizard lists each source car with its own rows/odometer/dates and asks, never guessing by name (hard rule 13). A one-car file never sees the step |
 | Verify | Sees preview: N entries, date range, detected currency/units, per-field mapping | Checking their known numbers | → Show *their* lifetime average consumption next to the old app's; matching numbers = instant trust |
 | Commit | Confirms; garage now shows full history and trends from day one | Relief, sunk cost transferred | ⚠ Silent unit/currency misread poisons all trends → flag ambiguous rows for review instead of guessing |
 
@@ -399,7 +400,13 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
   number the importer's acceptance test asserts.
 - **Say where it will land** before it lands: a new car, or merged into a named existing one
   (per-car scope, `SCHEMA.md` → Backup format). Merging into a car that already has entries shows
-  the S2 duplicate count **in the preview**, not after the fact.
+  the S2 duplicate count **in the preview**, not after the fact. **RV.86 (2026-09-06): when the
+  file holds more than one source car this question is asked per car, on its own mapping step**
+  - each car listed with its own row count, odometer span and date range and an explicit
+  destination (leave out / a new car / an existing garage car), Continue disabled until every car
+  is decided, and each car's odometers validated and committed against ITS OWN destination - two
+  cars can never corrupt each other's timeline. A single-car file keeps this preview exactly as
+  before, byte-for-byte.
 - **Everything shown is adjustable here** - currency, units, the target car, and the individual
   rows that need a look (hard rule 13: editable at the moment it is offered). The F6 ambiguity
   question is answered in this screen, once per file.

@@ -241,6 +241,17 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
         case expense(Expense)
     }
 
+    /// The vehicle a `.noFuel` row's record belongs to, when there is one
+    /// (RV.86: a multi-car file's rows can land in cars with different units,
+    /// and the row's odometer must render in its own car's unit).
+    public var nonFuelVehicleID: UUID? {
+        switch nonFuel {
+        case .service(let service): return service.vehicleId
+        case .expense(let expense): return expense.vehicleId
+        case nil: return nil
+        }
+    }
+
     public init(id: UUID = UUID.v7(), sourceRow: Int, kind: Kind,
                 fill: FillUp?, nonFuel: NonFuel? = nil, rawLine: String?,
                 timeline: TimelineFlag? = nil) {
