@@ -1,188 +1,190 @@
-# RV.71 - warn when a scanned or typed fuel kind is not the car's
+# RV.71 - warn when a scanned receipt's fuel kind is not the car's
 
-**The design is DECIDED (product owner, 2026-09-05). Implement it; do not re-derive it.**
+## The requirement and the pieces that already exist
 
-## Why the row exists
+Product owner, 2026-09-05: *"if a scanned receipt and its fuel type differ from the main one (diesel
+vs petrol, petrol vs diesel, gas vs diesel, or gas vs an unsupported type for a car) it should be
+highlighted as a warning for the user at scan moment"*.
 
-`Vehicle.fuelKinds` records what a car takes (`Entities.swift:43`), `FuelKind` covers
-diesel/petrol92-100/lpg/cng/e85/electricity (`Enums.swift:4-13`), and the extractor already resolves
-a `fuelKind` from a receipt - **but nothing compares the two**, so a diesel receipt logged against a
-petrol car saves without a word.
+Everything needed is already in the codebase and **nothing compares the two**:
 
-It is not cosmetic: fuel kind feeds the consumption maths, which treats litres and kWh differently,
-so a wrong kind silently corrupts the series the whole app exists to compute (hard rule 2 - a bad
-input propagates on every recompute). And the mis-scan is real, not hypothetical: the corpus already
-holds `АИ-96` read at **confidence 1.00** on a 95 receipt, plus `receipt-032`'s `AM-95` smear.
+- `Vehicle.fuelKinds: [FuelKind]` (`ios/Sources/TankbookCore/Domain/Entities.swift:43`) - what the
+  car takes.
+- `FuelKind` covers `diesel/petrol92/95/98/100/lpg/cng/e85/electricity`
+  (`ios/Sources/TankbookCore/Domain/Enums.swift:4-14`).
+- `FuelExtractor` already resolves a `fuelKind` from the receipt
+  (`ios/Sources/TankbookCore/Extraction/FuelExtractor.swift:36`, `FuelKindNormalizer`).
+- The confirm screen already renders the kind as chips (`ManualFillUpFuelCard.swift:45-140`).
 
-## The decided design
+So a diesel receipt logged against a petrol car saves without a word. **Why it is worse than a
+typo**: fuel kind feeds the consumption maths, which treats litres and kWh differently, and stats are
+derived (hard rule 2) - a bad kind propagates on every recompute. **The mis-scan is real, not
+hypothetical**: the corpus has `АИ-96` read at **confidence 1.00** on a 95 receipt, and
+`receipt-032`'s `AM-95` smear.
 
-**1. The comparison is by FAMILY, not by member.** Petrol grades share a tank and are a real
-driver's choice - `FuelKind.isPetrolGrade` (`Enums.swift:16-22`) already encodes this.
+## The comparison is DECIDED - implement this rule exactly
 
-| Scanned/typed | Car declares | Warn? |
+**Warn when the extracted kind is not in `FuelKind.offeredKinds(for: Set(vehicle.fuelKinds))`**, with
+two carve-outs. `offeredKinds` (`Enums.swift:49-55`) already encodes the grade logic this row turns
+on: a car declaring any petrol grade is offered **all** petrol grades, because they share a tank and
+choosing between them is a driver's choice, not a fuel switch. Reusing it means the rule cannot drift
+from the chips the same screen already shows.
+
+The two carve-outs, both decided:
+
+1. **An empty `fuelKinds` never warns.** A car that has declared nothing cannot disagree with
+   anything, and that is the state most cars start in - a rule that fires on every scan for a fresh
+   car is noise, and noise is how a warning stops being read.
+2. **`electricity` never warns, in either direction.** A charge session is a different entry path,
+   and warning here would fire on every hybrid.
+
+Worked cases, which are also the tests:
+
+| Receipt | Car declares | Warns? |
 |---|---|---|
-| any petrol grade | any petrol grade | **no** - a grade choice, and the case that would otherwise annoy every user daily |
-| diesel | petrol only, or the reverse | **yes** |
-| LPG / CNG | neither LPG nor CNG | **yes** |
-| E85 | no E85 | **yes** - E85 in a non-flex car is a real hazard, and it is not a petrol grade |
-| electricity | anything | **no** - that is a charge session, a different entry path, and it would fire on every hybrid |
-| anything | **empty set** | **no** - see below |
+| diesel | petrol95 only | **yes** |
+| petrol95 | diesel only | **yes** |
+| **petrol95** | **petrol92 + petrol95** | **NO - the grade case** |
+| petrol92 | petrol95 only | **NO** - `offeredKinds` opens all grades to a petrol car |
+| lpg | petrol95 (no lpg/cng) | **yes** |
+| anything | `[]` (empty) | **NO** |
+| electricity | anything | **NO** |
 
-**2. An empty `fuelKinds` means "not declared", and not-declared never warns.** It is a reachable
-state, not a hypothetical: Add car gates the save on `name` alone (`AddVehicleView.swift:158-161`)
-and every fuel pill is deselectable (`VehicleFormControls.swift:336-342`). The warning's premise is
-a disagreement between two known values; with one side absent there is no disagreement, only
-absence, and a rule that fires for a whole class of cars is not a rule.
-
-**3. But absence is repaired, not left silent.** On the first fill-up saved against a car with no
-declared kinds, **adopt the confirmed kind onto the car** and say so in one line ("Saved as this
-car's fuel · change in Garage"). That is a derived default, editable at the moment it is offered and
-afterwards - hard rule 13, the same treatment the "last known" odometer gets. Without it such a car
-can never reach the state where the warning works.
-
-**4. When the user keeps a warned kind, OFFER - never auto-add.** The warning carries an inline
-action ("Add diesel to this car") that writes the kind to `Vehicle.fuelKinds` permanently. Auto-add
-is wrong here: the likelier cause is a mis-scan, and auto-adding would make the mis-scan permanent
-**and** destroy the comparison that would catch the next one.
-
-**5. It shows on BOTH doors** (product owner: hard rule 15). The check is on the **value**, not its
-source - a typed diesel on a petrol-only car is the same disagreement and feeds the same maths.
+Put the comparison in **TankbookCore as a pure function** so it is L1-testable without a simulator -
+that is where the whole point of this row lives.
 
 ## What to build
 
-- A **pure function in core** - `FuelKindMismatch.check(scanned:declared:)` returning a value, so
-  the whole rule is L1-testable and the screen only renders.
-- An **amber caption on the Confirm screen's fuel row**, beside the value it is about. Never a
-  modal, never blocking, **Save always reachable** (hard rules 5, 7, 13). Reuse the shape already
-  shipping for the diesel+petrol discouragement note (`VehicleFormControls.swift:287-299`) rather
-  than inventing a severity.
-- The adopt-on-first-fill-up line and the "add to this car" action above.
-- EN + RU through the String Catalog, full localised phrases.
+1. The pure comparison above.
+2. **The warning on the confirm screen, at the moment of the scan. It never blocks.** The extracted
+   kind stays a default input the user edits (hard rule 13); the warning says the two disagree and
+   **names its next step** (hard rule 7). It does not refuse the save and does not silently rewrite
+   either value.
+3. **Amber, and never colour alone** (hard rule 5: amber is attention; the words carry the meaning
+   for VoiceOver exactly as the Garage attention strip does).
+4. **Decide whether accepting a warned kind offers to add it to the car's declared kinds**, and say
+   what you decided and why. Rule 13 says a value the user chooses becomes theirs permanently, which
+   argues for offering it; a modal question mid-capture argues against. **Take the smallest correct
+   option and keep going** - do not stop on this.
 
 ## Explicitly out of scope
 
-Charge sessions. Blocking or refusing any save. Changing `offeredKinds` or the pills. AdBlue -
-`docs/SCHEMA.md:350` states a CHECK 4 invariant about `.adBlue` in `Vehicle.fuelKinds` but
-**`FuelKind` has no such case**; that doc drift is real and is NOT this row's to fix - report it.
+- Changing what the extractor reads, or the normalizer's vocabulary.
+- Warning on electricity vs liquid (see the carve-out).
+- Blocking, refusing or auto-correcting a save.
+- The manual entry path's own validation, beyond where the same warning naturally applies.
 
 ## Tests
 
-L1 over the comparison, the whole point of the row: diesel receipt + petrol-only car -> warns;
-petrol receipt + diesel-only car -> warns; **95 receipt + car declaring 92 and 95 -> does NOT warn**;
-LPG receipt + car declaring neither LPG nor CNG -> warns; electricity -> never warns; **empty
-`fuelKinds` -> does not warn**, asserted.
-L1: the first fill-up against an empty-kinds car adopts the kind; a later fill-up does not overwrite
-a kind the user has since edited (hard rule 13 - once theirs, permanently theirs).
-L4 `ConfirmManualUITests`: the warning renders after a scan, **Save stays reachable with it on
-screen**, and dismissing it changes neither value. Also assert it renders on the **typed** path.
+Read the current `swift test` count yourself before you start and report before -> after.
+
+- **L1, the whole point of the row**: every row of the table above, asserted individually. The
+  **must-NOT-warn** cases are as load-bearing as the must-warn ones.
+- **L4 `ConfirmManualUITests`**: the warning renders on the confirm screen after a scan, **Save stays
+  reachable with it on screen**, and dismissing it changes neither value.
+- Suites: `ConfirmManualUITests`. Report the observed count.
 
 ### Vacuous traps, named
-- Asserting the warning exists **without a case that must NOT warn** - a rule that fires on
-  everything is not a rule.
-- Asserting a string rather than that **Save still works**.
-- Testing only diesel-vs-petrol and missing the **grade** case, which is the one that would annoy
-  every user daily.
-- Seeding a car with exactly one kind and never testing the empty set.
 
-### Mutations (run, report, restore)
-1. Compare by member instead of family -> the 92/95 no-warn test must fail.
-2. Warn on an empty `fuelKinds` -> its test must fail.
-3. Auto-add the kind instead of offering -> the "offer, never auto-add" test must fail.
+- **Asserting the warning exists without a case that must NOT warn.** A rule that fires on everything
+  is not a rule - and the grade case is the one that would annoy every user daily.
+- **Asserting a string rather than that Save still works.**
+- **Testing only diesel-vs-petrol** and missing the grade case and the empty-`fuelKinds` case.
+- Asserting the warning's colour instead of its text - colour is never the only channel, and a test
+  cannot see colour anyway (that is what the screenshots are for).
+
+### Mutations (run each, report, restore byte-for-byte)
+
+1. Compare against `vehicle.fuelKinds` directly instead of `offeredKinds` -> the **grade** test must
+   fail (a 92 receipt on a 95 car would start warning).
+2. Drop the empty-`fuelKinds` carve-out -> its test must fail.
+3. Make the warning block the save -> the Save-stays-reachable test must fail.
+
+**A mutation that PASSES is a finding** - say so and grow the test until it fails.
 
 ## Screenshots
 
-`RV.71-confirm-fuel-mismatch.png` / `-ru.png`, dark, warning visible with Save reachable. Check the
-RU caption does not push Save off screen and that the inline action renders **in RU** (RV.80 is an
-action that appears in EN and silently does not in RU).
+EN **and** RU, **dark**, into `design/screenshots/`, as `RV.71-confirm-fuel-mismatch.png` and
+`-ru.png`, **with the warning showing**.
+- Capture **outside** a test run; pass `-homeResetDatabase` alongside any seed (seeds are idempotent
+  and silently do nothing on a populated database).
+- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
+- **Verify the pair differs with `md5 -q`** and report both hashes.
+- RU runs 20-30% longer and short strings expand worst - a warning line that wraps or truncates
+  breaks hard rule 7. Read the rendered Russian for grammar and word order, and use a **full
+  localised phrase per language, never concatenation**.
+- You cannot see your own screenshots; the orchestrator opens every one.
 
 ## Docs to reconcile
 
-`docs/SCHEMA.md` (the empty-set meaning and the adopt rule), `docs/ERRORS.md` (the warning and its
-next step), `docs/JOURNEYS.md` if the confirm flow gains a step.
-## Where you may write
-
-Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:
-`ios/Sources/TankbookCore/**`, `ios/App/Sources/**`, `ios/Tests/**`, `ios/App/UITests/**`, the docs
-named in this brief, and `design/screenshots/**`.
-
-**Never move, rename or delete a file you did not create.** A second Claude session works in this
-checkout and there is a git worktree under `.claude/worktrees/`. Expect files, and even a red test,
-that are not yours: **report them and carry on** - never "clean the baseline".
-Do NOT tick anything in `docs/TASKS.md` - the orchestrator ticks at merge. Do NOT commit.
-No `git add -A`, `git checkout`, `git stash`, `git clean`.
-
-## The reminders code as it stands (verified 2026-09-05, use these, do not re-derive)
-
-- **Core lifecycle, all pure, all L1-testable**: `ios/Sources/TankbookCore/Service/ReminderLifecycle.swift`
-  (`derivedStatus`, `isActive`, `due`, `dueSortKey`, `complete`, `reschedule`, `makeReminder`),
-  `ReminderBanner.swift`, `ReminderCompletion.swift`, `ReminderNotification.swift`.
-  **`.attention` is derived at read time; only the transition is stored** so notifications fire
-  once. Terminal rows (`.done`/`.dismissed`) never re-derive. Do not duplicate any of this.
-- **The only repository query is per-vehicle**: `liveReminders(forVehicle:)`,
-  `ios/Sources/TankbookCore/Persistence/Repository.swift:280`.
-- **The screen scopes to the selected car**: `ios/App/Sources/Reminders/RemindersView.swift`, load
-  at `:355-370` via `AppCarSelection.selectedVehicle`, then
-  `notificationCoordinator.reconcile(vehicleId:)`.
-- **The deep link**: `NotificationDelegate.userNotificationCenter(_:didReceive:)`
-  (`ios/App/Sources/Reminders/ReminderNotificationCoordinator.swift:136-147`) ->
-  `NotificationRouteParser.resolve(identifier:)` -> `NotificationRouter.Request.openRemindersFor`
-  (`ios/App/Sources/Navigation/NotificationRouter.swift:17-37`) -> `TabRoots.drive`
-  (`ios/App/Sources/Navigation/TabRoots.swift:428-437`).
-- **The Home banner**: `ReminderBanner.bannerReminder` (one row, `.attention` only) rendered by
-  `ios/App/Sources/Home/HomeBanners.swift:64-82`, whose "View" is a `NavigationLink(value: Route.reminders)`.
-- `ReminderCategory` is `ios/Sources/TankbookCore/Domain/Enums.swift:146-159` (note `.other(String)`).
-- Seeds: `ios/App/Sources/Reminders/ReminderTestSeed.swift`; UI suite `RemindersUITests`.
+`docs/ERRORS.md` (the new warning, its severity and its next step - this is the authority and the
+3-question audit rule applies), `docs/EXTRACTION.md` if the cross-check outcomes change,
+`docs/JOURNEYS.md` if the confirm journey gains a step.
 
 ## Hard rules that decide things in this area
 
-**2** (stats/counts are DERIVED, never stored) · **5** (amber is attention; colour is never the only
-channel) · **7** (every error and every dead end names its next step) · **10** (all strings through
-the String Catalog, EN + RU, full localised phrases - never concatenation) · **12** (never log a
-domain value; ids, counts and codes only) · **13** (the app suggests, the user decides - every
-derived value is editable at the moment it is offered and again afterwards) · **14** (it builds and
-it lints before anything else counts).
+**2** (stats are derived - the reason a wrong kind matters) · **5** (amber is attention; never colour
+alone) · **7** (the warning names its next step and survives being ignored; **no monetization and no
+blocking mid-capture**) · **10** (EN + RU, full localised phrase) · **13** (the extracted kind is a
+default input, editable now and later) · **15** (typing is a peer path - the warning must not make
+the scan feel like the only correct door) · **14** (it builds and it lints).
+
+## Where you may write
+
+Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:
+`ios/Sources/TankbookCore/**`, `ios/App/Sources/**`, `ios/Tests/**`, `ios/App/UITests/**`,
+`backend/src/**`, `backend/tests/**`, `Spike/ImportFixtures/**`, `design/screens/**`,
+`design/screenshots/**`, and the docs named in this brief. **If your row's "out of scope" says not to
+touch a tier, that fence wins over this list.**
+
+**Never move, rename or delete a file you did not create.** Another session may be working in this
+checkout. Expect files, and even a red test, that are not yours: **report them and carry on** - never
+"clean the baseline".
+Do NOT tick anything in `docs/TASKS.md` - the orchestrator ticks at merge. Do NOT commit.
+No `git add -A`, `git checkout`, `git stash`, `git clean`.
+
+## Write code first, explore second
+
+The dominant failure mode is a run that reads everything and writes nothing. The cause is pinned to
+lines above and is confirmed - do not spend the run re-deriving it. Where this brief leaves a
+genuinely open choice, **take the smallest correct option and keep going**, then say in the report
+which you took and what you rejected. Do not stop and wait on it. (`RV.74`'s first dispatch ran two
+hours and wrote nothing, stuck on a question its brief left open.)
+
+If a fence in this brief turns out to be wrong, **report it as a Residual rather than obeying
+quietly** - a fence can be wrong the same way a diagnosis can. Two of my diagnoses have been wrong
+this month and the agent was right both times.
 
 ## The baseline gate (CLAUDE.md rule 14)
 
 From the **repo ROOT**, judged by exit code (`echo $?`), never by skimming output:
 - `cd ios && swift build` -> 0
-- `cd ios && swift test` -> 0, count reported. **Read the current count yourself before you start**
-  and report before -> after; other rows are landing in parallel, so any number quoted in a brief is
-  stale by the time you run.
+- `cd ios && swift test` -> 0, count reported (before -> after). Never subset it.
 - `swiftlint lint` **from the repo root** -> 0 errors. From `ios/` it prints thousands of phantom
   violations; that false red has cost two sessions.
-- the localization gate **from the repo root** -> 0
-- `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
+- `swift run --package-path ios localization-gate` from the root -> 0.
+- **If you touched `backend/`**: `cd backend && dotnet build` -> 0 and `dotnet test` -> 0 (count
+  before -> after), plus `dotnet format --verify-no-changes` -> 0.
+- **If you touched `ios/App/`**: `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
   `swift build` does NOT compile `ios/App`; only `xcodebuild` does. Run `xcodegen generate` first if
-  you added a file. **Check the observed count is non-zero** - a filter matching nothing prints
-  "0 tests ... passed". Do NOT run the whole UI suite (2026-08-29 rule).
+  you added a file. **Check the observed count is non-zero.** Do NOT run the whole UI suite - that
+  belongs to phase completion (2026-08-29 rule).
+- **`$?` after a pipe is the pipe's exit code.** `dotnet test | tail` once reported 0 while the run
+  aborted and "66 passed" of ~396 nearly read as green. Never judge a run by `... | tail`.
 - **Never `pgrep -f` for a build** - your own brief is in your command line and you will match, and
   could kill, a sibling agent. Use `pgrep -x xcodebuild`.
-
-## Screenshots
-
-EN **and** RU, **dark**, into `design/screenshots/`, named as this brief says.
-- Capture **outside** a test run - `simctl` and `xcodebuild test` fight over the device.
-- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
-- **Verify every EN/RU pair differs: `md5 -q a.png b.png`**, and report the hashes. RV.58 shipped an
-  "RU" shot byte-identical to its EN one and could not tell.
-- A `-` prefixed launch argument can **persist across relaunches**; reinstall between shots when a
-  seeded state sticks (RV.64).
-- **RU is not a formality.** Russian runs 20-30% longer and short strings expand worst. Read the
-  rendered Russian for grammar and word order, not just overflow. **And check every action line
-  actually renders in RU**: RV.80 is an action that appears in EN and silently does not in RU, found
-  only by looking.
-- You cannot see your own screenshots. The orchestrator opens all of them; do not claim they look right.
+- **Simulator contention produces false reds** with a *different* failing set each run, and a suite
+  reporting "Executed 0 tests" beside its failures is kills, not assertions. Shut the simulators down
+  and re-run once on a quiet machine before believing a red.
 
 ## Report back
 
-1. Exit code of every gate, and observed test counts (before -> after).
-2. Each mutation: what you broke, which named test failed, that you restored it byte-for-byte.
-   **A mutation that PASSES is a finding** - say so rather than moving on. That has happened twice
-   today and both times the test, not the code, was the problem.
-3. Screenshot paths and md5s.
+1. Exit code of every gate, and observed test counts (before -> after), per tier you touched.
+2. Each mutation: what you broke, which named test failed, and that you restored it byte-for-byte.
+   **A mutation that PASSES is a finding** - say so rather than moving on. Four passed on 2026-09-06
+   and each meant the test did not cover the claim its row was written for.
+3. Screenshot paths and md5s, if this brief asked for screenshots.
 4. What the user can now do that they could not before. If the honest answer for some case is
    "nothing changed", say so.
-5. Anything in this brief that was wrong. A fence can be wrong the same way a diagnosis can (RV.70):
-   report it as a Residual rather than obeying quietly.
+5. Anything in this brief that was wrong, as a Residual.
 6. Whether the tests were actually **run**, not only written.

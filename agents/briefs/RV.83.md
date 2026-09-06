@@ -1,145 +1,162 @@
-# RV.83 - the Garage attention strip: statement or doorway, not both
+# RV.83 - the Garage attention strip is a tap target that does not look like one
 
-## The question, and it is a real one
+## The defect, measured in both the code and the artboard
 
-`design/screens/GarageReminderCounts.dc.html` draws the "N needs attention" strip as a **statement** -
-no chevron, no button affordance. `RV.79` made the whole strip navigate to the merged reminders
-list. So the shipped build has a full-width tap target that nothing marks as tappable: either an
-invisible feature or an accidental tap, depending on the user. Visible in
-`design/screenshots/RV.79-garage-counts.png`.
+[RV.79] made the per-car "N needs attention" strip navigate to the merged reminders list. The pixels
+never got the message.
 
-The RV.79 agent raised this rather than quietly deciding it, which is why it is a row.
+- **The code**: `attentionLink` (`ios/App/Sources/Garage/GarageView.swift:185-203`) is a
+  `NavigationLink(value: Route.remindersAll)` whose row is `bell + text + Spacer(minLength: 0)` -
+  **no chevron**, full-width `contentShape(Rectangle())`.
+- **The car row directly above it**: `vehicleDetailLink` (`:139-175`) is the same kind of
+  `NavigationLink` and **ends in `chevron`** (`:168`). Two doors on one card, one marked and one not.
+- **The artboard**: `design/screens/GarageReminderCounts.dc.html:46-49` draws the strip as a
+  **statement** - bell, amber text, no chevron, no button affordance.
+- **The screenshot** shows it: `design/screenshots/RV.79-garage-counts.png`.
 
-## What to build
+A full-width target with no affordance is either an invisible feature or an accidental tap, depending
+on the user.
 
-**Pick one and make the pixels agree with the behaviour.** Both are coherent:
+## The decision is MADE - implement (b), the doorway
 
-- **(a) A statement.** Drop the tap; the car row already navigates, and the strip is information
-  that row carries. Simplest, and closest to the artboard as drawn.
-- **(b) A doorway.** Give it the affordance this app already uses for one - the same chevron the car
-  row has - and **update the artboard in the same change** so the mock stops disagreeing with the
-  build.
+**It is a doorway: keep the navigation and give it the affordance the rest of the app uses for one -
+the chevron the car row itself carries** (`:168`, `chevron`). Reasons, so you do not re-open it:
 
-**Do not leave it tappable and unmarked.** Say which you chose and why in the commit and in a doc
-comment. Whichever way it goes, **the accessibility label must keep naming the car and the count**
-(RV.79, hard rule 5 - colour is never the only channel).
+- Removing the tap would delete a shipped feature ([RV.79] chose the destination deliberately: the
+  merged list is "what needs doing", and a create action there would compete with the count for
+  meaning - the comment at `:179-184` says so).
+- The count is genuinely a door - it is the one place in the Garage that answers "what needs doing on
+  this car".
+- The app already has exactly one affordance for "this row leads somewhere", and it is on the same
+  card, 30pt above.
+
+**Update `design/screens/GarageReminderCounts.dc.html` in the same change** so the mock stops
+disagreeing with the build. That is half the point of the row - a change to only one side leaves the
+same defect pointing the other way. Match the chevron the car row draws in the artboard (read how the
+car row's chevron is drawn there and reuse it - do not invent a second chevron glyph).
+
+**The accessibility label must keep naming the car and the count** (`attentionAccessibilityLabel`,
+`:206-208`, from [RV.79], hard rule 5 - the count is never colour alone). Do not let a chevron become
+part of the spoken label.
 
 ## Explicitly out of scope
 
-The count itself, its derivation, the car switcher's copy of the strip beyond keeping the two
-consistent with each other. Any change to what "attention" means.
+- Changing where the strip navigates to.
+- Changing the car row, the archived row, or the count's arithmetic (`RemindersAllRows` /
+  `ReminderListGroups.attentionCount` - [RV.79] owns that and it is correct).
+- Adding a create action to the strip.
+- Re-seeding the canvas. Edit the `.dc.html` artboard; the canvas re-seed is the orchestrator's.
 
 ## Tests
 
-L4 `GarageUITests`, asserting whichever behaviour you chose:
-- if it navigates, tapping the strip reaches the merged list;
-- if it does not, tapping it reaches the car exactly as the row does, **and the strip is not a
-  separate accessibility element**.
-Suites: `GarageUITests`, `CarSwitcherUITests`.
+Read the current `swift test` count yourself before you start and report before -> after.
+
+- **L4 `GarageUITests`**: tapping the strip reaches the **merged reminders list** (the behaviour is
+  now marked, so assert it still holds), and the strip remains its **own** accessibility element
+  whose label names **the car and the count**.
+- If any pure formatting piece changes, L1 it. If nothing pure changes, say so rather than inventing
+  a seam.
+- Suites: `GarageUITests`. Report the observed count - a filter matching nothing prints "0 tests ...
+  passed".
 
 ### Vacuous traps, named
-- Asserting the strip exists. It does.
-- Changing the artboard without changing the code, or the reverse. **The point of the row is that
-  they agree** - a test that passes against either half alone proves nothing.
-- Dropping the accessibility label while removing the button role.
 
-### Mutation
-Make the strip's behaviour disagree with what you drew (tappable if you chose a statement, or inert
-if you chose a doorway) -> the L4 test must fail.
+- **Asserting the strip exists.** It does, and it did before the row.
+- **Changing the artboard without changing the code, or the reverse** - the point of the row is that
+  they agree. Report both diffs.
+- Asserting the chevron's SF Symbol name in a test - that is testing the implementation, not the
+  affordance. The visual claim is the screenshot's job.
+- Asserting navigation without asserting the accessibility label survived.
 
-## Screenshots
+### Mutations (run each, report, restore byte-for-byte)
 
-Only if the visual changes - which it does under (b). `RV.83-garage-counts.png` / `-ru.png`, EN and
-RU, dark.
+1. Remove the strip's `NavigationLink` destination -> the navigation test must fail.
+2. Fold the strip's accessibility element into the card's -> the label test must fail.
+
+**A mutation that PASSES is a finding** - say so and grow the test until it fails.
+
+## Screenshots - the visual IS the row
+
+EN **and** RU, **dark**, into `design/screenshots/`, as `RV.83-garage-attention.png` and `-ru.png`,
+showing a car card **with** the attention strip and its new affordance.
+- Compare the shot against `design/screens/GarageReminderCounts.dc.html` **after** you have updated
+  the artboard - they must now agree.
+- Capture **outside** a test run; `-homeResetDatabase` alongside any seed.
+- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
+  RU matters here: "1 needs attention" -> "1 требует внимания" is much longer, and the strip now has
+  a chevron competing for the same width. Check it does not truncate.
+- **Verify the pair differs with `md5 -q`** and report both hashes.
+- **You cannot see your own screenshots.** The orchestrator opens every one.
 
 ## Docs to reconcile
 
-`design/screens/GarageReminderCounts.dc.html` if you chose (b), and `docs/SCREENMAP.md`'s edge for
-the strip either way - it currently records a navigation this row may remove.
-## Where you may write
-
-Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:
-`ios/Sources/TankbookCore/**`, `ios/App/Sources/**`, `ios/Tests/**`, `ios/App/UITests/**`, the docs
-named in this brief, and `design/screenshots/**`.
-
-**Never move, rename or delete a file you did not create.** A second Claude session works in this
-checkout and there is a git worktree under `.claude/worktrees/`. Expect files, and even a red test,
-that are not yours: **report them and carry on** - never "clean the baseline".
-Do NOT tick anything in `docs/TASKS.md` - the orchestrator ticks at merge. Do NOT commit.
-No `git add -A`, `git checkout`, `git stash`, `git clean`.
-
-## The reminders code as it stands (verified 2026-09-05, use these, do not re-derive)
-
-- **Core lifecycle, all pure, all L1-testable**: `ios/Sources/TankbookCore/Service/ReminderLifecycle.swift`
-  (`derivedStatus`, `isActive`, `due`, `dueSortKey`, `complete`, `reschedule`, `makeReminder`),
-  `ReminderBanner.swift`, `ReminderCompletion.swift`, `ReminderNotification.swift`.
-  **`.attention` is derived at read time; only the transition is stored** so notifications fire
-  once. Terminal rows (`.done`/`.dismissed`) never re-derive. Do not duplicate any of this.
-- **The only repository query is per-vehicle**: `liveReminders(forVehicle:)`,
-  `ios/Sources/TankbookCore/Persistence/Repository.swift:280`.
-- **The screen scopes to the selected car**: `ios/App/Sources/Reminders/RemindersView.swift`, load
-  at `:355-370` via `AppCarSelection.selectedVehicle`, then
-  `notificationCoordinator.reconcile(vehicleId:)`.
-- **The deep link**: `NotificationDelegate.userNotificationCenter(_:didReceive:)`
-  (`ios/App/Sources/Reminders/ReminderNotificationCoordinator.swift:136-147`) ->
-  `NotificationRouteParser.resolve(identifier:)` -> `NotificationRouter.Request.openRemindersFor`
-  (`ios/App/Sources/Navigation/NotificationRouter.swift:17-37`) -> `TabRoots.drive`
-  (`ios/App/Sources/Navigation/TabRoots.swift:428-437`).
-- **The Home banner**: `ReminderBanner.bannerReminder` (one row, `.attention` only) rendered by
-  `ios/App/Sources/Home/HomeBanners.swift:64-82`, whose "View" is a `NavigationLink(value: Route.reminders)`.
-- `ReminderCategory` is `ios/Sources/TankbookCore/Domain/Enums.swift:146-159` (note `.other(String)`).
-- Seeds: `ios/App/Sources/Reminders/ReminderTestSeed.swift`; UI suite `RemindersUITests`.
+`docs/DESIGN.md` if this establishes the rule explicitly (a tappable row carries the chevron), and
+the artboard itself. `docs/SCREENMAP.md` already records the destination - check it does and fix it
+if not.
 
 ## Hard rules that decide things in this area
 
-**2** (stats/counts are DERIVED, never stored) · **5** (amber is attention; colour is never the only
-channel) · **7** (every error and every dead end names its next step) · **10** (all strings through
-the String Catalog, EN + RU, full localised phrases - never concatenation) · **12** (never log a
-domain value; ids, counts and codes only) · **13** (the app suggests, the user decides - every
-derived value is editable at the moment it is offered and again afterwards) · **14** (it builds and
-it lints before anything else counts).
+**5** (amber is attention, and the count is never colour alone - the words and the label carry it) ·
+**6** (numbers in DIN, units subordinate - the count is a number in a UI string; follow what
+`ReminderAttentionFormat` already does) · **7** (an affordance that does not look like one is a next
+step the user cannot find) · **10** (EN + RU) · **14** (it builds and it lints).
+
+## Where you may write
+
+Only inside `/Users/sbelyaev/repos/fuel-counter-ios`, and within it only:
+`ios/Sources/TankbookCore/**`, `ios/App/Sources/**`, `ios/Tests/**`, `ios/App/UITests/**`,
+`backend/src/**`, `backend/tests/**`, `Spike/ImportFixtures/**`, `design/screens/**`,
+`design/screenshots/**`, and the docs named in this brief. **If your row's "out of scope" says not to
+touch a tier, that fence wins over this list.**
+
+**Never move, rename or delete a file you did not create.** Another session may be working in this
+checkout. Expect files, and even a red test, that are not yours: **report them and carry on** - never
+"clean the baseline".
+Do NOT tick anything in `docs/TASKS.md` - the orchestrator ticks at merge. Do NOT commit.
+No `git add -A`, `git checkout`, `git stash`, `git clean`.
+
+## Write code first, explore second
+
+The dominant failure mode is a run that reads everything and writes nothing. The cause is pinned to
+lines above and is confirmed - do not spend the run re-deriving it. Where this brief leaves a
+genuinely open choice, **take the smallest correct option and keep going**, then say in the report
+which you took and what you rejected. Do not stop and wait on it. (`RV.74`'s first dispatch ran two
+hours and wrote nothing, stuck on a question its brief left open.)
+
+If a fence in this brief turns out to be wrong, **report it as a Residual rather than obeying
+quietly** - a fence can be wrong the same way a diagnosis can. Two of my diagnoses have been wrong
+this month and the agent was right both times.
 
 ## The baseline gate (CLAUDE.md rule 14)
 
 From the **repo ROOT**, judged by exit code (`echo $?`), never by skimming output:
 - `cd ios && swift build` -> 0
-- `cd ios && swift test` -> 0, count reported. **Read the current count yourself before you start**
-  and report before -> after; other rows are landing in parallel, so any number quoted in a brief is
-  stale by the time you run.
+- `cd ios && swift test` -> 0, count reported (before -> after). Never subset it.
 - `swiftlint lint` **from the repo root** -> 0 errors. From `ios/` it prints thousands of phantom
   violations; that false red has cost two sessions.
-- the localization gate **from the repo root** -> 0
-- `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
+- `swift run --package-path ios localization-gate` from the root -> 0.
+- **If you touched `backend/`**: `cd backend && dotnet build` -> 0 and `dotnet test` -> 0 (count
+  before -> after), plus `dotnet format --verify-no-changes` -> 0.
+- **If you touched `ios/App/`**: `xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -destination 'platform=iOS Simulator,name=iPhone 17' -only-testing:<the suites this brief names> test` -> 0.
   `swift build` does NOT compile `ios/App`; only `xcodebuild` does. Run `xcodegen generate` first if
-  you added a file. **Check the observed count is non-zero** - a filter matching nothing prints
-  "0 tests ... passed". Do NOT run the whole UI suite (2026-08-29 rule).
+  you added a file. **Check the observed count is non-zero.** Do NOT run the whole UI suite - that
+  belongs to phase completion (2026-08-29 rule).
+- **`$?` after a pipe is the pipe's exit code.** `dotnet test | tail` once reported 0 while the run
+  aborted and "66 passed" of ~396 nearly read as green. Never judge a run by `... | tail`.
 - **Never `pgrep -f` for a build** - your own brief is in your command line and you will match, and
   could kill, a sibling agent. Use `pgrep -x xcodebuild`.
-
-## Screenshots
-
-EN **and** RU, **dark**, into `design/screenshots/`, named as this brief says.
-- Capture **outside** a test run - `simctl` and `xcodebuild test` fight over the device.
-- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
-- **Verify every EN/RU pair differs: `md5 -q a.png b.png`**, and report the hashes. RV.58 shipped an
-  "RU" shot byte-identical to its EN one and could not tell.
-- A `-` prefixed launch argument can **persist across relaunches**; reinstall between shots when a
-  seeded state sticks (RV.64).
-- **RU is not a formality.** Russian runs 20-30% longer and short strings expand worst. Read the
-  rendered Russian for grammar and word order, not just overflow. **And check every action line
-  actually renders in RU**: RV.80 is an action that appears in EN and silently does not in RU, found
-  only by looking.
-- You cannot see your own screenshots. The orchestrator opens all of them; do not claim they look right.
+- **Simulator contention produces false reds** with a *different* failing set each run, and a suite
+  reporting "Executed 0 tests" beside its failures is kills, not assertions. Shut the simulators down
+  and re-run once on a quiet machine before believing a red.
 
 ## Report back
 
-1. Exit code of every gate, and observed test counts (before -> after).
-2. Each mutation: what you broke, which named test failed, that you restored it byte-for-byte.
-   **A mutation that PASSES is a finding** - say so rather than moving on. That has happened twice
-   today and both times the test, not the code, was the problem.
-3. Screenshot paths and md5s.
+1. Exit code of every gate, and observed test counts (before -> after), per tier you touched.
+2. Each mutation: what you broke, which named test failed, and that you restored it byte-for-byte.
+   **A mutation that PASSES is a finding** - say so rather than moving on. Four passed on 2026-09-06
+   and each meant the test did not cover the claim its row was written for.
+3. Screenshot paths and md5s, if this brief asked for screenshots.
 4. What the user can now do that they could not before. If the honest answer for some case is
    "nothing changed", say so.
-5. Anything in this brief that was wrong. A fence can be wrong the same way a diagnosis can (RV.70):
-   report it as a Residual rather than obeying quietly.
+5. Anything in this brief that was wrong, as a Residual.
 6. Whether the tests were actually **run**, not only written.
