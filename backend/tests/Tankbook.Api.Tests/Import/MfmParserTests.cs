@@ -383,15 +383,19 @@ public class MfmParserTests
         Assert.Equal(260, result.DataRowCount);
         Assert.Equal(260, result.Candidates.Count);
 
-        // Named row 1: "Replacement parts" -> Expense(.parts).
+        // Named row 1: "Replacement parts" -> ServiceRecord(.parts) (RV.96),
+        // with the note surviving as the single item's title.
         //   4/27/2026;133;USD;"Replacement parts";106722;"Замена колес зима -> лето";"Volvo"
         var first = result.Candidates[0];
-        Assert.Equal("expense", first["entityType"]!.GetValue<string>());
+        Assert.Equal("serviceRecord", first["entityType"]!.GetValue<string>());
         Assert.Equal("2026-04-27T00:00:00Z", first["date"]!.GetValue<string>());
         Assert.Equal(106722, first["odometer"]!.GetValue<int>());
         Assert.Equal("133", first["money"]!["amount"]!.GetValue<string>());
-        Assert.Equal("parts", first["category"]!["tag"]!.GetValue<string>());
-        Assert.Equal("Замена колес зима -> лето", first["title"]!.GetValue<string>());
+        Assert.Equal("USD", first["money"]!["currency"]!.GetValue<string>());
+        Assert.Equal("parts", first["items"]![0]!["category"]!["tag"]!.GetValue<string>());
+        Assert.Equal("Замена колес зима -> лето", first["items"]![0]!["title"]!.GetValue<string>());
+        Assert.Equal("133", first["items"]![0]!["cost"]!["amount"]!.GetValue<string>());
+        Assert.Equal("USD", first["items"]![0]!["cost"]!["currency"]!.GetValue<string>());
 
         // A WORK row -> ServiceRecord with a single item.
         var work = result.Candidates.Single(c => c["entityType"]!.GetValue<string>() == "serviceRecord"
@@ -406,6 +410,98 @@ public class MfmParserTests
         // way fuel.csv does (rows with days past the 12th) - so RV.85 resolves
         // it and no dateFormat question is asked.
         Assert.DoesNotContain(result.Ambiguities, a => a.Kind == "dateFormat");
+    }
+
+    [Fact]
+    public void CostsCsv_ReplacementPartsRows_AreServiceRecordsWithParts_NoteAndMoneySurvive()
+    {
+        using var stream = MfmFixture.Open(MfmFixture.CostsCsv);
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        // Four named "Replacement parts" rows of the real file (RV.96), chosen
+        // for how little their notes share - suspension parts, AdBlue, a sensor,
+        // a filter. A mapper that sniffed the note or handled only part-shaped
+        // rows would miss at least one of them, so each is asserted for what it
+        // BECAME: a service record whose single item carries the parts category.
+        //   Запчасти к подвестке..., 350 евро: 5/4/2022;28000;...;412600
+        //   AdBlue 5 литров (еще 4 нужно):     3/27/2025;13.5;...;90691
+        //   Датчик воздуха. Взял бу...:        7/11/2023;62.5;...;422178
+        //   Фильтр топливный vag 8t0127401a:   10/16/2021;1786;...;0 (odometer 0 -> null)
+        var named = new[]
+        {
+            ("Запчасти к подвестке (смотри фотографию), 350 евро, forss", "28000", 412600),
+            ("AdBlue 5 литров (еще 4 нужно)", "13.5", 90691),
+            ("Датчик воздуха. Взял бу. 03g 906 4611", "62.5", 422178),
+            ("Фильтр топливный vag 8t0127401a", "1786", (int?)null),
+        };
+        foreach (var (note, amount, odometer) in named)
+        {
+            var candidate = Assert.Single(result.Candidates, c => FirstItemTitle(c) == note);
+            Assert.Equal("serviceRecord", candidate["entityType"]!.GetValue<string>());
+            Assert.Equal("parts", candidate["items"]![0]!["category"]!["tag"]!.GetValue<string>());
+            // The note IS the value of these rows: it survives as the item title.
+            Assert.Equal(note, candidate["items"]![0]!["title"]!.GetValue<string>());
+            // The money is unchanged by the remap - same amount and currency on
+            // the record AND on the item (the only two places it is carried).
+            Assert.Equal(amount, candidate["money"]!["amount"]!.GetValue<string>());
+            Assert.Equal("USD", candidate["money"]!["currency"]!.GetValue<string>());
+            Assert.Equal(amount, candidate["items"]![0]!["cost"]!["amount"]!.GetValue<string>());
+            Assert.Equal("USD", candidate["items"]![0]!["cost"]!["currency"]!.GetValue<string>());
+            if (odometer is int expected)
+            {
+                Assert.Equal(expected, candidate["odometer"]!.GetValue<int>());
+            }
+            else
+            {
+                Assert.Null(candidate["odometer"]);
+            }
+        }
+    }
+
+    [Fact]
+    public void CostsCsv_ParkingFiledFuelFilter_StaysParking_NotRetypedByContent()
+    {
+        using var stream = MfmFixture.Open(MfmFixture.CostsCsv);
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        // The owner's own mis-filed row (hard rule 13's proof that no mapping
+        // table is right about every row): a fuel filter filed under "Parking".
+        //   9/17/2020;1459;USD;"Parking";380016;"Топливный фильтр VAG 8t0127401A";"AUDI A4 ..."
+        // The note says "filter", so a content-sniffing mapper would file it as
+        // a service part; the claim is that it lands exactly as filed - a
+        // parking expense whose note survives for the USER to correct.
+        var candidate = Assert.Single(result.Candidates,
+            c => c["title"]?.GetValue<string>() == "Топливный фильтр VAG 8t0127401A");
+        Assert.Equal("expense", candidate["entityType"]!.GetValue<string>());
+        Assert.Equal("parking", candidate["category"]!["tag"]!.GetValue<string>());
+        Assert.Equal("Топливный фильтр VAG 8t0127401A", candidate["title"]!.GetValue<string>());
+        Assert.Equal("1459", candidate["money"]!["amount"]!.GetValue<string>());
+        Assert.Equal("USD", candidate["money"]!["currency"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void CostsCsv_AnUnknownFinanceCategory_LandsUnparsed_AndTheRestStillMap()
+    {
+        // A finance category the mapping does not know is a mapping gap, not a
+        // guess: the row lands in `unparsed` with the stable reason and the rest
+        // of the file keeps parsing (hard rule 8). The replacement-parts row
+        // beside it proves the file still maps after the gap.
+        var csv = """
+        My Fuel Manager - COSTS
+        Date;Total price;Currency;Finance category;Odometer;Note;Vehicle name
+        4/27/2026;133;USD;"Replacement parts";106722;"Замена колес зима -> лето";"Volvo"
+        5/1/2026;50;USD;"Insurance";100000;"Roadside cover";"Volvo"
+        """;
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        var good = Assert.Single(result.Candidates);
+        Assert.Equal("serviceRecord", good["entityType"]!.GetValue<string>());
+        Assert.Equal("parts", good["items"]![0]!["category"]!["tag"]!.GetValue<string>());
+
+        var bad = Assert.Single(result.Unparsed);
+        Assert.Equal(2, bad.Row);
+        Assert.Equal(MfmParser.ReasonUnknownFinanceCategory, bad.Reason);
     }
 
     [Fact]
@@ -510,6 +606,13 @@ public class MfmParserTests
     }
 
     // ---- helpers -----------------------------------------------------------
+
+    /// The first service item's title, or null when the candidate is not a
+    /// service record (an expense has no `items`). Null-safe: the predicate
+    /// walks the whole candidate list, so a non-service candidate must read
+    /// "not matched" rather than throw.
+    private static string? FirstItemTitle(JsonObject candidate) =>
+        (candidate["items"] as JsonArray)?[0]?["title"]?.GetValue<string>();
 
     /// <summary>A synthetic fuel export over the given date cells (RV.85: the whole-file
     /// date-order tests need files whose dates are chosen, not a real export's).</summary>

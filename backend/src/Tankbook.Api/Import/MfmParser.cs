@@ -428,10 +428,16 @@ public static class MfmParser
         // nonsense reading of zero kilometres.
         var odometerValue = odometer > 0 ? odometer : (int?)null;
 
-        // WORK / Diagnostic / Oil / Washing are work done to the car
-        // (ServiceRecord); "Replacement parts" / Parking are money not tied to
-        // work (Expense). An unknown category is a mapping gap: it lands on the
-        // review list rather than being silently typed (hard rule 8).
+        // WORK / Diagnostic / Oil / Washing are work done to the car, and
+        // "Replacement parts" are parts fitted to it - the second-largest cost
+        // category in the real export (RV.96), whose notes («Замена колес зима
+        // -> лето», «Топливный фильтр VAG 8t0127401A») name what went on the
+        // car. All five map to a ServiceRecord; the parts notes become the
+        // service item's title (their value - they must never be dropped into
+        // parsing part numbers, RV.96). Parking is money not tied to work on
+        // the car - exactly what Expense is for. An unknown category is a
+        // mapping gap: it lands on the review list rather than being silently
+        // typed (hard rule 8).
         switch (category)
         {
             case "WORK":
@@ -443,7 +449,7 @@ public static class MfmParser
             case "Washing":
                 return ServiceRecordCandidate(date, odometerValue, money, note, vehicleName, "wash", rowNumber);
             case "Replacement parts":
-                return ExpenseCandidate(date, odometerValue, money, note, vehicleName, "parts", rowNumber);
+                return ServiceRecordCandidate(date, odometerValue, money, note, vehicleName, "parts", rowNumber);
             case "Parking":
                 return ExpenseCandidate(date, odometerValue, money, note, vehicleName, "parking", rowNumber);
             default:

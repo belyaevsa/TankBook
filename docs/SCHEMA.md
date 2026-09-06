@@ -808,11 +808,16 @@ file forced - each one is a documented mapping, never a silent guess:
   lies off the car's timeline, exactly where the preview's derived-consumption figure catches it
   (F6a). The `9` and `11436` are integers and pass through untouched.
 - **`costs.csv` finance categories**: `WORK` → `ServiceRecord(.repair)`, `Diagnostic` →
-  `.inspection`, `Oil` → `.oil`, `Washing` → `.wash`; `Replacement parts` → `Expense(.parts)`,
-  `Parking` → `Expense(.parking)`. Each `ServiceRecord` carries a single item (title = the note,
-  cost = the row total). An unknown category lands the row in `unparsed`
-  (`unknown_finance_category`). MFM exports an unrecorded cost odometer as `0`, which maps to
-  `null` (the field is optional off a fill-up) rather than a nonsense zero reading.
+  `.inspection`, `Oil` → `.oil`, `Washing` → `.wash`, and `Replacement parts` →
+  `ServiceRecord(.parts)` (RV.96: it is the second-largest cost category in the real export
+  and its notes - «Замена колес зима -> лето», `Топливный фильтр VAG 8t0127401A` - name parts
+  fitted to the car, so the money must carry service meaning). `Parking` → `Expense(.parking)` -
+  money not tied to work on the car is what `Expense` is for. Each `ServiceRecord` carries a
+  single item (title = the note, cost = the row total); the note is the value of a
+  replacement-parts row, so it is never parsed into part numbers or a parts-shelf row (RV.96).
+  An unknown category lands the row in `unparsed` (`unknown_finance_category`). MFM exports an
+  unrecorded cost odometer as `0`, which maps to `null` (the field is optional off a fill-up)
+  rather than a nonsense zero reading.
 - **`incomes.csv` / `reminders.csv` are accepted and yield nothing**: income is out of scope in v1
   and there is no reminder mapping yet. The response reports them via an `outOfScope` ambiguity
   with the skipped row count, so the client can say what was skipped.
