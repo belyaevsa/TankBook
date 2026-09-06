@@ -33,8 +33,35 @@ direction either - resolve the id, and let the resolved vehicle decide.
    vehicle. Pick one, justify it, and do not leave both half-wired.
 3. **The user must be able to see the car changed.** The Reminders screen names the car; do not
    switch silently with nothing on screen saying so.
-4. **Keep the genuine stale case working**: a deleted reminder still lands on a plain list, never an
+4. **The archived-car question is DECIDED - do not re-derive it.** A first run
+   spent two hours reasoning about this and wrote nothing, which is the brief's
+   fault, not the agent's. The rule, and it is the orchestrator's decision:
+
+   - **The by-id resolve does NOT reuse RV.75's cross-vehicle query.** That query
+     deliberately excludes archived cars because it feeds a list of what needs
+     the user *now*; a resolve answers a different question - "which car does
+     this id belong to" - and must answer it for **every** live reminder,
+     archived car or not. Reusing it would make an armed notification
+     unresolvable, which is the dead end hard rule 7 forbids. Add the by-id read;
+     say in its doc comment why it is not the list query. **This is not a second
+     query for the same job** - the two have different jobs, and RV.75's row
+     anticipated exactly one of them.
+   - **A tombstoned reminder resolves to nothing** and keeps the existing plain-list
+     landing.
+   - **Never switch the selection to an archived car.** If the resolved vehicle is
+     archived, land on the merged list with the reminder's completion flow
+     surfaced, leaving the selection untouched - the user still reaches their
+     reminder, and the app does not silently make an put-away car current.
+   - **Do not** change what archiving does to armed notifications. Whether archive
+     should cancel them is a real question and it is **out of scope**: note it in
+     your report and move on.
+
+5. **Keep the genuine stale case working**: a deleted reminder still lands on a plain list, never an
    error, never a detour (hard rule 7, and `NotificationRouter.swift:27-36` records the reasoning).
+
+**Write code first.** The design questions above are answered; if another one appears,
+take the smallest correct option, write down which and why, and keep going. A run that
+explores and writes nothing is the failure mode this brief is guarding against.
 
 ## Explicitly out of scope
 
