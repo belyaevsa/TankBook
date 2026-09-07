@@ -8,42 +8,53 @@ runs to **RV.100**, and **six rows are open: RV.98, RV.99, RV.100 (the car-delet
 are WRITTEN and ready to dispatch), RV.82, RV.91, RV.92**. Read this first, then `CLAUDE.md`, then
 `docs/TASKS.md`.*
 
-## PAUSED MID-ROW: RV.104's work is in the working tree, UNCOMMITTED (2026-09-07 11:37)
+## PAUSED MID-ROW: RV.103's work is in the working tree, UNCOMMITTED (2026-09-07 14:50)
 
 **Read this before running anything.** Development was paused at the product owner's request while
-`RV.104` (accept a "Needs a look" flag) was in its final verification step. The agent was stopped
-cleanly - it had **finished writing source** and was about to launch the UI suite - so the files are
-complete, not truncated. `cd ios && swift build` is **0** on the tree as left.
+`RV.103` (the Log stops at 20 rows) was **mid app-layer wiring** - later than RV.104 was stopped, so
+treat this as an interrupted edit rather than a finished one. Both `cd ios && swift build` and the
+app target's `xcodebuild ... build` are **0** on the tree as left, so it compiles; that is the only
+gate that has been run.
 
-**What is uncommitted** (16 files; `git status` to confirm):
+**What is uncommitted** (`git status` to confirm):
 
-- Core: `Domain/Entities.swift`, `Domain/Enums.swift`, `Domain/PayloadCodable.swift`,
-  `Validation/TimelineValidator.swift`, `Persistence/Migrations.swift`, `Persistence/Records.swift`,
-  `Persistence/Repository+Sync.swift`, **new** `Persistence/Repository+FlagAcceptance.swift`
-- App: `EditEntry/EditEntryFormState.swift`, `EditEntry/EditEntryView.swift`,
-  `Settings/FlaggedEntriesView.swift`, `Localizable.xcstrings`
-- Tests: **new** `Tests/TankbookCoreTests/FlagAcceptanceTests.swift`, `PersistenceTests.swift`,
-  `App/UITests/FlaggedEntriesUITests.swift`
+- Core: `Consumption/LogStream.swift` (a `revealPages` paging model), **new**
+  `Tests/TankbookCoreTests/LogStreamRevealTests.swift`
+- App: `Home/HomeSections.swift`, `Home/HomeSections+LogStream.swift`, `Home/HomeTestSeed.swift`,
+  **new** `Home/RV103HomeTestSeed.swift`, `Localizable.xcstrings`, `Localization/L10n.swift`
+- Fixture: **new** `ios/App/Resources/import-rv103-fuel.json`
 
-**It carries a DATABASE MIGRATION** (`Migrations.swift`), so this is not a diff to discard casually -
-read what it adds before deciding anything.
+**Where it actually got to**: the core model and its L1 tests are written; it had just started wiring
+the reveal into `HomeSections`. **Nothing beyond `swift build` has been verified** - no `swift test`,
+no lint, no localization gate, no UI suite, no screenshots, and **not** the `LogStream` build-time
+measurement on the 513-row import that the brief asks for as a deliverable.
+
+**One design decision it had reached, worth keeping** (from its log, not from code): if the user
+reveals the whole log and then edits an entry, the reload must **not** collapse back to 20 rows -
+preserve "revealed" across a same-car reload and reset on car switch (it proposed `.id(vehicle.id)`
+at the call site). That is the right instinct and the reason a naive implementation feels broken.
 
 **To resume, in this order:**
 
-1. `cd ios && swift build` and `swift test` - report the count against **1595 / 178 suites** (the
-   count at `dc30050`, the last commit).
+1. `cd ios && swift build`, then `swift test` - report against **1610 / 179 suites** (the count at
+   `a359b53`, the last commit).
 2. `swiftlint lint` and `swift run --package-path ios localization-gate`, **both from the repo root**.
-3. `xcodebuild ... -only-testing:TankbookUITests/FlaggedEntriesUITests test` - the step the agent
-   never reached.
-4. Release build (it touches a DEBUG seed seam).
-5. **The assertion the whole row turns on** (`agents/briefs/RV.104.md`): an accepted entry must
-   **survive a re-validation** - `TimelineValidator.validate` run again must not bring the flag back.
-   Verify that test exists and genuinely fails without the fix; the brief's first vacuous trap is a
-   UI-only hide that the next sync undoes.
-6. Only then commit, staging **explicit paths**.
+3. `xcodebuild ... -only-testing:TankbookUITests/HomeUITests test`.
+4. The brief's measurement: `LogStream` build time over the 513-row MFM import, before and after.
+5. EN + RU screenshots of the reveal affordance.
 
-**If the work is judged unfinished, `git checkout` the 16 paths and re-dispatch the brief** - it is
-written and unchanged at `agents/briefs/RV.104.md`. Do not half-adopt it.
+**The row's own trap is still the one to watch** (`agents/briefs/RV.103.md`): raising `previewLimit`
+to a bigger constant is NOT the fix - the row is about the missing door, not the number behind it -
+and every page must keep a purchase group whole and keep the month dividers agreeing with the rows
+beneath them, which [RV.106] has just typed as `.complete/.partial/.pending`.
+
+**If the work is judged unfinished, `git checkout` those paths and re-dispatch** - the brief is
+written and unchanged at `agents/briefs/RV.103.md`. Do not half-adopt it.
+
+**Also**: the agent edited `docs/CODE-COMMENT-REVIEW.md` (a statistics-table refresh), which is
+outside its brief's write fence. That edit was **reverted**, not kept - an agent writing outside its
+fence is not silently accepted, and the table is the kind of mutable fact the comment rule now says
+should not be copied around anyway.
 
 ## What shipped overnight 2026-09-06/07
 
