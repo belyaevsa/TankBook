@@ -133,11 +133,16 @@ public extension ExtractionCrossCheck {
     }
 
     /// The sum of the non-fuel priced lines at LIST price (quantity x price).
-    /// Zero on a fuel-only receipt. The fuel line is excluded by its volume
-    /// marker (the `L`/`л` token that distinguishes it from Latvian `Gab.`
-    /// items on `screenshot-008` - EXTRACTION.md failure mode 2).
+    /// Zero on a fuel-only receipt. The fuel line is excluded by its identity,
+    /// not merely by a volume marker: `OperandPair.fuelOperandIndex` finds the
+    /// volume-marked pair (the `L`/`л` token that separates it from Latvian
+    /// `Gab.` items on `screenshot-008` - EXTRACTION.md failure mode 2) AND the
+    /// unmarked pair directly below a product line. Excluding only the marked
+    /// pair would count an unmarked fuel line as its own non-fuel item, which is
+    /// what made the `resolveTotal` mixed-receipt fallback prefer the fuel
+    /// line's own derived product over the printed total on `receipt-052`.
     static func nonFuelListSum(in lines: [OCRLine]) -> Decimal {
-        let fuelIndex = OperandPair.fuelLine(in: lines)?.index
+        let fuelIndex = OperandPair.fuelOperandIndex(in: lines)
         var sum = Decimal.zero
         for (index, line) in lines.enumerated() {
             if index == fuelIndex { continue }

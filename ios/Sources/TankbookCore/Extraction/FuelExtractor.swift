@@ -397,22 +397,9 @@ public struct FuelExtractor: Sendable {
     /// fuel amount even when the parser could not decide which operand is the
     /// volume - the case on an unmarked, unresolvable fuel line.
     private func fuelOperandProduct(in lines: [OCRLine]) -> Double? {
-        guard let index = fuelOperandIndex(in: lines),
+        guard let index = OperandPair.fuelOperandIndex(in: lines),
               let pair = OperandPair(line: lines[index].text) else { return nil }
         return pair.left * pair.right
-    }
-
-    /// The index of the fuel operand line. Prefers the volume-marked operand;
-    /// otherwise the operand pair that sits directly below a fuel product line
-    /// (an unmarked fuel line on a mixed receipt, receipt-025).
-    private func fuelOperandIndex(in lines: [OCRLine]) -> Int? {
-        if let fuel = OperandPair.fuelLine(in: lines) { return fuel.index }
-        for (index, line) in lines.enumerated() {
-            guard OperandPair(line: line.text) != nil else { continue }
-            guard index > 0, FuelKindNormalizer.isProductLine(lines[index - 1].text) else { continue }
-            return index
-        }
-        return nil
     }
 
     /// The receipt's own grand total (ИТОГ/ВСЕГО/...), independent of the fuel
@@ -501,6 +488,23 @@ struct OperandPair {
             if pair.leftText.hasVolumeMarker || pair.rightText.hasVolumeMarker {
                 return (pair, index)
             }
+        }
+        return nil
+    }
+
+    /// The index of the FUEL operand line, across the whole document: the
+    /// volume-marked pair, else the first operand pair directly below a fuel
+    /// product line (receipt-025's unmarked `43.38 Х 38.28`). Shared by the
+    /// mixed-receipt fuel product and `ExtractionCrossCheck.nonFuelListSum`, so
+    /// the two never disagree about which line is fuel - a shop list that
+    /// excludes only the marked pair counts an unmarked fuel line as its own
+    /// non-fuel item (receipt-052's false-positive mixed receipt).
+    static func fuelOperandIndex(in lines: [OCRLine]) -> Int? {
+        if let fuel = fuelLine(in: lines) { return fuel.index }
+        for (index, line) in lines.enumerated() {
+            guard OperandPair(line: line.text) != nil else { continue }
+            guard index > 0, FuelKindNormalizer.isProductLine(lines[index - 1].text) else { continue }
+            return index
         }
         return nil
     }

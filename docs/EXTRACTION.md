@@ -260,6 +260,51 @@ visible either way.
 Where the outcome is not `lock`, the residual is the honest thing to show: *"1.01 less than
 67 x 1.884"* names its next step; a bare amber "mismatch" does not (hard rule 7).
 
+### 5b. Printed total vs derived product (RV.125, 2026-09-07)
+
+When a receipt prints a total, that printed total **outranks** a product derived from the two
+OCR'd operands. The cross-check exists to catch a bad read, not to second-guess a printed value,
+and `receipt-052` is the worked example of why the precedence must be stated and not left to
+happenstance: Vision read the price line as `20.31 X 32.000` at confidence 1.00 (the true price
+is 70.31) and read the printed `=2249.92` **twice**, both correct - yet the extractor committed
+`649.92`, which is exactly `20.31 x 32.000`. A single misread digit in one factor overrode two
+independent, correct, high-confidence reads of the printed total, and because the product agreed
+with itself the cross-check *confirmed* the wrong number rather than catching it. That is the
+worst shape a capture defect takes (hard rule 13: the user then edits a figure that looks
+authoritative).
+
+The rule, in one sentence: **a printed total is evidence; a product of two OCR'd factors is a
+derivation.** Agreement between two independent reads of the same printed value is corroboration;
+a product agreeing with itself is not, because both factors come from the same line and a single
+misread digit propagates into both.
+
+The derived product is still used, and still load-bearing, in exactly two places:
+
+1. **No printed total** - a receipt whose total label is obscured or absent (receipt-038) settles
+   on the arithmetic fuel line. This is the rescue path and must never be removed.
+2. **A mixed receipt** - when the printed total is the *grand* total and a genuine non-fuel priced
+   line (a service, a bottle of water) explains the gap, the fill-up amount is the fuel line, not
+   the grand total (hard rule 4, failure mode 2). The derived product wins here *only* with
+   positive evidence of a non-fuel line.
+
+The defect was in the evidence, not the intent. `resolveTotal` already preferred the printed total
+in its fallback; the false positive came from `nonFuelListSum`, the "shop list" that tells the
+mixed-receipt branch a non-fuel line exists. It excluded the fuel line by its **volume marker**
+only, so an *unmarked* fuel line - `receipt-052`'s `20.31 X 32.000`, receipt-025's
+`43.38 Х 38.28` - was counted as its own non-fuel item. That turned a fuel-only receipt into a
+"mixed" one and let the derived product outrank the printed total. The fix: the fuel line is
+identified by `OperandPair.fuelOperandIndex` (the volume-marked pair, else the operand pair
+directly below a product line) and `nonFuelListSum` excludes **that** index, so a fuel line is
+never its own non-fuel item and the two halves of the mixed-receipt decision can no longer
+disagree about which line is the fuel.
+
+**`DigitRepair` was considered and is correctly not applicable here.** The repair engine is
+pump-source only (thermal print has no segment topology, so a receipt is never repaired - a
+repair there would be a fabricated number), and `20.31 -> 70.31` is a `2 -> 7` substitution, which
+is not in the seven-segment confusion table (a `2` and a `7` differ by more than one lit segment).
+The engine's whole premise - a single misread *segment* - does not transfer to receipt glyphs.
+The precedence rule is the fix, not digit repair.
+
 ### 6. Hand off
 
 `ExtractionMeta` plus per-field confidence, into the Confirm screen as **already-editable
