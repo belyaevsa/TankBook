@@ -157,6 +157,40 @@ Conflict rule: if two docs disagree, the more specific one wins (API.md over SYN
 
 14. **It builds and it lints – every task, before anything else counts.** No task is done until each tier it touched compiles and its linter exits **0**: iOS `swift build` + `swiftlint lint` **run from the repo root** (root-relative `excluded:` paths), backend `dotnet build` + `dotnet format --verify-no-changes`. Zero lint *errors* is the standard and is re-checked every task; warnings do not block but are not to be added casually. Never silence a violation by loosening the rule – fix the code, or exclude genuinely generated output. Verify by **exit code**, not by skimming output. **A task that touches a `#if DEBUG` seam also builds RELEASE** (`xcodebuild -configuration Release ... build`): the ordinary gate compiles Debug only, so an unguarded call to a DEBUG-only type passes every check and breaks the release build path instead - which is exactly how `PR.11`/`OB.4` reached `main` verified, and `RV.78` found it two rows later (2026-09-06). **Which gates a change needs is decided by what it TOUCHES** - `docs/TESTING.md` → "Which gates for which change" carries the table, with what each gate has actually caught. Lint-and-compile alone is enough only when nothing that runs is different (docs, briefs, `TASKS.md` ticks, comments). (`docs/TESTING.md` → the baseline gate)
 
+## Code comments: current truth only
+
+Code comments are maintained with the code and describe the version in the
+working tree. The detailed rationale and audit are in
+`docs/CODE-COMMENT-REVIEW.md`.
+
+- Explain a non-obvious invariant, tradeoff, platform constraint, ownership
+  boundary, or failure consequence. Delete narration that merely restates the
+  next statement, property, or type name.
+- Write in present tense. Do not put task IDs, dates, commit history, agent
+  activity, before/after stories, or completion evidence in code comments.
+  `docs/TASKS.md` and Git own that history. Fixture dates and protocol/version
+  identifiers are allowed when they are data the code must interpret.
+- Do not describe planned features in production code. Put future work in
+  `docs/TASKS.md`; describe only the behavior the current implementation has.
+- Do not copy mutable facts such as test totals, accuracy scores, file line
+  limits, endpoint inventories, or configuration values into comments. Name
+  the constant or link the authoritative document section instead.
+- Treat `always`, `never`, `only`, and `must` as contract words. Use them only
+  when code structure or a discriminating test enforces the claim.
+- Use `///` for API semantics a caller needs. Use `//` inside an implementation
+  only where the reason or constraint is not clear from names and control flow.
+- When behavior changes, audit every comment in each touched file. Rewrite or
+  remove stale claims in the same change, and search comments for renamed
+  symbols and replaced literal values.
+- Keep one explanation at the narrowest useful location. Link to the authority
+  instead of repeating a hard rule throughout call sites.
+- A workaround comment states the external constraint, why the code is needed,
+  and the condition under which it can be removed. It does not preserve the
+  debugging diary that led to it.
+- If a comment makes a behavioral promise, add or identify the test that would
+  fail when the promise is broken. If no such check is worthwhile, soften the
+  claim or remove it.
+
 ## Repo layout & commands
 
 ```

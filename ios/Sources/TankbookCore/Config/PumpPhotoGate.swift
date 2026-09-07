@@ -53,13 +53,10 @@ public enum PumpPhotoGate {
     /// rather than the transaction's unit price), and `fuelKind` is never
     /// asserted for a pump at all.
     ///
-    /// **Re-measured 2026-09-07 (RV.114's corpus additions).** The six Circle K
-    /// pumps added with `receipt-049`..`051` brought 18 more asserted cells
-    /// (178 -> 196) and 6 more committed, all of them correct (31 -> 37). So
-    /// precision stays 100% on what the parser commits to, and coverage moves
-    /// 17.4% -> 18.9% - still far under the 60% floor, so **the pump flag stays
-    /// off and nothing a user sees changes**. The constants moved because the
-    /// corpus did; the gate's decision did not.
+    /// These constants are the live corpus score and move whenever the corpus
+    /// does; the ratchet test asserts they match it. They describe the measured
+    /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
+    /// against the precision threshold and coverage floor below.
     public static let measuredNumericTotal: Int = 196
 
     /// The precision threshold (B1): committed-value precision at or above this

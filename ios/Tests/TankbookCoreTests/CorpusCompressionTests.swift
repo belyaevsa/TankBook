@@ -38,10 +38,10 @@ struct CorpusCompressionTests {
     /// Re-measured after the merge of both sessions' total-finder work; the
     /// compressed run stays at or above the uncompressed ratchet (high-water.json)
     /// - the resize is not lossy for this parser, and never below.
-    // RV.114 (2026-09-07): total 220 -> 235 because three receipts joined the
-    // corpus (receipt-049..051), each asserting five cells. The HITS floor
-    // stays 189: it is a "never fall below" mark, and raising it to a number
-    // this change did not measure would turn a floor into a guess.
+    /// `total` is the corpus's asserted receipt cells and must match exactly -
+    /// a shrinking corpus means the compression step dropped an image. `hits`
+    /// is a floor, not a measurement: it may only rise when a run measures a
+    /// higher figure, so accuracy can improve but never silently regress.
     private static let recordedReceipts = (hits: 189, total: 235)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
