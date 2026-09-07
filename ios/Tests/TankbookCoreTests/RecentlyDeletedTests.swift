@@ -218,6 +218,139 @@ private func headline(_ repository: TankbookRepository, vehicle: Vehicle,
     #expect(restored.first?.deletedAt == nil)
 }
 
+// MARK: - RV.98: a deleted car is listed, and comes back as a group
+
+/// A tombstoned vehicle appears in the new query - the row the Recently
+/// deleted screen was missing (a deleted car was invisible and unrestorable:
+/// hard rule 8). It carries its deletion stamp (and so the same 30-day
+/// countdown as every other row) and the count of entries that went down with
+/// it.
+@Test func deletedVehiclesListsATombstonedCarWithItsStampCountAndDaysLeft() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+    for spec in d1Specs.prefix(3) {
+        try repository.upsertFillUp(makeFill(vehicleID: vehicleID, spec))
+    }
+
+    let now = Date()
+    try repository.softDeleteVehicle(id: vehicleID, at: now)
+
+    let deleted = try repository.deletedVehicles()
+    #expect(deleted.count == 1, "the deleted car is a row on Recently deleted")
+    #expect(deleted.first?.vehicle.id == vehicleID)
+    #expect(deleted.first?.deletedAt == now)
+    #expect(deleted.first?.entriesCount == 3)
+    #expect(TombstoneCountdown.daysRemaining(deletedAt: deleted.first!.deletedAt, now: now) == 30,
+            "the car's row carries the same countdown as every other row")
+    #expect(try repository.liveVehicles().isEmpty,
+            "the car is tombstoned, but now the tombstone is reachable")
+}
+
+/// Restoring the car brings back the car AND the entries that went down with
+/// it (they share its tombstone stamp), while an entry the user deleted
+/// individually BEFORE the car went stays tombstoned - that is exactly what
+/// `restoreVehicle` already does, and the row must wire to it, not to a
+/// single-row restore. Mutation guards: wiring the car's Restore to a
+/// single-row restore (entries stay tombstoned), or widening the group restore
+/// to the individually deleted entry, both fail here.
+@Test func restoringACarReturnsItsGroupWhileAnEarlierIndividualDeleteStays() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+
+    let earlier = makeFill(id: UUID.v7(), vehicleID: vehicleID,
+                           FillSpec(date: UTC.day(2026, 8, 10), odometer: 119_000, litres: 42.0))
+    let withCar1 = makeFill(id: UUID.v7(), vehicleID: vehicleID,
+                            FillSpec(date: UTC.day(2026, 8, 15), odometer: 119_500, litres: 42.0))
+    let withCar2 = makeFill(id: UUID.v7(), vehicleID: vehicleID,
+                            FillSpec(date: UTC.day(2026, 8, 18), odometer: 120_000, litres: 42.0))
+    try repository.upsertFillUp(earlier)
+    try repository.upsertFillUp(withCar1)
+    try repository.upsertFillUp(withCar2)
+
+    // One entry deleted individually while the car was live, days before the
+    // car itself goes.
+    try repository.softDeleteFillUp(id: earlier.id, at: UTC.day(2026, 8, 20))
+    try repository.softDeleteVehicle(id: vehicleID, at: UTC.day(2026, 8, 22))
+
+    // The car is one row covering the two entries that came down with it; the
+    // earlier individual delete still lists beside it as its own row.
+    let deletedCars = try repository.deletedVehicles()
+    #expect(deletedCars.map(\.vehicle.id) == [vehicleID])
+    #expect(deletedCars.first?.entriesCount == 2)
+    let entries = try repository.deletedEntries()
+    #expect(entries.map(\.id) == [earlier.id],
+            "only the individually deleted entry lists - the car's group does not flood")
+    #expect(try repository.liveEntries(forVehicle: vehicleID).isEmpty)
+
+    try repository.restoreVehicle(id: vehicleID)
+
+    // The whole group is back...
+    #expect(try repository.liveVehicles().map(\.id) == [vehicleID])
+    let live = try repository.liveEntries(forVehicle: vehicleID).map(\.id)
+    #expect(Set(live) == [withCar1.id, withCar2.id],
+            "restoring the car returns the entries that went down with it")
+    // ...while the earlier individual delete keeps its own tombstone (it was
+    // deleted on its own, so only its own Restore brings it back).
+    #expect(live.contains(earlier.id) == false)
+    #expect(try repository.deletedVehicles().isEmpty)
+    #expect(try repository.deletedEntries().map(\.id) == [earlier.id])
+}
+
+/// A car with entries produces ONE car row and NO separate rows for the
+/// entries that share its stamp - the flood is the bug, so this asserts the
+/// entry rows are ABSENT, not merely that the car row is present. Mutation
+/// guard: listing the car's co-tombstoned entries as rows again fails here.
+@Test func aDeletedCarsEntriesDoNotBecomeSeparateRows() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+    var fills: [FillUp] = []
+    for (index, spec) in d1Specs.enumerated() {
+        let fill = makeFill(id: UUID.v7(), vehicleID: vehicleID, spec)
+        fills.append(fill)
+        try repository.upsertFillUp(fill)
+    }
+    let fillIDs = Set(fills.map(\.id))
+
+    try repository.softDeleteVehicle(id: vehicleID)
+
+    let deletedCars = try repository.deletedVehicles()
+    #expect(deletedCars.count == 1, "one car row - not one per entry")
+    #expect(deletedCars.first?.entriesCount == fills.count)
+    let deletedEntries = try repository.deletedEntries()
+    #expect(deletedEntries.isEmpty,
+            "the car's co-tombstoned entries must not list as individual rows")
+    #expect(deletedEntries.contains { fillIDs.contains($0.id) } == false)
+}
+
+/// A deleted car's reminders ride down with it at the same stamp (reminders
+/// are vehicle-scoped) and come back with its Restore - so they are not
+/// separate rows with Restores of their own either, which would strand them on
+/// a deleted vehicle (the same reasoning as decision 3 in RV.98, for the
+/// reminder list).
+@Test func aDeletedCarsRemindersGoDownWithItAndComeBackWithItsRestore() throws {
+    let repository = try makeRepository()
+    let vehicleID = UUID.v7()
+    try repository.upsertVehicle(makeVehicle(vehicleID: vehicleID))
+
+    let oil = ReminderLifecycle.makeReminder(
+        vehicleId: vehicleID, title: "Oil change", category: .oil,
+        dueDate: UTC.day(2026, 10, 1), dueOdometer: nil, recurrence: nil)
+    try repository.upsertReminder(oil)
+
+    try repository.softDeleteVehicle(id: vehicleID)
+    #expect(try repository.deletedReminders().isEmpty,
+            "the car's reminder belongs under the car's row, not beside it")
+    #expect(try repository.deletedVehicles().first?.vehicle.id == vehicleID)
+
+    try repository.restoreVehicle(id: vehicleID)
+    #expect(try repository.liveReminders(forVehicle: vehicleID).map(\.id) == [oil.id],
+            "the car's Restore brings its reminders back")
+    #expect(try repository.deletedReminders().isEmpty)
+}
+
 // MARK: - Purge honours the grace period (both sides of the boundary)
 
 @Test func purgeHonoursGracePeriodAt29And31Days() throws {

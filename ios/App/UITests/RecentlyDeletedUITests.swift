@@ -15,7 +15,12 @@ final class RecentlyDeletedUITests: XCTestCase {
 
     private func launch(args: [String] = []) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase", "-presentScreen", "recentlyDeleted"] + args
+        // A signed-in session is seeded so Home renders the full log layout
+        // (not the guest chrome) when a test pops back to it to count restored
+        // rows - the Keychain outlives `-homeResetDatabase`, so this also makes
+        // the suite order-independent.
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-presentScreen", "recentlyDeleted"] + args
         app.launch()
         return app
     }
@@ -134,14 +139,14 @@ final class RecentlyDeletedUITests: XCTestCase {
     func testEmptyStateRendersWithNoFabricatedRows() {
         let app = launch()
 
-        // No deleted entries is the normal case: the screen says so plainly,
+        // Nothing deleted is the normal case: the screen says so plainly,
         // and renders no rows, no Restore affordances and no Delete-all.
         XCTAssertTrue(anyElement(app, "recentlyDeletedEmptyState").waitForExistence(timeout: 10))
         XCTAssertEqual(restoreButtons(app).count, 0)
         XCTAssertFalse(app.buttons["recentlyDeletedDeleteAllButton"].exists)
         XCTAssertFalse(app.buttons["recentlyDeletedCompareButton"].exists)
         XCTAssertTrue(app.staticTexts[
-            "Deleted entries stay here for 30 days, then are removed permanently."].exists)
+            "Deleted cars and entries stay here for 30 days, then are removed permanently."].exists)
     }
 
     // MARK: - Overwritten by sync (fixture)
@@ -156,5 +161,124 @@ final class RecentlyDeletedUITests: XCTestCase {
         XCTAssertTrue(textContaining(app, "odometer differed").exists)
         // Its own countdown is present too ("Replaced <day> · ... · 28 days left").
         XCTAssertTrue(textContaining(app, "28 days left").exists)
+    }
+
+    // MARK: - RV.98: a deleted car is one row, restored as a group
+
+    /// The RV.98 seed (`-seedRecentlyDeletedVehicle`): a car tombstoned 3 days
+    /// ago with four fills that went down with it at the same stamp, plus an
+    /// expense and a reminder deleted individually BEFORE the car. The screen
+    /// must show ONE car row covering the group ("Volvo V60 and 4 entries", 27
+    /// days left) - the four fills must NOT list beside it with Restores of
+    /// their own (defect 2), which is asserted by the row count, not merely by
+    /// the car row's presence. The individually deleted rows still list as
+    /// their own rows, and restoring the car returns the car AND its entries to
+    /// the Garage and the Log while leaving those two tombstones alone.
+    func testDeletedCarIsOneRowCoveringItsEntriesAndRestoresTheWholeGroup() {
+        let app = launch(args: ["-seedSettingsSignedIn", "-seedRecentlyDeletedVehicle"])
+
+        // The car is a row, with the same countdown every other row carries.
+        XCTAssertTrue(anyElement(app, "recentlyDeletedVehicleRow").waitForExistence(timeout: 10))
+        XCTAssertTrue(textContaining(app, "Volvo V60 and 4 entries").exists,
+                      "the car's row says how many entries its Restore brings back")
+        XCTAssertTrue(textContaining(app, "27 days left").exists)
+        // The group is NOT flooded beside the car: 3 rows total (car + the two
+        // individually deleted ones), never 3 + the car's 4 fills.
+        XCTAssertEqual(restoreButtons(app).count, 3,
+                       "the car's co-tombstoned entries must not list as separate rows")
+        XCTAssertTrue(textContaining(app, "Car wash").exists,
+                      "an entry deleted individually before the car still lists")
+        XCTAssertTrue(textContaining(app, "Oil change").exists,
+                      "a reminder deleted individually before the car still lists")
+
+        // Restore the car (its row is the first Restore): the row leaves this
+        // screen, the individually deleted rows stay.
+        restoreButtons(app).firstMatch.tap()
+        XCTAssertEqual(restoreButtons(app).count, 2,
+                       "restoring the car removes only the car's row")
+        XCTAssertFalse(textContaining(app, "Volvo V60 and 4 entries").exists)
+
+        // The car is back in the Garage and its entries are back in the Log.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+        XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 4,
+                       "the restored car's four entries reappear in the Log")
+        app.buttons["tabbar.garage"].tap()
+        let volvo = app.buttons.matching(identifier: "garageCarRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(volvo.waitForExistence(timeout: 5),
+                      "the restored car is back in the Garage")
+    }
+
+    /// The real delete path, end to end: deleting a car from Vehicle detail
+    /// (not a seed) tombstones it and its eight D1 fills, and Recently deleted
+    /// - reached through Settings - lists the ONE car row. Restore returns the
+    /// car to the Garage and its entries to the Log.
+    func testDeletingACarFromDetailListsItOnRecentlyDeletedAndRestoreReturnsIt() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeCarSwitcher", "-presentScreen", "vehicleDetail"]
+        app.launch()
+
+        // Vehicle detail for the seeded Volvo; delete it through the system
+        // confirmation - the promise is that it moves to Recently deleted.
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 10))
+        let delete = app.buttons["vehicleDetailDeleteButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+        let alert = app.alerts["Delete this car?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+
+        // Deletion dismisses back to Home/Log; the gear opens Settings, whose
+        // "Recently deleted" row is the door to the restored car's new home.
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+        let gear = app.buttons["settingsButton"]
+        XCTAssertTrue(gear.waitForExistence(timeout: 5))
+        gear.tap()
+        let row = app.buttons["settingsRecentlyDeletedRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        var swipes = 0
+        while !row.isHittable, swipes < 4 {
+            app.swipeUp()
+            swipes += 1
+        }
+        row.tap()
+
+        // The deleted car is ONE row with its countdown, covering its eight
+        // fills - never eight entry rows beside a missing car (defect 2).
+        XCTAssertTrue(anyElement(app, "recentlyDeletedVehicleRow").waitForExistence(timeout: 10))
+        XCTAssertTrue(textContaining(app, "Volvo V60 and 8 entries").exists)
+        XCTAssertTrue(textContaining(app, "days left").exists)
+        XCTAssertEqual(restoreButtons(app).count, 1,
+                       "a deleted car's co-tombstoned entries must not flood the list")
+
+        // Restore the whole group: the car leaves Recently deleted...
+        restoreButtons(app).firstMatch.tap()
+        XCTAssertTrue(anyElement(app, "recentlyDeletedEmptyState").waitForExistence(timeout: 5))
+        XCTAssertEqual(restoreButtons(app).count, 0)
+
+        // ...and is back in the Garage with its entries back in the Log.
+        // Recently deleted was pushed from Settings (which the gear opened), so
+        // popping home takes two backs: Recently deleted -> Settings -> Home.
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["settingsRecentlyDeletedRow"].waitForExistence(timeout: 5),
+                      "first back lands on Settings, the screen that opened Recently deleted")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 5))
+        let switcher = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 5), "carSwitcherButton never appeared")
+        switcher.tap()
+        let volvoInSwitcher = app.buttons.matching(identifier: "carSwitcherRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(volvoInSwitcher.waitForExistence(timeout: 5))
+        volvoInSwitcher.tap()
+        XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 8,
+                       "the restored car's eight entries reappear in the Log")
+        app.buttons["tabbar.garage"].tap()
+        let volvo = app.buttons.matching(identifier: "garageCarRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(volvo.waitForExistence(timeout: 5),
+                      "the restored car is back in the Garage")
     }
 }

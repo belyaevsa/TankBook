@@ -230,10 +230,13 @@ private func makeFill(vehicleID: UUID, daysAgo: Int, odometer: Int, litres: Doub
 
 // MARK: - Delete tombstones the car's entries
 
-/// Deleting a car cascades tombstones to its entries (docs/SCHEMA.md soft-delete
-/// principle, SYNC.md S5): nothing is lost silently, and Recently deleted can
-/// restore them (hard rule 8).
-@Test func deletingCarTombstonesEntriesAndRecentlyDeletedRestoresThem() throws {
+/// Deleting a car cascades tombstones to its entries at ONE stamp
+/// (docs/SCHEMA.md soft-delete principle, SYNC.md S5): nothing is lost
+/// silently (hard rule 8). RV.98: the group comes back as a group - the
+/// Recently deleted screen lists ONE car row whose Restore (`restoreVehicle`)
+/// clears the car's tombstone AND the tombstones sharing its stamp, so an
+/// entry can never be live again on a car that is still deleted.
+@Test func deletingCarTombstonesEntriesAndRecentlyDeletedRestoresThemAsAGroup() throws {
     let repo = try makeRepository()
     let vehicle = makeVehicle()
     try repo.upsertVehicle(vehicle)
@@ -247,15 +250,23 @@ private func makeFill(vehicleID: UUID, daysAgo: Int, odometer: Int, litres: Doub
     #expect(try repo.liveVehicles().isEmpty, "the car leaves the garage")
     #expect(try repo.liveFillUps(forVehicle: vehicle.id).isEmpty,
             "the car's entries leave the active stats")
-    let deleted = try repo.deletedEntries()
-    #expect(deleted.count == 2, "both entries are tombstoned, not gone")
-    #expect(Set(deleted.map(\.id)) == [fill1.id, fill2.id])
+    // RV.98: the tombstoned car is now LISTED (it was nowhere before), covering
+    // the entries that came down with it - never as separate rows with Restores
+    // of their own, which would strand them on a deleted vehicle.
+    let deletedCars = try repo.deletedVehicles()
+    #expect(deletedCars.count == 1)
+    #expect(deletedCars.first?.vehicle.id == vehicle.id)
+    #expect(deletedCars.first?.entriesCount == 2,
+            "the car's row says how many entries its Restore brings back")
+    #expect(try repo.deletedEntries().isEmpty,
+            "entries tombstoned with the car are not separate rows")
 
-    // Recently deleted's Restore returns them to the stats exactly (the P1.7
-    // contract).
-    _ = try repo.restoreEntry(id: fill1.id)
-    #expect(try repo.liveFillUps(forVehicle: vehicle.id).count == 1)
-    #expect(try repo.liveFillUps(forVehicle: vehicle.id).first?.id == fill1.id)
+    // Recently deleted's car Restore returns the car AND its entries to live.
+    try repo.restoreVehicle(id: vehicle.id)
+    #expect(try repo.liveVehicles().count == 1, "the car returns to the garage")
+    let live = try repo.liveFillUps(forVehicle: vehicle.id)
+    #expect(Set(live.map(\.id)) == [fill1.id, fill2.id],
+            "the entries return to the Log with the car")
 }
 
 // MARK: - Override permanence (hard rule 13 made executable)

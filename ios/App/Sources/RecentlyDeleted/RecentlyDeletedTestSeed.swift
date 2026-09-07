@@ -5,11 +5,15 @@ import TankbookCore
 /// UI-test seeding for the Recently deleted screen (P1.7), the same pattern as
 /// `HomeTestSeed` and `HomePresentables`.
 ///
-/// The screen's real data is tombstones - `-seedRecentlyDeleted` writes a
-/// vehicle and three entries (a fill, a charge, an expense) tombstoned at
-/// ages that reproduce the artboard's countdowns (27/19/4 days left on the
-/// run date), so the UI tests and screenshots match design/screens/
-/// RecentlyDeleted.dc.html.
+/// The screen's real data is tombstones:
+/// - `-seedRecentlyDeleted` writes a vehicle and three entries (a fill, a
+///   charge, an expense) tombstoned individually at ages that reproduce the
+///   artboard's countdowns (27/19/4 days left on the run date), so the UI
+///   tests and screenshots match design/screens/RecentlyDeleted.dc.html.
+/// - `-seedRecentlyDeletedVehicle` (RV.98) writes a car tombstoned with four
+///   fills at the same stamp (ONE car row, never a flood of fills) plus an
+///   expense and a reminder tombstoned individually BEFORE it (their own rows,
+///   left alone by the car's Restore).
 ///
 /// Everything sync-dependent is a FIXTURE, no real data exists until P4:
 /// - `-forceSyncOverwritten` renders the "Overwritten by sync" section
@@ -27,9 +31,10 @@ enum RecentlyDeletedTestSeed {
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
-        let shouldSeed = arguments.contains("-seedRecentlyDeleted")
+        let vehicleSeed = arguments.contains("-seedRecentlyDeletedVehicle")
+        let entrySeed = arguments.contains("-seedRecentlyDeleted")
         let shouldReset = arguments.contains("-homeResetDatabase")
-        guard shouldSeed || shouldReset else { return }
+        guard vehicleSeed || entrySeed || shouldReset else { return }
 
         if shouldReset {
             AppStore.resetForTestsOncePerLaunch()
@@ -37,10 +42,15 @@ enum RecentlyDeletedTestSeed {
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent (same contract as HomeTestSeed): a run that already
         // seeded - or another suite's seed - is left alone.
-        guard shouldSeed,
+        guard (vehicleSeed || entrySeed),
               (try? repository.liveVehicles())?.isEmpty != false else { return }
 
-        seed(repository)
+        if entrySeed {
+            seed(repository)
+        }
+        if vehicleSeed {
+            seedVehicle(repository)
+        }
 
         if arguments.contains("-forceRemovedElsewhere") {
             // This device's own tombstones are indistinguishable from ones
@@ -117,6 +127,68 @@ enum RecentlyDeletedTestSeed {
             recurrence: Reminder.Recurrence(everyKm: 15_000, everyMonths: 12))
         try? repository.upsertReminder(reminder)
         try? repository.softDeleteReminder(id: reminder.id, at: now.addingTimeInterval(-6 * 86_400))
+    }
+
+    // MARK: - RV.98: a deleted car is one row on Recently deleted
+
+    /// The RV.98 state: a car deleted 3 days ago with four live entries that
+    /// went down with it at the same stamp - so the screen shows ONE car row
+    /// ("Volvo V60 and 4 entries", 27 days left), never the four fills beside
+    /// it with Restores of their own. An expense deleted individually five days
+    /// earlier (its own stamp) and a reminder deleted six days earlier still
+    /// list as their own rows exactly as before - restoring the car restores
+    /// the group and leaves those two tombstones alone.
+    private static func seedVehicle(_ repository: TankbookRepository) {
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_000)
+        try? repository.upsertVehicle(vehicle)
+
+        let nesta = makeStation(repository, name: "Neste")
+        for spec in [
+            HomeTestSeed.FillSpec(daysAgo: 40, odometer: 118_600, litres: 42.1,
+                                  amount: "70.56", price: "1.676", stationID: nesta.id),
+            HomeTestSeed.FillSpec(daysAgo: 30, odometer: 119_400, litres: 41.4,
+                                  amount: "69.14", price: "1.670", stationID: nesta.id),
+            HomeTestSeed.FillSpec(daysAgo: 20, odometer: 120_200, litres: 43.0,
+                                  amount: "71.17", price: "1.655", stationID: nesta.id),
+            HomeTestSeed.FillSpec(daysAgo: 10, odometer: 121_000, litres: 40.6,
+                                  amount: "66.18", price: "1.630", stationID: nesta.id)
+        ] {
+            try? repository.upsertFillUp(HomeTestSeed.makeFill(vehicleID: vehicle.id, spec))
+        }
+
+        // Individually deleted BEFORE the car went: these two keep their own
+        // stamps and must stay their own rows after the car's Restore.
+        let wash = Expense(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now.addingTimeInterval(-6 * 86_400),
+            odometer: nil, money: Money(amount: Decimal(string: "12.00")!,
+                                        currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual,
+            conflict: .none, purchaseGroupId: nil,
+            category: .other("car wash"), title: "Car wash",
+            recurrence: nil, installedInServiceId: nil)
+        try? repository.upsertExpense(wash)
+        try? repository.softDeleteExpense(id: wash.id, at: now.addingTimeInterval(-5 * 86_400))
+
+        let reminder = ReminderLifecycle.makeReminder(
+            vehicleId: vehicle.id, title: "Oil change", category: .oil,
+            dueDate: now.addingTimeInterval(30 * 86_400), dueOdometer: nil,
+            recurrence: nil)
+        try? repository.upsertReminder(reminder)
+        try? repository.softDeleteReminder(id: reminder.id, at: now.addingTimeInterval(-6 * 86_400))
+
+        // The car goes 3 days ago: the four live fills share its stamp and
+        // become the car row's covered group.
+        try? repository.softDeleteVehicle(id: vehicle.id, at: now.addingTimeInterval(-3 * 86_400))
     }
 
     private static func tombstonedChargeIDs(in repository: TankbookRepository) -> [UUID] {

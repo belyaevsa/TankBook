@@ -205,6 +205,59 @@
         }
       }
     },
+    "%@ and %lld entries": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ and 1 entry"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ and %lld entries"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и %lld записи"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и %lld записей"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и %lld запись"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и %lld записей"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%@ in %lld days": {
       "extractionState": "manual",
       "localizations": {
@@ -3902,19 +3955,19 @@
         }
       }
     },
-    "Deleted entries stay here for 30 days, then are removed permanently.": {
+    "Deleted cars and entries stay here for 30 days, then are removed permanently.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Deleted entries stay here for 30 days, then are removed permanently."
+            "value": "Deleted cars and entries stay here for 30 days, then are removed permanently."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Удалённые записи хранятся здесь 30 дней, затем удаляются навсегда."
+            "value": "Удалённые автомобили и записи хранятся здесь 30 дней, затем удаляются навсегда."
           }
         }
       }
@@ -4565,19 +4618,19 @@
         }
       }
     },
-    "Every deleted entry is removed permanently. This can't be undone.": {
+    "Everything deleted here is removed permanently. This can't be undone.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Every deleted entry is removed permanently. This can't be undone."
+            "value": "Everything deleted here is removed permanently. This can't be undone."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Каждая удалённая запись исчезнет навсегда. Это действие нельзя отменить."
+            "value": "Всё удалённое здесь исчезнет навсегда. Это действие нельзя отменить."
           }
         }
       }
@@ -6898,19 +6951,19 @@
         }
       }
     },
-    "No deleted entries": {
+    "Nothing deleted": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "No deleted entries"
+            "value": "Nothing deleted"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Нет удалённых записей"
+            "value": "Ничего не удалено"
           }
         }
       }

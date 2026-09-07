@@ -29,6 +29,33 @@ public struct DeletedEntry: Identifiable {
     }
 }
 
+/// A tombstoned vehicle on the Recently deleted screen (RV.98). Deleting a car
+/// tombstones it and every vehicle-scoped row at one stamp (docs/SCHEMA.md
+/// soft-delete); the whole group is ONE row here - the car with its countdown
+/// and a Restore that brings the car AND the entries that share its stamp back
+/// (`restoreVehicle`). Entries the user deleted individually before the car
+/// went keep their own stamps and list beside it as their own rows.
+///
+/// `entriesCount` is how many co-tombstoned entry rows the row covers - the
+/// count the row displays ("Volvo V60 and 512 entries"). It is derived in the
+/// repository query, never stored (hard rule 2).
+public struct DeletedVehicle: Identifiable {
+    public let vehicle: Vehicle
+    /// The tombstone stamp. `vehicle.deletedAt` is authoritative.
+    public let deletedAt: Date
+    /// Entry rows (fill-ups, charges, services, expenses) tombstoned at the
+    /// same stamp as the vehicle - what its Restore brings back with it.
+    public let entriesCount: Int
+
+    public var id: UUID { vehicle.id }
+
+    public init(vehicle: Vehicle, entriesCount: Int, deletedAt: Date? = nil) {
+        self.vehicle = vehicle
+        self.deletedAt = deletedAt ?? vehicle.deletedAt ?? vehicle.updatedAt
+        self.entriesCount = entriesCount
+    }
+}
+
 /// A tombstoned reminder on the Recently deleted screen (PJ.7). A reminder is
 /// an `Entity`, not an `Entry` - it has no `date`/`money` - so it cannot ride in
 /// `DeletedEntry`; this is the parallel shape the screen renders beside the

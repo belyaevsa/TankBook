@@ -5,11 +5,18 @@ import TankbookCore
 /// A pushed route reached from Settings (docs/SCREENMAP.md).
 ///
 /// This is where hard rule 8 - **nothing lost silently** - is visible: every
-/// tombstone P1.6 wrote lives here with a countdown telling the user how long
-/// they have to change their mind, and a Restore pill that clears it. Restore
-/// routes through the repository's `restoreEntry`, so the entry re-enters the
-/// Log AND the statistics (stats are derived - docs/SCHEMA.md, Recalculation on
-/// edit - so the next recompute sees the live row again).
+/// tombstone lives here with a countdown telling the user how long they have to
+/// change their mind, and a Restore pill that clears it. Restore routes through
+/// the repository's `restoreEntry`, so the entry re-enters the Log AND the
+/// statistics (stats are derived - docs/SCHEMA.md, Recalculation on edit - so
+/// the next recompute sees the live row again).
+///
+/// RV.98: a tombstoned car is listed here too - one row for the whole group
+/// that went down with it (the car and the entries sharing its tombstone
+/// stamp), restored together by `restoreVehicle`. Entries and reminders the
+/// user deleted individually while the car was live keep their own tombstones
+/// and list as their own rows; entries swept up by the car's deletion never
+/// get a Restore of their own, which would strand them on a deleted vehicle.
 ///
 /// Two surfaces are sync-shaped and therefore fixture-driven until P4
 /// (docs/SYNC.md S1/S4: the losing version is kept as the undo log): the
@@ -18,6 +25,7 @@ import TankbookCore
 /// RecentlyDeletedTestSeed.
 struct RecentlyDeletedView: View {
     @Environment(AppToastCenter.self) private var toastCenter
+    @State private var deletedVehicles: [DeletedVehicle] = []
     @State private var deleted: [DeletedEntry] = []
     @State private var deletedReminders: [DeletedReminder] = []
     @State private var vehicles: [UUID: Vehicle] = [:]
@@ -27,7 +35,8 @@ struct RecentlyDeletedView: View {
     @State private var didLoad = false
 
     private var hasAnythingToDelete: Bool {
-        !deleted.isEmpty || !deletedReminders.isEmpty || !fixtures.syncOverwritten.isEmpty
+        !deletedVehicles.isEmpty || !deleted.isEmpty || !deletedReminders.isEmpty
+            || !fixtures.syncOverwritten.isEmpty
     }
 
     var body: some View {
@@ -35,7 +44,8 @@ struct RecentlyDeletedView: View {
             VStack(alignment: .leading, spacing: 14) {
                 intro
 
-                if deleted.isEmpty && deletedReminders.isEmpty && fixtures.syncOverwritten.isEmpty {
+                if deletedVehicles.isEmpty && deleted.isEmpty && deletedReminders.isEmpty
+                    && fixtures.syncOverwritten.isEmpty {
                     emptyState
                 } else {
                     deletedSection
@@ -56,7 +66,7 @@ struct RecentlyDeletedView: View {
             Button("Delete all now", role: .destructive) { performPurgeAll() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Every deleted entry is removed permanently. This can't be undone.")
+            Text("Everything deleted here is removed permanently. This can't be undone.")
         }
     }
 
@@ -64,7 +74,7 @@ struct RecentlyDeletedView: View {
 
     private var intro: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Deleted entries stay here for 30 days, then are removed permanently.")
+            Text("Deleted cars and entries stay here for 30 days, then are removed permanently.")
             Text("Entries here don't count in your statistics.")
         }
         .font(.subheadline)
@@ -73,10 +83,21 @@ struct RecentlyDeletedView: View {
         .accessibilityIdentifier("recentlyDeletedIntro")
     }
 
-    // MARK: - Deleted entries
+    // MARK: - Deleted rows
 
+    /// The screen's one list (P1.7 + PJ.7 + RV.98): a tombstoned car comes
+    /// first - it is the biggest loss and its row covers every entry that went
+    /// down with it - then the individually deleted entries, then the
+    /// individually deleted reminders. Restoring the car restores the whole
+    /// group (`restoreVehicle`); the smaller rows restore one row at a time.
     private var deletedSection: some View {
         VStack(alignment: .leading, spacing: 8) {
+            ForEach(deletedVehicles) { deleted in
+                DeletedVehicleRow(
+                    title: vehicleRowTitle(deleted),
+                    subtitle: countdownSubtitle(deletedAt: deleted.deletedAt, device: nil),
+                    onRestore: { restoreVehicle(deleted.id) })
+            }
             ForEach(deleted) { entry in
                 deletedRow(entry)
             }
@@ -87,6 +108,16 @@ struct RecentlyDeletedView: View {
                     onRestore: { restoreReminder(deleted.id) })
             }
         }
+    }
+
+    /// "Volvo V60" or "Volvo V60 and 512 entries" - the car's name plus how
+    /// many entries its Restore brings back. The count is derived by the
+    /// repository query, never stored (hard rule 2); a car whose entries were
+    /// all deleted individually has nothing to count and shows its name alone.
+    private func vehicleRowTitle(_ deletedVehicle: DeletedVehicle) -> String {
+        let name = deletedVehicle.vehicle.name
+        guard deletedVehicle.entriesCount > 0 else { return name }
+        return String(localized: "\(name) and \(deletedVehicle.entriesCount) entries")
     }
 
     private func deletedRow(_ deletedEntry: DeletedEntry) -> some View {
@@ -197,7 +228,7 @@ struct RecentlyDeletedView: View {
             Image(systemName: "trash.slash")
                 .font(.title3)
                 .foregroundStyle(Theme.Palette.inkSoft)
-            Text("No deleted entries")
+            Text("Nothing deleted")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
             Text("Anything you delete stays here for 30 days, in case you change your mind.")
@@ -320,6 +351,26 @@ struct RecentlyDeletedView: View {
         }
     }
 
+    /// The car rows' Restore (RV.98): routes through `restoreVehicle` - the
+    /// whole-group restore that already exists and is already correct. It
+    /// clears the car's tombstone AND the tombstones that share its stamp (the
+    /// entries that came down with the car) while rows the user deleted
+    /// individually keep theirs; restoring the car one row at a time would
+    /// strand its entries on a tombstoned vehicle (hard rule 8).
+    private func restoreVehicle(_ id: UUID) {
+        do {
+            let repository = try AppStore.repository()
+            try loggedWrite(AppLog.shared, op: .restore, entityType: Vehicle.entityType,
+                            entityId: id, source: .manual) {
+                try repository.restoreVehicle(id: id)
+            }
+            toastCenter.noteEntryChanged()
+            reload()
+        } catch {
+            AppLog.error(operation: "recentlyDeleted.restoreVehicle", category: .ui, error: error)
+        }
+    }
+
     private func performPurgeAll() {
         do {
             let repository = try AppStore.repository()
@@ -346,6 +397,7 @@ struct RecentlyDeletedView: View {
     private func reload() {
         do {
             let repository = try AppStore.repository()
+            deletedVehicles = try repository.deletedVehicles()
             deleted = try repository.deletedEntries()
             deletedReminders = try repository.deletedReminders()
             let allVehicles = try repository.liveVehicles()
@@ -408,5 +460,54 @@ struct DeletedReminderRow: View {
         .formCard()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("recentlyDeletedReminderRow")
+    }
+}
+
+/// A tombstoned car's card on the Recently deleted screen (RV.98) - the same
+/// card as the reminder row (title + countdown + Restore, no new visual
+/// language - there is no separate artboard for a car row, and the reminder
+/// row is the screen's precedent for a non-entry tombstone). The title says
+/// how many entries the car's Restore brings back ("Volvo V60 and 512
+/// entries"), so the user restores the whole group, never an entry that would
+/// be stranded on a deleted car.
+struct DeletedVehicleRow: View {
+    let title: String
+    let subtitle: String
+    let onRestore: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "car.side")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(Theme.Palette.inkSoft.opacity(0.72))
+                .frame(width: 17, height: 17)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .lineLimit(2)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.72))
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 8)
+            Button(action: onRestore) {
+                Text("Restore")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Theme.Palette.action)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Capsule().fill(.clear))
+                    .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("recentlyDeletedRestoreButton")
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 13)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("recentlyDeletedVehicleRow")
     }
 }

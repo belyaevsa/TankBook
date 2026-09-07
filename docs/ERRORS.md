@@ -189,10 +189,11 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | A tombstoned entry (within the 30-day window) | Row with what the entry was ("Neste · 51.1 L · 84.77 €"), when it was deleted, the days left ("27 days left" – plural rule, EN + RU), and Restore | Restore (tombstone cleared; entry back in the Log and the stats) · let it expire |
+| A tombstoned car (RV.98) | One car row naming the car and how many entries its Restore brings back ("Volvo V60 and 512 entries"), when it was deleted, the days left, and Restore - NEVER one row per entry: the entries that share the car's tombstone stamp belong under its row, and a Restore of their own would strand them on a deleted vehicle | Restore (the car and the entries that went down with it return to the Garage and the Log; entries the user deleted individually before the car stay tombstoned) · let it expire |
 | Entry deleted on another device (S1/S4) | Same row, plus "· removed on iPad" **(device attribution is [v2]** – the sync record's author attribution arrives with shared garages (`SCHEMA.md` → Identifiers), never in v1) | Restore · let it expire |
 | Entry lost to a sync merge (S1/S4) | "Overwritten by sync" section: "Shell · your version from iPhone / Replaced Aug 21 · odometer differed · 28 days left" + Compare | Compare (presentational until the merge log lands, P4) · leave it |
 | "Delete all now" tapped | System confirmation (the one place red lives) | Delete all now (purges every tombstone immediately, regardless of age) · cancel |
-| Nothing deleted (the normal case) | Reassuring empty state; no fabricated rows | Nothing to do – this screen existing at all is the reassurance |
+| Nothing deleted (the normal case) | Reassuring empty state; no fabricated rows (cars, entries and reminders are all absent) | Nothing to do – this screen existing at all is the reassurance |
 
 ### Trends
 | Condition | Shows | Next step |
