@@ -92,7 +92,3 @@ diagnostics/receipt-field-report.txt
 diagnostics/receipt-ocr-lines.txt
 diagnostics/pump-ocr-dump.txt
 
-# RV.113: the Drivvo example export is anonymised (driver names hashed) but is
-# NOT committed until the product owner has validated it (2026-09-07). Remove
-# this line in the same change that commits the fixture.
-Spike/ImportFixtures/drivvo/

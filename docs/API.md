@@ -212,6 +212,23 @@ endpoint, but it is an idempotent queue write and the only way the server learns
 actually needs - the backfill horizon is the demand, not a fixed window.
 
 
+### `GET /reference/station-brands` **[planned, RV.115]**
+
+The station **brand** vocabulary, so four spellings of one chain group as one. Same contract as
+`GET /catalog`: **public** (no auth - a signed-out user importing a file still needs it), ETag +
+`Cache-Control`, a versioned pack the client replaces wholesale, `since_version` for a delta. It is
+reference data, not a domain query, so hard rule 9 holds and no new exception is needed.
+
+**Brands, never individual forecourts.** A global list of every petrol station is a maintenance and
+privacy problem; a list of brands with their alias spellings (`Газпром` / `Газпромнефть` /
+`Gazpromneft` / `G-Drive`) is small, stable, and enough to answer "what do I spend at this chain".
+Individual stations stay per-account `Station` entities that sync with the user's own data.
+
+A matched brand is a **default the user can change** (hard rule 13), and a name the user typed or
+corrected is theirs permanently - no later pack may rewrite it, the same rule `SYNC.md` states for
+the vehicle catalog. A name matching no brand is a first-class state: the user's own station, no
+brand, not an error.
+
 ### `GET /reference/fuel-price-bands`
 
 Coarse plausible price-per-litre ranges, used client-side to decide which operand on a

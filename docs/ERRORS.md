@@ -328,6 +328,17 @@ chrome below the list - which pushed the dead-end card's action below the fold i
 20-30% longer. `.transportUnreachable` renders no card, so the standing strip is its surface and
 stays.
 
+**An import says what it is NOT bringing in, at the review gate** (RV.116, planned). Every foreign
+format carries columns Tankbook has no home for - Drivvo's `Водитель` (driver), payment method,
+discount and second/third-fuel blocks; MFM has its own set. The parse currently reads what it
+understands and the rest evaporates silently, which is not hard rule 8 (nothing is deleted, and the
+rows that do land are complete) but is a **completeness promise**: a migration that quietly narrows
+the data is one the user cannot trust. The notice names the unsupported columns **and how many rows
+carried a value in each**, because the count is what tells the user whether it matters to them. It
+appears at the review gate, before anything is written (F6a), is never a blocking dialog and never
+an error, and the unsupported list is declared per format by `GET /import/formats` so a new importer
+cannot forget it and the copy does not rot in the client.
+
 **The parse-error card is scroll content, never bottom chrome** (RV.84). The card used to live in the
 `safeAreaInset` bottom bar - the one region that does not scroll - and RU's longer text made the 422
 card (the tallest, ~150pt with its help link) shrink the ScrollView's budget until RU overflowed by
