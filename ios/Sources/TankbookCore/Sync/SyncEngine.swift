@@ -266,7 +266,7 @@ public struct SyncEngine {
         guard let local = try repository.localSyncRecord(id: remote.id, entityType: remote.entityType) else {
             let touched = try repository.applyRemoteRecord(remote.asRecord(), scn: remote.scn)
             payloadMemory.recordSynced(id: remote.id, payload: remote.payload)
-            try resurrectReferencedVehicles(for: remote.entityType, touched: touched)
+            try resurrectReferencedVehicles(for: remote.entityType, remoteDeleted: remote.deleted, touched: touched)
             return touched
         }
 
@@ -290,7 +290,7 @@ public struct SyncEngine {
                 try repository.recordSyncOverwrite(recordId: remote.id, losingRecord: loser,
                                                    deviceName: remote.originDeviceName)
             }
-            try resurrectReferencedVehicles(for: remote.entityType, touched: touched)
+            try resurrectReferencedVehicles(for: remote.entityType, remoteDeleted: remote.deleted, touched: touched)
             return touched
         case .local:
             // RV.14: a live `Vehicle` whose field-level merge equaled the local
@@ -324,9 +324,13 @@ public struct SyncEngine {
     }
 
     /// S5: an entry pulled from another device references a vehicle this device
-    /// deleted - resurrect it as archived (docs/SYNC.md S5).
-    private func resurrectReferencedVehicles(for entityType: String, touched: Set<UUID>) throws {
-        guard entityType != Vehicle.entityType else { return }
+    /// deleted - resurrect it as archived (docs/SYNC.md S5). S5a: a record that
+    /// is ITSELF a tombstone (the deletion cascade's own rows) must not
+    /// resurrect the car it was tombstoned with - `remoteDeleted` skips it, so
+    /// the cascade cannot undo the vehicle tombstone it follows (docs/SYNC.md
+    /// S5a).
+    private func resurrectReferencedVehicles(for entityType: String, remoteDeleted: Bool, touched: Set<UUID>) throws {
+        guard entityType != Vehicle.entityType, !remoteDeleted else { return }
         for vehicleId in touched {
             try repository.resurrectArchivedIfTombstoned(vehicleId: vehicleId)
         }

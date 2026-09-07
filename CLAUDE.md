@@ -198,7 +198,7 @@ No open architecture questions remain – the decided list above plus GRDB (pers
 - No git worktrees; work in the checkout.
 - **Commit after each agent task completes and is independently verified** (standing instruction, 2026-08-23). One task = one commit, message naming the task id. **Verify first, commit second**: the baseline gate (build + `swiftlint lint` exit 0) and the task's own checks must pass in *your* hands, not the agent's report – a commit is the record that verification happened. Never commit while an agent is mid-run: the tree contains half-written files, and the point of the commit is a known-good state. Agents themselves still never commit.
 - **The full UI suite runs at PHASE completion, not after every task** (standing instruction,
-  2026-08-29). Per task: `swift build` and `swiftlint` continuously, all 1554 unit tests (~52 s, never
+  2026-08-29). Per task: `swift build` and `swiftlint` continuously, all 1588 unit tests (~52 s, never
   subsetted), and only the UI suites the task touched via `-only-testing:`. Measured cost of the old
   habit: five full runs in one day, ~2h15m, one genuine defect, two false reds from contention.
   A brief must NAME the suites it expects to run. Check the count is non-zero - a `--filter` matching

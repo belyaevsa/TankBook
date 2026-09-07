@@ -367,14 +367,15 @@ Device A deletes the sold Volvo entirely; device B, offline, logs one last fill-
 - **Transport:** B's new fill-up references a tombstoned vehicle → the vehicle resurrects as **archived**, entry attached.
 - **Screens:** quiet notice card in the Garage: "Volvo V60 came back from another device with 1 new entry – it stays archived. Delete again?" One tap re-deletes; nothing is lost silently.
 
-### S5a · The LAST car deleted - does the empty garage survive a pull? (RV.100, answered 2026-09-07)
+### S5a · The LAST car deleted - does the empty garage survive a pull? (RV.100, answered 2026-09-07; fixed by RV.101, 2026-09-07)
 
 Device A deletes its only car (typed confirmation, RV.98/RV.99); the tombstones
 (vehicle + every vehicle-scoped entry and reminder, one stamp) push like any
 other change. Device B pulls them. The product owner's question: must not B
 resurrect the car, or keep rendering it after it is gone? **Established from
 `SyncEngine.applyPull` + `Repository+Sync.apply`, verified by a deterministic
-L1 scenario - not guessed:**
+L1 scenario - not guessed. The defect analysis below is the pre-RV.101
+behaviour; the fix lands at the end of this section:**
 
 - **The tombstones push**, ordered by `fetchDirtyRows`: it iterates the synced
   tables in registry order (**`vehicle` first**), then stable-sorts by
@@ -411,13 +412,22 @@ L1 scenario - not guessed:**
   RV.100 the second device kept drawing the tombstoned car for the identical
   bare-return reason as the deleting device - one defect, one fix, every device.
 
-**Registered, not fixed here (RV.100 deliberately does not add sync work):** S5's
-resurrect does not distinguish "device B logged a NEW live entry to the deleted
-car" (the scenario it exists for) from "the deletion cascade's own tombstones".
-The narrow fix is to skip resurrection for pulled records that are themselves
-tombstoned (`remote.deleted == true`) - the cascade must not resurrect its own
-victim. That is a sync-layer change with its own scenario and tests, tracked as
-its own row, not folded into a Home/Trends rendering fix.
+**Registered, fixed by RV.101 (2026-09-07), S5 kept intact:** S5's resurrect does
+not distinguish "device B logged a NEW live entry to the deleted car" (the
+scenario it exists for) from "the deletion cascade's own tombstones". The fix
+is in `resurrectReferencedVehicles`' guard, where the S5 decision already
+lived: resurrection is skipped for a pulled record that is **itself tombstoned**
+(`remote.deleted == true`) - the cascade must not resurrect its own victim. The
+push stream, the re-delete path and the merge are untouched, so S5 still
+resurrects a **live** entry's car as archived with its "came back from another
+device" banner. After the fix B's vehicle tombstone applies cleanly and the
+co-tombstoned rows that follow do not undo it: the car stays deleted and
+**not dirty** on B (a dirty tombstone would still echo - `deletedAt` alone is
+never the assertion), B pushes nothing back, and A never pulls its own deleted
+car. Covered by the S5a L1/L2 tests in `SyncScenarioTests`
+(`s5aDeletionCascadeDoesNotResurrectTheCarItJustTombstoned`,
+`s5aLiveEntryStillResurrectsACarDeletedOnAnotherDevice`, and
+`s5aFullRoundTripACarDeletedOnOneDeviceStaysGoneOnEveryDevice`).
 
 ### S6 · Transport conflict on push (the invisible one)
 Device pushes an edit with a stale `baseScn` because another device pushed first.

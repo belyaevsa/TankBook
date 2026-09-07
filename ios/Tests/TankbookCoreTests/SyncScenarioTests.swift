@@ -462,6 +462,158 @@ private func decodeFillUp(_ payload: JSONValue) throws -> FillUp {
     #expect(try repo.liveFillUps(forVehicle: vehicleId).count == 1, "the entry is attached")
 }
 
+// MARK: - S5a (RV.101)
+
+/// S5a: the deletion cascade is itself a stream of tombstones. A co-tombstoned
+/// entry that arrives after the vehicle tombstone must NOT resurrect the car it
+/// was deleted with - `deletedAt` alone is not the assertion, because a dirty
+/// tombstone still echoes. The row must be tombstoned AND not dirty
+/// (docs/SYNC.md S5a).
+@Test func s5aDeletionCascadeDoesNotResurrectTheCarItJustTombstoned() async throws {
+    let repo = try makeSyncRepository()
+    let vehicleId = UUID.v7()
+    try repo.upsertVehicle(makeSyncVehicle(id: vehicleId), syncState: .synced(scn: 1))
+
+    // Device B holds one fill the cascade will tombstone (exercises the merge
+    // `.remote` path) and one it has never seen (exercises the local==nil path).
+    let knownId = UUID.v7()
+    try repo.upsertFillUp(makeSyncFillUp(id: knownId, vehicleId: vehicleId, odometer: 121_000),
+                          syncState: .synced(scn: 2))
+    let unknownId = UUID.v7()
+
+    // Device A deleted the car: every tombstone shares the one stamp, so the
+    // vehicle tombstone pushes first and its cascade follows.
+    let stamp = t0.addingTimeInterval(86_400)
+    var tombVehicle = makeSyncVehicle(id: vehicleId)
+    tombVehicle.updatedAt = stamp
+    tombVehicle.deletedAt = stamp
+    var tombKnown = makeSyncFillUp(id: knownId, vehicleId: vehicleId, odometer: 121_000)
+    tombKnown.updatedAt = stamp
+    tombKnown.deletedAt = stamp
+    var tombUnknown = makeSyncFillUp(id: unknownId, vehicleId: vehicleId, odometer: 122_000)
+    tombUnknown.updatedAt = stamp
+    tombUnknown.deletedAt = stamp
+
+    let transport = SyncTransportDouble()
+    transport.enqueuePull(SyncPullResponse(
+        records: [
+            makePullRecord(tombVehicle, scn: 3),
+            makePullRecord(tombKnown, scn: 4),
+            makePullRecord(tombUnknown, scn: 5)
+        ], nextSince: 5, more: false, schemaPolicy: policy))
+
+    let engine = makeSyncEngine(repository: repo, transport: transport)
+    let outcome = await engine.synchronize()
+
+    let vehicle = try repo.vehicle(id: vehicleId)
+    #expect(vehicle?.deletedAt != nil,
+            "the vehicle stays tombstoned - the cascade must not resurrect its own victim (S5a)")
+    let vehicleLocal = try repo.localSyncRecord(id: vehicleId, entityType: Vehicle.entityType)
+    #expect(vehicleLocal?.syncState != .dirty,
+            "a tombstoned vehicle that is NOT dirty cannot echo back to the server")
+    #expect(vehicle?.archived == false, "it never became the S5 'came back' archive state")
+    #expect(try repo.liveFillUps(forVehicle: vehicleId).isEmpty, "the cascade entries stay tombstoned")
+    #expect(try repo.fetchDirtyRows().isEmpty, "nothing is queued - the resurrection is not pushed back")
+    #expect(outcome.pushed == 0, "the push half has no work: the car stays gone")
+}
+
+/// S5 must keep working: a NEW, LIVE entry arriving for a car this device
+/// deleted still resurrects it as archived, still marks it dirty (so it pushes
+/// and every device sees the Garage banner), and still attaches the entry
+/// (docs/SYNC.md S5). Distinguishing fixture: the delete has already reached
+/// the server, so the vehicle is tombstoned but NOT dirty before the entry
+/// arrives - the dirty flag the test asserts is the resurrection's own.
+@Test func s5aLiveEntryStillResurrectsACarDeletedOnAnotherDevice() async throws {
+    let repo = try makeSyncRepository()
+    let vehicleId = UUID.v7()
+    try repo.upsertVehicle(makeSyncVehicle(id: vehicleId), syncState: .synced(scn: 1))
+
+    // Device A deleted the car; this device already pulled AND pushed that
+    // tombstone, so the vehicle is tombstoned and synced.
+    try repo.softDeleteVehicle(id: vehicleId)
+    _ = await makeSyncEngine(repository: repo, transport: SyncTransportDouble()).synchronize()
+    var vehicleLocal = try repo.localSyncRecord(id: vehicleId, entityType: Vehicle.entityType)
+    #expect(vehicleLocal?.record.deleted == true, "the vehicle is tombstoned on this device")
+    #expect(vehicleLocal?.syncState != .dirty, "the delete already reached the server")
+
+    // Device B, offline before the delete, logged one last LIVE fill-up. The
+    // pull applies it, but the push half is offline (S7), so the resurrected
+    // car's own dirty flag must SURVIVE the cycle - it is the queue entry that
+    // pushes the archived car (and the banner) to every device once online.
+    let fill = makeSyncFillUp(id: UUID.v7(), vehicleId: vehicleId,
+                              date: t0.addingTimeInterval(86_400), odometer: 121_000)
+    let transport = SyncTransportDouble()
+    transport.enqueuePull(SyncPullResponse(
+        records: [makePullRecord(fill, scn: 2)], nextSince: 2, more: false, schemaPolicy: policy))
+    transport.enqueuePushError(.offline)
+
+    let outcome = await makeSyncEngine(repository: repo, transport: transport).synchronize()
+    #expect(outcome.offline, "the pull applied and the push failed - the fixture that shows the dirty flag")
+
+    let vehicle = try repo.vehicle(id: vehicleId)
+    #expect(vehicle?.deletedAt == nil, "the vehicle resurrects (S5)")
+    #expect(vehicle?.archived == true, "...as ARCHIVED, never active")
+    vehicleLocal = try repo.localSyncRecord(id: vehicleId, entityType: Vehicle.entityType)
+    #expect(vehicleLocal?.syncState == .dirty,
+            "the resurrection is a new local write - it must stay queued and push once online")
+    #expect(try repo.liveFillUps(forVehicle: vehicleId).count == 1, "the live entry is attached")
+}
+
+/// S5a round trip (L2/L1): device A deletes its last car, device B pulls the
+/// vehicle tombstone AND its cascade in push order, the car stays gone on B,
+/// B pushes nothing back, and A never gets it back. The server is the push
+/// order itself: B's pull is built from what A actually pushed.
+@Test func s5aFullRoundTripACarDeletedOnOneDeviceStaysGoneOnEveryDevice() async throws {
+    // Both devices hold the same car and fill, synced.
+    let vehicleId = UUID.v7()
+    let fillId = UUID.v7()
+    let repoA = try makeSyncRepository()
+    let repoB = try makeSyncRepository()
+    for repo in [repoA, repoB] {
+        try repo.upsertVehicle(makeSyncVehicle(id: vehicleId), syncState: .synced(scn: 1))
+        try repo.upsertFillUp(makeSyncFillUp(id: fillId, vehicleId: vehicleId, odometer: 121_000),
+                              syncState: .synced(scn: 2))
+    }
+
+    // A deletes its last car and syncs: the vehicle tombstone pushes first,
+    // the co-tombstoned fill after it (one stamp, registry order).
+    try repoA.softDeleteVehicle(id: vehicleId)
+    let transportA = SyncTransportDouble()
+    let outcomeA = await makeSyncEngine(repository: repoA, transport: transportA).synchronize()
+    let pushes = transportA.recordedPushBatches.flatMap { $0 }
+    #expect(outcomeA.pushed == 2, "the vehicle tombstone and its cascade push")
+    #expect(pushes.count == 2)
+    #expect(pushes.first?.entityType == Vehicle.entityType, "the vehicle tombstone reaches the server first")
+    #expect(pushes.allSatisfy { $0.deleted }, "both pushed changes are tombstones")
+
+    // The server stores them in push order; B pulls exactly that stream.
+    let records = pushes.enumerated().map { index, change in
+        SyncPullRecord(id: change.id, entityType: change.entityType,
+                       schemaVersion: change.schemaVersion,
+                       scn: Int64(10 + index), payload: change.payload,
+                       clientUpdatedAt: change.clientUpdatedAt, deleted: change.deleted,
+                       originDeviceName: "device A")
+    }
+    let transportB = SyncTransportDouble()
+    transportB.enqueuePull(SyncPullResponse(records: records, nextSince: 12,
+                                            more: false, schemaPolicy: policy))
+    let outcomeB = await makeSyncEngine(repository: repoB, transport: transportB).synchronize()
+
+    // The car stays gone on B, and B does not push the deletion back.
+    let vehicleB = try repoB.vehicle(id: vehicleId)
+    #expect(vehicleB?.deletedAt != nil, "the vehicle stays tombstoned on B")
+    #expect(try repoB.localSyncRecord(id: vehicleId, entityType: Vehicle.entityType)?.syncState != .dirty,
+            "B does not re-dirty the tombstone")
+    #expect(try repoB.liveFillUps(forVehicle: vehicleId).isEmpty, "the cascade entries stay tombstoned on B")
+    #expect(outcomeB.pushed == 0 && transportB.recordedPushBatches.isEmpty,
+            "B pushes nothing back - no newer record can overwrite A's tombstone")
+
+    // A syncs again; the server has nothing new, so the car never comes back.
+    _ = await makeSyncEngine(repository: repoA, transport: transportA).synchronize()
+    #expect(try repoA.liveVehicles().isEmpty, "the empty garage survives on A")
+    #expect(try repoA.vehicle(id: vehicleId)?.deletedAt != nil, "A never pulls its own deleted car back")
+}
+
 // MARK: - S8
 
 @Test func s8MergeNeverRecomputesAMoneySnapshot() throws {
