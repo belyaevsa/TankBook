@@ -42,7 +42,7 @@ struct CorpusCompressionTests {
     /// a shrinking corpus means the compression step dropped an image. `hits`
     /// is a floor, not a measurement: it may only rise when a run measures a
     /// higher figure, so accuracy can improve but never silently regress.
-    private static let recordedReceipts = (hits: 189, total: 235)
+    private static let recordedReceipts = (hits: 189, total: 240)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {
