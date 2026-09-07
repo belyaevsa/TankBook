@@ -8,6 +8,43 @@ runs to **RV.100**, and **six rows are open: RV.98, RV.99, RV.100 (the car-delet
 are WRITTEN and ready to dispatch), RV.82, RV.91, RV.92**. Read this first, then `CLAUDE.md`, then
 `docs/TASKS.md`.*
 
+## PAUSED MID-ROW: RV.104's work is in the working tree, UNCOMMITTED (2026-09-07 11:37)
+
+**Read this before running anything.** Development was paused at the product owner's request while
+`RV.104` (accept a "Needs a look" flag) was in its final verification step. The agent was stopped
+cleanly - it had **finished writing source** and was about to launch the UI suite - so the files are
+complete, not truncated. `cd ios && swift build` is **0** on the tree as left.
+
+**What is uncommitted** (16 files; `git status` to confirm):
+
+- Core: `Domain/Entities.swift`, `Domain/Enums.swift`, `Domain/PayloadCodable.swift`,
+  `Validation/TimelineValidator.swift`, `Persistence/Migrations.swift`, `Persistence/Records.swift`,
+  `Persistence/Repository+Sync.swift`, **new** `Persistence/Repository+FlagAcceptance.swift`
+- App: `EditEntry/EditEntryFormState.swift`, `EditEntry/EditEntryView.swift`,
+  `Settings/FlaggedEntriesView.swift`, `Localizable.xcstrings`
+- Tests: **new** `Tests/TankbookCoreTests/FlagAcceptanceTests.swift`, `PersistenceTests.swift`,
+  `App/UITests/FlaggedEntriesUITests.swift`
+
+**It carries a DATABASE MIGRATION** (`Migrations.swift`), so this is not a diff to discard casually -
+read what it adds before deciding anything.
+
+**To resume, in this order:**
+
+1. `cd ios && swift build` and `swift test` - report the count against **1595 / 178 suites** (the
+   count at `dc30050`, the last commit).
+2. `swiftlint lint` and `swift run --package-path ios localization-gate`, **both from the repo root**.
+3. `xcodebuild ... -only-testing:TankbookUITests/FlaggedEntriesUITests test` - the step the agent
+   never reached.
+4. Release build (it touches a DEBUG seed seam).
+5. **The assertion the whole row turns on** (`agents/briefs/RV.104.md`): an accepted entry must
+   **survive a re-validation** - `TimelineValidator.validate` run again must not bring the flag back.
+   Verify that test exists and genuinely fails without the fix; the brief's first vacuous trap is a
+   UI-only hide that the next sync undoes.
+6. Only then commit, staging **explicit paths**.
+
+**If the work is judged unfinished, `git checkout` the 16 paths and re-dispatch the brief** - it is
+written and unchanged at `agents/briefs/RV.104.md`. Do not half-adopt it.
+
 ## What shipped overnight 2026-09-06/07
 
 `RV.97` (the sync-push livelock - it was the most urgent row and is now closed), then the five-row
