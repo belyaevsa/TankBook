@@ -75,7 +75,13 @@ extension ManualFillUpFormState {
 
         let validations = TimelineValidator.validate(entries: otherEntries + [updated],
                                                      vehicle: vehicle)
-        updated.conflict = validations.first { $0.entryID == updated.id }?.conflict ?? .none
+        let validation = validations.first { $0.entryID == updated.id }
+        updated.conflict = validation?.conflict ?? .none
+        // RV.104: the acceptance the validator keeps (nil once the accepted
+        // facts are edited or the timeline heals) rides the saved entry - a
+        // save that edits only the note must not silently drop the acceptance
+        // and re-flag a still-accepted entry.
+        updated.flagAcceptance = validation?.acceptance
         return updated
     }
 

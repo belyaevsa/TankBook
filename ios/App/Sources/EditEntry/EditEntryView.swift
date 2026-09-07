@@ -28,7 +28,7 @@ struct EditEntryView: View {
     /// default vehicle (placeholder links, `-presentScreen editEntry`).
     let entryID: UUID?
 
-    @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppToastCenter.self) var toastCenter
     // RV.66: `carSelection` (and the form/support state below) is internal, not
     // private, so the entry-resolution extension in
     // `EditEntryView+EntryResolution.swift` - split out to keep this file under
@@ -86,10 +86,20 @@ struct EditEntryView: View {
             if loadFailed {
                 EditEntryRows.entryNotFound
             } else if let currentEntry, let vehicle {
-                if let fillUp {
-                    fillUpContent(fillUp)
-                } else {
-                    nonFillContent(currentEntry, vehicle: vehicle)
+                VStack(spacing: 0) {
+                    // RV.104: the acceptance stays VISIBLE and reversible here
+                    // (hard rule 8 - never a silent hole in the data). The
+                    // banner shows while the opened entry carries an active
+                    // acceptance; Undo clears it and the timeline validator
+                    // re-derives the flag from the entries alone.
+                    if let acceptance = currentEntry.flagAcceptance {
+                        acceptedBanner(acceptance)
+                    }
+                    if let fillUp {
+                        fillUpContent(fillUp)
+                    } else {
+                        nonFillContent(currentEntry, vehicle: vehicle)
+                    }
                 }
             } else {
                 Color.clear
@@ -304,21 +314,29 @@ struct EditEntryView: View {
             // 13: the user decided; the amber badge surfaces it later).
             let validations = TimelineValidator.validate(entries: otherEntries + [updated],
                                                          vehicle: vehicle)
-            updated.conflict = validations.first { $0.entryID == updated.id }?.conflict ?? .none
+            let validation = validations.first { $0.entryID == updated.id }
+            updated.conflict = validation?.conflict ?? .none
+            // RV.104: the validator's acceptance verdict (kept only while it
+            // suppresses a real flag) rides the typed copy, so editing a
+            // non-fact field cannot resurrect a flag an acceptance holds down.
+            updated.flagAcceptance = validation?.acceptance
 
             switch updated {
             case var charge as ChargeSession:
                 charge.provider = nonFillForm.provider.isEmpty ? nil : nonFillForm.provider
                 if let kWh = Double(nonFillForm.energyKWh) { charge.energyKWh = kWh }
                 charge.conflict = updated.conflict
+                charge.flagAcceptance = updated.flagAcceptance
                 try repository.upsertChargeSession(charge)
             case var service as ServiceRecord:
                 service.vendor = nonFillForm.vendor.isEmpty ? nil : nonFillForm.vendor
                 service.conflict = updated.conflict
+                service.flagAcceptance = updated.flagAcceptance
                 try repository.upsertServiceRecord(service)
             case var expense as Expense:
                 expense.title = nonFillForm.title
                 expense.conflict = updated.conflict
+                expense.flagAcceptance = updated.flagAcceptance
                 try repository.upsertExpense(expense)
             default:
                 break

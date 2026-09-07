@@ -165,8 +165,24 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     let repo = TankbookRepository(database: database)
     let vehicle = makeVehicle()
     try repo.upsertVehicle(vehicle, syncState: .synced(scn: 5))
-    let fillUp = makeFillUp(vehicleId: vehicle.id)
-    try repo.upsertFillUp(fillUp)   // dirty: queued for the next push
+
+    // Seed the fillUp in RAW SQL, not `repo.upsertFillUp`: the current
+    // `FillUpRow.encode` writes the v9 `flagAcceptance` column (RV.104), which a
+    // v5 table does not have yet - the same forward-seeding rule the v2
+    // `fiscalIdentity` test above follows. The row stays dirty (the syncState
+    // default) so the post-migration queue assertion is meaningful.
+    let fillUpID = UUID.v7()
+    let time = timestamp.timeIntervalSince1970
+    try database.write { db in
+        try db.execute(sql: """
+            INSERT INTO fillUp (id, createdAt, updatedAt, vehicleId, date, provenance,
+                conflict, crossCheck, volumeL, fuelKind, isFull)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            arguments: [fillUpID.uuidString, time, time, vehicle.id.uuidString, time,
+                        #"{"tag":"manual"}"#, #"{"tag":"none"}"#,
+                        #"{"tag":"verified"}"#, 42.3, "petrol95", true])
+    }
 
     try database.migrator.migrate(database.writer)   // v6 applies over the seed
 

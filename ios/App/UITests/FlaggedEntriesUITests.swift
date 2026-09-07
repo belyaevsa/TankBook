@@ -149,6 +149,58 @@ final class FlaggedEntriesUITests: XCTestCase {
                         "this year's flagged row must render no year, got '\(withoutYear)'")
     }
 
+    // MARK: - RV.104 accepting a flagged entry
+
+    /// The RV.104 path: a flagged entry from years back can be a gap nobody
+    /// remembers - no fix can heal it without inventing history, and before
+    /// this row the ONLY way to clear its flag was to falsify the odometer or
+    /// date. Accept records the user's deliberate per-entry judgement and
+    /// clears the derived flag; the count (derived, hard rule 2) drops by
+    /// exactly the accepted row, reaches ZERO when the last one is accepted -
+    /// the state the owner could not reach before - and Settings' own copy of
+    /// the count goes with it. The specific accepted row is asserted gone, not
+    /// merely the count falling (a vacuous-trap named in the row).
+    func testAcceptingFlaggedEntriesDropsTheCountAndReachesZero() {
+        let app = openFlaggedList()
+        waitForFlaggedRowCount(2, in: app)
+
+        let subtitles = app.staticTexts.matching(identifier: "flaggedEntrySubtitle")
+        let firstSubtitle = subtitles.element(boundBy: 0).label
+
+        let acceptButtons = app.buttons.matching(identifier: "flagAcceptButton")
+        XCTAssertEqual(acceptButtons.count, 2,
+                       "each flagged row must carry its own Accept affordance")
+        acceptButtons.element(boundBy: 0).tap()
+        let alert = app.alerts["Accept this entry?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "the Accept affordance must ask before it acts (per entry, deliberate)")
+        alert.buttons["Accept"].tap()
+
+        waitForFlaggedRowCount(1, in: app)
+        XCTAssertFalse(app.staticTexts.matching(NSPredicate(format: "label == %@", firstSubtitle))
+            .firstMatch.exists,
+            "the ACCEPTED row must be the one gone - a bare count fall could be the wrong entry")
+
+        app.buttons.matching(identifier: "flagAcceptButton").element(boundBy: 0).tap()
+        let lastAlert = app.alerts["Accept this entry?"]
+        XCTAssertTrue(lastAlert.waitForExistence(timeout: 5))
+        lastAlert.buttons["Accept"].tap()
+
+        waitForFlaggedRowCount(0, in: app)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "flaggedEntriesEmptyState").firstMatch
+            .waitForExistence(timeout: 10),
+            "accepting the last flagged entry must reach the empty state - the count is zero")
+
+        // Settings' copy of the count is derived from the same rows: the row is
+        // gone when we land back on Settings (it renders only while the count
+        // is non-zero).
+        app.navigationBars.buttons.firstMatch.tap()
+        let settingsRow = app.buttons["settingsFlaggedRow"]
+        let gone = NSPredicate { _, _ in !settingsRow.exists }
+        wait(for: [expectation(for: gone, evaluatedWith: settingsRow)], timeout: 10)
+    }
+
     // MARK: - Helpers
 
     /// The first regex capture group in `text` (the whole match when the

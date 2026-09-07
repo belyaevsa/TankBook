@@ -158,6 +158,53 @@ public enum ConflictState: Codable, Sendable, Equatable, Hashable {
     }
 }
 
+/// A user's deliberate "this entry is fine, stop asking" for a timeline flag
+/// (RV.104, docs/SCHEMA.md -> Validation -> Acceptance). The validator takes
+/// this as INPUT - it never stores a verdict for the user to overwrite (hard
+/// rule 2); it stores the acceptance next to the derived `conflict`, and the
+/// flag re-derives around it on every re-validation.
+///
+/// **Keying rule:** an acceptance covers exactly the facts it was recorded
+/// against - the entry's odometer and date, the two fields the `.order`/`.pace`
+/// checks are computed from. Change either and the acceptance no longer covers:
+/// the validator may flag the entry again (an accepted 2019 gap must not keep
+/// covering an entry whose odometer the user rewrites in 2027). The entry id is
+/// implicit - the acceptance rides ON the entry it belongs to, so it can never
+/// drift onto another record. The accepted `kind` keeps the decision readable
+/// and precise: accepting an `.order` flag does not silence a later `.pace`
+/// flag for the same facts.
+///
+/// `reason` is optional and deliberately carried (the `AnomalyDismissal`
+/// precedent): a year later "why did I accept this?" should be answerable from
+/// the row, not from memory. It syncs as part of the entry's payload - a domain
+/// fact, never a server change (hard rule 9).
+public struct FlagAcceptance: Codable, Sendable, Equatable, Hashable {
+    public let kind: ConflictState.ConflictKind
+    public let acceptedOdometer: Int?
+    public let acceptedDate: Date
+    public let reason: String?
+    public let acceptedAt: Date
+
+    public init(kind: ConflictState.ConflictKind,
+                acceptedOdometer: Int?,
+                acceptedDate: Date,
+                reason: String?,
+                acceptedAt: Date) {
+        self.kind = kind
+        self.acceptedOdometer = acceptedOdometer
+        self.acceptedDate = acceptedDate
+        self.reason = reason
+        self.acceptedAt = acceptedAt
+    }
+
+    /// Whether the acceptance still covers an entry holding these facts - the
+    /// keying rule above, stated as one predicate so the validator, the UI and
+    /// the docs can never disagree about it.
+    public func covers(odometer: Int?, date: Date) -> Bool {
+        odometer == acceptedOdometer && date == acceptedDate
+    }
+}
+
 /// Result of the pump-card cross-check `volumeL x unitPrice ~= money.amount`
 /// (docs/SCHEMA.md, FillUp.crossCheck).
 public enum CrossCheckState: Codable, Sendable, Equatable, Hashable {

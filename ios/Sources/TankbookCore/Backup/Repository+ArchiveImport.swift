@@ -35,25 +35,29 @@ public enum ArchiveImportRecord: Sendable {
         }
     }
 
-    /// This record with `conflict` replaced (PJ.11). Non-entry records return
-    /// themselves unchanged.
-    func stampingConflict(_ conflict: ConflictState) -> ArchiveImportRecord {
+    /// This record with `conflict` (and, RV.104, its `flagAcceptance`) replaced
+    /// by the validator's verdict. Non-entry records return themselves unchanged.
+    func stampingConflict(_ conflict: ConflictState, acceptance: FlagAcceptance?) -> ArchiveImportRecord {
         switch self {
         case .fillUp(let fill):
             var copy = fill
             copy.conflict = conflict
+            copy.flagAcceptance = acceptance
             return .fillUp(copy)
         case .chargeSession(let charge):
             var copy = charge
             copy.conflict = conflict
+            copy.flagAcceptance = acceptance
             return .chargeSession(copy)
         case .serviceRecord(let service):
             var copy = service
             copy.conflict = conflict
+            copy.flagAcceptance = acceptance
             return .serviceRecord(copy)
         case .expense(let expense):
             var copy = expense
             copy.conflict = conflict
+            copy.flagAcceptance = acceptance
             return .expense(copy)
         default:
             return self
@@ -299,7 +303,7 @@ extension TankbookRepository {
                 guard let entry = record.entryValue,
                       let validation = byID[entry.id],
                       let position = stamped.firstIndex(where: { $0.isSameRecord(as: record) }) else { continue }
-                stamped[position] = record.stampingConflict(validation.conflict)
+                stamped[position] = record.stampingConflict(validation.conflict, acceptance: validation.acceptance)
             }
         }
         return stamped

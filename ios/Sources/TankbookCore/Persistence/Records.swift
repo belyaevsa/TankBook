@@ -142,6 +142,7 @@ struct EntryCommonParts {
     var attachments: [AttachmentID]
     var provenance: Provenance
     var conflict: ConflictState
+    var flagAcceptance: FlagAcceptance?
     var purchaseGroupId: UUID?
 }
 
@@ -154,6 +155,7 @@ func setEntryCommon<Value: Entry>(_ value: Value, into container: inout Persiste
     container["note"] = value.note
     container["provenance"] = try encodeJSON(value.provenance)
     container["conflict"] = try encodeJSON(value.conflict)
+    container["flagAcceptance"] = try encodeOptionalJSON(value.flagAcceptance)
     container["purchaseGroupId"] = value.purchaseGroupId?.uuidString
     container["attachments"] = try encodeJSON(value.attachments)
 }
@@ -172,6 +174,7 @@ func decodeEntryCommon(_ row: Row) throws -> EntryCommonParts {
         attachments: try decodeJSON([UUID].self, from: row, column: "attachments"),
         provenance: try decodeJSON(Provenance.self, from: row, column: "provenance"),
         conflict: try decodeJSON(ConflictState.self, from: row, column: "conflict"),
+        flagAcceptance: try decodeOptionalJSON(FlagAcceptance.self, from: row, column: "flagAcceptance"),
         purchaseGroupId: decodeOptionalUUID(row, column: "purchaseGroupId"))
 }
 
@@ -293,7 +296,8 @@ public struct FillUpRow: FetchableRecord, PersistableRecord {
             stationId: decodeOptionalUUID(row, column: "stationId"),
             crossCheck: try decodeJSON(CrossCheckState.self, from: row, column: "crossCheck"),
             extraction: try decodeOptionalJSON(ExtractionMeta.self, from: row, column: "extraction"),
-            fiscalIdentity: try decodeOptionalJSON(FiscalDocumentIdentity.self, from: row, column: "fiscalIdentity"))
+            fiscalIdentity: try decodeOptionalJSON(FiscalDocumentIdentity.self, from: row, column: "fiscalIdentity"),
+            flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -351,7 +355,8 @@ public struct ChargeSessionRow: FetchableRecord, PersistableRecord {
             durationMin: row["durationMin"] as Int?,
             socStartPct: row["socStartPct"] as Double?,
             socEndPct: row["socEndPct"] as Double?,
-            extraction: try decodeOptionalJSON(ExtractionMeta.self, from: row, column: "extraction"))
+            extraction: try decodeOptionalJSON(ExtractionMeta.self, from: row, column: "extraction"),
+            flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -407,7 +412,8 @@ public struct ServiceRecordRow: FetchableRecord, PersistableRecord {
             items: [],
             usedParts: try decodeJSON([UUID].self, from: row, column: "usedParts"),
             tireSetId: decodeOptionalUUID(row, column: "tireSetId"),
-            proposedReminderId: decodeOptionalUUID(row, column: "proposedReminderId"))
+            proposedReminderId: decodeOptionalUUID(row, column: "proposedReminderId"),
+            flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
     }
 
@@ -528,7 +534,8 @@ public struct ExpenseRow: FetchableRecord, PersistableRecord {
             category: try decodeJSON(ExpenseCategory.self, from: row, column: "category"),
             title: row["title"],
             recurrence: try decodeOptionalJSON(RecurrenceRule.self, from: row, column: "recurrence"),
-            installedInServiceId: decodeOptionalUUID(row, column: "installedInServiceId"))
+            installedInServiceId: decodeOptionalUUID(row, column: "installedInServiceId"),
+            flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
     }
 

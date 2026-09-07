@@ -25,6 +25,11 @@ public protocol Entry: Entity {
     var attachments: [AttachmentID] { get set }
     var provenance: Provenance { get set }
     var conflict: ConflictState { get set }
+    /// The user's stored acceptance of a timeline flag, when one exists
+    /// (RV.104). The validator's INPUT - `conflict` re-derives around it; this
+    /// is the only remembered fact. Nil for entries never accepted (and cleared
+    /// by re-validation whenever the acceptance stops covering the facts).
+    var flagAcceptance: FlagAcceptance? { get set }
     var purchaseGroupId: UUID? { get set }
 }
 
@@ -131,6 +136,7 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
     public var attachments: [AttachmentID]
     public var provenance: Provenance
     public var conflict: ConflictState
+    public var flagAcceptance: FlagAcceptance?
     public var purchaseGroupId: UUID?
     public var volumeL: Double
     public var unitPrice: Decimal?
@@ -160,7 +166,8 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
                 fuelKind: FuelKind, fuelGrade: String? = nil, isFull: Bool,
                 tankLevelAfterPct: Double? = nil, stationId: UUID? = nil,
                 crossCheck: CrossCheckState, extraction: ExtractionMeta? = nil,
-                fiscalIdentity: FiscalDocumentIdentity? = nil) {
+                fiscalIdentity: FiscalDocumentIdentity? = nil,
+                flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -173,6 +180,7 @@ public struct FillUp: Entry, Codable, Sendable, Equatable {
         self.attachments = attachments
         self.provenance = provenance
         self.conflict = conflict
+        self.flagAcceptance = flagAcceptance
         self.purchaseGroupId = purchaseGroupId
         self.volumeL = volumeL
         self.unitPrice = unitPrice
@@ -201,6 +209,7 @@ public struct ChargeSession: Entry, Codable, Sendable, Equatable {
     public var attachments: [AttachmentID]
     public var provenance: Provenance
     public var conflict: ConflictState
+    public var flagAcceptance: FlagAcceptance?
     public var purchaseGroupId: UUID?
     public var energyKWh: Double
     public var unitPrice: Decimal?
@@ -223,7 +232,8 @@ public struct ChargeSession: Entry, Codable, Sendable, Equatable {
                 unitPrice: Decimal? = nil, chargeType: ChargeType,
                 provider: String? = nil, tariffId: UUID? = nil,
                 durationMin: Int? = nil, socStartPct: Double? = nil,
-                socEndPct: Double? = nil, extraction: ExtractionMeta? = nil) {
+                socEndPct: Double? = nil, extraction: ExtractionMeta? = nil,
+                flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -236,6 +246,7 @@ public struct ChargeSession: Entry, Codable, Sendable, Equatable {
         self.attachments = attachments
         self.provenance = provenance
         self.conflict = conflict
+        self.flagAcceptance = flagAcceptance
         self.purchaseGroupId = purchaseGroupId
         self.energyKWh = energyKWh
         self.unitPrice = unitPrice
@@ -263,6 +274,7 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
     public var attachments: [AttachmentID]
     public var provenance: Provenance
     public var conflict: ConflictState
+    public var flagAcceptance: FlagAcceptance?
     public var purchaseGroupId: UUID?
     public var vendor: String?
     public var items: [ServiceItem]
@@ -279,7 +291,8 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
                 provenance: Provenance, conflict: ConflictState = .none,
                 purchaseGroupId: UUID? = nil, vendor: String? = nil,
                 items: [ServiceItem] = [], usedParts: [UUID] = [],
-                tireSetId: UUID? = nil, proposedReminderId: UUID? = nil) {
+                tireSetId: UUID? = nil, proposedReminderId: UUID? = nil,
+                flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -292,6 +305,7 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
         self.attachments = attachments
         self.provenance = provenance
         self.conflict = conflict
+        self.flagAcceptance = flagAcceptance
         self.purchaseGroupId = purchaseGroupId
         self.vendor = vendor
         self.items = items
@@ -335,6 +349,7 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
     public var attachments: [AttachmentID]
     public var provenance: Provenance
     public var conflict: ConflictState
+    public var flagAcceptance: FlagAcceptance?
     public var purchaseGroupId: UUID?
     public var category: ExpenseCategory
     public var title: String
@@ -350,7 +365,8 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
                 provenance: Provenance, conflict: ConflictState = .none,
                 purchaseGroupId: UUID? = nil, category: ExpenseCategory,
                 title: String, recurrence: RecurrenceRule? = nil,
-                installedInServiceId: UUID? = nil) {
+                installedInServiceId: UUID? = nil,
+                flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -363,6 +379,7 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
         self.attachments = attachments
         self.provenance = provenance
         self.conflict = conflict
+        self.flagAcceptance = flagAcceptance
         self.purchaseGroupId = purchaseGroupId
         self.category = category
         self.title = title

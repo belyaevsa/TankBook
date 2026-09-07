@@ -511,8 +511,12 @@ extension TankbookRepository {
 extension TankbookRepository {
     /// Re-runs timeline validation for the given vehicles and writes the amber
     /// `ConflictState` onto any entry that broke (docs/SYNC.md S3: the transport
-    /// accepted both records; the domain is what flags one). Returns the number
-    /// of entries newly flagged.
+    /// accepted both records; the domain is what flags one). Also writes the
+    /// `flagAcceptance` the validator returns (RV.104): an accepted entry whose
+    /// facts still hold stays `.none`, and a stale acceptance is cleared the
+    /// moment the entry re-flags or the timeline heals - the acceptance is the
+    /// validator's INPUT, never a stored result a later pass would resurrect.
+    /// Returns the number of entries newly flagged.
     @discardableResult
     public func revalidateTimeline(vehicleIds: Set<UUID>) throws -> Int {
         var flagged = 0
@@ -525,12 +529,17 @@ extension TankbookRepository {
             try database.write { db in
                 for validation in validations {
                     guard let entry = byID[validation.entryID],
-                          entry.conflict != validation.conflict,
+                          entry.conflict != validation.conflict
+                            || entry.flagAcceptance != validation.acceptance,
                           let table = entryTable(entry) else { continue }
                     try db.execute(sql: """
-                        UPDATE \(table) SET conflict = ?, syncState = 'dirty' WHERE id = ?
-                        """, arguments: [try encodeJSON(validation.conflict), entry.id.uuidString])
-                    flagged += 1
+                        UPDATE \(table)
+                        SET conflict = ?, flagAcceptance = ?, syncState = 'dirty'
+                        WHERE id = ?
+                        """, arguments: [try encodeJSON(validation.conflict),
+                                         try encodeOptionalJSON(validation.acceptance),
+                                         entry.id.uuidString])
+                    if case .flagged = validation.conflict { flagged += 1 }
                 }
             }
         }

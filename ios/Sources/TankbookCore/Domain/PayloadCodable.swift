@@ -484,6 +484,7 @@ extension FillUp {
         try c.encode(crossCheck, forKey: key("crossCheck"))
         try c.encodeIfPresent(extraction, forKey: key("extraction"))
         try c.encodeIfPresent(fiscalIdentity, forKey: key("fiscalIdentity"))
+        try c.encodeIfPresent(flagAcceptance, forKey: key("flagAcceptance"))
     }
 
     public init(from decoder: Decoder) throws {
@@ -528,7 +529,8 @@ extension FillUp {
             stationId: try c.decodeIfPresent(UUID.self, forKey: key("stationId")),
             crossCheck: try c.decode(CrossCheckState.self, forKey: key("crossCheck")),
             extraction: try c.decodeIfPresent(ExtractionMeta.self, forKey: key("extraction")),
-            fiscalIdentity: try c.decodeIfPresent(FiscalDocumentIdentity.self, forKey: key("fiscalIdentity"))
+            fiscalIdentity: try c.decodeIfPresent(FiscalDocumentIdentity.self, forKey: key("fiscalIdentity")),
+            flagAcceptance: try c.decodeIfPresent(FlagAcceptance.self, forKey: key("flagAcceptance"))
         )
     }
 }
@@ -558,6 +560,7 @@ extension ChargeSession {
         try c.encodeIfPresent(socStartPct, forKey: key("socStartPct"))
         try c.encodeIfPresent(socEndPct, forKey: key("socEndPct"))
         try c.encodeIfPresent(extraction, forKey: key("extraction"))
+        try c.encodeIfPresent(flagAcceptance, forKey: key("flagAcceptance"))
     }
 
     public init(from decoder: Decoder) throws {
@@ -601,7 +604,8 @@ extension ChargeSession {
             durationMin: try c.decodeIfPresent(Int.self, forKey: key("durationMin")),
             socStartPct: try c.decodeIfPresent(Double.self, forKey: key("socStartPct")),
             socEndPct: try c.decodeIfPresent(Double.self, forKey: key("socEndPct")),
-            extraction: try c.decodeIfPresent(ExtractionMeta.self, forKey: key("extraction"))
+            extraction: try c.decodeIfPresent(ExtractionMeta.self, forKey: key("extraction")),
+            flagAcceptance: try c.decodeIfPresent(FlagAcceptance.self, forKey: key("flagAcceptance"))
         )
     }
 }

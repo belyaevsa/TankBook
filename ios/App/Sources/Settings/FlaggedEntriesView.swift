@@ -11,6 +11,16 @@ import TankbookCore
 /// opens Edit entry, where the F9a inline discrepancy and its ranked fixes
 /// live. A conflict is decidable only with the entry in front of the user.
 ///
+/// RV.104 adds the row's SECOND door: Accept. A flag on an entry from years
+/// back can be a gap nobody remembers - a missing fill, a sold-and-rebought
+/// car - that no fix can heal without inventing history. Accept records the
+/// user's deliberate per-entry judgement (`FlagAcceptance`, keyed on the
+/// entry's odometer + date) and clears the derived flag; the acceptance rides
+/// the record's payload to the next device and the validator takes it as INPUT,
+/// so a UI-only dismissal is never undone by the next sync. Editing the entry
+/// later re-checks it (hard rule 8), and the acceptance stays visible and
+/// reversible in Edit entry.
+///
 /// The list is ACCOUNT-wide (it iterates every live vehicle), which is exactly
 /// why each row names its car: a list reached from an account-wide signal mixes
 /// entries from several cars, and a row whose title is a station name shared by
@@ -18,8 +28,11 @@ import TankbookCore
 /// name is the first thing the row says.
 struct FlaggedEntriesView: View {
     @Environment(AppToastCenter.self) private var toastCenter
+    @Environment(AppSync.self) private var sync
     @State private var rows: [Row] = []
     @State private var didLoad = false
+    @State private var pendingAccept: Row?
+    @State private var acceptReason = ""
 
     struct Row: Identifiable {
         let id: UUID
@@ -37,32 +50,7 @@ struct FlaggedEntriesView: View {
                     emptyState
                 } else {
                     ForEach(rows) { row in
-                        NavigationLink(value: Route.editEntry(row.id)) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .font(.subheadline)
-                                    .foregroundStyle(Theme.Palette.warn)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(row.title)
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(Theme.Palette.ink)
-                                        .lineLimit(1)
-                                    Text(row.subtitle)
-                                        .font(.caption)
-                                        .foregroundStyle(Theme.Palette.inkSoft)
-                                        .accessibilityIdentifier("flaggedEntrySubtitle")
-                                }
-                                Spacer(minLength: 8)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Theme.Palette.inkSoft)
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 13)
-                            .formCard()
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("flaggedEntryRow")
+                        rowCard(row)
                     }
                 }
             }
@@ -81,15 +69,77 @@ struct FlaggedEntriesView: View {
         .onChange(of: toastCenter.revision) { _, _ in
             Task { await reload() }
         }
+        // RV.104: the Accept confirmation. The reason is OPTIONAL and kept - it
+        // is what makes the decision readable a year later (the
+        // `AnomalyDismissal` precedent). The accept itself is per entry and
+        // deliberate; there is deliberately no bulk accept.
+        .alert("Accept this entry?", isPresented: acceptAlertBinding) {
+            TextField("Reason (optional)", text: $acceptReason)
+            Button("Accept") { performAccept() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This entry will stop needing a look. Editing its odometer or date will re-check it.")
+        }
         #if DEBUG
         // RV.72 test seam: resolves one flagged entry and bumps the revision
         // WHILE THE LIST STAYS ON SCREEN - the case the pop-back test cannot
         // reach, because a pop-back also fires `.onAppear` and would pass
         // against an appear-only reload. Found by the orchestrator's mutation:
-        // swapping the revision observation for `.onAppear` left the suite
+        // swapping the revision observation for `.onAppear` left the whole suite
         // green, so the reason this fix is the right one was untested.
         .task { await FlaggedEntriesTestSeed.resolveOneInPlaceIfRequested(toastCenter) }
         #endif
+    }
+
+    /// A flagged row: the entry's own edit door on the left (the F9a fix
+    /// surface, the same whole-row tap as before RV.104) and the RV.104 Accept
+    /// door on the right - two peer paths, exactly as the row's problem has two
+    /// honest resolutions: fix the facts, or say the facts are fine.
+    private func rowCard(_ row: Row) -> some View {
+        HStack(spacing: 0) {
+            NavigationLink(value: Route.editEntry(row.id)) {
+                HStack(spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.warn)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(row.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.ink)
+                            .lineLimit(1)
+                        Text(row.subtitle)
+                            .font(.caption)
+                            .foregroundStyle(Theme.Palette.inkSoft)
+                            .accessibilityIdentifier("flaggedEntrySubtitle")
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .padding(.leading, 16)
+                .padding(.trailing, 10)
+                .padding(.vertical, 13)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("flaggedEntryRow")
+            Button {
+                acceptReason = ""
+                pendingAccept = row
+            } label: {
+                Text("Accept")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .padding(.trailing, 10)
+            .accessibilityIdentifier("flagAcceptButton")
+        }
+        .formCard()
     }
 
     private var emptyState: some View {
@@ -110,6 +160,32 @@ struct FlaggedEntriesView: View {
         .padding(.horizontal, 20)
         .formCard()
         .accessibilityIdentifier("flaggedEntriesEmptyState")
+    }
+
+    /// The alert binds through a separate bool so clearing `pendingAccept`
+    /// dismisses it and cancelling needs no bookkeeping of its own.
+    private var acceptAlertBinding: Binding<Bool> {
+        Binding(get: { pendingAccept != nil },
+                set: { if !$0 { pendingAccept = nil } })
+    }
+
+    /// The deliberate per-entry accept: stores the `FlagAcceptance` keyed to
+    /// the entry's current facts and clears the derived conflict. The flagged
+    /// count is derived (hard rule 2), so it drops by exactly this one row, and
+    /// Settings' copy of it refreshes through `AppSync`.
+    private func performAccept() {
+        guard let row = pendingAccept else { return }
+        pendingAccept = nil
+        do {
+            let repository = try AppStore.repository()
+            let reason = acceptReason.trimmingCharacters(in: .whitespacesAndNewlines)
+            if try repository.acceptFlag(id: row.id, reason: reason.isEmpty ? nil : reason) {
+                toastCenter.noteEntryChanged()
+                Task { await sync.refresh() }
+            }
+        } catch {
+            AppLog.error(operation: "flaggedEntries.accept", category: .ui, error: error)
+        }
     }
 
     private func load() async {

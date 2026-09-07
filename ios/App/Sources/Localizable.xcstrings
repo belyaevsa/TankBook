@@ -1692,6 +1692,40 @@
         }
       }
     },
+    "Accept": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Принять"
+          }
+        }
+      }
+    },
+    "Accept this entry?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Accept this entry?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Принять эту запись?"
+          }
+        }
+      }
+    },
     "Accessory": {
       "extractionState": "manual",
       "localizations": {
@@ -4499,6 +4533,23 @@
         }
       }
     },
+    "Editing the odometer or date will re-check it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Editing the odometer or date will re-check it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если изменить пробег или дату, запись будет проверена снова."
+          }
+        }
+      }
+    },
     "Edits recalculate consumption for this and the next fill-up.": {
       "extractionState": "manual",
       "localizations": {
@@ -6645,6 +6696,23 @@
         }
       }
     },
+    "Marked as fine": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Marked as fine"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отмечено как верное"
+          }
+        }
+      }
+    },
     "Merge": {
       "extractionState": "manual",
       "localizations": {
@@ -8069,6 +8137,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Часть дат читается только в одном порядке, часть — в другом."
+          }
+        }
+      }
+    },
+    "This entry will stop needing a look. Editing its odometer or date will re-check it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This entry will stop needing a look. Editing its odometer or date will re-check it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запись перестанет требовать внимания. Если позже изменить её пробег или дату, она будет проверена снова."
           }
         }
       }
@@ -11674,6 +11759,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Вернуть из архива"
+          }
+        }
+      }
+    },
+    "Undo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Undo"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отменить"
           }
         }
       }

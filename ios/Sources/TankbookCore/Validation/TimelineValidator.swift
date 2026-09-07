@@ -36,14 +36,21 @@ public enum TimelineValidator {
     /// The validation result for one entry.
     public struct EntryValidation: Equatable, Sendable {
         public let entryID: UUID
-        /// `.flagged` when any check failed; `.none` otherwise. Written to the
-        /// entry on save - it is ALWAYS saveable.
+        /// `.flagged` when any check failed (and no covering acceptance exists);
+        /// `.none` otherwise. Written to the entry on save - it is ALWAYS
+        /// saveable.
         public let conflict: ConflictState
         public let flags: [Flag]
         /// CHECK 3 for FillUp entries; `nil` for other entry types.
         public let crossCheck: CrossCheckState?
         /// Ordered resolution suggestions; empty when nothing is flagged.
         public let suggestions: [ResolutionSuggestion]
+        /// The stored acceptance to write onto the entry alongside `conflict`
+        /// (RV.104). Non-nil ONLY when it is currently suppressing a real flag -
+        /// i.e. the entry was accepted and the accepted facts still hold. Every
+        /// other case returns nil so a stale acceptance is cleared when the
+        /// entry re-flags or the timeline genuinely heals.
+        public let acceptance: FlagAcceptance?
 
         /// A flagged entry is never blocked from saving - the flag is advisory.
         public var isSaveable: Bool { true }
@@ -154,17 +161,48 @@ public enum TimelineValidator {
         let receiptDateIsGroundTruth = entry.attachments.contains {
             attachmentsByID[$0]?.extractedTimestamp != nil
         }
-        let conflict: ConflictState = flags.first.map {
-            .flagged(kind: $0.kind, detectedAt: entry.createdAt)
-        } ?? .none
+        // RV.104: the acceptance is the validator's INPUT. A flag the user
+        // accepted - matching kind, and the entry's odometer/date unchanged
+        // since the acceptance (docs/SCHEMA.md -> Validation -> Acceptance,
+        // keying rule) - does not surface as a conflict. The acceptance is kept
+        // on the entry only while it is suppressing a real flag; otherwise it is
+        // returned nil so a write path clears a stale one (an accepted entry is
+        // still flaggable again - hard rule 8).
+        let conflictAndAcceptance = Self.suppressed(flags, on: entry)
+        let conflict = conflictAndAcceptance.conflict
 
         return EntryValidation(
             entryID: entry.id,
             conflict: conflict,
             flags: flags,
             crossCheck: crossCheck,
-            suggestions: suggestions(flags: flags, receiptDateIsGroundTruth: receiptDateIsGroundTruth)
+            suggestions: suggestions(flags: flags, receiptDateIsGroundTruth: receiptDateIsGroundTruth),
+            acceptance: conflictAndAcceptance.acceptance
         )
+    }
+
+    /// RV.104: resolves the conflict + acceptance pair a write path must stamp.
+    ///
+    /// - Flags empty: `.none`, no acceptance (nothing to accept - a stale
+    ///   acceptance on a timeline that has healed is dropped).
+    /// - Flags non-empty, no covering acceptance: `.flagged` with the first
+    ///   kind, no acceptance (the accepted facts changed, or this was never
+    ///   accepted - it flags exactly as before RV.104).
+    /// - Flags non-empty AND a covering acceptance of the displayed kind:
+    ///   `.none`, keeping the acceptance (the user's "this is fine" survives
+    ///   this re-validation).
+    private static func suppressed(_ flags: [Flag], on entry: any Entry)
+        -> (conflict: ConflictState, acceptance: FlagAcceptance?) {
+        guard let first = flags.first,
+              let acceptance = entry.flagAcceptance,
+              acceptance.kind == first.kind,
+              acceptance.covers(odometer: entry.odometer, date: entry.date) else {
+            let conflict = flags.first.map {
+                ConflictState.flagged(kind: $0.kind, detectedAt: entry.createdAt)
+            } ?? .none
+            return (conflict, nil)
+        }
+        return (.none, acceptance)
     }
 
     /// PRIORITY: with a receipt timestamp the printed date is ground truth, so

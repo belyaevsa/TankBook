@@ -127,6 +127,17 @@ public enum TankbookMigrations {
                 table.add(column: "extraction", .text)
             }
         }
+        migrator.registerMigration("v9") { db in
+            // RV.104: the user's stored acceptance of a timeline flag, riding the
+            // entry it belongs to (the validator's INPUT - docs/SCHEMA.md ->
+            // Validation -> Acceptance). TEXT JSON, NULL = never accepted, same
+            // shape as the `conflict` column beside it.
+            for table in TankbookSchema.entryTables {
+                try db.alter(table: table) { definition in
+                    definition.add(column: "flagAcceptance", .text)
+                }
+            }
+        }
         return migrator
     }
 
