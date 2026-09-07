@@ -231,6 +231,22 @@ enum ManualFillUpFormat {
 struct OdometerConflict: Equatable {
     let quote: String?
     let flagKind: ConflictState.ConflictKind
+
+    /// The order-conflict quote ("Aug 17 already recorded 119 486 km.") in the
+    /// vehicle's OWN distance unit. One full localised sentence per unit, never
+    /// a unit token spliced onto a shared stem (hard rule 10): RU declines the
+    /// units differently ("км" is indeclinable, "миль" is a genitive plural),
+    /// so the sentence - not the unit label - is the translation unit.
+    static func quote(day: String, odometer: Int, distanceUnit: DistanceUnit) -> String {
+        switch distanceUnit {
+        case .km:
+            return String(format: L10n.localize("%@ already recorded %@ km."),
+                          day, OdometerFormat.grouped(odometer))
+        case .mi:
+            return String(format: L10n.localize("%@ already recorded %@ mi."),
+                          day, OdometerFormat.grouped(odometer))
+        }
+    }
 }
 
 extension ManualFillUpFormState {
@@ -249,13 +265,13 @@ extension ManualFillUpFormState {
               let flag = validation.flags.first else {
             return nil
         }
-        let unit = L10n.distanceUnit(distanceUnit)
         switch flag.detail {
         case .order(let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
                 let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-                let quote = String(format: L10n.localize("%@ already recorded %@ km."),
-                                   day, OdometerFormat.grouped(previousOdometer))
+                let quote = OdometerConflict.quote(day: day,
+                                                    odometer: previousOdometer,
+                                                    distanceUnit: distanceUnit)
                 return OdometerConflict(quote: quote, flagKind: flag.kind)
             }
             return OdometerConflict(quote: nil, flagKind: flag.kind)

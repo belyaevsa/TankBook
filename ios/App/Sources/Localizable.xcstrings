@@ -188,6 +188,23 @@
         }
       }
     },
+    "%@ already recorded %@ mi.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ already recorded %@ mi."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@» уже зафиксирован пробег %@ миль."
+          }
+        }
+      }
+    },
     "%@ came back with 1 new entry – stays archived.": {
       "extractionState": "manual",
       "localizations": {

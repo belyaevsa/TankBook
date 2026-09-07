@@ -8,6 +8,13 @@ import TankbookCore
 /// the Add-car screen in every test - the same test-hook pattern as
 /// `-forceCatalogUnavailable` on Add car. Idempotent: once a vehicle exists it
 /// does nothing, so the app data survives across launches within a run.
+///
+/// The default seed car is metric (km). `-seedVehicleMiles` switches the same
+/// seed to a miles-configured car (distance .mi, gallons, MPG) so the F9a quote
+/// can be exercised on the units RV.126 found it lying about; the launch
+/// argument stays a modifier on `-seedVehicleForUITests`, never a separate
+/// harness flag, because WelcomeGate's tabbed-app decision keys on the parent
+/// flag.
 enum ManualFillUpTestSeed {
     /// The seeded car's fuel kinds, from a launch argument (P2.3b). The
     /// default is a single-kind petrol car - the only kind of car that exists
@@ -23,6 +30,26 @@ enum ManualFillUpTestSeed {
         return [.petrol95]
     }
 
+    /// The seed car's unit set. Metric by default; `-seedVehicleMiles` makes it
+    /// an imperial car (miles, US gallons, MPG) so unit-labelled copy can be
+    /// exercised on a miles vehicle - the RV.126 shape.
+    static func unitsFromArguments(_ arguments: [String]) -> Vehicle.Units {
+        if arguments.contains("-seedVehicleMiles") {
+            return Vehicle.Units(distance: .mi, volume: .galUS,
+                                 consumption: .mpgUS, energy: .miPerKWh)
+        }
+        return Vehicle.Units(distance: .km, volume: .l,
+                             consumption: .lPer100, energy: .kWhPer100)
+    }
+
+    /// The prior fill's odometer and the car's initial reading. The metric seed
+    /// keeps the documented 119 486 km (the F9a quote example everywhere in the
+    /// docs); the miles seed uses a plausible 74 286 mi so the quote reads like
+    /// a miles car, never a km figure wearing a mi label.
+    static func initialOdometerFromArguments(_ arguments: [String]) -> Int {
+        arguments.contains("-seedVehicleMiles") ? 74_286 : 119_486
+    }
+
     @MainActor
     static func seedIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("-seedVehicleForUITests") else { return }
@@ -30,25 +57,28 @@ enum ManualFillUpTestSeed {
         guard (try? repository.liveVehicles())?.isEmpty != false else { return }
 
         let now = Date()
-        let fuelKinds = fuelKindsFromArguments(ProcessInfo.processInfo.arguments)
+        let arguments = ProcessInfo.processInfo.arguments
+        let fuelKinds = fuelKindsFromArguments(arguments)
+        let units = unitsFromArguments(arguments)
+        let initialOdometer = initialOdometerFromArguments(arguments)
         let vehicle = Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: fuelKinds,
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100),
+            units: units,
             photo: nil, archived: false, paceLimitKmPerDay: 1500,
-            initialOdometer: 119_486)
+            initialOdometer: initialOdometer)
         try? repository.upsertVehicle(vehicle)
 
-        // A prior fill-up six days ago at 119 486 km - the F9a quote example
-        // ("Aug 17 already recorded 119 486 km.") and the odometer pre-fill.
-        // The fill uses the car's own usual kind, so a diesel-only seed's
-        // prior fill is a diesel fill, not a mis-labelled petrol one.
+        // A prior fill-up six days ago at the initial odometer - the F9a quote
+        // example ("Aug 17 already recorded 119 486 km.") and the odometer
+        // pre-fill. The fill uses the car's own usual kind, so a diesel-only
+        // seed's prior fill is a diesel fill, not a mis-labelled petrol one.
         let priorDate = now.addingTimeInterval(-6 * 86_400)
         let prior = FillUp(
             id: UUID.v7(), createdAt: priorDate, updatedAt: priorDate, deletedAt: nil,
-            vehicleId: vehicle.id, date: priorDate, odometer: 119_486,
+            vehicleId: vehicle.id, date: priorDate, odometer: initialOdometer,
             money: Money(amount: Decimal(string: "71.02")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, volumeL: 42.30, unitPrice: Decimal(string: "1.679")!,

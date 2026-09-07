@@ -16,11 +16,16 @@ final class ConfirmF9aQuoteUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    /// A clean database so the seed holds exactly one prior fill at 119 486 km -
-    /// the conflicting entry the F9a quote names.
-    private func launchClean(russian: Bool = false) -> XCUIApplication {
+    /// A clean database so the seed holds exactly one prior fill at the seeded
+    /// odometer - the conflicting entry the F9a quote names. `miles` seeds the
+    /// imperial variant (RV.126): the same prior fill, on a miles-configured
+    /// car, so the quote must name miles and never kilometres.
+    private func launchClean(russian: Bool = false, miles: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-seedVehicleForUITests", "-homeResetDatabase"]
+        if miles {
+            app.launchArguments += ["-seedVehicleMiles"]
+        }
         if russian {
             app.launchArguments += ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
         }
@@ -75,5 +80,37 @@ final class ConfirmF9aQuoteUITests: XCTestCase {
                       "the RU quote must name the grouped neighbour, was '\(warning.label)'")
         XCTAssertFalse(warning.label.contains("119486"),
                        "the RU quote must not print the raw ungrouped figure, was '\(warning.label)'")
+    }
+
+    /// RV.126: the F9a quote used to hardcode `km` even when the vehicle is
+    /// miles-configured - a miles driver was told about kilometres in the one
+    /// message whose job is to make them trust the number they are correcting.
+    /// A miles seed makes the rendered quote say `mi`, never `km`.
+    func testF9aQuoteNamesMilesOnAMilesConfiguredCar() {
+        let app = launchClean(miles: true)
+        openManualForm(app)
+        replaceOdometer(app, "74000")
+
+        let warning = app.staticTexts["manualFillUpOdometerWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 5),
+                      "the F9a quote must render on the odometer card for a miles car")
+        XCTAssertTrue(warning.label.contains("74\u{00A0}286 mi"),
+                      "a miles car must be told about miles, was '\(warning.label)'")
+        XCTAssertFalse(warning.label.contains("km"),
+                       "a miles car must never be told about kilometres, was '\(warning.label)'")
+    }
+
+    func testF9aQuoteNamesMilesOnAMilesConfiguredCarInRussian() {
+        let app = launchClean(russian: true, miles: true)
+        openManualForm(app)
+        replaceOdometer(app, "74000")
+
+        let warning = app.staticTexts["manualFillUpOdometerWarning"]
+        XCTAssertTrue(warning.waitForExistence(timeout: 5),
+                      "the F9a quote must render on the odometer card in Russian for a miles car")
+        XCTAssertTrue(warning.label.contains("74\u{00A0}286 миль"),
+                      "the RU quote on a miles car must name miles, was '\(warning.label)'")
+        XCTAssertFalse(warning.label.contains("км"),
+                       "the RU quote on a miles car must never name kilometres, was '\(warning.label)'")
     }
 }

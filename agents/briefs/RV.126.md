@@ -110,3 +110,32 @@ Your brief is part of your command line. Use `pgrep -x xcodebuild`. Never `pkill
 
 Every check with the **exit code you observed**, whether each test was **run or only written**, and
 what the sibling-message audit found. Name any closed decision you think is wrong and stop there.
+
+---
+
+## RESUMING - the fix is ALREADY DONE (2026-09-08)
+
+A previous run was killed mid-task. **The code change is complete and correct; judge it on its
+merits, do not redo it.** What exists in the working tree:
+
+- `OdometerConflict.quote(day:odometer:distanceUnit:)` in `ManualFillUpFormState.swift`, switching
+  on the unit and returning one full localised sentence per unit.
+- The unused `let unit = L10n.distanceUnit(distanceUnit)` local is **removed**, not consumed.
+- `Localizable.xcstrings` has the new `"%@ already recorded %@ mi."` key, EN
+  `"%@ already recorded %@ mi."` and RU `"«%@» уже зафиксирован пробег %@ миль."` (genitive plural,
+  correct after a number).
+
+**What remains, and it is the half the row is judged on:**
+
+1. **The tests.** None were committed. All four from the check list above are still owed - the
+   miles rendering, the km rendering, both in **RU**, and the L4. The previous run was mid-way
+   through `ios/Tests/LocalizationGateTests/LocalizationGateP53Tests.swift` when it stopped; look
+   there first and finish or replace what you find.
+2. **The sibling audit.** Report whether any other user-facing string in this file (and the
+   `.pace` branch's messages) bakes in a unit. Say "nothing else" if that is the answer.
+3. **The screenshots**, EN and RU, per the section above.
+4. **Re-run every gate.** The baseline has moved: `main` is now green at **1642 tests / 183
+   suites**, 773 keys. Re-measure and report what you observe; adding one key should make it 774.
+
+If you find the inherited code wrong, say so and fix it - a resumed run that rubber-stamps what it
+inherited is the failure mode this note exists to prevent.
