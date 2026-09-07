@@ -38,6 +38,16 @@ import Foundation
 ///     A pure-literal ternary branch (`cond ? "A" : "B"`) is the exception -
 ///     SwiftUI builds a `LocalizedStringKey` from it and the branch literal is
 ///     a runtime key, so it gets a membership check like any other key.
+///   - A literal that reaches a text renderer through a `String` type instead
+///     of directly (RV.102 - the pass behind the `HomeEmptyStates.quickAction`
+///     defect, where "Select car"/"Type it" were translated keys that rendered
+///     English because the helper took `_ title: String`). Two statically
+///     visible shapes: a same-file helper whose `String` parameter is forwarded
+///     into `Label`/`Text`/`Button`, called with a literal; and a
+///     `let name = "literal"` local that a renderer draws. The pass also learns
+///     helpers whose forwarded parameter is `LocalizedStringKey` and checks
+///     their literal arguments as keys, exactly like `Text("…")` call sites.
+///     See `RoutedLiteralScan.swift` for the boundaries of both shapes.
 ///
 /// WHAT IT DOES NOT CATCH (deliberately - documented so the gate's blind spots
 /// are known rather than guessed at):
@@ -46,12 +56,16 @@ import Foundation
 ///     analysis. The variable may hold user data (correct - it must not be
 ///     localised) or an unlocalised key (a bug). Only a human reading the
 ///     rendered Russian can tell; the rule lives at the top of `L10n.swift`.
+///   - A literal bound to a `String` parameter of a helper that forwards into a
+///     text renderer when the helper and its call sites are in DIFFERENT files:
+///     the gate correlates a function to its call sites within one file only.
+///     Keep display wrappers and their callers co-located, or pass the caller a
+///     `LocalizedStringKey`; cross-file value flow is out of scope by design.
 ///   - Literals passed to custom wrappers whose parameter type is `String`
-///     (`Text(_: StringProtocol)` does not localise at all). Such wrappers are
-///     a real defect class but are invisible to a key-membership check - the
-///     string may be a perfect catalogue key and still render English because
-///     it was routed through the wrong `Text` overload. Hunt these by making
-///     the wrapper take `LocalizedStringKey`; the gate will not spot them.
+///     (`Text(_: StringProtocol)` does not localise at all) when the wrapper is
+///     not a same-file function forwarding into a renderer - stored-property
+///     components (a `struct` with `let title: String` that renders it) stay
+///     invisible; their callers must localise first, which the app does.
 ///   - Escaped interpolation nesting deeper than balanced parentheses, and
 ///     multi-line `"""` strings (none in the app target today).
 ///   - Strings in `ios/Tests` and `ios/App/UITests`: the gate is invoked with
@@ -116,8 +130,49 @@ public enum LocalizationGate {
                                                             kind: .stringExpressionLiteral))
                 }
             }
+            appendRoutedViolations(fileURL: url, text: text, catalogue: catalogue,
+                                   violations: &violations)
         }
         return violations.sorted { $0.file == $1.file ? $0.line < $1.line : $0.file < $1.file }
+    }
+
+    /// The RV.102 routed-literal pass, in its own function so `violations` stays
+    /// inside the body-length budget: a literal bound to a `String`-typed
+    /// parameter or local that a text renderer draws renders English-in-RU, and
+    /// a literal bound to a `LocalizedStringKey` forward is a key like any other.
+    private static func appendRoutedViolations(fileURL: URL, text: String,
+                                               catalogue: LocalizationCatalogue,
+                                               violations: inout [LocalizationViolation]) {
+        for routed in SourceScanner.routedLiterals(inFile: fileURL.path, text: text) {
+            let template = normalizeKey(routed.keyTemplate)
+            switch routed.kind {
+            case .checkMembership:
+                // A literal bound to a LocalizedStringKey-typed forward is a key
+                // by construction (RV.102): treat the learned helper exactly
+                // like a Text("…") call site.
+                guard let realKey = catalogue.keyTemplates[template] else {
+                    violations.append(LocalizationViolation(file: routed.file,
+                                                            line: routed.line,
+                                                            keyTemplate: template,
+                                                            kind: .noEntry))
+                    continue
+                }
+                if !catalogue.hasNonEmptyRu(template) {
+                    violations.append(LocalizationViolation(file: routed.file,
+                                                            line: routed.line,
+                                                            keyTemplate: realKey,
+                                                            kind: .ruMissing))
+                }
+            case .flagsEnglish:
+                // A literal bound to a String-typed forward renders English
+                // through `Text(_: String)` whatever the catalogue holds - the
+                // quickAction defect, caught at last.
+                violations.append(LocalizationViolation(file: routed.file,
+                                                        line: routed.line,
+                                                        keyTemplate: template,
+                                                        kind: .stringRoutedLiteral))
+            }
+        }
     }
 
     /// Normalises a catalogue key: every format specifier (`%lld`, `%@`,
@@ -153,6 +208,12 @@ public enum LocalizationViolationKind: Equatable, Sendable, CustomStringConverti
     /// `String` overload does not localise, so it renders English in Russian
     /// even though its key may exist in the catalogue (P5.3).
     case stringExpressionLiteral
+    /// A literal bound to a `String`-typed parameter or local that a text
+    /// renderer draws (`Label(title, …)` where the helper takes `_ title:
+    /// String`, or `let copy = "…"` fed to `Text(copy)`). The `String` overload
+    /// renders it verbatim, so it is English in Russian even when the catalogue
+    /// holds a translation (RV.102 - the `HomeEmptyStates.quickAction` shape).
+    case stringRoutedLiteral
 
     public var description: String {
         switch self {
@@ -160,6 +221,8 @@ public enum LocalizationViolationKind: Equatable, Sendable, CustomStringConverti
         case .ruMissing: return "entry has no Russian value"
         case .stringExpressionLiteral:
             return "literal inside a String-typed expression - Text(_: String) will not localise it"
+        case .stringRoutedLiteral:
+            return "literal routed through a String parameter or local into a text renderer - will not localise"
         }
     }
 }

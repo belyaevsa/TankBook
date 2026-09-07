@@ -210,6 +210,39 @@ a human reading rendered Russian can judge it. The pass is mutation-checked in
 concatenation; the recorded split fix clears it; an interpolated literal does
 not trip it; and the current tree passes with zero violations.
 
+**The routed-literal pass (RV.102, 2026-09-07).** The row that produced it: a
+green gate shipped two broken Russian strings - `HomeEmptyStates.quickAction`
+took `_ title: String` and handed it to `Label(title, systemImage:)`. `Label`
+has a `LocalizedStringKey` and a `String` initialiser; the `String` one renders
+the literal, so "Select car" and "Type it" rendered in ENGLISH on a Russian
+device while both translations sat in the catalogue and the gate reported 0
+violations (the keys existed - the defect was that they never reached a view).
+The fix (`bfad97c`) made the parameter `LocalizedStringKey`; this pass is the
+part that was NOT fixed by it. `RoutedLiteralScan` now flags a pure literal
+that reaches a text renderer (`Label`/`Text`/`Button`) only through a `String`
+type:
+- a **same-file helper** whose `String` parameter is forwarded into the
+  renderer, called with a literal (the `quickAction` shape) - `.flagsEnglish`;
+- a `let name = "literal"` **local** that a renderer then draws.
+
+The `LocalizedStringKey` twin of the helper shape is emitted as
+`.checkMembership`: a learned helper is treated exactly like a `Text("…")` call
+site, so its literal arguments must resolve in the catalogue. The sweep that
+shaped the rule counted **13** text-render helpers in the app that take a
+`String` title/text/label/message and draw it (cardActionButton, reasonButton,
+vitalColumn, outOfScopeCard, hintText, bar, chip, statusText, optionRow,
+failedCard, transportCard, figureRow's `value`, StatTile) - none is a live
+defect, because every caller localises first (`L10n.*`) or passes dynamic data;
+that localise-first convention is exactly why the rule fires on the CALL SITE
+argument's being a raw literal, never on the helper definition. What it still
+cannot see, written down so the limit stays known rather than assumed:
+interpolated literals bound to a `String` forward (a composed value - the
+false-positive guard that keeps `value: "\(count)"` quiet); a helper defined in
+a different file from its callers (the gate correlates within one file); and a
+stored-property wrapper (`struct` with `let title: String` that draws it), whose
+callers must keep localising first. Each blind spot is documented in the code
+at `RoutedLiteralScan.swift`.
+
 
 ## Two shapes that are legal Russian and still wrong (added 2026-08-28, from P6.1b)
 

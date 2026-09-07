@@ -23,14 +23,14 @@ import TankbookCore
 /// its parameter `LocalizedStringKey`, not `String`.
 ///
 /// P5.3 made the provable half of this a gate: `LocalizationGate` now flags a
-/// literal sitting inside a `String`-typed argument (`x ?? "…"`, a mixed
-/// ternary, a concatenation), and it found two live instances (the Provider /
-/// Vendor placeholders on Edit entry, both fixed). An interpolated literal
-/// (`Text("\(value) literal")`) is NOT the trap - the compiler routes it through
-/// `Text(_: LocalizedStringKey)` with a `%@` key (the `String` init is
-/// `@_disfavoredOverload`). `Text(someVariable)` with no literal at all needs
-/// value-flow analysis, so only a human reading the rendered Russian can judge
-/// it. Full audit and reasoning: `docs/LOCALIZATION.md`.
+/// literal inside a `String`-typed argument (`x ?? "…"`, a mixed ternary, a
+/// concatenation). An interpolated literal is NOT the trap - it routes through
+/// `Text(_: LocalizedStringKey)` with a `%@` key. RV.102 closed the wrapper
+/// half: a pure literal bound to a `String` parameter or local that a text
+/// renderer draws is now a violation, and a helper forwarding a
+/// `LocalizedStringKey` parameter checks its literal callers as keys.
+/// `Text(someVariable)` with no literal still needs value-flow analysis - only
+/// a human reading rendered Russian can judge it. Audit: `docs/LOCALIZATION.md`.
 enum L10n {
     static func localize(_ key: String) -> String {
         Bundle.main.localizedString(forKey: key, value: key, table: nil)
