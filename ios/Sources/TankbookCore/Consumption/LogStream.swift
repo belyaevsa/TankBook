@@ -310,6 +310,80 @@ public struct LogStream: Equatable, Sendable {
                          calendar: calendar, pendingRateCount: pendingRateCount)
     }
 
+    // MARK: - Whole-month reveal (RV.103)
+
+    /// One page of the reveal: the whole months shown by a reveal step. Months
+    /// are atomic - a boundary never splits one - so a month divider is only
+    /// ever shown above the month's complete rows (it never sums rows the user
+    /// cannot see), and a purchase group (a single collapsed row inside one
+    /// month) can never straddle a page boundary.
+    public struct RevealPage: Equatable, Sendable {
+        /// The whole months this page adds, newest first.
+        public let months: [Section]
+        /// How many of the stream's whole months are visible once this page is
+        /// revealed - the reveal's running position.
+        public let visibleMonthCount: Int
+        /// The whole months still hidden after this page.
+        public let hiddenMonths: [Section]
+        /// Entries (rows) still hidden after this page - the count a "show more"
+        /// affordance states (hard rule 7).
+        public let hiddenEntryCount: Int
+    }
+
+    /// The whole-month reveal pages of the stream: the first page shows the
+    /// newest whole months whose combined rows first reach `initialRowCount`
+    /// rows, and every later page adds the next whole months until
+    /// `pageRowCount` more rows are covered (or the stream ends). The union of
+    /// row ids across all pages equals the whole stream with no drop and no
+    /// duplicate. A month never spans two pages, so a divider is only ever
+    /// rendered above a complete month.
+    ///
+    /// Each page's `months` are the months THAT page adds (the first page's
+    /// `visibleMonthCount` is its own month count; the next page's is the
+    /// running total). Render `pages.prefix(k).flatMap(\.months)` to show the
+    /// newest `k` pages.
+    public func revealPages(initialRowCount: Int = 20, pageRowCount: Int = 20) -> [RevealPage] {
+        guard !sections.isEmpty else { return [] }
+        var pages: [RevealPage] = []
+        var cursor = 0
+        var cumulativeRows = 0
+        var nextTarget = max(initialRowCount, 1)
+        while cursor < sections.count {
+            let start = cursor
+            // Add whole months until the cumulative row count reaches the page
+            // target. A month is atomic: if one month alone overshoots the
+            // target, it is its own page - never split.
+            while cursor < sections.count, cumulativeRows < nextTarget {
+                cumulativeRows += sections[cursor].rows.count
+                cursor += 1
+            }
+            let months = Array(sections[start..<cursor])
+            let hidden = Array(sections[cursor...])
+            pages.append(RevealPage(months: months,
+                                    visibleMonthCount: cursor,
+                                    hiddenMonths: hidden,
+                                    hiddenEntryCount: Self.entryCount(of: hidden)))
+            nextTarget = cumulativeRows + max(pageRowCount, 1)
+        }
+        return pages
+    }
+
+    /// The number of entries a list of whole-month rows represents: an entry
+    /// row counts one, a purchase group counts its members (each receipt line
+    /// is an entry), and an S2 duplicate card counts its counted member once -
+    /// the excluded member never counts anywhere (docs/SYNC.md S2). Rows are the
+    /// count Home's "N older entries" affordance states.
+    public static func entryCount(of sections: [Section]) -> Int {
+        sections.reduce(0) { count, section in
+            count + section.rows.reduce(0) { partial, row in
+                switch row {
+                case .entry, .duplicate: return partial + 1
+                case .group(let group): return partial + group.members.count
+                }
+            }
+        }
+    }
+
     // MARK: - Construction
 
     private init(sections: [Section], calendar: Calendar, pendingRateCount: Int) {

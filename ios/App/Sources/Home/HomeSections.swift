@@ -281,8 +281,12 @@ struct HomeVitalsRow: View {
 ///   docs/SCHEMA.md CHECK 3): the group shows the grand total, the fuel row
 ///   inside it shows the fuel amount.
 ///
-/// This is the Home preview, not the full Log stream screen (P1.6): the newest
-/// `previewLimit` rows.
+/// This is the Log: the Log tab is Home (`AppTabBar.log == 0`) and this list is
+/// the whole stream surface - no separate full-stream screen exists. RV.103: it
+/// opens with the newest whole months that cover `previewLimit` rows, and a
+/// "show N older entries" reveal grows it in whole-month pages to the full
+/// history - a divider only ever sums rows shown beneath it, never a partial
+/// month, and a purchase group is never split across a reveal step.
 struct HomeRecentEntries: View {
     let entries: [any Entry]
     let stations: [Station]
@@ -307,17 +311,16 @@ struct HomeRecentEntries: View {
     /// server had not published yet can be asked for now.
     let onCheckRates: () -> Void
 
-    /// Home is a preview: the newest rows before the full-stream screen (P1.6)
-    /// takes over.
+    /// The reveal's first-page floor: the preview opens with the newest whole
+    /// months whose combined rows first reach this many rows, and each later
+    /// reveal adds whole months covering the same count again. Rows are never
+    /// the cut - whole months are - so this is a floor, not a hard cap.
     private static let previewLimit = 20
 
     @State private var collapsedGroupIDs: Set<UUID> = []
-
-    private var stream: LogStream {
-        LogStream(vehicle: vehicle, entries: entries,
-                  duplicateResolutions: duplicateResolutions)
-            .previewRows(Self.previewLimit)
-    }
+    /// Reveal pages shown: 1 = the preview (newest whole months covering
+    /// `previewLimit` rows); the load-more row in `+LogStream` grows it.
+    @State var revealedPageCount = 1
 
     private var volumeUnit: VolumeUnit { vehicle.units.volume }
     private var distanceUnit: DistanceUnit { vehicle.units.distance }
@@ -329,7 +332,11 @@ struct HomeRecentEntries: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        let reveal = HomeLogReveal(vehicle: vehicle, entries: entries,
+                                   duplicateResolutions: duplicateResolutions,
+                                   pageCount: revealedPageCount,
+                                   initialRowCount: Self.previewLimit)
+        return VStack(alignment: .leading, spacing: 10) {
             if excludedEntryCount > 0 {
                 excludedFootnote
             }
@@ -338,11 +345,21 @@ struct HomeRecentEntries: View {
                                      identifier: "homePendingRatesFootnote",
                                      onCheck: onCheckRates)
             }
-            ForEach(stream.sections) { section in
+            ForEach(reveal.months) { section in
                 monthSection(section)
+            }
+            // RV.103: the door past the preview, below the last visible month
+            // (hard rule 7), only while older entries are hidden.
+            if reveal.hiddenEntryCount > 0 {
+                loadMoreRow(reveal.hiddenEntryCount)
             }
         }
         .padding(.top, 6)
+        .onChange(of: vehicle.id) { _, _ in
+            // The reveal belongs to a car's history: a switched car starts from
+            // its own preview again, never inheriting another car's expansion.
+            revealedPageCount = 1
+        }
     }
 
     // MARK: Month sections

@@ -45,6 +45,8 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 **Success metric:** import completion rate ≥90% once a file is opened; zero support tickets about corrupted history.
 
+**RV.103 (2026-09-07): "see my imported history" works in place.** Before the reveal, Home's list ended after its newest ~20 rows with no way past them, so a committed decade was present (counted in every derived figure) yet impossible to scroll - the owner hit this on their own 513-row import. Now the Log tab (which IS Home) opens with the newest whole months and grows past a "Show N older entries" row at the list's end, adding whole months per tap until the whole history is shown; the reveal survives a same-car reload and resets on a car switch. A period/year filter is a separate, unbuilt affordance (SCREENMAP.md, the RV.103 note); a month divider's total never changes as the log grows, because a page never splits a month.
+
 ---
 
 ## Core loop

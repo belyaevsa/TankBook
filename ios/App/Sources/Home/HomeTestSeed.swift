@@ -63,7 +63,9 @@ enum HomeTestSeed {
             ("-seedHomeRemindersDue", RemindersEntryTestSeed.seedDue),
             ("-seedHomeRemindersNothingDue", RemindersEntryTestSeed.seedNothingDue),
             ("-seedHomeGarageCounts", RemindersEntryTestSeed.seedGarageCounts),
-            ("-seedHomeMultiYearLog", seedMultiYearLog)
+            ("-seedHomeMultiYearLog", seedMultiYearLog),
+            ("-seedHomeRV103LongLog", RV103HomeTestSeed.seedLongLog),
+            ("-seedHomeRV103Reveal", RV103HomeTestSeed.seedRevealHistory)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }

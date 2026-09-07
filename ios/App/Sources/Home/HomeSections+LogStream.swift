@@ -1,13 +1,80 @@
 import SwiftUI
 import TankbookCore
 
-// MARK: - RV.106 the month divider's honest figure
+// MARK: - RV.103 the whole-month reveal behind the preview
 
-/// The log-stream month divider, split into its own file so `HomeSections.swift`
-/// stays under the lint ceiling (700). Same struct, same members - the three
-/// divider methods live here because RV.106 grew them and they are one concern:
-/// a month whose rows are still waiting on a rate must never print a bare `0 €`.
+/// Scroll targets inside the log stream, for the DEBUG screenshot hook that
+/// parks Home at the reveal seam (`-homeScrollLogReveal`). Kept beside the
+/// reveal code that carries the seam.
+enum HomeLogRevealAnchor {
+    /// The load-more row's own view identity - the seam between the visible
+    /// whole months and the hidden ones.
+    static let seamID = "homeLogRevealSeam"
+}
+
+/// The visible slice of the log stream for a reveal state. Built over the
+/// stream's whole months, so every month divider that renders sits above a
+/// complete month (it sums exactly the rows beneath it - the divider-honesty
+/// fence), and a purchase group (one collapsed row inside one month) is never
+/// split by a page boundary.
+struct HomeLogReveal {
+    /// The whole months currently visible, newest first.
+    let months: [LogStream.Section]
+    /// Entries still hidden behind the reveal - what the load-more affordance
+    /// counts (hard rule 7).
+    let hiddenEntryCount: Int
+
+    init(vehicle: Vehicle, entries: [any Entry],
+         duplicateResolutions: Set<DuplicateDetector.PairKey>,
+         pageCount: Int, initialRowCount: Int) {
+        let stream = LogStream(vehicle: vehicle, entries: entries,
+                               duplicateResolutions: duplicateResolutions)
+        let pages = stream.revealPages(initialRowCount: initialRowCount,
+                                       pageRowCount: initialRowCount)
+        guard !pages.isEmpty else {
+            months = []
+            hiddenEntryCount = 0
+            return
+        }
+        let shown = min(max(pageCount, 1), pages.count)
+        months = pages.prefix(shown).flatMap(\.months)
+        hiddenEntryCount = pages[shown - 1].hiddenEntryCount
+    }
+}
+
 extension HomeRecentEntries {
+
+    /// RV.106 month-divider and RV.103 reveal pieces live in this file so
+    /// `HomeSections.swift` stays under the lint ceiling (700). Same struct,
+    /// same members - the divider methods and the load-more row are one
+    /// concern: the Log stream's honest, whole-month rendering.
+
+    /// The "Show N older entries" row, rendered as the last element of the
+    /// visible log while the reveal has hidden months left (hard rule 7).
+    /// Tapping reveals the next whole-month page; when the whole log is shown
+    /// the row disappears. Carried in this extension file (not the struct's
+    /// own) purely to keep `HomeSections.swift` under the lint ceiling.
+    func loadMoreRow(_ hiddenEntryCount: Int) -> some View {
+        Button {
+            revealedPageCount += 1
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "chevron.down")
+                    .font(.caption.weight(.semibold))
+                Text(L10n.olderEntries(hiddenEntryCount))
+                    .font(.caption.weight(.semibold))
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(Theme.Palette.action)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("homeLogOlderButton")
+        .id(HomeLogRevealAnchor.seamID)
+    }
+
     /// The month's divider: name on the left, the month's total spend in DIN on
     /// the right (docs/DESIGN.md); the name carries the year outside the current
     /// one (RV.89). One accessibility element, label a full localised phrase.

@@ -89,48 +89,67 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                header
-                if let flagged = sync.lastBatchFlaggedEntries {
-                    syncFlaggedToast(count: flagged)
-                } else if presentables.syncToast {
-                    HomeSyncToast()
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 9) {
+                    header
+                    if let flagged = sync.lastBatchFlaggedEntries {
+                        syncFlaggedToast(count: flagged)
+                    } else if presentables.syncToast {
+                        HomeSyncToast()
+                    }
+                    content
                 }
-                content
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                // The owned tab bar insets the scroll content via
+                // `safeAreaInset(edge: .bottom)`, but its raised capture circle
+                // sits above that inset; this clearance keeps the last row clear of
+                // it (verified by the L4 "last row clears the tab bar" assertion).
+                .padding(.bottom, AppTabBar.contentBottomClearance)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            // The owned tab bar insets the scroll content via
-            // `safeAreaInset(edge: .bottom)`, but its raised capture circle
-            // sits above that inset; this clearance keeps the last row clear of
-            // it (verified by the L4 "last row clears the tab bar" assertion).
-            .padding(.bottom, AppTabBar.contentBottomClearance)
-        }
-        .scrollDismissesKeyboard(.immediately)
-        .background(Theme.Palette.midnight)
-        .task { await load() }
-        .onChange(of: carSelection.selectedID) { _, _ in
-            // A car switch from the switcher sheet or the garage-card swipe:
-            // reload so Home, the log stream and Trends all show the SAME car
-            // (the selected-car invariant, P1.11).
-            Task { await load() }
-        }
-        .onChange(of: toastCenter.revision) { _, _ in
-            // An edit saved (with or without a delta toast) changed the data:
-            // reload so the derived stats and the log reflect it immediately.
-            Task { await load() }
-        }
-        .onAppear {
-            // Returning from a pushed screen (the Reminders list, an edit) can
-            // change data Home does not observe through `toastCenter` - most
-            // importantly a reminder completed in the list, which must retire
-            // its banner on the way back (hard rule 2: the banner is derived,
-            // so it re-derives). First appearance is `.task`'s job (`didSeed`
-            // is still false then), exactly like the Reminders list's own
-            // `onAppear { if didLoad { reload() } }`.
-            if didSeed { Task { await load() } }
+            .scrollDismissesKeyboard(.immediately)
+            .background(Theme.Palette.midnight)
+            .task { await load() }
+            .onChange(of: carSelection.selectedID) { _, _ in
+                // A car switch from the switcher sheet or the garage-card swipe:
+                // reload so Home, the log stream and Trends all show the SAME car
+                // (the selected-car invariant, P1.11).
+                Task { await load() }
+            }
+            .onChange(of: toastCenter.revision) { _, _ in
+                // An edit saved (with or without a delta toast) changed the data:
+                // reload so the derived stats and the log reflect it immediately.
+                Task { await load() }
+            }
+            .onAppear {
+                // Returning from a pushed screen (the Reminders list, an edit) can
+                // change data Home does not observe through `toastCenter` - most
+                // importantly a reminder completed in the list, which must retire
+                // its banner on the way back (hard rule 2: the banner is derived,
+                // so it re-derives). First appearance is `.task`'s job (`didSeed`
+                // is still false then), exactly like the Reminders list's own
+                // `onAppear { if didLoad { reload() } }`.
+                if didSeed { Task { await load() } }
+                #if DEBUG
+                scrollToRevealSeamIfRequested(proxy)
+                #endif
+            }
         }
     }
+
+    #if DEBUG
+    /// Screenshot hook (RV.103): `-homeScrollLogReveal` parks the Home scroll
+    /// view at the whole-month reveal seam - the load-more row that only exists
+    /// while a car's history outgrows the preview. The reveal renders after the
+    /// async load, so the scroll is deferred until the seeded log is on screen.
+    /// Screenshot-only; no test drives it (`simctl` cannot scroll).
+    private func scrollToRevealSeamIfRequested(_ proxy: ScrollViewProxy) {
+        guard ProcessInfo.processInfo.arguments.contains("-homeScrollLogReveal") else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            proxy.scrollTo(HomeLogRevealAnchor.seamID, anchor: .bottom)
+        }
+    }
+    #endif
 
     /// The guest Home (design/screens/GuestHome.dc.html) is the no-account
     /// state: no session in the Keychain - the app's source of truth for

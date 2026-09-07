@@ -66,7 +66,6 @@ flowchart TD
     Home -->|reminder banner| Reminders
     Home -->|entry tap| EditEntry
     Home -->|duplicate / conflict card| EditEntry
-    Home -->|All entries → entry| EditEntry
 
     subgraph CaptureFlow["Capture (modal)"]
         Capture -->|shutter / Photos| CaptureReview
@@ -328,6 +327,33 @@ would also scope it silently to the selected car; the Home banner (amber is atte
 planning into triage is what hard rule 5 guards against); the Garage car row, whose count is a
 diagnostic and whose job is picking a car; and a second "+" on Vehicle detail, one hop from a card
 that already creates with the car filled in.
+
+### The Log is Home: the whole-month reveal (RV.103)
+
+**The Log tab is Home** (`AppTabBar.log = 0`), and Home's entry list is the ONLY stream surface -
+the "full Log stream screen" that the old Home comment promised behind "All entries" was never
+built. A user who imports a decade of history (J2) used to see its newest ~20 rows and nothing
+else: the rows were in the database, counted in every derived figure, and impossible to look at
+(RV.103, reported against the owner's own 513-row MFM import).
+
+**The shape chosen is (a) load-more in whole-month pages, not (b) a full-stream screen.** The
+preview opens with the newest whole months whose combined rows first reach ~20 rows; a
+"Show N older entries" row sits at the seam - the last element of the visible log - and each tap
+adds the next whole months. Two fences make the pages safe, and both are structural:
+
+- **A month is atomic.** A page boundary never splits a month, so a divider is only ever rendered
+  above a COMPLETE month and always sums exactly the rows shown beneath it - the divider-honesty
+  fence (a row-cut preview used to end mid-month with its rows silently missing). A purchase group
+  (one collapsed row inside one month) can therefore never straddle a page.
+- **The reveal is preserved per car.** Revealing the whole log and then editing an entry reloads
+  without collapsing back to the preview; switching cars starts the new car's preview afresh.
+
+The affordance follows hard rule 7: it states the real remaining count ("Show 340 older entries"),
+so an end of the visible log that is not the end of the data says so, and it retires itself when
+nothing is hidden. No artboard exists for it; it is built from Home's own vocabulary (the caption
+action row, chevron + `Theme.Palette.action`), the RV.86 precedent for an artboard-less member.
+The year/period filter the owner also asked for (option (c)) is deliberately NOT built here - the
+reveal removes the wall; a filter is a separate affordance and a separate row.
 
 ### Saving inside capture (RV.12)
 
