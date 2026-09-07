@@ -7,11 +7,17 @@ import UIKit
 /// the queue file. DEBUG/test seams mirror the ImportService pattern - a stub
 /// transport for the offline/429 states and a consent seed, so UI tests and
 /// screenshots never touch a server or a real preference.
+///
+/// One outbox serves the whole app (RV.127). `outbox` is the single instance:
+/// the launch/foreground automatic pass (`AppRootView.runAutomaticPass`) drains
+/// it, and the About composer submits through the SAME instance. A second
+/// outbox over the same queue file would each load their own copy of the queue
+/// and double-POST on a flush racing a submit.
 @MainActor
 enum FeedbackService {
 
-    /// Builds the About composer's model over the one outbox, so the toggle
-    /// writes through to the same consent store the queue reads.
+    /// Builds the About composer's model over the app's one outbox, so the
+    /// toggle writes through to the same consent store the queue reads.
     static func makeModel(arguments: [String] = ProcessInfo.processInfo.arguments) -> FeedbackModel {
         let consentStore = FeedbackConsentStore()
         #if DEBUG
@@ -19,12 +25,48 @@ enum FeedbackService {
             consentStore.setConsented(true)
         }
         #endif
-        let outbox = makeOutbox(consentStore: consentStore, arguments: arguments)
         return FeedbackModel(outbox: outbox, consentStore: consentStore,
                              appVersion: appVersion(), deviceModel: deviceModel())
     }
 
-    /// Builds the one outbox the About screen submits through.
+    /// The app's ONE feedback outbox, built once per process and returned for
+    /// every caller. The transport and consent seams are launch arguments, so
+    /// building at first use honours them unchanged. Memoized so the automatic
+    /// pass and the About composer can never hold two outboxes over one file.
+    static var outbox: FeedbackOutbox {
+        if let cachedOutbox { return cachedOutbox }
+        #if DEBUG
+        feedbackQueueResetIfRequested()
+        #endif
+        let built = makeOutbox(consentStore: FeedbackConsentStore())
+        cachedOutbox = built
+        return built
+    }
+
+    private static var cachedOutbox: FeedbackOutbox?
+
+    /// Clears the persisted queue BEFORE the outbox loads it, so a test run
+    /// starts with an empty queue. The queue file outlives `-homeResetDatabase`
+    /// (which wipes only the database), so a queued "Test feedback" row from an
+    /// earlier queued-offline UI test would otherwise ride every later launch -
+    /// and RV.127's foreground flush would POST it to the real endpoint from an
+    /// unseeded run (an app-hosted unit test), which is exactly how seeded-launch
+    /// hygiene is supposed to stop: no test ever writes to production.
+    ///
+    /// Two triggers: `-feedbackQueueReset` (UI tests and screenshots) and the
+    /// XCTest unit-test host, which `xcodebuild test` launches unseeded and with
+    /// `XCTestConfigurationFilePath` set. Harmless when the queue is already
+    /// empty, which is the state production launches are in.
+    #if DEBUG
+    static func feedbackQueueResetIfRequested(_ arguments: [String] = ProcessInfo.processInfo.arguments) {
+        let unitTestHost = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+        guard arguments.contains("-feedbackQueueReset") || unitTestHost else { return }
+        try? FileManager.default.removeItem(at: queueFileURL())
+    }
+    #endif
+
+    /// Builds the concrete outbox wiring (transport, client, queue) that
+    /// `outbox` memoizes.
     static func makeOutbox(consentStore: FeedbackConsentStore,
                            arguments: [String] = ProcessInfo.processInfo.arguments) -> FeedbackOutbox {
         let transport: any TankbookHTTPTransport
@@ -73,13 +115,19 @@ enum FeedbackService {
     /// case survives a relaunch (hard rule 8, docs/SECURITY.md -> at-rest
     /// protection).
     private static func queueStore() -> any FeedbackQueueStore {
+        FileFeedbackQueueStore(fileURL: queueFileURL())
+    }
+
+    /// The queue file's URL, under the same Application Support container the
+    /// database lives in. Also the reset seam's target (`-feedbackQueueReset`).
+    private static func queueFileURL() -> URL {
         let directory = (try? FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: true))
             ?? FileManager.default.temporaryDirectory
         let container = directory.appendingPathComponent("Tankbook", isDirectory: true)
         try? FileManager.default.createDirectory(at: container, withIntermediateDirectories: true)
-        return FileFeedbackQueueStore(fileURL: container.appendingPathComponent("feedback-queue.json"))
+        return container.appendingPathComponent("feedback-queue.json")
     }
 
     /// The `X-Device-Id` for feedback attribution (docs/API.md): the signed-in

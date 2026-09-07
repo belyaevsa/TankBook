@@ -39,6 +39,7 @@ final class ReleaseSeedGateTests: XCTestCase {
         "ImportCancelFirstTransport", "ImportScenarioTransport",
         "AccountStubTransport", "FailingAccountTransport", "RateStubTransport",
         "FailingFeedbackTransport", "RateLimitedFeedbackTransport",
+        "feedbackQueueResetIfRequested",
         "stubSession", "seedSessionAtLaunchIfRequested", "resetForTestsOncePerLaunch",
         "resetForTestsIfRequested", "seedAttachSuggestionIfRequested",
         "StubIDTokenProvider", "StubAuthService", "StubRestoreProvider",

@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import os
 @testable import TankbookCore
 
 // Tests for ios/Sources/TankbookCore/Feedback - the About & feedback feature
@@ -36,8 +37,12 @@ private struct StubFeedbackTransport: TankbookHTTPTransport {
 }
 
 private func makeClient(_ behavior: StubFeedbackTransport.Behavior) -> FeedbackClient {
+    makeClient(transport: StubFeedbackTransport(behavior: behavior))
+}
+
+private func makeClient(transport: any TankbookHTTPTransport) -> FeedbackClient {
     FeedbackClient(
-        httpClient: TankbookHTTPClient(transport: StubFeedbackTransport(behavior: behavior),
+        httpClient: TankbookHTTPClient(transport: transport,
                                        tokenProvider: NoTokenProvider()),
         director: testDirector(),
         deviceID: "device-test-0001")
@@ -47,10 +52,13 @@ private func makeOutbox(_ behavior: StubFeedbackTransport.Behavior,
                         consentStore: FeedbackConsentStore,
                         sink: InMemorySink) -> FeedbackOutbox {
     let queue = FeedbackQueue(consentStore: consentStore, store: InMemoryFeedbackQueueStore())
-    let log = TankbookLog(sink: sink, context: {
+    return FeedbackOutbox(client: makeClient(behavior), queue: queue, log: testLog(sink: sink))
+}
+
+private func testLog(sink: InMemorySink) -> TankbookLog {
+    TankbookLog(sink: sink, context: {
         LogContext(deviceId: "device-test-0001", appVersion: "9.9.9-test", platform: "ios")
     })
-    return FeedbackOutbox(client: makeClient(behavior), queue: queue, log: log)
 }
 
 private func makeConsentStore() -> (store: FeedbackConsentStore, suite: String) {
@@ -229,4 +237,175 @@ private func sweptFields(_ line: LogLine) -> String {
     for value in forbidden {
         #expect(!output.contains(value), "leaked domain value: \(value)")
     }
+}
+
+// MARK: - The flush (RV.127): a queued case is retried on the NEXT foreground
+//
+// The automatic retry lives in the app's launch/foreground pass; these pin the
+// outbox half of the promise - flush() sends what a prior session queued. Every
+// "next pass" below is a BRAND-NEW outbox built over the same persisted file,
+// never a leftover in-memory array: "it is still there from earlier in the test"
+// would prove nothing about a real relaunch. The trigger half (that the pass
+// calls flush) is pinned in the app target (`FeedbackForegroundFlushTests`).
+
+private func temporaryQueueFile() -> (store: FileFeedbackQueueStore, url: URL) {
+    let url = FileManager.default.temporaryDirectory
+        .appendingPathComponent("feedback-flush-\(UUID().uuidString).json")
+    return (FileFeedbackQueueStore(fileURL: url), url)
+}
+
+private func makeFileOutbox(_ transport: any TankbookHTTPTransport,
+                            consentStore: FeedbackConsentStore,
+                            sink: InMemorySink,
+                            store: FileFeedbackQueueStore) -> FeedbackOutbox {
+    let queue = FeedbackQueue(consentStore: consentStore, store: store)
+    return FeedbackOutbox(client: makeClient(transport: transport), queue: queue,
+                          log: testLog(sink: sink))
+}
+
+/// Counts send attempts and answers every one with the given behaviour.
+private final class CountingFeedbackTransport: TankbookHTTPTransport, @unchecked Sendable {
+    enum Behavior { case success, offline }
+    private let behavior: Behavior
+    private let lock = OSAllocatedUnfairLock(initialState: 0)
+
+    init(_ behavior: Behavior) { self.behavior = behavior }
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        lock.withLock { $0 += 1 }
+        switch behavior {
+        case .success: return TankbookHTTPResponse(status: 202)
+        case .offline: throw URLError(.notConnectedToInternet)
+        }
+    }
+
+    func callCount() -> Int { lock.withLock { $0 } }
+}
+
+/// Holds every send until `open()` - an overlapping-flush race becomes
+/// deterministic state rather than a timing accident.
+private actor FeedbackSendGate {
+    private var started = 0
+    private var isOpen = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func signalStarted() { started += 1 }
+    var startedCount: Int { started }
+
+    func wait() async {
+        if isOpen { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func open() {
+        isOpen = true
+        waiters.forEach { $0.resume() }
+        waiters.removeAll()
+    }
+}
+
+/// Answers every send with `202`, but only once `open()` lets it through, and
+/// counts how many sends actually left.
+private final class GatedFeedbackTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private let gate: FeedbackSendGate
+    private let lock = OSAllocatedUnfairLock(initialState: 0)
+
+    init(gate: FeedbackSendGate) { self.gate = gate }
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        lock.withLock { $0 += 1 }
+        await gate.signalStarted()
+        await gate.wait()
+        return TankbookHTTPResponse(status: 202)
+    }
+
+    func callCount() -> Int { lock.withLock { $0 } }
+}
+
+// MARK: - RV.127: the flush sends what a prior session queued
+
+/// An item queued and persisted offline is sent by the next flush STARTING FROM
+/// A COLD STATE: the second outbox is built over the same file with no memory of
+/// the first instance, exactly like a real relaunch.
+@Test func flushSendsAPersistedQueuedCaseFromAColdStart() async throws {
+    let (storeFile, url) = temporaryQueueFile()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let (consent, _) = makeConsentStore()
+    consent.setConsented(true)
+    let (payload, _) = populatedPayload()
+
+    // Phase 1 - "today's offline session": submit fails and leaves the case in
+    // the FILE. Nothing about phase 1's instances may survive into phase 2.
+    let first = makeFileOutbox(CountingFeedbackTransport(.offline),
+                               consentStore: consent, sink: InMemorySink(), store: storeFile)
+    #expect(await first.submit(payload) == .queued(reason: .offline))
+    #expect(storeFile.load().count == 1, "the failed send must be persisted, not dropped")
+
+    // Phase 2 - "next launch": a brand-new outbox over the SAME file. flush()
+    // must send the persisted case and clear it.
+    let sending = CountingFeedbackTransport(.success)
+    let second = makeFileOutbox(sending, consentStore: consent,
+                                sink: InMemorySink(), store: storeFile)
+    await second.flush()
+
+    #expect(sending.callCount() == 1, "the persisted case must be sent once")
+    #expect(storeFile.load().isEmpty, "a sent case must leave the persisted queue")
+}
+
+/// A flush with no connectivity leaves the item queued, not dropped - the retry
+/// is the next foreground, and dropping would violate hard rule 8.
+@Test func flushWithoutConnectivityKeepsTheCaseQueued() async throws {
+    let (storeFile, url) = temporaryQueueFile()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let (consent, _) = makeConsentStore()
+    consent.setConsented(true)
+    let (payload, _) = populatedPayload()
+
+    let first = makeFileOutbox(CountingFeedbackTransport(.offline),
+                               consentStore: consent, sink: InMemorySink(), store: storeFile)
+    #expect(await first.submit(payload) == .queued(reason: .offline))
+
+    let offlineAttempt = CountingFeedbackTransport(.offline)
+    let second = makeFileOutbox(offlineAttempt, consentStore: consent,
+                                sink: InMemorySink(), store: storeFile)
+    await second.flush()
+
+    #expect(offlineAttempt.callCount() == 1, "the next pass must try the queued case")
+    #expect(storeFile.load().count == 1,
+            "no connectivity must keep the case queued for the pass after that")
+}
+
+/// A flush that races a manual retry (a second flush arriving mid-send) POSTs
+/// the queued case exactly once. Without the in-flight guard both flushes read
+/// the same pending snapshot and double-post - the assertion below counts sends.
+@Test func flushThatRacesAManualRetryPostsOnce() async throws {
+    let (storeFile, url) = temporaryQueueFile()
+    defer { try? FileManager.default.removeItem(at: url) }
+    let (consent, _) = makeConsentStore()
+    consent.setConsented(true)
+    let (payload, _) = populatedPayload()
+
+    let seeder = makeFileOutbox(CountingFeedbackTransport(.offline),
+                                consentStore: consent, sink: InMemorySink(), store: storeFile)
+    #expect(await seeder.submit(payload) == .queued(reason: .offline))
+
+    let gate = FeedbackSendGate()
+    let transport = GatedFeedbackTransport(gate: gate)
+    let outbox = makeFileOutbox(transport, consentStore: consent,
+                                sink: InMemorySink(), store: storeFile)
+
+    // The foreground flush starts and its send is on the wire (stalled on the
+    // gate); a manual retry - a second flush - arrives while it is in flight.
+    async let foreground: Void = outbox.flush()
+    while await gate.startedCount == 0 {
+        try? await Task.sleep(for: .milliseconds(1))
+    }
+    async let manualRetry: Void = outbox.flush()
+    await gate.open()
+    await foreground
+    await manualRetry
+
+    #expect(transport.callCount() == 1,
+            "one queued case must be POSTed once across a racing flush and retry")
+    #expect(storeFile.load().isEmpty, "the case is sent, not duplicated")
 }

@@ -80,7 +80,7 @@ struct AppRootView: View {
     @State private var trendsModal: ModalRoute?
     @State private var garageModal: ModalRoute?
     @State private var didRunStartupPurge = false
-    /// RV.59: whether the automatic pass (config, sync, rates, outbox) has run
+    /// RV.59: whether the automatic pass (config, sync, rates, the two outboxes) has run
     /// for the CURRENT activation. Set before the pass's first await so a burst
     /// of `.active` transitions runs one pass, not one each; reset when the
     /// scene resigns so the next real foreground runs it again. This is the
@@ -316,8 +316,8 @@ struct AppRootView: View {
             // PJ.5/RV.78: replay a tap/action via the delegate's own handle.
             NotificationReplayDriver.driveIfRequested()
             #endif
-            // RV.59: the automatic pass (config, sync, rates, outbox) is OWNED
-            // by the `scenePhase == .active` transition below - launch
+            // RV.59: the automatic pass (config, sync, rates, the two outboxes)
+            // is OWNED by the `scenePhase == .active` transition below - launch
             // transitions to `.active`, so the launch pass fires there exactly
             // once, and every real foreground after a resign fires it again.
             // Previously the same work ran from BOTH this `.task` AND the launch
@@ -503,7 +503,7 @@ struct AppRootView: View {
     ///   gated by RV.18's `OpportunisticSyncPolicy` so an `.active` burst is one
     ///   cycle, and still frozen under `-freezeSyncState` (P6.21),
     /// - the rate pack refresh + S8 backfill (PJ.8),
-    /// - the delivery-outbox drain (RV.44).
+    /// - the delivery-outbox drain (RV.44) and the feedback-outbox flush (RV.127).
     ///
     /// The callers that decide WHEN this runs are the `.task` fallback (a scene
     /// already `.active` at attach, where no `.active` transition will arrive)
@@ -519,14 +519,10 @@ struct AppRootView: View {
         // exists now - the fire date is the next 1st at 10:00, so a launch after
         // more entries refreshes the figure by identifier.
         await notificationCoordinator.reconcileMonthlySummary()
-        // P6.8: the automatic cycle passes `.background`, so it defers while Low
-        // Power Mode is on and is registered with the resumer, which drains it
-        // when the mode ends - never gated on anything a user tapped, never a
-        // second door into sync (hard rule 1: the automatic cycle and the
-        // Settings button both go through `syncNow`). P6.21: a SCREENSHOT launch
-        // freezes the seeded sync state - only `-freezeSyncState`, passed by
-        // capture-screenshots.sh, skips the cycle; a blanket seed skip broke
-        // testLowPowerReasonVanishesWhenTheModeEnds.
+        // P6.8: the cycle defers while Low Power Mode is on and drains when the
+        // mode ends (docs/SYNC.md); the automatic cycle and the Settings button
+        // both go through `syncNow`, never a second door (hard rule 1). P6.21:
+        // only a screenshot launch (`-freezeSyncState`) skips it.
         if !Self.freezesSyncState {
             await sync.runOpportunisticSync()
         }
@@ -538,6 +534,9 @@ struct AppRootView: View {
         // Signed-in only and best-effort: a guest has no outbox and a failure
         // just retries next launch.
         await inbox.drainOutbox()
+        // RV.127: retry queued feedback on the same cadence; best-effort, a
+        // failure stays queued for the next foreground (hard rule 8).
+        await FeedbackService.outbox.flush()
     }
 
     /// The delta toast sits just above the owned bar (and its raised circle):

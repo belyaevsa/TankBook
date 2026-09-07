@@ -14,7 +14,10 @@ final class AboutUITests: XCTestCase {
 
     private func launch(_ arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
-        app.launchArguments = ["-homeResetDatabase"] + arguments
+        // `-feedbackQueueReset`: the queue file outlives `-homeResetDatabase`, so
+        // a queued row from an earlier queued-offline test would otherwise ride
+        // this launch - and RV.127's foreground flush posts it on unseeded runs.
+        app.launchArguments = ["-homeResetDatabase", "-feedbackQueueReset"] + arguments
         app.launch()
         return app
     }

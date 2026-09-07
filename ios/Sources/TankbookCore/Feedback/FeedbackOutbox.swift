@@ -30,6 +30,11 @@ public actor FeedbackOutbox {
     private let client: FeedbackClient
     private let queue: FeedbackQueue
     private let log: TankbookLog
+    /// True from the start of a `flush()` to its end. The outbox is an actor,
+    /// but reentrancy across the network `await` would let a second `flush()`
+    /// read the same pending snapshot and double-POST a case; the flag collapses
+    /// an overlapping flush to a no-op.
+    private var isFlushing = false
 
     public init(client: FeedbackClient, queue: FeedbackQueue, log: TankbookLog) {
         self.client = client
@@ -47,10 +52,19 @@ public actor FeedbackOutbox {
         return await send(payload, id: id)
     }
 
-    /// Re-attempts every queued case (called when connectivity returns or on a
-    /// later foreground). Stops at the first failure - the queue preserves
-    /// order and a rate limit applies to the whole remaining window.
+    /// Re-attempts every queued case on the app's launch/foreground automatic
+    /// pass (`AppRootView.runAutomaticPass`, RV.127) - the queue preserves order
+    /// and a rate limit applies to the whole remaining window, so a failure
+    /// stops the pass and the case retries on the next foreground. Best-effort
+    /// and never user-visible: a case that fails again stays queued.
+    ///
+    /// Idempotent under overlap: a manual retry that races this flush returns
+    /// immediately and drains nothing, because the in-flight flush already took
+    /// the pending snapshot - so one queued case is never POSTed twice.
     public func flush() async {
+        guard !isFlushing else { return }
+        isFlushing = true
+        defer { isFlushing = false }
         for item in await queue.pending() {
             let outcome = await send(item.payload, id: item.id)
             if case .queued = outcome { return }
