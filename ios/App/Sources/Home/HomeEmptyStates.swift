@@ -111,7 +111,16 @@ struct HomeNoCarLayout: View {
         .formCard()
     }
 
-    private func quickAction(_ title: String, systemImage: String,
+    /// RV.100: `title` is a `LocalizedStringKey`, NOT a `String`. `Label` has
+    /// both initialisers, and the `String` one does not localise - so "Select
+    /// car" and "Type it" rendered in ENGLISH on a Russian device while their
+    /// translations sat in the catalog, unused (hard rule 10). "Edit entry",
+    /// written as a literal in the body below, took the LocalizedStringKey
+    /// overload and was correct - which is what made the bug visible: two rows
+    /// English, one Russian, in one card. The localization gate reports 0
+    /// violations here because the KEYS exist and are translated; nothing but
+    /// an opened RU screenshot catches a key that never reaches the screen.
+    private func quickAction(_ title: LocalizedStringKey, systemImage: String,
                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)

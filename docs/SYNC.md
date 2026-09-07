@@ -367,6 +367,58 @@ Device A deletes the sold Volvo entirely; device B, offline, logs one last fill-
 - **Transport:** B's new fill-up references a tombstoned vehicle → the vehicle resurrects as **archived**, entry attached.
 - **Screens:** quiet notice card in the Garage: "Volvo V60 came back from another device with 1 new entry – it stays archived. Delete again?" One tap re-deletes; nothing is lost silently.
 
+### S5a · The LAST car deleted - does the empty garage survive a pull? (RV.100, answered 2026-09-07)
+
+Device A deletes its only car (typed confirmation, RV.98/RV.99); the tombstones
+(vehicle + every vehicle-scoped entry and reminder, one stamp) push like any
+other change. Device B pulls them. The product owner's question: must not B
+resurrect the car, or keep rendering it after it is gone? **Established from
+`SyncEngine.applyPull` + `Repository+Sync.apply`, verified by a deterministic
+L1 scenario - not guessed:**
+
+- **The tombstones push**, ordered by `fetchDirtyRows`: it iterates the synced
+  tables in registry order (**`vehicle` first**), then stable-sorts by
+  `updatedAt` - and a cascade stamps every row with the SAME `updatedAt`, so
+  the stable sort keeps the registry order: **the vehicle tombstone reaches the
+  server first, the co-tombstoned entries/reminders after it** (SCNs in push
+  order).
+- **A vehicle tombstone alone applies cleanly**: `apply` stamps the local
+  `deletedAt`, the row leaves `liveVehicles()`, and `resurrectReferencedVehicles`
+  is never called for `entityType == Vehicle`.
+- **The cascade undoes it.** S5's resurrect (`resurrectReferencedVehicles`) is
+  gated only on `entityType != Vehicle` - it fires for ANY pulled non-vehicle
+  record referencing a locally-tombstoned vehicle, **live or tombstoned**. So
+  when B then pulls A's co-tombstoned fills/reminders, each one resurrects the
+  just-tombstoned car **as ARCHIVED** and marks it `.dirty` (`archived = 1`,
+  `deletedAt = NULL`). The empty garage survives a pull **only when no
+  non-vehicle tombstone follows the vehicle tombstone in the stream** (a car
+  deleted with no history), or when the vehicle tombstone happens to arrive
+  after its cascade - which the push order above rules out.
+- **It echoes.** B's resurrected car is `.dirty`, so B pushes the live-archived
+  record back; its `updatedAt` is newer than A's delete stamp, so the server
+  tombstone is overwritten, and A pulls the car back ARCHIVED too. The deletion
+  does not stick on either device; B and A both end in S5's "came back from
+  another device - it stays archived" state even though nobody logged anything
+  after deleting.
+- **The UI half is the same two facts as Home's own defect.** The sync cycle
+  applies records at the database layer and refreshes the Settings surface; it
+  is **not** a data-changed signal for the tab roots (no revision bump, no car
+  switch), so a screen already rendering the car keeps its last frame until its
+  next reload trigger. That reload re-resolves the shared selection and answers
+  nil - and **RV.100** fixed the nil arm (which used to `return` while keeping
+  the previous `vehicle`/`entries`), so the reload lands on the zero-car
+  "Add your first car" surface instead of re-drawing the deleted car. Before
+  RV.100 the second device kept drawing the tombstoned car for the identical
+  bare-return reason as the deleting device - one defect, one fix, every device.
+
+**Registered, not fixed here (RV.100 deliberately does not add sync work):** S5's
+resurrect does not distinguish "device B logged a NEW live entry to the deleted
+car" (the scenario it exists for) from "the deletion cascade's own tombstones".
+The narrow fix is to skip resurrection for pulled records that are themselves
+tombstoned (`remote.deleted == true`) - the cascade must not resurrect its own
+victim. That is a sync-layer change with its own scenario and tests, tracked as
+its own row, not folded into a Home/Trends rendering fix.
+
 ### S6 · Transport conflict on push (the invisible one)
 Device pushes an edit with a stale `baseScn` because another device pushed first.
 - **Transport:** server answers `conflict(currentRecord)`; the client re-merges (S1 rules) and re-pushes. Fully automatic, bounded retries.

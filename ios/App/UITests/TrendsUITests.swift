@@ -204,6 +204,55 @@ final class TrendsUITests: XCTestCase {
                       "the Trends root is what is in frame, not a bare title")
     }
 
+    // MARK: - RV.100 deleting the last car lands on the zero-car Add-car surface
+
+    /// RV.100: deleting the LAST car must not leave Trends rendering its chart
+    /// and totals. Trends loads the car at launch (`-selectTrendsTab` + the
+    /// full-history seed); deleting the car from Vehicle detail (reached
+    /// through the Garage) bumps the data revision, which reloads Trends - the
+    /// defect was a bare `return` in that reload's no-selection arm, keeping
+    /// `vehicle` and `entries` from the tombstoned car (hard rule 2). BOTH
+    /// halves are asserted: the zero-car Add-car surface is PRESENT and the
+    /// tiles derived from the deleted car are ABSENT.
+    func testDeletingTheLastCarLandsOnZeroCarTrends() {
+        let app = launch(args: ["-seedHomeFullHistory"])
+
+        // Trends is the launch tab and loaded the car: its tiles are in frame.
+        XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10),
+                      "the seeded car's tiles must render before the deletion")
+
+        // Reach Vehicle detail through the Garage and delete the car with the
+        // system confirmation - the same real delete path the Home suite drives.
+        app.buttons["tabbar.garage"].tap()
+        let garageRow = app.buttons["garageCarRow"].firstMatch
+        XCTAssertTrue(garageRow.waitForExistence(timeout: 10))
+        garageRow.tap()
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 10))
+        let delete = app.buttons["vehicleDetailDeleteButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+        let alert = app.alerts["Delete this car?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+
+        // Back on the Trends tab: the zero-car surface must be there...
+        app.buttons["tabbar.trends"].tap()
+        let addCar = app.buttons["trendsAddFirstCarButton"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 10),
+                      "after deleting the last car Trends must offer Add your first car")
+
+        // ...and the deleted car's tiles must not survive (the bug drew the
+        // chart and totals computed from the tombstoned car).
+        XCTAssertFalse(anyElement(app, "trendsConsumptionTile").exists,
+                       "the deleted car's consumption tile must not survive")
+        XCTAssertFalse(anyElement(app, "trendsSpendTile").exists,
+                       "the deleted car's spend tile must not survive")
+        XCTAssertFalse(anyElement(app, "trendsCostPerKmTile").exists,
+                       "the deleted car's cost/km tile must not survive")
+        XCTAssertFalse(anyElement(app, "trendsPriceTile").exists,
+                       "the deleted car's price tile must not survive")
+    }
+
     // MARK: - Helpers
 
     private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {

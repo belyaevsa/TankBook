@@ -177,7 +177,14 @@ struct TrendsView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
+            // RV.100: deleting the last car resolves to nil - clear the
+            // retained vehicle and entries so Trends lands on its zero-car
+            // Add-car surface instead of tiles derived from a tombstoned car
+            // (hard rule 2). Same shape as RemindersView.
             guard let selected = carSelection.selectedVehicle(vehicles) else {
+                vehicle = nil
+                entries = []
+                resolvedDuplicateKeys = []
                 return
             }
             self.vehicle = selected

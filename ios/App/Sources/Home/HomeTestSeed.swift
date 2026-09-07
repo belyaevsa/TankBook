@@ -42,6 +42,7 @@ enum HomeTestSeed {
     private static func seedAction(for arguments: [String]) -> ((TankbookRepository) -> Void)? {
         let actions: [(argument: String, seed: (TankbookRepository) -> Void)] = [
             ("-seedHomeEmptyVehicle", seedEmptyVehicle),
+            ("-seedHomeDeleteLastCar", seedDeleteLastCar),
             ("-seedHomeSingleFill", seedSingleFill),
             ("-seedHomeFullHistory", seedFullHistory),
             ("-seedHomeSingleFuelLog", seedSingleFuelLog),
@@ -69,6 +70,20 @@ enum HomeTestSeed {
 
     private static func seedEmptyVehicle(_ repository: TankbookRepository) {
         try? repository.upsertVehicle(makeVehicle())
+    }
+
+    /// RV.100 screenshot state: the ONLY car was JUST deleted. Seeds the single
+    /// Volvo, then tombstones it through the same repository call the Vehicle
+    /// detail delete confirmation runs (`softDeleteVehicle`) - so Home's load
+    /// resolves an empty garage exactly as it does when the user deletes their
+    /// last car, and the DB genuinely holds the tombstone (Recently deleted
+    /// lists the car): never a fresh install. `simctl` cannot tap the
+    /// confirmation, hence the hook, the same reason every other capture hook
+    /// exists.
+    private static func seedDeleteLastCar(_ repository: TankbookRepository) {
+        let vehicle = makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        try? repository.softDeleteVehicle(id: vehicle.id)
     }
 
     /// PJ.4: a REAL reminder due inside the attention window (12 days), so the

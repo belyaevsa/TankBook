@@ -457,7 +457,18 @@ struct HomeView: View {
             // The selected-car invariant: resolve through the shared selection,
             // never "the first vehicle" - Home, the switcher, the manual form
             // and Trends all read the same source (P1.11).
+            // RV.100: deleting the last car resolves to nil - clear every
+            // retained, car-derived @State so Home lands on the zero-car
+            // Add-car surface instead of a dashboard computed from a
+            // tombstoned car (hard rule 2). Same shape as RemindersView.
             guard let selected = carSelection.selectedVehicle(vehicles) else {
+                vehicle = nil
+                entries = []
+                stations = []
+                reminders = []
+                dueRemindersAcrossCars = 0
+                photoData = nil
+                resolvedDuplicateKeys = []
                 return
             }
             self.vehicle = selected

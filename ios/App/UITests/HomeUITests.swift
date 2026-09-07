@@ -361,6 +361,43 @@ final class HomeUITests: XCTestCase {
                       "the banner reaches the list holding the same reminder")
     }
 
+    // MARK: - RV.100 deleting the last car lands on the zero-car Add-car surface
+
+    /// RV.100: deleting the ONLY car must not leave Home rendering it. The car
+    /// is deleted through the real path (Vehicle detail -> the system
+    /// confirmation), which reloads Home - the defect was a bare `return` in
+    /// `load()`'s no-selection arm, keeping `vehicle`, `entries` and every
+    /// derived tile from the tombstoned car (hard rule 2). BOTH halves are
+    /// asserted: the zero-car surface is PRESENT and the deleted car's name and
+    /// odometer are ABSENT - a blank screen, or a fresh install (a different,
+    /// already-passing path), would prove nothing.
+    func testDeletingTheLastCarLandsOnZeroCarHome() {
+        // `-seedHomeEmptyVehicle` seeds the single Volvo (name + baseline
+        // odometer on Home); `-presentScreen vehicleDetail` opens its detail so
+        // the delete is driven like RV.98's real-path test.
+        let app = launch(args: ["-seedHomeEmptyVehicle", "-presentScreen", "vehicleDetail"])
+
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 10))
+        let delete = app.buttons["vehicleDetailDeleteButton"]
+        XCTAssertTrue(delete.waitForExistence(timeout: 5))
+        delete.tap()
+        let alert = app.alerts["Delete this car?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+
+        // Deletion dismisses back to Home. The zero-car surface must be there...
+        let addCar = app.buttons["homeAddFirstCarButton"]
+        XCTAssertTrue(addCar.waitForExistence(timeout: 10),
+                      "after deleting the last car Home must offer Add your first car")
+
+        // ...and the deleted car is gone - its name and its odometer must not
+        // render (the bug drew a dashboard computed from the tombstoned car).
+        XCTAssertFalse(app.staticTexts["Volvo V60"].exists,
+                       "the deleted car's name must not render after deletion")
+        XCTAssertFalse(app.staticTexts["homeOdometer"].exists,
+                       "the deleted car's odometer must not render after deletion")
+    }
+
     // MARK: - P1.8: S2 duplicates (real data, docs/SYNC.md)
 
     /// One physical fill logged twice: the combined card renders where the two
