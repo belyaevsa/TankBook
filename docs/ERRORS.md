@@ -317,6 +317,17 @@ chrome below the list - which pushed the dead-end card's action below the fold i
 20-30% longer. `.transportUnreachable` renders no card, so the standing strip is its surface and
 stays.
 
+**The parse-error card is scroll content, never bottom chrome** (RV.84). The card used to live in the
+`safeAreaInset` bottom bar - the one region that does not scroll - and RU's longer text made the 422
+card (the tallest, ~150pt with its help link) shrink the ScrollView's budget until RU overflowed by
+13-30pt and clipped the last scroll child at the fold. The card now **leads the scroll content under
+the title**: its full message and its "How to export" link are on screen without scrolling in both
+locales, and the scroll owns any overflow. A locale-tall card must never live in a `safeAreaInset`
+(general shape: an actionable card whose height follows the text must not occupy fixed chrome). While
+a parse-error card is showing, the dead-end "Send us the file" card is **ordered directly under the
+format list, above the "Not yet" teaser** - the error moment's actionable card stays above the fold
+in RU (hard rule 7); nothing is dropped, the order yields.
+
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 
 ### About & feedback

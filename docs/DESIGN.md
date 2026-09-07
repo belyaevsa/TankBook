@@ -139,6 +139,7 @@ All three degrade to crossfades under Reduce Motion.
 - Screen sources live in `design/screens/` (.dc.html per screen); web mockups use Archivo (condensed, variable width) as the DIN stand-in – the shipped app uses the real DIN faces bundled with iOS.
 - Cards use 12pt corner radius, 1px hairline border (`ink` at 8%), flat – no shadows in dark theme, faint shadow in light.
 - Spacing grid: 4pt base; screen margins 20pt; card padding 16pt.
+- **An actionable card whose height follows the locale's text must never live in a `safeAreaInset`** (the one region that does not scroll): its height is subtracted from the scroll's budget, so RU's 20-30% longer text makes the card clip content at the fold that EN fits by luck. The import source picker's parse-error card owned that inset once and RU overflowed by 13-30pt, cutting the last scroll child's action line (RV.80, RV.84). Let the scroll own the overflow: the error card leads the scroll content, and while it shows, the actionable dead-end card is ordered directly under the list, above the coming-soon teaser. Nothing is dropped to make RU fit - the layout is what yields (hard rule 10: a phrase that fits only in English is a layout defect).
 
 ## Iconography & app icon
 

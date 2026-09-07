@@ -31,10 +31,42 @@ struct ImportSourceView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 0) {
                         titleBlock
+                        // RV.84: the parse-error card lives HERE, in the scroll,
+                        // not in the safe-area-inset bottom bar. A safeAreaInset
+                        // does not scroll, so a card whose height follows the
+                        // locale's text (the 422 card is the tallest - RU ~150pt
+                        // with the help link) shrank the ScrollView's budget until
+                        // RU overflowed by 13-30pt and clipped the last scroll
+                        // child (the dead-end card's action line) at the fold. As
+                        // the first content child under the title it is visible
+                        // without scrolling in BOTH locales, and the scroll owns
+                        // any overflow (hard rules 7 and 10 - the copy is right,
+                        // the layout was wrong). `.transportUnreachable` renders
+                        // NO card (the standing notice below is its surface), so
+                        // it is excluded the same way the notice is.
+                        if showsParseErrorCard, let failure = model.parseFailure {
+                            parseErrorCard(failure)
+                                .padding(.bottom, 12)
+                        }
                         formatList
                         batchFailureCards
-                        notYetBlock
-                        notSupportedCard
+                        if showsParseErrorCard {
+                            // RV.84 (defect B): the parse-error card above has
+                            // already made RU's content the tallest on this
+                            // screen; if the dead-end card stays the rearmost
+                            // child under the "Not yet" teaser it drops below
+                            // the fold, and RU loses "Send us the file" (the
+                            // error's own next step - hard rule 7). In the
+                            // error moment the actionable card belongs directly
+                            // under the list, and the coming-soon teaser is the
+                            // rearmost content: same blocks, order yields,
+                            // nothing is dropped.
+                            notSupportedCard
+                            notYetBlock
+                        } else {
+                            notYetBlock
+                            notSupportedCard
+                        }
                     }
                     .padding(.horizontal, Theme.Spacing.screenMargin)
                 }
@@ -321,12 +353,11 @@ struct ImportSourceView: View {
         .padding(.top, 6)
     }
 
-    /// True when the bottom bar shows a parse-error card (RV.80). The standing
-    /// offline notice yields to it - the error names its own next step (hard
-    /// rule 7), and showing BOTH doubles the fixed chrome below the ScrollView,
-    /// which is how RU (20-30% longer text) pushed the dead-end card's action
-    /// below the fold and dropped it from the screen. `.transportUnreachable`
-    /// renders NO card - the standing notice IS its surface - so it stays.
+    /// True when the scroll content shows a parse-error card (RV.80, RV.84).
+    /// The standing offline notice yields to it - the error names its own next
+    /// step (hard rule 7), and showing BOTH stacked two next steps for one
+    /// problem below the ScrollView. `.transportUnreachable` renders NO card -
+    /// the standing notice IS its surface - so it stays.
 }
 
 // MARK: - The "How to export" link and the inconsistent-dates card (RV.85)
@@ -369,8 +400,6 @@ extension ImportSourceView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .formCard()
-        .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.bottom, 10)
         .accessibilityIdentifier("importInconsistentDatesCard")
     }
 
@@ -499,12 +528,16 @@ extension ImportSourceView {
     }
 
     // MARK: - Bottom bar
+    // RV.84: this inset holds the primary bar (and the parsing Cancel) ONLY.
+    // The parse-error cards used to live above it here, but the inset is the
+    // region that does not scroll - its height was locale-dependent (RU's 422
+    // card with the help link ran ~150pt), and the taller RU card shrank the
+    // ScrollView's budget until the last scroll child's action line clipped at
+    // the fold. A locale-tall card must never live in a safeAreaInset; the
+    // parse-error card now scrolls at the top of the content (see `body`).
 
     private var bottomBar: some View {
         VStack(spacing: 0) {
-            if let failure = model.parseFailure {
-                parseErrorCard(failure)
-            }
             if model.batchHasFailures {
                 // RV.93: part of the whole-export pick failed. The failures are
                 // named on the cards above; the survivors are one tap away - the
@@ -592,8 +625,6 @@ extension ImportSourceView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             .formCard()
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 10)
         case .inconsistentDates:
             // RV.85: an inconsistent file - rows proving M/D and rows proving
             // D/M - has no single answer for the dateFormat question to offer,
@@ -625,8 +656,6 @@ extension ImportSourceView {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
             .formCard()
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 10)
         case .oversize:
             errorCard("That file is larger than 8 MB – try a smaller export.")
         case .unrecognisedFormat:
@@ -650,8 +679,6 @@ extension ImportSourceView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
         .formCard()
-        .padding(.horizontal, Theme.Spacing.screenMargin)
-        .padding(.bottom, 10)
     }
 
 }
