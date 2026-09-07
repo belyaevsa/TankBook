@@ -115,6 +115,12 @@ Money {
 //   bare `0 €` for a month whose rows carry no home amount. Rows whose rate the server had not yet published
 //   at import time DO resolve later: they sit inside the rolling 400-day pack window, so a later launch or the
 //   footnote's "Check for rates" re-fetches the pack and the S8 backfill fills them (measured by RV.106).
+//   A row dated OUTSIDE the pack window resolves only if something asks for its explicit date (RV.111): the
+//   launch pass refreshes the rolling 400 days only, so the footnote's "Check for rates" runs a DEMAND drain
+//   (`MoneyBackfillService.demandDrain`) over the pending rows' own dates - `RateStore.fetchSpan`, chunked -
+//   and backfills at each row's OWN day. A reached demand that STILL leaves a pre-window row pending is a
+//   dead end (docs/ERRORS.md -> Home): the footnote then names the manual rate instead of promising another
+//   check. An offline demand is a non-event, never a dead end.
 ```
 
 ### FillUp
@@ -401,7 +407,7 @@ ExchangeRate { base: CurrencyCode; quote: CurrencyCode; date: Date; rate: Decima
 
 Devices fill this cache from the backend's public `/rates` endpoint (see Reference data below), keep ~2 years rolling, and ship with a seed pack so day-one offline use works; misses queue entries as rate-pending (F9 in JOURNEYS). The cache never syncs – what travels between devices is the `Money` snapshot inside entries, so conversions stay consistent account-wide once written (backfill rule above; sync scenario S8 in `SYNC.md`).
 
-**Two fetch shapes, one cache.** The rolling refresh asks for the last 400 days (`RateStore.packWindowDays`, the server's `Rates:MaxPackDays` cap). The import drain (RV.88) adds a *demand* shape for the rows an import just wrote: `RateStore.fetchSpan` asks for exactly the imported span in consecutive <= 400-day chunks, so a multi-year import reaches dates the rolling window never will and the server backfills those dates on demand (`SCHEMA.md` -> Reference data -> Exchange rates: "the request IS the statement 'I need these dates'"). A transport failure is silent and the backfill still fills whatever the cache already holds – everything after import's one network exception works offline (hard rule 1).
+**Two fetch shapes, one cache, plus the demand drain (RV.111).** The rolling refresh asks for the last 400 days (`RateStore.packWindowDays`, the server's `Rates:MaxPackDays` cap). The import drain (RV.88) adds a *demand* shape for the rows an import just wrote: `RateStore.fetchSpan` asks for exactly the imported span in consecutive <= 400-day chunks, so a multi-year import reaches dates the rolling window never will and the server backfills those dates on demand (`SCHEMA.md` -> Reference data -> Exchange rates: "the request IS the statement 'I need these dates'"). RV.111 gives the same demand shape to the F9 footnote's "Check for rates": `MoneyBackfillService.demandDrain` enumerates every rate-pending row across the garage and asks for exactly the span they cover, because a pending row dated years back (an import committed while the archive was still publishing) is outside the rolling window and no automatic pass will ever ask for it again. A transport failure is silent and the backfill still fills whatever the cache already holds – everything after import's one network exception works offline (hard rule 1).
 
 ## Validation (runs on every write)
 

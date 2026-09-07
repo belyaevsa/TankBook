@@ -234,6 +234,19 @@ public final class RateStore: @unchecked Sendable {
     }
 }
 
+public extension RateStore {
+    /// The first day the rolling pack refresh covers - `now` minus
+    /// `packWindowDays - 1` days, at the start of the day. A rate-pending
+    /// entry dated before it is a row no future launch refresh will ever ask
+    /// for (RV.111); only a demand fetch over its explicit span can reach it,
+    /// and if that answers empty the date is a dead end (the manual rate is the
+    /// way out, `docs/ERRORS.md` -> Home).
+    static func rollingPackFrom(now: Date = Date(), calendar: Calendar = .current) -> Date {
+        let today = calendar.startOfDay(for: now)
+        return calendar.date(byAdding: .day, value: -(packWindowDays - 1), to: today) ?? today
+    }
+}
+
 private extension ExchangeRate {
     /// Normalizes a row's `date` to the start of its day, so cache keys compare
     /// as calendar days regardless of the time component a seed or fetch gave.

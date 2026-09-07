@@ -14739,6 +14739,23 @@
           }
         }
       }
+    },
+    "No rate exists for these dates. Add a manual rate to each entry.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No rate exists for these dates. Add a manual rate to each entry."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На эти даты нет курса. Укажите курс вручную в каждой записи."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

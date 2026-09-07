@@ -98,10 +98,13 @@ struct TrendsView: View {
                 PendingRatesFootnote(count: stats.pendingRateCount,
                                      identifier: "trendsPendingRatesFootnote",
                                      onCheck: {
-                    // RV.106: the footnote's "Check for rates" - the same
-                    // refresh + S8 backfill the next launch runs, on demand.
-                    Task { await AppRates.refresh() }
-                })
+                    // RV.111: "Check for rates" is a DEMAND drain over the
+                    // pending rows' own dates - the rolling refresh only covers
+                    // the last 400 days, so a row dated years back needs its
+                    // explicit dates asked for (same pass Home's footnote runs).
+                    Task { await AppRates.drainPendingRows() }
+                },
+                                     deadEnd: PendingRatesFootnote.showsDeadEnd(entries))
                     .padding(.top, 4)
             }
         } else {

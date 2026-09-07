@@ -49,6 +49,17 @@ extension HomeRecentEntries {
     /// same members - the divider methods and the load-more row are one
     /// concern: the Log stream's honest, whole-month rendering.
 
+    /// The F9 pending-rates footnote (kept here, not in `HomeSections.swift`,
+    /// to hold that file under the lint ceiling). RV.111: the "Check for rates"
+    /// action is a demand drain, and when the last demand pass left a pre-window
+    /// row pending the footnote names the manual rate instead (`deadEnd`).
+    var pendingRatesFootnote: some View {
+        PendingRatesFootnote(count: pendingRateCount,
+                             identifier: "homePendingRatesFootnote",
+                             onCheck: onCheckRates,
+                             deadEnd: PendingRatesFootnote.showsDeadEnd(entries))
+    }
+
     /// The "Show N older entries" row, rendered as the last element of the
     /// visible log while the reveal has hidden months left (hard rule 7).
     /// Tapping reveals the next whole-month page; when the whole log is shown

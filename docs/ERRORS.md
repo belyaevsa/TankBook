@@ -55,7 +55,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it | Check for rates (re-runs the refresh + S8 backfill) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it. **RV.111:** once a demand pass has reached the provider and still left a pre-window row pending, the footnote swaps "Check for rates" for the dead-end line "No rate exists for these dates. Add a manual rate to each entry." - it stops promising a check that cannot help | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates - the launch refresh's rolling 400-day pack cannot reach a row dated years back) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
@@ -88,6 +88,19 @@ missing one, and is not an option. Rows whose rate the server had not yet publis
 time DO resolve: they sit inside the rolling 400-day pack window, so a later launch (or the
 footnote's "Check for rates") re-fetches the pack and the S8 backfill fills them - measured by
 RV.106's L4 reproduction.
+
+**A row dated outside the pack window needs the DEMAND check, and its empty answer is a dead
+end (RV.111).** The launch pass refreshes the rolling 400 days only, so a row from a
+multi-year import committed while the archive was still publishing is never asked for again
+by any automatic path - and the old "Check for rates" could not reach it either, because it
+re-ran the same rolling refresh. The check now runs a demand drain over the pending rows'
+own dates (`MoneyBackfillService.demandDrain`, chunked under the server's 400-day cap), so
+an old row is actually asked. If the provider is reached and the row is STILL pending, its
+date is one the service will never serve (docs/SCHEMA.md -> Exchange rates: the ECB feed
+carries only today, RV.50), and the footnote stops offering "Check for rates": it names the
+manual rate on each entry instead, in its own localised phrase - never another promise that a
+check will help. An offline check is a non-event and never triggers the dead-end copy (the
+row may simply resolve on a later launch).
 
 ### Capture (camera)
 | Condition | Shows | Next step |
@@ -209,7 +222,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step) | Check for rates (re-runs the refresh + S8 backfill) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step) | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

@@ -67,6 +67,15 @@ enum AppRates {
     /// until the root wires it, so `refresh` still works alone in tests.
     static var onBackfilled: (@MainActor () -> Void)?
 
+    /// RV.111: whether the last demand drain ("Check for rates") reached the
+    /// provider and left a rate-pending row dated before the rolling pack
+    /// window. Home and Trends read it to swap the footnote's next step from
+    /// "Check for rates" to the manual rate (docs/ERRORS.md -> Home): a date
+    /// the pack never covers is answered empty on every re-ask, so promising
+    /// another check would be a lie. A new import commit clears it - the
+    /// freshly imported rows are exactly the ones the demand has not asked yet.
+    private(set) static var demandPassLeftUnresolvableRows = false
+
     /// Refreshes the cache from the feed, persists what it merged, then runs
     /// the S8 backfill (PJ.8): a rate that arrived later fills rate-pending
     /// entries, fill-blanks-only, at the entry's own date (hard rule 3). A
@@ -97,6 +106,41 @@ enum AppRates {
         return result
     }
 
+    /// RV.111: the demand drain behind the F9 footnote's "Check for rates" - a
+    /// sibling of `drainAfterImport` that asks over the rows ACTUALLY
+    /// rate-pending across the garage, not over the rolling pack. The launch
+    /// refresh only covers the last `packWindowDays` days, so a pending row
+    /// dated years back (a multi-year import committed while the archive was
+    /// still publishing) is never asked for again by any automatic path; this
+    /// demands exactly the span the pending rows cover (`fetchSpan`, chunked
+    /// under the server's 400-day cap) and backfills each at its OWN date's
+    /// rate - never today's (hard rule 3). Offline-safe: a failed fetch is a
+    /// non-event and the backfill still fills whatever the cache holds.
+    ///
+    /// Returns nil when nothing is pending (no request is made at all - an
+    /// empty ask is a bug). When a pass that REACHED the provider leaves a row
+    /// pending whose date predates the rolling window, the row is a dead end
+    /// (`demandPassLeftUnresolvableRows`) and the footnote names the manual
+    /// rate instead of promising another check (docs/ERRORS.md -> Home).
+    @MainActor
+    @discardableResult
+    static func drainPendingRows() async -> MoneyBackfillService.Result? {
+        guard let repository = try? AppStore.repository() else { return nil }
+        let outcome = await MoneyBackfillService(store: store).demandDrain(repository)
+        guard let outcome else {
+            demandPassLeftUnresolvableRows = false
+            return nil
+        }
+        persist(store.allRates())
+        demandPassLeftUnresolvableRows = outcome.reachedProvider && outcome.hasUnresolvableRows
+        // A demand pass re-reads Home/Trends even when nothing filled: a fill
+        // drains the footnote (S8) and a dead end flips its copy to the manual
+        // rate - both silent (`onBackfilled` posts no toast, docs/SYNC.md S8).
+        onBackfilled?()
+        return MoneyBackfillService.Result(filledCount: outcome.filledCount,
+                                           stillPendingCount: outcome.stillPendingCount)
+    }
+
     /// RV.88: schedules `drainAfterImport` off the import commit's critical
     /// path - the commit returns immediately, the drain runs in the background
     /// and never gates the wizard's close or needs a connection (hard rule 1).
@@ -125,6 +169,10 @@ enum AppRates {
         let pending = records.compactMap(\.entryValue)
             .filter { $0.money?.isRatePending == true }
         guard !pending.isEmpty else { return }
+        // RV.111: rows this import just wrote were never asked about by an
+        // earlier demand pass, so a previous dead end must not deny them the
+        // footnote's "Check for rates".
+        demandPassLeftUnresolvableRows = false
 
         let calendar = Calendar.current
         let days = pending.compactMap { calendar.startOfDay(for: $0.date) }
@@ -207,6 +255,9 @@ enum AppRates {
         if ProcessInfo.processInfo.arguments.contains("-stubRatesMissThenHit") {
             return MissThenHitRateStubTransport()
         }
+        if ProcessInfo.processInfo.arguments.contains("-stubRatesEmpty") {
+            return EmptyRatePackStubTransport()
+        }
         return appTransport(SeededLaunch.transport())
         #else
         return appTransport(URLSessionTransport())
@@ -241,6 +292,23 @@ private struct RateStubTransport: TankbookHTTPTransport {
         ]}
         """
         return TankbookHTTPResponse(status: 200, body: Data(body.utf8))
+    }
+}
+
+/// RV.111's UI-test/screenshot seam (`-stubRatesEmpty`): answers every
+/// `/rates/pack` request with an EMPTY pack - the provider reached and having
+/// no row for the requested dates (the genuinely-unavailable archive shape for
+/// a date before its first daily run, docs/SCHEMA.md -> Exchange rates). A
+/// demand drain over such dates reaches the provider, backfills nothing, and
+/// the rows stay pending - the dead end the footnote must name. Stateless; any
+/// other path is a 404.
+private struct EmptyRatePackStubTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        guard request.url.path.hasPrefix("/v1/rates/pack") else {
+            return TankbookHTTPResponse(status: 404)
+        }
+        return TankbookHTTPResponse(status: 200,
+                                    body: Data("{\"base\":\"EUR\",\"rates\":[]}".utf8))
     }
 }
 #endif

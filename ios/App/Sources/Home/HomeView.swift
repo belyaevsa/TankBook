@@ -262,11 +262,14 @@ struct HomeView: View {
                               onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
                               onMerge: { group in mergeDuplicate(group) },
                               onCheckRates: {
-                // RV.106: the footnote's "Check for rates" - the user asks for
-                // the refresh + S8 backfill the next launch would run. A fill
-                // bumps the revision silently (AppRates.onBackfilled), so Home
-                // re-reads and the divider + footnote follow.
-                Task { await AppRates.refresh() }
+                // RV.106: the footnote's "Check for rates". RV.111: it is now a
+                // DEMAND drain over the pending rows' own dates - the rolling
+                // refresh the launch pass runs covers the last 400 days only,
+                // so a pending row dated years back needs its explicit dates
+                // asked for. A fill (or a dead end that leaves the rows
+                // pending) bumps the revision silently (AppRates.onBackfilled),
+                // so Home re-reads and the divider + footnote follow.
+                Task { await AppRates.drainPendingRows() }
             })
         } else {
             HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
@@ -482,6 +485,11 @@ struct HomeView: View {
                 // without a toast; this is exactly the edit-save reload path.
                 toastCenter.noteEntryChanged()
             }
+            // RV.111: the dead-end screenshot beat - one demand drain a few
+            // seconds after launch, under `-stubRatesEmpty`, flips the F9
+            // footnote to its manual-rate copy (the drain reloads Home through
+            // `AppRates.onBackfilled` itself, so no callback is needed here).
+            RateDemandDrainDebugHook.runIfRequested()
             #endif
             // PJ.8's launch S8 trigger is OWNED by the app root's automatic pass
             // (`AppRootView.runAutomaticPass`, RV.59) - Home firing `AppRates.refresh()`

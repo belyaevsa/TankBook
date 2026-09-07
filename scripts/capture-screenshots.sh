@@ -215,6 +215,14 @@ capture P5.2b-trends-pending-footnote-ru    ru -seedHomePendingRates -selectTren
 capture P5.2b-home-pending-footnote         en -seedHomePendingRates
 capture P5.2b-home-pending-footnote-ru      ru -seedHomePendingRates
 
+# RV.111: the F9 footnote's dead end. Old (2015) pending rows are outside the
+# rolling pack window; `-runRateDemandDrain` fires one demand check a beat
+# after launch and `-stubRatesEmpty` answers it empty (provider reached, no
+# row for those dates), so the footnote flips from "Check for rates" to the
+# manual-rate line. RU is where the count and the dead-end caption are tightest.
+capture RV.111-home-rates    en -seedHomeRV111OldPending -stubRatesEmpty -runRateDemandDrain
+capture RV.111-home-rates-ru ru -seedHomeRV111OldPending -stubRatesEmpty -runRateDemandDrain
+
 # RV.29: the fix for a foreign price wearing the home symbol. A RUB-home car
 # whose most recent fill was paid in EUR and carries its conversion snapshot -
 # the price tile shows the CONVERTED home figure (`168.333 ₽`), never the raw

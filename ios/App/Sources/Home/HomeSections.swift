@@ -341,9 +341,7 @@ struct HomeRecentEntries: View {
                 excludedFootnote
             }
             if pendingRateCount > 0 {
-                PendingRatesFootnote(count: pendingRateCount,
-                                     identifier: "homePendingRatesFootnote",
-                                     onCheck: onCheckRates)
+                pendingRatesFootnote
             }
             ForEach(reveal.months) { section in
                 monthSection(section)
