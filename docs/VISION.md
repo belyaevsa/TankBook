@@ -4,6 +4,24 @@
 
 A car cost log where you never fill in a form. Point the camera at the receipt or the pump – the app reads it, converts it, and files it. Fuel, charging, service, and everything your car costs you, in one private on-device history.
 
+## What we will not tell a driver (product owner, 2026-09-07)
+
+**Consumption variance is not diagnosable from a fuel log, and we will stop implying it is.** A
+month's litres-per-100km moves for reasons the app cannot see: a motorway week, an hour idling in
+winter, a roof box, a tow, a different driver, city traffic. The shipped anomaly card names three
+"likely causes" (tyre pressure, air filter, winter) - a guess dressed as a diagnosis, and the
+correction is `docs/TASKS.md` RV.121.
+
+**The B2C and B2B readings of the same number are different, and only one is ours.** A fleet manager
+comparing drivers and vehicles genuinely wants variance analysis - the variance IS the signal when
+the vehicles are meant to be identical. A private owner mostly wants to know their **budget** moved.
+Tankbook is the single owner's log, and the fleet reading is where Drivvo is strongest
+(`docs/COMPETITORS.md` - their per-row driver column and fleet pricing), so we do not compete there.
+
+What survives: **say that this month is running higher than usual and what it costs**, quietly, with
+a threshold whose derivation is written down. What does not: naming a cause, or making a card shout
+about a number that a long trip explains.
+
 ## 1 · The gap in the market
 
 The category is crowded but stale. Fuelio, Drivvo, Fuelly, Spritmonitor, and Simply Auto all rely on hand-typed forms, dated UI, and ads. Recurring review complaints: intrusive ads, subscription fatigue, inaccurate consumption math, painful backup/export. Almost none of the consumer apps do receipt scanning – it exists only in fleet products like AUTOsist.
