@@ -250,6 +250,32 @@ So the endpoint stays a static, country-tagged, fully cacheable pack, and the cl
 **brands the user has already used, then brands of the device's region, then the rest.** No geo-IP
 dependency, no VPN failure mode, no per-user server behaviour.
 
+**`detectedCountry`: the cold-start hint (product owner, 2026-09-07).** The one case the ordering
+above serves poorly is a brand-new user whose device region does not match where they are and who
+has logged nothing yet. The server already sees the connection's IP on every request, so it may
+return a coarse country as a **hint** - and the rule that keeps this from undoing everything above
+is where it may ride:
+
+> **Only a per-request, uncacheable response may carry `detectedCountry`. No cacheable one ever
+> may.** `POST /auth/session`, `GET|POST /sync/*`, `POST /import/parse` and `POST /extract` qualify.
+> `GET /catalog`, `GET /config`, `GET /rates*` and `GET /reference/*` are ETag'd artefacts and must
+> not - that is exactly the `Vary` fragmentation this design avoided.
+
+`POST /import/parse` matters most: it is the one uncacheable call a **signed-out** user makes, and
+importing a foreign file is precisely when the brand list is needed.
+
+Three bounds, so this stays a hint and not a new thing we know about people:
+
+- **It is derived per request from the connection IP and never stored** - not on the account, not in
+  a log line beyond shape (hard rule 12), not in the four places that hold user content
+  (`CLAUDE.md` rule 9). A country that is computed, returned and forgotten adds no fifth place.
+- **It is a DEFAULT INPUT, never a fact** (hard rule 13): it breaks ties in the client's ordering and
+  is outranked by the user's own history and by anything the user has chosen. It never rewrites a
+  station, a currency or a car's settings.
+- **It is advisory and absent-able.** A client that gets no `detectedCountry` (offline, an older
+  server, a proxy that hides it) orders by history and device region exactly as before, so nothing
+  depends on it.
+
 ### `GET /reference/fuel-price-bands`
 
 Coarse plausible price-per-litre ranges, used client-side to decide which operand on a
