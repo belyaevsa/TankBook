@@ -1,5 +1,31 @@
 # RV.103 - the Log stops at 20 rows and there is no way to see the rest
 
+## RESUMING: your own partial work is already in the tree (2026-09-07)
+
+A previous run of this brief was **stopped mid app-layer wiring** by the product owner, and its work
+is **uncommitted in the working tree**. Read it before writing anything - you are continuing, not
+starting.
+
+- Core: `Consumption/LogStream.swift` carries a `revealPages` paging model; `Tests/TankbookCoreTests/LogStreamRevealTests.swift`
+  carries its L1 tests.
+- App: `Home/HomeSections.swift`, `Home/HomeSections+LogStream.swift`, `Home/HomeTestSeed.swift`,
+  `Home/RV103HomeTestSeed.swift`, `Localizable.xcstrings`, `Localization/L10n.swift` - the wiring, **partial**.
+- Fixture: `ios/App/Resources/import-rv103-fuel.json`.
+
+`swift build` and the app target's `xcodebuild ... build` are **0** on it, and that is the ONLY gate
+that has been run. Nothing else is verified: no `swift test`, no lint, no localization gate, no UI
+suite, no screenshots, and not the build-time measurement this brief asks for.
+
+**One decision the previous run reached in reasoning but had not finished coding, and it is right -
+keep it:** if the user reveals the whole log and then edits an entry, the reload must **not** collapse
+back to 20 rows. Preserve "revealed" across a same-car reload and reset it on a car switch (it
+proposed `.id(vehicle.id)` at the call site). A list that silently re-collapses after an edit is the
+naive implementation and it feels broken.
+
+**Judge the existing code on its merits.** If part of it is wrong, change it and say what and why in
+your report - inheriting a mistake silently is worse than replacing it. Finish the wiring, then run
+every gate in the baseline section below.
+
 ## The defect, measured
 
 The **Log tab IS Home** (`AppTabBar.case log = 0`), and Home's list is a **preview**:
