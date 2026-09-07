@@ -193,6 +193,7 @@ struct GarageView: View {
                     .foregroundStyle(Theme.Palette.warn)
                     .lineLimit(1)
                 Spacer(minLength: 0)
+                chevron
             }
             .contentShape(Rectangle())
             .padding(.horizontal, 14)

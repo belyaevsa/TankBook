@@ -116,13 +116,12 @@ final class GarageUITests: XCTestCase {
         let counts = app.buttons.matching(identifier: "garageAttentionCount")
         XCTAssertEqual(counts.count, 1,
                        "only the car whose reminders are due may be badged")
+        // Exact, not contains: the strip is its OWN element and its spoken
+        // label is the car and the count and nothing else - a chevron or other
+        // chrome leaking into the label would fail here (hard rule 5).
         let label = counts.firstMatch.label
-        XCTAssertTrue(label.contains("Volvo V60"),
-                      "the badge must belong to the car with the due work, got \(label)")
-        XCTAssertTrue(label.contains("2"),
-                      "two seeded attention reminders must read as 2, got \(label)")
-        XCTAssertTrue(label.contains("needs attention"),
-                      "the count must read as words, got \(label)")
+        XCTAssertEqual(label, "Volvo V60, 2 needs attention",
+                       "the badge must name the car and the count, got \(label)")
     }
 
     /// The badge's next step is the merged reminders list, never a create
