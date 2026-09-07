@@ -15,6 +15,8 @@
 - **iOS:** 4.7★ / 952 ratings, v10 (fresh). **Play:** 4.4★ / 114K reviews.
 - Features: refueling, maintenance, expenses, income, routes, reminders; many vehicle types; checklists with photos; fleet mode with driver profiles; EV/hybrid charging with kWh and mi/kWh; importers from aCar, Fuelio, Fuel Manager; cloud sync (Pro).
 - Pricing: free with ads; personal subs ~$0.99–$49.90; fleet $29.99–$119.99/mo.
+- **Positioning (product owner, 2026-09-07): Drivvo is mostly for people who manage FLEETS**, and the pricing says so - a fleet tier at $29.99-$119.99/mo beside a personal sub an order of magnitude cheaper. Its export carries a `Водитель` (driver) column on every row, which is a fleet feature, not a private-owner one. **That is the seam**: Tankbook is the single-owner's log, and competing on fleet features would be competing where Drivvo is strongest and where our journeys (J1-J13) do not go. **Their export is a real migration path in, though** - see `docs/TASKS.md` RV.113.
+- **Export shape, measured from a real file 2026-09-07** (anonymised copy at `Spike/ImportFixtures/drivvo/`, gitignored pending validation): ONE file with three `##`-marked sections (`##Refuelling`, `##Expense`, `##Service`), **localised column headers** (the sample is Russian), **no currency column at all**, no vehicle column (one car per file), and mixed decimal conventions in the same row (`37.52` volume beside `6,414 л/100км`). The importer decisions that follow are recorded in RV.113.
 - Complaints: "the font is TINY and the ads are HUGE"; export paywalled ("can't download a paper version without paying"); no custom service types; historically wrong economy math.
 - Takeaway: broadest feature set, worst-monetized experience. No OCR of any kind.
 
