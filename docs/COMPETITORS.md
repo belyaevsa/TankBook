@@ -15,6 +15,24 @@
 - **iOS:** 4.7★ / 952 ratings, v10 (fresh). **Play:** 4.4★ / 114K reviews.
 - Features: refueling, maintenance, expenses, income, routes, reminders; many vehicle types; checklists with photos; fleet mode with driver profiles; EV/hybrid charging with kWh and mi/kWh; importers from aCar, Fuelio, Fuel Manager; cloud sync (Pro).
 - Pricing: free with ads; personal subs ~$0.99–$49.90; fleet $29.99–$119.99/mo.
+- **Worth copying (2026-09-07), from the report screens.** Reviewed with the product owner against a real
+  five-year Drivvo history (289 records, 250 fills):
+  - **They say what a number is made of.** Beside the consumption average: *"190 of 250 fills were full-tank
+    (76.0%) - the average is counted from one full tank to the next"*. That is the single most valuable line on
+    their reports and it is our own doctrine (hard rule 2): Tankbook prints "5.2 L/100km" from a rolling-90-day /
+    floor-3 model and never says whether it rests on three fills or thirty. Registered as **RV.118 [v1.1]**.
+  - **Their month header carries the month, not just its spend** - cost, distance, consumption, cost per km, and a
+    comparison to the previous month ("spending 7% lower than June"). Ours carries the month name and a total.
+    **RV.119 [v1.1]**.
+  - **A fill-pattern card**: distance between fills, frequency, estimated range left, month forecast. The two a
+    driver actually wants at a pump - how far this tank goes, what the month will cost - and we answer neither.
+    **RV.120 [v1.1]**.
+  - **Min and max beside every average** (price 140-225 RUB/L, consumption 4.973-10.989 L/100km), and their
+    consumption chart runs on an **odometer** x-axis rather than a calendar one, which shows the car's life rather
+    than the year. Cheap context; folded into the rows above.
+- **Deliberately NOT copied**: income and routes are fleet features (`VISION.md` puts income out of v1 scope), and
+  their seven-tab report IA is theirs. The value is in the honesty of the numbers, not the density of the screens.
+
 - **Worth copying (2026-09-07): their timeline-conflict screen.** When an odometer contradicts its date Drivvo draws the surrounding entries as a chart with the offending point off the trend, brackets it with the previous and current rows, and states the **valid interval for each field given the other** - "on 13/07 the odometer must be between 490 500 and 490 983 km; if 490 200 is right, the date must be...". Tankbook's F9a quotes one neighbour and offers ranked fixes, which is honest but thinner, and it does nothing for an entry flagged in the past. Registered as RV.117 [v1.1].
 - **Positioning (product owner, 2026-09-07): Drivvo is mostly for people who manage FLEETS**, and the pricing says so - a fleet tier at $29.99-$119.99/mo beside a personal sub an order of magnitude cheaper. Its export carries a `Водитель` (driver) column on every row, which is a fleet feature, not a private-owner one. **That is the seam**: Tankbook is the single-owner's log, and competing on fleet features would be competing where Drivvo is strongest and where our journeys (J1-J13) do not go. **Their export is a real migration path in, though** - see `docs/TASKS.md` RV.113.
 - **Export shape, measured from a real file 2026-09-07** (anonymised copy at `Spike/ImportFixtures/drivvo/`, gitignored pending validation): ONE file with three `##`-marked sections (`##Refuelling`, `##Expense`, `##Service`), **localised column headers** (the sample is Russian), **no currency column at all**, no vehicle column (one car per file), and mixed decimal conventions in the same row (`37.52` volume beside `6,414 л/100км`). The importer decisions that follow are recorded in RV.113.
