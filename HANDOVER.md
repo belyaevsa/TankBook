@@ -1,60 +1,79 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-07 (early hours). **The app is on TestFlight, the backend is deployed, and App Store
-review is under way - and the product owner is now using it on their own data, which is where every
-new row comes from.** Measured: **iOS 1581 tests / 177 suites**, **backend 410**, lint 0 and the
-localization gate 0 (759 keys, 100% RU) from the repo **ROOT**, Release build 0. The `RV` backlog
-runs to **RV.100**, and **six rows are open: RV.98, RV.99, RV.100 (the car-deletion cluster - briefs
-are WRITTEN and ready to dispatch), RV.82, RV.91, RV.92**. Read this first, then `CLAUDE.md`, then
-`docs/TASKS.md`.*
+*Updated 2026-09-07 (evening). **The app is on TestFlight, the backend is deployed, and App Store
+review is under way - and the product owner is using it on their own data, which is where most new
+rows come from.** Measured on the tree as left: **iOS 1618 tests / 181 suites**, **backend 411**,
+lint 0 and the localization gate 0 (770 keys, 100% RU) from the repo **ROOT**, Release build 0. The
+`RV` backlog runs to **RV.124** and **21 rows are open**. **Nothing is running and the tree is
+clean.** Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
 
-## PAUSED MID-ROW: RV.103's work is in the working tree, UNCOMMITTED (2026-09-07 14:50)
+## Where the work stands (2026-09-07 evening)
 
-**Read this before running anything.** Development was paused at the product owner's request while
-`RV.103` (the Log stops at 20 rows) was **mid app-layer wiring** - later than RV.104 was stopped, so
-treat this as an interrupted edit rather than a finished one. Both `cd ios && swift build` and the
-app target's `xcodebuild ... build` are **0** on the tree as left, so it compiles; that is the only
-gate that has been run.
+**Shipped today, 15 rows**, each verified by the orchestrator's own gate runs rather than an agent's
+report: `RV.97` (the sync-push livelock), `RV.93`, `RV.96`, `RV.71`, `RV.84`, `RV.83`, `RV.98`,
+`RV.99`, `RV.100`, `RV.101`, `RV.104`, `RV.105`, `RV.106`, `RV.102`, `RV.103`.
 
-**What is uncommitted** (`git status` to confirm):
+**Open: 21 rows, and the shape of the backlog changed today.** Thirteen of them were registered from
+the product owner's own use of the app and from two test reviews, so the count did not fall as work
+shipped - which is the system behaving, not the backlog running away. Every open row carries a cause
+pinned to a file and line, so each is a mechanical dispatch rather than an investigation.
 
-- Core: `Consumption/LogStream.swift` (a `revealPages` paging model), **new**
-  `Tests/TankbookCoreTests/LogStreamRevealTests.swift`
-- App: `Home/HomeSections.swift`, `Home/HomeSections+LogStream.swift`, `Home/HomeTestSeed.swift`,
-  **new** `Home/RV103HomeTestSeed.swift`, `Localizable.xcstrings`, `Localization/L10n.swift`
-- Fixture: **new** `ios/App/Resources/import-rv103-fuel.json`
+| Group | Rows |
+|---|---|
+| **From the owner's data, briefs written** | `RV.113` (Drivvo import), `RV.114` (score the new corpus) |
+| **Design decided, no brief yet** | `RV.115` (station brands), `RV.116` (unsupported-field notice), `RV.111`, `RV.112` (rate residuals) |
+| **Product decisions from the Drivvo review** | `RV.117`-`RV.120` **[v1.1]**, `RV.121` (the anomaly card that guesses causes), `RV.122` **[v1.1]**, `RV.124` **[v1.1]**, `RV.123` **[v2]** |
+| **Test infrastructure, briefs written** | `RV.91`, `RV.92`, `RV.82` |
+| **From the test reviews** | `RV.107`-`RV.110` |
 
-**Where it actually got to**: the core model and its L1 tests are written; it had just started wiring
-the reveal into `HomeSections`. **Nothing beyond `swift build` has been verified** - no `swift test`,
-no lint, no localization gate, no UI suite, no screenshots, and **not** the `LogStream` build-time
-measurement on the 513-row import that the brief asks for as a deliverable.
+**The next rows worth doing** are `RV.121` (the shipped anomaly card names "likely causes" it cannot
+know - a causal claim with no evidence, and the product owner's explicit objection) and `RV.113`
+(the Drivvo importer, whose anonymised fixture is committed and validated).
 
-**One design decision it had reached, worth keeping** (from its log, not from code): if the user
-reveals the whole log and then edits an entry, the reload must **not** collapse back to 20 rows -
-preserve "revealed" across a same-car reload and reset on car switch (it proposed `.id(vehicle.id)`
-at the call site). That is the right instinct and the reason a naive implementation feels broken.
+## The five things this session would tell its successor
 
-**To resume, in this order:**
+1. **Resuming a paused row beats restarting it.** `RV.103` was stopped mid-wiring and re-dispatched
+   with an amended brief telling it to judge the inherited code on its merits. It found **four**
+   defects in that code, including a seed that decoded ISO-8601 with the wrong strategy and silently
+   populated **zero** rows - so every long-log screenshot before it was vacuous. It caught that by
+   OCR-ing its own capture and reading "No entries yet".
+2. **I turned `main` red for an hour and only found it because an agent's report disagreed with my
+   memory.** Adding nine corpus images without running the gate broke four registries at once
+   (`PumpPhotoGate`'s constants, `PostSweepCorpusAdditions`, the corpus row count, the compression
+   total). The RV.102 agent reported the suite as "1610/24 - pre-existing, unrelated"; it was
+   neither. **The fix was to record reality, never to soften the gate** - and the direction was good
+   news: all six new pumps committed a cell and every one was correct, so the pump flag still stays
+   off and nothing a user sees changed. Full account in `5b8c6a5`.
+3. **A mutation that passes is still the sharpest tool here.** `RV.103` found that the inherited
+   `purchaseGroupIsNeverSplitAcrossPages` stayed green under a boundary-month-trim mutation, because
+   it only pinned visible+hidden bookkeeping - which any lossless partition satisfies. `RV.105` found
+   that wall-clock alone cannot fail a per-record-transaction regression on a laptop, and asserted
+   the **mechanism** (`Commits == 1`) instead.
+4. **Opening every screenshot is still the check nothing else performs.** `RV.71`'s committed capture
+   showed **Save disabled** - the opposite of the row's central claim - because it was taken before
+   the form settled. `RV.100`'s RU capture showed two rows in **English** on a Russian device, which
+   became `RV.102` and a gate that now fails the build on that defect class.
+5. **A comment rule now applies to every change** (`CLAUDE.md` -> "Code comments: current truth
+   only", reasoning in `docs/CODE-COMMENT-REVIEW.md`). It was adopted by fixing two comments written
+   an hour earlier that broke it. Note the tension it resolves: keep the **reason** in the code, put
+   the **dated measurement** in the document that owns it.
 
-1. `cd ios && swift build`, then `swift test` - report against **1610 / 179 suites** (the count at
-   `a359b53`, the last commit).
-2. `swiftlint lint` and `swift run --package-path ios localization-gate`, **both from the repo root**.
-3. `xcodebuild ... -only-testing:TankbookUITests/HomeUITests test`.
-4. The brief's measurement: `LogStream` build time over the 513-row MFM import, before and after.
-5. EN + RU screenshots of the reveal affordance.
+## Product decisions recorded today (do not relitigate)
 
-**The row's own trap is still the one to watch** (`agents/briefs/RV.103.md`): raising `previewLimit`
-to a bigger constant is NOT the fix - the row is about the missing door, not the number behind it -
-and every page must keep a purchase group whole and keep the month dividers agreeing with the rows
-beneath them, which [RV.106] has just typed as `.complete/.partial/.pending`.
-
-**If the work is judged unfinished, `git checkout` those paths and re-dispatch** - the brief is
-written and unchanged at `agents/briefs/RV.103.md`. Do not half-adopt it.
-
-**Also**: the agent edited `docs/CODE-COMMENT-REVIEW.md` (a statistics-table refresh), which is
-outside its brief's write fence. That edit was **reverted**, not kept - an agent writing outside its
-fence is not silently accepted, and the table is the kind of mutable fact the comment rule now says
-should not be copied around anyway.
+- **Station brands are reference data, not a server query, and the ordering happens on the DEVICE**:
+  the receipt in hand, then the user's own history, then device region, then a `detectedCountry`
+  hint the server may return **only on an uncacheable response**. `docs/API.md` carries the four
+  reasons. (`RV.115`)
+- **Consumption variance is not diagnosable from a fuel log.** The B2C reading is a budget signal;
+  the fleet reading is Drivvo's ground and not ours. `docs/VISION.md` -> "What we will not tell a
+  driver". (`RV.121`)
+- **An import must say what it is NOT bringing in**, with the row COUNT per unsupported column, at
+  the review gate. Filed deliberately as a completeness promise rather than hard rule 8. (`RV.116`)
+- **The tyre advisory cannot be a remote push** - `docs/NOTIFICATIONS.md` forbids user-visible remote
+  push in v1 - so it inverts into reference data plus a local notification. (`RV.124`)
+- **Drivvo is a fleet product** and that is the seam; its export is one file, three sections,
+  localised headers, no currency column. Import asks for the currency with the destination car's as
+  the default. (`docs/COMPETITORS.md`, `RV.113`)
 
 ## What shipped overnight 2026-09-06/07
 
@@ -137,7 +156,11 @@ and never asks for the upload budget** - `RemoteSyncTransport` sets no per-reque
 halves need fixing: raising only the timeout converts a 30 s failure into a 120 s one on the next
 larger import.
 
-## The car-deletion cluster: three rows, one broken flow (STILL OPEN - briefs written)
+## The car-deletion cluster (ALL THREE SHIPPED 2026-09-07: RV.98, RV.99, RV.100 - plus RV.101)
+
+*Kept because the diagnosis is the reference case for a defect that compounds across rows, and
+because RV.101 - the delete cascade resurrecting the car it just deleted - was only found by
+answering the sync question RV.100's brief refused to guess.*
 
 Found by the owner in a single sitting, and they compound:
 
