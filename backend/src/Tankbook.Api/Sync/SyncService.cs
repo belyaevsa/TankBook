@@ -15,6 +15,22 @@ internal sealed record SyncItemLog(
     string? Pointer = null);
 
 /// <summary>
+/// A change that passed validation and is queued for the batch apply (RV.105).
+/// <see cref="Index"/> is its position in the request, so per-change results can
+/// be placed back in wire order after the single repository call.
+/// </summary>
+internal sealed record PendingApply(
+    int Index,
+    Guid Id,
+    string EntityType,
+    int SchemaVersion,
+    long BaseScn,
+    string PayloadJson,
+    DateTimeOffset ClientUpdatedAt,
+    bool Deleted,
+    bool Clamped);
+
+/// <summary>
 /// Orchestrates push and pull against the record stream (docs/API.md Sync,
 /// docs/SYNC.md). The validator and the schema registry are the ones built in
 /// P0.9/P4 - this service wires them into the endpoints without re-validating.
@@ -78,11 +94,14 @@ public sealed class SyncService
         }
 
         var stopwatch = Stopwatch.StartNew();
-        var results = new List<object>(changes.Count);
-        var items = new List<SyncItemLog>(changes.Count);
-        var assigned = new List<long>();
+        var results = new object[changes.Count];
+        var items = new SyncItemLog[changes.Count];
+        var assigned = new List<long>(changes.Count);
         var now = _time.GetUtcNow();
 
+        // Phase 1 (pure): validation outcomes and clock clamps. Rejected changes
+        // are settled here; the rest queue for one batched apply (RV.105).
+        var pending = new List<PendingApply>(changes.Count);
         for (var i = 0; i < changes.Count; i++)
         {
             var change = changes[i];
@@ -90,35 +109,57 @@ public sealed class SyncService
 
             if (!validation.IsAccepted)
             {
-                results.Add(new RejectedPushResult(change.Id, "rejected", validation.WireCode!, validation.Pointer));
-                items.Add(new SyncItemLog(change.Id, change.EntityType ?? string.Empty, change.SchemaVersion, "rejected", validation.WireCode, validation.Pointer));
+                results[i] = new RejectedPushResult(change.Id, "rejected", validation.WireCode!, validation.Pointer);
+                items[i] = new SyncItemLog(change.Id, change.EntityType ?? string.Empty, change.SchemaVersion, "rejected", validation.WireCode, validation.Pointer);
                 continue;
             }
 
             var clientUpdatedAt = ClampClientUpdatedAt(change.ClientUpdatedAt, now, out var clamped);
-
-            var apply = await _repository.ApplyChangeAsync(
-                accountId,
-                deviceId,
+            pending.Add(new PendingApply(
+                i,
+                change.Id,
                 change.EntityType!,
                 change.SchemaVersion,
-                change.Id,
                 change.BaseScn,
                 PayloadText(change),
                 clientUpdatedAt,
                 change.Deleted,
-                cancellationToken);
+                clamped));
+        }
 
-            if (apply.Status == ApplyStatus.Conflict)
+        // Phase 2 (one DB transaction for the whole batch, RV.105 2026-09-07):
+        // per-record transactions cost a fixed ~578 ms each on the production host
+        // (the commit's fsync), so 200 records were ~115 s against the client's
+        // 120 s upload budget. One commit per batch collapses that. A conflict or
+        // an idempotent replay is a no-op inside the transaction, never a
+        // rollback, so partial acceptance survives (docs/SYNC.md).
+        var commits = 0;
+        if (pending.Count > 0)
+        {
+            var batch = new BatchChange[pending.Count];
+            for (var i = 0; i < pending.Count; i++)
             {
-                results.Add(new ConflictPushResult(change.Id, "conflict", apply.Current!));
-                items.Add(new SyncItemLog(change.Id, change.EntityType!, change.SchemaVersion, "conflict"));
+                var p = pending[i];
+                batch[i] = new BatchChange(p.Id, p.EntityType, p.SchemaVersion, p.BaseScn, p.PayloadJson, p.ClientUpdatedAt, p.Deleted);
             }
-            else
+
+            var applied = await _repository.ApplyBatchAsync(accountId, deviceId, batch, cancellationToken);
+            commits = applied.Commits;
+            for (var i = 0; i < pending.Count; i++)
             {
-                assigned.Add(apply.Scn);
-                results.Add(new AcceptedPushResult(change.Id, "accepted", apply.Scn, clamped ? true : null));
-                items.Add(new SyncItemLog(change.Id, change.EntityType!, change.SchemaVersion, "accepted"));
+                var p = pending[i];
+                var apply = applied.Results[i];
+                if (apply.Status == ApplyStatus.Conflict)
+                {
+                    results[p.Index] = new ConflictPushResult(p.Id, "conflict", apply.Current!);
+                    items[p.Index] = new SyncItemLog(p.Id, p.EntityType, p.SchemaVersion, "conflict");
+                }
+                else
+                {
+                    assigned.Add(apply.Scn);
+                    results[p.Index] = new AcceptedPushResult(p.Id, "accepted", apply.Scn, p.Clamped ? true : null);
+                    items[p.Index] = new SyncItemLog(p.Id, p.EntityType, p.SchemaVersion, "accepted");
+                }
             }
         }
 
@@ -130,6 +171,7 @@ public sealed class SyncService
             accepted,
             conflicts,
             rejected,
+            commits,
             assigned.Count == 0 ? null : (assigned.Min(), assigned.Max()),
             stopwatch.Elapsed,
             items);

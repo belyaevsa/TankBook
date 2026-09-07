@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -11,7 +12,9 @@ using Npgsql;
 using Tankbook.Api.Auth;
 using Tankbook.Api.Data;
 using Tankbook.Api.Logging;
+using Tankbook.Api.Sync;
 using Tankbook.Api.Tests.Auth;
+using Xunit.Abstractions;
 
 namespace Tankbook.Api.Tests.Sync;
 
@@ -26,10 +29,12 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
     private const string PayloadTimestamp = "2026-08-22T12:10:00.000Z";
 
     private readonly PostgresFixture _fixture;
+    private readonly ITestOutputHelper _output;
 
-    public SyncEndpointTests(PostgresFixture fixture)
+    public SyncEndpointTests(PostgresFixture fixture, ITestOutputHelper output)
     {
         _fixture = fixture;
+        _output = output;
     }
 
     // ---- 1. Ordering and pagination under concurrent writes -----------------
@@ -163,6 +168,68 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
         // The original row is untouched; two new rows landed.
         Assert.Equal(3, await app.CountAsync("records", "account_id = @p", new { p = accountId }));
         Assert.Equal(1L, await app.ScalarAsync<long>("SELECT scn FROM records WHERE account_id = @p AND id = @id", new { p = accountId, id = original }));
+    }
+
+    // ---- 3b. RV.105: one commit per batch, well inside the upload budget -----
+
+    /// <summary>
+    /// RV.105, the row's point: pushing the maximum legal batch (200 changes,
+    /// docs/API.md / SyncService.MaxChangesPerBatch) must finish well inside the
+    /// client's 120 s upload budget. Before RV.105 the server committed once per
+    /// record - a fixed ~578 ms each on the production host - so 200 records were
+    /// ~115 s against that budget. The sync.push event therefore carries a
+    /// Commits count (the mechanism, machine-independent) alongside DurationMs
+    /// (the measurement): Commits == 1 is what fails a per-record-transaction
+    /// regression even on a laptop whose fsync is too cheap for DurationMs alone
+    /// to notice (docs/SYNC.md RV.105).
+    /// </summary>
+    [SkippableFact]
+    public async Task Push_MaximumBatch_CommitsOnce_WellInsideUploadBudget()
+    {
+        var signer = new TestIdTokenSigner();
+        var lines = new List<string>();
+        var writer = new InMemoryLogWriter(lines);
+        await using var app = await StartAsync(signer, writer);
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv105-sub", "rv105@example.com");
+
+        // A warm-up single push so the 200-record measurement is steady state
+        // (the account_seq row and the pool already exist).
+        var warm = await PushBatchAsync(app.Client, token, new[] { NewVehicleChange(Guid.NewGuid(), 0) });
+        Assert.Equal(HttpStatusCode.OK, warm.StatusCode);
+
+        var batch = Enumerable.Range(0, SyncService.MaxChangesPerBatch)
+            .Select(_ => NewVehicleChange(Guid.NewGuid(), 0))
+            .ToArray();
+        var response = await PushBatchAsync(app.Client, token, batch);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using (var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+        {
+            var results = doc.RootElement.GetProperty("results").EnumerateArray().ToArray();
+            Assert.Equal(SyncService.MaxChangesPerBatch, results.Length);
+            Assert.All(results, r => Assert.Equal("accepted", r.GetProperty("status").GetString()));
+            // Batch SCNs are contiguous and in commit order: the fresh account's
+            // warm-up took SCN 1, so this batch is exactly 2..201.
+            Assert.Equal(2L, results[0].GetProperty("newScn").GetInt64());
+            Assert.Equal(201L, results[^1].GetProperty("newScn").GetInt64());
+        }
+
+        var push = writer.JsonLines().Single(l =>
+            l.Prop("event") == "sync.push" && l.Prop("BatchSize") == SyncService.MaxChangesPerBatch.ToString());
+        var commits = int.Parse(push.Prop("Commits")!, CultureInfo.InvariantCulture);
+        var durationMs = double.Parse(push.Prop("DurationMs")!, CultureInfo.InvariantCulture);
+        var msPerRecord = durationMs / SyncService.MaxChangesPerBatch;
+
+        _output.WriteLine(
+            $"RV.105 200-record push: {durationMs:F1} ms total, {msPerRecord:F2} ms/record, {commits} commit(s).");
+
+        Assert.Equal(1, commits);
+        Assert.Equal(SyncService.MaxChangesPerBatch.ToString(), push.Prop("Accepted"));
+        Assert.Equal("0", push.Prop("Conflicts"));
+        Assert.Equal("0", push.Prop("Rejected"));
+        Assert.True(durationMs < 30_000,
+            $"a maximum batch must finish well inside the 120 s upload budget; took {durationMs:F0} ms.");
+        Assert.Equal(201, await app.CountAsync("records", "account_id = @p", new { p = accountId }));
     }
 
     // ---- 4. rejected carries a code and a pointer ---------------------------

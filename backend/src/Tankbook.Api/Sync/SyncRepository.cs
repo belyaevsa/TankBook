@@ -32,13 +32,41 @@ public enum ApplyStatus
 public sealed record ApplyResult(ApplyStatus Status, long Scn, SyncRecord? Current);
 
 /// <summary>
-/// Database access for the sync endpoints (docs/SYNC.md). The apply-change path
-/// is the one place a race can corrupt a user's history silently, so it runs in
-/// a single transaction that locks the target record row, allocates the SCN from
-/// <see cref="ScnAllocator"/> inside that same transaction, and writes the row
-/// before committing - committed SCNs are therefore contiguous and commit in
-/// order, which is what lets a pull cursor page the stream without ever skipping
-/// an in-flight commit.
+/// One prepared change in a push batch (docs/SYNC.md). The service has already
+/// validated it; the repository never re-interprets the payload, it only writes
+/// it (hard rule 9).
+/// </summary>
+public sealed record BatchChange(
+    Guid Id,
+    string EntityType,
+    int SchemaVersion,
+    long BaseScn,
+    string PayloadJson,
+    DateTimeOffset ClientUpdatedAt,
+    bool Deleted);
+
+/// <summary>
+/// Outcome of applying a whole push batch. <see cref="Results"/> is aligned with
+/// the input changes; <see cref="Commits"/> is how many transactions the batch
+/// actually committed - the RV.105 regression signal, since the fix's whole
+/// point is that a 200-record batch costs one commit, not 200.
+/// </summary>
+public sealed record BatchApplyResult(IReadOnlyList<ApplyResult> Results, int Commits);
+
+/// <summary>
+/// Database access for the sync endpoints (docs/SYNC.md). The apply path is the
+/// one place a race can corrupt a user's history silently, so since RV.105
+/// (2026-09-07) a whole push batch runs in ONE transaction: it locks each target
+/// record row, allocates SCNs from <see cref="ScnAllocator"/> inside that same
+/// transaction, and writes accepted rows before committing once. Per-record
+/// transactions cost ~578 ms each on the production host (a fixed per-record
+/// cost, independent of payload size - the commit's fsync), so a 200-record
+/// batch was 92-115 s of pure commit time against the client's 120 s upload
+/// budget. One commit per batch collapses that. Partial batch acceptance is
+/// unchanged and mechanical: a conflict or an idempotent replay is a no-op
+/// inside the transaction (the row is read but not written), never a rollback.
+/// Committed SCNs stay contiguous and commit in order, which is what lets a pull
+/// cursor page the stream without ever skipping an in-flight commit.
 /// </summary>
 public sealed class SyncRepository
 {
@@ -102,90 +130,109 @@ public sealed class SyncRepository
     }
 
     /// <summary>
-    /// Applies one validated change in its own transaction. Idempotent: a replayed
-    /// new-record push (baseScn 0 against an existing id) returns the same accepted
-    /// outcome and existing SCN without a second row or a second allocation.
+    /// Applies a whole validated push batch in one transaction. Each change is
+    /// resolved against its current row (idempotent: a replayed new-record push,
+    /// baseScn 0 against an existing id, returns the existing SCN without a write
+    /// or an allocation), accepted changes are written with an SCN allocated in
+    /// this same transaction, and the transaction commits once at the end.
+    /// Conflicts do not roll the batch back - a conflicting change is simply not
+    /// written and is reported as a conflict (docs/SYNC.md partial acceptance).
     /// </summary>
-    public async Task<ApplyResult> ApplyChangeAsync(
+    public async Task<BatchApplyResult> ApplyBatchAsync(
         Guid accountId,
         Guid deviceId,
-        string entityType,
-        int schemaVersion,
-        Guid id,
-        long baseScn,
-        string payloadJson,
-        DateTimeOffset clientUpdatedAt,
-        bool deleted,
+        IReadOnlyList<BatchChange> changes,
         CancellationToken cancellationToken)
     {
+        var results = new ApplyResult[changes.Count];
+        if (changes.Count == 0)
+        {
+            return new BatchApplyResult(results, Commits: 0);
+        }
+
         var opened = await OpenIfNeededAsync();
         try
         {
             var connection = (DbConnection)_db;
             await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            var wrote = false;
             try
             {
-                var current = await _db.QuerySingleOrDefaultAsync<RecordRow>(new CommandDefinition(
-                    RecordColumns + " WHERE account_id = @AccountId AND id = @Id FOR UPDATE",
-                    new { AccountId = accountId, Id = id },
-                    transaction: transaction,
-                    cancellationToken: cancellationToken));
-
-                if (current is null)
+                for (var i = 0; i < changes.Count; i++)
                 {
-                    var scn = await ScnAllocator.AllocateAsync(transaction, accountId);
-                    await _db.ExecuteAsync(new CommandDefinition(
-                        InsertSql,
-                        new
-                        {
-                            AccountId = accountId,
-                            Id = id,
-                            EntityType = entityType,
-                            SchemaVersion = schemaVersion,
-                            Scn = scn,
-                            Payload = payloadJson,
-                            ClientUpdatedAt = clientUpdatedAt,
-                            Deleted = deleted,
-                            OriginDevice = deviceId,
-                        },
+                    var change = changes[i];
+                    var current = await _db.QuerySingleOrDefaultAsync<RecordRow>(new CommandDefinition(
+                        RecordColumns + " WHERE account_id = @AccountId AND id = @Id FOR UPDATE",
+                        new { AccountId = accountId, Id = change.Id },
                         transaction: transaction,
                         cancellationToken: cancellationToken));
-                    await transaction.CommitAsync(cancellationToken);
-                    return new ApplyResult(ApplyStatus.Accepted, scn, null);
+
+                    if (current is null)
+                    {
+                        var scn = await ScnAllocator.AllocateAsync(transaction, accountId);
+                        await _db.ExecuteAsync(new CommandDefinition(
+                            InsertSql,
+                            new
+                            {
+                                AccountId = accountId,
+                                Id = change.Id,
+                                EntityType = change.EntityType,
+                                SchemaVersion = change.SchemaVersion,
+                                Scn = scn,
+                                Payload = change.PayloadJson,
+                                ClientUpdatedAt = change.ClientUpdatedAt,
+                                Deleted = change.Deleted,
+                                OriginDevice = deviceId,
+                            },
+                            transaction: transaction,
+                            cancellationToken: cancellationToken));
+                        wrote = true;
+                        results[i] = new ApplyResult(ApplyStatus.Accepted, scn, null);
+                    }
+                    else if (change.BaseScn == 0)
+                    {
+                        // Idempotent replay of a new-record push: same outcome, no write.
+                        results[i] = new ApplyResult(ApplyStatus.Accepted, current.scn, null);
+                    }
+                    else if (change.BaseScn == current.scn)
+                    {
+                        var scn = await ScnAllocator.AllocateAsync(transaction, accountId);
+                        await _db.ExecuteAsync(new CommandDefinition(
+                            UpdateSql,
+                            new
+                            {
+                                AccountId = accountId,
+                                Id = change.Id,
+                                EntityType = change.EntityType,
+                                SchemaVersion = change.SchemaVersion,
+                                Scn = scn,
+                                Payload = change.PayloadJson,
+                                ClientUpdatedAt = change.ClientUpdatedAt,
+                                Deleted = change.Deleted,
+                                OriginDevice = deviceId,
+                            },
+                            transaction: transaction,
+                            cancellationToken: cancellationToken));
+                        wrote = true;
+                        results[i] = new ApplyResult(ApplyStatus.Accepted, scn, null);
+                    }
+                    else
+                    {
+                        // A stale base: no-op inside the batch, reported as a conflict.
+                        results[i] = new ApplyResult(ApplyStatus.Conflict, 0, ToSyncRecord(current));
+                    }
                 }
 
-                if (baseScn == 0)
+                if (wrote)
                 {
-                    // Idempotent replay of a new-record push: same outcome, no write.
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                else
+                {
                     await transaction.RollbackAsync(cancellationToken);
-                    return new ApplyResult(ApplyStatus.Accepted, current.scn, null);
                 }
 
-                if (baseScn == current.scn)
-                {
-                    var scn = await ScnAllocator.AllocateAsync(transaction, accountId);
-                    await _db.ExecuteAsync(new CommandDefinition(
-                        UpdateSql,
-                        new
-                        {
-                            AccountId = accountId,
-                            Id = id,
-                            EntityType = entityType,
-                            SchemaVersion = schemaVersion,
-                            Scn = scn,
-                            Payload = payloadJson,
-                            ClientUpdatedAt = clientUpdatedAt,
-                            Deleted = deleted,
-                            OriginDevice = deviceId,
-                        },
-                        transaction: transaction,
-                        cancellationToken: cancellationToken));
-                    await transaction.CommitAsync(cancellationToken);
-                    return new ApplyResult(ApplyStatus.Accepted, scn, null);
-                }
-
-                await transaction.RollbackAsync(cancellationToken);
-                return new ApplyResult(ApplyStatus.Conflict, 0, ToSyncRecord(current));
+                return new BatchApplyResult(results, wrote ? 1 : 0);
             }
             catch
             {

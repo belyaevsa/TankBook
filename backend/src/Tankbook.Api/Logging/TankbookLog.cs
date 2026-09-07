@@ -94,6 +94,7 @@ public static class TankbookLog
         int accepted,
         int conflicts,
         int rejected,
+        int commits,
         (long From, long To)? assignedScnRange,
         TimeSpan duration,
         IEnumerable<object>? items = null)
@@ -102,6 +103,10 @@ public static class TankbookLog
             ("Accepted", accepted),
             ("Conflicts", conflicts),
             ("Rejected", rejected),
+            // RV.105 (2026-09-07): DB transactions committed for the batch.
+            // One push batch must commit once, whatever its size; a per-record
+            // commit count is the regression signal that survives a faster host.
+            ("Commits", commits),
             ("AssignedScnRange", assignedScnRange is null ? null : new[] { assignedScnRange.Value.From, assignedScnRange.Value.To }),
             ("DurationMs", duration.TotalMilliseconds),
             ("Items", items));
