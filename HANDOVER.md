@@ -1,13 +1,71 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-06 (night). **The app is on TestFlight, the backend is deployed, and App Store
+*Updated 2026-09-07 (early hours). **The app is on TestFlight, the backend is deployed, and App Store
 review is under way - and the product owner is now using it on their own data, which is where every
-new row comes from.** Measured: **iOS 1559 tests / 172 suites**, **backend 407**, lint 0 and the
-localization gate 0 from the repo **ROOT**, Release build 0. The `RV` backlog runs to **RV.100**.
-**`RV.97` is the most urgent open row: sync push is in a livelock on the owner's device right now.**
-Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+new row comes from.** Measured: **iOS 1581 tests / 177 suites**, **backend 410**, lint 0 and the
+localization gate 0 (759 keys, 100% RU) from the repo **ROOT**, Release build 0. The `RV` backlog
+runs to **RV.100**, and **six rows are open: RV.98, RV.99, RV.100 (the car-deletion cluster - briefs
+are WRITTEN and ready to dispatch), RV.82, RV.91, RV.92**. Read this first, then `CLAUDE.md`, then
+`docs/TASKS.md`.*
 
-## RV.97 first: sync push cannot succeed after an import
+## What shipped overnight 2026-09-06/07
+
+`RV.97` (the sync-push livelock - it was the most urgent row and is now closed), then the five-row
+queue: `RV.93`, `RV.96`, `RV.71`, `RV.84`, `RV.83`. Every one was dispatched to
+`deepseek/deepseek-v4-flash` with the cause already pinned to a line, and every one landed first
+time.
+
+- **`RV.97`** - push asked for the 30 s JSON budget while carrying a post-import 150 KB body, so the
+  server committed ~31 s of work the client never learned about, the rows stayed dirty, and the same
+  batch went again forever. Both halves fixed: the request now asks for `TransportTimeouts.upload`,
+  and the batch is bounded by **64 KB of encoded body** as well as by 200 records, measured through
+  one shared `SyncPushWire` so the engine's bound is the transport's exact bytes.
+- **`RV.93`** - the picker takes the whole MFM export at once. The server stays a per-file pure
+  function (N files = N calls); `ImportBatchMerge` re-keys every file's rows into one global
+  source-row space and unions the vehicle groups, so the mapping is asked once and one car's rows
+  from different files validate as one timeline.
+- **`RV.96`** - "Replacement parts" (107 of 260 cost rows) maps to a ServiceRecord with the
+  `parts` category that the schema already had, note preserved as the item title.
+- **`RV.71`** - a scanned fuel kind outside `FuelKind.offeredKinds(for:)` warns, amber, dismissable,
+  never blocking. Reusing the offer set is what keeps the grade case (92 on a 95 car) quiet.
+- **`RV.84`** - the import parse-error card moved out of the `safeAreaInset` (the region that does
+  not scroll) into the scroll content, and the dead-end card is re-ordered above the teaser while an
+  error shows.
+- **`RV.83`** - the Garage attention strip carries the chevron, and the artboard was updated in the
+  same change.
+
+### The three things this run would tell its successor
+
+1. **Opening the screenshots caught two things no test did.** `RV.71`'s committed shot showed **Save
+   disabled** - the exact opposite of the row's claim that the warning never blocks - because it was
+   captured before the form settled; the code was right and the artefact was a lie. Re-captured both
+   EN and RU personally. This is the third session in a row where the only defect that reached a
+   commit was visual.
+2. **`isHittable` lied again, and this time it was measured.** `RV.84` found it returning `true` for
+   an element **~86% clipped**. Assert visibility by frame against the window; never by `isHittable`.
+3. **A brief that closes its own design question gets a clean first-time landing.** All six rows
+   went to flash, none needed a second dispatch, and the two that produced findings did so by
+   *reporting* rather than guessing: `RV.93` said a mutation PASSED and grew a real cross-file
+   contradiction test; `RV.84` said defect B was **below the fold, not missing**, after measuring it
+   on a device.
+
+### Three findings raised and deliberately NOT fixed
+
+- **The import review row cannot change what a row became** (found while verifying `RV.96`): no kind
+  switch, no category picker, and the category is not even displayed; after commit the entry editor
+  exposes vendor/amount/date/odometer/note, not the item's category. Pre-existing (PJ.9), but
+  `RV.96` makes it material - 107 rows now arrive as service records the user can only accept or
+  drop wholesale. **Hard rule 13 says that is a defect. It needs its own row.**
+- **`CarSwitcherView`'s attention strip** (`:141-162`) is `RV.83`'s shape with `RV.83`'s gap, and now
+  contradicts the DESIGN.md rule that row added. Needs a row, or an explicit "the sheet is a
+  different surface" decision.
+- **`TrendsView` has `RV.100`'s identical bare-return defect** (`:180-182`) - already written into
+  the `RV.100` brief so the agent does not have to rediscover it.
+
+## RV.97 (SHIPPED 2026-09-07): sync push could not succeed after an import
+
+*Kept because the measurement is the reference case for "a green suite is not a verified change" and
+for how a livelock reads in production logs. The fix is in `947308f`.*
 
 Two production logs, seventeen minutes apart, same device (`787c4f6f`, `1.0.0+788`). Every
 `POST /v1/sync/push` is **145-151 KB** and ends **499** (client gone) at 4-32 s, while every pull in
@@ -31,7 +89,7 @@ and never asks for the upload budget** - `RemoteSyncTransport` sets no per-reque
 halves need fixing: raising only the timeout converts a 30 s failure into a 120 s one on the next
 larger import.
 
-## The car-deletion cluster: three rows, one broken flow
+## The car-deletion cluster: three rows, one broken flow (STILL OPEN - briefs written)
 
 Found by the owner in a single sitting, and they compound:
 
