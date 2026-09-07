@@ -150,3 +150,36 @@ From the **repo ROOT**, judged by exit code (`echo $?`), never by skimming outpu
    say so.
 5. Anything in this brief that was wrong, as a Residual.
 6. Whether the tests were actually **run**, not only written.
+
+---
+
+## CONFIRMED BEFORE THE RUN WAS KILLED (2026-09-07 18:10)
+
+The dispatch was stopped externally part-way. **It got as far as reproducing the flake
+deterministically, and the brief's mechanism is confirmed** - do not re-derive it on the
+re-dispatch, start from here.
+
+The reproduction, run and observed failing:
+
+```
+✘ rv91FlatSweepTripsOnTheTimestampAlone() - Expectation failed:
+  !(output → "2025-07-08T18:40:42.349 INFO [sync] event=test.redaction.fixture
+     appVersion=9.9.9-test platform=ios").contains("42.3")
+  ↳ leaked value: 42.3
+```
+
+A line rendered at **second 42 with milliseconds 300-399** puts `...:42.3xx` into the
+`LogRenderer` timestamp, and the flat sweep's `contains("42.3")` trips on **framing, not on a
+leak**. Two companion tests passed: the timestamp renders as expected, and no other forbidden
+value can collide with a timestamp this way.
+
+The scratch reproduction is kept **outside the repo** at
+`<scratchpad>/RV91ScratchTests.swift.repro`. It is a *reproduction*, not the fix's test:
+it is named for a task id and is written to fail, so it must not land in the suite as-is.
+
+**What remains**: make the sweep not trip on framing. The fix is to sweep the line's **fields**
+rather than its rendered framing, or to exclude the timestamp span before the `contains` check -
+choose one and say why. Then the test that ships asserts the sweep is quiet on a
+second-42/ms-3xx line while still catching a genuine `42.3` in a field value. **That
+discrimination is the whole point**: a fix that simply stops checking would pass a test that only
+proves silence.

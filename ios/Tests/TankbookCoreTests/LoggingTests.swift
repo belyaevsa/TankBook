@@ -105,6 +105,57 @@ private func redactionFixture() -> (event: PopulatedEntityLog, forbidden: [Strin
     return (event, forbidden)
 }
 
+/// The raw value of every Sensitive and Never field, derived from the
+/// classification itself. The sweep's needles come from the fields, not a
+/// maintained list, so a field added to the fixture later is covered without
+/// anyone remembering to extend the list.
+private func guardedValues(_ fields: [LogField]) -> [String] {
+    fields.compactMap { field in
+        switch field.value {
+        case .safe: return nil
+        case .sensitive(let value), .never(let value): return value
+        }
+    }
+}
+
+/// The part of an emitted line a leak can live in: the event name and the
+/// field values. The renderer's own framing - timestamp, level, category and
+/// the context tokens - is machine-composed from non-domain inputs and can
+/// never carry a value, but its fractional-second timestamp can spell a short
+/// numeric needle ("42.3" inside "...:42.3xx"). The sweep reads the field
+/// values from the actual emitted text, so a renderer that stops masking
+/// still fails it; only the framing is dropped.
+private func sweepContent(_ rendered: String, timestamp: Date, level: LogLevel,
+                          category: LogCategory) -> String {
+    let framing: Set<String> = [
+        LogRenderer.timestamp(timestamp),
+        level.rawValue.uppercased(),
+        "[\(category.rawValue)]"
+    ]
+    return rendered.split(separator: " ").compactMap { token in
+        if framing.contains(String(token)) { return nil }
+        if token.hasPrefix("traceId=") || token.hasPrefix("deviceId=")
+            || token.hasPrefix("appVersion=") || token.hasPrefix("platform=") {
+            return nil
+        }
+        return String(token)
+    }.joined(separator: " ")
+}
+
+private func sweepTarget(_ line: LogLine) -> String {
+    sweepContent(line.redactedDescription, timestamp: line.timestamp,
+                 level: line.level, category: line.category)
+}
+
+/// A minimal event whose only job is to carry an extra classified field the
+/// redaction fixture does not name.
+private struct RedactionProbe: LogEvent {
+    let eventName = "test.redaction.probe"
+    let category = LogCategory.persistence
+    let level = LogLevel.info
+    let fields: [LogField]
+}
+
 // MARK: - Redaction
 
 @Test func redactorStripsEverySensitiveAndNeverValueFromEmittedOutput() {
@@ -124,9 +175,62 @@ private func redactionFixture() -> (event: PopulatedEntityLog, forbidden: [Strin
     #expect(output.contains("schemaVersion=1"))
     #expect(output.contains("entityType=fillUp"))
 
-    // Sensitive and Never values appear nowhere.
-    for value in forbidden {
-        #expect(!output.contains(value), "leaked value: \(value)")
+    // Sensitive and Never values appear nowhere. The sweep runs over each
+    // line's field content, never the bare rendered line: the renderer's own
+    // framing (the timestamp above all) can spell a short forbidden needle and
+    // cry wolf, while a leak can only live in a field value or the event name.
+    for line in sink.all() {
+        let content = sweepTarget(line)
+        for value in forbidden + guardedValues(fixture.fields) {
+            #expect(!content.contains(value), "leaked value: \(value)")
+        }
+    }
+}
+
+@Test func redactionSweepIgnoresTheTimestampAndStillReadsAFieldValue() throws {
+    let (fixture, forbidden) = redactionFixture()
+    // The exact instant that trips a whole-line sweep: second 42, ms 3xx.
+    let instant = try #require(DateComponents(calendar: Calendar(identifier: .gregorian),
+        timeZone: TimeZone(secondsFromGMT: 0), year: 2025, month: 7, day: 8,
+        hour: 18, minute: 40, second: 42, nanosecond: 349_000_000).date)
+    #expect(LogRenderer.timestamp(instant).contains("42.3"))
+
+    // A masked line at that instant: the framing alone must not trip the sweep.
+    let quiet = LogLine(timestamp: instant, level: .info, category: .sync,
+                        event: fixture.eventName, traceId: nil, deviceId: nil,
+                        appVersion: "9.9.9-test", platform: "ios",
+                        fields: Redactor.shared.redact(fixture.fields))
+    #expect(quiet.redactedDescription.contains("42.3"))
+    let quietContent = sweepTarget(quiet)
+    for value in forbidden + guardedValues(fixture.fields) {
+        #expect(!quietContent.contains(value), "leaked value: \(value)")
+    }
+
+    // The same instant with a genuine leak - a domain value riding a Safe field,
+    // the misclassification the sweep exists to catch - is still seen.
+    let leaking = LogLine(timestamp: instant, level: .info, category: .sync,
+                          event: fixture.eventName, traceId: nil, deviceId: nil,
+                          appVersion: "9.9.9-test", platform: "ios",
+                          fields: Redactor.shared.redact([.safe("volumeL", "42.3")]))
+    #expect(sweepTarget(leaking).contains("42.3"))
+}
+
+@Test func redactionSweepCoversEveryClassifiedValueNotJustTheEnumeratedList() throws {
+    let sink = InMemorySink()
+    let log = makeLog(sink: sink)
+    let (fixture, _) = redactionFixture()
+    // A field whose value is in NO forbidden list: the sweep must still examine
+    // it, or a list that goes stale silently widens the hole it guards.
+    let unlisted = "advisor@rhein-main.example"
+    let fields = fixture.fields + [.sensitive("advisor", unlisted)]
+    #expect(guardedValues(fields).contains(unlisted))
+
+    log.emit(RedactionProbe(fields: fields))
+
+    let line = try #require(sink.all().first)
+    let content = sweepTarget(line)
+    for value in guardedValues(fields) {
+        #expect(!content.contains(value), "leaked value: \(value)")
     }
 }
 
@@ -323,7 +427,7 @@ private struct StationNameError: LocalizedError {
 
 // MARK: - Capture pipeline: field names + confidence only (docs/LOGGING.md §4)
 
-@Test func capturePipelineLogsFieldNamesAndConfidenceNeverValues() {
+@Test func capturePipelineLogsFieldNamesAndConfidenceNeverValues() throws {
     let sink = InMemorySink()
     let log = makeLog(sink: sink)
 
@@ -345,8 +449,10 @@ private struct StationNameError: LocalizedError {
     #expect(text.contains("field=station:0.881"))
     #expect(text.contains("crossCheck=verified"))
     // No extracted value could be attached even by mistake: the event takes no
-    // value-carrying parameter.
-    #expect(!text.contains("42.3"))
+    // value-carrying parameter. Asserted against the line's field content - a
+    // bare rendered line can spell "42.3" from the timestamp alone.
+    let line = try #require(sink.all().last)
+    #expect(!sweepTarget(line).contains("42.3"))
 }
 
 // MARK: - Level discipline (docs/LOGGING.md §3)
@@ -406,8 +512,16 @@ private struct StationNameError: LocalizedError {
     #expect(text.contains("breadcrumbCount=1"))
     #expect(text.contains("event=test.redaction.fixture"))
 
-    for value in forbidden {
-        #expect(!text.contains(value), "diagnostics leaked value: \(value)")
+    // The negative sweep runs over each breadcrumb line's content, not the
+    // bundle's whole text: the bundle's metadata and each line's framing are
+    // machine-composed from non-domain inputs, while a timestamp can spell a
+    // short forbidden needle ("42.3" in a fractional-second instant).
+    for crumb in crumbs.snapshot() {
+        let content = sweepContent(crumb.rendered, timestamp: crumb.timestamp,
+                                   level: crumb.level, category: crumb.category)
+        for value in forbidden + guardedValues(fixture.fields) {
+            #expect(!content.contains(value), "diagnostics leaked value: \(value)")
+        }
     }
     // The bundle is available as UTF-8 data for the About screen flow.
     #expect(String(data: bundle.data, encoding: .utf8) == text)
