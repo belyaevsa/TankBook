@@ -96,7 +96,12 @@ struct TrendsView: View {
             }
             if stats.pendingRateCount > 0 {
                 PendingRatesFootnote(count: stats.pendingRateCount,
-                                     identifier: "trendsPendingRatesFootnote")
+                                     identifier: "trendsPendingRatesFootnote",
+                                     onCheck: {
+                    // RV.106: the footnote's "Check for rates" - the same
+                    // refresh + S8 backfill the next launch runs, on demand.
+                    Task { await AppRates.refresh() }
+                })
                     .padding(.top, 4)
             }
         } else {

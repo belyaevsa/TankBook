@@ -109,6 +109,12 @@ Money {
 //   over exactly the rows an import just committed – the import drain asks the rate service for the dates
 //   those rows span (`/rates/pack`, chunked) and resolves each at its OWN `rateDate`, never today's. A row
 //   the service cannot serve (dated before its archive) stays rate-pending and is counted, never zeroed.
+//   A RATE-PENDING ROW IS NOT ZERO (RV.106): its home amount is unknown, so a derived total that sums it as
+//   `0` states a spend the user did not have. The log's month dividers sum only home amounts that exist and
+//   mark the month `.partial`/`.pending` (LogStream.MonthTotal) when rows wait; no derived figure may print a
+//   bare `0 €` for a month whose rows carry no home amount. Rows whose rate the server had not yet published
+//   at import time DO resolve later: they sit inside the rolling 400-day pack window, so a later launch or the
+//   footnote's "Check for rates" re-fetches the pack and the S8 backfill fills them (measured by RV.106).
 ```
 
 ### FillUp

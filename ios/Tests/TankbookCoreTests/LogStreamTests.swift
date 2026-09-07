@@ -161,9 +161,9 @@ struct LogStreamTests {
         ]
         let stream = LogStream(vehicle: Self.vehicle(), entries: entries, calendar: Self.calendar)
         #expect(stream.sections.count == 1)
-        #expect(stream.sections[0].totalSpend
-                == Decimal(string: "68.46")! + Decimal(string: "21.50")!
-                   + Decimal(string: "148.00")! + Decimal(string: "6.00")!)
+        let expected = Decimal(string: "68.46")! + Decimal(string: "21.50")!
+            + Decimal(string: "148.00")! + Decimal(string: "6.00")!
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(expected))
     }
 
     @Test func dividerTotalCountsAGroupGrandTotalOnceNotPerMember() {
@@ -181,12 +181,12 @@ struct LogStreamTests {
 
         let standalone = Decimal(string: "148.00")! + Decimal(string: "68.46")!
         let grandTotal = Decimal(string: "71.02")! + Decimal(string: "8.00")!
-        #expect(stream.sections[0].totalSpend == standalone + grandTotal)
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(standalone + grandTotal))
 
         // The trap from hard rule 4 / CHECK 3: the fill's amount alone is NOT
         // the purchase total, and the group is not counted once per member.
-        #expect(stream.sections[0].totalSpend != standalone + Decimal(string: "71.02")!)
-        #expect(stream.sections[0].totalSpend != standalone + grandTotal * 2)
+        #expect(stream.sections[0].total != LogStream.MonthTotal.complete(standalone + Decimal(string: "71.02")!))
+        #expect(stream.sections[0].total != LogStream.MonthTotal.complete(standalone + grandTotal * 2))
     }
 
     // MARK: - Fuel-kind visibility (docs/DESIGN.md)

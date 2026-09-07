@@ -308,7 +308,7 @@ struct DuplicateSingleCountTests {
         let stream = LogStream(vehicle: duplicateVehicle(id: vehicleID), entries: fills,
                                calendar: calendar)
         #expect(stream.sections.count == 1)
-        #expect(stream.sections[0].totalSpend == Decimal(string: "207.94"))
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(Decimal(string: "207.94")!))
     }
 
     // MARK: - Keep both: both count from then on

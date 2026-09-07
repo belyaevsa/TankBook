@@ -29,8 +29,8 @@ final class HomeUITests: XCTestCase {
     /// writes to the app's UserDefaults and survives across launches, so a test
     /// that launches RU (the P6.13 tile gate) would otherwise leave the whole
     /// suite running in Russian (P6.13 run, 2026-08-31).
-    private func launch(args: [String],
-                        language: [String] = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
+    func launch(args: [String],
+                language: [String] = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
         -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn"] + language + args

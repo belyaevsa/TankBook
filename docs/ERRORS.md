@@ -55,7 +55,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" | Merge · Keep both (one counts until resolved) |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) | Edit the entry → the conversion card offers a manual rate · wait (imported rows drain automatically at commit and on refresh - RV.88; a rate the service cannot serve needs the manual rate, see the note below) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it | Check for rates (re-runs the refresh + S8 backfill) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
@@ -78,6 +78,16 @@ counted: it shows its original amount and is excluded from home-currency totals.
 next step for it is the entry's conversion card, where the user sets a rate manually (hard
 rule 13) - the footnote never promises a conversion the service cannot deliver. Nothing is
 silently zeroed and nothing is converted at the wrong date.
+
+**A month divider states only what the data supports (RV.106).** A rate-pending row's home
+amount is not known, so it is never summed as zero: `LogStream.MonthTotal` is `.complete`
+(exact figure - every row converted), `.partial` (some rows converted - the known sum with
+the pending count) or `.pending` (no row converted yet - the divider says "N entries pending
+rates" instead of a number). `0 €` beside rows that carry no amount was a wrong number, not a
+missing one, and is not an option. Rows whose rate the server had not yet published at import
+time DO resolve: they sit inside the rolling 400-day pack window, so a later launch (or the
+footnote's "Check for rates") re-fetches the pack and the S8 backfill fills them - measured by
+RV.106's L4 reproduction.
 
 ### Capture (camera)
 | Condition | Shows | Next step |
@@ -199,7 +209,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) – a hint, never amber: nothing is wrong, the home amount is simply not known yet | Edit the entry → the conversion card offers a manual rate · wait (imported rows drain automatically at commit and on refresh - RV.88; a rate the service cannot serve needs the manual rate, see Home's F9 note) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step) | Check for rates (re-runs the refresh + S8 backfill) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

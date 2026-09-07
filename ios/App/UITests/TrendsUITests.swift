@@ -104,6 +104,30 @@ final class TrendsUITests: XCTestCase {
                       "the footnote must show the derived count, got '\(footnote.label)'")
     }
 
+    /// RV.106: the footnote names its next step here too (hard rule 7), and the
+    /// "Check for rates" action does something observable - the second
+    /// `/rates/pack` request (`-stubRatesMissThenHit`) serves the dates the
+    /// first one lacked, the S8 backfill fills the pending entries, and the
+    /// footnote disappears.
+    func testRV106FootnoteOffersAnActionOnTrends() {
+        let app = launch(args: ["-seedHomeRV106Pending", "-selectTrendsTab",
+                                "-stubRatesMissThenHit"])
+
+        let footnote = app.staticTexts["trendsPendingRatesFootnote"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 10),
+                      "Trends footnotes the rate-pending entries")
+        let check = app.buttons["trendsPendingRatesFootnoteCheckButton"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5),
+                      "the footnote must offer its next step (hard rule 7)")
+        check.tap()
+
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: footnote)
+        waitForExpectations(timeout: 25)
+        XCTAssertTrue(app.staticTexts["trendsHeaderTitle"].exists,
+                      "the check filled the rows and nothing covered Trends")
+    }
+
     // MARK: - Omit, never fabricate
 
     func testDataPoorStateOmitsTilesAndNoNATiles() {

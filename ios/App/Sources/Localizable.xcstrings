@@ -2865,6 +2865,23 @@
         }
       }
     },
+    "Check for rates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check for rates"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить курсы"
+          }
+        }
+      }
+    },
     "Check fuel consumption": {
       "extractionState": "manual",
       "localizations": {
@@ -2980,6 +2997,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Проверьте соединение и нажмите «Повторить». Это превью пришло вместе с записью."
+          }
+        }
+      }
+    },
+    "Checks whether rates are available for these entries now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checks whether rates are available for these entries now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверяет, появились ли курсы для этих записей"
           }
         }
       }

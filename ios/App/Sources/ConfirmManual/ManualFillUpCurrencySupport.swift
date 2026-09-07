@@ -204,6 +204,9 @@ enum AppRates {
         if ProcessInfo.processInfo.arguments.contains("-stubRatesEcho") {
             return RateEchoStubTransport()
         }
+        if ProcessInfo.processInfo.arguments.contains("-stubRatesMissThenHit") {
+            return MissThenHitRateStubTransport()
+        }
         return appTransport(SeededLaunch.transport())
         #else
         return appTransport(URLSessionTransport())

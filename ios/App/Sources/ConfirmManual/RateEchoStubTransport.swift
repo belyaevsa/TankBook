@@ -1,4 +1,5 @@
 import Foundation
+import os
 import TankbookCore
 
 /// RV.88's UI-test/screenshot seam (`-stubRatesEcho`): answers `/rates/pack`
@@ -52,6 +53,33 @@ struct RateEchoStubTransport: TankbookHTTPTransport {
         formatter.timeZone = TimeZone(identifier: "UTC")
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+}
+
+/// RV.106's UI-test seam (`-stubRatesMissThenHit`): the FIRST `/rates/pack`
+/// request answers an EMPTY pack (the server has not yet published those
+/// dates - the owner's state at import time, 05:10-05:17 while the archive
+/// backfill was still running) and every LATER request answers the echo pack
+/// (the server has since published them). A launch therefore renders the
+/// pending state deterministically, and a user tap on the F9 footnote's
+/// "Check for rates" - or a second launch - gets the second request and the
+/// S8 backfill fills the rows: the owner's exact "it resolves once the
+/// archive reaches those dates" sequence, testable offline.
+final class MissThenHitRateStubTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private let lock = OSAllocatedUnfairLock(initialState: 0)
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        guard request.url.path.hasPrefix("/v1/rates/pack") else {
+            return TankbookHTTPResponse(status: 404)
+        }
+        let attempt = lock.withLock { state -> Int in
+            state += 1
+            return state
+        }
+        guard attempt > 1 else {
+            return TankbookHTTPResponse(status: 200, body: Data("{\"base\":\"EUR\",\"rates\":[]}".utf8))
+        }
+        return try await RateEchoStubTransport().execute(request)
     }
 }
 #endif

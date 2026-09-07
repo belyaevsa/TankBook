@@ -32,10 +32,34 @@ public struct LogStream: Equatable, Sendable {
         public var id: Date { monthStart }
         /// Start of the calendar month, in the calendar the stream was built with.
         public let monthStart: Date
-        /// Sum of every entry type's home amount in this month, a purchase
-        /// group counted once by its grand total (hard rule 4).
-        public let totalSpend: Decimal
+        /// What the month's divider may honestly print: its spend figure, with
+        /// the rate-pending honesty built in. A month whose rows are still
+        /// waiting on a rate must not report a bare total (RV.106) - `0 €`
+        /// beside rows that carry no home amount is a wrong number, not a
+        /// missing one (hard rule 2, docs/ERRORS.md -> Home, F9).
+        public let total: MonthTotal
         public let rows: [Row]
+    }
+
+    /// The month divider's spend figure, stated exactly as honestly as the
+    /// data allows (docs/ERRORS.md -> Home, F9). Sums every entry type in the
+    /// month's home currency, a purchase group counted once by its grand total
+    /// (hard rule 4). A rate-pending row's home amount is NOT known - it can
+    /// never be summed as zero, because a derived figure that asserts a
+    /// falsehood is the defect (RV.106).
+    public enum MonthTotal: Equatable, Sendable {
+        /// No row in the month is waiting on a rate: `amount` is exact and the
+        /// divider may print it as fact (a genuine zero-spend month - only free
+        /// events - prints `0 €`, which is honest).
+        case complete(Decimal)
+        /// Some rows have a home figure and some are still waiting on a rate.
+        /// `amount` is the exact sum of the figures that ARE known - the divider
+        /// may print it only as a partial, marked with `pendingCount`.
+        case partial(amount: Decimal, pendingCount: Int)
+        /// Every money-bearing row in the month is still waiting on a rate: no
+        /// home figure exists, so there is no number to print. The divider says
+        /// why instead of inventing a `0 €` (RV.106).
+        case pending(pendingCount: Int)
     }
 
     /// A rendered row: a standalone entry, a purchase group, or an unresolved
@@ -316,20 +340,62 @@ public struct LogStream: Equatable, Sendable {
     }
 
     private static func section(monthStart: Date, rows: [Row]) -> Section {
-        let totalSpend = rows.reduce(Decimal.zero) { partial, row in
-            switch row {
-            case .entry(let entry):
-                return partial + (entry.money?.homeAmount ?? Decimal.zero)
-            case .group(let group):
-                // The group's grand total once - never once per member row.
-                return partial + group.grandTotal
-            case .duplicate(let group):
-                // The S2 single-count invariant: an unresolved duplicate pair
-                // contributes the COUNTED entry's amount once, never twice.
-                return partial + (group.counted.money?.homeAmount ?? Decimal.zero)
-            }
+        // The one sum the divider may print, and the count of rows still waiting
+        // on a rate. A rate-pending row contributes NOTHING to the sum (its home
+        // amount is not known) and is counted, so the figure can be marked
+        // partial rather than silently short (RV.106). All three row arms follow
+        // the same rule so a purchase group and a duplicate pair can never
+        // disagree with a standalone entry: a group sums the members whose home
+        // amount is known (its grand total, hard rule 4 - counted once), a
+        // duplicate card only its COUNTED entry (docs/SYNC.md S2 - the excluded
+        // member never counts anywhere).
+        var total = Decimal.zero
+        var pendingCount = 0
+        for row in rows {
+            accumulate(row, into: &total, pending: &pendingCount)
         }
-        return Section(monthStart: monthStart, totalSpend: totalSpend, rows: rows)
+        let totalValue: MonthTotal
+        if pendingCount == 0 {
+            totalValue = .complete(total)
+        } else if total > 0 {
+            totalValue = .partial(amount: total, pendingCount: pendingCount)
+        } else {
+            // Some rows are waiting and none has a home figure yet - printing
+            // the zero sum as a fact would be the owner's "0 €" report (RV.106).
+            totalValue = .pending(pendingCount: pendingCount)
+        }
+        return Section(monthStart: monthStart, total: totalValue, rows: rows)
+    }
+
+    /// One row's contribution to a month's divider figure: the home amounts
+    /// that ARE known sum in, and each still-rate-pending entry is counted so
+    /// the caller can mark the figure partial (RV.106). The S2 single-count
+    /// invariant lives here too: a duplicate card contributes the COUNTED
+    /// entry once, never twice, and its excluded member never counts anywhere.
+    private static func accumulate(_ row: Row, into total: inout Decimal,
+                                   pending: inout Int) {
+        switch row {
+        case .entry(let entry):
+            contribute(entry.money, into: &total, pending: &pending)
+        case .group(let group):
+            for member in group.members {
+                contribute(member.money, into: &total, pending: &pending)
+            }
+        case .duplicate(let group):
+            contribute(group.counted.money, into: &total, pending: &pending)
+        }
+    }
+
+    /// Adds one money pair's known home amount to `total`, or counts it as
+    /// pending when its home amount is not yet resolved. `money == nil` (a free
+    /// event) is neither: it has no spend and is not waiting on anything.
+    private static func contribute(_ money: Money?, into total: inout Decimal,
+                                   pending: inout Int) {
+        if money?.isRatePending == true {
+            pending += 1
+        } else if let amount = money?.homeAmount {
+            total += amount
+        }
     }
 
     private static func monthStart(of date: Date, calendar: Calendar) -> Date {

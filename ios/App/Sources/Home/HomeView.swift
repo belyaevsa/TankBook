@@ -227,7 +227,14 @@ struct HomeView: View {
                               duplicateResolutions: resolvedDuplicateKeys,
                               pendingInboxEntryIDs: inbox.pendingEntryIDs,
                               onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
-                              onMerge: { group in mergeDuplicate(group) })
+                              onMerge: { group in mergeDuplicate(group) },
+                              onCheckRates: {
+                // RV.106: the footnote's "Check for rates" - the user asks for
+                // the refresh + S8 backfill the next launch would run. A fill
+                // bumps the revision silently (AppRates.onBackfilled), so Home
+                // re-reads and the divider + footnote follow.
+                Task { await AppRates.refresh() }
+            })
         } else {
             HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }

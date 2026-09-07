@@ -302,6 +302,10 @@ struct HomeRecentEntries: View {
     /// resolution is a repository write the parent owns.
     let onKeepBoth: (LogStream.DuplicateGroup) -> Void
     let onMerge: (LogStream.DuplicateGroup) -> Void
+    /// RV.106: the footnote's next-step action (hard rule 7) - re-runs the rate
+    /// refresh + S8 backfill on demand, so an imported row whose rate the
+    /// server had not published yet can be asked for now.
+    let onCheckRates: () -> Void
 
     /// Home is a preview: the newest rows before the full-stream screen (P1.6)
     /// takes over.
@@ -318,7 +322,9 @@ struct HomeRecentEntries: View {
     private var volumeUnit: VolumeUnit { vehicle.units.volume }
     private var distanceUnit: DistanceUnit { vehicle.units.distance }
 
-    private var currencySymbol: String {
+    /// Internal so the log-divider extension (HomeSections+LogStream.swift)
+    /// renders the same symbol; never public.
+    var currencySymbol: String {
         AddVehicleSupport.currencySymbol(for: vehicle.homeCurrency)
     }
 
@@ -329,7 +335,8 @@ struct HomeRecentEntries: View {
             }
             if pendingRateCount > 0 {
                 PendingRatesFootnote(count: pendingRateCount,
-                                     identifier: "homePendingRatesFootnote")
+                                     identifier: "homePendingRatesFootnote",
+                                     onCheck: onCheckRates)
             }
             ForEach(stream.sections) { section in
                 monthSection(section)
@@ -347,30 +354,6 @@ struct HomeRecentEntries: View {
                 rowCard(row)
             }
         }
-    }
-
-    /// The month's divider: name on the left, the month's total spend in DIN on
-    /// the right (docs/DESIGN.md); the name carries the year outside the current
-    /// one (RV.89). One accessibility element, label a full localised phrase.
-    private func monthDivider(_ section: LogStream.Section) -> some View {
-        let monthName = HomeFormat.monthHeading(section.monthStart)
-        let spend = HomeFormat.spend(section.totalSpend, symbol: currencySymbol)
-        return HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(monthName)
-                .font(.caption)
-                .textCase(.uppercase)
-                .tracking(1.2)
-                .foregroundStyle(Theme.Palette.inkSoft)
-            Spacer(minLength: 8)
-            Text(spend)
-                .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                .foregroundStyle(Theme.Palette.ink)
-        }
-        .padding(.horizontal, 2)
-        .padding(.top, 4)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(String(format: L10n.localize("%@ · %@"), monthName, spend))
-        .accessibilityIdentifier("logMonthDivider")
     }
 
     /// The excluded-count footnote, via the shared component Trends also uses -
