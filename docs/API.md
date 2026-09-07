@@ -229,6 +229,27 @@ corrected is theirs permanently - no later pack may rewrite it, the same rule `S
 the vehicle catalog. A name matching no brand is a first-class state: the user's own station, no
 brand, not an error.
 
+**Relevance is ordered on the DEVICE, and the pack carries `country` per brand** (decided
+2026-09-07 with the product owner, who raised it as "order by the user's IP country, and fall back
+to previous entries when a VPN lies"). The goal is right and the placement is inverted, for four
+reasons:
+
+1. **The user's own history beats IP in every case, not only under a VPN.** Which brands they
+   actually fuel at is the strongest signal there is, and only the device has it (hard rule 1:
+   local-first, and hard rule 9: the server must never read the user's entries to find out).
+2. **Geo-IP would make a public, ETag'd pack uncacheable** - the response would have to `Vary` by a
+   country the CDN derives per request, which fragments the cache and turns a static artefact into
+   a per-request computation.
+3. **It is the pattern this file already uses.** `GET /reference/fuel-price-bands` carries
+   `country` on every row and the section below states it takes "no query parameters that make it a
+   query". Station brands follow that exactly.
+4. A brand-new user with no history still gets a sensible order from the **device region** (and, if
+   they are travelling, from the first station they log) - without the server learning anything.
+
+So the endpoint stays a static, country-tagged, fully cacheable pack, and the client orders it:
+**brands the user has already used, then brands of the device's region, then the rest.** No geo-IP
+dependency, no VPN failure mode, no per-user server behaviour.
+
 ### `GET /reference/fuel-price-bands`
 
 Coarse plausible price-per-litre ranges, used client-side to decide which operand on a
