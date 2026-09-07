@@ -357,6 +357,10 @@ enum PostSweepCorpusAdditions {
             "receipt-049-circlek-jarvevana-pump4-95miles-4837l-pair-ee.jpg",
             "receipt-050-circlek-jarvevana-pump7-db0-7070l-rotated90-pair-ee.jpg",
             "receipt-051-gazpromneft-tver-gdrive95-fuelcard-rotated180-ru.jpg",
+            // 2026-09-07: the paper half of pump-073 - one Gazpromneft Tver
+            // G-Drive 95 fuel-card fill, 32.000 L at 70.31 for 2249.92 RUB,
+            // whose pump prints the total one digit short. Declared, not swept.
+            "receipt-052-gazpromneft-tver-gdrive95-fuelcard-pair-ru.jpeg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -454,6 +458,10 @@ enum PostSweepCorpusAdditions {
             "pump-070-circlek-gilbarco-3494l-ee.jpg",
             "pump-071-circlek-gilbarco-1898l-midsegment-ee.jpg",
             "pump-072-circlek-wayne-1001l-loyalty-price-off-board-ee.jpg",
+            // 2026-09-07: a Wayne display whose SUMMA reads 2249.9 while the
+            // receipt says 2249.92 - the truncated-total shape, with its paper
+            // half at receipt-052. Declared, not swept.
+            "pump-073-wayne-gazpromneft-tver-truncated-total-pair-ru.jpeg",
         ],
     ]
 

@@ -14,8 +14,8 @@ import Foundation
 //
 // B1 (2026-09-04) re-scoped the gate. The old `measuredHits / measuredTotal >=
 // 0.95` was a recall average over a denominator that mixed three different
-// things: the three numeric fields (the hard 178 cells), a near-free `currency`
-// marker lookup (66), and `fuelKind` (17) which a pump parser must never
+// things: the three numeric fields (the hard ones), a near-free `currency`
+// marker lookup, and `fuelKind`, which a pump parser must never
 // produce. Recall inverts hard rule 13 - a correct `nil` scores as a miss and a
 // confident-wrong value scores as a hit - and on the two idle pumps
 // (`pump-016`/`017`, ground truth `0.00`) recall actively rewarded logging a
@@ -32,8 +32,8 @@ import Foundation
 /// drift from reality without a failing test.
 public enum PumpPhotoGate {
     /// Numeric cells the parser committed to a correct value at build time
-    /// (the precision numerator), over the 196 numeric cells (liters,
-    /// unitPrice, total - blanks skipped). `fuelKind` is never scored for a
+    /// (the precision numerator), over `measuredNumericTotal` numeric cells
+    /// (liters, unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
     public static let measuredCommittedCorrect: Int = 37
@@ -47,7 +47,7 @@ public enum PumpPhotoGate {
     /// for legibility - the gate no longer runs on it).
     public static let measuredNumericHits: Int = 37
 
-    /// The numeric cells the pump corpus scores (B1): 196. Not 72 x 3: blank
+    /// The numeric cells the pump corpus scores (B1). Not one per fixture x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
     /// meaningful unit price, and pump-021/022/023 show a grade price BOARD
     /// rather than the transaction's unit price), and `fuelKind` is never
@@ -57,7 +57,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 196
+    public static let measuredNumericTotal: Int = 199
 
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong
@@ -66,8 +66,8 @@ public enum PumpPhotoGate {
     /// invisible on the Confirm screen.
     public static let precisionThreshold: Double = 0.99
 
-    /// The coverage floor (B1): the fraction of the 178 numeric cells the
-    /// parser must commit to. This is a product decision, not a derived number.
+    /// The coverage floor (B1): the fraction of `measuredNumericTotal` numeric
+    /// cells the parser must commit to. This is a product decision, not a derived number.
     /// 0.60 is the recommendation: it is reachable by the deterministic ladder
     /// on the OCR text that already exists (the analyses put the ladder at
     /// ~62%), and it is the floor below which "pre-fills three fills out of
