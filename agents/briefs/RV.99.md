@@ -1,40 +1,30 @@
 # RV.99 - deleting a car needs a confirmation the user actually sees, and it must name the car
 
-## The row is a disagreement between a report and the source - resolve it on a DEVICE first
+## RESOLVED by the product owner, 2026-09-07: the confirmation EXISTS
 
-The product owner reported, 2026-09-06: *"a car deletion from a garage doesn't have a confirmation
-of the action"*. **The source says otherwise, and that gap IS the row.** Measured, do not re-derive:
+The row was filed because the report ("a car deletion from a garage doesn't have a confirmation of
+the action") and the source disagreed. **The product owner has now checked on their own device and
+confirms the confirmation appears.** So the reproduction half of this row is CLOSED - do not spend
+the run on it, and do not re-litigate it.
+
+What the source shows, for context you can rely on without re-deriving:
 
 - `VehicleDetailView` presents `.alert("Delete this car?")` with a destructive **Delete** and a
   **Cancel** (`ios/App/Sources/VehicleDetail/VehicleDetailView.swift:57-64`).
-- It is the **only** delete path in the app. The single affordance that raises it is the header's
-  Delete button (`ios/App/Sources/VehicleDetail/VehicleDetailSections.swift:50-59`,
-  `vehicleDetailDeleteButton`). **`GarageView` and `CarSwitcherView` contain no delete affordance at
-  all** - grep them and confirm before you conclude anything.
-- The archived car's header Delete (visible as `Удалить` in
-  `design/screenshots/RV.81-vehicle-detail-archived-ru.png`) routes to the **same**
-  `showDeleteConfirm`. That is source reading, not a device.
+- It is the **only** delete path. The single affordance that raises it is the header's Delete button
+  (`ios/App/Sources/VehicleDetail/VehicleDetailSections.swift:50-59`,
+  `vehicleDetailDeleteButton`); `GarageView` and `CarSwitcherView` have no delete affordance.
+- The archived car's header Delete routes to the same `showDeleteConfirm`.
 
-**So step one is a reproduction, and it is the deliverable of the first half of this run.** Boot the
-simulator, seed a garage, and try to delete a car by every route a user has: the live car's Vehicle
-detail, the archived car's Vehicle detail, and whatever the Garage and the car switcher offer.
-**Report which path you took and exactly what appeared.** Three outcomes are all legitimate findings:
-
-1. The alert never appeared on some path -> that is the defect; fix it.
-2. The alert appeared but did not read as a confirmation -> say what it looked like and why.
-3. The alert appeared and read correctly on every path -> **say so plainly.** The row is then about
-   the naming half below, and "the report did not reproduce" is a real result, not a failure. Do not
-   invent a defect to justify the row, and do not quietly assume the owner was wrong either.
-
-**A likely contributor whichever way it goes: the alert never names the car.** In a five-car garage
-"Delete this car?" does not say which, and the title is identical whichever row you arrived from -
-so a user who is not certain what they are looking at gets no confirmation that they are deleting
-the car they meant.
+**So this row is now exactly one defect: the alert never names the car.** "Delete this car?" is
+identical whichever row you arrived from, and in a five-car garage it does not say which car is
+about to go. That is what makes a destructive confirmation weak even when it appears - and it is the
+likely reason the original report was filed at all.
 
 ## What to build
 
-1. **Whatever the reproduction shows, name the car in the confirmation**: "Delete Volvo V60?" rather
-   than "Delete this car?". A destructive action states its target.
+1. **Name the car in the confirmation**: "Delete Volvo V60?" rather than "Delete this car?". A
+   destructive action states its target. This is the row.
 2. **Check the RU form declines correctly.** This is not a formality: the car name is
    user-typed and drops into a Russian sentence. Read the rendered Russian for grammar and word
    order, not just overflow, and use a **full localised phrase per language** - never a concatenation
@@ -43,21 +33,16 @@ the car they meant.
    off screen - check a 30-character name in RU.
 3. **Fix whatever the reproduction found**, if it found anything.
 
-## The copy fence, and it decides what the message may say
+## The copy fence is now SETTLED - the promise is true
 
-The alert's message currently promises *"It moves to Recently deleted for 30 days, and so does every
-entry."* **That promise is false until [RV.98] lands** - `RecentlyDeletedView` does not list deleted
-cars at all, so the car is tombstoned, invisible and unrestorable.
+The alert's message promises *"It moves to Recently deleted for 30 days, and so does every entry."*
+**`RV.98` has landed** (commit `dbd93bd`): a tombstoned car is listed on Recently deleted as one row
+naming the car and its entry count, with a Restore that returns the car **and** the rows that went
+down with it. So **keep the promise exactly as it is** - it is now true, and hard rule 7 is
+satisfied. Do not weaken it, and do not re-check whether RV.98 landed; it did.
 
-- **If RV.98 has already landed** (check `git log` for it, and check that
-  `RecentlyDeletedView` queries deleted vehicles - do not take my word for the state of the tree):
-  keep the promise, it is now true.
-- **If RV.98 has NOT landed**: the message **must not promise a restore the app cannot perform**
-  (hard rule 7 - every error and every dead end names a next step that is real). Say what actually
-  happens instead, and **report that you changed it and why**, so the orchestrator can put the
-  promise back with RV.98.
-
-Do not "fix" this by making RV.98's surface yourself - that is a different row with its own brief.
+If your naming change makes the message read awkwardly beside the new title, adjust the MESSAGE for
+readability only - never the promise it makes.
 
 ## Explicitly out of scope
 
@@ -74,15 +59,17 @@ Read the current `swift test` count yourself before you start and report before 
 - **L4 `VehicleDetailUITests`** (and `GarageUITests` if a Garage path exists at all): deleting a car
   requires an explicit confirmation **whose text contains that car's name**, and **Cancel leaves the
   garage untouched** - assert the car is still there afterwards, not merely that the alert dismissed.
-- **L4**: the **archived** car path asserts the same. The owner may well have been on it.
+- **L4**: the **archived** car path asserts the same - it routes to the same `showDeleteConfirm`, so
+  it must name its car too.
 - **L1** for whatever pure piece the title composition ends up in (the localised phrase), if any.
 - Suites: name them explicitly and report the observed count - a filter matching nothing prints
   "0 tests ... passed".
 
 ### Vacuous traps, named
 
-- **Asserting the alert exists in the source rather than on a device.** That is precisely what makes
-  this row ambiguous today, and repeating it delivers nothing.
+- **Asserting the alert merely EXISTS.** It does, on every path - the owner confirmed it. A test
+  that only proves the alert appears re-proves what is already known and covers nothing this row is
+  about.
 - **Asserting the title string without asserting the car NAME is in it.**
 - **Testing only the live-car path** when the report may be about the archived one.
 - Asserting Cancel dismissed the alert without asserting the car **survived**.
