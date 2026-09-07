@@ -217,6 +217,23 @@ public struct HomeStats: Equatable, Sendable {
         unitPriceHistory(entries: entries, vehicleHome: vehicleHome).last?.price
     }
 
+    /// The most recent entry dated inside (start, end] that has a unit price
+    /// expressible in home currency, converted exactly as `unitPriceFigure`
+    /// converts it - the price the anomaly card's money line is priced at
+    /// ("at today's prices" means the driver's own most recent price,
+    /// never a stored or catalog value). `nil` when no entry in the window has
+    /// a price, or the only prices there are still rate-pending - the same
+    /// honesty `monthSpend` applies (a value that cannot be expressed in home
+    /// currency is not invented, hard rule 3 / hard rule 13).
+    public static func unitPrice(in entries: [any Entry], vehicleHome: CurrencyCode,
+                                 from start: Date, through end: Date) -> UnitPriceFigure? {
+        entries
+            .filter { $0.date > start && $0.date <= end }
+            .sorted { $0.date < $1.date }
+            .compactMap { Self.unitPriceFigure(of: $0, vehicleHome: vehicleHome) }
+            .last
+    }
+
     private static func bestThisYear(segments: [Segment], asOf: Date,
                                      calendar: Calendar) -> Double? {
         guard let year = calendar.dateInterval(of: .year, for: asOf) else { return nil }

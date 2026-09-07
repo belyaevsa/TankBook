@@ -503,6 +503,16 @@ ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the sa
            data (AnomalyDismissal: cause, reason, dismissedAt – the ReminderLifecycle precedent);
            a dismissed cause stays quiet across recomputes and a different cause still fires.
            Thresholds tunable, seasonality-aware – J9.
+ANOMALY    COST (RV.121) the drift's money reading, derived on the card:
+COST        extra litres per month = (rolling − baseline) / 100 × (km in the rolling
+           window ÷ (90 / 30.44)), priced at the MOST RECENT home-currency unit price
+           among the counting fills (or charges for an EV) dated inside the rolling
+           window – the driver's own price, never stored or catalogued (hard rule 3:
+           converted with that entry's own snapshot; a price still rate-pending is
+           absent). nil, never 0, when there is no price, no km, or a non-positive
+           drift – a value the app cannot know is not invented (hard rule 13). The card
+           says what the drift costs; it names NO cause (docs/VISION.md -> "What we
+           will not tell a driver").
 EV         same structure: segments between charges with known SoC, or simple kWh/100km over
            sessions when odometer deltas exist; €/100km = window cost / window km (the household
            comparison needs nothing extra).
@@ -513,6 +523,27 @@ COST/KM    all-in: Σ homeAmount of ALL entry types in window / km in window.
            weeks of readings.
 ```
 
+
+#### Anomaly threshold derivation (RV.121, measured 2026-09-07)
+
+`minimumRelativeDrift = 0.12` is a derived constant, not a citation. It was set on the product
+owner's own history (`Spike/ImportFixtures/drivvo/drivvo-ru-3sections.csv`, 250 refuelling rows,
+2020-09 to 2025-08, rebuilt into full-to-full segments the way `ConsumptionEngine.segments`
+does and sampled daily so every constant stretch is time-weighted): the **90-day rolling
+distance-weighted series** the anomaly engine compares has mean **6.88 L/100km** and sigma
+**0.56 L/100km** (relative sigma **8.1%**). The rule: **threshold = 1.5 sigma of the rolling
+series**, and 1.5 x 8.1% rounds to 0.12. Against the engine's actual comparison (rolling vs its
+year-ago seasonal baseline) the relative drift has sigma **6.8%**, so 0.12 is about **1.8
+sigma** of that drift.
+
+Firing check over the same history, with the engine's own recent-30-day guard applied: at 0.12
+the card fires in **5 distinct evaluation months across the ~4.8 years** (about one a year),
+and the fires are sustained, not spiked - the autumn-2021 episode stayed above +15% for weeks.
+0.15 removes only a borderline winter-2023 fragment; 0.20 never fires. **0.12 was kept**: it
+stays quiet through a real car's normal wobble yet still catches genuine multi-week rises,
+which is the J9 trade (false alarms erode trust fastest). Retuning the constant without
+re-reading this derivation is how the number lost its reason in the first place; the code
+comment at `AnomalyEngine.minimumRelativeDrift` names this rule and links here.
 
 ### AdBlue (added 2026-08-30, product owner)
 

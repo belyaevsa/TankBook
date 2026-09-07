@@ -186,11 +186,17 @@ public enum AnomalyEngine {
     public static let minimumRecentSegments = 1
 
     /// The fire threshold: the rolling value must exceed the seasonally-aligned
-    /// baseline by this fraction before the anomaly exists. The upper end of
-    /// docs/SCHEMA.md's "+10-12%" and exactly J9's "+12%": below it the
-    /// elevation is within normal wobble, and a conservative engine stays
-    /// quiet. Lowering this is a product decision about false-alarm tolerance,
-    /// not a tuning tweak - the journey says false alarms erode trust fastest.
+    /// baseline by this fraction before the anomaly exists. It is a derived
+    /// constant, not a citation: the rule is "1.5 sigma of the 90-day rolling
+    /// series", the year-over-year spread a real car's distance-weighted 90-day
+    /// mean actually shows, and 1.5 sigma of the measured spread rounds to 0.12.
+    /// The measured numbers and the firing count live in docs/SCHEMA.md ->
+    /// ANOMALY (threshold derivation) - the doc is the authority and this
+    /// constant is its code form, so it is not retuned without re-reading that
+    /// derivation. Below the threshold the elevation is within normal wobble,
+    /// and a conservative engine stays quiet. Lowering this is a product
+    /// decision about false-alarm tolerance, not a tuning tweak - the journey
+    /// says false alarms erode trust fastest.
     public static let minimumRelativeDrift = 0.12
 
     /// Returns the anomaly, or nil when the detector stays quiet. Silence is
@@ -242,6 +248,39 @@ public enum AnomalyEngine {
             baselineWindow: AnomalyWindow(start: baselineStart, end: baselineEnd,
                                           value: baseline.value, segmentCount: baseline.segmentCount)
         )
+    }
+
+    /// What the drift costs per month at the user's own most recent price - the
+    /// money reading of the anomaly (docs/VISION.md -> "What we will not tell a
+    /// driver"): the extra litres the elevation represents per month, priced at
+    /// `unitPrice`. `nil` - never zero - when there is no price, no distance in
+    /// the rolling window, or a non-positive drift: a value the app cannot know
+    /// is not invented (hard rule 13), and a missing price is a missing line,
+    /// not a free month.
+    ///
+    /// `unitPrice` must already be in the vehicle's home currency (hard rule 3 -
+    /// the app finds the most recent fill price and converts it with the fill's
+    /// own snapshot before calling this); the engine does no currency
+    /// arithmetic, so a foreign original can never be mixed in here.
+    public static func monthlyCostDelta(anomaly: ConsumptionAnomaly,
+                                        segments: [Segment],
+                                        unitPrice: Decimal?) -> Decimal? {
+        let extraPer100 = anomaly.rollingValue - anomaly.baselineValue
+        guard extraPer100 > 0 else { return nil }
+        guard let unitPrice, unitPrice > 0 else { return nil }
+
+        // The distance the car actually covered in the window the anomaly
+        // reports, scaled to one month (30.44 days).
+        let windowKm = segments.reduce(0.0) { partial, segment in
+            guard segment.closes > anomaly.rollingWindow.start,
+                  segment.closes <= anomaly.rollingWindow.end else { return partial }
+            return partial + segment.km
+        }
+        guard windowKm > 0 else { return nil }
+
+        let monthlyKm = windowKm / (Double(rollingWindowDays) / 30.44)
+        let extraLitresPerMonth = extraPer100 / 100 * monthlyKm
+        return Decimal(extraLitresPerMonth) * unitPrice
     }
 
     /// Distance-weighted consumption over segments closing inside (start, end]:

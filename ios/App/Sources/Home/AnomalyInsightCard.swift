@@ -12,19 +12,30 @@ import TankbookCore
 /// days one year earlier), so the figure is falsifiable: the reader can see
 /// exactly what "up 21%" was measured against.
 ///
+/// What the card does NOT do is diagnose. It cannot see a motorway week, an
+/// idling hour, a tow or a different driver, so it names no cause - the money
+/// line is the reading a private owner actually has: what the drift
+/// costs per month at their own most recent price. docs/VISION.md -> "What we
+/// will not tell a driver".
+///
 /// Tap expands the evidence: the drift as a chart (rolling vs baseline, the
-/// engine's two values), the possible causes (J9), and the two next steps
-/// (hard rule 7): **Create reminder** (act) and **Dismiss with reason** (teaches
-/// the model). A card with only dismiss teaches nothing; a card with only act
-/// is a nag - both are always present. Dismissal records an `AnomalyDismissal`
-/// (persisted by `AnomalyInsightStore`); act additionally creates a service
-/// reminder. Never an alert (hard rule 8).
+/// engine's two values), the money line when a price is known, and the two next
+/// steps (hard rule 7): **Create reminder** (act) and **Dismiss with reason**
+/// (teaches the model). A card with only dismiss teaches nothing; a card with
+/// only act is a nag - both are always present. Dismissal records an
+/// `AnomalyDismissal` (persisted by `AnomalyInsightStore`); act additionally
+/// creates a service reminder. Never an alert (hard rule 8).
 struct AnomalyInsightCard: View {
     let anomaly: ConsumptionAnomaly
     /// The vehicle's consumption unit ("L/100km", "kWh/100") - the same label
     /// the headline on this screen renders, so the card and the hero cannot
     /// disagree about a unit.
     let unitLabel: String
+    /// The drift's monthly cost in the currency that price is denominated in,
+    /// both nil when the engine found no price in the window - the money line
+    /// is then absent, never "free" (hard rule 13).
+    var monthlyCostAmount: Decimal?
+    var monthlyCostCurrency: CurrencyCode?
     /// "Act": create the service reminder. The parent owns the repository.
     var onAct: () -> Void = {}
     /// "Dismiss with reason": remember what the user said. The parent owns the
@@ -55,7 +66,7 @@ struct AnomalyInsightCard: View {
             // Screenshot hooks (the same precedent as `-presentReminderComplete`,
             // docs/SCREENMAP.md): simctl cannot tap, so a launch argument drives
             // the state a capture needs.
-            // `-presentAnomalyEvidence`: the card expanded (chart + causes +
+            // `-presentAnomalyEvidence`: the card expanded (chart + money line +
             // actions). `-presentAnomalyDismissal`: additionally the dismiss
             // sheet on top. Both require a live anomaly - the seed that renders
             // the card also drives the screenshot.
@@ -120,11 +131,16 @@ struct AnomalyInsightCard: View {
     private var evidence: some View {
         VStack(alignment: .leading, spacing: 12) {
             chart
-            Text(L10n.anomalyCauses)
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("homeAnomalyCauses")
+            if let monthlyCostAmount, let monthlyCostCurrency {
+                Text(L10n.anomalyCost(
+                    amount: HomeFormat.entryAmount(
+                        monthlyCostAmount,
+                        symbol: AddVehicleSupport.currencySymbol(for: monthlyCostCurrency))))
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("homeAnomalyCost")
+            }
             actions
         }
     }

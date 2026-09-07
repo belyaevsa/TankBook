@@ -581,10 +581,10 @@ enum L10n {
                rolling, baseline)
     }
 
-    /// The possible-causes line (J9): "Likely causes: tire pressure, air
-    /// filter, winter".
-    static var anomalyCauses: String {
-        localize("Likely causes: tire pressure, air filter, winter")
+    /// "About 14.89 € more per month at today's prices" - the money
+    /// reading of the drift; one full localised phrase, never concatenation.
+    static func anomalyCost(amount: String) -> String {
+        String(format: localize("About %1$@ more per month at today's prices"), amount)
     }
 
     /// "Last 90 days" - the rolling window's label on the evidence chart.

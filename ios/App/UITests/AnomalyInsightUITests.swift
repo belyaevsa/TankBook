@@ -287,4 +287,70 @@ final class AnomalyInsightUITests: XCTestCase {
         XCTAssertFalse(header.label.lowercased().contains("отклонени"),
                        "«отклонение» collides with the anomaly card's deviation vocabulary: \(header.label)")
     }
+
+    // MARK: - Test 8: the evidence is money, never a guessed cause
+
+    /// The expanded card's evidence line is what the drift costs per month at
+    /// the driver's own most recent price (docs/VISION.md -> "What we will not
+    /// tell a driver"). The card cannot see a motorway week, an idling hour or
+    /// a different driver, so it states the money and names NO cause, and it
+    /// stays an inline card: dismissible, never blocking.
+    func testExpandedCardShowsCostAndNoCause() {
+        let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
+        XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
+
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
+
+        // The money line is present, phrased as one full localised sentence.
+        let cost = app.staticTexts["homeAnomalyCost"]
+        XCTAssertTrue(cost.waitForExistence(timeout: 5),
+                      "the expanded card must show what the drift costs")
+        XCTAssertTrue(cost.label.contains("more per month at today's prices"),
+                      "cost line was \(cost.label)")
+        XCTAssertTrue(cost.label.contains("€"),
+                      "the money line must carry the home currency: \(cost.label)")
+
+        // The cause line is gone - the phrase that claims what the app cannot
+        // know appears nowhere, collapsed or expanded.
+        XCTAssertFalse(textContaining(app, "Likely causes").exists,
+                       "the card must not name causes it cannot know")
+        XCTAssertFalse(textContaining(app, "tire pressure").exists,
+                       "the card must not name causes it cannot know")
+
+        // Still dismissible and non-blocking: expanding never presents an alert
+        // or a sheet, and the act/dismiss affordances are right there.
+        XCTAssertTrue(app.alerts.allElementsBoundByIndex.isEmpty,
+                      "the expanded evidence must not present an alert")
+        XCTAssertTrue(app.sheets.allElementsBoundByIndex.isEmpty,
+                      "the expanded evidence must not present a sheet")
+        XCTAssertTrue(app.buttons["homeAnomalyActButton"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["homeAnomalyDismissButton"].waitForExistence(timeout: 5))
+    }
+
+    /// The Russian cost phrase is long ("Примерно на 14.89 € в месяц больше по
+    /// текущим ценам") and RU runs 20-30% longer than EN, so the line must be
+    /// asserted by its RENDERED text, not by the card existing - a truncated or
+    /// English fallback would otherwise pass. The RU causes phrase must be gone
+    /// too (the gate cannot see a key that renders English).
+    func testExpandedCardCostLineRendersInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-seedHomeAnomaly", "-anomalyDismissalReset"])
+        XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
+
+        let toggle = app.buttons["homeAnomalyToggle"]
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
+        toggle.tap()
+
+        let cost = app.staticTexts["homeAnomalyCost"]
+        XCTAssertTrue(cost.waitForExistence(timeout: 5),
+                      "the expanded card must show the Russian cost line")
+        XCTAssertTrue(cost.label.contains("в месяц больше по текущим ценам"),
+                      "cost line was \(cost.label)")
+        XCTAssertFalse(cost.label.contains("more per month"),
+                       "the RU cost line must not fall back to English: \(cost.label)")
+        XCTAssertFalse(textContaining(app, "Вероятные причины").exists,
+                       "the RU card must not name causes it cannot know")
+    }
 }

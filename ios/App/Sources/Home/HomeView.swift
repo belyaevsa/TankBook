@@ -57,6 +57,17 @@ struct HomeView: View {
             dismissals: AnomalyInsightStore.dismissals(for: vehicle.id))
     }
 
+    /// The anomaly's money reading: what the drift costs per month at
+    /// the driver's own most recent price, in that price's currency. `nil`
+    /// when there is no price in the rolling window - the card then shows no
+    /// money line, never a zero (hard rules 3 and 13).
+    private func anomalyCost(_ anomaly: ConsumptionAnomaly) -> (amount: Decimal, currency: CurrencyCode)? {
+        guard let vehicle else { return nil }
+        return AnomalyInsight.monthlyCostDelta(
+            vehicle: vehicle, entries: entries,
+            duplicateResolutions: resolvedDuplicateKeys, anomaly: anomaly)
+    }
+
     /// The vehicle's current odometer - the same derivation the Reminders list
     /// uses, so Home and the list can never disagree about a km-driven
     /// reminder's due state.
@@ -233,8 +244,11 @@ struct HomeView: View {
                           onTypeIt: { presentSheet(.confirmManual) })
         HomeVitalsRow(stats: stats, vehicle: stats.vehicle)
         if let anomaly {
+            let cost = anomalyCost(anomaly)
             AnomalyInsightCard(anomaly: anomaly,
                                unitLabel: L10n.headlineUnit(stats.vehicle.headlineUnit),
+                               monthlyCostAmount: cost?.amount,
+                               monthlyCostCurrency: cost?.currency,
                                onAct: { actOnAnomaly(anomaly) },
                                onDismiss: { dismissal in recordAnomalyDismissal(dismissal) })
         }

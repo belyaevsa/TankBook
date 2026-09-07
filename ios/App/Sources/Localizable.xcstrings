@@ -6409,19 +6409,19 @@
         }
       }
     },
-    "Likely causes: tire pressure, air filter, winter": {
+    "About %1$@ more per month at today's prices": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Likely causes: tire pressure, air filter, winter"
+            "value": "About %1$@ more per month at today's prices"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Вероятные причины: давление в шинах, воздушный фильтр, зима"
+            "value": "Примерно на %1$@ в месяц больше по текущим ценам"
           }
         }
       }
