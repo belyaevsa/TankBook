@@ -3734,6 +3734,23 @@
         }
       }
     },
+    "Delete %@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete %@?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить «%@»?"
+          }
+        }
+      }
+    },
     "Delete account": {
       "extractionState": "manual",
       "localizations": {

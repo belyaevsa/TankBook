@@ -231,8 +231,10 @@ final class TrendsUITests: XCTestCase {
         let delete = app.buttons["vehicleDetailDeleteButton"]
         XCTAssertTrue(delete.waitForExistence(timeout: 5))
         delete.tap()
-        let alert = app.alerts["Delete this car?"]
-        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        let alert = app.alerts.matching(
+            NSPredicate(format: "label CONTAINS %@", "Volvo V60")).firstMatch
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "the delete confirmation must name the car about to go")
         alert.buttons["Delete"].tap()
 
         // Back on the Trends tab: the zero-car surface must be there...

@@ -385,13 +385,14 @@ struct LocalizationGateP53Tests {
         }
     }
 
-    /// The P5.3 shape changes, pinned. Each key's RU puts the runtime slot in
-    /// a position no preposition reaches: a quoted nominative, an apposition,
-    /// or a slot after a separator. The assertion is the sharper rule itself:
-    /// no governing preposition may sit IMMEDIATELY before the slot, because
-    /// the slot receives text (a car name, a part title, an account name, a
-    /// device name) that cannot be declined - the P4.7 lesson is that no
-    /// translation fixes a wrong sentence shape.
+    /// The P5.3 shape changes, pinned (plus RV.99's delete title, added to the
+    /// same list because it is the same class of decision). Each key's RU puts
+    /// the runtime slot in a position no preposition reaches: a quoted
+    /// nominative, an apposition, or a slot after a separator. The assertion
+    /// is the sharper rule itself: no governing preposition may sit IMMEDIATELY
+    /// before the slot, because the slot receives text (a car name, a part
+    /// title, an account name, a device name) that cannot be declined - the
+    /// P4.7 lesson is that no translation fixes a wrong sentence shape.
     @Test("reshaped RU keys do not place a governing preposition before the runtime slot")
     func reshapedKeysDoNotGovernTheSlot() throws {
         let catalogue = try LocalizationCatalogue.load(at: Self.catalogueURL)
@@ -413,7 +414,12 @@ struct LocalizationGateP53Tests {
                         expectedRU: "Под этой учётной записью «%1$@» ничего не сохранено. "
                             + "В прошлый раз вы входили через %2$@?"),
             ReshapedKey(key: "removed on %@",
-                        slot: "%@", expectedRU: "устройство: %@")
+                        slot: "%@", expectedRU: "устройство: %@"),
+            // RV.99: the delete confirmation names the car ("Delete Volvo V60?").
+            // RU quotes the name as a nominative apposition so `удалить` reaches
+            // no case the app cannot decline - the same shape as Install.
+            ReshapedKey(key: "Delete %@?",
+                        slot: "%@", expectedRU: "Удалить «%@»?")
         ]
 
         // с, на, в, от, до, у, под, за, для, про, о - the prepositions that

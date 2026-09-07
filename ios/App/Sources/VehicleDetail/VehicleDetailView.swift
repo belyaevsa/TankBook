@@ -55,7 +55,7 @@ struct VehicleDetailView: View {
         }
         .background(Theme.Palette.midnight)
         .task { await load() }
-        .alert("Delete this car?",
+        .alert(deleteConfirmTitle,
                isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
             Button("Cancel", role: .cancel) {}
@@ -330,6 +330,20 @@ struct VehicleDetailView: View {
 
     // MARK: - Delete (the destructive path)
 
+    /// The destructive confirmation's title names the car about to be
+    /// tombstoned (RV.99): "Delete Volvo V60?", never the identical "Delete
+    /// this car?" whichever row you arrived from - a five-car garage must say
+    /// which car is going. Composed as one full localised phrase per language
+    /// with the name in the slot (hard rule 10; the RU reads «Удалить
+    /// «%@»?» - the name quoted as a nominative apposition, docs/LOCALIZATION.md).
+    /// The car-less fallback is unreachable in practice - the Delete button
+    /// only exists once the car is loaded - but keeps the alert well-formed if
+    /// a future entry point ever presented it before a target resolved.
+    private var deleteConfirmTitle: String {
+        guard let vehicle, !vehicle.name.isEmpty else { return L10n.localize("Delete this car?") }
+        return L10n.vehicleDeleteConfirmTitle(name: vehicle.name)
+    }
+
     private func performDelete() {
         guard let vehicle else { return }
         do {
@@ -366,6 +380,15 @@ struct VehicleDetailView: View {
             }
             self.vehicle = target
             form.load(from: target, photoData: try loadPhoto(repository: repository, vehicle: target))
+            #if DEBUG
+            // RV.99: `-presentVehicleDeleteConfirm` raises the destructive
+            // confirmation after load, so simctl-driven screenshots can capture
+            // the named-car alert without a UI test tapping Delete (simctl
+            // cannot tap). Mirrors RemindersView's `-presentReminderDeleteAlert`.
+            if ProcessInfo.processInfo.arguments.contains("-presentVehicleDeleteConfirm") {
+                showDeleteConfirm = true
+            }
+            #endif
         } catch {
             AppLog.error(operation: "vehicleDetail.load", category: .ui, error: error)
             loadFailed = true

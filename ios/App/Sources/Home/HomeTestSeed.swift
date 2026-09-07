@@ -42,6 +42,7 @@ enum HomeTestSeed {
     private static func seedAction(for arguments: [String]) -> ((TankbookRepository) -> Void)? {
         let actions: [(argument: String, seed: (TankbookRepository) -> Void)] = [
             ("-seedHomeEmptyVehicle", seedEmptyVehicle),
+            ("-seedHomeRV99LongName", seedRV99LongName),
             ("-seedHomeDeleteLastCar", seedDeleteLastCar),
             ("-seedHomeSingleFill", seedSingleFill),
             ("-seedHomeFullHistory", seedFullHistory),
@@ -70,6 +71,17 @@ enum HomeTestSeed {
 
     private static func seedEmptyVehicle(_ repository: TankbookRepository) {
         try? repository.upsertVehicle(makeVehicle())
+    }
+
+    /// RV.99 RU-overflow screenshot state: a single car whose name is exactly
+    /// 30 characters ("Škoda Октавия Универсал Бизнес" is 30). The delete
+    /// confirmation composes the full name into the alert title, and a long RU
+    /// name must not push the alert's buttons off screen - the phrase wraps,
+    /// never the layout.
+    private static func seedRV99LongName(_ repository: TankbookRepository) {
+        var vehicle = makeVehicle()
+        vehicle.name = "Škoda Октавия Универсал Бизнес"
+        try? repository.upsertVehicle(vehicle)
     }
 
     /// RV.100 screenshot state: the ONLY car was JUST deleted. Seeds the single
