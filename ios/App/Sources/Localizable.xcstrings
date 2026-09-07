@@ -14756,6 +14756,40 @@
           }
         }
       }
+    },
+    "Currency for these amounts": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Currency for these amounts"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Валюта для этих сумм"
+          }
+        }
+      }
+    },
+    "This file has no currency column, so we'll use your pick for every row.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This file has no currency column, so we'll use your pick for every row."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В файле нет колонки валюты, поэтому мы используем ваш выбор для каждой строки."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

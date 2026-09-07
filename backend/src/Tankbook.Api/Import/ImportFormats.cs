@@ -17,6 +17,7 @@ public static class ImportFormats
         // A link that 404s is worse than no link (hard rule 7), so the page must exist before the
         // URL ships - the guide page and this value land in the same change.
         new("mfm", "My Fuel Manager", ["csv"], HelpUrl: "https://tankbook.live/import-guide/", AddedInPackVersion: 1),
+        new("drivvo", "Drivvo", ["csv"], HelpUrl: "https://tankbook.live/import-guide/", AddedInPackVersion: 1),
     ];
 
     public static bool TryGet(string id, out ImportFormatInfo format)

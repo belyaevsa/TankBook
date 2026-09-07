@@ -181,6 +181,26 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
                                sourceRow: sourceRow, items: items, category: category,
                                title: title)
     }
+
+    /// A copy whose money (and, for a service record, every line item's cost)
+    /// carries the user's currency answer (RV.113: a Drivvo file has no currency
+    /// column, so the amount lands with an empty currency and the wizard's answer
+    /// is what fills it in - hard rule 3, hard rule 13).
+    public func applyingCurrency(_ code: CurrencyCode) -> ImportCandidate {
+        let editedMoney = money.map { ImportMoney(amount: $0.amount, currency: code.rawValue) }
+        let editedItems = items?.map { item in
+            ImportServiceItem(
+                title: item.title, category: item.category,
+                cost: item.cost.map { ImportMoney(amount: $0.amount, currency: code.rawValue) })
+        }
+        return ImportCandidate(entityType: entityType, date: date, odometer: odometer,
+                               volumeL: volumeL, unitPrice: unitPrice, money: editedMoney,
+                               fuelKind: fuelKind, isFull: isFull,
+                               tankLevelAfterPct: tankLevelAfterPct, note: note,
+                               vehicleName: vehicleName, provenance: provenance,
+                               sourceRow: sourceRow, items: editedItems, category: category,
+                               title: title)
+    }
 }
 
 /// A row the server could not map (docs/API.md): `row` is the same 1-based
@@ -299,6 +319,14 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
             return CurrencyCode(rawValue: option)
         }
         return candidates.first(where: { $0.money != nil })?.money?.currencyCode
+    }
+
+    /// True when the file carries money but no currency column (a `currency`
+    /// ambiguity with EMPTY options - the wire's signal that there is no answer
+    /// on disk to declare). The wizard must ask the currency question, defaulting
+    /// to the destination car's home currency (RV.113, docs/SCHEMA.md).
+    public var hasCurrencyQuestion: Bool {
+        ambiguities.contains { $0.kind == "currency" && $0.options.isEmpty }
     }
 
     /// Whether the import may be confirmed (PJ.10): every F6 question the

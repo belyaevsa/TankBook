@@ -233,6 +233,47 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         Assert.DoesNotContain("M/D/YYYY", all, StringComparison.Ordinal);
     }
 
+    [SkippableFact]
+    public async Task ParseDrivvoCsv_WorksSignedOut_AndCommitsNothing()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var deviceId = Guid.NewGuid();
+
+        using var response = await ParseAsync(app.Client, "drivvo", DrivvoFixture.ReadAllBytes(DrivvoFixture.ThreeSectionsCsv), "drivvo.csv", deviceId);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = ParseBody(await response.Content.ReadAsStringAsync());
+
+        // One file, three sections: 250 fills, 11 expenses, 54 services.
+        Assert.Equal("drivvo", body.GetProperty("format").GetString());
+        Assert.Equal(250 + 11 + 54, body.GetProperty("candidates").GetArrayLength());
+
+        // No currency column anywhere: the currency question is asked with EMPTY
+        // options (there is no answer on disk), never a guessed default.
+        var currency = body.GetProperty("ambiguities").EnumerateArray()
+            .Single(a => a.GetProperty("kind").GetString() == "currency");
+        Assert.Equal(0, currency.GetProperty("options").GetArrayLength());
+
+        // Hard rule 9: the parse commits nothing.
+        Assert.Equal(0, await app.CountAsync("accounts"));
+        Assert.Equal(0, await app.CountAsync("records"));
+        Assert.Equal(1, await app.CountAsync("import_parses"));
+    }
+
+    [SkippableFact]
+    public async Task ParseDrivvoCsv_ANonDrivvoFile_Is422()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var deviceId = Guid.NewGuid();
+
+        var notDrivvo = Encoding.UTF8.GetBytes("date,volume,price\n1,2,3\n");
+        using var response = await ParseAsync(app.Client, "drivvo", notDrivvo, "some.csv", deviceId);
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(TankbookErrorCodes.ImportMismatch, body.RootElement.GetProperty("code").GetString());
+    }
+
     // ---- GET /import/formats: server-driven, ETag'd ------------------------
 
     [SkippableFact]
@@ -250,6 +291,7 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
             var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
             var formats = body.EnumerateArray().Select(f => f.GetProperty("id").GetString()!).ToArray();
             Assert.Contains("mfm", formats);
+            Assert.Contains("drivvo", formats);
             // PJ.33: every listed format carries a helpUrl pointing at the site's per-source export
             // guide, so "How to export" can render on the row and inside the 422 / not-listed
             // messages (hard rule 7: the next step must exist). A null here means the app's link

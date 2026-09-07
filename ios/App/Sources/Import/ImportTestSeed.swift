@@ -27,7 +27,8 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportCars")
             || arguments.contains("-seedImportCarsDecided")
             || arguments.contains("-seedImportBatch")
-            || arguments.contains("-seedImportBatchAnomaly") else { return }
+            || arguments.contains("-seedImportBatchAnomaly")
+            || arguments.contains("-seedImportCurrency") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
             try? repository.upsertVehicle(HomeTestSeed.makeVehicle())
@@ -59,6 +60,9 @@ enum ImportTestSeed {
             model.installSeededParse(resourceName: "import-parse-mfm",
                                      fileName: "MyFuelManager_2026-08.csv",
                                      rawFileResource: "import-mfm-sample")
+            model.showPreview()
+        } else if arguments.contains("-seedImportCurrency") {
+            model.installSeededCurrencyParse()
             model.showPreview()
         } else if arguments.contains("-seedImportResolvedDates") {
             // RV.85: the detectable-file preview - the server resolved the

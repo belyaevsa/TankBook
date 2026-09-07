@@ -130,7 +130,7 @@ extension ImportFlowModel {
             importFills: incoming,
             existingFills: existing,
             tankCapacityL: vehicle.tankCapacityL,
-            declaredCurrency: parse?.declaredCurrency).duplicateCount
+            declaredCurrency: effectiveCurrency).duplicateCount
     }
 
     /// The fills that will land in one destination vehicle under the current

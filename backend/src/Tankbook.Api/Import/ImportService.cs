@@ -64,15 +64,21 @@ public sealed class ImportService
         Guid deviceId,
         CancellationToken cancellationToken)
     {
-        // The format id was validated at the endpoint (415); the parser is the
-        // single MFM implementation behind the one supported format id.
+        // The format id was validated at the endpoint (415); the parser is
+        // selected by the one supported format id the user declared (never
+        // sniffed - docs/API.md).
         var format = ImportFormats.All.Single(f => string.Equals(f.Id, formatId, StringComparison.OrdinalIgnoreCase));
 
         var bytes = await ReadWithLimitAsync(upload, _options.MaxFileBytes, cancellationToken);
         using var csvStream = new MemoryStream(bytes, writable: false);
 
         var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-        var result = MfmParser.Parse(csvStream, cancellationToken);
+        var result = format.Id switch
+        {
+            "mfm" => MfmParser.Parse(csvStream, cancellationToken),
+            "drivvo" => DrivvoParser.Parse(csvStream, cancellationToken),
+            _ => throw new NotSupportedException($"No parser for format '{format.Id}'."),
+        };
         stopwatch.Stop();
 
         var importId = Guid.NewGuid();

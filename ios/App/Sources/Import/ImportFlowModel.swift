@@ -158,6 +158,12 @@ final class ImportFlowModel {
     /// anything is committed. nil when the parse reported no ambiguity.
     var dateFormatAnswer: String?
 
+    /// The currency question's answer for a file with no currency column
+    /// (RV.113): nil means "use the destination car's home currency" (the
+    /// default the wizard offers - hard rule 13, never a fact). A user's pick
+    /// overrides the default; either way every committed row carries the answer.
+    var currencyAnswer: CurrencyCode?
+
     var didConfirm = false
     var confirmFailed = false
 

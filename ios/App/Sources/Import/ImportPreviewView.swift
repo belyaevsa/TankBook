@@ -31,6 +31,9 @@ struct ImportPreviewView: View {
                     if model.hasDateFormatQuestion {
                         dateFormatCard
                     }
+                    if model.hasCurrencyQuestion {
+                        currencyCard
+                    }
                     figuresCard
                     targetCarCard
                     if let message = model.outOfScopeMessage {
@@ -104,14 +107,14 @@ struct ImportPreviewView: View {
             CardDivider()
             figureRow("Odometer", value: odometerText)
             CardDivider()
-            figureRow("Total spend", value: totalSpendText)
+            figureRow("Total spend", value: totalSpendText, id: "importPreviewTotalSpend")
             CardDivider()
             figureRow("Units & currency", value: unitsCurrencyText)
         }
         .formCard()
     }
 
-    private func figureRow(_ label: LocalizedStringKey, value: String) -> some View {
+    private func figureRow(_ label: LocalizedStringKey, value: String, id: String? = nil) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)
                 .font(.subheadline)
@@ -125,6 +128,7 @@ struct ImportPreviewView: View {
         .padding(.horizontal, Theme.Spacing.cardPadding)
         .padding(.vertical, 11)
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier(id ?? "")
     }
 
     private var dateRangeText: String {
@@ -263,6 +267,65 @@ struct ImportPreviewView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("importDateFormatOption-\(option)")
+    }
+
+    /// The currency question (RV.113, docs/SCHEMA.md): a file with no currency
+    /// column cannot say what its amounts are in, so the wizard asks - offering
+    /// the destination car's home currency as the default the user can change
+    /// (hard rule 13, hard rule 3). Asked once per file, never per row.
+    private var currencyCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "banknote")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .padding(.top, 1)
+                VStack(alignment: .leading, spacing: 4) {
+                    SectionEyebrow("Currency for these amounts")
+                    Text(L10n.currencyQuestionSubtitle)
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineSpacing(1.4)
+                }
+            }
+            Menu {
+                ForEach(AddVehicleSupport.currencyOptions, id: \.self) { code in
+                    Button { model.answerCurrency(code) } label: {
+                        HStack {
+                            Text(AddVehicleSupport.currencyLabel(for: code))
+                            if code == (model.currencyAnswer ?? model.defaultCurrency) {
+                                Spacer()
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                    .accessibilityIdentifier("importCurrencyOption-\(code.rawValue)")
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(AddVehicleSupport.currencyLabel(for: model.currencyAnswer ?? model.defaultCurrency))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .background(Theme.Palette.midnight)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Theme.Palette.hairline, lineWidth: 1)
+                )
+            }
+            .accessibilityIdentifier("importCurrencyPicker")
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("importCurrencyQuestion")
     }
 
     /// A file whose rows are deliberately unmapped (income, reminders) says so

@@ -408,7 +408,7 @@ deploy rather than an App Store release.
 
 **`GET /import/formats`** - the supported-source list, **server-driven and public**. Returns
 `[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion } ]`, ETag'd like the other reference
-data. Today it lists one format: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }`.
+data. Today it lists two formats: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }` and `{ id: "drivvo", displayName: "Drivvo", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }`.
 
 **`helpUrl` points at the site's per-source export guide** (J2's "their UIs hide export"; PJ.33).
 The client renders a "How to export" link on the format row and inside the 422 / not-listed
@@ -470,9 +470,13 @@ reasoning as the currency chip on Confirm.
     individually ambiguous ones - and returns no `dateFormat` ambiguity. **A file whose rows prove
     BOTH orders is not an ambiguity: it is an inconsistent file** (below, the `import_inconsistent_dates`
     422) - no single answer exists for the user to pick, so it errors rather than asks.
-  - `currency`: `options` is the single currency the file declares on every row (the real export
-    reads `USD` regardless of where fuel was bought) - a **default the user corrects** (hard rule
-    13), never a fact.
+  - `currency`: for a file that declares one, `options` is the single currency it declares on every
+    row (the real MFM export reads `USD` regardless of where fuel was bought) - a **default the
+    user corrects** (hard rule 13), never a fact. For a file with **no currency column** (Drivvo),
+    `options` is **empty** and `rowCount` is the number of money-carrying rows: there is no answer
+    on disk to declare, so the client asks the currency question once, defaulting to the
+    **destination car's home currency** (hard rule 3 - money is a pair, so nothing is guessed).
+    Candidates' `money.currency` is the empty string in this case, never a hardcoded default.
   - `units`: emitted by formats that carry an ambiguous unit; MFM is metric, so it emits none.
   - `outOfScope`: a recognised file whose rows are deliberately unmapped (`income`, `reminder`) -
     `rowCount` is the number of rows skipped, so the client can say "this file has N income rows;

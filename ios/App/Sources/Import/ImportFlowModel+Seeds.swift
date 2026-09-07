@@ -210,6 +210,43 @@ extension ImportFlowModel {
         step = .cars
     }
 
+    /// RV.113: installs a stub Drivvo parse whose candidates carry money with an
+    /// EMPTY currency and a `currency` ambiguity with empty options - the wire's
+    /// signal that the file has no currency column, so the wizard must ask. The
+    /// default offered is the destination car's home currency (EUR for the seeded
+    /// Volvo), and the answer reaches every committed row.
+    func installSeededCurrencyParse() {
+        func fill(_ row: Int, _ date: Date, _ odo: Int, _ amount: String) -> ImportCandidate {
+            ImportCandidate(
+                entityType: "fillUp", date: date, odometer: odo, volumeL: 40,
+                unitPrice: "220", money: ImportMoney(amount: amount, currency: ""),
+                fuelKind: "petrol92", isFull: true, tankLevelAfterPct: nil, note: nil,
+                vehicleName: nil, provenance: ImportProvenance(tag: "import", source: "drivvo"),
+                sourceRow: row)
+        }
+        let response = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000310", format: "drivvo",
+            scope: "vehicle",
+            candidates: [
+                fill(1, Date(timeIntervalSince1970: 1_786_924_800), 491_206, "8442"),  // 2026-08-17
+                fill(2, Date(timeIntervalSince1970: 1_787_529_600), 491_791, "6630"),  // 2026-08-24
+            ],
+            unparsed: [],
+            ambiguities: [ImportAmbiguity(kind: "currency", options: [], rowCount: 2)])
+        dateFormatAnswer = nil
+        currencyAnswer = nil
+        adoptSingleFile(fileName: "Drivvo_export.csv",
+                        rawData: Data("""
+                        ##Refuelling
+                        "Odometer (km)","Date","Fuel","Price / l","Total cost","Volume","Full tank"
+                        "491206.0","2025-08-02 06:55:11","Petrol 92","220","8442","40","Yes"
+                        "491791.0","2025-08-24 17:37:33","Petrol 92","225","6630","40","Yes"
+                        """.utf8),
+                        parse: response)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
     /// RV.93: installs a stub WHOLE-EXPORT pick (two files, no picker/server)
     /// so the UI tests drive the "one mapping for several files" surface: the
     /// fuel file holds two cars (the RV.86 fixture), the costs file holds a

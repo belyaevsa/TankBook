@@ -1,0 +1,242 @@
+using System.Text;
+using System.Text.Json.Nodes;
+using Tankbook.Api.Import;
+
+namespace Tankbook.Api.Tests.Import;
+
+/// <summary>
+/// The Drivvo parser against the committed real export (Spike/ImportFixtures/drivvo/).
+/// docs/API.md "Import parsing": the parser is a pure function - candidates are
+/// proposals, nothing is committed. docs/TESTING.md: assert field VALUES on a
+/// named row, never just a count.
+/// </summary>
+public class DrivvoParserTests
+{
+    // ---- the three sections, measured --------------------------------------
+
+    [Fact]
+    public void RealFile_ParsesThreeSectionsIntoTheirOwnKinds()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // The file holds 250 refuelling rows, 11 expense rows and 54 service
+        // rows (the blank line between sections is a separator, not a data row).
+        Assert.Equal("drivvo", result.FileKind);
+        Assert.Equal(250, Count(result, "fillUp"));
+        Assert.Equal(11, Count(result, "expense"));
+        Assert.Equal(54, Count(result, "serviceRecord"));
+        Assert.Equal(250 + 11 + 54, result.DataRowCount);
+        Assert.Empty(result.Unparsed);
+    }
+
+    [Fact]
+    public void RealFile_NamedRefuellingRow_MapsEveryField()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // The named row: "491206.0","2025-08-02 06:55:11","Бензин АИ92","220",
+        // "6630","30.136","Да",...  (the second fill in the file).
+        var candidate = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "fillUp")
+            .Single(c => c["odometer"]!.GetValue<int>() == 491206);
+
+        Assert.Equal("2025-08-02T06:55:11Z", candidate["date"]!.GetValue<string>());
+        Assert.Equal(30.136, candidate["volumeL"]!.GetValue<double>(), 6);
+        Assert.Equal("220", candidate["unitPrice"]!.GetValue<string>());
+        Assert.Equal("6630", candidate["money"]!["amount"]!.GetValue<string>());
+        Assert.Equal("petrol92", candidate["fuelKind"]!.GetValue<string>());
+        Assert.True(candidate["isFull"]!.GetValue<bool>());
+        Assert.Equal("import", candidate["provenance"]!["tag"]!.GetValue<string>());
+        Assert.Equal("drivvo", candidate["provenance"]!["source"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public void RealFile_NamedExpenseAndServiceRows_MapToTheirKinds()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // A named expense: "490500.0","2025-07-06 10:53:07","6800","Техосмотр".
+        var expense = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "expense")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "6800");
+        Assert.Equal("2025-07-06T10:53:07Z", expense["date"]!.GetValue<string>());
+        Assert.Equal(490500, expense["odometer"]!.GetValue<int>());
+        // The kind is not in the canonical map, so it passes through as the tag.
+        Assert.Equal("Техосмотр", expense["category"]!["tag"]!.GetValue<string>());
+
+        // A named service: "490983.0","2025-07-19 15:46:49","19000","Замена масла".
+        var service = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "serviceRecord")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "19000");
+        Assert.Equal("2025-07-19T15:46:49Z", service["date"]!.GetValue<string>());
+        Assert.Equal("oil", service["items"]![0]!["category"]!["tag"]!.GetValue<string>());
+        Assert.Equal("19000", service["items"]![0]!["cost"]!["amount"]!.GetValue<string>());
+    }
+
+    // ---- hazard 1 (the malformed header) is exercised by every parse above --
+    // ---- hazard 2: the repeated "Цена / л" must not read the third block -----
+
+    [Fact]
+    public void RepeatedPriceHeader_PrimaryBlockPriceIsRead_NotTheThirdBlock()
+    {
+        // The three fuel blocks each carry a "Цена / л" column. A header-keyed
+        // dictionary would collapse them to the LAST occurrence and read the
+        // third block's price as the fill's. The parser maps the FIRST
+        // occurrence (the primary block): primary price 55, second 60, third 70.
+        const string row =
+            "\"491791.0\",\"2025-08-24 17:37:33\",\"Бензин АИ92\",\"55\",\"6630\",\"30.136\",\"Да\",\"\",\"60\",\"0\",\"0\",\"Нет\",\"\",\"70\",\"0\",\"0\",\"Нет\",\"6,414 л/100км\",\"585.0\",\"\",\"\",\"\",\"\",\"Газпром\",\"driver-1\",\"\",\"\",\"\",\"0\"";
+        using var stream = File(RussianRefuellingHeader, row);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        var candidate = Assert.Single(result.Candidates);
+        Assert.Equal("55", candidate["unitPrice"]!.GetValue<string>());
+        Assert.Equal("6630", candidate["money"]!["amount"]!.GetValue<string>());
+        Assert.Equal(30.136, candidate["volumeL"]!.GetValue<double>(), 6);
+    }
+
+    // ---- the date is asserted as a VALUE, never "did not throw" (RV.103) -----
+
+    [Fact]
+    public void ParsedDate_EqualsTheExpectedInstant()
+    {
+        using var stream = File(RussianRefuellingHeader, RussianRow);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // yyyy-MM-dd HH:mm:ss (a space, not ISO-8601 'T') reads as UTC.
+        Assert.Equal("2025-08-02T06:55:11Z", result.Candidates[0]["date"]!.GetValue<string>());
+    }
+
+    // ---- mixed decimals: a comma and a dot both parse; the suffix is not read
+
+    [Fact]
+    public void CommaAndDotDecimals_BothParse()
+    {
+        // A comma-decimal total and a dot-decimal volume in the same row, with
+        // the consumption cell (also comma-decimal, with a unit suffix) beside
+        // them.
+        const string row =
+            "\"491206.0\",\"2025-08-02 06:55:11\",\"Бензин АИ92\",\"220\",\"6,414\",\"30.136\",\"Да\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"6,414 л/100км\",\"585.0\",\"\",\"\",\"\",\"\",\"Газпром\",\"driver-1\",\"\",\"\",\"\",\"0\"";
+        using var stream = File(RussianRefuellingHeader, row);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        var candidate = Assert.Single(result.Candidates);
+        // The comma-decimal total read as 6.414, and the consumption cell (which
+        // also carries a comma) stayed in its own field without shifting the
+        // volume or total.
+        Assert.Equal("6.414", candidate["money"]!["amount"]!.GetValue<string>());
+        Assert.Equal(30.136, candidate["volumeL"]!.GetValue<double>(), 6);
+    }
+
+    // ---- "0.0" odometer maps to null, never a zero reading ------------------
+
+    [Fact]
+    public void ZeroOdometer_MapsToNull_NotZero()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // The expense row "0.0","2025-06-08 05:35:00","19827","Страхование".
+        var candidate = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "expense")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "19827");
+        Assert.Null(candidate["odometer"]);
+
+        // A non-zero odometer elsewhere still reads as a number.
+        var withOdometer = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "expense")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "6800");
+        Assert.Equal(490500, withOdometer["odometer"]!.GetValue<int>());
+    }
+
+    // ---- no currency column: the answer is asked, never a hardcoded default --
+
+    [Fact]
+    public void NoCurrencyColumn_CandidatesCarryEmptyCurrency_AndTheCurrencyQuestion()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        // Every money-carrying candidate's currency is empty - the amount rides
+        // alone and the wizard asks (hard rule 3, hard rule 13). No candidate
+        // carries a guessed default.
+        var moneyCandidates = result.Candidates.Where(c => c["money"] is JsonObject).ToList();
+        Assert.NotEmpty(moneyCandidates);
+        Assert.All(moneyCandidates, c =>
+            Assert.Equal("", c["money"]!["currency"]!.GetValue<string>()));
+
+        // The currency question is returned with EMPTY options (there is no
+        // answer on disk to declare) so the client asks rather than guesses.
+        var currency = Assert.Single(result.Ambiguities, a => a.Kind == "currency");
+        Assert.Empty(currency.Options);
+        Assert.Equal(moneyCandidates.Count, currency.RowCount);
+    }
+
+    // ---- RU and EN headers map to the same canonical fields ------------------
+
+    [Fact]
+    public void RuAndEnHeaders_MapToTheSameCanonicalFields()
+    {
+        var ru = Parse(RussianRefuellingHeader, RussianRow);
+        var en = Parse(EnglishRefuellingHeader, EnglishRow);
+
+        Assert.Equal(ru["date"]!.GetValue<string>(), en["date"]!.GetValue<string>());
+        Assert.Equal(ru["odometer"]!.GetValue<int>(), en["odometer"]!.GetValue<int>());
+        Assert.Equal(ru["volumeL"]!.GetValue<double>(), en["volumeL"]!.GetValue<double>(), 6);
+        Assert.Equal(ru["unitPrice"]!.GetValue<string>(), en["unitPrice"]!.GetValue<string>());
+        Assert.Equal(ru["money"]!["amount"]!.GetValue<string>(), en["money"]!["amount"]!.GetValue<string>());
+        Assert.Equal(ru["fuelKind"]!.GetValue<string>(), en["fuelKind"]!.GetValue<string>());
+        Assert.Equal(ru["isFull"]!.GetValue<bool>(), en["isFull"]!.GetValue<bool>());
+    }
+
+    // ---- the 422 path -------------------------------------------------------
+
+    [Fact]
+    public void AFileThatIsNotADrivvoExport_ThrowsThe422Exception()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("date,volume,price\n1,2,3\n"));
+        var ex = Assert.Throws<NotDrivvoExportException>(() => DrivvoParser.Parse(stream, CancellationToken.None));
+        Assert.Contains("Drivvo", ex.Detail, StringComparison.Ordinal);
+    }
+
+    // ---- helpers -----------------------------------------------------------
+
+    private static int Count(MfmParseResult result, string entityType)
+        => result.Candidates.Count(c => c["entityType"]!.GetValue<string>() == entityType);
+
+    private static JsonObject Parse(string header, string dataRow)
+    {
+        using var stream = File(header, dataRow);
+        return DrivvoParser.Parse(stream, CancellationToken.None).Candidates[0];
+    }
+
+    /// <summary>A synthetic Drivvo refuelling file: the ##Refuelling marker, the header, one data row.</summary>
+    private static Stream File(string header, params string[] dataRows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("##Refuelling");
+        sb.AppendLine(header);
+        foreach (var row in dataRows)
+        {
+            sb.AppendLine(row);
+        }
+
+        return new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+    }
+
+    // The real RU header and one real RU data row.
+    private const string RussianRefuellingHeader =
+        "\"Одометр (км)\",\"Дата\",\"Топливо\",\"Цена / л\",\"Общая стоимость\",\"Объем\",\"Полный бак\",\"Второе топливо\",\"Цена / л\",\"Общая стоимость\",\"Объем\",\"Полный бак\" 2,\"Третье топливо\",\"Цена / л\",\"Общая стоимость\",\"Объем\",\"Полный бак\" 3,\"Эффективный расход топлива\",\"Расстояние\",\"Тип зарядки\",\"Начальный заряд (%)\",\"Конечный заряд (%)\",\"Длительность (мин)\",\"Азс\",\"Водитель\",\"Тип расхода\",\"Метод оплаты\",\"Примечание\",\"Скидка\"";
+
+    private const string RussianRow =
+        "\"491206.0\",\"2025-08-02 06:55:11\",\"Бензин АИ92\",\"220\",\"6630\",\"30.136\",\"Да\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"6,414 л/100км\",\"585.0\",\"\",\"\",\"\",\"\",\"Газпром\",\"driver-ea23167db8ec\",\"\",\"\",\"\",\"0\"";
+
+    // The derived EN header and row (UNVERIFIED against a real English file).
+    private const string EnglishRefuellingHeader =
+        "\"Odometer (km)\",\"Date\",\"Fuel\",\"Price / l\",\"Total cost\",\"Volume\",\"Full tank\",\"Second fuel\",\"Price / l\",\"Total cost\",\"Volume\",\"Full tank\" 2,\"Third fuel\",\"Price / l\",\"Total cost\",\"Volume\",\"Full tank\" 3,\"Effective fuel consumption\",\"Distance\",\"Charging type\",\"Start charge (%)\",\"End charge (%)\",\"Duration (min)\",\"Gas station\",\"Driver\",\"Expense type\",\"Payment method\",\"Note\",\"Discount\"";
+
+    private const string EnglishRow =
+        "\"491206.0\",\"2025-08-02 06:55:11\",\"Petrol 92\",\"220\",\"6630\",\"30.136\",\"Yes\",\"\",\"0\",\"0\",\"0\",\"No\",\"\",\"0\",\"0\",\"0\",\"No\",\"6,414 l/100km\",\"585.0\",\"\",\"\",\"\",\"\",\"Gazprom\",\"driver-1\",\"\",\"\",\"\",\"0\"";
+}

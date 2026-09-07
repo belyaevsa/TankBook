@@ -123,6 +123,14 @@ public static class ImportEndpoints
                 "This does not look like a My Fuel Manager export.",
                 ex.Detail);
         }
+        catch (NotDrivvoExportException ex)
+        {
+            return Problem(
+                StatusCodes.Status422UnprocessableEntity,
+                TankbookErrorCodes.ImportMismatch,
+                "This does not look like a Drivvo export.",
+                ex.Detail);
+        }
         catch (InconsistentDateOrderException ex)
         {
             return Problem(
