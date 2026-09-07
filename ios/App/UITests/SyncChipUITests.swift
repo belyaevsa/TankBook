@@ -78,11 +78,9 @@ final class SyncChipUITests: XCTestCase {
         XCTAssertEqual(chip(app).label, "Synced")
     }
 
-    func testChipIsHittable() {
-        let app = launch(["-seedSyncChipSynced"])
-        XCTAssertTrue(chip(app).waitForExistence(timeout: 10))
-        XCTAssertTrue(chip(app).isHittable)
-    }
+    // RV.107: `testChipIsHittable` was REMOVED here. The tap-destination tests
+    // below tap this exact chip and assert what opens, which subsumes it - and
+    // `isHittable` is a measured liar in this codebase (RV.84).
 
     // MARK: - The tap destination differs by state
 

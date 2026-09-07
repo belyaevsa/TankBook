@@ -31,12 +31,10 @@ final class TankbookShellUITests: XCTestCase {
 
     // MARK: - Tab roots
 
-    func testThreeTabRootsExist() {
-        let app = launch()
-        XCTAssertTrue(app.buttons["tabbar.log"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["tabbar.trends"].exists)
-        XCTAssertTrue(app.buttons["tabbar.garage"].exists)
-    }
+    // RV.107: `testThreeTabRootsExist` was REMOVED here - it asserted the three
+    // tab buttons exist, which every destination test below already proves by
+    // tapping them and checking where they land. `testSystemTabBarIsHidden`
+    // keeps the risk this file exists for.
 
     /// The owned bar (P2.1b) replaces the system bar, which is hidden with
     /// `.toolbar(.hidden, for: .tabBar)`. This is the risk-detection assertion:

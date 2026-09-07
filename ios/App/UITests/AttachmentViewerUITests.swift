@@ -78,23 +78,12 @@ final class AttachmentViewerUITests: XCTestCase {
                        "the viewer must be gone, not merely covered")
     }
 
-    /// A pinch on the photo. XCUITest can drive the gesture but cannot read the
-    /// resulting zoom scale, so what this pins is that the photo survives the
-    /// gesture and stays interactive - the magnification itself is verified by
-    /// hand, not here.
-    func testThePhotoSurvivesAPinch() {
-        let app = launch("-seedPhotoLocal")
-
-        let chip = app.buttons["attachmentPhotoChip"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 15))
-        chip.tap()
-
-        let image = app.descendants(matching: .any)["attachmentViewerImage"]
-        XCTAssertTrue(image.waitForExistence(timeout: 10))
-        image.pinch(withScale: 3, velocity: 1)
-        XCTAssertTrue(image.isHittable,
-                      "the photo must still be on screen and interactive after a pinch")
-    }
+    // RV.107: `testThePhotoSurvivesAPinch` was REMOVED here. It pinched the
+    // image and then asserted `isHittable` - which proves the view is on
+    // screen, never that a zoom occurred, and `isHittable` is a measured liar
+    // in this codebase (RV.84 caught it returning true for an element ~86%
+    // clipped). Zoom needs a test-readable scale or the manual checklist; a
+    // green test that cannot fail when the feature breaks is worse than none.
 
     // MARK: - State 3: not on the device, and nothing to fetch with
 
