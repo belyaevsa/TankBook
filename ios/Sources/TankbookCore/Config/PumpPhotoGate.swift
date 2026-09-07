@@ -32,27 +32,35 @@ import Foundation
 /// drift from reality without a failing test.
 public enum PumpPhotoGate {
     /// Numeric cells the parser committed to a correct value at build time
-    /// (the precision numerator), over the 178 numeric cells (liters,
+    /// (the precision numerator), over the 196 numeric cells (liters,
     /// unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 31
+    public static let measuredCommittedCorrect: Int = 37
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
-    public static let measuredCommitted: Int = 31
+    public static let measuredCommitted: Int = 37
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 31
+    public static let measuredNumericHits: Int = 37
 
-    /// The numeric cells the pump corpus scores (B1): 178. Not 66 x 3: blank
+    /// The numeric cells the pump corpus scores (B1): 196. Not 72 x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
     /// meaningful unit price, and pump-021/022/023 show a grade price BOARD
     /// rather than the transaction's unit price), and `fuelKind` is never
     /// asserted for a pump at all.
-    public static let measuredNumericTotal: Int = 178
+    ///
+    /// **Re-measured 2026-09-07 (RV.114's corpus additions).** The six Circle K
+    /// pumps added with `receipt-049`..`051` brought 18 more asserted cells
+    /// (178 -> 196) and 6 more committed, all of them correct (31 -> 37). So
+    /// precision stays 100% on what the parser commits to, and coverage moves
+    /// 17.4% -> 18.9% - still far under the 60% floor, so **the pump flag stays
+    /// off and nothing a user sees changes**. The constants moved because the
+    /// corpus did; the gate's decision did not.
+    public static let measuredNumericTotal: Int = 196
 
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong

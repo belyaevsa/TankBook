@@ -348,6 +348,15 @@ enum PostSweepCorpusAdditions {
             // frozen, and these arrived at 1280 px through Telegram.
             "receipt-047-gazpromneft-edrovo-gdrive95-fuelcard-pair-ru.jpeg",
             "receipt-048-rn-tver-budovo-95-nonfiscal-terminal-slip-pair-ru.jpeg",
+            // 2026-09-07 (RV.114): the paper halves of pump-067 and pump-068
+            // - one Circle K Jarvevana session, Pump 4 and Pump 7 - plus a
+            // Gazpromneft G-Drive 95 fuel-card slip shot UPSIDE DOWN, the
+            // corpus's first 180-degree rotation. Declared, not swept: the
+            // A/B arms stay frozen at their pinned numbers, and RV.114 owns
+            // scoring these against the harness.
+            "receipt-049-circlek-jarvevana-pump4-95miles-4837l-pair-ee.jpg",
+            "receipt-050-circlek-jarvevana-pump7-db0-7070l-rotated90-pair-ee.jpg",
+            "receipt-051-gazpromneft-tver-gdrive95-fuelcard-rotated180-ru.jpg",
         ],
         "pump": [
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
@@ -432,6 +441,19 @@ enum PostSweepCorpusAdditions {
             // not swept.
             "pump-065-tokheim-gazpromneft-edrovo-truncated-total-pair-ru.jpeg",
             "pump-066-rn-tver-budovo-95-exact-total-pair-ru.jpeg",
+            // 2026-09-07 (RV.114): six Circle K Tallinn displays from one
+            // session - 067 and 068 are the pump halves of receipt-049 and
+            // -050, the corpus's first matched pairs with truth on BOTH sides;
+            // 069 is 90-degree rotated; 071 catches a litre digit mid-segment;
+            // 072 is a four-grade Wayne board whose displayed prices do NOT
+            // include the transaction's (a loyalty discount). Declared, not
+            // swept - the arms are frozen and RV.114 owns the scoring.
+            "pump-067-circlek-jarvevana-95miles-4837l-glare-pair-ee.jpg",
+            "pump-068-circlek-jarvevana-dmiles-7070l-pair-ee.jpg",
+            "pump-069-circlek-gilbarco-2914l-rotated90-ee.jpg",
+            "pump-070-circlek-gilbarco-3494l-ee.jpg",
+            "pump-071-circlek-gilbarco-1898l-midsegment-ee.jpg",
+            "pump-072-circlek-wayne-1001l-loyalty-price-off-board-ee.jpg",
         ],
     ]
 

@@ -38,7 +38,11 @@ struct CorpusCompressionTests {
     /// Re-measured after the merge of both sessions' total-finder work; the
     /// compressed run stays at or above the uncompressed ratchet (high-water.json)
     /// - the resize is not lossy for this parser, and never below.
-    private static let recordedReceipts = (hits: 189, total: 220)
+    // RV.114 (2026-09-07): total 220 -> 235 because three receipts joined the
+    // corpus (receipt-049..051), each asserting five cells. The HITS floor
+    // stays 189: it is a "never fall below" mark, and raising it to a number
+    // this change did not measure would turn a floor into a guess.
+    private static let recordedReceipts = (hits: 189, total: 235)
 
     @Test("receipt hits through the compression step never fall below the recorded mark")
     func compressionDoesNotCostAccuracy() throws {
