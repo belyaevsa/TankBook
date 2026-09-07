@@ -250,6 +250,16 @@ So the endpoint stays a static, country-tagged, fully cacheable pack, and the cl
 **brands the user has already used, then brands of the device's region, then the rest.** No geo-IP
 dependency, no VPN failure mode, no per-user server behaviour.
 
+**A captured receipt outranks all of it** (product owner, 2026-09-07). If the user is capturing,
+they are standing at the station, and the slip already names it: the extraction reads the station
+string, and the **currency, the VAT rate, the script and the phone format** together imply the
+country - `receipt-051` in the corpus is Cyrillic, RUB, a Russian fiscal block; `receipt-049` and
+`-050` are Estonian, EUR, "24% KM". That is a local, present-tense signal no IP can beat, and it
+costs nothing: the OCR has already run. So the ordering is **the receipt in hand, then the user's
+history, then the device region, then `detectedCountry`.** It also closes the loop with the matcher:
+the station string the receipt yields is exactly what needs brand-matching, and once matched that
+fill joins the history that orders every later list.
+
 **`detectedCountry`: the cold-start hint (product owner, 2026-09-07).** The one case the ordering
 above serves poorly is a brand-new user whose device region does not match where they are and who
 has logged nothing yet. The server already sees the connection's IP on every request, so it may

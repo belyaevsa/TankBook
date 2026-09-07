@@ -17,6 +17,24 @@ and where a trained model does and does not belong.
 Conflict rule as everywhere: the more specific doc wins, and the stale one gets fixed in
 the same change.
 
+## What a receipt says besides the numbers (RV.115, 2026-09-07)
+
+The pipeline exists to fill a fill-up's fields, but the same OCR pass carries two facts worth using
+elsewhere, and both are free once the text is read:
+
+- **The station.** The slip names it (`Circle K Järvevana teenindusjaam`, `ООО "Газпромнефть-центр"`),
+  and that string is exactly what the station **brand matcher** consumes (`docs/API.md` ->
+  `GET /reference/station-brands`). A matched brand makes the fill groupable; an unmatched name stays
+  the user's own station, which is a first-class state, not an error.
+- **The country.** Not from a field, but from the combination the corpus already demonstrates:
+  currency, VAT rate, script and phone format. `receipt-051` is Cyrillic + RUB + a Russian fiscal
+  block; `receipt-049`/`-050` are Estonian + EUR + "24% KM".
+
+**Why it matters for ordering**: when the user is capturing, they are standing at the station, so the
+receipt is a present-tense local signal that beats device region and beats any IP-derived hint. Both
+facts stay **default inputs the user can change** (hard rule 13) - a receipt read is a suggestion,
+and the corpus records Vision misreading a digit at confidence 1.00.
+
 ## The one-sentence version
 
 Vision reads the characters; **the hard part is deciding what each number means**, and every
