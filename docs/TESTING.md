@@ -95,6 +95,24 @@ has actually caught - a gate that has never caught anything at its cost is not k
 | **Backend** `dotnet build` + `format --verify-no-changes` + `test` | ~2 min | Any change under `backend/` | Its own tier's floor |
 | **FULL UI suite** (~28 min) | 28 min | **Phase completion, before a release build or a TestFlight upload, and after merging parallel work** - never per task | See the section below: five full runs in one day cost 2h15m and produced one genuine defect and two false reds |
 
+### A green `dotnet test` is not evidence the suite ran (RV.107, 2026-09-07)
+
+`dotnet test` prints `Passed!` and exits **0** when Testcontainers cannot start PostgreSQL: the
+~214 database-backed tests report as skipped and the gate silently shrinks to the half that needs
+no database. Both CI jobs therefore inspect the TRX rather than the exit code - a results file must
+exist, `executed` must be non-zero, and the skip count must stay at or under a tolerance of **10**.
+
+**The tolerance is deliberate and must not be set to zero.** Failing on any skip fired a red deploy
+on 2026-09-02 over one transient `SkippableFact`. A wholesale skip is ~214; a handful is noise.
+
+**Read the skip count from two sources and take the larger.** Measured on a real
+docker-unavailable run: `<Counters ... executed="197" notExecuted="0"/>` while **214** result
+elements carried `outcome="NotExecuted"` and the console printed `Skipped: 214`. A counters-only
+gate reads that as green - which is the exact failure the gate exists for. The element count is the
+direct evidence; the counter is kept because it is what fired the real 2026-09-02 red. The gate also
+prints the skipped tests' **names**, because a numeric tolerance alone can hide the one case a
+change broke.
+
 ### What a worktree backend run can prove (RV.92, 2026-09-07)
 
 A git worktree is a **clean checkout**: files the repo ignores locally are absent there, and

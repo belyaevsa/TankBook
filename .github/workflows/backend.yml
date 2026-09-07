@@ -62,7 +62,60 @@ jobs:
         run: dotnet build Tankbook.slnx --configuration Release
 
       - name: Test
-        run: dotnet test Tankbook.slnx --configuration Release --no-build
+        # The TRX is inspected by the step after this one: `dotnet test` prints
+        # "Passed!" even when the ~153 Postgres-backed tests skip because
+        # Testcontainers cannot start Postgres, so a green run is only evidence
+        # when the skip count has been read (RV.107).
+        run: dotnet test Tankbook.slnx --configuration Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Assert the database-backed tests actually ran
+        # Same gate the build job's deploy path has (RV.107): a results file
+        # must exist, the executed count must be non-zero, and notExecuted must
+        # stay at or under the tolerance. Without it a PR is green on the half
+        # of the suite that needs no database when docker is unavailable.
+        #
+        # It is a TOLERANCE, not zero - the comment on the build job's copy
+        # records why: failing on any skip fired a false red on 2026-09-02 over
+        # one transient SkippableFact, while a wholesale skip is ~153. The names
+        # of the skipped tests are printed whenever the count is non-zero, so a
+        # numeric tolerance cannot hide the one case a change broke.
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          trx=$(find . -name results.trx | head -1)
+          [ -n "$trx" ] || { echo "::error::no test results file"; exit 1; }
+          counters=$(grep -o '<Counters[^>]*' "$trx" | head -1)
+          echo "$counters"
+          counted=$(printf '%s' "$counters" | grep -o 'notExecuted="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          executed=$(printf '%s' "$counters" | grep -o 'executed="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          # Two sources, and the larger wins. Measured 2026-09-07: a wholesale
+          # skip can leave notExecuted="0" in <Counters> while every skipped
+          # result still carries outcome="NotExecuted" as an element - a run
+          # with 214 skips reported executed="197" notExecuted="0", which a
+          # counters-only gate reads as green. The element count is the direct
+          # evidence; the counter is kept because it is what fired the real
+          # 2026-09-02 red.
+          # `grep -c` prints 0 and exits 1 when it matches nothing, so `|| true`
+          # keeps its own count rather than appending a second zero.
+          elements=$(grep -c 'outcome="NotExecuted"' "$trx" || true)
+          skipped=${counted:-0}
+          if [ "${elements:-0}" -gt "$skipped" ]; then skipped=$elements; fi
+          tolerance=10
+          if [ "${executed:-0}" -eq 0 ]; then
+            echo "::error::0 tests executed - a suite that discovered nothing would gate green on an empty run, so the database half cannot have run."
+            exit 1
+          fi
+          if [ "${skipped:-0}" -gt 0 ]; then
+            echo "${skipped} test(s) did not run; up to 20 by name:"
+            grep -o '<UnitTestResult[^>]*outcome="NotExecuted"' "$trx" | grep -o 'testName="[^"]*"' | sed 's/testName="//; s/"$//' | head -20 || true
+          fi
+          if [ "${skipped:-0}" -gt "$tolerance" ]; then
+            echo "::error::${skipped} tests were skipped (tolerance ${tolerance}). That is the shape of Testcontainers failing to start Postgres, so the database half of the suite did not run and this PR would be green on an untested gate."
+            exit 1
+          fi
+          if [ "${skipped:-0}" -gt 0 ]; then
+            echo "::warning::${skipped} test(s) skipped of ${executed} executed - under the tolerance, but worth watching."
+          fi
 
       - name: Verify formatting
         run: dotnet format --verify-no-changes
@@ -198,6 +251,11 @@ jobs:
         # a red deploy with nothing wrong. A wholesale skip is ~153; a handful is
         # noise. The tolerance separates them, and the count is always printed so
         # a creeping number is visible before it reaches the limit.
+        #
+        # A count alone can hide the one case a change broke, so the skipped
+        # tests' names are printed whenever the count is non-zero (RV.107). And
+        # executed="0" - a suite that discovered nothing - must red the gate too,
+        # or an empty run sails through green on the counters.
         working-directory: backend
         run: |
           set -euo pipefail
@@ -205,9 +263,29 @@ jobs:
           [ -n "$trx" ] || { echo "::error::no test results file"; exit 1; }
           counters=$(grep -o '<Counters[^>]*' "$trx" | head -1)
           echo "$counters"
-          skipped=$(printf '%s' "$counters" | grep -o 'notExecuted="[0-9]*"' | grep -o '[0-9]*' || echo 0)
-          executed=$(printf '%s' "$counters" | grep -o ' executed="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          counted=$(printf '%s' "$counters" | grep -o 'notExecuted="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          executed=$(printf '%s' "$counters" | grep -o 'executed="[0-9]*"' | grep -o '[0-9]*' || echo 0)
+          # Two sources, and the larger wins. Measured 2026-09-07: a wholesale
+          # skip can leave notExecuted="0" in <Counters> while every skipped
+          # result still carries outcome="NotExecuted" as an element - a run
+          # with 214 skips reported executed="197" notExecuted="0", which a
+          # counters-only gate reads as green. The element count is the direct
+          # evidence; the counter is kept because it is what fired the real
+          # 2026-09-02 red.
+          # `grep -c` prints 0 and exits 1 when it matches nothing, so `|| true`
+          # keeps its own count rather than appending a second zero.
+          elements=$(grep -c 'outcome="NotExecuted"' "$trx" || true)
+          skipped=${counted:-0}
+          if [ "${elements:-0}" -gt "$skipped" ]; then skipped=$elements; fi
           tolerance=10
+          if [ "${executed:-0}" -eq 0 ]; then
+            echo "::error::0 tests executed - a suite that discovered nothing would gate green on an empty run, so the database half cannot have run."
+            exit 1
+          fi
+          if [ "${skipped:-0}" -gt 0 ]; then
+            echo "${skipped} test(s) did not run; up to 20 by name:"
+            grep -o '<UnitTestResult[^>]*outcome="NotExecuted"' "$trx" | grep -o 'testName="[^"]*"' | sed 's/testName="//; s/"$//' | head -20 || true
+          fi
           if [ "${skipped:-0}" -gt "$tolerance" ]; then
             echo "::error::${skipped} tests were skipped (tolerance ${tolerance}). That is the shape of Testcontainers failing to start Postgres, so the database half of the suite did not run and this deploy would ship on an untested gate."
             exit 1
