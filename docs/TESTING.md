@@ -95,6 +95,26 @@ has actually caught - a gate that has never caught anything at its cost is not k
 | **Backend** `dotnet build` + `format --verify-no-changes` + `test` | ~2 min | Any change under `backend/` | Its own tier's floor |
 | **FULL UI suite** (~28 min) | 28 min | **Phase completion, before a release build or a TestFlight upload, and after merging parallel work** - never per task | See the section below: five full runs in one day cost 2h15m and produced one genuine defect and two false reds |
 
+### What a worktree backend run can prove (RV.92, 2026-09-07)
+
+A git worktree is a **clean checkout**: files the repo ignores locally are absent there, and
+`backend/src/Tankbook.Api/appsettings.json` (+ `.Development.json`) are exactly that - generated and
+gitignored (`.gitignore`). Log-capture tests boot the real host, and its `Logging:LogLevel` rules come
+from that file, so a worktree host filters **less** than the main checkout: framework Debug lines (a
+redirect's `"Redirecting to {url}"`) reach the sink the privacy assertions read. That is not flakiness
+in the row under test - it is a config difference the tree's file layout caused, and it reds a test
+whose capture relied on the gitignored filter. Two rules follow:
+
+- **A backend test host states its logging rules explicitly** (`Logging:LogLevel:*`), never by
+  depending on the gitignored appsettings file - a log-privacy test that does is layout-independent
+  (RV.92). A full backend suite cannot run meaningfully in a worktree at all: `.gitignore`'s own note
+  records it aborting part-way without the generated appsettings.
+- **A backend red measured in a worktree is checked against this before it is read as a regression**,
+  and backend rows are verified in the main checkout (or with the appsettings generated into the
+  worktree first). The unlocked-enumeration corollary (RV.92): log-capture tests assert against the
+  writer's locked snapshot, because the host appends on its own threads and enumerating the shared
+  backing list is a data race even when a given run never hits it.
+
 ### When lint and compile alone are enough
 
 Only when **nothing that runs is different**:

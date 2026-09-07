@@ -401,8 +401,7 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
     {
         var signer = new TestIdTokenSigner();
         var storage = new RecordingBlobStorage();
-        var lines = new List<string>();
-        var writer = new InMemoryLogWriter(lines);
+        var writer = new InMemoryLogWriter([]);
         await using var app = await StartAsync(signer, storage, writer);
         var (token, accountId, _) = await CreateSessionAsync(app, signer, "log-blob", "log-blob@example.com");
 
@@ -418,12 +417,16 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(HttpStatusCode.Redirect, get.StatusCode);
         var downloadUrl = get.Headers.Location!.ToString();
 
-        var all = string.Join('\n', writer.Lines);
+        // Assert against one locked snapshot: the writer appends on the host's
+        // threads under its lock, so enumerating its backing list directly is a
+        // data race. `all` reads the same snapshot as the Contains checks.
+        var captured = writer.Lines;
+        var all = string.Join('\n', captured);
 
         // The log is non-empty and carries the blob events.
-        Assert.Contains(lines, l => l.Contains("blob.begin", StringComparison.Ordinal));
-        Assert.Contains(lines, l => l.Contains("blob.commit", StringComparison.Ordinal));
-        Assert.Contains(lines, l => l.Contains("blob.get", StringComparison.Ordinal));
+        Assert.Contains(captured, l => l.Contains("blob.begin", StringComparison.Ordinal));
+        Assert.Contains(captured, l => l.Contains("blob.commit", StringComparison.Ordinal));
+        Assert.Contains(captured, l => l.Contains("blob.get", StringComparison.Ordinal));
 
         // Hard rule 12: neither presigned URL (bearer credentials in a query
         // string) reaches any log line.
@@ -458,6 +461,13 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
                 // line for its correlation fields, so the test host captures at
                 // Debug - the guarantee is unchanged, its level is not.
                 b.UseSetting("Logging:LogLevel:Default", "Debug");
+                // The shipped appsettings.json is gitignored and generated, so a
+                // fresh tree has none and a framework redirect's Debug line
+                // ("Redirecting to {url}") would otherwise reach the sink under
+                // Default=Debug. State the framework filters explicitly so no
+                // filesystem layout can change what this test captures.
+                b.UseSetting("Logging:LogLevel:Microsoft.AspNetCore", "Warning");
+                b.UseSetting("Logging:LogLevel:System.Net.Http.HttpClient", "Warning");
                 if (quotaBytes is not null)
                 {
                     b.UseSetting("Blob:QuotaBytes", quotaBytes);

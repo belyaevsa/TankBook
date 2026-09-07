@@ -336,8 +336,7 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
     public async Task NoTokenIdTokenOrEmail_ReachesAnyLogLine()
     {
         var signer = new TestIdTokenSigner();
-        var lines = new List<string>();
-        var writer = new InMemoryLogWriter(lines);
+        var writer = new InMemoryLogWriter([]);
         await using var app = await StartAsync(signer, writer);
 
         var idToken = signer.Mint("apple", "log-sub", "log-email@example.com");
@@ -353,11 +352,15 @@ public class AuthEndpointTests : IClassFixture<PostgresFixture>
         var refresh = await app.Client.PostAsJsonAsync("/v1/auth/refresh", new { refreshToken = body!.RefreshToken });
         Assert.Equal(HttpStatusCode.OK, refresh.StatusCode);
 
-        var all = string.Join('\n', writer.Lines);
+        // Assert against one locked snapshot: the writer appends on the host's
+        // threads under its lock, so enumerating its backing list directly is a
+        // data race. `all` reads the same snapshot as the Contains checks.
+        var captured = writer.Lines;
+        var all = string.Join('\n', captured);
 
         // The pipeline is actually capturing lines (auth.session/auth.refresh).
-        Assert.Contains(lines, l => l.Contains("auth.session", StringComparison.Ordinal));
-        Assert.Contains(lines, l => l.Contains("auth.refresh", StringComparison.Ordinal));
+        Assert.Contains(captured, l => l.Contains("auth.session", StringComparison.Ordinal));
+        Assert.Contains(captured, l => l.Contains("auth.refresh", StringComparison.Ordinal));
 
         // Hard rule 12: no token, idToken, or email appears anywhere.
         Assert.DoesNotContain(idToken, all, StringComparison.Ordinal);
