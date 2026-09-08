@@ -16,10 +16,12 @@ cd "$(dirname "$0")/.."
 
 : "${TANKBOOK_TEAM_ID:?set TANKBOOK_TEAM_ID to the Apple Developer team id (docs/STORE.md)}"
 UPLOAD=0
+REBUILD=0
 case "${1:-}" in
   "")        ;;
   --upload)  UPLOAD=1 ;;
-  *) echo "release: unknown argument '${1}'. The only flag is --upload;" >&2
+  --rebuild) REBUILD=1 ;;
+  *) echo "release: unknown argument '${1}'. The flags are --upload and --rebuild;" >&2
      echo "  -allowProvisioningUpdates is already passed to xcodebuild internally." >&2
      exit 2 ;;
 esac
@@ -111,6 +113,26 @@ fi
 OUT="build/release-${BUILD_NUMBER}-${COMMIT}"; mkdir -p "$OUT"
 echo "release: build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
 
+# The archive path is deterministic per commit, so a re-run on the same commit
+# would otherwise spend minutes rebuilding bytes that already exist. Reuse it,
+# because the steps that fail in practice are the ones AFTER the archive -
+# signing, export and upload - and on 2026-09-08 each retry of a signing fix
+# paid for a full rebuild first. `--rebuild` forces a fresh one.
+#
+# Completeness is checked by the built .app, not by the directory: an archive
+# interrupted part-way leaves the directory behind and reusing that would fail
+# later and further from the cause.
+ARCHIVE="${OUT}/Tankbook.xcarchive"
+if [ "$REBUILD" -eq 0 ] && [ -d "$ARCHIVE/Products/Applications/Tankbook.app" ]; then
+  echo "release: reusing the archive already built for ${COMMIT} (--rebuild to force)"
+  ARCHIVE_EXIT=0
+else
+  # An `[ ... ] && ...` chain here would trip `set -e` on a FRESH build, where
+  # the test legitimately fails and there is nothing to discard.
+  if [ -d "$ARCHIVE" ]; then
+    echo "release: discarding the incomplete or superseded archive at ${ARCHIVE}"
+    rm -rf "$ARCHIVE"
+  fi
 xcodegen generate >/dev/null
 xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration Release \
   -destination 'generic/platform=iOS' \
@@ -118,10 +140,15 @@ xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration Release \
   -allowProvisioningUpdates ${ASC_SIGNING_ARGS[@]+"${ASC_SIGNING_ARGS[@]}"} \
   CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
   archive | tail -3
-echo "ARCHIVE_EXIT=${PIPESTATUS[0]}"; [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
+  ARCHIVE_EXIT=${PIPESTATUS[0]}
+fi
+echo "ARCHIVE_EXIT=${ARCHIVE_EXIT}"; [ "${ARCHIVE_EXIT}" -eq 0 ] || exit 1
 
+# exportArchive refuses to write into an existing directory, so a retry after a
+# signing failure would fail on the leftover instead of on the real problem.
+rm -rf "${OUT}/export"
 xcodebuild -exportArchive \
-  -archivePath "${OUT}/Tankbook.xcarchive" \
+  -archivePath "${ARCHIVE}" \
   -exportOptionsPlist ios/App/ExportOptions.plist \
   -exportPath "${OUT}/export" \
   -allowProvisioningUpdates ${ASC_SIGNING_ARGS[@]+"${ASC_SIGNING_ARGS[@]}"} | tail -3
