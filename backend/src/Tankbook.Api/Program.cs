@@ -270,12 +270,12 @@ if (!builder.Environment.IsEnvironment("Testing"))
 
 // Exchange rates (docs/SCHEMA.md "Reference data -> Exchange rates"). IRateFeed
 // is the feed seam: the daily job talks to ECB/CIS only through it, and L2 tests
-// swap in a recording double so the suite never touches a live feed. The real
-// HTTP implementations sit behind the interface unexercised. The job is a scoped
-// service so tests drive RunAsync directly; the hosted timer that runs it on a
-// schedule is registered only outside test hosts (the timer must not run inside
-// WebApplicationFactory - the same reason the purge timer is gated).
-builder.Services.AddSingleton<IRateFeed>(sp => new EcbRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
+// swap in a recording double (or stub the "rates" HttpClient and drive the real
+// feed, as EcbRateFeedTests does) so the suite never touches a live feed. The
+// job is a scoped service so tests drive RunAsync directly; the hosted timer that
+// runs it on a schedule is registered only outside test hosts (the timer must not
+// run inside WebApplicationFactory - the same reason the purge timer is gated).
+builder.Services.AddSingleton<IRateFeed>(sp => new EcbRateFeed(sp.GetRequiredService<IHttpClientFactory>(), sp.GetRequiredService<TimeProvider>()));
 builder.Services.AddSingleton<IRateFeed>(sp => new CisRateFeed(sp.GetRequiredService<IHttpClientFactory>()));
 // RV.19: KZT comes from the National Bank of Kazakhstan, not from a CBR
 // cross-rate through RUB - the two disagree by ~0.8%. Its own IRateFeed (and its

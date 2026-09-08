@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+  <gesmes:subject>Reference rates</gesmes:subject>
+  <gesmes:Sender><gesmes:name>European Central Bank</gesmes:name></gesmes:Sender>
+  <Cube>
+    <Cube time="2015-06-19">
+      <Cube currency="USD" rate="1.1299"/>
+      <Cube currency="JPY" rate="139.19"/>
+      <Cube currency="GBP" rate="0.7134"/>
+      <Cube currency="CHF" rate="1.0449"/>
+      <Cube currency="CNY" rate="7.016"/>
+      <Cube currency="TRY" rate="3.0645"/>
+      <Cube currency="AUD" rate="1.4591"/>
+      <Cube currency="CAD" rate="1.3865"/>
+    </Cube>
+    <Cube time="2015-06-17">
+      <Cube currency="USD" rate="1.1279"/>
+      <Cube currency="JPY" rate="139.78"/>
+      <Cube currency="GBP" rate="0.717"/>
+      <Cube currency="CHF" rate="1.0451"/>
+      <Cube currency="CNY" rate="7.001"/>
+      <Cube currency="TRY" rate="3.086"/>
+      <Cube currency="AUD" rate="1.4694"/>
+      <Cube currency="CAD" rate="1.3887"/>
+    </Cube>
+    <Cube time="2015-06-16">
+      <Cube currency="USD" rate="1.1215"/>
+      <Cube currency="JPY" rate="138.42"/>
+      <Cube currency="GBP" rate="0.7182"/>
+      <Cube currency="CHF" rate="1.0465"/>
+      <Cube currency="CNY" rate="6.9651"/>
+      <Cube currency="TRY" rate="3.0707"/>
+      <Cube currency="AUD" rate="1.4482"/>
+      <Cube currency="CAD" rate="1.3843"/>
+    </Cube>
+    <Cube time="2015-06-15">
+      <Cube currency="USD" rate="1.1218"/>
+      <Cube currency="JPY" rate="138.54"/>
+      <Cube currency="GBP" rate="0.7234"/>
+      <Cube currency="CHF" rate="1.0512"/>
+      <Cube currency="CNY" rate="6.9653"/>
+      <Cube currency="TRY" rate="3.0738"/>
+      <Cube currency="AUD" rate="1.4466"/>
+      <Cube currency="CAD" rate="1.3845"/>
+    </Cube>
+  </Cube>
+</gesmes:Envelope>

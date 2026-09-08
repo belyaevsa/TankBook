@@ -51,5 +51,18 @@
     <None Update="Rates/Fixtures/nbk-rates-2026-08-15.xml">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <!-- RV.135: real ECB eurofxref rows, trimmed to the tested days (ECB offers
+         no per-date query, so the fixture names the three files by their paths).
+         daily = one published day; hist-90d = two recent days; hist = a 2015
+         working-week snippet. Values are ECB's own for those dates. -->
+    <None Update="Rates/Fixtures/ecb-eurofxref-daily-2026-08-26.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Rates/Fixtures/ecb-eurofxref-hist-90d-2026-08-26.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Rates/Fixtures/ecb-eurofxref-hist-2015.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 </Project>

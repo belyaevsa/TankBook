@@ -61,3 +61,53 @@ public sealed class FixtureRoutingHandler : HttpMessageHandler
         });
     }
 }
+
+/// <summary>
+/// The ECB counterpart to <see cref="FixtureRoutingHandler"/>: ECB's three files
+/// differ by PATH, not by query string (daily vs hist-90d vs hist), so the
+/// fixture for a request is chosen by which file path it names. <paramref name="fallbackFixture"/>
+/// lets a test serve one file for every path - the shape that proves a feed
+/// would still never leak today's row onto another date, because the row guard
+/// lives in the parser, not in the URL.
+/// </summary>
+public sealed class PathRoutingHandler : HttpMessageHandler
+{
+    private readonly IReadOnlyList<(string Marker, string Fixture)> _routes;
+    private readonly string? _fallbackFixture;
+
+    /// <summary>The URIs this handler was asked for, in order - so a test can assert how many upstream requests a pass made and which files it touched.</summary>
+    public List<Uri> Requests { get; } = [];
+
+    public PathRoutingHandler(IEnumerable<(string Marker, string Fixture)> routes, string? fallbackFixture = null)
+    {
+        _routes = routes.ToArray();
+        _fallbackFixture = fallbackFixture;
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var uri = request.RequestUri!;
+        Requests.Add(uri);
+
+        foreach (var route in _routes)
+        {
+            if (uri.AbsolutePath.Contains(route.Marker, StringComparison.Ordinal))
+            {
+                return Ok(route.Fixture);
+            }
+        }
+
+        // A path this handler does not know is 404 unless a fallback was given:
+        // a feed reaching for a file the test did not stub is a failure the test
+        // should see, not a silent empty.
+        return _fallbackFixture is null
+            ? Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound))
+            : Ok(_fallbackFixture);
+
+        static Task<HttpResponseMessage> Ok(string fixture) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new ByteArrayContent(RateFeedFixtures.Bytes(fixture)),
+            });
+    }
+}

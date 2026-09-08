@@ -71,9 +71,10 @@ footnote drains as rows fill and disappears at zero.
 
 **A row the drain cannot resolve is told apart from one that will convert.** The rate
 service's archive is bounded (docs/SCHEMA.md -> Exchange rates): the app-bundle seed pack
-covers one month, the rolling refresh the last 400 days, and the server's ECB feed carries
-only *today* (RV.50) - so a row dated before the service's first daily run (or in a pair its
-feeds never carried) has no rate that will ever arrive. Such a row stays rate-pending and is
+covers one month, the rolling refresh the last 400 days, and a demanded date resolves only
+when a feed's archive covers it - ECB now serves its own whole history since 1999 (RV.135),
+the CIS feeds serve theirs - so a row in a pair outside every feed's archive has no rate
+that will ever arrive. Such a row stays rate-pending and is
 counted: it shows its original amount and is excluded from home-currency totals. The honest
 next step for it is the entry's conversion card, where the user sets a rate manually (hard
 rule 13) - the footnote never promises a conversion the service cannot deliver. Nothing is
@@ -96,8 +97,9 @@ by any automatic path - and the old "Check for rates" could not reach it either,
 re-ran the same rolling refresh. The check now runs a demand drain over the pending rows'
 own dates (`MoneyBackfillService.demandDrain`, chunked under the server's 400-day cap), so
 an old row is actually asked. If the provider is reached and the row is STILL pending, its
-date is one the service will never serve (docs/SCHEMA.md -> Exchange rates: the ECB feed
-carries only today, RV.50), and the footnote stops offering "Check for rates": it names the
+date is one no feed's archive covers (docs/SCHEMA.md -> Exchange rates - before 1999, a
+currency ECB never listed, or a non-publishing day beyond the carry window), and the
+footnote stops offering "Check for rates": it names the
 manual rate on each entry instead, in its own localised phrase - never another promise that a
 check will help. An offline check is a non-event and never triggers the dead-end copy (the
 row may simply resolve on a later launch).
