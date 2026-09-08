@@ -27,7 +27,9 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/PRACTICES.md` | Mobile+backend integration practices (architecture, network UX, security, debuggability), the constants-placement policy (compiled / remote / user / frozen), and the dated review of the code against them with its task list | Adding a timeout, limit, threshold or any tunable number; networking, auth-refresh, diagnostics or error-envelope work; phase-gate reviews |
 | `docs/TESTING.md` | Verification levels, per-story/endpoint/function check matrix, CI gates | Writing or skipping any test; defining done |
 | `docs/PHASES.md` | Build order and each phase's verifiable exit gate | Planning work; deciding what to build next |
-| `docs/TASKS.md` | The task backlog: agent-sized tasks with per-task checks; stable IDs for branches/PRs | Picking up any work item; one task = one PR = code + checks |
+| `docs/TASKS.md` | The **open** backlog and the index of every task id (generated - `scripts/tasks-index.py`, `--check` fails when stale) | Picking up any work item; one task = one PR = code + checks. **Start at the index**, then read only the row you need |
+| `docs/TASKS-DONE.md` | Every closed row - shipped `[x]` or cut - with the reasoning that closed it | Asking why something was built the way it is, or whether a row was already done. Not read when picking up work |
+| `docs/TASKS-HISTORY.md` | The dispatch ledger: which model did which task | Model-routing questions only |
 | `Spike/ReceiptSpike/` | OCR validation harness + parser reference implementation; its README defines the accuracy gate workflow | OCR/parser work; extending vocabularies |
 
 ## Version scope (convention, 2026-08-29)
