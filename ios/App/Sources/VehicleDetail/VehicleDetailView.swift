@@ -35,13 +35,23 @@ struct VehicleDetailView: View {
     @Environment(ReminderNotificationCoordinator.self) private var notificationCoordinator
     @Environment(\.dismiss) private var dismiss
 
-    @State private var form = VehicleDetailFormState()
-    @State private var vehicle: Vehicle?
+    // Internal (not private) so the cross-file extensions in
+    // VehicleDetailSuggestions.swift can reach the form, focus and the
+    // suggestion gate - the ManualFillUpView split pattern.
+    @State var form = VehicleDetailFormState()
+    @State var vehicle: Vehicle?
     @State private var photoItem: PhotosPickerItem?
     @State private var showDeleteConfirm = false
     @State private var didLoad = false
     @State private var loadFailed = false
-    @FocusState private var focus: AddVehicleFocus?
+    @State var catalogEntries: [VehicleCatalogEntry] = []
+    /// The exact text the last applied suggestion wrote into `form.makeModel`
+    /// (the loaded make/model text at first). RV.67's gate input on this
+    /// screen: the list shows only while the field reads as a NEW query - focus
+    /// alone never mounts it, and the loaded "Volvo · V60 · 2015" is not a
+    /// query until the user edits it.
+    @State var acceptedModelText: String?
+    @FocusState var focus: AddVehicleFocus?
 
     var body: some View {
         Group {
@@ -55,6 +65,10 @@ struct VehicleDetailView: View {
         }
         .background(Theme.Palette.midnight)
         .task { await load() }
+        .task { loadCatalog() }
+        #if DEBUG
+        .task { await presentModelSuggestionsIfRequested() }
+        #endif
         .alert(deleteConfirmTitle,
                isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -81,6 +95,7 @@ struct VehicleDetailView: View {
                                     model: $form.model, year: $form.year,
                                     focus: $focus, showNameWarning: form.showNameWarning,
                                     idPrefix: "vehicleDetail")
+                makeModelSuggestions
                 section("Powertrain") {
                     VehiclePowertrainPicker(powertrain: $form.powertrain,
                                             selectedFuelKinds: $form.selectedFuelKinds,
@@ -132,7 +147,18 @@ struct VehicleDetailView: View {
             .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.immediately)
-        .safeAreaInset(edge: .bottom) { saveBar }
+        // RV.137: the pinned Save bar must not float above the keyboard and
+        // cover the fuel-chip row while a field is focused - a bar in a
+        // `safeAreaInset` is the one region that does NOT scroll, so a chip
+        // underneath it is unreachable mid-edit, not merely below the fold
+        // (the RV.84 class). While the keyboard is up the bar steps aside and
+        // the whole space above the keyboard belongs to the form; it returns
+        // the moment focus leaves the field.
+        .safeAreaInset(edge: .bottom) {
+            if focus == nil {
+                saveBar
+            }
+        }
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -380,6 +406,9 @@ struct VehicleDetailView: View {
             }
             self.vehicle = target
             form.load(from: target, photoData: try loadPhoto(repository: repository, vehicle: target))
+            // The loaded text is not a query: the suggestion list shows only
+            // once the user edits the field away from it (RV.67 gate).
+            acceptedModelText = form.makeModel
             #if DEBUG
             // RV.99: `-presentVehicleDeleteConfirm` raises the destructive
             // confirmation after load, so simctl-driven screenshots can capture
@@ -405,6 +434,7 @@ struct VehicleDetailView: View {
             }
             self.vehicle = refreshed
             form.load(from: refreshed, photoData: try loadPhoto(repository: repository, vehicle: refreshed))
+            acceptedModelText = form.makeModel
         } catch {
             AppLog.error(operation: "vehicleDetail.reload", category: .ui, error: error)
         }

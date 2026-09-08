@@ -66,6 +66,19 @@ struct VehicleDetailFormState {
             .joined(separator: " · ")
     }
 
+    /// A catalog pick on the edit screen (RV.137): fills make, model and year
+    /// exactly as typing the canonical text would, and records no catalogue
+    /// identifier or reference. Nothing else moves - powertrain, fuel kinds,
+    /// capacity and units are the user's own by now and a pick must not
+    /// overwrite them (the no-catalog-id decision, VehicleDetailView's header:
+    /// "nothing here stores a catalog id for a later pack to rewrite").
+    mutating func applyMakeModelSuggestion(_ prefill: CatalogPrefill) {
+        makeModel = Self.makeModelText(make: prefill.make, model: prefill.model, year: prefill.year)
+        make = prefill.make
+        model = prefill.model
+        year = prefill.year
+    }
+
     var odometerValue: Int? {
         let trimmed = odometer.trimmingCharacters(in: .whitespaces)
         return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))

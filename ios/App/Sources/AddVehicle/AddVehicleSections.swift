@@ -1,9 +1,11 @@
 import SwiftUI
 import TankbookCore
 
-// The Add-car-only sections. The identity card both screens share lives in
-// Shared/VehicleFormControls.swift (lifted in P1.12); this file keeps the
-// catalog suggestions area, which only Add car has.
+// The Add-car-only sections. The identity card and the catalog suggestion list
+// both screens share live in Shared (VehicleFormControls.swift and
+// VehicleCatalogSuggestionsArea.swift); this file keeps the offline hint for
+// the Add-car-only catalog state (RV.137 moved the suggestion list itself into
+// Shared so Vehicle detail offers the same rows without a second suggester).
 
 // MARK: - Catalog area (error-state 3: offline hint, else suggestions)
 
@@ -53,60 +55,10 @@ struct AddVehicleCatalogArea: View {
     }
 
     private var suggestionsList: some View {
-        let suggestions = CatalogSuggester(entries: entries)
-            .suggestions(for: form.makeModel, limit: 5)
-        return Group {
-            if !suggestions.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(Array(suggestions.enumerated()), id: \.offset) { index, suggestion in
-                        suggestionRow(suggestion, index: index)
-                        if index < suggestions.count - 1 { CardDivider() }
-                    }
-                }
-                .formCard()
-            }
-        }
-    }
-
-    private func suggestionRow(_ suggestion: CatalogSuggestion, index: Int) -> some View {
-        Button {
-            onApply(suggestion.entry.prefill())
-        } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(suggestion.entry.title)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                    HStack(spacing: 6) {
-                        // A year is not a quantity: interpolated into a SwiftUI
-                        // `Text` it picks up locale grouping ("2,011–" in EN,
-                        // "2 011–" in RU), so it is built verbatim (RV.69).
-                        if let end = suggestion.entry.yearsEnd {
-                            Text(verbatim: "\(suggestion.entry.yearsStart)–\(end)")
-                        } else {
-                            Text(verbatim: "\(suggestion.entry.yearsStart)–")
-                        }
-                        if let tank = suggestion.entry.tankCapacityL {
-                            let tankText = AddVehicleSupport.tankCapacityText(litres: tank, unit: units.volume)
-                            Text("· \(tankText) \(L10n.volumeUnit(units.volume))")
-                        }
-                        if let battery = suggestion.entry.batteryCapacityKWh {
-                            let batteryText = AddVehicleSupport.capacityText(battery)
-                            Text("· \(batteryText) \(L10n.kWh)")
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                }
-                Spacer()
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(Theme.Palette.taillight)
-            }
-            .padding(.horizontal, Theme.Spacing.cardPadding)
-            .padding(.vertical, 10)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier("addVehicleSuggestion_\(index)")
+        VehicleCatalogSuggestionsArea(query: form.makeModel,
+                                      entries: entries,
+                                      units: units,
+                                      idPrefix: "addVehicle",
+                                      onApply: onApply)
     }
 }
