@@ -82,6 +82,32 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 2
 fi
 
+# Signing credentials for xcodebuild itself. `-allowProvisioningUpdates` can
+# create the distribution certificate and the App Store profile, but only with
+# an authenticated session: an Xcode account, or these three flags. This
+# machine had neither on 2026-09-08 - the Apple ID was signed out, which took
+# the distribution certificate with it, and every export failed on "No
+# Accounts" while the archive kept succeeding. The API key was already required
+# for the UPLOAD; it was simply never handed to the signing step.
+#
+# Absolute path: -authenticationKeyPath rejects a relative one.
+#
+# Expanded below as ${arr[@]+"${arr[@]}"}: macOS ships bash 3.2, where
+# "${arr[@]}" on an EMPTY array is an unbound-variable error under `set -u`, so
+# a run without credentials would die here instead of falling back to the Xcode
+# account. That form yields nothing when the array is empty and is safe under
+# `set -u`.
+ASC_SIGNING_ARGS=()
+if [ -n "${ASC_KEY_PATH:-}" ] && [ -n "${ASC_KEY_ID:-}" ] && [ -n "${ASC_ISSUER_ID:-}" ]; then
+  asc_key_abs="$(cd "$(dirname "$ASC_KEY_PATH")" && pwd)/$(basename "$ASC_KEY_PATH")"
+  ASC_SIGNING_ARGS=(-authenticationKeyPath "$asc_key_abs"
+                    -authenticationKeyID "$ASC_KEY_ID"
+                    -authenticationKeyIssuerID "$ASC_ISSUER_ID")
+  echo "release: signing with App Store Connect API key ${ASC_KEY_ID}"
+else
+  echo "release: no ASC_* credentials in the environment - signing falls back to the Xcode account" >&2
+fi
+
 OUT="build/release-${BUILD_NUMBER}-${COMMIT}"; mkdir -p "$OUT"
 echo "release: build ${BUILD_NUMBER} from ${COMMIT} -> ${OUT}"
 
@@ -89,7 +115,7 @@ xcodegen generate >/dev/null
 xcodebuild -project Tankbook.xcodeproj -scheme Tankbook -configuration Release \
   -destination 'generic/platform=iOS' \
   -archivePath "${OUT}/Tankbook.xcarchive" \
-  -allowProvisioningUpdates \
+  -allowProvisioningUpdates ${ASC_SIGNING_ARGS[@]+"${ASC_SIGNING_ARGS[@]}"} \
   CURRENT_PROJECT_VERSION="${BUILD_NUMBER}" \
   archive | tail -3
 echo "ARCHIVE_EXIT=${PIPESTATUS[0]}"; [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
@@ -98,7 +124,7 @@ xcodebuild -exportArchive \
   -archivePath "${OUT}/Tankbook.xcarchive" \
   -exportOptionsPlist ios/App/ExportOptions.plist \
   -exportPath "${OUT}/export" \
-  -allowProvisioningUpdates | tail -3
+  -allowProvisioningUpdates ${ASC_SIGNING_ARGS[@]+"${ASC_SIGNING_ARGS[@]}"} | tail -3
 echo "EXPORT_EXIT=${PIPESTATUS[0]}"; [ "${PIPESTATUS[0]}" -eq 0 ] || exit 1
 IPA="$(ls "${OUT}"/export/*.ipa | head -1)"; echo "release: ${IPA} ($(du -h "${IPA}" | cut -f1))"
 
