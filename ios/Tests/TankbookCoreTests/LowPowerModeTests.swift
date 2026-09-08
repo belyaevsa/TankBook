@@ -171,6 +171,22 @@ struct LowPowerModeTests {
         }
     }
 
+    /// RV.132's L1, stated for the exact work the row is about: the demand drain
+    /// a "Check for rates" tap runs. Assert the RULE with the mode ON - where a
+    /// background-triggered rate refresh WOULD defer, so the deferral is
+    /// observable - never a captured trigger value. The background contrast
+    /// assertion is what stops this being vacuous: a test that only checked the
+    /// user-initiated arm would pass even if `.ratePackRefresh` deferred for
+    /// every trigger.
+    @Test func theRatesDemandDrainIsNeverDeferredWhileLowPowerModeIsOn() {
+        #expect(!LowPowerPolicy.defers(work: .ratePackRefresh, trigger: .userInitiated,
+                                       lowPowerMode: true),
+                "a 'Check for rates' tap is user-initiated work and must run while the mode is on")
+        #expect(LowPowerPolicy.defers(work: .ratePackRefresh, trigger: .background,
+                                      lowPowerMode: true),
+                "the background arm must defer, or this assertion cannot observe the mode")
+    }
+
     @Test func policyDefersBlobWorkEvenInsideAUserInitiatedSync() {
         // Blob upload is the heaviest work there is (docs/SYNC.md) and defers
         // whenever the mode is on - even in a sync the user asked for - so the

@@ -29,6 +29,20 @@ public struct MoneyBackfillService {
         }
     }
 
+    /// What a demand drain ("Check for rates") reports back (RV.132). A caller
+    /// must be able to tell "nothing was pending" - the drain made no request,
+    /// so it proves nothing about the provider - from "asked and the provider
+    /// had nothing" - the drain ran and the four facts describe it. The drained
+    /// case carries `DemandDrainResult` whole: the four facts are the payload,
+    /// never re-derived into a parallel shape.
+    public enum DemandOutcome: Equatable, Sendable {
+        /// No rate-pending row across the garage: no request was made at all.
+        /// An empty ask is a bug (RV.111), so nothing is asked.
+        case nothingPending
+        /// A drain ran to completion. The four facts say what it did.
+        case drained(DemandDrainResult)
+    }
+
     /// The outcome of a demand drain (RV.111) - what a "Check for rates" tap
     /// actually did. Carries the same counts as `Result` plus the two facts the
     /// UI needs to stay honest about what happens next: whether the provider
@@ -74,16 +88,18 @@ public struct MoneyBackfillService {
     /// `@MainActor` because the repository is the app's MainActor-bound GRDB
     /// writer: the drain awaits a network fetch between its reads, so it must
     /// not carry the non-Sendable repository across a nonisolated boundary.
-    /// Nil when nothing is pending: an empty ask is a bug, not a no-op, so no
-    /// request is made at all. Offline is a non-event: a failed fetch is silent
-    /// and the backfill still fills whatever the cache already holds (hard rule
-    /// 1). Each row converts at its OWN date's rate - never today's (hard rule
-    /// 3) - and a row the provider cannot serve stays pending and counted.
+    /// `.nothingPending` when nothing is pending: an empty ask is a bug, not a
+    /// no-op, so no request is made at all - and the caller can tell that from
+    /// "asked and answered empty" (RV.132). Offline is a non-event: a failed
+    /// fetch is silent and the backfill still fills whatever the cache already
+    /// holds (hard rule 1). Each row converts at its OWN date's rate - never
+    /// today's (hard rule 3) - and a row the provider cannot serve stays
+    /// pending and counted.
     @MainActor
     @discardableResult
-    public func demandDrain(_ repository: TankbookRepository) async -> DemandDrainResult? {
+    public func demandDrain(_ repository: TankbookRepository) async -> DemandOutcome {
         let pending = try? Self.pendingEntries(in: repository)
-        guard let pending, !pending.isEmpty else { return nil }
+        guard let pending, !pending.isEmpty else { return .nothingPending }
 
         // Raw dates straight to `fetchSpan`, which normalises them to the day
         // with the store's own calendar - so the span asked for matches the
@@ -96,7 +112,7 @@ public struct MoneyBackfillService {
         // fill. One day of slack at the top covers both tz directions; a chunk
         // boundary moves by one day at worst.
         guard let from = pending.map(\.date).min(),
-              let last = pending.map(\.date).max() else { return nil }
+              let last = pending.map(\.date).max() else { return .nothingPending }
         let calendar = Calendar.current
         let to = calendar.date(byAdding: .day, value: 1, to: last) ?? last
         let reachedProvider = await store.fetchSpan(from: from, to: to, base: .eur,
@@ -113,10 +129,10 @@ public struct MoneyBackfillService {
         } else {
             hasUnresolvableRows = false
         }
-        return DemandDrainResult(filledCount: filled.filledCount,
-                                 stillPendingCount: filled.stillPendingCount,
-                                 reachedProvider: reachedProvider,
-                                 hasUnresolvableRows: hasUnresolvableRows)
+        return .drained(DemandDrainResult(filledCount: filled.filledCount,
+                                          stillPendingCount: filled.stillPendingCount,
+                                          reachedProvider: reachedProvider,
+                                          hasUnresolvableRows: hasUnresolvableRows))
     }
 
     /// Every live entry across the garage whose money is still waiting on a

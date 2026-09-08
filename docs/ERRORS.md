@@ -55,7 +55,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" that shows BOTH members as rows – time of day, odometer, total, and which one carries the attachment (the Merge survivor) – each opening its own edit screen | Open either entry · Merge · Keep both (one counts until resolved) |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it. **RV.111:** once a demand pass has reached the provider and still left a pre-window row pending, the footnote swaps "Check for rates" for the dead-end line "No rate exists for these dates. Add a manual rate to each entry." - it stops promising a check that cannot help | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates - the launch refresh's rolling 400-day pack cannot reach a row dated years back) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it. **RV.111:** once a demand pass has reached the provider and still left a pre-window row pending, the footnote swaps "Check for rates" for the dead-end line "No rate exists for these dates. Add a manual rate to each entry." - it stops promising a check that cannot help. **RV.132:** a tap is acknowledged IMMEDIATELY - the action becomes "Checking for rates…" in place, before the network resolves - and the demand's outcome is then told apart (a filled or nothing-pending drain posts a toast; the dead end stays the footnote's own copy; offline stays silent), see the note below | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates - the launch refresh's rolling 400-day pack cannot reach a row dated years back) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
 | Post-outage sync batch (S7) | Toast "Synced. 2 entries need a look" | Tap → Log filtered to flagged entries · ignore (badges remain) |
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
@@ -101,6 +101,37 @@ carries only today, RV.50), and the footnote stops offering "Check for rates": i
 manual rate on each entry instead, in its own localised phrase - never another promise that a
 check will help. An offline check is a non-event and never triggers the dead-end copy (the
 row may simply resolve on a later launch).
+
+**A "Check for rates" tap reports its outcome (RV.132).** The demand drain is the only
+USER-INITIATED rate door, so it is the one place the rate flow may speak: the automatic
+launch pass stays silent (S8), and the distinction the surfaces write down is
+user-initiated vs automatic, never "rates are noisy now". The surface split:
+
+- **In-flight acknowledgement, in the footnote.** The moment the action is tapped it
+  becomes "Checking for rates…" in place (a live region), BEFORE the network resolves - a
+  slow provider never reads as a dead button. It stays until the drain returns, then the
+  outcome below takes over. Never a modal, never blocking (a notice, this table's severity
+  vocabulary).
+- **Filled rows → a toast naming the count: "N entries converted"** (real RU plural rules:
+  запись конвертирована / записи конвертированы / записей конвертировано). A fill drains
+  the footnote as its standing state, but the tap itself was the user's and a user-initiated
+  fill is exactly what S8's silence does NOT cover.
+- **Asked and the provider has none → the footnote's own dead-end copy** (RV.111 above).
+  Unresolvable rows flip the footnote to the manual rate - a standing, persistent state - so
+  no toast competes with it.
+- **Nothing pending → a toast: "Rates are up to date".** Distinct from "asked and answered
+  empty" by construction (`MoneyBackfillService.DemandOutcome`: `.nothingPending` is not a
+  `.drained` run - nothing was asked, so nothing is implied about the provider). Reached when
+  a tap races a silent fill, never a wrong claim about what the provider holds.
+- **Never reached the provider (offline) → nothing.** An offline check is a non-event (hard
+  rule 1, F3): the footnote stays exactly as it was and the row may resolve on a later
+  launch. The immediate acknowledgement already told the user the tap registered.
+- **Low Power Mode never defers this check.** A user-initiated demand passes `.userInitiated`
+  (RV.111) and `LowPowerPolicy` never defers a user-initiated rate fetch, so there is no Low
+  Power deferral message for a tap - the one rate refresh Low Power does defer is the
+  automatic pass, which is silent (S8). If a demand drain is ever invoked with a background
+  trigger, that deferral must be reported and must name Low Power Mode by name (the one
+  outcome the user can act on); today it is structurally unreachable and is pinned by L1 tests.
 
 ### Capture (camera)
 | Condition | Shows | Next step |

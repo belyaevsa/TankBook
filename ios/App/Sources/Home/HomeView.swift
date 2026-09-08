@@ -268,8 +268,12 @@ struct HomeView: View {
                 // so a pending row dated years back needs its explicit dates
                 // asked for. A fill (or a dead end that leaves the rows
                 // pending) bumps the revision silently (AppRates.onBackfilled),
-                // so Home re-reads and the divider + footnote follow.
-                Task { await AppRates.drainPendingRows() }
+                // so Home re-reads and the divider + footnote follow. RV.132:
+                // the drain itself posts the outcome toast (filled / nothing
+                // pending) through AppRates.onDemandToast, so this closure only
+                // runs the drain - the footnote holds the immediate
+                // acknowledgement while it is on the wire.
+                await AppRates.drainPendingRows()
             })
         } else {
             HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })

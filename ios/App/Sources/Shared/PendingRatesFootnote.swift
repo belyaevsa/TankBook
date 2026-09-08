@@ -26,14 +26,28 @@ import TankbookCore
 /// pending has exhausted what any future pass can serve (their dates predate
 /// the rolling pack window), so the next step is the manual rate on each
 /// entry (hard rule 13) - shown as a second caption line, never a button.
+///
+/// RV.132: the check is a user-initiated drain and the tap is acknowledged
+/// IMMEDIATELY - the action swaps to an inline "Checking for rates…" line the
+/// moment it is tapped, before the network resolves, so a slow provider never
+/// reads as a dead button (the reported symptom). The resolved outcome then
+/// lands on the app toast (filled / nothing pending) while this footnote's
+/// standing changes - the count draining, the dead-end copy flipping - happen
+/// on the drain's own silent reload (docs/ERRORS.md -> Home).
 struct PendingRatesFootnote: View {
     let count: Int
     let identifier: String
-    /// The "check for rates" action; `nil` renders the passive caption alone.
-    var onCheck: (() -> Void)?
+    /// The demand drain the check runs; `nil` renders the passive caption alone.
+    /// Async so the footnote can hold the busy acknowledgement until it returns.
+    var onCheck: (() async -> Void)?
     /// RV.111: render the dead-end next step (manual rate) instead of the
     /// check action - see `showsDeadEnd`.
     var deadEnd: Bool = false
+
+    /// RV.132: whether a demand drain is on the wire. Set synchronously in the
+    /// action, cleared when the drain returns - this is the immediate
+    /// acknowledgement that a tap did something.
+    @State private var isChecking = false
 
     var body: some View {
         if deadEnd {
@@ -56,8 +70,10 @@ struct PendingRatesFootnote: View {
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier(identifier)
                 Spacer(minLength: 0)
-                if let onCheck {
-                    Button(action: onCheck) {
+                if isChecking {
+                    checkingRow
+                } else if let onCheck {
+                    Button(action: { beginCheck(onCheck) }) {
                         Text(L10n.checkForRates)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Theme.Palette.action)
@@ -68,6 +84,33 @@ struct PendingRatesFootnote: View {
                 }
             }
             .accessibilityElement(children: .contain)
+        }
+    }
+
+    /// The immediate acknowledgement (RV.132): a compact busy line where the
+    /// action sat. It renders the instant the button is tapped - never only
+    /// once the response lands - and disappears when the drain returns. The
+    /// text carries the identifier (like the count line above), so a test can
+    /// assert the acknowledgement by name.
+    private var checkingRow: some View {
+        HStack(spacing: 6) {
+            ProgressView()
+                .controlSize(.mini)
+            Text(L10n.checkingForRates)
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier(identifier + "Checking")
+        }
+    }
+
+    /// RV.132: set the busy state synchronously, then await the drain. The
+    /// footnote re-offers the check when the drain leaves rows pending; a fill
+    /// or dead end redraws it through the drain's own silent reload.
+    private func beginCheck(_ onCheck: @escaping () async -> Void) {
+        isChecking = true
+        Task {
+            await onCheck()
+            isChecking = false
         }
     }
 }

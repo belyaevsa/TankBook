@@ -926,6 +926,59 @@
         }
       }
     },
+    "%lld entries converted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entry converted"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entries converted"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записи конвертированы"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей конвертировано"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld запись конвертирована"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей конвертировано"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld entries pending rates": {
       "extractionState": "manual",
       "localizations": {
@@ -2982,6 +3035,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Проверить курсы"
+          }
+        }
+      }
+    },
+    "Checking for rates…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking for rates…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверяем курсы…"
           }
         }
       }
@@ -8479,6 +8549,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Курс"
+          }
+        }
+      }
+    },
+    "Rates are up to date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rates are up to date"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Курсы актуальны"
           }
         }
       }

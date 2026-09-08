@@ -306,10 +306,12 @@ struct HomeRecentEntries: View {
     /// resolution is a repository write the parent owns.
     let onKeepBoth: (LogStream.DuplicateGroup) -> Void
     let onMerge: (LogStream.DuplicateGroup) -> Void
-    /// RV.106: the footnote's next-step action (hard rule 7) - re-runs the rate
-    /// refresh + S8 backfill on demand, so an imported row whose rate the
-    /// server had not published yet can be asked for now.
-    let onCheckRates: () -> Void
+    /// RV.106: the footnote's next-step action (hard rule 7) - the demand drain
+    /// over the rows actually rate-pending, so an imported row whose rate the
+    /// server had not published yet can be asked for now. Async so the shared
+    /// footnote can hold its immediate "Checking for rates…" acknowledgement
+    /// until the drain returns (RV.132).
+    let onCheckRates: () async -> Void
 
     /// The reveal's first-page floor: the preview opens with the newest whole
     /// months whose combined rows first reach this many rows, and each later

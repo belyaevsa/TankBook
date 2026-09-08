@@ -67,6 +67,16 @@ enum AppRates {
     /// until the root wires it, so `refresh` still works alone in tests.
     static var onBackfilled: (@MainActor () -> Void)?
 
+    /// RV.132: posts the outcome toast a user-initiated demand drain deserves.
+    /// `drainPendingRows` is the ONLY user-initiated rate door, so a toast here
+    /// can never make the automatic launch pass noisy (S8) - the user-vs-
+    /// automatic distinction is the drain's caller, never a flag. Only a drain
+    /// that filled rows or found nothing pending posts; the dead end is the
+    /// footnote's own standing copy (RV.111) and offline is a silent non-event,
+    /// so neither needs a transient report. Nil until the root wires it, so the
+    /// drain still works alone in tests.
+    static var onDemandToast: (@MainActor (String) -> Void)?
+
     /// RV.111: whether the last demand drain ("Check for rates") reached the
     /// provider and left a rate-pending row dated before the rolling pack
     /// window. Home and Trends read it to swap the footnote's next step from
@@ -106,8 +116,8 @@ enum AppRates {
         return result
     }
 
-    /// RV.111: the demand drain behind the F9 footnote's "Check for rates" - a
-    /// sibling of `drainAfterImport` that asks over the rows ACTUALLY
+    /// RV.111 + RV.132: the demand drain behind the F9 footnote's "Check for
+    /// rates" - a sibling of `drainAfterImport` that asks over the rows ACTUALLY
     /// rate-pending across the garage, not over the rolling pack. The launch
     /// refresh only covers the last `packWindowDays` days, so a pending row
     /// dated years back (a multi-year import committed while the archive was
@@ -117,28 +127,70 @@ enum AppRates {
     /// rate - never today's (hard rule 3). Offline-safe: a failed fetch is a
     /// non-event and the backfill still fills whatever the cache holds.
     ///
-    /// Returns nil when nothing is pending (no request is made at all - an
-    /// empty ask is a bug). When a pass that REACHED the provider leaves a row
-    /// pending whose date predates the rolling window, the row is a dead end
-    /// (`demandPassLeftUnresolvableRows`) and the footnote names the manual
-    /// rate instead of promising another check (docs/ERRORS.md -> Home).
+    /// The user-initiated demand is NEVER deferred by Low Power Mode (RV.132,
+    /// `LowPowerPolicy`: `.userInitiated` runs while the mode is on), so this is
+    /// the one rate door that reports its outcome - it posts the toast a filled
+    /// or empty-answer drain deserves (`onDemandToast`, docs/ERRORS.md -> Home)
+    /// and the automatic pass stays silent (S8). When a pass that REACHED the
+    /// provider leaves a row pending whose date predates the rolling window, the
+    /// row is a dead end (`demandPassLeftUnresolvableRows`) and the footnote
+    /// names the manual rate instead of promising another check.
+    ///
+    /// Returns nil when no repository could be opened (nothing could even be
+    /// read); `.nothingPending` when no row was waiting (no request was made at
+    /// all - an empty ask is a bug) - the two are NOT the same outcome, and
+    /// neither is a `.drained` run (RV.132).
     @MainActor
     @discardableResult
-    static func drainPendingRows() async -> MoneyBackfillService.Result? {
+    static func drainPendingRows() async -> MoneyBackfillService.DemandOutcome? {
         guard let repository = try? AppStore.repository() else { return nil }
         let outcome = await MoneyBackfillService(store: store).demandDrain(repository)
-        guard let outcome else {
+        switch outcome {
+        case .nothingPending:
             demandPassLeftUnresolvableRows = false
-            return nil
+        case .drained(let result):
+            persist(store.allRates())
+            demandPassLeftUnresolvableRows = result.reachedProvider && result.hasUnresolvableRows
+            // A demand pass re-reads Home/Trends even when nothing filled: a
+            // fill drains the footnote (S8) and a dead end flips its copy to
+            // the manual rate - both silent (`onBackfilled` posts no toast).
+            onBackfilled?()
         }
-        persist(store.allRates())
-        demandPassLeftUnresolvableRows = outcome.reachedProvider && outcome.hasUnresolvableRows
-        // A demand pass re-reads Home/Trends even when nothing filled: a fill
-        // drains the footnote (S8) and a dead end flips its copy to the manual
-        // rate - both silent (`onBackfilled` posts no toast, docs/SYNC.md S8).
-        onBackfilled?()
-        return MoneyBackfillService.Result(filledCount: outcome.filledCount,
-                                           stillPendingCount: outcome.stillPendingCount)
+        presentDemandOutcome(outcome)
+        return outcome
+    }
+
+    /// RV.132: the surface split (docs/ERRORS.md -> Home). The footnote is a
+    /// live region that carries STANDING changes by itself - the count drains
+    /// on the silent reload above, and a dead end flips its copy to the manual
+    /// rate (RV.111). The toast is the TRANSIENT result of the tap: "filled" and
+    /// "nothing pending" get one, because neither leaves a standing change the
+    /// user asked for (the fill drains the footnote, but a user-initiated fill
+    /// is exactly what S8's silence does NOT cover). Offline is a non-event and
+    /// posts nothing (hard rule 1, F3); a reach-but-empty pass that is NOT a
+    /// dead end leaves the footnote's count + check in place - the honest
+    /// "still waiting" - so it posts nothing either.
+    private static func presentDemandOutcome(_ outcome: MoneyBackfillService.DemandOutcome?) {
+        guard let message = demandOutcomeMessage(outcome) else { return }
+        onDemandToast?(message)
+    }
+
+    /// The toast copy for an outcome, or nil for an outcome that carries itself
+    /// through standing or silent surfaces.
+    static func demandOutcomeMessage(_ outcome: MoneyBackfillService.DemandOutcome?) -> String? {
+        switch outcome {
+        case nil:
+            // No repository: nothing could even be read; not a user-facing
+            // outcome (the drain logs and returns).
+            return nil
+        case .nothingPending:
+            // The tap raced a silent fill, or nothing was ever waiting: there
+            // is nothing left to check.
+            return L10n.ratesUpToDate
+        case .drained(let result):
+            guard result.filledCount > 0 else { return nil }
+            return L10n.convertedEntries(result.filledCount)
+        }
     }
 
     /// RV.88: schedules `drainAfterImport` off the import commit's critical
@@ -257,6 +309,9 @@ enum AppRates {
         }
         if ProcessInfo.processInfo.arguments.contains("-stubRatesEmpty") {
             return EmptyRatePackStubTransport()
+        }
+        if ProcessInfo.processInfo.arguments.contains("-stubRatesSlowEcho") {
+            return SlowEchoRateStubTransport()
         }
         return appTransport(SeededLaunch.transport())
         #else

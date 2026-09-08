@@ -102,7 +102,9 @@ struct TrendsView: View {
                     // pending rows' own dates - the rolling refresh only covers
                     // the last 400 days, so a row dated years back needs its
                     // explicit dates asked for (same pass Home's footnote runs).
-                    Task { await AppRates.drainPendingRows() }
+                    // RV.132: the drain posts the outcome toast itself; the
+                    // footnote holds the immediate acknowledgement.
+                    await AppRates.drainPendingRows()
                 },
                                      deadEnd: PendingRatesFootnote.showsDeadEnd(entries))
                     .padding(.top, 4)

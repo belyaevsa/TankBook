@@ -82,4 +82,23 @@ final class MissThenHitRateStubTransport: TankbookHTTPTransport, @unchecked Send
         return try await RateEchoStubTransport().execute(request)
     }
 }
+
+/// RV.132's UI-test seam (`-stubRatesSlowEcho`): the echo pack, DELAYED by a
+/// fixed beat, so a footnote tap's immediate "Checking for rates…"
+/// acknowledgement is observable while the demand is still on the wire - the
+/// acknowledgement-before-the-network-resolves test (a response that lands
+/// before the busy state renders cannot prove the ordering). Echo rather than
+/// empty, so the demand also completes: the rows fill and the outcome toast
+/// lands, which the same test asserts afterwards.
+final class SlowEchoRateStubTransport: TankbookHTTPTransport, @unchecked Sendable {
+    private static let delayNanoseconds: UInt64 = 2_500_000_000
+
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        guard request.url.path.hasPrefix("/v1/rates/pack") else {
+            return TankbookHTTPResponse(status: 404)
+        }
+        try? await Task.sleep(nanoseconds: Self.delayNanoseconds)
+        return try await RateEchoStubTransport().execute(request)
+    }
+}
 #endif

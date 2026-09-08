@@ -170,6 +170,7 @@ struct AppRootView: View {
         AppRates.resumer = power.resumer
         // A backfill that filled something reloads Home silently (S8).
         AppRates.onBackfilled = { toastCenter.noteEntryChanged() }
+        AppRates.onDemandToast = { toastCenter.show($0) }
         _power = State(initialValue: power)
         // The Welcome decision runs after the seeded-session write above, so a
         // signed-in screenshot/test launch never shows onboarding. Read here,

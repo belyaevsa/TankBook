@@ -128,6 +128,28 @@ final class TrendsUITests: XCTestCase {
                       "the check filled the rows and nothing covered Trends")
     }
 
+    /// RV.132 on the Trends footnote (the shared component): the resolved fill
+    /// posts the converted toast here too - the outcome is not a Home-only
+    /// behaviour, because the footnote and the toast center are shared surfaces.
+    /// (The immediate acknowledgement itself is asserted on Home, where the
+    /// slow-provider fixture lives; this test pins the outcome parity.)
+    func testRV132TrendsFootnoteToastsTheFill() {
+        let app = launch(args: ["-seedHomeRV111OldPending", "-selectTrendsTab",
+                                "-stubRatesEcho"])
+
+        let footnote = app.staticTexts["trendsPendingRatesFootnote"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 15))
+        let check = app.buttons["trendsPendingRatesFootnoteCheckButton"]
+        XCTAssertTrue(check.waitForExistence(timeout: 5))
+        check.tap()
+
+        XCTAssertTrue(app.staticTexts["2 entries converted"].waitForExistence(timeout: 15),
+                      "Trends' check must report the fill it did")
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: footnote)
+        waitForExpectations(timeout: 15)
+    }
+
     // MARK: - Omit, never fabricate
 
     func testDataPoorStateOmitsTilesAndNoNATiles() {
