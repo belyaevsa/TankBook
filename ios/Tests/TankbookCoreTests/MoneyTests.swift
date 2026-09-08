@@ -144,3 +144,51 @@ private func double(_ value: Decimal) -> Double {
     #expect(converted.homeAmount != nil)
     #expect(converted.homeAmount!.rounded(decimalPlaces: 2) == converted.homeAmount!)
 }
+
+// MARK: - Re-homing: a vehicle home-currency change (docs/SCHEMA.md -> Money)
+
+/// A pending pair whose original currency equals the new home is snapshotted at
+/// rate 1 exactly as `init` does - the change resolves with no rate fetch.
+@Test func rehomedToMatchingCurrencySnapshotsAtRateOne() {
+    let money = Money(amount: decimal("110.00"), currency: .usd, homeCurrency: .eur)
+    #expect(money.isRatePending)
+
+    let rehomed = money.rehomed(to: .usd)
+    #expect(rehomed.homeCurrency == .usd)
+    #expect(rehomed.homeAmount == decimal("110.00"))
+    #expect(rehomed.rate == Decimal(1))
+    #expect(rehomed.rateSource == .ecb)
+    #expect(!rehomed.isRatePending)
+    #expect(rehomed.amount == money.amount, "the amount as paid never changes")
+}
+
+/// A pending pair whose currency still differs from the new home is re-homed -
+/// it now asks for a rate into the new home currency and stays pending.
+@Test func rehomedToAnotherCurrencyStaysPendingAgainstTheNewHome() {
+    let money = Money(amount: decimal("200.00"), currency: .pln, homeCurrency: .eur)
+    let rehomed = money.rehomed(to: .usd)
+
+    #expect(rehomed.homeCurrency == .usd)
+    #expect(rehomed.isRatePending)
+    #expect(rehomed.homeAmount == nil)
+    #expect(rehomed.currency == .pln)
+}
+
+/// Re-homing never touches a written snapshot (hard rule 3): the pair is
+/// returned byte-identical, whatever the new home.
+@Test func rehomedLeavesASnapshottedPairByteIdentical() {
+    let money = Money(amount: decimal("289.50"), currency: .pln, homeCurrency: .eur)
+    let snapshotted = money.converted(using: RateSnapshot(rate: decimal("4.2706"),
+                                                          rateDate: entryDate, source: .ecb))
+
+    #expect(snapshotted.rehomed(to: .usd) == snapshotted)
+    #expect(snapshotted.rehomed(to: .eur) == snapshotted)
+    #expect(snapshotted.homeCurrency == .eur)
+}
+
+/// Re-homing to the home currency already in force is a no-op, so a re-run of
+/// the change rewrites nothing (idempotence).
+@Test func rehomedToTheSameHomeIsANoOp() {
+    let money = Money(amount: decimal("110.00"), currency: .usd, homeCurrency: .eur)
+    #expect(money.rehomed(to: .eur) == money)
+}

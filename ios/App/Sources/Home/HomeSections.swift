@@ -418,11 +418,8 @@ struct HomeRecentEntries: View {
                         subtitleLine(entry)
                     }
                     Spacer(minLength: 8)
-                    if let amount = amountText(entry) {
-                        Text(amount)
-                            .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                            .foregroundStyle(Theme.Palette.ink)
-                            .accessibilityIdentifier("homeEntryAmount")
+                    if let money = entry.money {
+                        LogEntryAmount(money: money)
                     }
                 }
                 .contentShape(Rectangle())
@@ -516,12 +513,6 @@ struct HomeRecentEntries: View {
             Text(HomeFormat.day(date))
                 .accessibilityIdentifier("logEntryDate")
         }
-    }
-
-    private func amountText(_ entry: LogStream.LogEntry) -> String? {
-        guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
-        let symbol = AddVehicleSupport.currencySymbol(for: money.homeCurrency)
-        return HomeFormat.entryAmount(homeAmount, symbol: symbol)
     }
 
     private func title(_ entry: LogStream.LogEntry) -> String {
@@ -625,10 +616,8 @@ struct HomeRecentEntries: View {
                     subtitleLine(member, includeAttachment: false)
                 }
                 Spacer(minLength: 8)
-                if let amount = amountText(member) {
-                    Text(amount)
-                        .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                        .foregroundStyle(Theme.Palette.ink)
+                if let money = member.money {
+                    LogEntryAmount(money: money)
                 }
             }
             .contentShape(Rectangle())

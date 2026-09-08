@@ -103,8 +103,16 @@ Money {
 //   updates never touch it. If currency == homeCurrency, homeAmount = amount, rate = 1, rateSource = .ecb.
 //   Backfill rule (rate arrives later, incl. via sync on another device): fill ONLY if homeAmount is nil;
 //   never recompute an existing snapshot. Editing `amount` or `currency` clears the snapshot for re-conversion;
-//   changing vehicle.homeCurrency re-converts NOTHING retroactively – old entries keep their snapshot, and
-//   stats mixing home currencies render per-currency subtotals (rare, surfaced honestly).
+//   changing vehicle.homeCurrency re-homes ONLY the vehicle's rate-pending entries: an entry already carrying
+//   a snapshot keeps its homeCurrency untouched, byte for byte (hard rule 3 - its history was true when it was
+//   recorded). A re-homed entry whose currency now EQUALS the new home is snapshotted at rate 1 immediately
+//   (`Money.init`), so the change resolves those rows with no rate fetch at all; one whose currency still
+//   differs stays rate-pending, now asking for a rate into the NEW home currency (S8 backfill). Old snapshots
+//   keep their home currency, so a history that mixes home currencies is legitimate and survives; stats mixing
+//   home currencies render per-currency subtotals (rare, surfaced honestly).
+//   A RATE-PENDING ROW RENDERS ITS ORIGINAL AMOUNT (docs/ERRORS.md -> Home): the Log row shows "45.00 USD" -
+//   the amount and currency as paid, marked as unconverted (dimmed, the ISO code) - never nothing and never a
+//   bare figure that could be read as a home-currency number.
 //   Two shapes of the rule's trigger (RV.88): a whole-garage pass after a rate refresh, and a SCOPED pass
 //   over exactly the rows an import just committed – the import drain asks the rate service for the dates
 //   those rows span (`/rates/pack`, chunked) and resolves each at its OWN `rateDate`, never today's. A row

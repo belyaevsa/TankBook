@@ -713,6 +713,15 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 capture RV.131-home-duplicate    en -seedSettingsSignedIn -seedHomeDuplicateFields
 capture RV.131-home-duplicate-ru ru -seedSettingsSignedIn -seedHomeDuplicateFields
 
+# RV.140: a rate-pending Log row shows the ORIGINAL amount - dimmed, with the
+# ISO code - instead of hiding money it knows. The owner's exact shape (USD
+# rows on an EUR car still waiting on a rate): the Log rows carry
+# "110.00 USD" beside the "2 entries pending rates" footnote, never nothing.
+# RU is where the footnote count and the divider run longest; the amount line
+# itself is locale-invariant (pinned decimal separator, ISO code).
+capture RV.140-log-original-amount    en -seedHomeRV88USDPending
+capture RV.140-log-original-amount-ru ru -seedHomeRV88USDPending
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

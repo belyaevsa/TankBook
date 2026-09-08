@@ -157,3 +157,32 @@ extension HomeRecentEntries {
         }
     }
 }
+
+// MARK: - Log entry money figure
+
+/// The trailing money figure on a log row (docs/DESIGN.md -> "Entry card
+/// content"). A converted entry shows its HOME amount with the home currency's
+/// symbol ("71.02 €"). A rate-pending entry (F9) has no home figure, so it
+/// shows the ORIGINAL amount with its three-letter currency code - never the
+/// symbol - dimmed, so an unconverted figure cannot be read as a home-currency
+/// one beside the converted rows (docs/SCHEMA.md -> Money, docs/ERRORS.md ->
+/// Home). The S8 backfill replaces it with the home figure the moment a rate
+/// lands.
+struct LogEntryAmount: View {
+    let money: Money
+
+    var body: some View {
+        if let homeAmount = money.homeAmount {
+            Text(HomeFormat.entryAmount(homeAmount,
+                                        symbol: AddVehicleSupport.currencySymbol(for: money.homeCurrency)))
+                .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                .foregroundStyle(Theme.Palette.ink)
+                .accessibilityIdentifier("homeEntryAmount")
+        } else {
+            Text(HomeFormat.entryAmount(money.amount, symbol: money.currency.rawValue))
+                .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier("homeEntryAmountPending")
+        }
+    }
+}

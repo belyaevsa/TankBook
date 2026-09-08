@@ -170,6 +170,29 @@ public struct Money: Codable, Hashable, Sendable {
         return copy
     }
 
+    /// A copy whose home currency follows a change to the vehicle's home
+    /// currency (docs/SCHEMA.md -> Money). Only a rate-pending pair is
+    /// re-homed: a pair already carrying a snapshot is returned unchanged, byte
+    /// for byte (hard rule 3 - its history was true when it was recorded and
+    /// must not be restated). When the original currency equals the new home
+    /// the pair is snapshotted at rate 1 exactly as `init` does - same-currency
+    /// money needs no rate, so the change resolves with no fetch. A re-homed
+    /// pair whose currency still differs stays rate-pending, now asking for a
+    /// rate into the new home currency.
+    public func rehomed(to newHome: CurrencyCode) -> Money {
+        guard !hasSnapshot else { return self }
+        guard newHome != homeCurrency else { return self }
+        var copy = self
+        copy.homeCurrency = newHome
+        if currency == newHome {
+            copy.homeAmount = amount
+            copy.rate = Decimal(1)
+            copy.rateDate = nil
+            copy.rateSource = .ecb
+        }
+        return copy
+    }
+
     private mutating func resetSnapshotForEdit() {
         if currency == homeCurrency {
             homeAmount = amount

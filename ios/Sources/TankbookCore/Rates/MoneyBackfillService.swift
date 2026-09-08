@@ -16,7 +16,10 @@ import Foundation
 /// (`backfill(_:limitedTo:)`) resolves exactly the entries a caller names,
 /// which is what an import commit runs over its own just-written rows (RV.88:
 /// the rows an import wrote must not wait on the next whole-garage sweep to
-/// reach the car's currency).
+/// reach the car's currency). A third shape, `rehome(_:vehicleID:to:)`, is not
+/// a rate fill at all: it follows a home-currency change in the Garage and
+/// re-homes only the vehicle's rate-pending entries - same-currency rows fill
+/// at rate 1 with no fetch, and snapshotted rows are never touched.
 public struct MoneyBackfillService {
     /// The outcome of one pass: counts only, no domain values (hard rule 12).
     public struct Result: Equatable, Sendable {
@@ -205,6 +208,40 @@ public struct MoneyBackfillService {
             case .filled: filled += 1
             case .stillPending: stillPending += 1
             case .notPending: break
+            }
+        }
+        return Result(filledCount: filled, stillPendingCount: stillPending)
+    }
+
+    /// Re-homes a vehicle's rate-pending entries after its home currency
+    /// changed. Every entry's `Money` carries its own `homeCurrency`, stamped
+    /// when the entry was written, so changing `vehicle.homeCurrency` alone
+    /// reaches nothing; this pass is what follows the vehicle write
+    /// (docs/SCHEMA.md -> Money).
+    ///
+    /// Fill-blanks-only in the backfill's sense, but the fill needs NO rate: a
+    /// pending entry whose original currency equals the new home is snapshotted
+    /// at rate 1 by `Money.rehomed(to:)`, so the pass performs no fetch at all.
+    /// A pending entry whose currency still differs is re-homed - it now asks
+    /// for a rate into the NEW home currency - and stays counted. Entries that
+    /// already carry a snapshot are never rewritten: hard rule 3 protects them,
+    /// and rewriting one would silently restate history that was true when it
+    /// was recorded. Idempotent: a second pass over the same rows rewrites
+    /// nothing, because every re-homed row now matches its home currency.
+    @discardableResult
+    public func rehome(_ repository: TankbookRepository, vehicleID: UUID,
+                       to newHome: CurrencyCode) throws -> Result {
+        var filled = 0
+        var stillPending = 0
+        for entry in try repository.liveEntries(forVehicle: vehicleID) {
+            guard let money = entry.money, money.isRatePending else { continue }
+            let rehomed = money.rehomed(to: newHome)
+            guard rehomed != money else { continue }
+            try Self.persist(entry, with: rehomed, in: repository)
+            if rehomed.hasSnapshot {
+                filled += 1
+            } else {
+                stillPending += 1
             }
         }
         return Result(filledCount: filled, stillPendingCount: stillPending)

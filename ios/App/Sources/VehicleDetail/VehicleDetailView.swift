@@ -286,6 +286,21 @@ struct VehicleDetailView: View {
                 updated.photo = nil
             }
             try repository.upsertVehicle(updated)
+            // A home-currency change must reach the entries that are still
+            // waiting on a rate: each entry's Money carries its own
+            // homeCurrency (docs/SCHEMA.md -> Money), so the vehicle row alone
+            // changes nothing. Same-currency rows convert at rate 1 with no
+            // fetch; snapshotted rows stay untouched (hard rule 3). A re-home
+            // failure is logged and never blocks the save - the vehicle change
+            // itself already landed.
+            if vehicle.homeCurrency != updated.homeCurrency {
+                do {
+                    _ = try MoneyBackfillService(store: AppRates.store)
+                        .rehome(repository, vehicleID: updated.id, to: updated.homeCurrency)
+                } catch {
+                    AppLog.error(operation: "vehicleDetail.rehome", category: .ui, error: error)
+                }
+            }
             let after = headline(repository: repository, vehicle: updated)
             notify(before: before, after: after, vehicle: updated)
             dismiss()
