@@ -38,17 +38,39 @@ Three rules that come from things that went wrong:
   finishes first.
 - **Arm it immediately after the dispatch, every time, with no exceptions.**
 
-| # | Task | Model | Brief | Why this model / this position |
-|---|---|---|---|---|
-| ~~1~~ | ~~RV.144~~ **shipped** `5471bac` | flash | `agents/briefs/RV.144.md` | Cause pinned to two lines; the owner's live bug |
-| ~~1b~~ | ~~RV.139b~~ **shipped** `e92d147` | flash | `agents/briefs/RV.139b.md` | Observability so the next device log can answer RV.139 |
-| 2 | **RV.136** *(running)* | flash | `agents/briefs/RV.136.md` | Mechanism pinned; acceptance is an unfakeable push count |
-| 3 | RV.145 | flash | `agents/briefs/RV.145.md` | Cause pinned to the accumulator; carries the symbols-everywhere decision. **Before RV.147**, which builds on the accumulator it reshapes |
+## The queue
 
-| 4 | RV.146 | flash | `agents/briefs/RV.146.md` | Adaptive currency chips. Independent of the money rows; design closed by the RV.115 precedence |
-| 5 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - the brief tells the agent to stop if RV.145 has not landed |
-| 6 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | Interval math in core; boundary assertions make it mechanical. Point release, so it sits behind the v1 rows |
-| 7 | RV.117b **[v1.1]** | — | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
+**Update this file at BOTH ends of a dispatch**: move the row to *In flight* when it launches, and
+to *Shipped* when its commit lands. A queue that says a shipped row is still running is worse than
+no queue - it is the file a fresh session trusts to know what is already done.
+
+### In flight
+
+| Task | Model | PID | Monitor | Brief |
+|---|---|---|---|---|
+| **RV.145** | flash | 48494 | `bw0qx11yi` | `agents/briefs/RV.145.md` |
+
+### Waiting, in order
+
+| # | Task | Model | Brief | Why this position |
+|---|---|---|---|---|
+| 1 | RV.146 | flash | `agents/briefs/RV.146.md` | Adaptive currency chips. Independent of the money rows; the design is closed by the [RV.115] precedence |
+| 2 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - its brief opens by telling the agent to verify RV.145 landed and to stop if it has not |
+| 3 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | The valid-interval math in core; boundary assertions make it mechanical. A point release, so it sits behind the v1 rows |
+| 4 | RV.117b **[v1.1]** | - | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
+
+### Shipped this session (2026-09-08/09)
+
+| Task | Commit | What it was |
+|---|---|---|
+| RV.112 | `2efb9e3` | The vitals tile and Trends series stopped reporting a pending month as zero |
+| RV.139-INVESTIGATE | `2efb9e3` | Read-only: three of RV.139's four candidates dead on a line each (`diagnostics/RV.139-INVESTIGATE.md`) |
+| RV.144 | `5471bac` | An entry edit re-homes to the car's current home currency, and resolves at commit |
+| RV.139b | `e92d147` | Observability so the next device log can answer RV.139; the row itself stays open |
+| RV.136 | `85ba6d5` | A pull no longer re-dirties a Vehicle that did not change |
+
+**Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
+device log from a build carrying the `rates.refresh` event, which is not agent work.
 
 ## Standing rules for every dispatch here
 
@@ -59,3 +81,6 @@ Three rules that come from things that went wrong:
 - The orchestrator verifies in its own hands - gates by exit code, and **opens every screenshot**.
   An agent has no image input and cannot see what it produced.
 - Agents never commit and never tick `docs/TASKS.md`.
+- When a row ships, three files move together: the code commit, the `docs/TASKS.md` tick (the row
+  moves to `docs/TASKS-DONE.md`, then `scripts/tasks-index.py` rebuilds the index), and this queue.
+  Skipping the third is how the queue goes stale within one session.
