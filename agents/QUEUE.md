@@ -71,7 +71,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.144 | `5471bac` | An entry edit re-homes to the car's current home currency, and resolves at commit |
 | RV.139b | `e92d147` | Observability so the next device log can answer RV.139; the row itself stays open |
 | RV.136 | `85ba6d5` | A pull no longer re-dirties a Vehicle that did not change |
-| RV.145 | `a4f4b0c` | A money figure carries its own currency; symbols everywhere. **RU screenshots re-captured by the orchestrator** |
+| RV.145 | `628d000` | A money figure carries its own currency; symbols everywhere. **RU screenshots re-captured by the orchestrator** |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
