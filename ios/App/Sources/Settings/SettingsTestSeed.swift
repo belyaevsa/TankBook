@@ -21,6 +21,10 @@ enum SettingsTestSeed {
         /// a previous year) - so the "needs a look" list must show the year on
         /// the older row and not on this year's.
         case flaggedMultiyear
+        /// RV.133: fourteen flagged entries on one car - enough rows that the
+        /// "needs a look" list overflows one screen, so the L4 suite can assert
+        /// the list still scrolls next to the new per-row swipe gesture.
+        case flaggedMany
         case revoked
         case quota
         case upgradeRequired
@@ -73,6 +77,7 @@ enum SettingsTestSeed {
             "-seedSettingsServerDown": .serverDown,
             "-seedSettingsFlagged": .flagged,
             "-seedSettingsFlaggedMultiyear": .flaggedMultiyear,
+            "-seedSettingsFlaggedMany": .flaggedMany,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
             "-seedSettingsUpgradeRequired": .upgradeRequired,
@@ -274,7 +279,7 @@ enum SettingsTestSeed {
         sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
 
         if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
-            || state == .localLog {
+            || state == .flaggedMany || state == .localLog {
             seed(repository: try? AppStore.repository(), state: state)
         }
         // OB.3: write the persisted sync state THIS seed must show. Runs after
@@ -356,7 +361,43 @@ enum SettingsTestSeed {
                 date: Date().addingTimeInterval(-380 * 86_400))
             try? repository.upsertFillUp(thisYear, syncState: .synced(scn: 2))
             try? repository.upsertFillUp(olderYear, syncState: .synced(scn: 3))
+        } else if state == .flaggedMany {
+            // RV.133: fourteen flagged fills over fourteen days - the "needs a
+            // look" list overflows one screen so the L4 suite can assert it
+            // still scrolls beside the new per-row swipe gesture. The conflicts
+            // are seeded directly exactly as the two-row `.flagged` state does.
+            for index in 0..<14 {
+                let fill = HomeTestSeed.makeFill(
+                    vehicleID: vehicle.id,
+                    HomeTestSeed.FillSpec(daysAgo: index,
+                                          odometer: 118_500 - index * 40, litres: 42.0,
+                                          amount: "71.02", price: "1.679", stationID: nil),
+                    conflict: .flagged(kind: index.isMultiple(of: 2) ? .order : .pace,
+                                       detectedAt: Date()))
+                try? repository.upsertFillUp(fill, syncState: .synced(scn: Int64(2 + index)))
+            }
         }
+    }
+
+    /// DEBUG pose seam (RV.133): `-presentScreen flaggedEntries` reaches the
+    /// list directly - `simctl` cannot tap its way there through Settings - so
+    /// when the flagged screen appears on its own it seeds its own data, the
+    /// same rows the Settings-seeded route would have written. Idempotent by
+    /// the same empty-vehicles guard `HomeTestSeed` uses: a launch that already
+    /// seeded (Settings appeared first) is left alone.
+    @MainActor
+    static func seedFlaggedListForDirectPresentIfRequested() {
+        let arguments = ProcessInfo.processInfo.arguments
+        let state = Self.state(arguments)
+        guard state == .flagged || state == .flaggedMultiyear || state == .flaggedMany else {
+            return
+        }
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+        seed(repository: repository, state: state)
     }
 
     /// The signed-in session the seeded states read back. The email matches the

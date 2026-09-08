@@ -23,6 +23,14 @@ import TankbookCore
 ///   the signed-in layout, never the guest chrome, and a clean device has
 ///   neither vehicle nor session. Without the session the tabbed app would
 ///   still render the guest Home and the entry tests would find no `typeItButton`.
+/// - The reminder deep-link seeds (`-seedRemindersDeepLink`,
+///   `-seedRemindersDeepLinkArchived`) are the same shape for the same reason:
+///   the RV.74 deep-link tests drive the reminder tap to its completion and
+///   then assert Home's signed-in chrome (the `carSwitcherButton` header that
+///   only the signed-in layout draws) to prove the app is on the reminder's
+///   car. A clean device has no session, so without this the suite inherits
+///   whichever session an earlier suite left in the Keychain - green in a full
+///   run, red alone (RV.82).
 /// - `-presentWelcome` overrides those four: run the real onboarding decision
 ///   even under the harness flags (the Welcome UI tests and screenshots use it
 ///   to reach the fresh-install state deterministically). It forces no outcome
@@ -40,13 +48,17 @@ enum WelcomeGate {
         if request.sheet != nil || request.route != nil || request.modal != nil {
             return false
         }
-        // `-seedVehicleForUITests` targets the signed-in Home (see the doc
-        // comment above): plant the stub session first so a clean device shows
-        // that layout, not the guest chrome. The seed's vehicle write still
-        // happens later, on the form's own load; the session is the piece that
-        // must exist before Home's first frame.
+        // `-seedVehicleForUITests` and the reminder deep-link seeds target the
+        // signed-in Home (see the doc comment above): plant the stub session
+        // first so a clean device shows that layout, not the guest chrome. The
+        // seeds' data writes still happen later, on the form's/screens' own
+        // load; the session is the piece that must exist before Home's first
+        // frame.
+        let signedInHomeSeed = arguments.contains("-seedVehicleForUITests")
+            || arguments.contains("-seedRemindersDeepLink")
+            || arguments.contains("-seedRemindersDeepLinkArchived")
         if !arguments.contains("-presentWelcome"),
-           arguments.contains("-seedVehicleForUITests") {
+           signedInHomeSeed {
             let store = KeychainSessionStore()
             try? store.clear()
             try? store.save(SettingsTestSeed.stubSession())
