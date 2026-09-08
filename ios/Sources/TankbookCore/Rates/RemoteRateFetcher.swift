@@ -57,10 +57,17 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
             // wrong.
             await director.report(.response(status: status))
             throw RateFetchError.invalidResponse
+        } catch TankbookHTTPClientError.hostNotAllowlisted {
+            // A security refusal, not a transport failure: the request never
+            // went out, so nothing here is evidence the host is down. Reporting
+            // it as a `.transportFailure` would count a refusal toward the
+            // config auto-revert it does not deserve (docs/CONFIG.md). Still one
+            // silent miss to the caller (RateStore.refresh swallows it) - F9.
+            throw RateFetchError.transportUnavailable
         } catch {
-            // Every transport failure - allowlist refusal, socket error - is
-            // one silent miss to the caller (RateStore.refresh swallows it),
-            // and evidence the host was unreachable.
+            // A genuine transport failure - socket error, timeout - is evidence
+            // the host was unreachable and counts toward auto-revert. One silent
+            // miss to the caller (RateStore.refresh swallows it), F9.
             await director.report(.transportFailure)
             throw RateFetchError.transportUnavailable
         }

@@ -307,6 +307,103 @@ struct ConfigTransportDirectorTests {
         #expect(reporter.outcomes() == [.response(status: 500), .transportFailure],
                 "a thrown transport error is a transportFailure")
     }
+
+    // MARK: RV.139b - the RATE fetcher's report mapping (docs/CONFIG.md ->
+    // "Auto-revert on sustained failure")
+
+    /// A `ConfigStore` promoted to `promoted`, on which the rate fetcher's
+    /// `report` feeds the real auto-revert counter. The caller owns `directory`
+    /// and must remove it when the test is done (the existing pattern).
+    private func makePromotedStore(_ promoted: String, directory: URL) async -> ConfigStore {
+        let bundled = makeBundled()
+        let document = makeDocument(apiBaseURL: promoted)
+        let store = makeStore(
+            bundled: bundled,
+            directory: directory,
+            fetcher: successFetcher(document: document, signature: sign(document)),
+            healthProber: StubHealthProber(accepts: true),
+            maxConsecutiveFailures: 5
+        )
+        await store.refresh()
+        return store
+    }
+
+    private struct NilRateTokenProvider: AuthorizationTokenProvider {
+        func token() -> String? { nil }
+    }
+
+    /// A `hostNotAllowlisted` refusal is a security refusal, not evidence the
+    /// host is down: it must not count toward the auto-revert counter that a
+    /// `.transportFailure` feeds. RV.139b fixed the rate fetcher, which used to
+    /// map every non-HTTP error - refusal included - to `.transportFailure`,
+    /// so five silent refusals would have auto-reverted a healthy promoted URL.
+    /// Five refusals at the revert threshold must leave the promoted URL in
+    /// place, which is exactly what the old mapping broke.
+    @Test func rateFetchAllowlistRefusalsDoNotFeedTheAutoRevertCounter() async throws {
+        let directory = tempDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let promoted = "https://new.tankbook.live"
+        let promotedURL = URL(string: promoted)!
+        let store = await makePromotedStore(promoted, directory: directory)
+        #expect(store.current.apiBaseURL == promotedURL)
+
+        // The fetcher's OWN director names a non-allowlisted host (the shape
+        // that produces the refusal) while still reporting into the store.
+        let network = DirectorScriptedTransport()
+        let fetcher = RemoteRateFetcher(
+            director: ConfigTransportDirector(
+                baseURL: { URL(string: "https://evil.com")! },
+                report: { await store.recordRequestOutcome($0) }
+            ),
+            transport: network,
+            tokenProvider: NilRateTokenProvider()
+        )
+
+        for _ in 0..<5 {
+            await #expect(throws: RateFetchError.self) {
+                _ = try await fetcher.fetchPack(from: Date(), to: Date(), base: .eur)
+            }
+        }
+
+        // A refusal is not a transport failure: the counter never moved, so the
+        // promoted URL was never reverted.
+        #expect(network.receivedRequests().isEmpty,
+                "a non-allowlisted host must never reach the transport")
+        #expect(store.consecutiveFailureCount == 0,
+                "a hostNotAllowlisted refusal is not evidence the host is unreachable")
+        #expect(store.current.apiBaseURL == promotedURL,
+                "five refusals must not auto-revert a healthy promoted URL")
+    }
+
+    /// The genuine transport error still feeds the counter: a rate fetch whose
+    /// host never answers is exactly the "host unreachable" evidence auto-revert
+    /// exists for, and separating the refusal must not have silenced it.
+    @Test func rateFetchTransportErrorsStillFeedTheAutoRevertCounter() async throws {
+        let directory = tempDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let promoted = "https://new.tankbook.live"
+        let promotedURL = URL(string: promoted)!
+        let store = await makePromotedStore(promoted, directory: directory)
+        #expect(store.current.apiBaseURL == promotedURL)
+
+        let network = DirectorScriptedTransport()
+        network.fail()  // URLError(.notConnectedToInternet)
+        let fetcher = RemoteRateFetcher(
+            director: ConfigTransportDirector(
+                baseURL: { URL(string: promoted)! },
+                report: { await store.recordRequestOutcome($0) }
+            ),
+            transport: network,
+            tokenProvider: NilRateTokenProvider()
+        )
+
+        await #expect(throws: RateFetchError.self) {
+            _ = try await fetcher.fetchPack(from: Date(), to: Date(), base: .eur)
+        }
+        #expect(network.receivedRequests().count == 1, "the request reached the transport")
+        #expect(store.consecutiveFailureCount == 1,
+                "a genuine transport failure is evidence the host is unreachable and must count")
+    }
 }
 
 // MARK: - The grep gate

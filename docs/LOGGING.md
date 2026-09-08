@@ -171,21 +171,39 @@ The pair is emitted around **user-initiated writes only** (capture, manual, impo
 `sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
 
 ### Reference data refreshes (RV.139)
-`rates.refresh` – `outcome` (`attempted` / `joined` / `deferred`), `trigger`
+`rates.refresh` – `outcome` (`attempted` / `joined` / `deferred` / `noFetcher`), `trigger`
 (`background` / `userInitiated`). One line per `RateStore.refresh` decision,
 recorded at the branch that took it: `attempted` means the refresh claimed the
 single-flight slot and the fetch's own `net.request`/`net.response` pair should
 follow; `joined` means it rode an in-flight fetch (RV.59) and issued no request
 of its own; `deferred` means Low Power Mode postponed it and it drains when the
-mode ends (`docs/SYNC.md` -> Low Power Mode table). This is the line that
-answers "the client never asks for exchange rates" in one session: three
-production builds showed auth, sync and config traffic and not one
-`/rates/pack`, and nothing recorded which branch the rate refresh took - a
+mode ends (`docs/SYNC.md` -> Low Power Mode table); `noFetcher` means the store
+was built without a fetcher - unreachable in the app (RV.139-INVESTIGATE §2C:
+`AppRates.store` is always built with one), recorded only so a session that hits
+it reads as `noFetcher`, never as a Low Power deferral that never drains and
+never as "the pass never reached rates". Every branch records itself, so
+**absence of the line means one thing: `RateStore.refresh()` was never called.**
+This is the line that answers "the client never asks for exchange rates" in one
+session: three production builds showed auth, sync and config traffic and not
+one `/rates/pack`, and nothing recorded which branch the rate refresh took - a
 session of only `joined` lines names the single-flight slot never being
 released, and an `attempted` line with no `net.request` after it names a fetch
 dying before the transport. **Never a rate, an amount, a date or a currency
 pair** - the pack's contents have no route into the event by construction
 (hard rule 12).
+
+### The automatic foreground pass (RV.139b)
+`automatic.pass` – `step` (`started` / `config` / `summary` / `sync` / `rates` /
+`delivery` / `feedback` / `finished`). One line per mark, emitted by
+`AutomaticPassRunner` **before** the step it names is awaited, at most once per
+foreground pass (`TabRoots.runAutomaticPass`; `didRunAutomaticPass` dedupes the
+launch double-trigger). This is the skeleton the reference-data and sync lines
+hang off: it records that the pass started, which step it reached, and that it
+finished. A pass that stalls at step 3 now reads as `started` + `config` +
+`summary` + `sync` with nothing after - no longer identical to "the pass never
+ran" (the RV.139 ambiguity). Absence of the line entirely means
+`runAutomaticPass` was never invoked. **Never a rate, an amount, a currency, a
+host or a payload** - the mark vocabulary is step codes only (hard rule 12).
 
 ### Async edges (OB.2)
 The events that can only be written at the moment they happen, because after the fact they are unrecoverable:

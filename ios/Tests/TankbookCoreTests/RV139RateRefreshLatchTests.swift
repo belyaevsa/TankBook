@@ -213,3 +213,56 @@ private func makeLog() -> (TankbookLog, InMemorySink) {
             "no currency code may reach the line (hard rule 12)")
 }
 
+// MARK: - RV.139b: every branch records itself, the no-fetcher branch included
+
+/// Drives every decision `RateStore.refresh` can take and counts the
+/// `rates.refresh` lines. The row's requirement (RV.139-INVESTIGATE §5.1): the
+/// nil-fetcher guard must NOT stay silent, or a missing fetcher would read in
+/// the log as a Low Power deferral that never drains - indistinguishable from a
+/// pass that never reached the refresh. After this, absence of the line means
+/// one thing: `refresh()` was never called.
+@Test func everyRefreshBranchEmitsExactlyOneRatesRefreshEvent() async {
+    let (log, sink) = makeLog()
+
+    // Branch 1 - no fetcher: the store is built without one (a core-test-only
+    // shape; the app always supplies a fetcher). Must record `noFetcher`.
+    let noFetcherStore = RateStore(seed: [], fetcher: nil, log: log)
+    #expect(!(await noFetcherStore.refresh()),
+            "a store with no fetcher cannot refresh")
+
+    // Branch 2 - deferred: Low Power Mode postpones the background refresh.
+    let power = MutablePowerState(lowPower: true)
+    let deferredStore = RateStore(seed: [], fetcher: GatedCountingFetcher(),
+                                  powerState: power, log: log)
+    #expect(!(await deferredStore.refresh()),
+            "a background refresh defers while the mode is on")
+
+    // Branches 3 + 4 - attempted and joined: the creator claims the slot and
+    // fetches (`attempted`), a racing second refresh rides it (`joined`,
+    // RV.59). One shared store, one in-flight fetch.
+    let gate = FetchGate()
+    let store = RateStore(seed: [], fetcher: GatedCountingFetcher(gate: gate), log: log)
+    let creator = Task { await store.refresh() }
+    while await !gate.started { try? await Task.sleep(for: .milliseconds(1)) }
+    let joiner = Task { await store.refresh() }
+    try? await Task.sleep(for: .milliseconds(20))
+    await gate.open()
+    #expect(await creator.value, "the creator refresh is not deferred")
+    #expect(await joiner.value)
+
+    // One line per decision, every decision covered exactly once - comparing
+    // against `allCases` (not a hard-coded list) is what forces a future branch
+    // or outcome to be driven here: the test and the outcome vocabulary cannot
+    // drift apart, and a new branch cannot slip through without emitting.
+    let refreshLines = sink.rendered().filter { $0.contains("event=rates.refresh") }
+    #expect(refreshLines.count == RatePackRefresh.Outcome.allCases.count,
+            "each refresh decision must emit exactly one line, got \(refreshLines.count): \(refreshLines)")
+    let outcomes = Set(refreshLines.compactMap { line -> String? in
+        guard let outcome = line.components(separatedBy: "outcome=").dropFirst().first?
+            .components(separatedBy: " ").first else { return nil }
+        return outcome
+    })
+    let expected = Set(RatePackRefresh.Outcome.allCases.map(\.rawValue))
+    #expect(outcomes == expected,
+            "the driven branches must cover every outcome: got \(outcomes.sorted()), expected \(expected.sorted())")
+}

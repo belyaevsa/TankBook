@@ -157,7 +157,18 @@ public final class RateStore: @unchecked Sendable {
     /// a log is wired.
     @discardableResult
     public func refresh(trigger: PowerWorkTrigger = .background) async -> Bool {
-        guard let fetcher else { return false }
+        // RV.139: the no-fetcher guard records itself. This store is always
+        // built WITH a fetcher in the app (ManualFillUpCurrencySupport makes
+        // one), so the branch is unreachable there - but while it emits nothing,
+        // a missing fetcher would read in the log as `deferred` work that never
+        // drains (AppRates.refresh registers a resumer deferral for every
+        // `false`) and be indistinguishable from a pass that never reached the
+        // refresh at all. A distinct outcome keeps "refresh() was never called"
+        // meaning exactly one thing: the line is absent.
+        guard let fetcher else {
+            log?.emit(RatePackRefresh(trigger: trigger, outcome: .noFetcher))
+            return false
+        }
         // P6.8: the rate pack refresh defers while the mode is on. Nothing is
         // lost - a miss is not an error (F9): entries save rate-pending and
         // backfill later, fill-blanks-only.

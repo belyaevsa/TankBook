@@ -494,50 +494,39 @@ struct AppRootView: View {
 
     /// RV.59: the ONE automatic pass a launch or a real foreground runs - the
     /// work the `.task` and the `scenePhase == .active` handler used to run
-    /// SEPARATELY at launch (the duplicate-request family). Owning it here means
-    /// a launch that transitions to `.active` fires each work item exactly once:
-    ///
-    /// - `configService.refresh()` (docs/CONFIG.md -> Delivery; a launch counts
-    ///   as a foreground event, and the UI never waits on it - P6.18b),
-    /// - the monthly-summary re-arm (P6.2),
-    /// - the OPPORTUNISTIC sync cycle (docs/SYNC.md -> Low Power Mode), still
-    ///   gated by RV.18's `OpportunisticSyncPolicy` so an `.active` burst is one
-    ///   cycle, and still frozen under `-freezeSyncState` (P6.21),
-    /// - the rate pack refresh + S8 backfill (PJ.8),
-    /// - the delivery-outbox drain (RV.44) and the feedback-outbox flush (RV.127).
-    ///
-    /// The callers that decide WHEN this runs are the `.task` fallback (a scene
-    /// already `.active` at attach, where no `.active` transition will arrive)
-    /// and the `.active` transition handler above; `didRunAutomaticPass` is what
-    /// keeps two launch-time triggers from each running it.
+    /// separately (the duplicate-request family). Each step's own rationale
+    /// lives in the docs its line names (CONFIG.md, SYNC.md, SCHEMA.md); this
+    /// method only owns the ORDER and the observability. RV.139b: the steps run
+    /// through `AutomaticPassRunner`, which marks each one in the log BEFORE
+    /// its await, so a stall reads as the step reached - never as a pass that
+    /// never ran. `didRunAutomaticPass` (see the property) is what keeps the
+    /// two launch-time triggers from each running it.
     @MainActor
     private func runAutomaticPass() async {
         runPurgeIfNeeded()
-        // Launch counts as a foreground event: the requirement is re-evaluated,
-        // but the UI already drew from the held snapshot - nothing waits on this.
-        await configService.refresh()
-        // P6.2: the monthly summary (if enabled) is re-armed with whatever data
-        // exists now - the fire date is the next 1st at 10:00, so a launch after
-        // more entries refreshes the figure by identifier.
-        await notificationCoordinator.reconcileMonthlySummary()
-        // P6.8: the cycle defers while Low Power Mode is on and drains when the
-        // mode ends (docs/SYNC.md); the automatic cycle and the Settings button
-        // both go through `syncNow`, never a second door (hard rule 1). P6.21:
-        // only a screenshot launch (`-freezeSyncState`) skips it.
-        if !Self.freezesSyncState {
-            await sync.runOpportunisticSync()
-        }
-        // PJ.8: a rate pack refresh that arrives now fills rate-pending entries
-        // (S8 backfill) - silently, never a rewrite (hard rule 13).
-        await AppRates.refresh()
-        // RV.44: drain the delivery outbox - a gateway answer that landed while
-        // the app was gone becomes an inbox suggestion, never a silent rewrite.
-        // Signed-in only and best-effort: a guest has no outbox and a failure
-        // just retries next launch.
-        await inbox.drainOutbox()
-        // RV.127: retry queued feedback on the same cadence; best-effort, a
-        // failure stays queued for the next foreground (hard rule 8).
-        await FeedbackService.outbox.flush()
+        await AutomaticPassRunner.run(steps: [
+            // P6.18b: the UI already drew from the held snapshot - nothing waits.
+            AutomaticPassRunner.Step(code: .config) { await configService.refresh() },
+            // P6.2: re-arm the monthly summary for the next 1st at 10:00.
+            AutomaticPassRunner.Step(code: .summary) {
+                await notificationCoordinator.reconcileMonthlySummary()
+            },
+            // P6.8: the cycle defers under Low Power and drains when it ends; a
+            // screenshot launch (`-freezeSyncState`, P6.21) skips it.
+            AutomaticPassRunner.Step(code: .sync) {
+                if !Self.freezesSyncState {
+                    await sync.runOpportunisticSync()
+                }
+            },
+            // PJ.8: a rate pack refresh fills rate-pending entries (S8 backfill).
+            AutomaticPassRunner.Step(code: .rates) { await AppRates.refresh() },
+            // RV.44: drain the delivery outbox (signed-in only, best-effort).
+            AutomaticPassRunner.Step(code: .delivery) { await inbox.drainOutbox() },
+            // RV.127: retry queued feedback on the same cadence (hard rule 8).
+            AutomaticPassRunner.Step(code: .feedback) {
+                await FeedbackService.outbox.flush()
+            }
+        ], log: AppLog.shared)
     }
 
     /// The delta toast sits just above the owned bar (and its raised circle):
