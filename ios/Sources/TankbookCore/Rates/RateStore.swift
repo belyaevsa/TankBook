@@ -30,11 +30,12 @@ public final class RateStore: @unchecked Sendable {
 
     private struct State {
         var rates: [ExchangeRate]
-        /// RV.59: the pack refresh currently on the wire. Two launch triggers
-        /// (the root's foreground pass and - until RV.59 removed it - Home's own
-        /// first-load trigger) used to fire two `/rates/pack` requests for one
-        /// launch; a second `refresh()` joins this task instead of opening a
-        /// second fetch. Nil when idle.
+        /// RV.59 + RV.139: the pack refresh currently on the wire. Two launch
+        /// triggers used to fire two `/rates/pack` requests for one launch; a
+        /// second `refresh()` joins this task instead of opening a second
+        /// fetch. The slot is claimed and cleared by the fetch task itself
+        /// (see `refresh`), never by the caller, so it is nil whenever no fetch
+        /// is running.
         var inFlightRefresh: Task<Void, Never>?
     }
 
@@ -43,6 +44,7 @@ public final class RateStore: @unchecked Sendable {
     private let clock: Clock
     private let calendar: Calendar
     private let powerState: any PowerStateProvider
+    private let log: TankbookLog?
 
     /// Builds a store over `seed` rows. `calendar` determines what "the entry's
     /// day" means when matching a `Date` to a rate row's day; injectable so
@@ -53,11 +55,13 @@ public final class RateStore: @unchecked Sendable {
     public init(seed: [ExchangeRate], fetcher: (any RateFetcher)? = nil,
                 clock: @escaping Clock = { Date() },
                 calendar: Calendar = .current,
-                powerState: any PowerStateProvider = ProcessInfoPowerState()) {
+                powerState: any PowerStateProvider = ProcessInfoPowerState(),
+                log: TankbookLog? = nil) {
         self.fetcher = fetcher
         self.clock = clock
         self.calendar = calendar
         self.powerState = powerState
+        self.log = log
         self.lock = OSAllocatedUnfairLock(initialState: State(rates: seed.map {
             $0.normalizedDay(in: calendar)
         }))
@@ -149,6 +153,8 @@ public final class RateStore: @unchecked Sendable {
     /// Mode postponed it (or there is no fetcher). The refresh is opportunistic
     /// work (docs/SYNC.md -> Low Power Mode table), so the trigger defaults to
     /// `.background`; a user-initiated fetch would pass `.userInitiated`.
+    /// Every branch records itself as a `rates.refresh` log event (RV.139) when
+    /// a log is wired.
     @discardableResult
     public func refresh(trigger: PowerWorkTrigger = .background) async -> Bool {
         guard let fetcher else { return false }
@@ -157,23 +163,46 @@ public final class RateStore: @unchecked Sendable {
         // backfill later, fill-blanks-only.
         if LowPowerPolicy.defers(work: .ratePackRefresh, trigger: trigger,
                                  lowPowerMode: powerState.isLowPowerModeEnabled) {
+            log?.emit(RatePackRefresh(trigger: trigger, outcome: .deferred))
             return false
         }
-        // RV.59: single-flight - a second trigger while a pack refresh is on the
-        // wire joins it instead of opening a second `/rates/pack` request. The
-        // check and the task creation are one synchronous region (no await
-        // between them), so two racing calls cannot both decide to fetch.
-        if let existing = lock.withLock({ $0.inFlightRefresh }) {
-            await existing.value
-            return true
+        // RV.59 + RV.139: single-flight, with the slot owned by the fetch task.
+        //
+        // The claim is ONE lock region: a racing `refresh()` either finds the
+        // in-flight task and joins it, or becomes the sole creator - two racing
+        // triggers can never both decide to fetch. The clear is NOT in the
+        // caller: it is the fetch task's last act (a `defer` in the task body),
+        // on the unstructured task that no caller lifecycle - SwiftUI `.task`
+        // cancellation, a dropped handle - can interrupt, so the slot is
+        // released the moment the fetch body finishes and cannot be left set
+        // after it. Because exactly one task ever occupies the slot and it
+        // clears before any newer claim can read nil, the clear is safe
+        // unconditionally. Each branch records itself (RV.139): a session that
+        // shows only `joined` lines, or `attempted` without the fetch's own
+        // `net.request`, is diagnosed from the log.
+        enum Claim {
+            case joined(Task<Void, Never>)
+            case started(Task<Void, Never>)
         }
-        let task = Task { await self.fetchAndMerge(fetcher: fetcher) }
-        lock.withLock { $0.inFlightRefresh = task }
-        await task.value
-        // Only the creator reaches this line (a joiner returned earlier), and a
-        // newer refresh cannot be created while `inFlightRefresh` is still set,
-        // so clearing unconditionally can never drop a newer task.
-        lock.withLock { $0.inFlightRefresh = nil }
+        let claim = lock.withLock { state -> Claim in
+            if let existing = state.inFlightRefresh {
+                return .joined(existing)
+            }
+            let task = Task {
+                defer { self.lock.withLock { state in state.inFlightRefresh = nil } }
+                await self.fetchAndMerge(fetcher: fetcher)
+            }
+            state.inFlightRefresh = task
+            return .started(task)
+        }
+        switch claim {
+        case .joined(let existing):
+            log?.emit(RatePackRefresh(trigger: trigger, outcome: .joined))
+            await existing.value
+        case .started(let task):
+            log?.emit(RatePackRefresh(trigger: trigger, outcome: .attempted))
+            await task.value
+        }
         return true
     }
 

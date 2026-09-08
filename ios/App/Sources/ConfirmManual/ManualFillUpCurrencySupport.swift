@@ -48,7 +48,8 @@ enum AppRates {
         storeBuilt = true
         let persisted = loadPersisted()
         let seed = (try? RateSeedStore.bundledSeed()) ?? []
-        let store = RateStore(seed: seed, fetcher: makeFetcher(), powerState: powerState)
+        let store = RateStore(seed: seed, fetcher: makeFetcher(), powerState: powerState,
+                              log: AppLog.shared)
         // Fetched rows already persisted (and the seed written back on a prior
         // launch) replace seed rows for the same key - `merge` is keyed.
         store.merge(persisted)

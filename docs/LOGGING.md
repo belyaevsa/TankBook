@@ -170,6 +170,23 @@ The pair is emitted around **user-initiated writes only** (capture, manual, impo
 ### Sync client
 `sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
 
+### Reference data refreshes (RV.139)
+`rates.refresh` – `outcome` (`attempted` / `joined` / `deferred`), `trigger`
+(`background` / `userInitiated`). One line per `RateStore.refresh` decision,
+recorded at the branch that took it: `attempted` means the refresh claimed the
+single-flight slot and the fetch's own `net.request`/`net.response` pair should
+follow; `joined` means it rode an in-flight fetch (RV.59) and issued no request
+of its own; `deferred` means Low Power Mode postponed it and it drains when the
+mode ends (`docs/SYNC.md` -> Low Power Mode table). This is the line that
+answers "the client never asks for exchange rates" in one session: three
+production builds showed auth, sync and config traffic and not one
+`/rates/pack`, and nothing recorded which branch the rate refresh took - a
+session of only `joined` lines names the single-flight slot never being
+released, and an `attempted` line with no `net.request` after it names a fetch
+dying before the transport. **Never a rate, an amount, a date or a currency
+pair** - the pack's contents have no route into the event by construction
+(hard rule 12).
+
 ### Async edges (OB.2)
 The events that can only be written at the moment they happen, because after the fact they are unrecoverable:
 - `app.lifecycle` – phase (active/inactive/background) on every scene-phase transition.
