@@ -40,11 +40,13 @@ Three rules that come from things that went wrong:
 
 | # | Task | Model | Brief | Why this model / this position |
 |---|---|---|---|---|
-| 1 | **RV.144** *(running)* | flash | `agents/briefs/RV.144.md` | Cause pinned to two lines; the owner's live bug |
-| 2 | RV.145 | flash | *not yet written* | Cause pinned; carries the symbols-everywhere decision. Before RV.147, which builds on the accumulator it changes |
-| 3 | RV.136 | flash | `agents/briefs/RV.136.md` | Mechanism pinned to `RecordMerge.swift:99-107` + `SyncEngine.swift:318-322`; acceptance is an unfakeable push count. **Escalate to pro if flash cannot reproduce the loop** - this is its third occurrence |
-| 4 | RV.146 | flash | *not yet written* | Adaptive currency chips. Independent of the money rows; design closed by the RV.115 precedence |
-| 5 | RV.147 | flash | *not yet written* | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes after it |
+| ~~1~~ | ~~RV.144~~ **shipped** `5471bac` | flash | `agents/briefs/RV.144.md` | Cause pinned to two lines; the owner's live bug |
+| ~~1b~~ | ~~RV.139b~~ **shipped** `e92d147` | flash | `agents/briefs/RV.139b.md` | Observability so the next device log can answer RV.139 |
+| 2 | **RV.136** *(running)* | flash | `agents/briefs/RV.136.md` | Mechanism pinned; acceptance is an unfakeable push count |
+| 3 | RV.145 | flash | `agents/briefs/RV.145.md` | Cause pinned to the accumulator; carries the symbols-everywhere decision. **Before RV.147**, which builds on the accumulator it reshapes |
+
+| 4 | RV.146 | flash | `agents/briefs/RV.146.md` | Adaptive currency chips. Independent of the money rows; design closed by the RV.115 precedence |
+| 5 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - the brief tells the agent to stop if RV.145 has not landed |
 | 6 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | Interval math in core; boundary assertions make it mechanical. Point release, so it sits behind the v1 rows |
 | 7 | RV.117b **[v1.1]** | — | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
 
