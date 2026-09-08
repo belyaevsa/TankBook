@@ -58,6 +58,9 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | 2 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - its brief opens by telling the agent to verify RV.145 landed and to stop if it has not |
 | 3 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | The valid-interval math in core; boundary assertions make it mechanical. A point release, so it sits behind the v1 rows |
 | 4 | RV.117b **[v1.1]** | - | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
+| 5 | PJ.28 **[v1.x]** | flash | `agents/briefs/PJ.28.md` | Owner priority. Half delivered by [RV.62]; only the ATTACHMENT remains, and it is the one row in the v1.1 queue that loses data |
+| 6 | PJ.25 **[v1.x]** | flash | `agents/briefs/PJ.25.md` | Owner priority. A navigation row, not a feature one: the shelf is built and tested, it needs a door from the Garage |
+| 7 | PJ.19 **[v1.1]** | flash | `agents/briefs/PJ.19.md` | Owner priority. The ranking and the permission-optional location are genuinely unbuilt; the row's "inert label" half is already stale |
 
 ### Shipped this session (2026-09-08/09)
 

@@ -63,10 +63,55 @@ def build() -> str:
     return "\n".join(lines)
 
 
+
+# --- Triage-table status stamping -------------------------------------------
+#
+# The launch-triage and priority-queue tables name task ids in prose ("**PJ.8**
+# rate backfill trigger"). They were hand-annotated when a row shipped, which
+# means they were annotated for four rows and then never again - so the tables
+# went on describing shipped work as outstanding, and a reader trusted them.
+# Every id mentioned in such a row now carries the status its OWN row has.
+
+TRIAGE_ROW = re.compile(r"^\|\s*(\d+)\s*\|")
+ID_IN_PROSE = re.compile(r"(?<!\[)\*\*((?:[A-Z]{1,3}\d*\.)+\d+[a-z]?)\*\*")
+
+
+def statuses() -> dict:
+    """Every task id mapped to its real status marker."""
+    found = {}
+    for path in (OPEN_FILE, DONE_FILE):
+        for line in path.read_text(encoding="utf-8").split("\n"):
+            match = ROW.match(line)
+            if match:
+                found[match.group(2).strip().split(" ")[0].strip("*")] = match.group(1)
+    return found
+
+
+def stamp_triage(doc: str) -> str:
+    """Prefix every id named in a numbered triage row with its own status."""
+    known = statuses()
+    out = []
+    for line in doc.split("\n"):
+        if TRIAGE_ROW.match(line) and not ROW.match(line):
+            def mark(match):
+                ident = match.group(1)
+                status = known.get(ident)
+                if status is None:
+                    return match.group(0)
+                return f"**[{status}] {ident}**"
+            # Only the first cell after the number carries the task names.
+            cells = line.split("|")
+            if len(cells) > 2:
+                cells[2] = ID_IN_PROSE.sub(mark, cells[2])
+                line = "|".join(cells)
+        out.append(line)
+    return "\n".join(out)
+
+
 def main() -> int:
     doc = OPEN_FILE.read_text(encoding="utf-8")
     start, finish = doc.index(BEGIN), doc.index(END) + len(END)
-    updated = doc[:start] + build() + doc[finish:]
+    updated = stamp_triage(doc[:start] + build() + doc[finish:])
     if "--check" in sys.argv:
         if updated != doc:
             print("docs/TASKS.md index is stale - run scripts/tasks-index.py", file=sys.stderr)

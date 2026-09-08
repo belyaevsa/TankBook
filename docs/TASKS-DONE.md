@@ -45,36 +45,11 @@ L a week-plus). Ordering inside a tier is the recommended sequence.*
 
 | Order | Task | Why it blocks | Size |
 |---|---|---|---|
-| 1 | **[x] PJ.1** capture pipeline (`520ea0c`) + **[ ] PJ.2** keep the photo | The hero feature: no camera or Photos image ever becomes a `ConfirmPrefill`. A "scan, don't type" app whose scan door is painted on is not this product, and P2's own exit gate (5 live fill-ups < 15 s) cannot be measured until it exists | L |
-| 2 | **SH.1** deploy the backend (new row below) | Decision 1. Import, rates, config, gateway, sync all route through it | M |
-| 3 | **[x]** **PR.17** rate limiting + body caps · **PR.18** presign constraints + orphan sweep · **PR.34** refuse to start with dev secrets (`2b83a89`) | Must land *before* SH.1 is public: unauthenticated `/import/parse` can fill blob storage at line rate today, and a presigned PUT accepts any bytes of any size | S+S+S |
-| 4 | **[x]** **PR.3** config layer live, closes P0.12 (`0914a33` + `1f0f71c`); PR.3c deferred | With the fetcher `nil` and nine inline base-URL fallbacks, no kill switch, quota or `appUpdate` can reach a device – there is no way to retire a broken build without a store release | M |
-| 5 | **[x]** **PR.1** token refresh · **PR.2** sign-out revokes (`682f3d4`) · **PJ.13** first push after sign-in (`38005cc`) | Sign-in ships (decision 2) and every account stops syncing ~60 min after sign-in with a false "update the app"; the second device restores an empty account. Alternative if time is short: hide Sign in for v1 and defer all three – say so in `VISION.md` | M+S+S |
-| 6 | **PJ.10** import date-format question · **PJ.9** non-fill rows commit · **PJ.11** validation on every write | Import is MVP; today an ambiguous D/M file silently imports every row as M/D – the exact stats-poisoning misread J2 warns about – and service/import rows bypass the timeline check | S+S+S |
-| 7 | **PR.6** transport timeouts | 60 s frozen Sign in / Sync now / Import on a half-connected radio, with no cancel | S |
-| 8 | **PR.5** app logging through the redactor | Forty `.public` error-description log sites outside the redactor; the privacy promise (hard rule 12) is upheld by a GRDB default, not by our code | S |
-| 9 | **P6.6** store assets EN/RU, privacy labels, TestFlight ring; the ERRORS.md coverage walk it carries | Submission itself. Two declarations still need the owner (`ITSAppUsesNonExemptEncryption`, and `UIBackgroundModes` only with PJ-level push wiring – which is deferred, so it stays absent) | M |
-| 10 | **SH.2** release build path (new row below) | iOS CI is disabled and never completed a run; a TestFlight build needs a reproducible archive from a clean checkout | S |
 
 ### Tier 2 · Required for v1 (promised, cheap relative to the promise)
 
 | Order | Task | Promise it keeps | Size |
 |---|---|---|---|
-| 11 | **PJ.3** Welcome root with three paths | `SCREENMAP.md` root; J1/J11: a reinstall or migrant is funnelled into "Add your first car"; the wrong-provider detection can never fire | M |
-| 12 | **PJ.14** live "+N km since last" | Named in the `VISION.md` MVP fill-up row and `DESIGN.md:67` | S |
-| 13 | **PJ.17** empty-but-alive Confirm (with PJ.1) | F1: the failure state *is* the manual form, keyboard on Total, photo kept | S |
-| 14 | **PJ.8** rate backfill trigger | F9 / multi-currency MVP: pending rates stay pending forever today | S |
-| 15 | **PJ.4** + **PJ.5** Reminders reachable, notification tap routed | P3 is "COMPLETE" and the screen has no production entry point; a fired notification lands nowhere | S+S |
-| 16 | **PJ.6** Type-it is mode-aware · **PJ.12** hide the dead Charge chip · **P2.3b** fuel row offers only the car's fuels | Hard rules 15 and 13 on the Confirm/Capture surfaces | S+S+S |
-| 17 | **PJ.36** "Export everything" works (or the row goes) · **PJ.38** CSV export | `VISION.md:42` "one-tap CSV/JSON export – always free"; a dead row is a dead end | S+S |
-| 18 | **PR.14** real "Changed by sync" + batch toast · **PR.13** offline vs server-down · **PR.4** persist `SyncPayloadMemory` | Hard rule 8 and hard rule 13 once sync ships; overwrites are stored but invisible, and a stale device can revert an edit | M+S+S |
-| 19 | **PR.8** trace + client version on the wire | The only way a support report maps to a server line; without it every field bug is a guess | S |
-| 20 | **PR.7** retry with backoff | The 429 notice promises "Retrying in N minutes" and nothing retries | S |
-| 21 | **PJ.20** About & feedback (feedback row + improve-scanning consent) | `ERRORS.md` About; P6.10 and the import wizard both route "send us this case" to a screen that does not exist | S |
-| 22 | **PJ.33** per-source export guide (MFM at minimum) | With only one importer shipping (see deferred P5.4b), the guide is what tells a switcher what works | S |
-| 23 | **P6.13** RU clips at Dynamic Type XL · **P6.5** accessibility audit | `DESIGN.md` accessibility floor; P6's exit gate | S+M |
-| 24 | **PJ.7** reminders in Recently deleted + honest alert copy · **P1.13** grouped odometer · **PJ.47** doc reconciliation | Hard rule 8 copy that currently lies; a formatter bypass; the ledger's own honesty | S+S+S |
-| 25 | **PR.16** explicit file protection + the promised test | `SECURITY.md` names it as enforcement; met by platform default today, so last in this tier | S |
 
 ### The v1.1 priority queue (product owner, 2026-08-31)
 
@@ -89,17 +64,6 @@ calls - the cheapest rows in the backlog.
 
 | # | Task | What the user hits today |
 |---|---|---|
-| 1 | **PJ.28** | **Expense capture photographs the receipt and discards it.** The shutter behaves normally; `ExpenseEntryView` saves `attachments: []`. Nothing is shown, nothing is kept - the only row here that silently loses data |
-| 2 | **PJ.22** | **The service log never proposes the next service.** No lifetime editor, so `proposedReminderId` is always nil. J7's promise is "the app proposes the next reminder"; today you log the past and remember the future yourself |
-| 3 | **PJ.24** | **One door at completion.** The ReminderComplete sheet offers Type and Skip while the invoice is in the user's hand - hard rule 15 says the camera is a peer at every entry point |
-| 4 | **PJ.23** | **A service line is frozen once saved.** Title, category and cost are uneditable, so a typo means delete and re-enter, losing attachments and links. `.other` "promoted later without data loss" has no promotion path |
-| 5 | **PJ.26** | **Tires and their price never meet.** `purchaseExpenseId` exists in the schema and migration and is written **nowhere** - a tire set cannot say what it cost |
-| 6 | **PJ.27** | **Nothing reminds you to swap back in spring.** A mount is recorded, then silence for six months |
-| 7 | **PJ.25** | **The parts shelf is unreachable from the Garage** - it works, but only opens from inside a service entry |
-| 8 | **PJ.19** | Station suggestion: the logic is **written** in `JOURNEYS.md`/`SCHEMA.md` and never called |
-| 9 | **PJ.34** | F9a already ranks suggestions; the UI does not consume them, so receipt/QR date priority is computed and discarded |
-| 10 | **PJ.35** | `.blobPrefetch` is a `PowerWorkKind` case **nothing produces** (P6.20) - photos never prefetch |
-| 11 | **PJ.45** | `paceLimitKmPerDay` is a real per-vehicle field **edited nowhere in the app** |
 
 Rows 8-11 are the pattern worth watching: **the mechanism exists, tested, and no user can reach
 it.** Ask what produces a case, not only what handles it - the same question that produced P6.20.
