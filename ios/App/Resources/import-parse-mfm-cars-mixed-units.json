@@ -1,0 +1,43 @@
+{
+  "importId": "00000000-0000-4000-8000-000000000328",
+  "format": "mfm",
+  "scope": "vehicle",
+  "candidates": [
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-24T00:00:00Z",
+      "odometer": null,
+      "volumeL": 67,
+      "unitPrice": "1.868955",
+      "money": { "amount": "125.22", "currency": "USD" },
+      "fuelKind": "diesel",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Neste",
+      "vehicleName": "Volvo",
+      "provenance": { "tag": "import", "source": "mfm" },
+      "sourceRow": 1
+    },
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-12T00:00:00Z",
+      "odometer": null,
+      "volumeL": 55,
+      "unitPrice": "2",
+      "money": { "amount": "110", "currency": "USD" },
+      "fuelKind": "diesel",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Shell",
+      "vehicleName": "AUDI A4 Avant 2.0 TDI Komfort - 105.00kW [2009]",
+      "provenance": { "tag": "import", "source": "mfm" },
+      "sourceRow": 4
+    }
+  ],
+  "unparsed": [],
+  "ambiguities": [],
+  "vehicleGroups": [
+    { "name": "Volvo", "sourceRows": [1] },
+    { "name": "AUDI A4 Avant 2.0 TDI Komfort - 105.00kW [2009]", "sourceRows": [4] }
+  ]
+}

@@ -56,6 +56,7 @@ enum ImportTestSeed {
     static func seedFlowIfRequested(model: ImportFlowModel) {
         let arguments = ProcessInfo.processInfo.arguments
         model.reloadVehicles()
+        applyMixedDistanceUnitIfRequested(arguments: arguments, model: model)
         if arguments.contains("-seedImportPreview") {
             model.installSeededParse(resourceName: "import-parse-mfm",
                                      fileName: "MyFuelManager_2026-08.csv",
@@ -74,13 +75,18 @@ enum ImportTestSeed {
             // already decided (Volvo -> the existing Volvo V60, AUDI -> a new
             // car), so the figures, the merge duplicate count and the summary
             // bar all render at once.
-            model.installSeededCarsParse(resourceName: "import-parse-mfm-cars",
+            let resourceName = arguments.contains("-seedImportMixedUnits")
+                ? "import-parse-mfm-cars-mixed-units" : "import-parse-mfm-cars"
+            model.installSeededCarsParse(resourceName: resourceName,
                                          fileName: "MyFuelManager_2026-08.csv",
                                          rawFileResource: "import-mfm-cars")
             if let existing = model.liveVehicles.first {
                 model.importIntoExistingVehicle(existing, at: 0)
             }
             model.importAsNewCar(at: 1)
+            if arguments.contains("-seedImportMixedUnits") {
+                model.showReview()
+            }
         } else if arguments.contains("-seedImportCars") {
             // RV.86: the multi-car mapping gate, freshly reached - every source
             // car undecided, Continue disabled (the L4 "never default the
@@ -144,6 +150,20 @@ enum ImportTestSeed {
                 .appendingPathComponent("seed-read-failed-\(UUID().uuidString).csv")
             model.parse(fileURL: url)
         }
+    }
+
+    /// Makes the existing car use miles before the decided two-car seed maps
+    /// its other source car into a new kilometre car. Kept as a separate flag
+    /// so the established RV.86 screenshot seed stays byte-for-byte unchanged.
+    @MainActor
+    private static func applyMixedDistanceUnitIfRequested(arguments: [String],
+                                                          model: ImportFlowModel) {
+        guard arguments.contains("-seedImportMixedUnits"),
+              let repository = try? AppStore.repository(),
+              var existing = try? repository.liveVehicles().first else { return }
+        existing.units.distance = .mi
+        try? repository.upsertVehicle(existing)
+        model.reloadVehicles()
     }
 }
 #endif

@@ -104,10 +104,10 @@ final class ImportFlowModel {
     /// distinct name, which keeps the single `targetCar` flow untouched.
     var carPlan: [ImportCarRow] = []
 
-    /// The unit every odometer in the review list renders in. Taken from the
-    /// target car when there is one; a brand-new car has not chosen yet, so it
-    /// falls back to the app default. Never a hardcoded "km" - hard rule 10, and
-    /// the `Text(_: String)` blind spot that let one ship (see L10n.swift).
+    /// The global fallback unit for a row whose destination is not yet known.
+    /// Taken from the target car when there is one; a brand-new car has not
+    /// chosen yet, so it falls back to the app default. Never a hardcoded "km"
+    /// - hard rule 10, and the `Text(_: String)` blind spot that let one ship.
     var distanceUnit: DistanceUnit {
         if case .existing(let vehicle) = targetCar { return vehicle.units.distance }
         return liveVehicles.first?.units.distance ?? .km
@@ -116,7 +116,9 @@ final class ImportFlowModel {
     /// A review row's odometer renders in ITS car's unit (RV.86: a multi-car
     /// file's rows can land in cars with different units). Resolves the row's
     /// fill/non-fuel vehicle through the mapping; a single-name file's rows all
-    /// carry the target car's id, so this equals `distanceUnit` there.
+    /// carry the target car's id, so this equals `distanceUnit` there. An
+    /// unparsed row can have no destination while a multi-car mapping is still
+    /// unset; that state deliberately uses the global fallback above.
     func distanceUnit(for row: ImportReviewRow) -> DistanceUnit {
         let vehicleID = row.fill?.vehicleId ?? row.nonFuelVehicleID
         if let vehicleID, let unit = vehicleDistanceUnit(for: vehicleID) {

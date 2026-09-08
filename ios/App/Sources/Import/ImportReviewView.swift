@@ -75,7 +75,6 @@ private struct ImportReviewRowView: View {
     @State private var odometerText = ""
     @State private var totalText = ""
     @State private var showingRawLine = false
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             header
@@ -208,12 +207,13 @@ private struct ImportReviewRowView: View {
             }
             if let odometer = record.odometer {
                 ImportFieldCell(label: "Odometer",
-                                value: "\(ImportFormatting.odometer(odometer)) \(L10n.distanceUnit(model.distanceUnit))",
+                                value: "\(ImportFormatting.odometer(odometer)) "
+                                    + L10n.distanceUnit(model.distanceUnit(for: row)),
                                 marked: false)
             } else {
                 // A blank stays a blank - never `0` (F6b).
                 ImportFieldCell(label: "Odometer",
-                                value: "– \(L10n.distanceUnit(model.distanceUnit))",
+                                value: "– \(L10n.distanceUnit(model.distanceUnit(for: row)))",
                                 marked: false)
             }
             if let note = record.note, !note.isEmpty {
@@ -265,7 +265,7 @@ private struct ImportReviewRowView: View {
                 ImportTotalEditorCell(text: $totalText, onSubmit: commitTotal)
             }
             ImportOdometerCell(fill: fill, sourceRow: row.sourceRow,
-                               distanceUnit: model.distanceUnit,
+                               distanceUnit: model.distanceUnit(for: row),
                                isEditing: showingOdometerEditor,
                                text: $odometerText, onSubmit: commitOdometer,
                                marked: odometerMarked)
