@@ -344,7 +344,12 @@ public struct SyncMerge: LogEvent {
     /// `recordsApplied` is a count, not a list - the merge of N records is one
     /// line (docs/LOGGING.md §7 volume discipline). Conflicts are aggregated by
     /// SYNC.md scenario so conflict behaviour is observable in the field.
-    public init(recordsApplied: Int, conflicts: [SyncConflict], durationMs: Int? = nil) {
+    /// `dirtiedByPull` counts the records a pull application left queued for
+    /// push (a `.fieldMerge` Vehicle, or an RV.35 divergence the `.local` arm
+    /// re-dirtied). On an idle single-device account it must be zero; a
+    /// non-zero count is the echo-loop signal (docs/LOGGING.md §4).
+    public init(recordsApplied: Int, conflicts: [SyncConflict], durationMs: Int? = nil,
+                dirtiedByPull: Int = 0) {
         var fields: [LogField] = [
             .safe("recordsApplied", recordsApplied),
         ]
@@ -353,6 +358,9 @@ public struct SyncMerge: LogEvent {
                 .map { "\($0.scenario.rawValue):\($0.count)" }
                 .joined(separator: ",")
             fields.append(.safe("conflict", tally))
+        }
+        if dirtiedByPull > 0 {
+            fields.append(.safe("dirtiedByPull", dirtiedByPull))
         }
         if let durationMs {
             fields.append(.safe("durationMs", durationMs))

@@ -216,7 +216,8 @@ public struct SyncEngine {
         // §7): records that arrived plus the conflicts the merge actually
         // performed, tagged by SYNC.md scenario. Emitted only for a cycle that
         // merged something - an inert cycle says nothing.
-        if tally.pulled > 0 || tally.overwriteConflicts > 0 || tally.pushTransportConflicts > 0 {
+        if tally.pulled > 0 || tally.overwriteConflicts > 0 || tally.pushTransportConflicts > 0
+            || tally.dirtiedByPull > 0 {
             var conflicts: [SyncConflict] = []
             if tally.overwriteConflicts > 0 {
                 conflicts.append(SyncConflict(scenario: .s1, count: tally.overwriteConflicts))
@@ -224,7 +225,8 @@ public struct SyncEngine {
             if tally.pushTransportConflicts > 0 {
                 conflicts.append(SyncConflict(scenario: .s6, count: tally.pushTransportConflicts))
             }
-            log?.emit(SyncMerge(recordsApplied: tally.pulled, conflicts: conflicts))
+            log?.emit(SyncMerge(recordsApplied: tally.pulled, conflicts: conflicts,
+                                dirtiedByPull: tally.dirtiedByPull))
         }
 
         // A clamped push means this device's clock runs ahead of the server's -
@@ -313,11 +315,16 @@ public struct SyncEngine {
             if !RecordMerge.recordsEqual(local.record, remote.asRecord())
                 || local.record.deleted != remote.deleted {
                 try repository.markDirty(id: remote.id, entityType: remote.entityType)
+                tally.dirtiedByPull += 1
             }
             return []
         case .fieldMerge:
-            // S9: the merged Vehicle is a new write - store it dirty so it pushes.
+            // S9: the merged Vehicle is a genuine new write (its content differs
+            // from both sides - RecordMerge reports nothing else as `.fieldMerge`)
+            // - store it dirty so it pushes. RV.136: a content-equal merge never
+            // reaches here, so a dirty store is never a phantom echo push.
             let touched = try repository.applyRecord(result.keep, syncState: .dirty)
+            tally.dirtiedByPull += 1
             payloadMemory.recordSynced(id: remote.id, payload: result.keep.payload)
             return touched
         }
@@ -362,6 +369,10 @@ public struct SyncEngine {
         var overwriteConflicts = 0
         var pushTransportConflicts = 0
         var clamped = 0
+        /// Records a pull application left queued for push (`.fieldMerge`
+        /// Vehicle, or an RV.35 divergence the `.local` arm re-dirtied) - the
+        /// echo-loop signal on an otherwise idle account.
+        var dirtiedByPull = 0
     }
 
     private func pushAll(trigger: PowerWorkTrigger, tally: SyncCycleTally) async throws -> PushSummary {
