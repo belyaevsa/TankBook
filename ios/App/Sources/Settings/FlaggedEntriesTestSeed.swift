@@ -13,6 +13,15 @@ import TankbookCore
 /// retiring one). The orchestrator's mutation proved the gap - `.onAppear`
 /// instead of `.onChange(of: revision)` left the whole suite green.
 enum FlaggedEntriesTestSeed {
+    /// RV.133 pose: when `-presentScreen flaggedEntries` shows this screen
+    /// directly, Settings never appears to run its own seed - so the screen
+    /// seeds itself, exactly as Recently deleted seeds itself on its own
+    /// direct present. Idempotent; inert in every Settings-reached flow.
+    @MainActor
+    static func seedForDirectPresentIfRequested() async {
+        SettingsTestSeed.seedFlaggedListForDirectPresentIfRequested()
+    }
+
     @MainActor
     static func resolveOneInPlaceIfRequested(_ toastCenter: AppToastCenter) async {
         guard ProcessInfo.processInfo.arguments.contains("-resolveFlaggedInPlace") else { return }

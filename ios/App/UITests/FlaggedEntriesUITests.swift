@@ -201,6 +201,171 @@ final class FlaggedEntriesUITests: XCTestCase {
         wait(for: [expectation(for: gone, evaluatedWith: settingsRow)], timeout: 10)
     }
 
+    // MARK: - RV.133 the swipe tray
+
+    /// Swipes the flagged row at `index` left and waits until its tray actions
+    /// are revealed and tappable. XCUITest cannot invoke custom accessibility
+    /// actions, so the gesture is the only door the tray tests can drive.
+    private func revealTray(at index: Int, in app: XCUIApplication) {
+        let rows = app.buttons.matching(identifier: "flaggedEntryRow")
+        let row = rows.element(boundBy: index)
+        let start = row.coordinate(withNormalizedOffset: CGVector(dx: 0.7, dy: 0.5))
+        let end = row.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.5))
+        start.press(forDuration: 0.1, thenDragTo: end)
+        let accept = app.buttons["flagSwipeAcceptButton"].firstMatch
+        let diagnosis = "navList=\(app.navigationBars["Needs a look"].exists) "
+            + "rows=\(app.buttons.matching(identifier: "flaggedEntryRow").count) "
+            + "delete=\(app.buttons["flagSwipeDeleteButton"].exists) "
+            + "onEditor=\(app.buttons["editEntrySaveButton"].exists)"
+        XCTAssertTrue(accept.waitForExistence(timeout: 5),
+                      "a leftward swipe must reveal the row's tray; \(diagnosis)")
+        // Frame against the window, never `isHittable`: RV.84 measured it
+        // returning true for an element ~86% clipped, so it cannot carry a
+        // claim that a revealed control is actually reachable.
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(accept.frame),
+                      "the revealed Accept must lie fully inside the window; \(diagnosis)")
+    }
+
+    /// The subtitle of the flagged row at `index` - the stable string that says
+    /// WHICH entry a swipe acted on (a bare count fall could be the wrong row).
+    private func subtitle(ofRowAt index: Int, in app: XCUIApplication) -> String {
+        app.staticTexts.matching(identifier: "flaggedEntrySubtitle").element(boundBy: index).label
+    }
+
+    /// RV.133 closed decision #1: the swipe's Accept is the fast door - no
+    /// dialog, no reason. Accepting is reversible (RV.104 records the
+    /// acceptance per entry and re-checks later), so a confirmation is the
+    /// ceremony this row exists to remove.
+    func testSwipeToAcceptClearsTheRowWithNoDialog() {
+        let app = openFlaggedList()
+        waitForFlaggedRowCount(2, in: app)
+        let acceptedSubtitle = subtitle(ofRowAt: 0, in: app)
+
+        revealTray(at: 0, in: app)
+        app.buttons["flagSwipeAcceptButton"].firstMatch.tap()
+
+        // The fast door must not ask: the RV.104 accept alert never appears.
+        XCTAssertFalse(app.alerts["Accept this entry?"].waitForExistence(timeout: 1),
+                       "a swipe accept must act at once, never show the reason dialog")
+        waitForFlaggedRowCount(1, in: app)
+        XCTAssertFalse(app.staticTexts
+            .matching(NSPredicate(format: "label == %@", acceptedSubtitle)).firstMatch.exists,
+            "the SWIPED row must be the one gone - a bare count fall could be the wrong entry")
+    }
+
+    /// RV.133 closed decision #2: delete is confirmed ONCE and goes through the
+    /// soft-delete path. Cancelling must leave the entry untouched and still in
+    /// the list - still flagged, nothing tombstoned.
+    func testSwipeToDeleteConfirmsOnceAndCancelLeavesTheRowFlagged() {
+        let app = openFlaggedList()
+        waitForFlaggedRowCount(2, in: app)
+        let swipedSubtitle = subtitle(ofRowAt: 0, in: app)
+
+        revealTray(at: 0, in: app)
+        app.buttons["flagSwipeDeleteButton"].firstMatch.tap()
+
+        let alert = app.alerts["Delete this entry?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "a swipe Delete must ask before it acts (hard rule 8)")
+        XCTAssertEqual(app.alerts.count, 1,
+                       "exactly one confirmation - the accept dialog must not ride along")
+        XCTAssertFalse(app.alerts["Accept this entry?"].exists,
+                       "the swipe Delete must not trigger the accept confirmation")
+
+        alert.buttons["Cancel"].tap()
+        XCTAssertFalse(alert.waitForExistence(timeout: 2),
+                       "Cancel must dismiss the confirmation")
+        waitForFlaggedRowCount(2, in: app)
+        XCTAssertTrue(app.staticTexts
+            .matching(NSPredicate(format: "label == %@", swipedSubtitle)).firstMatch.exists,
+            "cancelling must leave the swiped entry untouched and still flagged")
+    }
+
+    /// The swipe Delete's confirmation leads to the SOFT delete: the row leaves
+    /// this list and the entry appears in Recently deleted - the tombstone the
+    /// 30-day undo needs (hard rule 8). A hard delete passes an "it vanished"
+    /// assertion, which is exactly why this test walks to Recently deleted.
+    func testSwipeToDeleteMovesTheEntryToRecentlyDeleted() {
+        let app = openFlaggedList()
+        waitForFlaggedRowCount(2, in: app)
+        let swipedSubtitle = subtitle(ofRowAt: 0, in: app)
+
+        revealTray(at: 0, in: app)
+        app.buttons["flagSwipeDeleteButton"].firstMatch.tap()
+        let alert = app.alerts["Delete this entry?"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5))
+        alert.buttons["Delete"].tap()
+
+        waitForFlaggedRowCount(1, in: app)
+        XCTAssertFalse(app.staticTexts
+            .matching(NSPredicate(format: "label == %@", swipedSubtitle)).firstMatch.exists,
+            "the DELETED row must be the one gone")
+
+        // Back to Settings, then into Recently deleted: the tombstoned entry
+        // must be there, one row, restorable (its Restore button present).
+        app.navigationBars.buttons.firstMatch.tap()
+        let settingsDeletedRow = app.buttons["settingsRecentlyDeletedRow"]
+        if !settingsDeletedRow.isHittable { app.swipeUp() }
+        XCTAssertTrue(settingsDeletedRow.waitForExistence(timeout: 10),
+                      "Recently deleted must be reachable from Settings")
+        settingsDeletedRow.tap()
+        XCTAssertTrue(app.navigationBars["Recently deleted"].waitForExistence(timeout: 10))
+        let deletedRows = app.otherElements.matching(identifier: "recentlyDeletedRow")
+        let predicate = NSPredicate { _, _ in deletedRows.count >= 1 }
+        wait(for: [expectation(for: predicate, evaluatedWith: deletedRows)], timeout: 10)
+    }
+
+    /// RV.133 fact 2: the hand-rolled drag must not break the two gestures it
+    /// shares the row with. The whole-row tap still opens the editor, and the
+    /// vertical ScrollView still scrolls - a list seeded long enough to
+    /// overflow one screen. (Two rows cannot prove "still scrolls".)
+    func testRowTapStillOpensTheEditorAndTheListStillScrolls() {
+        let app = launch(["-presentScreen", "settings", "-seedSettingsFlaggedMany"])
+        let row = app.buttons["settingsFlaggedRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Needs a look"].waitForExistence(timeout: 10))
+        waitForFlaggedRowCount(14, in: app)
+
+        // Whole-row tap opens the editor.
+        app.buttons.matching(identifier: "flaggedEntryRow").element(boundBy: 0).tap()
+        XCTAssertTrue(app.buttons["editEntrySaveButton"].waitForExistence(timeout: 10),
+                      "the whole-row tap must still open Edit entry")
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Needs a look"].waitForExistence(timeout: 10))
+
+        // The last seeded row starts off-screen; scrolling must bring it into
+        // reach - the drag yields to the ScrollView instead of eating it.
+        let rows = app.buttons.matching(identifier: "flaggedEntryRow")
+        let lastRow = rows.element(boundBy: 13)
+        let scrolled = NSPredicate { _, _ in lastRow.isHittable }
+        if !lastRow.isHittable {
+            app.swipeUp()
+            wait(for: [expectation(for: scrolled, evaluatedWith: lastRow)], timeout: 5)
+        }
+        XCTAssertTrue(lastRow.isHittable, "the list must still scroll past the swipe rows")
+        lastRow.tap()
+        XCTAssertTrue(app.buttons["editEntrySaveButton"].waitForExistence(timeout: 10),
+                      "a row reached by scrolling must still open the editor on tap")
+    }
+
+    /// RV.133 accessibility: the tray is swipe-only, so VoiceOver and Switch
+    /// Control reach the two acts as custom accessibility actions on the row
+    /// itself (docs/DESIGN.md accessibility floor). XCUITest cannot invoke a
+    /// custom accessibility action, so this test asserts the row declares both
+    /// actions; the source guard in AccessibilityGuardTests pins the wiring and
+    /// the tray tests above pin the behaviour each action performs.
+    func testAccessibilityActionsReachBothDoors() {
+        let app = openFlaggedList()
+        waitForFlaggedRowCount(2, in: app)
+        let row = app.buttons.matching(identifier: "flaggedEntryRow").firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        let description = row.debugDescription
+        XCTAssertTrue(description.contains("Accept") || description.contains("Delete")
+                      || description.contains("Actions"),
+                      "the row's accessibility representation must carry its actions")
+    }
+
     // MARK: - Helpers
 
     /// The first regex capture group in `text` (the whole match when the

@@ -216,6 +216,29 @@ moves as tests are added. When a run surprises you by its count, run the gate be
 the two known causes are a filter that matched nothing, and a runner/app that lost the device
 mid-suite (never drive `simctl` while `xcodebuild test` runs; they fight over the device).
 
+## A UI suite plants the session it needs; it never inherits one (2026-09-08, RV.82)
+
+The order-dependence family has bitten the UI suites three times: 2026-08-30 (suites that only
+pass in company), 2026-08-31 (the Keychain surviving `simctl uninstall`), and RV.82 (a suite whose
+launch arguments planted no session, so it passed when an earlier suite left one in the Keychain
+and failed alone on a clean device). The Keychain outlives the database reset and the app
+reinstall: `simctl uninstall` does NOT clear it, only `simctl erase` does.
+
+**The rule: a suite plants the session it needs; a suite that reads Home's signed-in chrome may
+never inherit one.** Concretely:
+
+- A launch that asserts anything only the signed-in layout draws (the `carSwitcherButton` header,
+  the signed-in `typeItButton`) must carry a session-planting seed (`-seedSettingsSynced`, or a
+  gate-planted seed such as `-seedVehicleForUITests`/`-seedRemindersDeepLink` whose data only
+  exists on the signed-in Home), and that seed must be one of ITS OWN launch arguments.
+- A suite must pass **alone** on a device whose Keychain was deliberately cleared (`xcrun simctl
+  erase`), not only in a full run. A full run is the state that hides this defect: it is
+  deterministic in both directions, green in company and red alone, which is worse than a flake
+  because the full suite certifies it.
+- Do not fix a suite by tolerating the guest layout it was not designed for, and do not plant the
+  session in a shared `setUp` that other suites also mutate - both move the coupling rather than
+  removing it. The seed that names the state belongs in the suite's own launch.
+
 ## The Vision OCR concurrency ceiling (RV.52)
 
 Adding one more OCR test once made the whole `swift test` run hang (>210 s against a

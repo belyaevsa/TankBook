@@ -178,6 +178,20 @@ struct AccessibilityGuardTests {
                 "the kind marker must name the kind for VoiceOver")
     }
 
+    /// RV.133: a swipe-only affordance is unreachable for VoiceOver and Switch
+    /// Control (docs/DESIGN.md accessibility floor), so the flagged row's two
+    /// swipe acts must ALSO be custom accessibility actions on the row. A swipe
+    /// tray with no `.accessibilityAction` compiles fine and fails a blind
+    /// user - this guard keeps the class, not the one instance.
+    @Test("the flagged row's swipe acts are reachable as accessibility actions")
+    func flaggedRowSwipeActsAreAccessibilityActions() throws {
+        let text = try Self.sourceText("Settings/FlaggedEntriesView.swift")
+        #expect(text.contains("accessibilityAction(named: Text(\"Accept\"))"),
+                "the fast Accept must be a custom accessibility action")
+        #expect(text.contains("accessibilityAction(named: Text(\"Delete\"))"),
+                "the Delete must be a custom accessibility action")
+    }
+
     /// The class: every log row renders its kind dot through the shared
     /// glyph-bearing marker. A `Circle().fill(dotColor(` is the colour-only
     /// shape the glyph exists to replace - it must be gone from both surfaces
