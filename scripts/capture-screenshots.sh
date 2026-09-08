@@ -728,6 +728,16 @@ capture RV.140-log-original-amount-ru ru -seedHomeRV88USDPending
 capture RV.142-log-row    en -seedHomeRV142Log
 capture RV.142-log-row-ru ru -seedHomeRV142Log
 
+# RV.144: the Edit-entry sheet after a currency edit that resolved. The seeded
+# fill is the owner's imported row as the fix leaves it - the money pair was
+# re-homed to the car's CURRENT home (USD) and snapshotted at rate 1 - so the
+# sheet reads 2101.75 $ in the car's own dollars, never the EUR the row was
+# stamped with. Signed in like the log screenshots (the log layout only
+# renders with a session, PJ.3). RU is where the currency row and the
+# "Liters/Price" labels run longest; the total is locale-invariant.
+capture RV.144-edit-entry    en -seedSettingsSignedIn -seedHomeRV144Resolved -presentScreen editEntry
+capture RV.144-edit-entry-ru ru -seedSettingsSignedIn -seedHomeRV144Resolved -presentScreen editEntry
+
 # RV.112: a rate-pending month never prints a bare total on the vitals tile or
 # the Trends series. The Home shot is the owner's exact scene (RV.140's): two
 # current-month 110.00 USD rows above a month that used to read "0 €" - the

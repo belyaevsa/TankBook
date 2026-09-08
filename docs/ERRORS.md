@@ -241,6 +241,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Foreign-currency entry | The conversion card, resolved honestly from the rate store (P5.2): converted from the feed (with "Edit rate"), converted from a manual rate (shown as Manual, editable - hard rule 13's "and again afterwards"), or rate-pending (with the manual-rate entry offered on the card) | Enter/change the rate on the card · leave it (saves as-is, pending converts later) |
+| A currency/amount edit resolves at commit (RV.144) | The edited money RE-HOMES to the car's CURRENT home currency (docs/SCHEMA.md -> Money) and converts on Save, not on the next automatic pass: an edit to the car's home needs no rate at all (rate 1, no network); a foreign edit converts at the entry's own day's rate when the cache holds one | None - it happened on Save. A rate the cache lacks is a silent non-event: the row stays rate-pending and is counted (F9), converting later (S8) or by the card's manual rate |
 | Edit re-breaks cross-check or timeline | Same amber mechanics as Confirm | Same fixes; save-anyway keeps flag |
 | Entry was changed by sync (S1) | Quiet row: "Changed by sync · iPad, Aug 21" | Restore my version · keep |
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |

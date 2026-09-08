@@ -110,6 +110,20 @@ Money {
 //   differs stays rate-pending, now asking for a rate into the NEW home currency (S8 backfill). Old snapshots
 //   keep their home currency, so a history that mixes home currencies is legitimate and survives; stats mixing
 //   home currencies render per-currency subtotals (rare, surfaced honestly).
+//   Editing `amount` or `currency` RE-HOMES the pair to the vehicle's CURRENT home currency, not the one the
+//   row was stamped with (`Money.edited`, the one shared rule both the fill-up and the non-fill edit paths call):
+//   an entry written while the car's home was EUR, edited after the Garage home moved to USD, must end asking
+//   for a rate into USD - the old EUR in `homeCurrency` is stale the moment the car's home changes, and a
+//   backfill that kept it would convert the edit into a currency the car no longer has. The re-pend comes
+//   FIRST (the replacement clears the snapshot, hard rule 3) and `rehomed(to:)` runs on the now-pending pair -
+//   the reverse order would be refused by rehomed's snapshotted-pair guard and leave the stale home in place.
+//   An edit to the car's CURRENT home resolves at rate 1 with no rate and no fetch; an edit that changes
+//   NEITHER amount nor currency returns the pair byte-identical, whatever the vehicle's home is now.
+//   A resolvable edit RESOLVES AT COMMIT, not on the next automatic pass: the same-currency case is already a
+//   rate-1 snapshot the moment the edit builds the pair, and a foreign edit is resolved by the rate CACHE
+//   through the SCOPED backfill over exactly the row just written (the shape RV.88 gave the import commit) -
+//   never a fetch, never today's rate, and a miss is a silent non-event: the row stays rate-pending and is
+//   counted (F9), never an error and never a blocked save (hard rule 1).
 //   A RATE-PENDING ROW RENDERS ITS ORIGINAL AMOUNT (docs/ERRORS.md -> Home): the Log row shows "45.00 USD" -
 //   the amount and currency as paid, marked as unconverted (dimmed, the ISO code) - never nothing and never a
 //   bare figure that could be read as a home-currency number.

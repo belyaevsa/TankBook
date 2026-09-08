@@ -50,10 +50,12 @@ extension ManualFillUpFormState {
 
     /// The edited `FillUp` from the form + the entry's original identity.
     /// `provenance`, attachments, purchaseGroupId, extraction and fuelGrade are
-    /// carried over untouched; money is edited via the Money pair's snapshot
-    /// rules (docs/SCHEMA.md: editing amount/currency clears the snapshot for
-    /// re-conversion - hard rule 3). The timeline flag is re-derived from the
-    /// validator on the edited timeline: a save-anyway keeps the flag.
+    /// carried over untouched; money is edited through the Money pair's shared
+    /// edit rule (`Money.edited`, docs/SCHEMA.md -> Money): a money-fact change
+    /// re-pends the pair and re-homes it to the vehicle's CURRENT home
+    /// currency, a no-touch save leaves it byte-identical (hard rule 3). The
+    /// timeline flag is re-derived from the validator on the edited timeline: a
+    /// save-anyway keeps the flag.
     func buildUpdatedFill(from original: FillUp, vehicle: Vehicle,
                           derived: ManualFillUpMath.Derived,
                           otherEntries: [any Entry], stationID: UUID?) -> FillUp {
@@ -61,10 +63,10 @@ extension ManualFillUpFormState {
         updated.updatedAt = Date()
         updated.date = date
         updated.odometer = odometerValue
-        updated.money = Self.updatedMoney(originalMoney: original.money,
-                                          currency: currency,
-                                          derivedTotal: derived.total,
-                                          homeCurrency: vehicle.homeCurrency)
+        updated.money = Money.edited(original: original.money,
+                                     amount: derived.total,
+                                     currency: currency,
+                                     homeCurrency: vehicle.homeCurrency)
         updated.volumeL = derived.volumeL
         updated.unitPrice = derived.unitPrice
         updated.fuelKind = fuelKind
@@ -83,16 +85,6 @@ extension ManualFillUpFormState {
         // and re-flag a still-accepted entry.
         updated.flagAcceptance = validation?.acceptance
         return updated
-    }
-
-    private static func updatedMoney(originalMoney: Money?, currency: CurrencyCode,
-                                     derivedTotal: Decimal,
-                                     homeCurrency: CurrencyCode) -> Money? {
-        guard let money = originalMoney else {
-            return Money(amount: derivedTotal, currency: currency, homeCurrency: homeCurrency)
-        }
-        let withCurrency = currency == money.currency ? money : money.replacingCurrency(currency)
-        return withCurrency.replacingAmount(derivedTotal)
     }
 }
 
@@ -122,13 +114,15 @@ struct EditEntryNonFillForm: Equatable {
         return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
-    /// The money pair, edited through the snapshot rules: any amount or
-    /// currency edit clears the snapshot for re-conversion (hard rule 3).
+    /// The money pair, edited through the shared edit rule (`Money.edited`,
+    /// docs/SCHEMA.md -> Money): a money-fact change clears the snapshot for
+    /// re-conversion (hard rule 3) and re-homes the pair to the vehicle's
+    /// CURRENT home currency; a no-touch save leaves it byte-identical. An
+    /// empty amount (a non-fill form with nothing typed) keeps the stored money
+    /// untouched.
     func editedMoney(original: Money?, homeCurrency: CurrencyCode) -> Money? {
-        guard let amount = amountDecimal else { return original }
-        let base = original ?? Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
-        let withCurrency = currency == base.currency ? base : base.replacingCurrency(currency)
-        return withCurrency.replacingAmount(amount)
+        Money.edited(original: original, amount: amountDecimal, currency: currency,
+                     homeCurrency: homeCurrency)
     }
 }
 

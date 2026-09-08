@@ -96,7 +96,7 @@ struct EditEntryView: View {
                         acceptedBanner(acceptance)
                     }
                     if let fillUp {
-                        fillUpContent(fillUp)
+                        fillUpContent(fillUp, vehicle: vehicle)
                     } else {
                         nonFillContent(currentEntry, vehicle: vehicle)
                     }
@@ -156,16 +156,16 @@ struct EditEntryView: View {
     /// Same placement rule as the Confirm sheet (docs/DESIGN.md - entry form
     /// order): a currency needing attention renders above the numbers, the
     /// folded home-currency case below them.
-    private var editCurrencyNeedsAttention: Bool {
+    private func editCurrencyNeedsAttention(_ vehicle: Vehicle) -> Bool {
         ManualFillUpCurrencySection.needsAttention(
-            currency: fillForm.currency, homeCurrency: vehicle?.homeCurrency ?? .eur,
+            currency: fillForm.currency, homeCurrency: vehicle.homeCurrency,
             lowConfidence: false, state: editConversionState)
     }
 
     @ViewBuilder
-    private var editCurrencySection: some View {
+    private func editCurrencySection(_ vehicle: Vehicle) -> some View {
         ManualFillUpCurrencySection(form: $fillForm,
-                                    homeCurrency: vehicle?.homeCurrency ?? .eur,
+                                    homeCurrency: vehicle.homeCurrency,
                                     lowConfidence: false, state: editConversionState)
     }
 
@@ -270,12 +270,13 @@ struct EditEntryView: View {
                                                     otherEntries: otherEntries,
                                                     stationID: selectedStation?.id)
             updated.note = note.isEmpty ? nil : note
-            // Re-apply the conversion on save: editing amount/currency clears
-            // the snapshot (hard rule 3), and the money must come back with a
-            // rate - a manual rate if the user set one, the store's for the
-            // entry's date otherwise, rate-pending only when neither exists
-            // (F9). Without this an edited foreign fill-up silently lost its
-            // conversion and saved rate-pending.
+            // Re-apply the conversion on save: `Money.edited` (inside
+            // `buildUpdatedFill`) already re-pended a money-fact edit and
+            // re-homed it to the vehicle's current home currency; the money
+            // must also come back with a rate - a manual rate if the user set
+            // one, the store's for the entry's date otherwise, rate-pending
+            // only when neither exists (F9). Without this an edited foreign
+            // fill-up silently lost its conversion and saved rate-pending.
             if let money = updated.money {
                 updated.money = fillForm.convertForSave(money, vehicle: vehicle, lowConfidence: false)
             }
@@ -341,6 +342,8 @@ struct EditEntryView: View {
             default:
                 break
             }
+            resolveEditedMoneyAtCommit(entryID: updated.id, vehicleID: vehicle.id,
+                                       repository: repository)
             // A non-fill edit never moves consumption segments; there is no
             // delta to toast about - Home just reloads.
             toastCenter.noteEntryChanged()
@@ -348,6 +351,25 @@ struct EditEntryView: View {
         } catch {
             AppLog.error(operation: "editEntry.save", category: .ui, error: error)
         }
+    }
+
+    /// A non-fill edit resolves at commit when it can - the same claim an
+    /// import commit's drain has, served by the same SCOPED backfill over the
+    /// row just written (docs/SCHEMA.md -> Money, hard rule 3). A currency edit
+    /// equal to the car's home was already snapshotted at rate 1 by
+    /// `Money.edited` and needs no rate at all; a foreign edit resolves only
+    /// when the rate cache holds a row for the entry's OWN day - a miss stays
+    /// rate-pending and counted (F9), never an error, never a blocked save, and
+    /// never a conversion at today's rate. Cache-only: this makes no fetch, so
+    /// it never depends on connectivity (hard rule 1). The row is re-read first
+    /// - the backfill must receive the CURRENT row, or a field this save wrote
+    /// (the conflict stamp) could be clobbered.
+    private func resolveEditedMoneyAtCommit(entryID: UUID, vehicleID: UUID,
+                                            repository: TankbookRepository) {
+        guard let current = (try? repository.liveEntries(forVehicle: vehicleID))?
+            .first(where: { $0.id == entryID }) else { return }
+        _ = try? MoneyBackfillService(store: AppRates.store)
+            .backfill(repository, limitedTo: [current])
     }
 
     /// The recompute, both halves from the engine (docs/SCHEMA.md,
@@ -466,7 +488,7 @@ struct EditEntryView: View {
 // MARK: - FillUp content
 
 private extension EditEntryView {
-    func fillUpContent(_ fill: FillUp) -> some View {
+    func fillUpContent(_ fill: FillUp, vehicle: Vehicle) -> some View {
         ScrollView {
             VStack(spacing: 9) {
                 if !attachments.isEmpty {
@@ -498,13 +520,13 @@ private extension EditEntryView {
                                          conflict: odometerConflict,
                                          onFixDate: { showDatePicker = true })
                 ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle?.fuelKinds ?? [.petrol95])
-                if editCurrencyNeedsAttention { editCurrencySection }
+                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle.fuelKinds)
+                if editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
                 ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
                                         volumeUnit: volumeUnit, currencySymbol: currencySymbol,
                                         reduceMotion: accessibilityReduceMotion)
-                if !editCurrencyNeedsAttention { editCurrencySection }
-                if editConversionState.showsConversionCard, let vehicle {
+                if !editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
+                if editConversionState.showsConversionCard {
                     ForeignCurrencyCard(
                         currency: fillForm.currency,
                         homeCurrency: vehicle.homeCurrency,

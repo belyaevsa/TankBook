@@ -482,6 +482,7 @@ struct HomeView: View {
             // when no reminder argument is present or the screen seeds first.
             ReminderTestSeed.seedIfRequested()
             EditEntryTestSeed.seedSyncFlaggedBatchIfRequested()
+            RV144HomeTestSeed.seedIfRequested()
             RateBackfillDebugHook.runIfRequested {
                 // A backfill filled rate-pending entries: reload so the F9
                 // footnote disappears and the home amounts appear - silently

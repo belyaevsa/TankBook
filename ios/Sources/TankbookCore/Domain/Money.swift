@@ -206,6 +206,42 @@ public struct Money: Codable, Hashable, Sendable {
     }
 }
 
+extension Money {
+    /// Builds the money pair an amount/currency edit writes, re-homed to the
+    /// vehicle's CURRENT home currency (docs/SCHEMA.md -> Money). The entry's
+    /// stored pair carries its own `homeCurrency`, stamped when the row was
+    /// written; if the car's home has changed since, that stamp is stale and
+    /// preserving it makes a later backfill convert into a home the car no
+    /// longer has.
+    ///
+    /// An edit that changes amount or currency is re-pended FIRST - where the
+    /// replacement rules pend it (a foreign pair's written snapshot clears,
+    /// hard rule 3: the old conversion no longer describes the amount/currency
+    /// the row records; a same-currency pair's rate-1 "snapshot" simply follows
+    /// the amount) - and the pending pair is then `rehomed(to:)`. Re-homing
+    /// must come second: `rehomed` refuses a snapshotted pair, so running it
+    /// before the clearing leaves the stale home currency in place. A pair
+    /// whose (edited) currency equals the new home is snapshotted at rate 1 by
+    /// `rehomed`, so that edit resolves with no rate and no fetch; one still
+    /// foreign stays rate-pending, now asking for a rate into the new home.
+    ///
+    /// An edit that changes neither money fact returns the original pair
+    /// byte-identical - a no-touch save must never restate a written snapshot
+    /// nor move a rate-pending row off its recorded home.
+    public static func edited(original: Money?, amount: Decimal?, currency: CurrencyCode,
+                              homeCurrency: CurrencyCode) -> Money? {
+        guard let amount else { return original }
+        guard let original else {
+            return Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
+        }
+        guard currency != original.currency || amount != original.amount else { return original }
+        var edited = original
+        if currency != original.currency { edited = edited.replacingCurrency(currency) }
+        if amount != original.amount { edited = edited.replacingAmount(amount) }
+        return edited.rehomed(to: homeCurrency)
+    }
+}
+
 public extension Decimal {
     /// Rounds to `places` decimal places (`.plain` = half away from zero).
     func rounded(decimalPlaces places: Int, roundingMode: NSDecimalNumber.RoundingMode = .plain) -> Decimal {
