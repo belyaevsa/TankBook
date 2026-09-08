@@ -171,3 +171,14 @@ Whether the loop **reproduced**, with the failing-then-passing test output; ever
 **exit code you observed**; whether each test was **run or only written**; which fix shape you chose
 and why S9 still holds; **why the 2026-09-03 fixes did not cover this**; each of the other candidates
 marked possible/impossible with the line that settles it; and anything you found and did not fix.
+
+## Never stash, move or `git checkout` to get a "clean baseline"
+
+To show a test fails before the fix: **write the test, run it against the unmodified code, then make
+the change.** If the change is already written, prove the test's teeth with a **mutation** - revert
+the one line the test is about, run it, restore the line.
+
+**Do not** `git stash`, `git checkout`, or move files out of the tree to get a clean baseline. On
+2026-09-08 an agent did exactly that and a bad `mv` loop destroyed three of its own new files; the
+same loop would have taken a concurrent session's uncommitted work. Assume you are not alone in this
+checkout.

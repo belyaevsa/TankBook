@@ -158,3 +158,14 @@ or only written**; whether either reachability test **failed** (that would be th
 best outcome this run can have); what you chose for the nil-fetcher branch and why; what you found
 about the allowlist/transport mapping in the other `TankbookHTTPClient` owners; and - in one
 sentence - **what the next production log will now be able to prove that today's cannot**.
+
+## Never stash, move or `git checkout` to get a "clean baseline"
+
+To show a test fails before the fix: **write the test, run it against the unmodified code, then make
+the change.** If the change is already written, prove the test's teeth with a **mutation** - revert
+the one line the test is about, run it, restore the line.
+
+**Do not** `git stash`, `git checkout`, or move files out of the tree to get a clean baseline. On
+2026-09-08 an agent did exactly that and a bad `mv` loop destroyed three of its own new files; the
+same loop would have taken a concurrent session's uncommitted work. Assume you are not alone in this
+checkout.

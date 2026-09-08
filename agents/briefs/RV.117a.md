@@ -165,3 +165,14 @@ Every check with the **exit code you observed** and the observed test count; whe
 **run or only written**; the shape you chose for the interval type and why the wrong state is
 inexpressible in it; what you decided for the empty-interval case; whether the pace bound really is
 what produces Drivvo's 490 983; and anything you found that belongs in RV.117b rather than here.
+
+## Never stash, move or `git checkout` to get a "clean baseline"
+
+To show a test fails before the fix: **write the test, run it against the unmodified code, then make
+the change.** If the change is already written, prove the test's teeth with a **mutation** - revert
+the one line the test is about, run it, restore the line.
+
+**Do not** `git stash`, `git checkout`, or move files out of the tree to get a clean baseline. On
+2026-09-08 an agent did exactly that and a bad `mv` loop destroyed three of its own new files; the
+same loop would have taken a concurrent session's uncommitted work. Assume you are not alone in this
+checkout.

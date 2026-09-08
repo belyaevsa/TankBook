@@ -84,3 +84,26 @@ This bites harder with worktrees, where several agents run at once by design.
   convention exists for.
 - **Never drive the simulator while `xcodebuild test` is running** - they fight over the device and the
   test run fails in a way that looks like a real regression.
+
+## Never stash, move or `git checkout` to get a "clean baseline"
+
+A brief that says *"run your new tests against the current code first, they must fail"* is asking
+for a real thing, and the obvious way to do it is the destructive one. On 2026-09-08 the `RV.144`
+agent read that line, ran `git stash push` (tracked files only), moved its four **untracked** new
+files to a temp directory, and then a bad `mv` loop sent them all to the same destination path so
+each overwrote the last - **three files lost**, recovered only because their contents were still in
+the agent's own context. Nothing of the orchestrator's was damaged, but only by luck: the same loop
+would have taken a concurrent session's uncommitted work, which is exactly what happened on
+2026-09-04.
+
+**The safe recipe needs no stash at all:**
+
+1. Write the test.
+2. Run it against the unmodified code and watch it **fail**.
+3. Then make the production change and watch it **pass**.
+
+If the change is already written, prove the test's teeth with a **mutation** instead: revert the one
+line the test is about, run the test, restore the line. That is a smaller, reversible edit than
+moving the working tree, and it proves more - it shows the test fails for the reason claimed.
+
+Every brief that asks for a fail-then-pass demonstration must carry this fence.
