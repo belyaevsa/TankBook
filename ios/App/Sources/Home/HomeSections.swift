@@ -232,11 +232,6 @@ struct HomeVitalsRow: View {
     let stats: HomeStats
     let vehicle: Vehicle
 
-    /// The month-spend symbol: spend is always the home figure, so the symbol
-    /// is the vehicle's home currency. The price tile BELOW does NOT use this -
-    /// it renders with the figure's own currency (RV.29).
-    private var symbol: String { AddVehicleSupport.currencySymbol(for: vehicle.homeCurrency) }
-
     var body: some View {
         HStack(spacing: 10) {
             // The month-spend tile states exactly what the month's divider may
@@ -245,16 +240,15 @@ struct HomeVitalsRow: View {
             // beneath it as the tile's caption, and a `.pending` month (no row
             // converted) is OMITTED - a tile slot that would read `0 €` is
             // never built, and the F9 footnote on the log below says why.
-            if case .complete(let amount)? = stats.monthSpend {
+            // The figure carries its own currency (RV.145): the tile shows the
+            // total with the currency it is denominated in, and a `.mixed`
+            // month (known figures spanning home currencies) prints its
+            // per-currency breakdown rather than a bare cross-currency sum.
+            if let total = stats.monthSpend, let figure = HomeFormat.spend(total) {
                 StatTile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
-                         value: HomeFormat.spend(amount, symbol: symbol),
-                         identifier: "homeMonthSpendTile")
-            }
-            if case .partial(let amount, let pendingCount)? = stats.monthSpend {
-                StatTile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
-                         value: HomeFormat.spend(amount, symbol: symbol),
+                         value: figure,
                          identifier: "homeMonthSpendTile",
-                         caption: L10n.pendingRates(pendingCount))
+                         caption: Self.spendTileCaption(total))
             }
             // RV.29 display decision (converted home, never the raw original):
             // the price per litre is a money figure, and every money figure on
@@ -270,9 +264,20 @@ struct HomeVitalsRow: View {
             if let lastPrice = stats.lastUnitPrice {
                 StatTile(title: L10n.localize("Last price/L"),
                          value: HomeFormat.unitPrice(lastPrice.amount,
-                                                     symbol: AddVehicleSupport.currencySymbol(for: lastPrice.currency)),
+                                                     symbol: AddVehicleSupport.moneySymbol(for: lastPrice.currency)),
                          identifier: "homeLastPriceTile")
             }
+        }
+    }
+
+    /// The tile's caption: the pending phrase when rows still wait, `nil`
+    /// otherwise (a `.complete` month or a mixed one whose rows all converted).
+    private static func spendTileCaption(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .complete, .pending:
+            return nil
         }
     }
 }
@@ -339,12 +344,6 @@ struct HomeRecentEntries: View {
     private var volumeUnit: VolumeUnit { vehicle.units.volume }
     private var distanceUnit: DistanceUnit { vehicle.units.distance }
     private var consumptionUnitLabel: String { L10n.consumptionUnit(vehicle.units.consumption) }
-
-    /// Internal so the log-divider extension (HomeSections+LogStream.swift)
-    /// renders the same symbol; never public.
-    var currencySymbol: String {
-        AddVehicleSupport.currencySymbol(for: vehicle.homeCurrency)
-    }
 
     var body: some View {
         let reveal = HomeLogReveal(vehicle: vehicle, entries: entries,
@@ -589,10 +588,18 @@ struct HomeRecentEntries: View {
                             .foregroundStyle(Theme.Palette.inkSoft)
                     }
                     Spacer(minLength: 8)
-                    Text(HomeFormat.entryAmount(group.grandTotal, symbol: currencySymbol))
-                        .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .accessibilityIdentifier("logGroupGrandTotal")
+                    // The receipt total rendered with the currency its lines
+                    // are denominated in (RV.145) - never the vehicle's, which
+                    // is how a euro receipt once printed a dollar figure. A
+                    // group whose known lines span home currencies has no bare
+                    // total to show; the member rows below state each amount.
+                    if let currency = group.grandTotalCurrency {
+                        Text(HomeFormat.entryAmount(group.grandTotal,
+                                                    symbol: AddVehicleSupport.moneySymbol(for: currency)))
+                            .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                            .foregroundStyle(Theme.Palette.ink)
+                            .accessibilityIdentifier("logGroupGrandTotal")
+                    }
                     Image(systemName: collapsed ? "chevron.down" : "chevron.up")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(Theme.Palette.inkSoft)

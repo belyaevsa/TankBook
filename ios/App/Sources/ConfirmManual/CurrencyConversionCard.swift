@@ -215,7 +215,6 @@ struct ForeignCurrencyCard: View {
     }
 
     private func symbolOrCode(_ code: CurrencyCode) -> String {
-        let symbol = AddVehicleSupport.currencySymbol(for: code)
-        return symbol.isEmpty ? code.rawValue : symbol
+        AddVehicleSupport.moneySymbol(for: code)
     }
 }

@@ -21,20 +21,28 @@ enum VehicleVitals {
         // (RV.112): a complete month is the bare figure, a partial one carries
         // the pending phrase so the known sum is never read as the whole month,
         // and a pending month prints NO number - only the phrase that says why.
+        // Every figure carries the currency it is denominated in (RV.145): a
+        // mixed month prints its per-currency breakdown, never a bare sum under
+        // the car's symbol.
         if let monthSpend = stats.monthSpend {
-            let symbol = AddVehicleSupport.currencySymbol(for: stats.vehicle.homeCurrency)
-            switch monthSpend {
-            case .complete(let amount):
-                parts.append(String(format: L10n.localize("%@ this month"),
-                                    HomeFormat.spend(amount, symbol: symbol)))
-            case .partial(let amount, let pendingCount):
-                parts.append(String(format: L10n.localize("%@ this month"),
-                                    HomeFormat.spend(amount, symbol: symbol)))
+            if case .pending(let pendingCount) = monthSpend {
                 parts.append(L10n.pendingRates(pendingCount))
-            case .pending(let pendingCount):
-                parts.append(L10n.pendingRates(pendingCount))
+            } else if let figure = HomeFormat.spend(monthSpend) {
+                parts.append(String(format: L10n.localize("%@ this month"), figure))
+                if let note = pendingNote(monthSpend) { parts.append(note) }
             }
         }
         return parts.joined(separator: " · ")
+    }
+
+    /// The pending phrase a partial (or mixed-with-pending) month carries after
+    /// its figure; `nil` when the figure is fully stated.
+    private static func pendingNote(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .complete, .pending:
+            return nil
+        }
     }
 }

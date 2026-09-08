@@ -284,7 +284,7 @@ struct RecentlyDeletedView: View {
 
     private func amountText(_ entry: any Entry) -> String? {
         guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
-        let symbol = AddVehicleSupport.currencySymbol(for: money.homeCurrency)
+        let symbol = AddVehicleSupport.moneySymbol(for: money.homeCurrency)
         return HomeFormat.entryAmount(homeAmount, symbol: symbol)
     }
 

@@ -104,19 +104,15 @@ struct HomeGuestLayout: View {
             // `.partial` one prints its KNOWN sum with the pending phrase
             // beneath it (visibly partial, never a bare total), and a
             // `.pending` month has no number at all - the column is omitted, so
-            // it can never read `0 €` beside rows carrying no home amount.
-            if case .complete(let amount)? = stats.monthSpend {
+            // it can never read `0 €` beside rows carrying no home amount. The
+            // figure carries its own currency (RV.145), and a `.mixed` month
+            // prints its per-currency breakdown rather than a bare sum.
+            if let total = stats.monthSpend, let figure = HomeFormat.spend(total) {
                 Divider().overlay(Theme.Palette.hairline).frame(height: 40)
                 vitalColumn(label: HomeFormat.currentMonth(),
-                            value: HomeFormat.spend(amount, symbol: symbol(stats)),
-                            identifier: "homeMonthSpendTile")
-            }
-            if case .partial(let amount, let pendingCount)? = stats.monthSpend {
-                Divider().overlay(Theme.Palette.hairline).frame(height: 40)
-                vitalColumn(label: HomeFormat.currentMonth(),
-                            value: HomeFormat.spend(amount, symbol: symbol(stats)),
+                            value: figure,
                             identifier: "homeMonthSpendTile",
-                            caption: L10n.pendingRates(pendingCount))
+                            caption: Self.spendCaption(total))
             }
         }
     }
@@ -158,8 +154,22 @@ struct HomeGuestLayout: View {
         return String(format: L10n.localize("added %@"), HomeFormat.day(stats.vehicle.createdAt))
     }
 
+    /// The money figures this strip derives are in the vehicle's home currency
+    /// (cost/km); a currency whose symbol is not distinct from its code falls
+    /// back to the code (RV.145) - a figure never renders bare.
     private func symbol(_ stats: HomeStats) -> String {
-        AddVehicleSupport.currencySymbol(for: stats.vehicle.homeCurrency)
+        AddVehicleSupport.moneySymbol(for: stats.vehicle.homeCurrency)
+    }
+
+    /// The caption under a spend figure: the pending phrase when rows still
+    /// wait, `nil` otherwise.
+    private static func spendCaption(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .complete, .pending:
+            return nil
+        }
     }
 
     private var captureCard: some View {

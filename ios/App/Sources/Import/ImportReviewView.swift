@@ -124,9 +124,9 @@ private struct ImportReviewRowView: View {
         switch row.kind {
         case .missingOdometer: return L10n.localize("Odometer missing")
         case .crossCheckMismatch(let offBy):
-            let symbol = AddVehicleSupport.currencySymbol(for: currency ?? .eur)
+            let symbol = AddVehicleSupport.moneySymbol(for: currency ?? .eur)
             let value = ImportFormatting.decimal(abs(offBy), fractionDigits: 2)
-            return L10n.offBy(amount: symbol.isEmpty ? value : "\(value) \(symbol)")
+            return L10n.offBy(amount: "\(value) \(symbol)")
         case .timelineConflict: return L10n.localize("Breaks the timeline")
         case .noFuel: return nonFuelBadgeText
         case .unmappable, .unparsed: return L10n.localize("Couldn't read this row")

@@ -286,7 +286,7 @@ struct ManualFillUpView: View {
     }
 
     private var currencySymbol: String {
-        AddVehicleSupport.currencySymbol(for: form.currency)
+        AddVehicleSupport.moneySymbol(for: form.currency)
     }
 
     private var odometerConflict: OdometerConflict? {

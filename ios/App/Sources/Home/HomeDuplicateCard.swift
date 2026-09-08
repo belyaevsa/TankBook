@@ -183,7 +183,7 @@ struct HomeDuplicateCard: View {
 
     private func amountText(_ entry: LogStream.LogEntry) -> String? {
         guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
-        let symbol = AddVehicleSupport.currencySymbol(for: money.homeCurrency)
+        let symbol = AddVehicleSupport.moneySymbol(for: money.homeCurrency)
         return HomeFormat.entryAmount(homeAmount, symbol: symbol)
     }
 }

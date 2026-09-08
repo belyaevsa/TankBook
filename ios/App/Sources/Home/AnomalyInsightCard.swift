@@ -135,7 +135,7 @@ struct AnomalyInsightCard: View {
                 Text(L10n.anomalyCost(
                     amount: HomeFormat.entryAmount(
                         monthlyCostAmount,
-                        symbol: AddVehicleSupport.currencySymbol(for: monthlyCostCurrency))))
+                        symbol: AddVehicleSupport.moneySymbol(for: monthlyCostCurrency))))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .fixedSize(horizontal: false, vertical: true)

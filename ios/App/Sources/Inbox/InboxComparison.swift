@@ -87,7 +87,7 @@ enum InboxValueFormat {
     }
 
     private static func symbol(for entry: FillUp) -> String {
-        entry.money.map { AddVehicleSupport.currencySymbol(for: $0.currency) } ?? ""
+        entry.money.map { AddVehicleSupport.moneySymbol(for: $0.currency) } ?? ""
     }
 
     /// The receipt's money symbol: the currency the receipt read, falling back to
@@ -95,7 +95,7 @@ enum InboxValueFormat {
     /// figure's own currency (hard rule 3).
     private static func receiptSymbol(entry: FillUp, extraction: GatewayExtraction) -> String {
         if let currency = extraction.currency?.value {
-            return AddVehicleSupport.currencySymbol(for: currency)
+            return AddVehicleSupport.moneySymbol(for: currency)
         }
         return symbol(for: entry)
     }

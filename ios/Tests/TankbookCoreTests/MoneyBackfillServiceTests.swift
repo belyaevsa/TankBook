@@ -375,6 +375,7 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
     // honest figure is the known 60 sum MARKED with the pending count - never a
     // bare total that reads as complete (RV.112).
     #expect(stats.monthSpend == LogStream.MonthTotal.partial(amount: decimal("60"),
+                                                             currency: .eur,
                                                              pendingCount: 2))
 }
 

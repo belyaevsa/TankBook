@@ -16,10 +16,12 @@ public struct TrendPoint: Equatable, Sendable {
 /// One plotted position of a monthly Trends series (spend, cost/km), in
 /// chronological order. Every month in the trailing window that has logged
 /// activity gets a slot; a slot is `.point` only when that month's figure is
-/// exact - every money-bearing row has converted. A month still waiting on a
-/// rate (`.partial` or `.pending` on the shared classifier) is `.gap`: it must
-/// render as a hole, never bridged across by a line or dipped to zero as a bar
-/// - both read as "spend fell", which is the lie hard rule 2 forbids (RV.112).
+/// exact - every money-bearing row has converted AND the known figures share
+/// one home currency. A month still waiting on a rate (`.partial` or
+/// `.pending` on the shared classifier), or whose known figures span home
+/// currencies (`.mixed`, RV.145), is `.gap`: it must render as a hole, never
+/// bridged across by a line or dipped to zero as a bar - both read as "spend
+/// fell", which is the lie hard rule 2 forbids (RV.112).
 public enum TrendsMonthSlot: Equatable, Sendable {
     case point(TrendPoint)
     /// The month is inside the window and holds rows, but no exact total is
@@ -66,16 +68,18 @@ public struct TrendsStats: Equatable, Sendable {
     /// All-in cost/km per calendar month (Σ homeAmount / odometer span within
     /// the month), one slot per month that has both activity and a km span. A
     /// month without a km span is omitted, never drawn as zero; a month whose
-    /// rows are still rate-pending is `.gap`, never a point at an understated
-    /// figure (RV.112).
+    /// rows are still rate-pending, or whose known figures span home
+    /// currencies, is `.gap`, never a point at an understated figure (RV.112;
+    /// RV.145).
     public let costSeries: [TrendsMonthSlot]
     /// The direction the cost/km series is moving (lower is better), derived
     /// from the series' POINT values only - a gap never invents a direction.
     /// `nil` below two points or on a flat series.
     public let costTrend: TrendDirection?
     /// Total spend per calendar month (all entry types), trailing 12 months,
-    /// one slot per month that has logged activity. A rate-pending month is
-    /// `.gap`, never a point at its understated or zero total (RV.112).
+    /// one slot per month that has logged activity. A rate-pending month - or
+    /// one whose known figures span home currencies - is `.gap`, never a point
+    /// at its understated or zero total (RV.112; RV.145).
     public let spendSeries: [TrendsMonthSlot]
     /// Unit price per fill by date, most recent 12 fills, each expressed in the
     /// fill's home currency (RV.29: a sparkline of raw originals would plot
@@ -120,9 +124,11 @@ public struct TrendsStats: Equatable, Sendable {
             .map { TrendPoint(date: $0.closes, value: $0.per100) }
         self.consumptionTrend = TrendDirection.lowerIsBetter(consumptionSeries.map(\.value))
 
-        self.costSeries = Self.monthlyCostSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
+        self.costSeries = Self.monthlyCostSeries(entries: countingEntries, calendar: calendar, asOf: asOf,
+                                                 vehicleHome: vehicle.homeCurrency)
         self.costTrend = Self.lowerIsBetter(costSeries)
-        self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf)
+        self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf,
+                                                   vehicleHome: vehicle.homeCurrency)
         self.priceSeries = Self.priceSeries(entries: countingEntries, vehicleHome: vehicle.homeCurrency)
         self.costPerKmSpanMonths = Self.costPerKmSpanMonths(entries: countingEntries, asOf: asOf)
     }
@@ -140,7 +146,7 @@ public struct TrendsStats: Equatable, Sendable {
     }
 
     private static func monthlySpendSeries(entries: [any Entry], calendar: Calendar,
-                                           asOf: Date) -> [TrendsMonthSlot] {
+                                           asOf: Date, vehicleHome: CurrencyCode) -> [TrendsMonthSlot] {
         let cutoff = trailingTwelveMonthsStart(asOf: asOf, calendar: calendar)
         let grouped = Dictionary(grouping: entries) { monthStart($0.date, calendar: calendar) }
         return grouped
@@ -148,15 +154,16 @@ public struct TrendsStats: Equatable, Sendable {
             .map { monthStart, monthEntries -> TrendsMonthSlot in
                 // The shared month classifier: a pending row is counted, never
                 // summed as zero, and only a `.complete` month yields a point -
-                // a `.partial`/`.pending` month is a gap the renderer leaves
-                // open (RV.112).
-                var accumulator = LogStream.MonthTotal.Accumulator()
+                // a `.partial`/`.mixed`/`.pending` month is a gap the renderer
+                // leaves open (RV.112; RV.145: a mixed-currency month has no
+                // single plottable figure either).
+                var accumulator = LogStream.MonthTotal.Accumulator(vehicleHome: vehicleHome)
                 accumulator.add(contentsOf: monthEntries.map(\.money))
                 switch accumulator.monthTotal {
-                case .complete(let amount):
+                case .complete(let amount, _):
                     return .point(TrendPoint(date: monthStart,
                                              value: (amount as NSDecimalNumber).doubleValue))
-                case .partial, .pending:
+                case .partial, .mixed, .pending:
                     return .gap(monthStart)
                 }
             }
@@ -164,7 +171,7 @@ public struct TrendsStats: Equatable, Sendable {
     }
 
     private static func monthlyCostSeries(entries: [any Entry], calendar: Calendar,
-                                          asOf: Date) -> [TrendsMonthSlot] {
+                                          asOf: Date, vehicleHome: CurrencyCode) -> [TrendsMonthSlot] {
         let cutoff = trailingTwelveMonthsStart(asOf: asOf, calendar: calendar)
         let grouped = Dictionary(grouping: entries) { monthStart($0.date, calendar: calendar) }
         return grouped
@@ -173,16 +180,17 @@ public struct TrendsStats: Equatable, Sendable {
                 let odometers = monthEntries.compactMap(\.odometer)
                 guard let maxOdo = odometers.max(), let minOdo = odometers.min(),
                       maxOdo > minOdo else { return nil }
-                var accumulator = LogStream.MonthTotal.Accumulator()
+                var accumulator = LogStream.MonthTotal.Accumulator(vehicleHome: vehicleHome)
                 accumulator.add(contentsOf: monthEntries.map(\.money))
                 switch accumulator.monthTotal {
-                case .complete(let total):
+                case .complete(let total, _):
                     let km = Double(maxOdo - minOdo)
                     return .point(TrendPoint(date: monthStart,
                                              value: (total as NSDecimalNumber).doubleValue / km))
-                case .partial, .pending:
+                case .partial, .mixed, .pending:
                     // A rate-pending month's cost/km is not storable: a gap,
-                    // never an understated point (RV.112).
+                    // never an understated point (RV.112). A mixed-currency
+                    // month has no single figure to divide (RV.145): also a gap.
                     return .gap(monthStart)
                 }
             }

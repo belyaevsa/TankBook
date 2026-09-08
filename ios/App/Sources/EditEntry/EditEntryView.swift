@@ -137,7 +137,7 @@ struct EditEntryView: View {
     }
 
     private var currencySymbol: String {
-        AddVehicleSupport.currencySymbol(for: fillForm.currency)
+        AddVehicleSupport.moneySymbol(for: fillForm.currency)
     }
 
     /// The foreign-currency decision for the edited fill, resolved honestly

@@ -276,7 +276,7 @@ enum MonthlySummaryNotificationText {
         let month = monthName(year: notification.body.summaryYear,
                               month: notification.body.summaryMonth)
         let amount = HomeFormat.spend(notification.body.amount,
-                                      symbol: AddVehicleSupport.currencySymbol(
+                                      symbol: AddVehicleSupport.moneySymbol(
                                           for: notification.body.homeCurrency))
         return String(format: L10n.localize("%1$@: %2$@ on the %3$@"),
                       month, amount, notification.body.vehicleName)

@@ -130,6 +130,7 @@ struct MonthTotalPendingSurfacesTests {
         let home = HomeStats(vehicle: Self.vehicle(), entries: entries,
                              asOf: Self.asOf, calendar: Self.calendar())
         #expect(home.monthSpend == LogStream.MonthTotal.partial(amount: known,
+                                                                currency: .eur,
                                                                 pendingCount: 2))
 
         let trends = TrendsStats(vehicle: Self.vehicle(), entries: entries,
@@ -153,11 +154,11 @@ struct MonthTotalPendingSurfacesTests {
 
         let home = HomeStats(vehicle: Self.vehicle(), entries: entries,
                              asOf: Self.asOf, calendar: Self.calendar())
-        #expect(home.monthSpend == LogStream.MonthTotal.complete(exact))
+        #expect(home.monthSpend == LogStream.MonthTotal.complete(amount: exact, currency: .eur))
 
         let stream = LogStream(vehicle: Self.vehicle(), entries: entries,
                                calendar: Self.calendar())
-        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(exact),
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(amount: exact, currency: .eur),
                 "the divider and HomeStats must agree to the cent")
         #expect(home.monthSpend == stream.sections[0].total)
 
@@ -210,7 +211,7 @@ struct MonthTotalPendingSurfacesTests {
         // (60.00). One pending row remains: the standalone pending expense.
         let known = Decimal(string: "71.02")! + Decimal(string: "8.00")!
             + Decimal(string: "68.46")! + Decimal(string: "60.00")!
-        let expected = LogStream.MonthTotal.partial(amount: known, pendingCount: 1)
+        let expected = LogStream.MonthTotal.partial(amount: known, currency: .eur, pendingCount: 1)
 
         let home = HomeStats(vehicle: Self.vehicle(), entries: entries,
                              asOf: Self.asOf, calendar: Self.calendar())

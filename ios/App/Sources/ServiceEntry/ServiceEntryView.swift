@@ -149,12 +149,12 @@ struct ServiceEntryView: View {
     // MARK: - Derived
 
     private var totalText: String {
-        let symbol = AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur)
+        let symbol = AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur)
         return HomeFormat.entryAmount(form.totalDecimal, symbol: symbol)
     }
 
     private var symbol: String {
-        AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur)
+        AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur)
     }
 
     private var odometerMissing: Bool {

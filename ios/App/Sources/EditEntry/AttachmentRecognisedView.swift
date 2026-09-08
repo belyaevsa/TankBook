@@ -215,7 +215,7 @@ enum AttachmentValueFormat {
         switch value {
         case .money(let amount):
             let figure = ManualFillUpFormat.decimal(amount, fractionDigits: ref == .unitPrice ? 3 : 2)
-            let symbol = currency.map { AddVehicleSupport.currencySymbol(for: $0) } ?? ""
+            let symbol = currency.map { AddVehicleSupport.moneySymbol(for: $0) } ?? ""
             return .numeric(figure: figure, unit: symbol.isEmpty ? nil : symbol)
         case .number(let number):
             switch ref {

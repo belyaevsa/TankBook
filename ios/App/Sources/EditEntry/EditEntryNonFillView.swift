@@ -127,7 +127,7 @@ struct EditEntryNonFillView: View {
                         .focused($nonFillFocus, equals: .amount)
                         .accessibilityIdentifier("editEntryAmountField")
                         .numericInput($form.amount, kind: .decimal)
-                    Text(AddVehicleSupport.currencySymbol(for: form.currency))
+                    Text(AddVehicleSupport.moneySymbol(for: form.currency))
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }

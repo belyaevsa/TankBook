@@ -169,6 +169,19 @@ enum AddVehicleSupport {
         return symbol.caseInsensitiveCompare(code.rawValue) == .orderedSame ? "" : symbol
     }
 
+    /// The marker a money FIGURE prints beside its amount (RV.145): the
+    /// currency's symbol, or the ISO code when the symbol is not distinct from
+    /// it (CHF, BGN, RSD...). "Symbols everywhere" means a figure always
+    /// carries a marker - `2416.00 $`, never `2416.00 USD` and never a bare
+    /// `2416.00 ` whose `currencySymbol` resolved empty. The empty-string
+    /// result of `currencySymbol(for:)` is a chip-label concern (a chip shows
+    /// the code alone); every amount renderer goes through HERE so the code
+    /// fallback is one named path, not an accident at each call site.
+    static func moneySymbol(for code: CurrencyCode) -> String {
+        let symbol = currencySymbol(for: code)
+        return symbol.isEmpty ? code.rawValue : symbol
+    }
+
     /// "EUR €", or just "CHF" where the symbol is the code.
     static func currencyLabel(for code: CurrencyCode) -> String {
         let symbol = currencySymbol(for: code)

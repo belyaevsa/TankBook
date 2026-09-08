@@ -32,7 +32,7 @@ struct PartsShelfView: View {
     }
 
     private var symbol: String {
-        AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur)
+        AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur)
     }
 
     private var emptyState: some View {

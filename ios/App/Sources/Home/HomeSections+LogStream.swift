@@ -97,7 +97,9 @@ extension HomeRecentEntries {
     /// partial month (some rows converted) shows its known sum in DIN with the
     /// pending count beneath it; a month where no row has converted yet shows
     /// the pending phrase INSTEAD of a figure - the divider says why there is
-    /// no number (hard rule 7).
+    /// no number (hard rule 7). Every figure is stated in the currency its rows
+    /// were recorded in, and a month whose known rows span currencies shows the
+    /// per-currency breakdown rather than a bare cross-currency sum (RV.145).
     func monthDivider(_ section: LogStream.Section) -> some View {
         let monthName = HomeFormat.monthHeading(section.monthStart)
         return HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -119,28 +121,35 @@ extension HomeRecentEntries {
 
     /// The divider's trailing figure slot. `.complete` is the number alone;
     /// `.partial` is the known sum in DIN with the pending phrase beneath it;
-    /// `.pending` is the pending phrase alone - a figure slot that would read
-    /// `0 €` is never built (RV.106).
+    /// `.mixed` is the per-currency breakdown (RV.145 - a month whose known
+    /// figures span home currencies has no bare total) with the pending phrase
+    /// beneath it when rows still wait; `.pending` is the pending phrase alone -
+    /// a figure slot that would read `0 €` is never built (RV.106).
     @ViewBuilder
     private func dividerFigure(_ total: LogStream.MonthTotal) -> some View {
-        switch total {
-        case .complete(let amount):
-            Text(HomeFormat.spend(amount, symbol: currencySymbol))
-                .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                .foregroundStyle(Theme.Palette.ink)
-        case .partial(let amount, let pendingCount):
-            VStack(alignment: .trailing, spacing: 1) {
-                Text(HomeFormat.spend(amount, symbol: currencySymbol))
-                    .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                    .foregroundStyle(Theme.Palette.ink)
-                Text(L10n.pendingRates(pendingCount))
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-            }
-        case .pending(let pendingCount):
+        if case .pending(let pendingCount) = total {
+            // A month where no row has converted: the pending phrase in place
+            // of a figure (a slot that would read `0 €` is never built).
             Text(L10n.pendingRates(pendingCount))
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
+        } else if let figure = HomeFormat.spend(total), let note = pendingNote(total) {
+            // Partial (or mixed with rows still waiting): the figure with the
+            // pending phrase beneath it - visibly partial, never a bare total.
+            VStack(alignment: .trailing, spacing: 1) {
+                Text(figure)
+                    .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                    .foregroundStyle(Theme.Palette.ink)
+                Text(note)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+        } else if let figure = HomeFormat.spend(total) {
+            // Complete (or a mixed month whose rows all converted): the figure
+            // alone - the divider carries the total's own currency (RV.145).
+            Text(figure)
+                .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                .foregroundStyle(Theme.Palette.ink)
         }
     }
 
@@ -150,12 +159,27 @@ extension HomeRecentEntries {
     /// the data cannot support).
     private func dividerText(_ total: LogStream.MonthTotal) -> String {
         switch total {
-        case .complete(let amount):
-            return HomeFormat.spend(amount, symbol: currencySymbol)
-        case .partial(let amount, let pendingCount):
-            return "\(HomeFormat.spend(amount, symbol: currencySymbol)) · \(L10n.pendingRates(pendingCount))"
         case .pending(let pendingCount):
             return L10n.pendingRates(pendingCount)
+        case .complete, .partial, .mixed:
+            let figure = HomeFormat.spend(total) ?? ""
+            if let note = pendingNote(total) {
+                return "\(figure) · \(note)"
+            }
+            return figure
+        }
+    }
+
+    /// The pending phrase a divider carries under a partial figure, or a mixed
+    /// one that still has rows waiting; `nil` when the month is fully stated
+    /// (`.complete`) or has no figure at all (`.pending` - the phrase is the
+    /// whole slot there).
+    private func pendingNote(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .complete, .pending:
+            return nil
         }
     }
 }
@@ -163,28 +187,66 @@ extension HomeRecentEntries {
 // MARK: - Log entry money figure
 
 /// The trailing money figure on a log row (docs/DESIGN.md -> "Entry card
-/// content"). A converted entry shows its HOME amount with the home currency's
-/// symbol ("71.02 €"). A rate-pending entry (F9) has no home figure, so it
-/// shows the ORIGINAL amount with its three-letter currency code - never the
-/// symbol - dimmed, so an unconverted figure cannot be read as a home-currency
-/// one beside the converted rows (docs/SCHEMA.md -> Money, docs/ERRORS.md ->
-/// Home). The S8 backfill replaces it with the home figure the moment a rate
-/// lands.
+/// content"). Every amount renders with its currency's SYMBOL, converted or
+/// not (RV.145, decided 2026-09-08): a converted entry shows its HOME amount
+/// with the home currency's symbol ("71.02 €"); a rate-pending entry (F9) has
+/// no home figure, so it shows the ORIGINAL amount with the ORIGINAL
+/// currency's symbol - dimmed under its own identifier, the state the row's
+/// footnote and the divider's pending phrase explain. The symbol travels with
+/// the figure it belongs to, and a currency whose symbol is not distinct from
+/// its code (CHF) falls back to the code - a money figure is never bare
+/// (docs/DESIGN.md -> Money). The S8 backfill replaces a pending row with the
+/// home figure the moment a rate lands.
 struct LogEntryAmount: View {
     let money: Money
 
     var body: some View {
         if let homeAmount = money.homeAmount {
             Text(HomeFormat.entryAmount(homeAmount,
-                                        symbol: AddVehicleSupport.currencySymbol(for: money.homeCurrency)))
+                                        symbol: AddVehicleSupport.moneySymbol(for: money.homeCurrency)))
                 .font(.custom(AppFonts.dinAlternateBold, size: 16))
                 .foregroundStyle(Theme.Palette.ink)
                 .accessibilityIdentifier("homeEntryAmount")
         } else {
-            Text(HomeFormat.entryAmount(money.amount, symbol: money.currency.rawValue))
+            Text(HomeFormat.entryAmount(money.amount,
+                                        symbol: AddVehicleSupport.moneySymbol(for: money.currency)))
                 .font(.custom(AppFonts.dinAlternateBold, size: 16))
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .accessibilityIdentifier("homeEntryAmountPending")
         }
+    }
+}
+
+// MARK: - The month-total figure text (RV.145)
+
+extension HomeFormat {
+    /// The divider/vitals figure text for a month total (RV.145): every amount
+    /// is rendered with the symbol of the currency it is DENOMINATED in - the
+    /// one the total carries, never the vehicle's - so a figure and its marker
+    /// cannot come from two different objects. A `.mixed` month (known figures
+    /// spanning home currencies) renders its per-currency breakdown, never a
+    /// bare cross-currency sum (hard rule 3). `nil` for a `.pending` month,
+    /// which prints no figure at all - the pending phrase replaces it. Lives
+    /// beside the divider (this file) so `HomeSections.swift` stays under the
+    /// lint ceiling.
+    static func spend(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .complete(let amount, let currency), .partial(let amount, let currency, _):
+            return spend(amount, symbol: AddVehicleSupport.moneySymbol(for: currency))
+        case .mixed(let subtotals, _):
+            return mixedSpend(subtotals)
+        case .pending:
+            return nil
+        }
+    }
+
+    /// "1 432 € · 87 $" - a mixed month's per-currency breakdown (RV.145),
+    /// each figure exact and paired with its own currency's marker, joined by
+    /// the app's list separator. The parts are deliberately NOT summed: the
+    /// month is mixed precisely because no single number states it honestly.
+    static func mixedSpend(_ subtotals: [LogStream.SpendSubtotal]) -> String {
+        subtotals
+            .map { spend($0.amount, symbol: AddVehicleSupport.moneySymbol(for: $0.currency)) }
+            .joined(separator: " · ")
     }
 }

@@ -124,9 +124,13 @@ Money {
 //   through the SCOPED backfill over exactly the row just written (the shape RV.88 gave the import commit) -
 //   never a fetch, never today's rate, and a miss is a silent non-event: the row stays rate-pending and is
 //   counted (F9), never an error and never a blocked save (hard rule 1).
-//   A RATE-PENDING ROW RENDERS ITS ORIGINAL AMOUNT (docs/ERRORS.md -> Home): the Log row shows "45.00 USD" -
-//   the amount and currency as paid, marked as unconverted (dimmed, the ISO code) - never nothing and never a
-//   bare figure that could be read as a home-currency number.
+//   A RATE-PENDING ROW RENDERS ITS ORIGINAL AMOUNT (docs/ERRORS.md -> Home): the Log row shows
+//   "45.00 USD" - the amount and currency as paid, marked as unconverted (dimmed, its own
+//   identifier) - never nothing and never a bare figure that could be read as a home-currency
+//   number. Since RV.145 (2026-09-08) the marker is the currency's SYMBOL like every other money
+//   figure - "45.00 $" - not the ISO code; the unconverted state is told apart by the dimming,
+//   the identifier and the divider's pending phrase, and a symbol-less currency (CHF) falls back
+//   to its code (docs/DESIGN.md -> Money).
 //   Two shapes of the rule's trigger (RV.88): a whole-garage pass after a rate refresh, and a SCOPED pass
 //   over exactly the rows an import just committed – the import drain asks the rate service for the dates
 //   those rows span (`/rates/pack`, chunked) and resolves each at its OWN `rateDate`, never today's. A row

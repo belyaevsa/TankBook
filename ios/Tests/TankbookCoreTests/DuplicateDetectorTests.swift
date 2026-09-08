@@ -237,7 +237,8 @@ struct DuplicateSingleCountTests {
                               asOf: duplicateAsOf)
         // 68.46 + 71.02 + 68.46, with the second 71.02 set aside.
         #expect(stats.monthSpend
-                == LogStream.MonthTotal.complete(Decimal(string: "207.94")!))
+                == LogStream.MonthTotal.complete(amount: Decimal(string: "207.94")!,
+                                                 currency: .eur))
     }
 
     /// The single-count invariant holds at the anomaly engine's input boundary
@@ -340,7 +341,8 @@ struct DuplicateSingleCountTests {
         let stream = LogStream(vehicle: duplicateVehicle(id: vehicleID), entries: fills,
                                calendar: calendar)
         #expect(stream.sections.count == 1)
-        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(Decimal(string: "207.94")!))
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(amount: Decimal(string: "207.94")!,
+                                                                          currency: .eur))
     }
 
     // MARK: - Keep both: both count from then on

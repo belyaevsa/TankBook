@@ -10,10 +10,13 @@ import Foundation
 ///   backwards. The four entry types interleaved (docs/SCHEMA.md, Entry: "The
 ///   Log renders their union ordered by date").
 /// - Calendar-month sections, newest first, each carrying the month's total
-///   spend in the vehicle's home currency (docs/DESIGN.md: "Monthly dividers
-///   carry the month's total spend in DIN"). A month's total sums every entry
-///   type, and a purchase group contributes its grand total ONCE - never once
-///   per member row.
+///   spend in DIN (docs/DESIGN.md: "Monthly dividers carry the month's total
+///   spend in DIN"). A month's total sums every entry type, and a purchase
+///   group contributes its grand total ONCE - never once per member row. The
+///   total is denominated in the home currency its rows were recorded in - the
+///   vehicle's when that is consistent, each row's own pair when the history
+///   mixes (RV.145) - and is carried WITH the figure so a renderer cannot pair
+///   it with a foreign symbol.
 /// - Entries sharing a `purchaseGroupId` become one purchase group - the
 ///   receipt as the user holds it. The group's grand total is the sum of its
 ///   members' home amounts: never the fill-up's amount alone (hard rule 4 /
@@ -36,7 +39,9 @@ public struct LogStream: Equatable, Sendable {
         /// the rate-pending honesty built in. A month whose rows are still
         /// waiting on a rate must not report a bare total (RV.106) - `0 €`
         /// beside rows that carry no home amount is a wrong number, not a
-        /// missing one (hard rule 2, docs/ERRORS.md -> Home, F9).
+        /// missing one (hard rule 2, docs/ERRORS.md -> Home, F9). The same
+        /// honesty guards the currency axis (RV.145): a month whose known
+        /// figures span home currencies is `.mixed` and prints no bare number.
         public let total: MonthTotal
         public let rows: [Row]
     }
@@ -47,19 +52,53 @@ public struct LogStream: Equatable, Sendable {
     /// (hard rule 4). A rate-pending row's home amount is NOT known - it can
     /// never be summed as zero, because a derived figure that asserts a
     /// falsehood is the defect (RV.106).
+    ///
+    /// Every case that carries an amount carries the CURRENCY with it (RV.145):
+    /// a figure and its symbol read from two different objects - the amount
+    /// from the entries, the symbol from the vehicle - is how the Log printed a
+    /// euro sum under a dollar sign. A month's known figures are printable only
+    /// when they share ONE home currency; the amounts below are always
+    /// denominated in the currency they carry, and the mixed case refuses a bare
+    /// number outright.
     public enum MonthTotal: Equatable, Sendable {
-        /// No row in the month is waiting on a rate: `amount` is exact and the
-        /// divider may print it as fact (a genuine zero-spend month - only free
-        /// events - prints `0 €`, which is honest).
-        case complete(Decimal)
+        /// No row in the month is waiting on a rate and every known figure is
+        /// home in `currency`: `amount` is exact and the divider may print it
+        /// as fact. A month with no money-bearing row at all is an honest
+        /// zero-spend month in the vehicle's home currency (only free events -
+        /// prints `0 €`).
+        case complete(amount: Decimal, currency: CurrencyCode)
         /// Some rows have a home figure and some are still waiting on a rate.
-        /// `amount` is the exact sum of the figures that ARE known - the divider
-        /// may print it only as a partial, marked with `pendingCount`.
-        case partial(amount: Decimal, pendingCount: Int)
+        /// `amount` is the exact sum of the figures that ARE known, all home in
+        /// `currency` - the divider may print it only as a partial, marked with
+        /// `pendingCount`.
+        case partial(amount: Decimal, currency: CurrencyCode, pendingCount: Int)
+        /// The month's KNOWN figures are home in more than one currency, so no
+        /// single number states the month honestly (RV.145, docs/ERRORS.md ->
+        /// Home): `subtotals` is the per-currency breakdown - each figure exact
+        /// and paired with its own currency - and `pendingCount` counts rows
+        /// still waiting on a rate. Do not sum `subtotals` across currencies
+        /// (hard rule 3); a renderer shows the breakdown, never a bare total.
+        case mixed(subtotals: [SpendSubtotal], pendingCount: Int)
         /// Every money-bearing row in the month is still waiting on a rate: no
         /// home figure exists, so there is no number to print. The divider says
         /// why instead of inventing a `0 €` (RV.106).
         case pending(pendingCount: Int)
+    }
+
+    /// One currency's exact share of a mixed month (RV.145). Carries its
+    /// currency so a figure and its symbol can never be read from two different
+    /// objects - the amount and the marker always travel together.
+    public struct SpendSubtotal: Equatable, Sendable {
+        /// The exact sum of the month's known figures homed in `currency`.
+        public let amount: Decimal
+        /// The currency `amount` is denominated in - the marker the renderer
+        /// must print beside it.
+        public let currency: CurrencyCode
+
+        public init(amount: Decimal, currency: CurrencyCode) {
+            self.amount = amount
+            self.currency = currency
+        }
     }
 
     /// A rendered row: a standalone entry, a purchase group, or an unresolved
@@ -113,6 +152,13 @@ public struct LogStream: Equatable, Sendable {
         /// The receipt total as logged: the sum of the members' home amounts.
         /// One number, counted once in a month's divider total.
         public let grandTotal: Decimal
+        /// The currency `grandTotal` is denominated in: the ONE home currency
+        /// all members' KNOWN figures share, or `nil` when the known members
+        /// span currencies or none is known (a receipt whose home currencies
+        /// differ cannot be stated as a single figure - RV.145). The renderer
+        /// shows the figure only beside this currency's marker; a `nil` receipt
+        /// shows no bare total.
+        public let grandTotalCurrency: CurrencyCode?
         /// True when any member keeps a receipt or photo (they share it).
         public let hasAttachment: Bool
     }
@@ -220,10 +266,16 @@ public struct LogStream: Equatable, Sendable {
     /// re-sectioning uses the same month boundaries.
     private let calendar: Calendar
 
+    /// The vehicle's home currency, retained so a preview re-sectioning can
+    /// classify a money-less month (`0` is denominated in the car's home
+    /// currency) exactly as the full stream did.
+    private let homeCurrency: CurrencyCode
+
     public init(vehicle: Vehicle, entries: [any Entry], calendar: Calendar = .current,
                 duplicateResolutions: Set<DuplicateDetector.PairKey> = [],
                 stations: [Station] = []) {
         self.calendar = calendar
+        self.homeCurrency = vehicle.homeCurrency
 
         // The one chronological order the Log, the consumption engines and the
         // timeline validator share (docs/SCHEMA.md, Entry -> ordering rule):
@@ -285,17 +337,11 @@ public struct LogStream: Equatable, Sendable {
             if let groupID = entry.purchaseGroupId {
                 guard !emittedGroups.contains(groupID) else { continue }
                 emittedGroups.insert(groupID)
-                let members = groupMembers[groupID] ?? []
-                let logMembers = members
+                let logMembers = (groupMembers[groupID] ?? [])
                     .sorted(by: EntryOrder.descending)
                     .map { LogEntry(vehicle: vehicle, entry: $0, stations: stations,
                                     closingPer100: per100ByClosingFillID[$0.id]) }
-                let grandTotal = logMembers.reduce(Decimal.zero) { partial, member in
-                    partial + (member.money?.homeAmount ?? Decimal.zero)
-                }
-                rows.append(.group(LogGroup(id: groupID, members: logMembers,
-                                            grandTotal: grandTotal,
-                                            hasAttachment: logMembers.contains { $0.hasAttachment })))
+                rows.append(.group(Self.group(id: groupID, members: logMembers)))
                 continue
             }
             if let pair = pairByCountedID[entry.id],
@@ -309,7 +355,27 @@ public struct LogStream: Equatable, Sendable {
                                         closingPer100: per100ByClosingFillID[entry.id])))
         }
 
-        self.sections = Self.buildSections(rows: rows, calendar: calendar)
+        self.sections = Self.buildSections(rows: rows, calendar: calendar,
+                                           homeCurrency: vehicle.homeCurrency)
+    }
+
+    /// A purchase group's display figure (RV.145): the sum of the members'
+    /// KNOWN home amounts (never a rate-pending line summed as zero), paired
+    /// with the ONE home currency they share - or `nil` when the known lines
+    /// span currencies or none is known, in which case the renderer shows no
+    /// bare total for the group header.
+    private static func group(id: UUID, members: [LogEntry]) -> LogGroup {
+        let grandTotal = members.reduce(Decimal.zero) { partial, member in
+            partial + (member.money?.homeAmount ?? Decimal.zero)
+        }
+        let knownHome = Set(members.compactMap { member -> CurrencyCode? in
+            guard let money = member.money, money.homeAmount != nil else { return nil }
+            return money.homeCurrency
+        })
+        return LogGroup(id: id, members: members,
+                        grandTotal: grandTotal,
+                        grandTotalCurrency: knownHome.count == 1 ? knownHome.first : nil,
+                        hasAttachment: members.contains { $0.hasAttachment })
     }
 
     /// The number of rendered rows with the given purchase groups collapsed.
@@ -343,8 +409,10 @@ public struct LogStream: Equatable, Sendable {
             }
             rows.append(contentsOf: missing)
         }
-        return LogStream(sections: Self.buildSections(rows: rows, calendar: calendar),
-                         calendar: calendar, pendingRateCount: pendingRateCount)
+        return LogStream(sections: Self.buildSections(rows: rows, calendar: calendar,
+                                                      homeCurrency: homeCurrency),
+                         calendar: calendar, homeCurrency: homeCurrency,
+                         pendingRateCount: pendingRateCount)
     }
 
     // MARK: - Whole-month reveal (RV.103)
@@ -423,13 +491,16 @@ public struct LogStream: Equatable, Sendable {
 
     // MARK: - Construction
 
-    private init(sections: [Section], calendar: Calendar, pendingRateCount: Int) {
+    private init(sections: [Section], calendar: Calendar, homeCurrency: CurrencyCode,
+                 pendingRateCount: Int) {
         self.sections = sections
         self.calendar = calendar
+        self.homeCurrency = homeCurrency
         self.pendingRateCount = pendingRateCount
     }
 
-    private static func buildSections(rows: [Row], calendar: Calendar) -> [Section] {
+    private static func buildSections(rows: [Row], calendar: Calendar,
+                                      homeCurrency: CurrencyCode) -> [Section] {
         var sections: [Section] = []
         var currentRows: [Row] = []
         var currentMonth: Date?
@@ -437,7 +508,8 @@ public struct LogStream: Equatable, Sendable {
             let month = monthStart(of: row.date, calendar: calendar)
             if month != currentMonth {
                 if let existing = currentMonth {
-                    sections.append(section(monthStart: existing, rows: currentRows))
+                    sections.append(section(monthStart: existing, rows: currentRows,
+                                            homeCurrency: homeCurrency))
                 }
                 currentMonth = month
                 currentRows = []
@@ -445,23 +517,27 @@ public struct LogStream: Equatable, Sendable {
             currentRows.append(row)
         }
         if let currentMonth, !currentRows.isEmpty {
-            sections.append(section(monthStart: currentMonth, rows: currentRows))
+            sections.append(section(monthStart: currentMonth, rows: currentRows,
+                                    homeCurrency: homeCurrency))
         }
         return sections
     }
 
-    private static func section(monthStart: Date, rows: [Row]) -> Section {
+    private static func section(monthStart: Date, rows: [Row],
+                                homeCurrency: CurrencyCode) -> Section {
         // The one sum the divider may print, and the count of rows still waiting
         // on a rate, come from the shared accumulator HomeStats and TrendsStats
         // reduce through (RV.112) - so a rate-pending row contributes NOTHING
         // to the sum (its home amount is not known) and is counted, and the
-        // three surfaces can never disagree about a month's figure. All three
-        // row arms follow the same rule so a purchase group and a duplicate
-        // pair can never disagree with a standalone entry: a group sums the
-        // members whose home amount is known (its grand total, hard rule 4 -
-        // counted once), a duplicate card only its COUNTED entry (docs/SYNC.md
-        // S2 - the excluded member never counts anywhere).
-        var accumulator = LogStream.MonthTotal.Accumulator()
+        // three surfaces can never disagree about a month's figure. The
+        // accumulator also carries each figure's home currency and refuses a
+        // bare number when the month's known figures span currencies (RV.145).
+        // All three row arms follow the same rule so a purchase group and a
+        // duplicate pair can never disagree with a standalone entry: a group
+        // sums the members whose home amount is known (its grand total, hard
+        // rule 4 - counted once), a duplicate card only its COUNTED entry
+        // (docs/SYNC.md S2 - the excluded member never counts anywhere).
+        var accumulator = LogStream.MonthTotal.Accumulator(vehicleHome: homeCurrency)
         for row in rows {
             switch row {
             case .entry(let entry):
@@ -479,60 +555,6 @@ public struct LogStream: Equatable, Sendable {
         calendar.dateInterval(of: .month, for: date)?.start
             ?? calendar.date(from: calendar.dateComponents([.year, .month], from: date))
             ?? date
-    }
-}
-
-// MARK: - The shared month-spend accumulator (RV.112)
-
-extension LogStream.MonthTotal {
-    /// The month-spend accumulator and classifier that every surface deriving a
-    /// month's spend reduces through - the Log divider (`LogStream.section`),
-    /// `HomeStats.monthSpend` and `TrendsStats`' monthly series all feed it, so
-    /// the three are structurally incapable of disagreeing about a month's
-    /// figure or its honesty (RV.112). What differs between the callers is the
-    /// ITERATION, never the money rule: LogStream walks rendered rows (a
-    /// purchase group counted once by its grand total - hard rule 4; an S2
-    /// duplicate card only its counted member - docs/SYNC.md S2), the stats walk
-    /// their already-counted entry lists; every money pair reaches the same
-    /// `add(_:)` here.
-    public struct Accumulator: Equatable, Sendable {
-        /// The exact sum of the month's KNOWN home amounts.
-        public private(set) var amount = Decimal.zero
-        /// The count of money-bearing rows still waiting on a rate.
-        public private(set) var pendingCount = 0
-
-        public init() {}
-
-        /// One money pair's contribution to the month total (docs/SCHEMA.md ->
-        /// Money). A known home amount sums in; a rate-pending pair is COUNTED
-        /// but never summed as zero - its home amount is not known, and a
-        /// derived figure that asserts a falsehood is the defect (RV.106,
-        /// RV.112). `money == nil` (a free event) is neither: it has no spend
-        /// and is not waiting on anything.
-        public mutating func add(_ money: Money?) {
-            if money?.isRatePending == true {
-                pendingCount += 1
-            } else if let amount = money?.homeAmount {
-                self.amount += amount
-            }
-        }
-
-        /// Adds every money pair in `moneys` in order.
-        public mutating func add<C: Sequence>(contentsOf moneys: C) where C.Element == Money? {
-            for money in moneys {
-                add(money)
-            }
-        }
-
-        /// The month's stated figure, classified exactly as the divider's:
-        /// `.complete` when nothing is pending, `.partial` when a known sum
-        /// exists beside pending rows, `.pending` when no home figure exists
-        /// at all - a zero sum with pending rows is never printed as fact.
-        public var monthTotal: LogStream.MonthTotal {
-            if pendingCount == 0 { return .complete(amount) }
-            if amount > 0 { return .partial(amount: amount, pendingCount: pendingCount) }
-            return .pending(pendingCount: pendingCount)
-        }
     }
 }
 

@@ -122,7 +122,7 @@ struct TrendsView: View {
     ]
 
     private func tileGrid(_ stats: TrendsStats) -> some View {
-        let symbol = AddVehicleSupport.currencySymbol(for: stats.vehicle.homeCurrency)
+        let symbol = AddVehicleSupport.moneySymbol(for: stats.vehicle.homeCurrency)
         return LazyVGrid(columns: Self.twoColumns, spacing: 10) {
             if let headline = stats.home.headline {
                 StatTile(title: L10n.localize("Consumption"),
@@ -145,9 +145,9 @@ struct TrendsView: View {
             }
             // The spend tile's figure is the current month's total, stated with
             // the divider's honesty (RV.112): see `spendTile`. The chart beneath
-            // plots the trailing-12 slots, where a rate-pending month is a hole,
-            // never a dipped bar.
-            spendTile(stats, symbol: symbol)
+            // plots the trailing-12 slots, where a rate-pending or mixed-
+            // currency month is a hole, never a dipped bar.
+            spendTile(stats)
             // The tile's figure is the converted-home value (RV.29): same
             // derivation as Home's vital, and the series' final point - so the
             // unit printed is the figure's own currency, and its sparkline is
@@ -156,7 +156,7 @@ struct TrendsView: View {
                 StatTile(title: L10n.localize("Price / L"),
                          value: ManualFillUpFormat.decimal(lastPrice.amount, fractionDigits: 3),
                          identifier: "trendsPriceTile",
-                         unit: AddVehicleSupport.currencySymbol(for: lastPrice.currency),
+                         unit: AddVehicleSupport.moneySymbol(for: lastPrice.currency),
                          caption: TrendsFormat.priceCaption(series: stats.priceSeries),
                          series: stats.priceSeries.map { .some($0.value) })
             }
@@ -168,25 +168,30 @@ struct TrendsView: View {
     /// prints its KNOWN sum with the pending phrase as the caption (visibly
     /// partial, never a bare total), and `.pending`/nil prints NO number at all
     /// - the tile is omitted rather than asserting a `0 €` no row supports (the
-    /// F9 footnote below says why).
+    /// F9 footnote below says why). The figure carries its own currency
+    /// (RV.145): a `.mixed` month prints its per-currency breakdown rather than
+    /// a bare sum under the car's symbol.
     @ViewBuilder
-    private func spendTile(_ stats: TrendsStats, symbol: String) -> some View {
-        if case .complete(let amount)? = stats.home.monthSpend {
+    private func spendTile(_ stats: TrendsStats) -> some View {
+        if let total = stats.home.monthSpend, let figure = HomeFormat.spend(total) {
             StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),
-                     value: HomeFormat.spend(amount, symbol: symbol),
+                     value: figure,
                      identifier: "trendsSpendTile",
+                     caption: Self.spendCaption(total),
                      series: stats.spendSeries.map(\.value),
                      seriesColor: Theme.Palette.taillight,
                      bars: true)
         }
-        if case .partial(let amount, let pendingCount)? = stats.home.monthSpend {
-            StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),
-                     value: HomeFormat.spend(amount, symbol: symbol),
-                     identifier: "trendsSpendTile",
-                     caption: L10n.pendingRates(pendingCount),
-                     series: stats.spendSeries.map(\.value),
-                     seriesColor: Theme.Palette.taillight,
-                     bars: true)
+    }
+
+    /// The caption under the spend figure: the pending phrase when rows still
+    /// wait, `nil` otherwise.
+    private static func spendCaption(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .complete, .pending:
+            return nil
         }
     }
 

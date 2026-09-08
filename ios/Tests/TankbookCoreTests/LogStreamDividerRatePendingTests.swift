@@ -129,7 +129,7 @@ struct LogStreamDividerRatePendingTests {
         let stream = LogStream(vehicle: Self.vehicle(), entries: entries, calendar: Self.calendar)
         #expect(stream.sections.count == 1)
         #expect(stream.sections[0].total == LogStream.MonthTotal.pending(pendingCount: 4))
-        #expect(stream.sections[0].total != LogStream.MonthTotal.complete(Decimal.zero),
+        #expect(stream.sections[0].total != LogStream.MonthTotal.complete(amount: .zero, currency: .eur),
                 "an all-pending month must never be reported as a zero spend")
     }
 
@@ -151,6 +151,7 @@ struct LogStreamDividerRatePendingTests {
         // today's rate on them (RV.88).
         let known = Decimal(string: "68.46")! + Decimal(string: "148.00")!
         #expect(stream.sections[0].total == LogStream.MonthTotal.partial(amount: known,
+                                                                         currency: .eur,
                                                                          pendingCount: 2))
     }
 
@@ -163,7 +164,8 @@ struct LogStreamDividerRatePendingTests {
                                          Self.fill(Self.date(2026, 8, 20), amount: "101.71")],
                                calendar: Self.calendar)
         #expect(stream.sections[0].total
-                == LogStream.MonthTotal.complete(Decimal(string: "107.25")! + Decimal(string: "101.71")!))
+                == LogStream.MonthTotal.complete(amount: Decimal(string: "107.25")! + Decimal(string: "101.71")!,
+                                                 currency: .eur))
     }
 
     // MARK: - The purchase-group and duplicate arms (the same reduce)
@@ -181,7 +183,7 @@ struct LogStreamDividerRatePendingTests {
         let stream = LogStream(vehicle: Self.vehicle(), entries: entries, calendar: Self.calendar)
         #expect(stream.sections.count == 1)
         #expect(stream.sections[0].total == LogStream.MonthTotal.partial(
-            amount: Decimal(string: "71.02")!, pendingCount: 1))
+            amount: Decimal(string: "71.02")!, currency: .eur, pendingCount: 1))
     }
 
     /// A group whose members are ALL rate-pending has no known figure: pending.
@@ -223,6 +225,7 @@ struct LogStreamDividerRatePendingTests {
         var excluded = Self.pendingFill(month, amount: "72.05", vehicleID: vehicleID)
         excluded.createdAt = month.addingTimeInterval(900)
         let stream = LogStream(vehicle: Self.vehicle(), entries: [counted, excluded], calendar: Self.calendar)
-        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(Decimal(string: "71.02")!))
+        #expect(stream.sections[0].total == LogStream.MonthTotal.complete(amount: Decimal(string: "71.02")!,
+                                                                          currency: .eur))
     }
 }

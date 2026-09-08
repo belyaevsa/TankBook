@@ -107,3 +107,20 @@ line the test is about, run the test, restore the line. That is a smaller, rever
 moving the working tree, and it proves more - it shows the test fails for the reason claimed.
 
 Every brief that asks for a fail-then-pass demonstration must carry this fence.
+
+## `simctl launch` on a running app silently ignores new arguments
+
+The RU capture is where this bites. `xcrun simctl launch` on an app that is already running does
+**not** relaunch it with the new arguments - it foregrounds what is there. So the "RU" shot is the EN
+one with a different clock, and the agent cannot see that it happened.
+
+**Always `xcrun simctl terminate <device> <bundle>` first, and wait for the relaunch to settle before
+the screenshot.** The capture script does this; a hand-rolled capture loop is where it gets missed.
+
+The tell is subtle and worth knowing: on 2026-09-09 the RV.145 agent's "RU" screenshots had Russian
+**date formats** (`9 Sep`) and English **strings** everywhere else - `-AppleLocale` had taken effect
+and `-AppleLanguages` had not, because the process had not actually restarted. A byte-identical file
+is the easy case; this one passes an md5 check and is still wrong.
+
+**This is why the orchestrator opens every screenshot.** No test catches it, and the agent has no
+image input.

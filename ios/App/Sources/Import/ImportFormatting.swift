@@ -9,13 +9,10 @@ import TankbookCore
 enum ImportFormatting {
 
     /// "14 208.40 €" - grouped thousands (U+00A0, matching OdometerFormat) and
-    /// the currency's symbol. POSIX numerals so a comma-decimal device does not
-    /// change the separator.
+    /// the currency's symbol, falling back to the code when the symbol is not
+    /// distinct from it (RV.145 - a figure is never bare).
     static func amount(_ value: Decimal, currency: CurrencyCode) -> String {
-        let symbol = AddVehicleSupport.currencySymbol(for: currency)
-        let number = grouped(value, fractionDigits: 2)
-        if symbol.isEmpty { return "\(number) \(currency.rawValue)" }
-        return "\(number) \(symbol)"
+        "\(grouped(value, fractionDigits: 2)) \(AddVehicleSupport.moneySymbol(for: currency))"
     }
 
     /// "14 208.40" - a plain grouped decimal with a fixed number of digits.

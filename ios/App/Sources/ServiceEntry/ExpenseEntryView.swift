@@ -159,7 +159,7 @@ struct ExpenseEntryView: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .accessibilityIdentifier("expenseEntryAmountField")
                     .numericInput($form.amount, kind: .decimal)
-                Text(AddVehicleSupport.currencySymbol(for: vehicle?.homeCurrency ?? .eur))
+                Text(AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
             }
