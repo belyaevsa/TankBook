@@ -4,15 +4,39 @@ The order rows go out in, and why. One agent at a time - `opencode`'s session da
 `database is locked` when two start in the same second, and the mid-run deaths at 250-500 KB of log
 are memory pressure. Stagger dispatches; never run two builds in this checkout at once.
 
-**Dispatch line** (`< /dev/null` is not optional - without it `opencode run` blocks on stdin,
-writes zero bytes and sits forever, which reads exactly like a wedged provider):
+## A dispatch is TWO commands, and the second one is not optional
+
+**1. Launch the agent with `nohup`** - detached, with its own log. `< /dev/null` is not optional:
+without it `opencode run` blocks on stdin, writes zero bytes and sits forever, which reads exactly
+like a wedged provider and has cost whole afternoons.
 
 ```
 nohup opencode run --auto --thinking -m <provider/model> --title "<id>" \
   "$(cat agents/briefs/<id>.md)" > /tmp/agentlogs/<id>.log 2>&1 < /dev/null &
+echo "dispatched, pid $!"
 ```
 
-Then arm ONE harness-tracked monitor per dispatch, on its PID.
+**2. Arm a HARNESS-TRACKED monitor on that pid** - in Claude Code, the Bash tool with
+`run_in_background: true`, so it appears in `/tasks` and fires a completion notification:
+
+```
+while kill -0 <pid> 2>/dev/null; do sleep 20; done; echo "<id> (pid <pid>) EXITED"
+```
+
+**The `nohup` in step 1 is correct and the monitor in step 2 must NOT use it.** A `nohup ... &`
+waiter is a *log*, not a monitor: it cannot wake the orchestrator, so the dispatch finishes and
+nothing says so. `OB.2` completed unnoticed exactly that way, and an unwatched `RV.58` is how a fake
+RU screenshot nearly reached a commit.
+
+Three rules that come from things that went wrong:
+
+- **Watch the PID, never a process count.** `pgrep -x opencode` breaks the moment anything else on
+  the machine runs opencode - a second session's agents made a monitor announce three exits that
+  were not its own. `pgrep -f "title <id>"` is not the fix either: `-f` matches any process whose
+  arguments merely contain that text, which is how an agent killed a sibling on 2026-08-24.
+- **One monitor per dispatch, never one for several.** A combined waiter hides whichever agent
+  finishes first.
+- **Arm it immediately after the dispatch, every time, with no exceptions.**
 
 | # | Task | Model | Brief | Why this model / this position |
 |---|---|---|---|---|
