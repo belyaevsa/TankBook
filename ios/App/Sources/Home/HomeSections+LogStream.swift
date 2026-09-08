@@ -26,9 +26,11 @@ struct HomeLogReveal {
 
     init(vehicle: Vehicle, entries: [any Entry],
          duplicateResolutions: Set<DuplicateDetector.PairKey>,
+         stations: [Station],
          pageCount: Int, initialRowCount: Int) {
         let stream = LogStream(vehicle: vehicle, entries: entries,
-                               duplicateResolutions: duplicateResolutions)
+                               duplicateResolutions: duplicateResolutions,
+                               stations: stations)
         let pages = stream.revealPages(initialRowCount: initialRowCount,
                                        pageRowCount: initialRowCount)
         guard !pages.isEmpty else {

@@ -722,6 +722,12 @@ capture RV.131-home-duplicate-ru ru -seedSettingsSignedIn -seedHomeDuplicateFiel
 capture RV.140-log-original-amount    en -seedHomeRV88USDPending
 capture RV.140-log-original-amount-ru ru -seedHomeRV88USDPending
 
+# RV.142: imported stations become row titles, a blank station falls back to
+# the fuel kind without repeating it, and closing fills show engine-derived
+# consumption. The first two rows deliberately show both title paths in frame.
+capture RV.142-log-row    en -seedHomeRV142Log
+capture RV.142-log-row-ru ru -seedHomeRV142Log
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

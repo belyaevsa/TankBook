@@ -325,7 +325,8 @@ extension ImportFlowModel {
                     }
                 }
             }
-            try repository.commitImport(records, source: source)
+            try repository.commitImport(records + materializedStationRecords(for: records),
+                                        source: source)
             await deleteStoredParses()
             // RV.88: the rows land rate-pending (a foreign-currency file into a
             // different-currency car), and nothing else on this path resolves
@@ -340,6 +341,30 @@ extension ImportFlowModel {
             confirmFailed = true
             return false
         }
+    }
+
+    /// The Station rows this commit must create (RV.142), as `ArchiveImportRecord`
+    /// entries appended to the SAME `commitImport` call - one transaction, so a
+    /// fill never references a station that did not land. A kept fill's station
+    /// name was resolved to a deterministic id at classification; rows the user
+    /// skipped mint no station, and a station the device already has (matched by
+    /// name at classification) is not written again. Records that are not fills
+    /// (service/expense) have no station and contribute nothing.
+    private func materializedStationRecords(for records: [ArchiveImportRecord]) -> [ArchiveImportRecord] {
+        let keptStationIDs = Set(records.compactMap { record -> UUID? in
+            if case .fillUp(let fill) = record { return fill.stationId } else { return nil }
+        })
+        guard !keptStationIDs.isEmpty else { return [] }
+        let existing = (try? repository.liveStations()) ?? []
+        var nameByID: [UUID: String] = [:]
+        for candidate in effectiveCandidates {
+            guard let name = candidate.trimmedStation else { continue }
+            nameByID[ImportStationResolver.station(for: name, existing: existing).id] = name
+        }
+        return ImportStationResolver.missingStations(keptStationIDs: keptStationIDs,
+                                                     nameByID: nameByID,
+                                                     existing: existing)
+            .map(ArchiveImportRecord.station)
     }
 
     // MARK: - Classification
@@ -364,6 +389,7 @@ extension ImportFlowModel {
     func rebuildClassification() {
         guard let parse else { return }
         let lines = mergedRawLines
+        let existingStations = (try? repository.liveStations()) ?? []
         var candidates = effectiveCandidates
         // Fold the user's review-list edits in at the CANDIDATE level: the
         // partition then applies the SAME conversion and timeline validation to
@@ -389,7 +415,8 @@ extension ImportFlowModel {
                 rawLinesByRow: lines,
                 vehicle: vehicle,
                 source: source,
-                existingEntries: existingEntries)
+                existingEntries: existingEntries,
+                existingStations: existingStations)
             self.readyFills = ready
             self.reviewRows = review
         } else {
@@ -409,6 +436,7 @@ extension ImportFlowModel {
                 candidates: candidates,
                 lanes: lanes,
                 existingEntriesByVehicle: existingByVehicle,
+                existingStations: existingStations,
                 unparsed: parse.unparsed,
                 rawLinesByRow: lines,
                 source: source)

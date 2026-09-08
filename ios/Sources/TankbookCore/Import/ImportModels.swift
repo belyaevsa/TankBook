@@ -101,6 +101,10 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
     public let fuelKind: String?
     public let isFull: Bool?
     public let tankLevelAfterPct: Double?
+    /// The source file's station column when the format carries one (Drivvo's
+    /// `Азс` / `Gas station`, RV.142). Free text, never canonicalised - the
+    /// match to a Station record happens on the device at conversion.
+    public let station: String?
     public let note: String?
     public let vehicleName: String?
     public let provenance: ImportProvenance?
@@ -116,6 +120,7 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
                 unitPrice: String?, money: ImportMoney?, fuelKind: String?,
                 isFull: Bool?, tankLevelAfterPct: Double?, note: String?,
                 vehicleName: String?, provenance: ImportProvenance?, sourceRow: Int,
+                station: String? = nil,
                 items: [ImportServiceItem]? = nil,
                 category: ImportCategoryTag? = nil,
                 title: String? = nil) {
@@ -128,6 +133,7 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
         self.fuelKind = fuelKind
         self.isFull = isFull
         self.tankLevelAfterPct = tankLevelAfterPct
+        self.station = station
         self.note = note
         self.vehicleName = vehicleName
         self.provenance = provenance
@@ -161,7 +167,8 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
                         fuelKind: fuelKind, isFull: isFull,
                         tankLevelAfterPct: tankLevelAfterPct, note: note,
                         vehicleName: vehicleName, provenance: provenance,
-                        sourceRow: sourceRow, items: items, category: category,
+                        sourceRow: sourceRow, station: station,
+                        items: items, category: category,
                         title: title)
     }
 
@@ -178,7 +185,8 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
                                fuelKind: fuelKind, isFull: isFull,
                                tankLevelAfterPct: tankLevelAfterPct, note: note,
                                vehicleName: vehicleName, provenance: provenance,
-                               sourceRow: sourceRow, items: items, category: category,
+                               sourceRow: sourceRow, station: station,
+                               items: items, category: category,
                                title: title)
     }
 
@@ -198,7 +206,8 @@ public struct ImportCandidate: Codable, Sendable, Equatable {
                                fuelKind: fuelKind, isFull: isFull,
                                tankLevelAfterPct: tankLevelAfterPct, note: note,
                                vehicleName: vehicleName, provenance: provenance,
-                               sourceRow: sourceRow, items: editedItems, category: category,
+                               sourceRow: sourceRow, station: station,
+                               items: editedItems, category: category,
                                title: title)
     }
 }
@@ -374,7 +383,8 @@ extension ImportCandidate {
                                fuelKind: fuelKind, isFull: isFull,
                                tankLevelAfterPct: tankLevelAfterPct, note: note,
                                vehicleName: vehicleName, provenance: provenance,
-                               sourceRow: sourceRow, items: items, category: category,
+                               sourceRow: sourceRow, station: station,
+                               items: items, category: category,
                                title: title)
     }
 }

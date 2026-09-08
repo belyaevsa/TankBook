@@ -326,6 +326,7 @@ struct HomeRecentEntries: View {
 
     private var volumeUnit: VolumeUnit { vehicle.units.volume }
     private var distanceUnit: DistanceUnit { vehicle.units.distance }
+    private var consumptionUnitLabel: String { L10n.consumptionUnit(vehicle.units.consumption) }
 
     /// Internal so the log-divider extension (HomeSections+LogStream.swift)
     /// renders the same symbol; never public.
@@ -336,6 +337,7 @@ struct HomeRecentEntries: View {
     var body: some View {
         let reveal = HomeLogReveal(vehicle: vehicle, entries: entries,
                                    duplicateResolutions: duplicateResolutions,
+                                   stations: stations,
                                    pageCount: revealedPageCount,
                                    initialRowCount: Self.previewLimit)
         return VStack(alignment: .leading, spacing: 10) {
@@ -504,6 +506,11 @@ struct HomeRecentEntries: View {
         case .odometer(let value):
             Text("\(OdometerFormat.grouped(value)) \(L10n.distanceUnit(distanceUnit))")
                 .accessibilityIdentifier("logEntryOdometer")
+        case .consumption(let per100):
+            // RV.142: the segment this fill closes, the engine's own per100
+            // figure - the view formats it and never recomputes it (hard rule 2).
+            Text("\(ManualFillUpFormat.decimal(per100, fractionDigits: 1)) \(consumptionUnitLabel)")
+                .accessibilityIdentifier("logEntryConsumption")
         case .attachment:
             Image(systemName: "paperclip")
                 .font(.caption2)

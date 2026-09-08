@@ -50,6 +50,26 @@ public class DrivvoParserTests
         Assert.True(candidate["isFull"]!.GetValue<bool>());
         Assert.Equal("import", candidate["provenance"]!["tag"]!.GetValue<string>());
         Assert.Equal("drivvo", candidate["provenance"]!["source"]!.GetValue<string>());
+        // The `Азс` column (the refuelling row's 25th field) reaches the
+        // candidate (RV.142): it is the row's title on the Log and was read
+        // and thrown away before.
+        Assert.Equal("Газпром", candidate["station"]!.GetValue<string>());
+    }
+
+    // ---- the station column (RV.142): read when present, absent when blank ----
+
+    [Fact]
+    public void BlankStationColumn_LeavesNoStationOnTheCandidate()
+    {
+        // The synthetic RU row with its `Азс` value cleared: a blank station
+        // column must stay absent (null), never become an empty string or a
+        // guessed name.
+        const string row =
+            "\"491206.0\",\"2025-08-02 06:55:11\",\"Бензин АИ92\",\"220\",\"6630\",\"30.136\",\"Да\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"\",\"0\",\"0\",\"0\",\"Нет\",\"6,414 л/100км\",\"585.0\",\"\",\"\",\"\",\"\",\"\",\"driver-1\",\"\",\"\",\"\",\"0\"";
+        using var stream = File(RussianRefuellingHeader, row);
+        var candidate = Assert.Single(DrivvoParser.Parse(stream, CancellationToken.None).Candidates);
+
+        Assert.Null(candidate["station"]);
     }
 
     [Fact]
@@ -189,6 +209,10 @@ public class DrivvoParserTests
         Assert.Equal(ru["money"]!["amount"]!.GetValue<string>(), en["money"]!["amount"]!.GetValue<string>());
         Assert.Equal(ru["fuelKind"]!.GetValue<string>(), en["fuelKind"]!.GetValue<string>());
         Assert.Equal(ru["isFull"]!.GetValue<bool>(), en["isFull"]!.GetValue<bool>());
+        // The station is free text, not a canonical value: each language row
+        // reads its OWN column (`Азс`/`Gas station` -> `station`, RV.142).
+        Assert.Equal("Газпром", ru["station"]!.GetValue<string>());
+        Assert.Equal("Gazprom", en["station"]!.GetValue<string>());
     }
 
     // ---- the 422 path -------------------------------------------------------

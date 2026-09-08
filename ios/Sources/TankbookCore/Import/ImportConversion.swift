@@ -30,6 +30,7 @@ public enum ImportConverter {
     public static func makeFill(from candidate: ImportCandidate,
                                 vehicle: Vehicle,
                                 source: String,
+                                existingStations: [Station] = [],
                                 now: Date = Date()) -> FillUp? {
         guard candidate.entityType == "fillUp" else { return nil }
         guard let fuelKind = candidate.fuelKindResolved else { return nil }
@@ -49,6 +50,12 @@ public enum ImportConverter {
             volumeL: volumeL,
             unitPrice: candidate.unitPriceDecimal,
             amount: candidate.money?.amountDecimal)
+        // RV.142: the source file's station name becomes a Station id HERE, at
+        // conversion - the row carries the id it will have after the commit, so
+        // the Log title resolves without a second pass. Matching + deterministic
+        // creation is `ImportStationResolver`; the commit materialises the rows.
+        let station = candidate.trimmedStation
+            .map { ImportStationResolver.station(for: $0, existing: existingStations) }
         return FillUp(
             id: id, createdAt: candidate.date, updatedAt: candidate.date, deletedAt: nil,
             vehicleId: vehicle.id, date: candidate.date, odometer: candidate.odometer,
@@ -56,7 +63,7 @@ public enum ImportConverter {
             provenance: .import(source: source), conflict: .none, purchaseGroupId: nil,
             volumeL: volumeL, unitPrice: candidate.unitPriceDecimal,
             fuelKind: fuelKind, fuelGrade: nil, isFull: candidate.isFull ?? true,
-            tankLevelAfterPct: candidate.tankLevelAfterPct, stationId: nil,
+            tankLevelAfterPct: candidate.tankLevelAfterPct, stationId: station?.id,
             crossCheck: crossCheck, extraction: nil)
     }
 
@@ -66,6 +73,7 @@ public enum ImportConverter {
     public static func classify(_ candidate: ImportCandidate,
                                 vehicle: Vehicle,
                                 source: String,
+                                existingStations: [Station] = [],
                                 now: Date = Date()) -> (fill: FillUp?, reason: String?) {
         guard candidate.entityType == "fillUp" else {
             return (nil, "not_fill_up")
@@ -76,7 +84,8 @@ public enum ImportConverter {
         guard candidate.volumeL != nil else {
             return (nil, "missing_required")
         }
-        return (makeFill(from: candidate, vehicle: vehicle, source: source, now: now), nil)
+        return (makeFill(from: candidate, vehicle: vehicle, source: source,
+                         existingStations: existingStations, now: now), nil)
     }
 
     /// Maps a `serviceRecord` candidate to a `ServiceRecord` targeted at
@@ -284,7 +293,8 @@ public enum ImportReviewClassifier {
                                  rawLinesByRow: [Int: String],
                                  vehicle: Vehicle,
                                  source: String,
-                                 existingEntries: [any Entry] = []) -> (ready: [FillUp], review: [ImportReviewRow]) {
+                                 existingEntries: [any Entry] = [],
+                                 existingStations: [Station] = []) -> (ready: [FillUp], review: [ImportReviewRow]) {
         var ready: [FillUp] = []
         var review: [ImportReviewRow] = []
         // Every converted fill, in file order, awaiting the merged timeline pass.
@@ -317,7 +327,9 @@ public enum ImportReviewClassifier {
                     rawLine: rawLinesByRow[candidate.sourceRow]))
                 continue
             }
-            let (fill, reason) = ImportConverter.classify(candidate, vehicle: vehicle, source: source)
+            let (fill, reason) = ImportConverter.classify(candidate, vehicle: vehicle,
+                                                          source: source,
+                                                          existingStations: existingStations)
             guard let fill else {
                 review.append(ImportReviewRow(
                     sourceRow: candidate.sourceRow,

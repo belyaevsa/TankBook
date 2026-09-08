@@ -212,7 +212,7 @@ public static class DrivvoParser
     {
         var header = section.Header ?? [];
         var language = DetectLanguage(header);
-        var index = BuildIndex(language, header, "odometer", "date", "fuel", "unitPrice", "totalCost", "volume", "fullTank", "note");
+        var index = BuildIndex(language, header, "odometer", "date", "fuel", "unitPrice", "totalCost", "volume", "fullTank", "station", "note");
 
         var rowNumber = 0;
         foreach (var fields in section.Rows)
@@ -244,6 +244,7 @@ public static class DrivvoParser
         var odometer = ParseOdometer(Field(f, index, "odometer"));
         var fuelKind = MapFuelGrade(language, Field(f, index, "fuel"));
         var fullTank = Field(f, index, "fullTank");
+        var station = NullIfEmpty(Field(f, index, "station"));
         var note = NullIfEmpty(Field(f, index, "note"));
 
         var isFull = string.Equals(fullTank, language.Yes, StringComparison.Ordinal) ? true
@@ -270,6 +271,7 @@ public static class DrivvoParser
             ["fuelKind"] = fuelKind,
             ["isFull"] = isFull,
             ["tankLevelAfterPct"] = null,
+            ["station"] = station,
             ["note"] = note,
             ["provenance"] = (JsonNode)ImportProvenance.DeepClone(),
             ["sourceRow"] = rowNumber,

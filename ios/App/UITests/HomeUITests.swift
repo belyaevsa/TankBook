@@ -588,31 +588,20 @@ final class HomeUITests: XCTestCase {
         reset.terminate()
     }
 
-    /// The entry row's subtitle clips its odometer and date in BOTH languages
-    /// (`123 6… · Aug…`). The fix flows the subtitle onto a second line, so the
-    /// first entry row's date must sit a full caption line BELOW its odometer
-    /// instead of sharing one clipped line. Geometry again, never text - the
-    /// odometer and date elements carry identifiers so their frames can be
-    /// compared.
+    /// The entry row's long subtitle must flow onto a second line rather than
+    /// clip. Geometry proves the newest row's odometer sits a full caption line
+    /// below its consumption; accessibility text alone cannot prove wrapping.
     func testEntryRowSubtitleWrapsToTwoLinesAtXL() {
         let app = launch(args: ["-seedHomeFullHistory",
                                 "-UIPreferredContentSizeCategoryName",
                                 "UICTContentSizeCategoryXXXL"])
-        let odometer = app.staticTexts["logEntryOdometer"].firstMatch
-        XCTAssertTrue(odometer.waitForExistence(timeout: 10),
-                      "the entry subtitle's odometer must be exposed as its own element")
-
-        // The newest fill's subtitle ("42.0 L · 95 · 123 600 km · Aug 17") is
-        // the longest row; its date is the first date element at or below the
-        // odometer's line. Wrapped, it sits one caption line down.
-        let date = app.staticTexts.matching(identifier: "logEntryDate")
-            .allElementsBoundByIndex
-            .first { $0.frame.minY >= odometer.frame.minY - 1 }
-        XCTAssertNotNil(date,
-                        "the first entry row must carry a date after its odometer")
-        XCTAssertGreaterThan(date!.frame.minY, odometer.frame.minY + 8,
-                             "the entry subtitle must wrap to two lines, "
-                             + "odometer at \(odometer.frame.minY), date at \(date!.frame.minY)")
+        let row = app.buttons["logEntryButton"].firstMatch
+        let consumption = row.staticTexts["logEntryConsumption"]
+        let odometer = row.staticTexts["logEntryOdometer"]
+        XCTAssertTrue(consumption.waitForExistence(timeout: 10))
+        XCTAssertTrue(odometer.exists)
+        XCTAssertGreaterThan(odometer.frame.minY, consumption.frame.minY + 8,
+                             "the entry subtitle must wrap to two lines")
     }
 
     // MARK: - RV.61 the manual door (Service and Expense without the camera)

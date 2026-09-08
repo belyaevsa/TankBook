@@ -135,6 +135,12 @@ public struct LogStream: Equatable, Sendable {
         case quantity(Quantity)
         case fuelKind(FuelKind)
         case odometer(Int)
+        /// The per-fill consumption (L/100km) of the segment this fill closes,
+        /// from the engine's own `Segment.per100` (hard rule 2 - the view never
+        /// recomputes it). ABSENT for a fill that closes no segment (RV.142,
+        /// docs/SCHEMA.md -> Derived: consumption): a `0.0` would be a wrong
+        /// claim about the car, so nothing renders.
+        case consumption(Double)
         case attachment
         case date(Date)
     }
@@ -156,23 +162,36 @@ public struct LogStream: Equatable, Sendable {
         /// The fuel kind (fill-ups only). `.nil` for charge/service/expense.
         public let fuelKind: FuelKind?
         /// Whether the fuel kind earns its place in the subtitle - conditional,
-        /// never decorative (docs/DESIGN.md): hidden for a single-fuel vehicle
-        /// whose kind is the usual one, shown for a multi-fuel vehicle, and
-        /// shown when this entry's kind differs from the car's usual.
+        /// never decorative (docs/DESIGN.md): hidden when the row's TITLE is
+        /// already that kind (the fallback for a fill whose station does not
+        /// resolve - repeating it is the RV.142 duplicate), hidden for a
+        /// single-fuel vehicle whose kind is the usual one, and shown for a
+        /// multi-fuel vehicle and when this entry's kind differs from the car's
+        /// usual - but only when the title is the station name.
         public let showsFuelKind: Bool
         /// The entry's odometer; `nil` means the segment is OMITTED, never
         /// rendered as a dash or zero (optional on non-FillUp entries).
         public let odometer: Int?
+        /// The derived per-fill consumption of the segment this entry closes
+        /// (fill-ups only): the engine's `Segment.per100` for the segment whose
+        /// `closingFillID` is this fill. `nil` - ABSENT, never `0` - for an
+        /// entry that closes no segment (RV.142): the first fill, a non-full
+        /// tank, a gap, or any non-FillUp entry.
+        public let consumptionPer100: Double?
         public let money: Money?
         public let hasAttachment: Bool
         public let isConflicted: Bool
 
-        /// The subtitle line: `quantity · fuelKind? · odometer? · 📎? · date`.
-        /// An entry with no odometer simply omits that segment.
+        /// The subtitle line: `quantity · consumption? · fuelKind? · odometer? ·
+        /// 📎? · date`. An entry with no odometer simply omits that segment; a
+        /// fill that closes no segment carries no consumption figure (RV.142).
         public var subtitleSegments: [SubtitleSegment] {
             var segments: [SubtitleSegment] = []
             if let quantity {
                 segments.append(.quantity(quantity))
+            }
+            if let consumptionPer100 {
+                segments.append(.consumption(consumptionPer100))
             }
             if let fuelKind, showsFuelKind {
                 segments.append(.fuelKind(fuelKind))
@@ -202,7 +221,8 @@ public struct LogStream: Equatable, Sendable {
     private let calendar: Calendar
 
     public init(vehicle: Vehicle, entries: [any Entry], calendar: Calendar = .current,
-                duplicateResolutions: Set<DuplicateDetector.PairKey> = []) {
+                duplicateResolutions: Set<DuplicateDetector.PairKey> = [],
+                stations: [Station] = []) {
         self.calendar = calendar
 
         // The one chronological order the Log, the consumption engines and the
@@ -226,8 +246,23 @@ public struct LogStream: Equatable, Sendable {
             .count
         let pairByCountedID = Dictionary(pairs.map { ($0.countedID, $0) },
                                          uniquingKeysWith: { $1 })
-        let logEntryByID = Dictionary(sorted.map { ($0.id, LogEntry(vehicle: vehicle, entry: $0)) },
-                                      uniquingKeysWith: { $1 })
+
+        // The per-fill consumption figure (RV.142): the engine's segments over
+        // the SAME counting fills HomeStats derives the headline from (S2
+        // excluded members never count, docs/SYNC.md S2) - so the row's figure
+        // and the headline can never disagree. Keyed by the closing fill, which
+        // is the fill the segment's consumption belongs to (docs/SCHEMA.md ->
+        // Derived: consumption -> SEGMENT).
+        let countingFills = sorted.compactMap { $0 as? FillUp }
+            .filter { !excludedIDs.contains($0.id) }
+        let per100ByClosingFillID = Dictionary(
+            uniqueKeysWithValues: ConsumptionEngine.recompute(
+                fills: countingFills, tankCapacityL: vehicle.tankCapacityL)
+                .map { ($0.closingFillID, $0.per100) })
+        let logEntryByID = Dictionary(
+            sorted.map { ($0.id, LogEntry(vehicle: vehicle, entry: $0, stations: stations,
+                                          closingPer100: per100ByClosingFillID[$0.id])) },
+            uniquingKeysWith: { $1 })
 
         var groupMembers: [UUID: [any Entry]] = [:]
         for entry in sorted {
@@ -253,7 +288,8 @@ public struct LogStream: Equatable, Sendable {
                 let members = groupMembers[groupID] ?? []
                 let logMembers = members
                     .sorted(by: EntryOrder.descending)
-                    .map { LogEntry(vehicle: vehicle, entry: $0) }
+                    .map { LogEntry(vehicle: vehicle, entry: $0, stations: stations,
+                                    closingPer100: per100ByClosingFillID[$0.id]) }
                 let grandTotal = logMembers.reduce(Decimal.zero) { partial, member in
                     partial + (member.money?.homeAmount ?? Decimal.zero)
                 }
@@ -269,7 +305,8 @@ public struct LogStream: Equatable, Sendable {
                                                       excluded: excludedEntry)))
                 continue
             }
-            rows.append(.entry(LogEntry(vehicle: vehicle, entry: entry)))
+            rows.append(.entry(LogEntry(vehicle: vehicle, entry: entry, stations: stations,
+                                        closingPer100: per100ByClosingFillID[entry.id])))
         }
 
         self.sections = Self.buildSections(rows: rows, calendar: calendar)
@@ -483,8 +520,13 @@ public struct LogStream: Equatable, Sendable {
 
 extension LogStream.LogEntry {
     /// Builds the display model from any `Entry` type. The fuel-kind visibility
-    /// rule (docs/DESIGN.md) is decided here, once, so it tests without a UI.
-    init(vehicle: Vehicle, entry: any Entry) {
+    /// rule (docs/DESIGN.md) and the per-fill consumption figure (RV.142) are
+    /// decided here, once, so they test without a UI. `stations` are the live
+    /// stations the title resolves against - the SAME list the view renders the
+    /// title from, so "the title is the fuel kind" (the no-station fallback)
+    /// and "the fuel kind repeats in the subtitle" can never disagree.
+    init(vehicle: Vehicle, entry: any Entry, stations: [Station] = [],
+         closingPer100: Double? = nil) {
         self.id = entry.id
         self.date = entry.date
         self.odometer = entry.odometer
@@ -501,7 +543,13 @@ extension LogStream.LogEntry {
             self.entryTitle = nil
             self.quantity = .volumeL(fill.volumeL)
             self.fuelKind = fill.fuelKind
-            self.showsFuelKind = Self.showsFuelKind(fill.fuelKind, vehicle: vehicle)
+            // The title resolves to the STATION only when its id names one of
+            // the live stations; otherwise HomeSections titles the row with the
+            // fuel kind, and the subtitle must not repeat it (RV.142).
+            self.showsFuelKind = fill.stationId != nil
+                && stations.contains { $0.id == fill.stationId }
+                && Self.showsFuelKind(fill.fuelKind, vehicle: vehicle)
+            self.consumptionPer100 = closingPer100
         case let charge as ChargeSession:
             self.kind = .charge
             self.stationId = nil
@@ -511,6 +559,7 @@ extension LogStream.LogEntry {
             self.quantity = .energyKWh(charge.energyKWh)
             self.fuelKind = nil
             self.showsFuelKind = false
+            self.consumptionPer100 = nil
         case let service as ServiceRecord:
             self.kind = .service
             self.stationId = nil
@@ -520,6 +569,7 @@ extension LogStream.LogEntry {
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false
+            self.consumptionPer100 = nil
         case let expense as Expense:
             self.kind = .expense
             self.stationId = nil
@@ -529,6 +579,7 @@ extension LogStream.LogEntry {
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false
+            self.consumptionPer100 = nil
         default:
             // A future entry type: render as a neutral expense-like row rather
             // than a crash - nothing is lost silently (hard rule 8).
@@ -540,13 +591,15 @@ extension LogStream.LogEntry {
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false
+            self.consumptionPer100 = nil
         }
     }
 
     /// docs/DESIGN.md: fuel kind is shown only when it tells the user something
     /// - when the vehicle accepts more than one fuel kind, or when this entry's
-    /// kind differs from the car's usual. A diesel-only car printing "Diesel"
-    /// on every row is noise dressed as information.
+    /// kind differs from the car's usual - AND the title is not already that
+    /// kind (the caller's station-resolution gate; RV.142). A diesel-only car
+    /// printing "Diesel" on every row is noise dressed as information.
     private static func showsFuelKind(_ fuelKind: FuelKind, vehicle: Vehicle) -> Bool {
         vehicle.fuelKinds.count > 1 || !vehicle.fuelKinds.contains(fuelKind)
     }

@@ -206,9 +206,18 @@ struct LogStreamTests {
 
     @Test func fuelKindShownForMultiFuelVehicle() {
         let multi = Self.vehicle(fuelKinds: [.petrol95, .diesel])
+        // A station-titled row (the title resolves, so the kind is not already
+        // spoken by the title - RV.142).
+        let stationID = UUID.v7()
+        let station = Station(id: stationID, createdAt: Self.date(2025, 6, 1),
+                              updatedAt: Self.date(2025, 6, 1), deletedAt: nil,
+                              name: "Shell", brand: nil, location: nil, favorite: true,
+                              defaults: Station.Defaults(fuelKind: .petrol95, fuelGrade: nil),
+                              lastUsedAt: nil)
         let entry = LogStream(vehicle: multi,
-                              entries: [Self.fill(Self.date(2025, 8, 10), kind: .petrol95)],
-                              calendar: Self.calendar).allRows[0]
+                              entries: [Self.fill(Self.date(2025, 8, 10), kind: .petrol95,
+                                                  stationID: stationID)],
+                              calendar: Self.calendar, stations: [station]).allRows[0]
         guard case .entry(let logEntry) = entry else {
             Issue.record("expected an entry row")
             return
@@ -219,9 +228,16 @@ struct LogStreamTests {
 
     @Test func fuelKindShownWhenItDiffersFromTheCarsUsual() {
         let petrolOnly = Self.vehicle(fuelKinds: [.petrol95])
-        let dieselFill = Self.fill(Self.date(2025, 8, 10), kind: .diesel)
+        // Station-titled, so the differing diesel kind is not already the title.
+        let stationID = UUID.v7()
+        let station = Station(id: stationID, createdAt: Self.date(2025, 6, 1),
+                              updatedAt: Self.date(2025, 6, 1), deletedAt: nil,
+                              name: "Shell", brand: nil, location: nil, favorite: true,
+                              defaults: Station.Defaults(fuelKind: .diesel, fuelGrade: nil),
+                              lastUsedAt: nil)
+        let dieselFill = Self.fill(Self.date(2025, 8, 10), kind: .diesel, stationID: stationID)
         let entry = LogStream(vehicle: petrolOnly, entries: [dieselFill],
-                              calendar: Self.calendar).allRows[0]
+                              calendar: Self.calendar, stations: [station]).allRows[0]
         guard case .entry(let logEntry) = entry else {
             Issue.record("expected an entry row")
             return

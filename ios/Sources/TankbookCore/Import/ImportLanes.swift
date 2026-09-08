@@ -37,6 +37,7 @@ extension ImportReviewClassifier {
     public static func partitionByLanes(candidates: [ImportCandidate],
                                         lanes: [ImportLane],
                                         existingEntriesByVehicle: [UUID: [any Entry]] = [:],
+                                        existingStations: [Station] = [],
                                         unparsed: [ImportUnparsedRow],
                                         rawLinesByRow: [Int: String],
                                         source: String) -> (ready: [FillUp], review: [ImportReviewRow]) {
@@ -51,7 +52,8 @@ extension ImportReviewClassifier {
                                                     rawLinesByRow: rawLinesByRow,
                                                     vehicle: lane.vehicle,
                                                     source: source,
-                                                    existingEntries: existing)
+                                                    existingEntries: existing,
+                                                    existingStations: existingStations)
             ready += laneReady
             review += laneReview
         }
