@@ -452,67 +452,87 @@ public struct LogStream: Equatable, Sendable {
 
     private static func section(monthStart: Date, rows: [Row]) -> Section {
         // The one sum the divider may print, and the count of rows still waiting
-        // on a rate. A rate-pending row contributes NOTHING to the sum (its home
-        // amount is not known) and is counted, so the figure can be marked
-        // partial rather than silently short (RV.106). All three row arms follow
-        // the same rule so a purchase group and a duplicate pair can never
-        // disagree with a standalone entry: a group sums the members whose home
-        // amount is known (its grand total, hard rule 4 - counted once), a
-        // duplicate card only its COUNTED entry (docs/SYNC.md S2 - the excluded
-        // member never counts anywhere).
-        var total = Decimal.zero
-        var pendingCount = 0
+        // on a rate, come from the shared accumulator HomeStats and TrendsStats
+        // reduce through (RV.112) - so a rate-pending row contributes NOTHING
+        // to the sum (its home amount is not known) and is counted, and the
+        // three surfaces can never disagree about a month's figure. All three
+        // row arms follow the same rule so a purchase group and a duplicate
+        // pair can never disagree with a standalone entry: a group sums the
+        // members whose home amount is known (its grand total, hard rule 4 -
+        // counted once), a duplicate card only its COUNTED entry (docs/SYNC.md
+        // S2 - the excluded member never counts anywhere).
+        var accumulator = LogStream.MonthTotal.Accumulator()
         for row in rows {
-            accumulate(row, into: &total, pending: &pendingCount)
-        }
-        let totalValue: MonthTotal
-        if pendingCount == 0 {
-            totalValue = .complete(total)
-        } else if total > 0 {
-            totalValue = .partial(amount: total, pendingCount: pendingCount)
-        } else {
-            // Some rows are waiting and none has a home figure yet - printing
-            // the zero sum as a fact would be the owner's "0 €" report (RV.106).
-            totalValue = .pending(pendingCount: pendingCount)
-        }
-        return Section(monthStart: monthStart, total: totalValue, rows: rows)
-    }
-
-    /// One row's contribution to a month's divider figure: the home amounts
-    /// that ARE known sum in, and each still-rate-pending entry is counted so
-    /// the caller can mark the figure partial (RV.106). The S2 single-count
-    /// invariant lives here too: a duplicate card contributes the COUNTED
-    /// entry once, never twice, and its excluded member never counts anywhere.
-    private static func accumulate(_ row: Row, into total: inout Decimal,
-                                   pending: inout Int) {
-        switch row {
-        case .entry(let entry):
-            contribute(entry.money, into: &total, pending: &pending)
-        case .group(let group):
-            for member in group.members {
-                contribute(member.money, into: &total, pending: &pending)
+            switch row {
+            case .entry(let entry):
+                accumulator.add(entry.money)
+            case .group(let group):
+                accumulator.add(contentsOf: group.members.map(\.money))
+            case .duplicate(let group):
+                accumulator.add(group.counted.money)
             }
-        case .duplicate(let group):
-            contribute(group.counted.money, into: &total, pending: &pending)
         }
-    }
-
-    /// Adds one money pair's known home amount to `total`, or counts it as
-    /// pending when its home amount is not yet resolved. `money == nil` (a free
-    /// event) is neither: it has no spend and is not waiting on anything.
-    private static func contribute(_ money: Money?, into total: inout Decimal,
-                                   pending: inout Int) {
-        if money?.isRatePending == true {
-            pending += 1
-        } else if let amount = money?.homeAmount {
-            total += amount
-        }
+        return Section(monthStart: monthStart, total: accumulator.monthTotal, rows: rows)
     }
 
     private static func monthStart(of date: Date, calendar: Calendar) -> Date {
         calendar.dateInterval(of: .month, for: date)?.start
             ?? calendar.date(from: calendar.dateComponents([.year, .month], from: date))
             ?? date
+    }
+}
+
+// MARK: - The shared month-spend accumulator (RV.112)
+
+extension LogStream.MonthTotal {
+    /// The month-spend accumulator and classifier that every surface deriving a
+    /// month's spend reduces through - the Log divider (`LogStream.section`),
+    /// `HomeStats.monthSpend` and `TrendsStats`' monthly series all feed it, so
+    /// the three are structurally incapable of disagreeing about a month's
+    /// figure or its honesty (RV.112). What differs between the callers is the
+    /// ITERATION, never the money rule: LogStream walks rendered rows (a
+    /// purchase group counted once by its grand total - hard rule 4; an S2
+    /// duplicate card only its counted member - docs/SYNC.md S2), the stats walk
+    /// their already-counted entry lists; every money pair reaches the same
+    /// `add(_:)` here.
+    public struct Accumulator: Equatable, Sendable {
+        /// The exact sum of the month's KNOWN home amounts.
+        public private(set) var amount = Decimal.zero
+        /// The count of money-bearing rows still waiting on a rate.
+        public private(set) var pendingCount = 0
+
+        public init() {}
+
+        /// One money pair's contribution to the month total (docs/SCHEMA.md ->
+        /// Money). A known home amount sums in; a rate-pending pair is COUNTED
+        /// but never summed as zero - its home amount is not known, and a
+        /// derived figure that asserts a falsehood is the defect (RV.106,
+        /// RV.112). `money == nil` (a free event) is neither: it has no spend
+        /// and is not waiting on anything.
+        public mutating func add(_ money: Money?) {
+            if money?.isRatePending == true {
+                pendingCount += 1
+            } else if let amount = money?.homeAmount {
+                self.amount += amount
+            }
+        }
+
+        /// Adds every money pair in `moneys` in order.
+        public mutating func add<C: Sequence>(contentsOf moneys: C) where C.Element == Money? {
+            for money in moneys {
+                add(money)
+            }
+        }
+
+        /// The month's stated figure, classified exactly as the divider's:
+        /// `.complete` when nothing is pending, `.partial` when a known sum
+        /// exists beside pending rows, `.pending` when no home figure exists
+        /// at all - a zero sum with pending rows is never printed as fact.
+        public var monthTotal: LogStream.MonthTotal {
+            if pendingCount == 0 { return .complete(amount) }
+            if amount > 0 { return .partial(amount: amount, pendingCount: pendingCount) }
+            return .pending(pendingCount: pendingCount)
+        }
     }
 }
 

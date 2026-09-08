@@ -90,6 +90,25 @@ time DO resolve: they sit inside the rolling 400-day pack window, so a later lau
 footnote's "Check for rates") re-fetches the pack and the S8 backfill fills them - measured by
 RV.106's L4 reproduction.
 
+**Every other surface that derives a month's spend states the same honesty (RV.112).** The tile
+and the Trends series used to sum a pending row as zero while the divider did not - the shape
+survived RV.106 because its fix stopped at the divider. All three now reduce through ONE shared
+accumulator (`LogStream.MonthTotal.Accumulator`): the Home vitals tile and the Trends spend tile
+show the same `.complete` / `.partial` / `.pending` classification as the month's divider. A
+`.partial` current month prints its KNOWN sum with the "N entries pending rates" phrase as the
+tile's caption (visibly partial, never a bare total); a `.pending` month prints NO number at all -
+the tile is omitted, exactly as any other data-hungry vital is omitted, and the F9 footnote below
+says why. A `0 €` beside rows that carry no home amount is a wrong number wherever it appears,
+not just on the divider.
+
+**A rate-pending month is a GAP in a Trends chart, never a dipped point (RV.112).** The monthly
+spend and cost/km series plot a point only for a `.complete` month. A `.partial` month is not
+plotted at its known-so-far sum and a `.pending` month is not plotted at zero - both would read as
+"spend fell" (hard rule 2). Each such month is a hole in the series: the line chart BREAKS its
+path there and the bar chart leaves the slot empty, so the absence reads as unknown, never as a
+drop. The F9 footnote carries the pending phrase whenever such a month is inside the plotted
+window.
+
 **A row dated outside the pack window needs the DEMAND check, and its empty answer is a dead
 end (RV.111).** The launch pass refreshes the rolling 400 days only, so a row from a
 multi-year import committed while the archive was still publishing is never asked for again
@@ -255,7 +274,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step) | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **A rate-pending month is a GAP in the spend/cost charts, never a dipped bar or point** (RV.112); the spend TILE prints no number for a `.pending` month and marks a `.partial` one with the pending phrase (docs/DESIGN.md -> Trends) | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

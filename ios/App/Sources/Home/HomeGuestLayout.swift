@@ -99,16 +99,30 @@ struct HomeGuestLayout: View {
                             value: HomeFormat.costPerKm(cost, symbol: symbol(stats)),
                             identifier: "homeCostPerKmTile")
             }
-            if let monthSpend = stats.monthSpend {
+            // The month-spend column states exactly what the month divider may
+            // print (RV.112): a `.complete` month is the bare figure, a
+            // `.partial` one prints its KNOWN sum with the pending phrase
+            // beneath it (visibly partial, never a bare total), and a
+            // `.pending` month has no number at all - the column is omitted, so
+            // it can never read `0 €` beside rows carrying no home amount.
+            if case .complete(let amount)? = stats.monthSpend {
                 Divider().overlay(Theme.Palette.hairline).frame(height: 40)
                 vitalColumn(label: HomeFormat.currentMonth(),
-                            value: HomeFormat.spend(monthSpend, symbol: symbol(stats)),
+                            value: HomeFormat.spend(amount, symbol: symbol(stats)),
                             identifier: "homeMonthSpendTile")
+            }
+            if case .partial(let amount, let pendingCount)? = stats.monthSpend {
+                Divider().overlay(Theme.Palette.hairline).frame(height: 40)
+                vitalColumn(label: HomeFormat.currentMonth(),
+                            value: HomeFormat.spend(amount, symbol: symbol(stats)),
+                            identifier: "homeMonthSpendTile",
+                            caption: L10n.pendingRates(pendingCount))
             }
         }
     }
 
-    private func vitalColumn(label: String, value: String, identifier: String) -> some View {
+    private func vitalColumn(label: String, value: String, identifier: String,
+                             caption: String? = nil) -> some View {
         VStack(spacing: 2) {
             Text(value)
                 .font(.custom(AppFonts.dinAlternateBold, size: 20))
@@ -118,6 +132,15 @@ struct HomeGuestLayout: View {
                 .textCase(.uppercase)
                 .tracking(0.8)
                 .foregroundStyle(Theme.Palette.inkSoft)
+                .multilineTextAlignment(.center)
+            if let caption {
+                Text(caption)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
         }
         .frame(maxWidth: .infinity)
         .accessibilityIdentifier(identifier)

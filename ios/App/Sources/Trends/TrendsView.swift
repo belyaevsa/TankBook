@@ -130,7 +130,7 @@ struct TrendsView: View {
                          identifier: "trendsConsumptionTile",
                          unit: TrendsFormat.consumptionUnit(stats.vehicle.headlineUnit),
                          caption: L10n.honestSpanLabel(headline.label),
-                         series: stats.consumptionSeries.map(\.value),
+                         series: stats.consumptionSeries.map { .some($0.value) },
                          seriesColor: Self.consumptionColor(stats.vehicle),
                          trend: stats.consumptionTrend)
             }
@@ -143,14 +143,11 @@ struct TrendsView: View {
                          series: stats.costSeries.map(\.value),
                          trend: stats.costTrend)
             }
-            if let monthSpend = stats.home.monthSpend {
-                StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),
-                         value: HomeFormat.spend(monthSpend, symbol: symbol),
-                         identifier: "trendsSpendTile",
-                         series: stats.spendSeries.map(\.value),
-                         seriesColor: Theme.Palette.taillight,
-                         bars: true)
-            }
+            // The spend tile's figure is the current month's total, stated with
+            // the divider's honesty (RV.112): see `spendTile`. The chart beneath
+            // plots the trailing-12 slots, where a rate-pending month is a hole,
+            // never a dipped bar.
+            spendTile(stats, symbol: symbol)
             // The tile's figure is the converted-home value (RV.29): same
             // derivation as Home's vital, and the series' final point - so the
             // unit printed is the figure's own currency, and its sparkline is
@@ -161,8 +158,35 @@ struct TrendsView: View {
                          identifier: "trendsPriceTile",
                          unit: AddVehicleSupport.currencySymbol(for: lastPrice.currency),
                          caption: TrendsFormat.priceCaption(series: stats.priceSeries),
-                         series: stats.priceSeries.map(\.value))
+                         series: stats.priceSeries.map { .some($0.value) })
             }
+        }
+    }
+
+    /// The spend tile's figure is the current month's total, stated with the
+    /// divider's honesty (RV.112): `.complete` is the bare figure, `.partial`
+    /// prints its KNOWN sum with the pending phrase as the caption (visibly
+    /// partial, never a bare total), and `.pending`/nil prints NO number at all
+    /// - the tile is omitted rather than asserting a `0 €` no row supports (the
+    /// F9 footnote below says why).
+    @ViewBuilder
+    private func spendTile(_ stats: TrendsStats, symbol: String) -> some View {
+        if case .complete(let amount)? = stats.home.monthSpend {
+            StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),
+                     value: HomeFormat.spend(amount, symbol: symbol),
+                     identifier: "trendsSpendTile",
+                     series: stats.spendSeries.map(\.value),
+                     seriesColor: Theme.Palette.taillight,
+                     bars: true)
+        }
+        if case .partial(let amount, let pendingCount)? = stats.home.monthSpend {
+            StatTile(title: String(format: L10n.localize("Spend · %@"), TrendsFormat.month()),
+                     value: HomeFormat.spend(amount, symbol: symbol),
+                     identifier: "trendsSpendTile",
+                     caption: L10n.pendingRates(pendingCount),
+                     series: stats.spendSeries.map(\.value),
+                     seriesColor: Theme.Palette.taillight,
+                     bars: true)
         }
     }
 

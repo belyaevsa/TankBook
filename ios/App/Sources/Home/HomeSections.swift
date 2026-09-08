@@ -239,10 +239,22 @@ struct HomeVitalsRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if let monthSpend = stats.monthSpend {
+            // The month-spend tile states exactly what the month's divider may
+            // print (RV.112): a `.complete` month is the bare figure, a
+            // `.partial` one prints its KNOWN sum with the pending phrase
+            // beneath it as the tile's caption, and a `.pending` month (no row
+            // converted) is OMITTED - a tile slot that would read `0 €` is
+            // never built, and the F9 footnote on the log below says why.
+            if case .complete(let amount)? = stats.monthSpend {
                 StatTile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
-                         value: HomeFormat.spend(monthSpend, symbol: symbol),
+                         value: HomeFormat.spend(amount, symbol: symbol),
                          identifier: "homeMonthSpendTile")
+            }
+            if case .partial(let amount, let pendingCount)? = stats.monthSpend {
+                StatTile(title: String(format: L10n.localize("%@ spend"), HomeFormat.currentMonth()),
+                         value: HomeFormat.spend(amount, symbol: symbol),
+                         identifier: "homeMonthSpendTile",
+                         caption: L10n.pendingRates(pendingCount))
             }
             // RV.29 display decision (converted home, never the raw original):
             // the price per litre is a money figure, and every money figure on

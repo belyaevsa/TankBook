@@ -301,6 +301,25 @@ final class TrendsUITests: XCTestCase {
                        "the deleted car's price tile must not survive")
     }
 
+    // MARK: - RV.112 a rate-pending month never reads as zero spend
+
+    /// The Trends spend tile is the current month's total, and a fully-pending
+    /// month has no total to state (RV.112): the tile must be ABSENT, never a
+    /// bare `0 €`, and the pending-rates footnote must say why. `-seedHomeRV88
+    /// USDPending` puts two current-month foreign rows without a rate on a EUR
+    /// car - the owner's exact shape.
+    func testRV112PendingCurrentMonthSpendTilePrintsNoNumber() {
+        let app = launch(args: ["-seedHomeRV88USDPending"])
+
+        let spendTile = anyElement(app, "trendsSpendTile")
+        XCTAssertFalse(spendTile.exists,
+                       "a fully-pending month must not print a spend figure on Trends")
+        XCTAssertFalse(app.staticTexts["0 €"].exists,
+                       "a pending month must never render a `0 €` on the Trends tiles")
+        XCTAssertTrue(app.staticTexts["trendsPendingRatesFootnote"].waitForExistence(timeout: 15),
+                      "Trends must carry the pending phrase that explains the absent figure")
+    }
+
     // MARK: - Helpers
 
     private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {

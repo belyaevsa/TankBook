@@ -19,8 +19,10 @@ struct StatTile: View {
     /// The honest label line ("last 3 months", "first estimate · 1 fill cycle").
     var caption: String?
     /// The sparkline series; rendered only when there is enough to draw
-    /// honestly (>= 2 points - a single point is noise, not a chart).
-    var series: [Double] = []
+    /// honestly (>= 2 real points - a single point or a lone gap is noise, not
+    /// a chart). A `nil` slot is a rate-pending month: the renderer leaves it
+    /// open rather than bridging it (RV.112).
+    var series: [Double?] = []
     /// One accent per series: taillight for fuel figures, headlight for
     /// electric, inkSoft for neutral cost figures (design/screens/TrendsB).
     var seriesColor: Color = Theme.Palette.inkSoft
@@ -75,7 +77,7 @@ struct StatTile: View {
                         .accessibilityHidden(true)
                 }
             }
-            if series.count >= 2 {
+            if series.compactMap({ $0 }).count >= 2 {
                 Sparkline(values: series, color: seriesColor, bars: bars)
                     .frame(height: 30)
             }

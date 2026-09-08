@@ -236,7 +236,8 @@ struct DuplicateSingleCountTests {
         let stats = HomeStats(vehicle: duplicateVehicle(id: vehicleID), entries: fills,
                               asOf: duplicateAsOf)
         // 68.46 + 71.02 + 68.46, with the second 71.02 set aside.
-        #expect(stats.monthSpend == Decimal(string: "207.94"))
+        #expect(stats.monthSpend
+                == LogStream.MonthTotal.complete(Decimal(string: "207.94")!))
     }
 
     /// The single-count invariant holds at the anomaly engine's input boundary

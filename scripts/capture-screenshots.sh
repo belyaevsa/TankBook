@@ -728,6 +728,17 @@ capture RV.140-log-original-amount-ru ru -seedHomeRV88USDPending
 capture RV.142-log-row    en -seedHomeRV142Log
 capture RV.142-log-row-ru ru -seedHomeRV142Log
 
+# RV.112: a rate-pending month never prints a bare total on the vitals tile or
+# the Trends series. The Home shot is the owner's exact scene (RV.140's): two
+# current-month 110.00 USD rows above a month that used to read "0 €" - the
+# tile is now ABSENT and the footnote + divider say why. The Trends shot is the
+# RV.106 state (June/July all-pending beside a converted August): the spend
+# tile prints no false figure and the pending footnote carries the phrase.
+capture RV.112-home    en -seedHomeRV88USDPending
+capture RV.112-home-ru ru -seedHomeRV88USDPending
+capture RV.112-trends    en -seedHomeRV106Pending -selectTrendsTab
+capture RV.112-trends-ru ru -seedHomeRV106Pending -selectTrendsTab
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

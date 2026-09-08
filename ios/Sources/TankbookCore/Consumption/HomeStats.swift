@@ -45,16 +45,22 @@ public struct HomeStats: Equatable, Sendable {
     public let lifetime: Double?
     /// All-in cost per km over the window; `nil` with no km span in the window.
     public let costPerKm: Double?
-    /// Sum of home-currency spend in the calendar month containing `asOf`.
-    public let monthSpend: Decimal?
+    /// Sum of home-currency spend in the calendar month containing `asOf`,
+    /// stated exactly as honestly as the data allows (docs/ERRORS.md -> Home,
+    /// F9). A rate-pending row's home amount is not known, so it is never
+    /// summed as zero: the value is the SAME `LogStream.MonthTotal` the Log
+    /// divider prints, classified by the shared accumulator (RV.112) - nil only
+    /// when the month has no entries at all.
+    public let monthSpend: LogStream.MonthTotal?
     /// The most recent fill's price per unit in the currency the vehicle's
     /// money figures are kept in (the fill's money-pair home side - hard rule 3),
     /// NOT the raw original a bare `Decimal` used to smuggle out (RV.29).
     ///
     /// A foreign fill converts with its OWN immutable rate snapshot, so this
     /// figure never shifts when rates move. A fill still waiting on a rate has
-    /// no home figure yet and is skipped exactly as `monthSpend` skips it
-    /// (docs/ERRORS.md -> Home, F9) - the tile then shows the most recent price
+    /// no home figure yet and is excluded here exactly as `monthSpend` excludes
+    /// its amount (the pair is counted, never summed as zero - RV.112;
+    /// docs/ERRORS.md -> Home, F9) - the tile then shows the most recent price
     /// that IS expressible in home currency. `nil` when no counting entry has a
     /// unit price expressible in home currency at all.
     public let lastUnitPrice: UnitPriceFigure?
@@ -147,14 +153,16 @@ public struct HomeStats: Equatable, Sendable {
     // MARK: - Private derivation (all on top of the engine)
 
     private static func monthSpend(entries: [any Entry], asOf: Date,
-                                   calendar: Calendar) -> Decimal? {
+                                   calendar: Calendar) -> LogStream.MonthTotal? {
         guard let month = calendar.dateInterval(of: .month, for: asOf) else { return nil }
         let inMonth = entries.filter { month.contains($0.date) }
         guard !inMonth.isEmpty else { return nil }
-        return inMonth.reduce(Decimal.zero) { partial, entry in
-            guard let homeAmount = entry.money?.homeAmount else { return partial }
-            return partial + homeAmount
-        }
+        // The shared accumulator: a pending row is counted, never summed as
+        // zero, and the three cases come out of the one classifier the Log
+        // divider uses (RV.112).
+        var accumulator = LogStream.MonthTotal.Accumulator()
+        accumulator.add(contentsOf: inMonth.map(\.money))
+        return accumulator.monthTotal
     }
 
     // MARK: - The unit-price figure (RV.29)

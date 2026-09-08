@@ -371,9 +371,11 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
     let stats = HomeStats(vehicle: vehicle, entries: entries, asOf: asOf, calendar: utcCalendar)
 
     #expect(stats.pendingRateCount == 2)
-    // The home-currency sum equals the sum of the three converted home amounts,
-    // written out literally - never re-derived with the production reduce.
-    #expect(stats.monthSpend == decimal("60"))
+    // The month is genuinely partial: two rows are still rate-pending, so the
+    // honest figure is the known 60 sum MARKED with the pending count - never a
+    // bare total that reads as complete (RV.112).
+    #expect(stats.monthSpend == LogStream.MonthTotal.partial(amount: decimal("60"),
+                                                             pendingCount: 2))
 }
 
 // MARK: - Rate-cache persistence + prune (docs/SCHEMA.md -> Exchange rates)

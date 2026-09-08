@@ -17,10 +17,23 @@ enum VehicleVitals {
             let unit = L10n.consumptionUnitShort(stats.vehicle.headlineUnit)
             parts.append("\(value) \(unit)")
         }
+        // The month-spend segment states exactly what the data supports
+        // (RV.112): a complete month is the bare figure, a partial one carries
+        // the pending phrase so the known sum is never read as the whole month,
+        // and a pending month prints NO number - only the phrase that says why.
         if let monthSpend = stats.monthSpend {
             let symbol = AddVehicleSupport.currencySymbol(for: stats.vehicle.homeCurrency)
-            parts.append(String(format: L10n.localize("%@ this month"),
-                                HomeFormat.spend(monthSpend, symbol: symbol)))
+            switch monthSpend {
+            case .complete(let amount):
+                parts.append(String(format: L10n.localize("%@ this month"),
+                                    HomeFormat.spend(amount, symbol: symbol)))
+            case .partial(let amount, let pendingCount):
+                parts.append(String(format: L10n.localize("%@ this month"),
+                                    HomeFormat.spend(amount, symbol: symbol)))
+                parts.append(L10n.pendingRates(pendingCount))
+            case .pending(let pendingCount):
+                parts.append(L10n.pendingRates(pendingCount))
+            }
         }
         return parts.joined(separator: " · ")
     }

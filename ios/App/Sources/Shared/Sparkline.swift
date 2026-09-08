@@ -4,8 +4,15 @@ import TankbookCore
 /// A minimal sparkline: thin `inkSoft` grid lines, one accent series, no chart
 /// junk (docs/DESIGN.md: "no chart junk, thin inkSoft grid, taillight/headlight
 /// series only"). Bars for the spend tile, a line otherwise.
+///
+/// A series slot may be `nil` - a month inside the plotted window whose figure
+/// is not storable (rate-pending, RV.112). A nil slot is a real hole, never a
+/// value: the line chart BREAKS its path there (it must not bridge the gap with
+/// a straight line, which would read as "spend fell"), and the bar chart draws
+/// nothing in that slot while keeping the slot's position so later bars do not
+/// shift.
 struct Sparkline: View {
-    let values: [Double]
+    let values: [Double?]
     let color: Color
     var bars = false
 
@@ -22,18 +29,29 @@ struct Sparkline: View {
     // MARK: Line
 
     private func lineChart(in size: CGSize) -> some View {
-        let points = Self.normalized(values, in: size)
+        let coords = Self.normalized(values, in: size)
         return ZStack(alignment: .topLeading) {
             grid(size)
             Path { path in
-                guard let first = points.first else { return }
-                path.move(to: first)
-                for point in points.dropFirst() {
-                    path.addLine(to: point)
+                var hasOpenSegment = false
+                for point in coords {
+                    guard let point else {
+                        // A gap ends the current segment: the next real point
+                        // starts a NEW segment (move), never a line across the
+                        // hole (RV.112).
+                        hasOpenSegment = false
+                        continue
+                    }
+                    if hasOpenSegment {
+                        path.addLine(to: point)
+                    } else {
+                        path.move(to: point)
+                        hasOpenSegment = true
+                    }
                 }
             }
             .stroke(color, style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-            if let last = points.last {
+            if let last = coords.compactMap({ $0 }).last {
                 Circle()
                     .fill(color)
                     .frame(width: 6, height: 6)
@@ -44,20 +62,25 @@ struct Sparkline: View {
 
     /// Normalised to the drawing area with a small vertical inset, preserving
     /// the true shape of the series (a flat series stays a flat centre line -
-    /// no invented variation, no fake baseline).
-    private static func normalized(_ values: [Double], in size: CGSize) -> [CGPoint] {
+    /// no invented variation, no fake baseline). Gap slots stay `nil` but keep
+    /// their index position, so nothing draws across a hole.
+    private static func normalized(_ values: [Double?], in size: CGSize) -> [CGPoint?] {
         let topPad: CGFloat = 4
         let bottomPad: CGFloat = 4
-        let span = (values.max() ?? 0) - (values.min() ?? 0)
+        let present = values.compactMap { $0 }
+        let usableHeight = size.height - topPad - bottomPad
+        let span = (present.max() ?? 0) - (present.min() ?? 0)
         guard span > 0 else {
             let y = size.height / 2
             return values.indices.map { index in
-                CGPoint(x: xPosition(index, count: values.count, width: size.width), y: y)
+                values[index].map { _ in
+                    CGPoint(x: xPosition(index, count: values.count, width: size.width), y: y)
+                }
             }
         }
-        let minValue = values.min() ?? 0
-        let usableHeight = size.height - topPad - bottomPad
+        let minValue = present.min() ?? 0
         return values.enumerated().map { index, value in
+            guard let value else { return nil }
             let ratio = (value - minValue) / span
             let y = topPad + (1 - ratio) * usableHeight
             return CGPoint(x: xPosition(index, count: values.count, width: size.width), y: y)
@@ -71,20 +94,25 @@ struct Sparkline: View {
     // MARK: Bars
 
     private func barChart(in size: CGSize) -> some View {
-        let maxValue = values.max() ?? 1
-        let slot = size.width / CGFloat(values.count)
+        let present = values.compactMap { $0 }
+        let maxValue = present.max() ?? 1
+        let slot = size.width / CGFloat(max(values.count, 1))
         let barWidth = max(4, slot * 0.55)
         let bottomInset: CGFloat = 3
         let usableHeight = size.height - bottomInset
         return ZStack(alignment: .topLeading) {
             grid(size)
             ForEach(Array(values.enumerated()), id: \.offset) { index, value in
-                let height = max(2, CGFloat(value) / CGFloat(maxValue) * usableHeight)
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(color)
-                    .frame(width: barWidth, height: height)
-                    .position(x: CGFloat(index) * slot + slot / 2,
-                              y: size.height - bottomInset - height / 2)
+                // A gap slot keeps its position but draws no bar - the hole is
+                // the honest rendering of a month whose total is not storable.
+                if let value {
+                    let height = max(2, CGFloat(value) / CGFloat(maxValue) * usableHeight)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(color)
+                        .frame(width: barWidth, height: height)
+                        .position(x: CGFloat(index) * slot + slot / 2,
+                                  y: size.height - bottomInset - height / 2)
+                }
             }
         }
     }
