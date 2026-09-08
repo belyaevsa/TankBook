@@ -394,53 +394,14 @@ struct HomeRecentEntries: View {
 
     // MARK: S2 combined duplicate card
 
-    /// One physical fill logged twice (docs/SYNC.md S2): a single card where
-    /// the pair would otherwise appear as two rows, with BOTH next steps
-    /// present - every warning names its resolution (hard rule 7). Until the
-    /// user decides, only the counted member contributes to any figure.
+    /// One physical fill logged twice (docs/SYNC.md S2): a single card showing
+    /// BOTH members with their differences (rendered by `HomeDuplicateCard`).
+    /// Until the user decides, only the counted member contributes to any
+    /// figure - this row never changes what counts, only what is shown.
     private func duplicateCard(_ group: LogStream.DuplicateGroup) -> some View {
-        let title = duplicateTitle(group)
-        let volume = duplicateVolume(group.counted)
-        return HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "doc.on.doc")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.warn)
-            VStack(alignment: .leading, spacing: 8) {
-                Text(String(format: L10n.localize("Possible duplicate – %@, %@ logged twice"),
-                            title, volume))
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .lineLimit(2)
-                HStack(spacing: 14) {
-                    Button("Merge") { onMerge(group) }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("homeMergeButton")
-                    Button("Keep both") { onKeepBoth(group) }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("homeKeepBothButton")
-                }
-                .font(.caption.weight(.semibold))
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(14)
-        .formCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("homeDuplicateCard")
-    }
-
-    /// The card's title: the counted entry's station or fuel kind.
-    private func duplicateTitle(_ group: LogStream.DuplicateGroup) -> String {
-        title(group.counted)
-    }
-
-    /// The card's quantity: the counted entry's volume in the vehicle's unit
-    /// (the pair's volumes are within 5%, so one figure describes both).
-    private func duplicateVolume(_ entry: LogStream.LogEntry) -> String {
-        guard case .volumeL(let litres) = entry.quantity else { return "" }
-        return "\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))"
+        HomeDuplicateCard(group: group, stations: stations,
+                          volumeUnit: volumeUnit, distanceUnit: distanceUnit,
+                          onKeepBoth: onKeepBoth, onMerge: onMerge)
     }
 
     // MARK: Entry card

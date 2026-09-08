@@ -193,3 +193,26 @@ Your brief is part of your command line, so `pgrep -f "xcodebuild.*test"` matche
 Every check with the **exit code you observed**, and whether each test was **run or only written**.
 Name any closed decision above you think is wrong, and stop there rather than absorbing it - four
 of the orchestrator's diagnoses have been wrong and every one was caught by an agent pushing back.
+
+---
+
+## AMENDED 2026-09-08: drivvo is now IN scope, and it is the sharper case
+
+The out-of-scope line above excluded `drivvo` because [RV.113] had not landed when this brief was
+written. **[RV.113] has since landed** (`01ae3fa`), and a previous run of this brief found the
+consequence before it was killed - confirm it yourself, then act on it:
+
+`DrivvoParser.BuildIndex` looks up **known headers only**, so a column whose header is not in the
+mapping is never read and its data is **silently dropped**. On the real export that is `Водитель`
+(the driver - Drivvo's whole fleet positioning), `Метод оплаты`, `Тип расхода` and `Скидка`.
+
+So the format this row exists to describe honestly is the one that drops the most, and it now
+exists. **Declare `drivvo`'s unsupported fields alongside `mfm`'s.** Everything else in this brief
+is unchanged - the same declaration-plus-count split, the same stable keys with localized labels on
+the device, the same zero-count omission rule.
+
+Still out of scope: changing `DrivvoParser` to start importing any of those columns. This row
+reports the gap; it does not close it.
+
+**Baselines have moved** - `main` is green at **1644 tests / 184 suites**, backend **423**, **774**
+localization keys. Re-measure and report what you observe.

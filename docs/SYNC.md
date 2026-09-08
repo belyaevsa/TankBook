@@ -348,7 +348,7 @@ iPhone edits the Shell fill-up's odometer at 14:02; iPad edits its note at 14:05
 Both spouses (v2 sharing) – or one person with phone and CarPlay flow – log the same fill-up. Two records, different UUIDs: transport sees no conflict at all.
 - **Transport:** both records sync everywhere.
 - **Domain:** duplicate heuristic – same vehicle, dates within 30 min, volume within 5% – flags the pair.
-- **Screens:** the Log shows one combined card: "Possible duplicate – Shell, 42.3 L logged twice" with *Keep both* / *Merge* (merge keeps the richer one: the one with an attachment wins, fields union). Until resolved, only ONE of the pair counts in consumption and totals, so stats never double.
+- **Screens:** the Log shows one combined card: "Possible duplicate – Shell, 42.3 L logged twice" with the TWO records themselves shown as rows (time of day, odometer, total, and which one carries the attachment – the Merge survivor: "the one with an attachment wins"), each row opening its own edit screen, plus *Keep both* / *Merge* (merge keeps the richer one: the one with an attachment wins, fields union). Until resolved, only ONE of the pair counts in consumption and totals, so stats never double.
 - **The counted one is deterministic** (the entry a Merge would keep: the one with an attachment when exactly one has one, else the earlier-created, else the lower id) so the same data always produces the same numbers on every device, and consumption is continuous across a Merge – the survivor was already the one counting.
 - **"Keep both" is a persisted user decision** – without it, the derived heuristic would re-flag the pair on every recompute. The resolution is a device-local `duplicateResolution` row (SCHEMA.md); syncing resolutions across devices is P4 work.
 

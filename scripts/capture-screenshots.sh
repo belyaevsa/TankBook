@@ -705,6 +705,14 @@ xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture P1.1-shell-light en -seedHomeFullHistory
 xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 
+# RV.131: the S2 combined duplicate card shows BOTH entries it asks about - two
+# rows with their time of day, odometer, total and the attachment paperclip,
+# each opening its own editor. The seed's pair differs in odometer and total so
+# both rows are distinguishable in frame. RU is where the longer header phrase
+# and the row content could push an entry or an action below the fold.
+capture RV.131-home-duplicate    en -seedSettingsSignedIn -seedHomeDuplicateFields
+capture RV.131-home-duplicate-ru ru -seedSettingsSignedIn -seedHomeDuplicateFields
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"

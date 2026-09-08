@@ -239,6 +239,37 @@ struct DuplicateSingleCountTests {
         #expect(stats.monthSpend == Decimal(string: "207.94"))
     }
 
+    /// The single-count invariant holds at the anomaly engine's input boundary
+    /// too (docs/SYNC.md S2): `AnomalyInsight` builds its segments from the SAME
+    /// counting fills as `HomeStats` - an unresolved pair's excluded member is
+    /// dropped before the engine ever sees a segment, so the anomaly can never
+    /// disagree with the headline about what counts. Asserted after the combined
+    /// card grew to show BOTH members: showing the excluded entry must not start
+    /// feeding it to any figure.
+    @Test static func duplicatePairFeedsTheAnomalyEngineOnlyOnce() {
+        let scenario = Self.scenario()
+        let vehicle = duplicateVehicle(id: scenario.vehicleID)
+        let stats = HomeStats(vehicle: vehicle, entries: scenario.fills, asOf: duplicateAsOf)
+        #expect(stats.headline?.totalLitres == 84,
+                "headline carries one member of the pair, not two")
+
+        let pairs = DuplicateDetector.pairs(in: scenario.fills)
+        let excludedIDs = Set(pairs.map(\.excludedID))
+        let counting = scenario.fills.filter { !excludedIDs.contains($0.id) }
+        #expect(counting.count == 3)
+
+        // The segments the anomaly engine consumes: their litres equal the
+        // headline's 84 - the excluded member never reaches the engine. A
+        // regression that starts counting the excluded member would make these
+        // segments total 126 while the headline still reads 84, which is
+        // exactly the disagreement the S2 invariant forbids.
+        let segments = ConsumptionEngine.segments(for: counting,
+                                                  tankCapacityL: vehicle.tankCapacityL)
+        let litres = segments.reduce(0.0) { $0 + $1.litres }
+        #expect(litres == 84,
+                "the anomaly engine's input must carry ONE member of the pair, got \(litres)")
+    }
+
     @Test static func countedOneIsDeterministicAcrossInputOrderForTheFigures() {
         let scenario = Self.scenario()
         let vehicle = duplicateVehicle(id: scenario.vehicleID)

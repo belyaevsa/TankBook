@@ -57,6 +57,7 @@ enum HomeTestSeed {
             ("-seedHomeRV106Pending", RV106HomeTestSeed.seedPending),
             ("-seedHomeRV111OldPending", RV111HomeTestSeed.seedPending),
             ("-seedHomeDuplicate", seedDuplicate),
+            ("-seedHomeDuplicateFields", HomeDuplicateTestSeed.seedFields),
             ("-seedHomeCarSwitcher", CarSwitcherTestSeed.seedGarage),
             ("-seedHomeCarSwitcherLimit", CarSwitcherTestSeed.seedLimit),
             ("-seedHomeAnomaly", AnomalyTestSeed.seed),
