@@ -457,4 +457,144 @@ final class EditEntryUITests: XCTestCase {
         XCTAssertTrue(toast.waitForExistence(timeout: 10),
                       "the post-batch toast must name the actual flagged count")
     }
+
+    // MARK: - RV.117b the timeline neighbourhood panel
+
+    /// Launches straight into Edit entry on the seeded genuine conflict (the
+    /// newest fill's 117 900 km is below its previous 118 500), so the F9a
+    /// warning and its neighbourhood panel are up on the first frame.
+    private func launchOnConflict() -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntryConflict",
+                               "-presentScreen", "editEntry"]
+        app.launch()
+        return app
+    }
+
+    /// The exact grouped form the app renders (no-break-space thousands
+    /// separators, `OdometerFormat`). Assertions compare the panel's rendered
+    /// sentence against this, never against a bare-substring "the panel is
+    /// there".
+    private func grouped(_ value: Int) -> String {
+        let digits = String(value)
+        var result = ""
+        for (index, character) in digits.enumerated() {
+            if index > 0 && (digits.count - index).isMultiple(of: 3) {
+                result += "\u{00A0}"
+            }
+            result.append(character)
+        }
+        return result
+    }
+
+    private func statementText(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(identifier: identifier).firstMatch
+    }
+
+    /// The two doors, door one: Edit entry opened on a stored flag. The whole
+    /// point of the panel is that the neighbourhood is evidence, so the chart
+    /// and both interval sentences must render from here.
+    func testNeighbourhoodPanelRendersFromEditEntryOnAStoredFlag() {
+        let app = launchOnConflict()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 10), "edit nav")
+        let card = app.descendants(matching: .any).matching(identifier: "timelineNeighbourhoodCard").firstMatch
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "the card must render on a flagged fill opened in Edit")
+        // The card can sit below the fold once the odometer card's warning
+        // expands; bring it up before asserting its content.
+        var swipes = 0
+        let statement = statementText(app, "neighbourhoodOdometerStatement")
+        while !statement.exists && swipes < 6 {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(statement.waitForExistence(timeout: 5),
+                      "the odometer-interval sentence must render (swipes=\(swipes))")
+        XCTAssertTrue(statementText(app, "neighbourhoodDateStatement").exists,
+                      "the date-interval sentence must render beside it")
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodOffendingPoint").firstMatch.exists,
+            "the chart must plot the offending point")
+    }
+
+    /// The offending point is distinguishable by more than colour (hard rule
+    /// 5's accessibility floor): it is its own accessibility element labelled
+    /// "This entry", while every neighbour is labelled "Neighbouring entry".
+    func testNeighbourhoodOffendingPointIsDistinguishableBeyondColour() {
+        let app = launchOnConflict()
+        let offending = app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodOffendingPoint").firstMatch
+        XCTAssertTrue(offending.waitForExistence(timeout: 10))
+        let offenderLabel = offending.label
+        XCTAssertTrue(offenderLabel.contains("This entry"),
+                      "the offending point's label must name it as this entry, got '\(offenderLabel)'")
+        let neighbour = app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodNeighbourPoint").firstMatch
+        XCTAssertTrue(neighbour.exists, "the chart must also plot the valid neighbours")
+        XCTAssertTrue(neighbour.label.contains("Neighbouring entry"),
+                      "neighbours must not share the offending point's label")
+    }
+
+    /// The copy, between + `.none` cases (the Drivvo shape, docs/COMPETITORS.md):
+    /// the order conflict's odometer interval is bounded (117 900 sits below the
+    /// 118 501 lower end) while its date interval is `.none` - the signal that
+    /// the odometer is the field to question. Assert what the sentences SAY, not
+    /// that a panel exists.
+    func testNeighbourhoodBetweenAndNoneSentencesSayWhatTheyMean() {
+        let app = launchOnConflict()
+        let odometer = statementText(app, "neighbourhoodOdometerStatement")
+        XCTAssertTrue(odometer.waitForExistence(timeout: 10))
+        // The lower end is order-derived (previous + 1), exact and stable; the
+        // pace-derived upper end depends on the sub-day float gap between the
+        // two seeded `Date()`s, so assert the interval SHAPE with the exact
+        // lower bound rather than a brittle full number.
+        XCTAssertTrue(odometer.label.contains("must be between \(grouped(118_501)) and"),
+                      "the odometer sentence must name the interval's lower endpoint, got '\(odometer.label)'")
+        XCTAssertTrue(odometer.label.contains(" km"),
+                      "the sentence must carry the distance unit, got '\(odometer.label)'")
+
+        let dates = statementText(app, "neighbourhoodDateStatement")
+        XCTAssertTrue(dates.label.contains("no date between the neighbouring entries works – check the odometer"),
+                      "the .none date side must say the odometer is the field to question, got '\(dates.label)'")
+    }
+
+    /// The copy, open-ended case: the pace conflict's date interval has no upper
+    /// bound (the flagged fill is the newest, so nothing bounds its date from
+    /// above), and its odometer 100 900 exceeds the pace ceiling 100 800. The
+    /// date sentence must read "no earlier than ...", never a sentinel number.
+    func testNeighbourhoodOpenEndedSentenceFromAPaceFlag() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedEditEntryConflictPace",
+                               "-presentScreen", "editEntry"]
+        app.launch()
+        let odometer = statementText(app, "neighbourhoodOdometerStatement")
+        XCTAssertTrue(odometer.waitForExistence(timeout: 10))
+        XCTAssertTrue(odometer.label.contains("between \(grouped(100_001)) and \(grouped(100_800)) km"),
+                      "got '\(odometer.label)'")
+        let dates = statementText(app, "neighbourhoodDateStatement")
+        XCTAssertTrue(dates.label.contains("the date must be no earlier than"),
+                      "an open upper end must render 'no earlier than', got '\(dates.label)'")
+    }
+
+    /// An entry with no odometer has no `validRange`, so the panel renders no
+    /// panel AND no empty box: clearing the flagged entry's reading drops the
+    /// whole card, because there is nothing left for the neighbourhood to say.
+    func testClearingTheOdometerRemovesThePanelWithNoEmptyBox() {
+        let app = launchOnConflict()
+        let odometer = statementText(app, "neighbourhoodOdometerStatement")
+        XCTAssertTrue(odometer.waitForExistence(timeout: 10))
+
+        let field = app.textFields["manualFillUpOdometerField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        replaceText(in: field, with: "", app: app)
+
+        let odometerStatement = statementText(app, "neighbourhoodOdometerStatement")
+        let dateStatement = statementText(app, "neighbourhoodDateStatement")
+        let gone = NSPredicate { _, _ in
+            !odometerStatement.exists && !dateStatement.exists
+                && app.descendants(matching: .any)
+                    .matching(identifier: "neighbourhoodOffendingPoint").firstMatch.exists == false
+        }
+        wait(for: [expectation(for: gone, evaluatedWith: app)], timeout: 10)
+    }
 }

@@ -79,7 +79,7 @@ struct EditEntryView: View {
 
     var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
-    private var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
+    var distanceUnit: DistanceUnit { vehicle?.units.distance ?? .km }
 
     var body: some View {
         Group {
@@ -503,69 +503,78 @@ struct EditEntryView: View {
 
 private extension EditEntryView {
     func fillUpContent(_ fill: FillUp, vehicle: Vehicle) -> some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                if !attachments.isEmpty {
-                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                              pendingBlobIDs: pendingBlobIDs,
-                                              onAttachmentChanged: handleAttachmentChanged)
-                } else if attachImage != nil {
-                    pendingReceiptCard
-                } else {
-                    // RV.11: the chooser hangs off the CARD that carries the
-                    // "Add receipt" button, not off the screen. iOS 26 renders
-                    // a confirmationDialog as a popover anchored to the view it
-                    // is attached to, so a screen-level attachment pointed its
-                    // arrow at the middle of the form.
-                    EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                              pendingBlobIDs: pendingBlobIDs,
-                                              onAddReceipt: { showAttachSource = true })
-                        .receiptAttachSource(isPresented: $showAttachSource,
-                                             title: "Add receipt") { image in
-                            attachReceipt(image)
-                        }
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 9) {
+                    if !attachments.isEmpty {
+                        EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                                  pendingBlobIDs: pendingBlobIDs,
+                                                  onAttachmentChanged: handleAttachmentChanged)
+                    } else if attachImage != nil {
+                        pendingReceiptCard
+                    } else {
+                        // RV.11: the chooser hangs off the CARD that carries the
+                        // "Add receipt" button, not off the screen. iOS 26 renders
+                        // a confirmationDialog as a popover anchored to the view it
+                        // is attached to, so a screen-level attachment pointed its
+                        // arrow at the middle of the form.
+                        EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                                  pendingBlobIDs: pendingBlobIDs,
+                                                  onAddReceipt: { showAttachSource = true })
+                            .receiptAttachSource(isPresented: $showAttachSource,
+                                                 title: "Add receipt") { image in
+                                attachReceipt(image)
+                            }
+                    }
+                    if attachFailed {
+                        attachFailedWarn
+                    }
+                    ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
+                    ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
+                                             distanceUnit: distanceUnit,
+                                             conflict: odometerConflict,
+                                             onFixDate: { showDatePicker = true })
+                    neighbourhoodCard
+                        .id(Self.neighbourhoodScrollTarget)
+                    ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                    ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle.fuelKinds)
+                    if editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
+                    ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
+                                            volumeUnit: volumeUnit, currencySymbol: currencySymbol,
+                                            reduceMotion: accessibilityReduceMotion)
+                    if !editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
+                    if editConversionState.showsConversionCard {
+                        ForeignCurrencyCard(
+                            currency: fillForm.currency,
+                            homeCurrency: vehicle.homeCurrency,
+                            state: editConversionState,
+                            convertedAmount: editConvertedAmount,
+                            manualRate: $fillForm.manualRate,
+                            isManualRateEditorOpen: $fillForm.isManualRateEditorOpen)
+                    }
+                    TankLevelRow(isFull: fillForm.isFull,
+                                 tankLevelAfterPct: fillForm.tankLevelAfterPct,
+                                 action: { showTankLevel = true })
+                        .formCard()
+                    EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
+                    if let syncOverwrite {
+                        EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
+                                                       replacedAt: syncOverwrite.replacedAt,
+                                                       onRestore: restoreSyncOverwrite)
+                    }
+                    EditEntryRows.footer
                 }
-                if attachFailed {
-                    attachFailedWarn
-                }
-                ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
-                ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
-                                         distanceUnit: distanceUnit,
-                                         conflict: odometerConflict,
-                                         onFixDate: { showDatePicker = true })
-                ManualFillUpStationRow(stations: stations, selection: $selectedStation)
-                ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle.fuelKinds)
-                if editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
-                ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,
-                                        volumeUnit: volumeUnit, currencySymbol: currencySymbol,
-                                        reduceMotion: accessibilityReduceMotion)
-                if !editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
-                if editConversionState.showsConversionCard {
-                    ForeignCurrencyCard(
-                        currency: fillForm.currency,
-                        homeCurrency: vehicle.homeCurrency,
-                        state: editConversionState,
-                        convertedAmount: editConvertedAmount,
-                        manualRate: $fillForm.manualRate,
-                        isManualRateEditorOpen: $fillForm.isManualRateEditorOpen)
-                }
-                TankLevelRow(isFull: fillForm.isFull,
-                             tankLevelAfterPct: fillForm.tankLevelAfterPct,
-                             action: { showTankLevel = true })
-                    .formCard()
-                EditEntryRows.noteRow(text: $note, identifier: "editEntryNoteField")
-                if let syncOverwrite {
-                    EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
-                                                   replacedAt: syncOverwrite.replacedAt,
-                                                   onRestore: restoreSyncOverwrite)
-                }
-                EditEntryRows.footer
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 24)
+            .scrollDismissesKeyboard(.immediately)
+            .safeAreaInset(edge: .bottom) { saveBar }
+            #if DEBUG
+            .onAppear {
+                scrollToNeighbourhoodIfRequested(proxy)
+            }
+            #endif
         }
-        .scrollDismissesKeyboard(.immediately)
-        .safeAreaInset(edge: .bottom) { saveBar }
     }
 }
 

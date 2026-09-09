@@ -47,7 +47,7 @@ enum HomeTestSeed {
             ("-seedHomeSingleFill", seedSingleFill),
             ("-seedHomeFullHistory", seedFullHistory),
             ("-seedHomeSingleFuelLog", seedSingleFuelLog),
-            ("-seedHomeConflict", seedConflict),
+            ("-seedHomeConflict", { TimelineNeighbourhoodTestSeed.seedOrderConflict($0) }),
             ("-seedHomeRV66TwoCar", RV66TwoCarTestSeed.seed),
             ("-seedHomeEditHistory", seedEditHistory),
             ("-seedHomePendingRates", seedPendingRates),
@@ -260,27 +260,6 @@ enum HomeTestSeed {
         }
     }
 
-    /// The F9a/S3 conflict state: a fill whose odometer breaks the timeline, so
-    /// Home shows the amber badge and the "1 entry excluded" footnote.
-    private static func seedConflict(_ repository: TankbookRepository) {
-        let vehicle = makeVehicle()
-        try? repository.upsertVehicle(vehicle)
-        let flagged = makeFill(
-            vehicleID: vehicle.id,
-            FillSpec(daysAgo: 2, odometer: 117_900, litres: 43.5,
-                     amount: "71.02", price: "1.633", stationID: nil),
-            conflict: .flagged(kind: .order, detectedAt: Date()))
-        try? repository.upsertFillUp(flagged)
-        try? repository.upsertFillUp(
-            makeFill(vehicleID: vehicle.id,
-                     FillSpec(daysAgo: 15, odometer: 118_500, litres: 41.2,
-                              amount: "66.90", price: "1.624", stationID: nil)))
-        try? repository.upsertFillUp(
-            makeFill(vehicleID: vehicle.id,
-                     FillSpec(daysAgo: 30, odometer: 118_000, litres: 42.8,
-                              amount: "69.90", price: "1.633", stationID: nil)))
-    }
-
     /// The S2 duplicate state (docs/SYNC.md): one physical fill logged twice at
     /// the same station - dates within 30 minutes, volumes within 5% - so the
     /// heuristic flags the pair and Home renders the combined card. This is the
@@ -386,7 +365,8 @@ enum HomeTestSeed {
     /// cannot share a tank does not exist, so the old `[.petrol95, .diesel]`
     /// default is gone; callers wanting a multi-fuel car pass a realistic pair
     /// (`seedFullHistory` uses petrol + LPG).
-    static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95]) -> Vehicle {
+    static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95],
+                            paceLimitKmPerDay: Double = 1500) -> Vehicle {
         let now = Date()
         return Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
@@ -395,7 +375,7 @@ enum HomeTestSeed {
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
             units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
                                   energy: .kWhPer100),
-            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            photo: nil, archived: false, paceLimitKmPerDay: paceLimitKmPerDay,
             initialOdometer: 118_000)
     }
 

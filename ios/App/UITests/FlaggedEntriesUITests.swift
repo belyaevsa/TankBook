@@ -366,6 +366,43 @@ final class FlaggedEntriesUITests: XCTestCase {
                       "the row's accessibility representation must carry its actions")
     }
 
+    // MARK: - RV.117b the neighbourhood panel from the flagged list
+
+    /// The two doors, door two: an entry flagged during an import is one the
+    /// user cannot reason about from memory, so the neighbourhood must be
+    /// reachable from the FLAGGED LIST - a tap on the row opens Edit entry and
+    /// the panel is up with the row, not only at save time. The seed writes a
+    /// GENUINE conflict (the newest fill re-flags when it is re-validated), so
+    /// the panel draws a real range rather than a stored `.conflict` stamp.
+    func testNeighbourhoodPanelRendersWhenAFlaggedRowOpensEditEntry() {
+        let app = launch(["-presentScreen", "settings", "-seedSettingsFlaggedNeighbourhood"])
+        let row = app.buttons["settingsFlaggedRow"]
+        XCTAssertTrue(row.waitForExistence(timeout: 10),
+                      "the seeded conflict must show the Settings flagged row")
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Needs a look"].waitForExistence(timeout: 10))
+        waitForFlaggedRowCount(1, in: app)
+
+        app.buttons.matching(identifier: "flaggedEntryRow").firstMatch.tap()
+        let statement = app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodOdometerStatement").firstMatch
+        // The panel sits under the odometer card and can be below the fold once
+        // the F9a warning expands; scroll it up before asserting its content.
+        var swipes = 0
+        while !statement.exists && swipes < 6 {
+            app.swipeUp()
+            swipes += 1
+        }
+        XCTAssertTrue(statement.waitForExistence(timeout: 10),
+                      "a flagged row's tap must open Edit entry with the neighbourhood panel")
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodDateStatement").firstMatch.exists,
+            "the date-interval sentence must render from the flagged-list door too")
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(identifier: "neighbourhoodOffendingPoint").firstMatch.exists,
+            "the chart must render from the flagged-list door too")
+    }
+
     // MARK: - Helpers
 
     /// The first regex capture group in `text` (the whole match when the

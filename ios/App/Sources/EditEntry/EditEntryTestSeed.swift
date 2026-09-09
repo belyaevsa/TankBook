@@ -24,6 +24,14 @@ enum EditEntryTestSeed {
             seedManualRate()
             return
         }
+        if arguments.contains("-seedEditEntryConflict") {
+            seedConflict(pace: false)
+            return
+        }
+        if arguments.contains("-seedEditEntryConflictPace") {
+            seedConflict(pace: true)
+            return
+        }
         if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
             seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
             return
@@ -37,6 +45,26 @@ enum EditEntryTestSeed {
             seedSyncOverwrite()
         } else if arguments.contains("-seedEditEntrySyncOverwrittenExpense") {
             seedSyncOverwrittenExpense()
+        }
+    }
+
+    /// RV.117b: the F9a neighbourhood seeds (an order conflict and a pace
+    /// conflict, shared with the Settings flagged state), so
+    /// `-presentScreen editEntry` opens the NEWEST - the genuinely flagged - row
+    /// with its neighbourhood panel. Reset under `-homeResetDatabase` exactly as
+    /// the other resetting seeds do.
+    @MainActor
+    private static func seedConflict(pace: Bool) {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+        if pace {
+            TimelineNeighbourhoodTestSeed.seedPaceConflict(repository)
+        } else {
+            TimelineNeighbourhoodTestSeed.seedOrderConflict(repository)
         }
     }
 

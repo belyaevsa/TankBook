@@ -25,6 +25,11 @@ enum SettingsTestSeed {
         /// "needs a look" list overflows one screen, so the L4 suite can assert
         /// the list still scrolls next to the new per-row swipe gesture.
         case flaggedMany
+        /// RV.117b: ONE genuinely conflicting fill (its odometer really breaks
+        /// the timeline) so the flagged list's tap opens Edit entry with the
+        /// neighbourhood panel - the order conflict whose date interval is
+        /// `.none`, the case the row exists to make legible.
+        case flaggedNeighbourhood
         case revoked
         case quota
         case upgradeRequired
@@ -78,6 +83,7 @@ enum SettingsTestSeed {
             "-seedSettingsFlagged": .flagged,
             "-seedSettingsFlaggedMultiyear": .flaggedMultiyear,
             "-seedSettingsFlaggedMany": .flaggedMany,
+            "-seedSettingsFlaggedNeighbourhood": .flaggedNeighbourhood,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
             "-seedSettingsUpgradeRequired": .upgradeRequired,
@@ -279,7 +285,8 @@ enum SettingsTestSeed {
         sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
 
         if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
-            || state == .flaggedMany || state == .localLog {
+            || state == .flaggedMany || state == .flaggedNeighbourhood
+            || state == .localLog {
             seed(repository: try? AppStore.repository(), state: state)
         }
         // OB.3: write the persisted sync state THIS seed must show. Runs after
@@ -376,6 +383,13 @@ enum SettingsTestSeed {
                                        detectedAt: Date()))
                 try? repository.upsertFillUp(fill, syncState: .synced(scn: Int64(2 + index)))
             }
+        } else if state == .flaggedNeighbourhood {
+            // RV.117b: ONE real conflict - the fill's odometer genuinely breaks
+            // the timeline, so opening it from the flagged list re-flags in Edit
+            // entry and the neighbourhood panel has a real range to draw. The
+            // shared fixture keeps the two doors (flagged list and Edit entry)
+            // on identical data, reusing THIS state's vehicle.
+            TimelineNeighbourhoodTestSeed.seedOrderConflict(repository, vehicle: vehicle)
         }
     }
 
@@ -389,7 +403,8 @@ enum SettingsTestSeed {
     static func seedFlaggedListForDirectPresentIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         let state = Self.state(arguments)
-        guard state == .flagged || state == .flaggedMultiyear || state == .flaggedMany else {
+        guard state == .flagged || state == .flaggedMultiyear || state == .flaggedMany
+            || state == .flaggedNeighbourhood else {
             return
         }
         if arguments.contains("-homeResetDatabase") {

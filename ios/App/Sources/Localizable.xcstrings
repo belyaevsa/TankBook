@@ -14928,6 +14928,346 @@
           }
         }
       }
+    },
+"Around this entry":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Around this entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вокруг этой записи"
+          }
+        }
+      }
+    },
+"Previous entry":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Предыдущая запись"
+          }
+        }
+      }
+    },
+"This entry":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта запись"
+          }
+        }
+      }
+    },
+"Neighbouring entry":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neighbouring entry"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Соседняя запись"
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be between %2$@ and %3$@ km.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be between %2$@ and %3$@ km."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть от %2$@ до %3$@ км."
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be between %2$@ and %3$@ mi.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be between %2$@ and %3$@ mi."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть от %2$@ до %3$@ миль."
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be at most %2$@ km.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be at most %2$@ km."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть не больше %2$@ км."
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be at most %2$@ mi.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be at most %2$@ mi."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть не больше %2$@ миль."
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be at least %2$@ km.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be at least %2$@ km."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть не меньше %2$@ км."
+          }
+        }
+      }
+    },
+"On %1$@, the odometer must be at least %2$@ mi.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, the odometer must be at least %2$@ mi."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ пробег должен быть не меньше %2$@ миль."
+          }
+        }
+      }
+    },
+"On %1$@, no odometer reading fits the entries around it.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "On %1$@, no odometer reading fits the entries around it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "На %1$@ ни один пробег не сходится с соседними записями."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ km, the date must be between %2$@ and %3$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ km, the date must be between %2$@ and %3$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ км, дата должна быть между %2$@ и %3$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ mi, the date must be between %2$@ and %3$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ mi, the date must be between %2$@ and %3$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ миль, дата должна быть между %2$@ и %3$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ km, the date must be no earlier than %2$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ km, the date must be no earlier than %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ км, дата должна быть не раньше %2$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ mi, the date must be no earlier than %2$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ mi, the date must be no earlier than %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ миль, дата должна быть не раньше %2$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ km, the date must be no later than %2$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ km, the date must be no later than %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ км, дата должна быть не позже %2$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ mi, the date must be no later than %2$@.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ mi, the date must be no later than %2$@."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ миль, дата должна быть не позже %2$@."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ km, no date between the neighbouring entries works – check the odometer.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ km, no date between the neighbouring entries works – check the odometer."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ км, ни одна дата между соседними записями не подходит – проверьте пробег."
+          }
+        }
+      }
+    },
+"If the odometer is %1$@ mi, no date between the neighbouring entries works – check the odometer.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "If the odometer is %1$@ mi, no date between the neighbouring entries works – check the odometer."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если пробег %1$@ миль, ни одна дата между соседними записями не подходит – проверьте пробег."
+          }
+        }
+      }
+    },
+"The entries around this one can't all be right – no odometer or date fits between them.":     {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The entries around this one can't all be right – no odometer or date fits between them."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записи вокруг этой не могут все быть верными – между ними не подходит ни один пробег и ни одна дата."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

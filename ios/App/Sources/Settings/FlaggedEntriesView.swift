@@ -133,6 +133,16 @@ struct FlaggedEntriesView: View {
                let first = newRows.first {
                 revealedRowID = first.id
             }
+            // RV.117b screenshot seam: `-openFirstFlaggedEdit` pushes the
+            // first flagged row's Edit entry once the list has loaded - the
+            // state a row tap reaches, which `simctl` cannot synthesize.
+            // Screenshot-only; it reuses the row's own push so the destination
+            // and chrome are identical to a real tap.
+            if ProcessInfo.processInfo.arguments.contains("-openFirstFlaggedEdit"),
+               pushedEditEntry == nil,
+               let first = newRows.first {
+                pushedEditEntry = .editEntry(first.id)
+            }
         }
         #endif
     }
