@@ -75,12 +75,16 @@ early is a brief written against a tree that has moved.
 | 3 | RV.154 | flash | *at dispatch* | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
 | 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
 | 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
-| 6 | RV.148 | flash | *at dispatch* | **BLOCKED on a product decision** - suppress the monthly-summary push while a month is partial, or mark the figure in the body. First instance of this shape to reach a lock screen, where there is no footnote and no way to update once read |
 | 7 | RV.155 | flash | *at dispatch* | The pull cursor regressed and re-fetched 274 records. Filed with its mechanism as a HYPOTHESIS; run it after RV.154, which may remove the 40-second window the overlap needs |
 | 8 | RV.141 | flash | `agents/briefs/RV.141.md` | Brief already on disk from an earlier session - **re-read it against the current tree before dispatch**, several rows have moved since |
 | 9 | RV.116 | flash | `agents/briefs/RV.116.md` | Same - brief exists, amended for Drivvo's silently-dropped columns, but predates this session's work |
 
 ### Not queued, and why
+
+- **RV.148** - the monthly-summary push summing a partial month. **Deferred by the product owner,
+  2026-09-09** (*"with monthly results - we will come to it later"*). Not blocked on a decision that
+  is coming; parked deliberately. The row keeps its two candidate answers - suppress while partial,
+  or mark the figure in the body - for whenever it is picked up.
 
 - **RV.139** - the instrumentation shipped ([RV.139b], `e92d147`); the next step is ONE device log
   from a build carrying the `rates.refresh` event. That is the product owner's, not an agent's, and
