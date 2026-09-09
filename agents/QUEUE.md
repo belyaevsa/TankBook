@@ -66,13 +66,18 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 ### Waiting, in order
 
-**Nothing is dispatched.** Briefs are written at dispatch time, not now - a brief written days
-early is a brief written against a tree that has moved.
+**Two are in flight.** Briefs are written at dispatch time, not in advance - a brief written days
+early is written against a tree that has moved.
+
+**RV.157 and RV.154 run CONCURRENTLY on purpose**: one is Swift client, the other backend C#. They
+share no files and no toolchain, so neither blocks the other's `swift test` or `dotnet test`, and
+each brief tells its agent the other is live and which tree is off limits. This is the ONLY shape in
+which two agents are safe here - two Swift tasks would collide on files and on the simulator.
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 2 | RV.157 | flash | *at dispatch* | **UNBLOCKED 2026-09-09**: implement the debounced write trigger (option a). The owner waived the battery cost and stated the governing rule - *save locally first, send to the cloud asynchronously* - so the save schedules a cycle and never awaits it |
-| 3 | RV.154 | flash | *at dispatch* | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
+| ~~2~~ | ~~RV.157~~ *in flight* | flash | — | **UNBLOCKED 2026-09-09**: implement the debounced write trigger (option a). The owner waived the battery cost and stated the governing rule - *save locally first, send to the cloud asynchronously* - so the save schedules a cycle and never awaits it |
+| ~~3~~ | ~~RV.154~~ *in flight* | flash | — | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
 | 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
 | 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
 | 7 | RV.155 | flash | *at dispatch* | The pull cursor regressed and re-fetched 274 records. Filed with its mechanism as a HYPOTHESIS; run it after RV.154, which may remove the 40-second window the overlap needs |
