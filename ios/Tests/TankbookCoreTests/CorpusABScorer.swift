@@ -371,6 +371,14 @@ enum PostSweepCorpusAdditions {
             // G-Drive 95 fuel-card fill, 32.000 L at 70.31 for 2249.92 RUB,
             // whose pump prints the total one digit short. Declared, not swept.
             "receipt-052-gazpromneft-tver-gdrive95-fuelcard-pair-ru.jpeg",
+            // 2026-09-10: two Circle K Peetri slips printed one minute apart on
+            // two tills (058 is 98E0, 059 is the corpus's smallest non-zero
+            // fill at 7.68 L, shot at night with a shadow across it), and the
+            // paper half of pump-083 - a Gazpromneft AZS 12089 fuel-card fill
+            // whose pump truncates the total to 0.1 RUB. Declared, not swept.
+            "receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg",
+            "receipt-059-circlek-peetri-db0-pump5-768l-night-wet-ee.jpg",
+            "receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -379,6 +387,15 @@ enum PostSweepCorpusAdditions {
             "pump-075-gilbarco-circlek-ee-95.jpg",
             "pump-076-gilbarco-circlek-ee-preset-150.jpg",
             "pump-077-gilbarco-ee-2054.jpg",
+            // 2026-09-10: five stale Gilbarco reads from one Circle K Peetri
+            // forecourt (pump-082 is cropped so tightly that no unit label is
+            // in frame) and the Tokheim half of receipt-060. Declared, not swept.
+            "pump-078-gilbarco-circlek-peetri-pump7-3143l-ee.jpg",
+            "pump-079-gilbarco-circlek-peetri-6900l-ee.jpg",
+            "pump-080-gilbarco-circlek-peetri-1039l-ee.jpg",
+            "pump-081-gilbarco-circlek-peetri-pump3-2496l-ee.jpg",
+            "pump-082-gilbarco-circlek-peetri-1315l-ee.jpg",
+            "pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru.jpeg",
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
             "pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg",
             "pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg",

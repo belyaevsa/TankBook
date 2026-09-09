@@ -4,12 +4,17 @@
 (`docs/TESTING.md` → "L5 accuracy not below the recorded high-water mark"). CI runs it; a
 regression fails the build.
 
-| class | recorded | what it means |
-|---|---|---|
-| `receipts` | 29/47 | the working number; raise it as the parser improves |
-| `pump` | 0/30 | pump mode stays behind its flag until it clears >=95% (ten fixtures x three fields) |
-| `fiscal` | 1/3 | only one of the three rows is an OCR-scorable image |
-| `screenshots` | 1/3 | **re-baselined downward - read below before "fixing" it** |
+The table below is the shape of the ratchet and the reasoning behind each class;
+**`high-water.json` holds the current numbers** and is the only place they are
+recorded, so this table names the class and its rule rather than a figure that
+would go stale the next time the corpus grows.
+
+| class | what it means |
+|---|---|
+| `receipts` | the working number; raise it as the parser improves |
+| `pump` | pump mode stays behind its flag until it clears the B1 gate (`PumpPhotoGate`: 0.99 precision, 0.60 coverage) |
+| `fiscal` | only the rows that are OCR-scorable images are scored |
+| `screenshots` | **was re-baselined downward once - read below before "fixing" it** |
 
 ## Why `screenshots` was re-baselined from 3/3 to 1/3
 

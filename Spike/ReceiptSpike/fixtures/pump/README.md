@@ -766,3 +766,43 @@ fixtures are the owner's own fills rather than curated easy ones.
 row. A confident-wrong value deserves more attention than an abstention: abstaining is safe by
 construction, while a wrong digit is precisely what hard rule 13 cannot protect a user from, because
 a pre-filled volume looks like every other pre-filled volume on the Confirm screen.
+
+## Added 2026-09-10 (owner's own capture session)
+
+Six displays: five Gilbarco Veeder-Root facias at Circle K Peetri (Tallinn) and one Tokheim at
+Gazpromneft АЗС №12089, the last of them **paired with a receipt for the same fill**.
+
+The five Estonian displays are **stale reads** - each shows the transaction that ended on that
+pump, not a fill the photographer made - which is exactly the state a user photographs when they
+walk up to a pump. Note in particular that `pump-078` is **Pump 7 at the same station as
+`../receipts/receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg`, and is NOT that fill**: the
+receipt is 43.53 L at 1,969 and the display reads 31,43 L at 1,909. Same pump, different grade,
+different transaction - a reminder that a pump number is not a join key.
+
+- `pump-078-gilbarco-circlek-peetri-pump7-3143l-ee.jpg` - `0060,00 €`, `0031,43 L`, `1,909 €/L`.
+  A **round total** (60,00 exactly) that is nonetheless not a preset - the shape most likely to be
+  mistaken for a price by a label-free reader.
+- `pump-079-gilbarco-circlek-peetri-6900l-ee.jpg` - `0135,86 €`, `0069,00 L`, `1,969 €/L`. The
+  mirror case: a **round litre count** with a ragged total. The pump number is cut off at the frame
+  edge, so the slug does not claim one.
+- `pump-080-gilbarco-circlek-peetri-1039l-ee.jpg` - `0020,15 €`, `0010,39 L`, `1,939 €/L`. Two
+  numbered red panels are visible on one facia, so neither is claimable as this pump's number.
+- `pump-081-gilbarco-circlek-peetri-pump3-2496l-ee.jpg` - `0049,15 €`, `0024,96 L`, `1,969 €/L`,
+  Pump 3. The one shot here with the pump number unambiguous and the whole facia in frame.
+- `pump-082-gilbarco-circlek-peetri-1315l-ee.jpg` - `0025,10 €`, `0013,15 L`, `1,909 €/L`. Shot
+  close and off-centre: the number panel and the `€`/`L` unit markers are cropped away, leaving the
+  digits with **no unit labels in frame at all**. Which number is money and which is volume has to
+  come from position and arithmetic alone.
+- `pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru.jpeg` - Tokheim LCD, Cyrillic
+  labels (`Стоимость / Количество / Цена за 1 литр`), comma decimals, behind glass with the
+  photographer reflected in it. **The same fill as
+  `../receipts/receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg`.** The display reads
+  `1437,2` where the paper reads `1437.24`: this pump **truncates its total to 0,1 ₽**. Ground
+  truth records `1437.20` - what the picture contains - following `pump-004`, where a display
+  showing `3008` against a true `3008.34` is recorded as `3008.00`. Asserting the receipt's
+  `1437.24` would score the parser against something the image does not hold. **Routed through
+  Telegram** (1280 px, recompressed).
+
+The parser commits nothing on any of the six (`swift run ReceiptSpike fixtures/pump`), which is the
+mode behaving as designed rather than a new regression - pump display recognition is off on both
+coverage and precision.

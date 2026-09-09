@@ -846,3 +846,35 @@ lets one artefact be ground truth for the other (see `../pump/README.md`).
   records `69.05` because it is recoverable **only by arithmetic** (`3935.85 / 57.000`), which is
   exactly what the arithmetic fallback is for; a keyword-anchored read alone cannot get it. Kept as
   a deliberate hard case, not as an accident.
+
+## Added 2026-09-10 (owner's own fills)
+
+Three receipts: two Circle K Peetri slips printed one minute apart on two tills, and one
+Gazpromneft fuel-card slip **paired with a pump photo of the same fill**.
+
+- `receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg` - Circle K Peetri teenindusjaam, Raudkivi
+  tee 1, Peetri alevik. Pump 7, 09/09/2026 21:08, terminal T07, kviitung 0711.
+  `98E0 miles+  43,53L  85,71  Hind 1,969 EUR/L`. Held in the hand over a lit forecourt at night -
+  the paper curls across its lower third, so the fiscal footer bends out of plane while the
+  line-item block stays flat.
+- `receipt-059-circlek-peetri-db0-pump5-768l-night-wet-ee.jpg` - the same station and the same
+  minute on the neighbouring till (terminal T05, kviitung 0712): `D B0 miles  7,68L  15,28`,
+  `Pump 5 Hind 1,989 EUR/L`. Two things make it worth keeping. It is the corpus's **smallest
+  non-zero fill** (7.68 L), so a parser that assumes a tank-sized volume has no cover here; and the
+  photographer's shadow falls diagonally across the middle of the slip against wet paving at
+  night, which is uneven illumination of the kind flat-field thresholding handles worst.
+  **`receipt-058` and `receipt-059` are NOT the same transaction** - two cars, two grades, two
+  tills, one timestamp.
+- `receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg` - ООО "Газпромнефть-Центр", АЗС
+  №12089 (М10, Тверская обл.), ТРК 3, 09/09/2026 20:16:45, corporate fuel card, PIN entered.
+  `Бензин АИ-95(АИ-95-К5)`, `68.44 X 21.000 = 1437.24 RUB`. **The same fill as
+  `../pump/pump-083-tokheim-gazpromneft-azs12089-truncated-total-pair-ru.jpeg`**, and the pair is
+  the point: the pump shows `1437,2` where the paper shows `1437.24`, so the display is the lossy
+  one and only the paper settles the last digit. The slip also prints **price × litres**
+  (`68.44 X 21.000`), the opposite order from the Татнефть cheque in the `receipt-036/037` triplet -
+  more evidence that operand order carries no information.
+  **Routed through Telegram**, so it is 960 px and recompressed; a miss here cannot be blamed on the
+  parser alone.
+
+All three read clean: `swift run ReceiptSpike fixtures/receipts` commits every asserted cell on
+each of them (litres, unit price, total, and currency where claimed).
