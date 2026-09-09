@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.149** | flash | 2769 | `b926dohek` (persistent) | `agents/briefs/RV.149.md` |
+| **RV.160** | flash | 24840 | `bhp774iwd` (persistent) | `agents/briefs/RV.160.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -71,22 +71,31 @@ collide, and two Swift agents starting in the same second still hit `database is
 
 ### Waiting, in order
 
+**Every Tier 1 and Tier 2 row below is BRIEFED and ready to dispatch with no further input.**
+Each brief is at `agents/briefs/<id>.md`, assembled from `TEMPLATE.md`, with its cause pinned to a
+line, its sibling inventory done, its mutation named and its design questions closed. Dispatch them
+in this order; the only reason to stop between them is to verify and commit the one before.
+
 **Tier 1 - live defects, causes pinned, small.**
 
-| # | Task | Why here |
-|---|---|---|
-| 1 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
-| 2 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment. Pairs naturally with `RV.141`'s footnote-reads-as-a-label observation |
-| 3 | **PJ.57** | The excluded-entries footnote link renders identically to the passive caption. From the 2026-09-09b walk, verified in code AND in the screenshot; it is `RV.141`'s last step and `RV.83` already settled the affordance. Small, and pairs with `RV.159` |
-| 4 | **PJ.56** | A `.mixed`/`.pending` purchase-group header states nothing while the divider over the same figure speaks. From the 2026-09-09b walk. Needs one design call on what `.mixed` says |
-| 5 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. **Blocked on a product call**: does the rung stay (and something must set it) or go? Do not brief it until that is answered |
+| # | Task | Brief | Why here |
+|---|---|---|---|
+| 1 | **RV.160** | `RV.160.md` | Sending feedback looks like nothing happened. **In flight.** The brief closes the two things a grep could not: `toastCenter` is not in scope in `AboutView` today, and it is unproven a toast is even visible over that presented surface - so the agent must check before building |
+| 2 | **RV.159** | `RV.159.md` | Two consents render with the same three modifiers and only one gates sending. Touches the same file as `RV.160`, so it goes second and its brief says to re-read the file rather than trust line numbers |
+| 3 | **PJ.57** | `PJ.57.md` | The excluded-entries footnote link renders the **identical view** as the passive caption - verified in code and in the screenshot. `RV.141`'s last step; `RV.83`'s chevron is the settled answer, and amber must stay (hard rule 5) |
+| 4 | **PJ.56** | `PJ.56.md` | A `.mixed`/`.pending` group header says nothing while the divider over the same `MonthTotal` speaks. The brief's first job is to establish reachability - `.mixed` may not be reachable at all, and that finding is worth more than the fix |
+| 5 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
-| # | Task | Why here |
-|---|---|---|
-| 5 | **RV.163** | "Who creates this entity?" - would have caught `RV.156` before three features were built on it, and `PJ.55` too |
-| 6 | **RV.162** | Screen reachability over `SCREENMAP.md` - catches `PJ.4`/`PJ.25`/`PJ.20`'s shape |
+| # | Task | Brief | Why here |
+|---|---|---|---|
+| 6 | **RV.163** | `RV.163.md` | "Who creates this entity?" - would have caught `RV.156` and `PJ.55`. Its failing case is `PJ.55`, so **dispatch it BEFORE PJ.55 ships** or the brief must find another; the brief says so |
+| 7 | **RV.162** | `RV.162.md` | Screen reachability over `SCREENMAP.md`. **Its first deliverable is not the test**: the planned-not-drawn list is a prose paragraph at `SCREENMAP.md:477` mixing five rows of history, so the marker has to be made machine-readable before a guard is writable at all |
+
+Both follow `RV.167`'s shipped idiom (`MoneyHomeSideSumGuardTests`): a pure function over source
+text, a tree walk, and a reasoned allowlist with a stale-entry check. Both briefs say to read it
+first, so the third guard does not invent a third way.
 
 **Tier 3 - decided design, ready to brief.**
 
