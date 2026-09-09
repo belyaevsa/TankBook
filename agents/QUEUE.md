@@ -67,22 +67,42 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 ### Waiting, in order
 
-**Two are in flight.** Briefs are written at dispatch time, not in advance - a brief written days
-early is written against a tree that has moved.
+**Tier 1 - live defects, causes pinned, small.**
 
-**RV.157 and RV.154 run CONCURRENTLY on purpose**: one is Swift client, the other backend C#. They
-share no files and no toolchain, so neither blocks the other's `swift test` or `dotnet test`, and
-each brief tells its agent the other is live and which tree is off limits. This is the ONLY shape in
-which two agents are safe here - two Swift tasks would collide on files and on the simulator.
+| # | Task | Why here |
+|---|---|---|
+| 1 | **RV.166** | A **live** sixth instance of the zero-summing defect (`LogStream.swift:369`), in the very file that fixed it everywhere else, with a comment claiming it is not there. Small, and `RV.167` needs it done first |
+| 2 | **RV.149** | The fill-up receipt fails silently - the same data-loss class `PJ.28` fixed one screen over, reusing the string it added. Small |
+| 3 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. Found by the journeys walk; needs a product call on whether the rung stays |
+| 4 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
+| 5 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment |
 
-| # | Task | Model | Brief | Why this position |
-|---|---|---|---|---|
-| ~~2~~ | ~~RV.157~~ *in flight* | flash | — | **UNBLOCKED 2026-09-09**: implement the debounced write trigger (option a). The owner waived the battery cost and stated the governing rule - *save locally first, send to the cloud asynchronously* - so the save schedules a cycle and never awaits it |
-| ~~3~~ | ~~RV.154~~ *in flight* | flash | — | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
-| 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
-| 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
-| 7 | RV.155 | flash | *at dispatch* | The pull cursor regressed and re-fetched 274 records. Filed with its mechanism as a HYPOTHESIS; run it after RV.154, which may remove the 40-second window the overlap needs |
-| 9 | RV.116 | flash | `agents/briefs/RV.116.md` | Same - brief exists, amended for Drivvo's silently-dropped columns, but predates this session's work |
+**Tier 2 - guards that stop the recurrence, cheapest first.**
+
+| # | Task | Why here |
+|---|---|---|
+| 6 | **RV.167** | The aggregation-bypass architecture test. Build it against `MonthlySummaryNotification.swift:180` so it still has a failing case after `RV.166` lands |
+| 7 | **RV.163** | "Who creates this entity?" - would have caught `RV.156` before three features were built on it, and `PJ.55` too |
+| 8 | **RV.162** | Screen reachability over `SCREENMAP.md` - catches `PJ.4`/`PJ.25`/`PJ.20`'s shape |
+
+**Tier 3 - decided design, ready to brief.**
+
+| # | Task | Why here |
+|---|---|---|
+| 9 | **RV.152** | The home-currency prompt. Design fully closed by the owner's decisions; `RV.151` unblocked its convert answer |
+| 10 | **RV.116** | An import must say what it is NOT bringing in |
+| 11 | **RV.161** **[v1.1]** | Extract the station from a scanned receipt. Only worth doing now that `RV.156` gives it somewhere to land |
+
+**Tier 4 - needs something first.**
+
+| Task | What it needs |
+|---|---|
+| **RV.155** | **Re-check before briefing.** It was filed with the 40-second push as its hypothesised cause, and `RV.154` removed that window. It may already be gone - a cheap look at one device log settles it |
+| **RV.158** | A query against the deployed service: what date range does `/v1/rates/pack` actually cover, per currency? Product decision follows the answer |
+| **RV.164** | Decide what is mechanisable in the ERRORS audit before briefing; a rule that cannot fail is not worth shipping |
+| **RV.165** | The journey suite. Large, and `RV.162`/`RV.163` catch a chunk of the same class for a fraction of the cost - do those first |
+| **RV.168** | Half-implemented already (`TEMPLATE.md` carries both rules). Its acceptance is **manual**: check the next three briefs actually name their mutation and source their oracles |
+| **RV.143** | Overlaps `RV.152`'s territory. Settle the prompt first, then see what is left |
 
 ### Not queued, and why
 
