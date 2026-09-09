@@ -305,6 +305,58 @@ is not in the seven-segment confusion table (a `2` and a `7` differ by more than
 The engine's whole premise - a single misread *segment* - does not transfer to receipt glyphs.
 The precedence rule is the fix, not digit repair.
 
+### 5c. When the printed total and the product disagree (RV.153, 2026-09-09)
+
+The RV.125 precedence was stated but not fully enforced: `resolveTotal` still let the derived
+product win over a present printed total whenever the gap was not reconciled by a discount line,
+and it had no answer at all for a fuel-only receipt whose `ИТОГО` label OCR destroyed but whose
+line sum printed beside the operand pair. Two 2026-09-09 fixtures reproduced the receipt-052
+defect through those two remaining routes, and both committed a confident-wrong total:
+
+- **`receipt-055`** (Circle K, Tallinn): Vision misreads the printed volume `77,56L` as `17,56L`,
+  so `17.56 x 1.934 = 33.96` agreed with itself and the cross-check *locked* it - while the
+  receipt prints its total twice, `KOKKU 150,00` and `KK MAKSE 150,00 EUR`, both correct.
+- **`receipt-057`** (Gazpromneft, Valday): the unit price is under the photographer's thumb, so the
+  fuel line OCRs as `.05 x 57.000` and resolves to 5 L at 57 - a product of 285 - while `=3935.85`
+  prints beside the pair at confidence 1.00 and again as the ИТОГО value.
+
+The rule, in one sentence: **on a disagreement beyond tolerance the parser prefers the side with
+evidence, and when neither side is corroborated it abstains rather than commit a plausible wrong
+number.** Concretely, in order:
+
+1. **A verified mixed receipt keeps the fuel line** (hard rule 4) - the product (or the fuel
+   line's own printed figure) wins only with positive evidence of a non-fuel line.
+2. **A discount that reconciles the product to the total keeps the total** - the charged amount.
+3. **A printed total the parser can corroborate wins over the product.** Corroboration means more
+   than one independent read settled on the figure: two label-pairings named it (receipt-055's
+   `KOKKU` and `KK MAKSE`), or the value is printed more than once among the receipt's value lines
+   (the redundancy rule that already existed for the net-versus-gross case). A product agreeing
+   with itself is *not* corroboration - both factors come from one line, so a single misread digit
+   propagates into both, which is exactly how 33.96 and 285 were "confirmed".
+4. **An uncorroborated disagreement abstains** - a single printed read against a single product
+   leaves no reason to prefer either, and a confident-wrong total is the one outcome hard rule 13
+   rules out. `nil` costs recall, which is recoverable; a plausible wrong total pre-fills the
+   Confirm screen looking exactly like a right one.
+
+Two consequences worth naming:
+
+- **A printed figure can now outrank the product without product-closeness.** The fuel line's own
+  printed sum - the money value printed to the RIGHT of the operand pair on its own baseline, the
+  shape Russian fuel receipts print (`=3935.85` beside the pair on receipt-057) - is read and used
+  even when it contradicts `liters x unitPrice`, because a misread factor is exactly when the
+  printed figure is the truth. The older Circle-K shape (amount ABOVE the pair) keeps its
+  product-closeness guard; both are printed evidence and both outrank the derivation.
+- **The cross-check no longer locks the wrong triple.** Before this rule, 055 and 057 both came
+  back `lock` on a total that was wrong. With the printed total kept, `liters x unitPrice` no
+  longer equals it and the outcome is an honest `mismatch` carrying the residual - the confirm
+  screen cannot present the product as confirmed, which is what a `lock` on a wrong total did.
+
+The arithmetic rescue paths are untouched and remain load-bearing: a document with **no printed
+total at all** (label-free pump displays, receipt-038) still settles on the product, and the mixed
+receipt's fuel amount still comes from the fuel line (hard rule 4). Measured: receipts
+**223/265 -> 225/265** (two wrong totals became two correct hits; total-field misses 3 -> 1, the
+remaining miss being receipt-056's deliberately-nil zero).
+
 ### 6. Hand off
 
 `ExtractionMeta` plus per-field confidence, into the Confirm screen as **already-editable

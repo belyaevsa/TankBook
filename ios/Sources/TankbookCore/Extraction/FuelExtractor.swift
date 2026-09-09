@@ -336,15 +336,27 @@ public struct FuelExtractor: Sendable {
     /// DECISION stays in `Double` so the mode selection and fuel-line comparison
     /// stay bit-identical (a Decimal re-key would move the pinned scores).
     func resolveTotal(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Decimal? {
-        let total = grandTotal(lines)
-        let fuelLine = arithmeticFuelLine(lines, liters: liters, unitPrice: unitPrice)
-        // No labelled total: the arithmetic fuel line is the amount the document
-        // settles. On a fuel-only receipt it equals the total; on a mixed one it
-        // is the fuel amount (hard rule 4). A discount receipt with no label at
-        // all is not a shape the corpus carries.
-        guard let total else {
+        let read = grandTotalRead(lines)
+        // The fuel line's own amount: its printed figure when the document
+        // prints one beside (RV.153) or above (RV.125) the operand pair, else
+        // the arithmetic product. A printed figure outranks the derivation - the
+        // product is two OCR reads multiplied, so a single misread digit
+        // propagates into it, while the printed figure is one independent read.
+        var fuelLine: Double?
+        if let printedSum = printedFuelLineSum(in: lines) {
+            fuelLine = printedSum
+        } else if let liters, let unitPrice {
+            fuelLine = ExtractionCrossCheck.printedFuelLineAmount(
+                lines, liters: liters, unitPrice: unitPrice
+            ) ?? liters * unitPrice
+        }
+        // No labelled (or repeated-value) printed total: the amount is the fuel
+        // line. This is the arithmetic rescue path for label-free displays and
+        // must never be removed (RV.125).
+        guard let read else {
             return fuelLine.flatMap(totalDecimal)
         }
+        let total = read.value
         // A labelled total but unresolved operands. Hard rule 4 still applies to
         // a mixed receipt: its fuel line is the fuel operand pair's own product
         // (`a x b` is the fuel amount whichever operand is the volume), never the
@@ -358,35 +370,41 @@ public struct FuelExtractor: Sendable {
             return totalDecimal(total)
         }
         let tolerance = max(0.02, total * 0.005)
-        if abs(fuelLine - total) > tolerance {
-            // The gap is either a mixed receipt (the fuel line wins - hard rule 4),
-            // a printed discount (the labelled total is the charged amount and the
-            // fuel line is the pre-discount list - the total stays), or a mispaired
-            // total (the fuel line is the arithmetic truth). Only a discount that
-            // actually reconciles the two keeps the labelled total.
-            let residual = fuelLine - total
-            let discounts = ExtractionCrossCheck.discountLines(in: lines).map {
-                NSDecimalNumber(decimal: $0).doubleValue
-            }
-            let reconciled = discounts.contains { abs(abs(residual) - $0) <= tolerance }
-            if ExtractionCrossCheck.nonFuelListSum(in: lines) > 0 || !reconciled {
-                return totalDecimal(fuelLine)
-            }
+        if abs(fuelLine - total) <= tolerance {
+            return totalDecimal(total)
         }
-        return totalDecimal(total)
-    }
-
-    /// The fuel line's amount: its own printed figure when the document prints
-    /// one, else the arithmetic product. Nil when neither the volume nor the
-    /// price resolved.
-    private func arithmeticFuelLine(_ lines: [OCRLine], liters: Double?, unitPrice: Double?) -> Double? {
-        guard let liters, let unitPrice else { return nil }
-        if let printed = ExtractionCrossCheck.printedFuelLineAmount(
-            lines, liters: liters, unitPrice: unitPrice
-        ) {
-            return printed
+        // The printed total and the fuel line disagree beyond tolerance. The gap
+        // is a mixed receipt (the fuel line is the fuel amount - hard rule 4), a
+        // printed discount (the labelled total is the charged amount), or a
+        // misread on one side. The derived product never outranks a printed
+        // total the parser can corroborate, and a single printed read never
+        // outranks the product - either could carry one misread digit, so with
+        // no reason to prefer one side the parser abstains rather than commit a
+        // plausible wrong number (hard rule 13; RV.153).
+        if ExtractionCrossCheck.nonFuelListSum(in: lines) > 0 {
+            return totalDecimal(fuelLine)
         }
-        return liters * unitPrice
+        let residual = fuelLine - total
+        let discounts = ExtractionCrossCheck.discountLines(in: lines).map {
+            NSDecimalNumber(decimal: $0).doubleValue
+        }
+        if discounts.contains(where: { abs(abs(residual) - $0) <= tolerance }) {
+            return totalDecimal(total)
+        }
+        if isCorroboratedTotal(total, labelReads: read.labelReads, in: lines) {
+            return totalDecimal(total)
+        }
+        // The printed total is a single read, so it cannot outrank the product
+        // on its own - but neither may the product outrank it unless the product
+        // is itself corroborated by a printed figure. A derivation that matches
+        // a standalone money value the document prints is a printed total the
+        // arithmetic corroborates (RV.153), not a bare computation; the fuel
+        // operand line is excluded - its numbers are the derivation's own
+        // factors, so an agreement with itself proves nothing.
+        if isPrintedMoneyValue(fuelLine, in: lines) {
+            return totalDecimal(fuelLine)
+        }
+        return nil
     }
 
     private func totalDecimal(_ value: Double) -> Decimal? {

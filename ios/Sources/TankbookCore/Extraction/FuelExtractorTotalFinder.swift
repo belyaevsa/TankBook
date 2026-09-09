@@ -109,7 +109,20 @@ extension FuelExtractor {
         return count > 1
     }
 
+    /// A resolved printed total plus how many independent label-pairings settled
+    /// on it. A value returned from the redundancy fallback carries `labelReads`
+    /// 0 - it is corroborated by being printed repeatedly instead, which
+    /// `resolveTotal` tests separately.
+    struct TotalResolution {
+        let value: Double
+        let labelReads: Int
+    }
+
     func grandTotal(_ lines: [OCRLine]) -> Double? {
+        grandTotalRead(lines)?.value
+    }
+
+    func grandTotalRead(_ lines: [OCRLine]) -> TotalResolution? {
         var primary: [Double] = []
         var payment: [Double] = []
         for (index, line) in lines.enumerated() {
@@ -139,9 +152,12 @@ extension FuelExtractor {
         if let redundant = redundantValue(in: lines),
            let labelled, redundant > labelled,
            !isRepeatedValue(labelled, in: lines) {
-            return redundant
+            return TotalResolution(value: redundant, labelReads: 0)
         }
-        if let labelled { return labelled }
+        if let labelled {
+            let reads = (primary + payment).filter { abs($0 - labelled) < 0.005 }.count
+            return TotalResolution(value: labelled, labelReads: reads)
+        }
         // Kept from this branch, because trunk has no equivalent: when no
         // labelled total resolves (an unbreakable tie, or no label paired a
         // value at all), fall back to the modal value across the receipt's own
@@ -150,7 +166,65 @@ extension FuelExtractor {
         // - while the net and the VAT print once or twice. Only a single,
         // strictly-dominant value printed at least twice is trusted; anything
         // else abstains (hard rule 13).
-        return redundantValue(in: lines)
+        if let redundant = redundantValue(in: lines) {
+            return TotalResolution(value: redundant, labelReads: 0)
+        }
+        return nil
+    }
+
+    /// The money value printed to the RIGHT of the fuel operand pair on its own
+    /// baseline - the shape Russian fuel receipts print their line sums in
+    /// (`=3935.85` beside `.05 x 57.000`, receipt-057). Distinct from
+    /// `ExtractionCrossCheck.printedFuelLineAmount` (the Circle-K amount above
+    /// the pair) and read WITHOUT that helper's product-closeness guard, because
+    /// a misread factor is exactly the case where the printed figure must win
+    /// (RV.153). Real geometry only: a `.zero`-box text array has no
+    /// same-baseline neighbour to read.
+    func printedFuelLineSum(in lines: [OCRLine]) -> Double? {
+        guard let index = OperandPair.fuelOperandIndex(in: lines) else { return nil }
+        let pair = lines[index]
+        guard pair.boundingBox != .zero else { return nil }
+        var best: (distance: CGFloat, value: Double)?
+        for (otherIndex, line) in lines.enumerated() where otherIndex != index {
+            guard line.boundingBox.midX > pair.boundingBox.midX,
+                  abs(line.midY - pair.midY) < 0.012,
+                  NumberScanner.isValueLine(line.text),
+                  !isSubtractionLine(line.text),
+                  !NumberScanner.isNegativeAmount(line.text),
+                  let value = NumberScanner.value(in: line.text),
+                  value > 0 else { continue }
+            let distance = abs(line.midY - pair.midY)
+            if best == nil || distance < best!.distance {
+                best = (distance, value)
+            }
+        }
+        return best?.value
+    }
+
+    /// Whether a resolved printed total rests on more than one independent read
+    /// of the same figure: multiple label-pairings resolved to it, or the value
+    /// is printed more than once among the receipt's value lines. A single read
+    /// is not enough to outrank a contradicting product - either side could be
+    /// the misread (RV.153).
+    func isCorroboratedTotal(_ value: Double, labelReads: Int, in lines: [OCRLine]) -> Bool {
+        labelReads >= 2 || isRepeatedValue(value, in: lines)
+    }
+
+    /// Whether a money value is corroborated by a printed standalone figure on
+    /// the receipt, other than the fuel operand line itself. Used to let a
+    /// derived product that reproduces a printed value stand as the total when
+    /// the label-anchored candidate is a single, uncorroborated read.
+    func isPrintedMoneyValue(_ value: Double, in lines: [OCRLine]) -> Bool {
+        let fuelText = OperandPair.fuelOperandIndex(in: lines).map { lines[$0].text }
+        for line in ReceiptNoiseFilter.candidateLines(lines) {
+            if line.text == fuelText { continue }
+            guard NumberScanner.isValueLine(line.text),
+                  !isSubtractionLine(line.text),
+                  !NumberScanner.isNegativeAmount(line.text),
+                  let candidate = NumberScanner.value(in: line.text) else { continue }
+            if abs(candidate - value) <= max(0.02, value * 0.005) { return true }
+        }
+        return false
     }
 
     func pairedValue(forLabelAt index: Int, in lines: [OCRLine]) -> Double? {
