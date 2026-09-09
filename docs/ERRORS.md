@@ -75,7 +75,11 @@ selected car's `HomeStats`; the account-wide "Needs a look" list is a different
 population - conflicts only, every car - and is NOT the destination). The count
 and the list are ONE derivation (core `ExcludedEntries.derive`: conflicts union
 the S2-excluded members), so the destination never shows fewer - or more - rows
-than the number the user just tapped.
+than the number the user just tapped. **The footnote reads as a link, not a
+label (PJ.57):** amber is attention, never action (hard rule 5), so the tappable
+footnote carries the trailing `chevron.right` in `inkSoft` - the app's one
+"this row leads somewhere" affordance (docs/DESIGN.md, RV.83) - and is never
+recoloured; a passive caption would render the phrase alone.
 
 **Imported money and the drain (F9, RV.88).** The import commit writes foreign rows
 rate-pending on purpose (hard rule 3: `rateDate` is the ENTRY date, and a 2015 rate is not

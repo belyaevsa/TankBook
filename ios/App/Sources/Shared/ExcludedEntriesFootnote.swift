@@ -12,6 +12,13 @@ import TankbookCore
 /// destination - the single excluded entry when exactly one is out, the
 /// excluded-entries list (`ExcludedEntriesView`) when more than one is - because
 /// a route that opened ONE entry could never reach the other N-1.
+///
+/// The two branches differ visibly: amber is attention, never action (hard rule
+/// 5), so the link's affordance is the app's one "leads somewhere" vocabulary -
+/// the trailing `chevron.right` in `inkSoft` (docs/DESIGN.md -> "A row that
+/// navigates carries the chevron") - never a recolour. The passive caption stays
+/// text alone; a chevron on both branches would restore the byte-identical
+/// defect this view exists to avoid.
 struct ExcludedEntriesFootnote: View {
     let count: Int
     let identifier: String
@@ -23,7 +30,10 @@ struct ExcludedEntriesFootnote: View {
         Group {
             if let destination {
                 NavigationLink(value: destination) {
-                    label
+                    HStack(spacing: 4) {
+                        label
+                        chevron
+                    }
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint(L10n.localize("Shows the excluded entries"))
@@ -39,5 +49,17 @@ struct ExcludedEntriesFootnote: View {
             .font(.caption2)
             .foregroundStyle(Theme.Palette.warn)
             .accessibilityIdentifier(identifier)
+    }
+
+    /// The affordance is chrome, never content: it never enters the button's own
+    /// label, which keeps speaking exactly the count phrase (docs/DESIGN.md ->
+    /// "A row that navigates carries the chevron"; pinned by the exact-label UI
+    /// test). Its identifier exists so the UI test that pins "the link case and
+    /// the passive case are visibly different" can find the glyph.
+    private var chevron: some View {
+        Image(systemName: "chevron.right")
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .accessibilityIdentifier(identifier + "Chevron")
     }
 }

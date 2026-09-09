@@ -405,6 +405,16 @@ struct HomeRecentEntries: View {
     /// The footnote's destination (hard rule 7): a single excluded entry opens
     /// its editor, several open the list that names all of them and why.
     private var excludedDestination: Route? {
+        #if DEBUG
+        // DEBUG-only seam: `-homeExcludedFootnotePassive` forces the footnote
+        // into its passive-caption branch (no destination) while real excluded
+        // entries exist, so the "a passive caption carries no affordance" check
+        // has a live subject. No shipping caller renders the footnote passively;
+        // compiled out of release.
+        if ProcessInfo.processInfo.arguments.contains("-homeExcludedFootnotePassive") {
+            return nil
+        }
+        #endif
         if excludedEntryIDs.count > 1 {
             return .excludedEntries
         }
