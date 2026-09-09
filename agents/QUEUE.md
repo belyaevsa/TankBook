@@ -115,6 +115,7 @@ which two agents are safe here - two Swift tasks would collide on files and on t
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 | PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
 | PJ.19 | `b6ea56d` | The station suggestion is built and never required; filed RV.150 from its finding |
+| RV.157 | `7ad268f` | A local write schedules a sync 3 s later; the seam is the DB write signal |
 | RV.154 | `16f1a1f` | A push costs 3 DB commands for the batch, not 3 per record |
 | RV.156 | `2328757` | A station can be created, from the entry row and the Garage |
 | RV.136 (reopened) | `0011cc3` | Vehicle compared at the decoded level - the third arm of the echo loop |
