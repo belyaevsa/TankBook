@@ -323,7 +323,7 @@ is authoritative, and where there is no receipt the user picks it - which is wha
 
 ## Adding more
 
-Keep the original resolution, name in sequence (`pump-002.heic`...), and put the
+Keep the original resolution, name in sequence (`pump-002-lukoil-spb-ru.png`...), and put the
 truth in `expected.csv` beside the images - the harness looks for it in the
 folder it is pointed at. Leave a field empty rather than guessing.
 
@@ -500,7 +500,7 @@ compared pixel-for-pixel afterwards (`magick compare -metric AE` = 0). That
 matters because the accuracy ratchet is pinned to OCR results on these exact
 images; a re-compression would have moved the marks silently.
 
-**Nine `.heic` fixtures still carry EXIF.** They cannot be stripped without
+**Nine `.jpg` fixtures still carry EXIF.** They cannot be stripped without
 re-encoding, which is lossy and would perturb the very scores the ratchet
 guards. Converting them to JPEG is a deliberate corpus change with a ratchet
 re-baseline attached, not a cleanup - it needs its own decision.
@@ -723,3 +723,27 @@ sets. Two explanations both fit and both matter: the fill was an **off-board pro
 transaction**, since a pump readout persists until the next fill starts. Neither lets a parser
 resolve a transaction price from the board, and the second is a reason a capture cannot assume the
 numbers on a display belong to the user standing in front of it (hard rule 13 - the app suggests).
+
+## Added 2026-09-09 (owner's own fills)
+
+Four displays, **three paired with the receipt for the same fill** - the pair is worth collecting
+because each artefact is ground truth for the other.
+
+- `pump-074-gpn-tver-95-ru.jpg` - Russian pump, Cyrillic labels
+  (`Стоимость / Количество / Цена за 1 литр`), comma decimals. `29,00 Литров`, `68,44 Рублей/л`.
+  **The same fill as `../receipts/receipt-053-gpn-tver-95-ru.jpg`.**
+  **`total` is deliberately left blank.** The cost field photographs as `1984,0` while the receipt
+  for the same fill says `1984.76`, and the trailing digit cannot be read from the image with
+  confidence. Asserting the receipt's value would score the parser against something the picture
+  does not contain; asserting `1984,0` would encode a misread as truth. Blank skips the cell, and
+  litres and unit price - both unambiguous - still score.
+- `pump-075-gilbarco-circlek-ee-95.jpg` - Circle K, Tallinn, Gilbarco Veeder-Root seven-segment,
+  zero-padded (`0089,43` / `0046,24`), price in a separate small LCD (`1,934`). **The same fill as
+  `../receipts/receipt-054-circlek-tallinn-95-et.jpg`.**
+- `pump-076-gilbarco-circlek-ee-preset-150.jpg` - the same pump model, a **preset-amount** fill:
+  `0150,00 €` exactly, `0077,56 L`, `1,934 €/L`. **The same fill as
+  `../receipts/receipt-055-circlek-tallinn-98-discount-et.jpg`.** A round total is the shape most
+  likely to be mistaken for a price or a litre count by a label-free reader.
+- `pump-077-gilbarco-ee-2054.jpg` - Gilbarco Veeder-Root, `0050,41 €`, `0024,54 L`, `2,054 €/L`.
+  No receipt for this one. Note the price display is the **four-digit** `2,054` while the cost and
+  volume are zero-padded to six - three different digit widths on one facia.

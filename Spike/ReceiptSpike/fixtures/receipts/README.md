@@ -815,3 +815,34 @@ The VAT line reads `24% KM` / `24,00%` with `Käibemaksuta 80,95` and `Käibemak
 is the same Estonian rate `receipt-045` records and one point above `receipt-043`'s `22%`. The
 receipt prints its total **three times** (`Summa`, `KOKKU`, `KK MAKSE`, and again on the card slip
 below `SUMMA ... EUR 100,38`) - the redundancy a pump display does not have.
+
+## Added 2026-09-09 (owner's own fills)
+
+Five receipts, **three of which are paired with a pump photo of the same fill** - the pair is what
+lets one artefact be ground truth for the other (see `../pump/README.md`).
+
+- `receipt-053-gpn-tver-95-ru.jpg` - Газпромнефть, Тверская обл., АЗС №12089, corporate fuel card.
+  АИ-95, `68.44 X 29.000 = 1984.76 RUB`. **The same fill as `../pump/pump-074-gpn-tver-95-ru.jpg`.**
+  The line-item price and the `ИТОГО` agree, so the fiscal total is unambiguous.
+- `receipt-054-circlek-tallinn-95-et.jpg` - Circle K Sikupilli, Tallinn, Pump 7, 09/09/2026 09:55.
+  `95E0 miles+  46,24L  89,43  Hind 1,934 EUR/L`. **The same fill as
+  `../pump/pump-075-gilbarco-circlek-ee-95.jpg`.** Estonian labels (`Kirjeldus / Kogus / Summa`,
+  `KOKKU`), comma decimals.
+- `receipt-055-circlek-tallinn-98-discount-et.jpg` - Circle K Sikupilli, Pump 5, 09/09/2026 09:41.
+  `98E0 miles+  77,56L  150,00  Hind 1,934 EUR/L`, and an `EXTRA SOODUS -0,78 EUR` line. **The same
+  fill as `../pump/pump-076-gilbarco-circlek-ee-preset-150.jpg`.** The discount is already inside
+  the printed litre price (the receipt says so: *"Kütuse liitrihind kviitungil sisaldab
+  allahindlust"*), so `77.56 x 1.934 = 150.00` still closes - a discount line that must NOT be
+  subtracted again.
+- `receipt-056-circlek-tallinn-zero-et.jpg` - **a zero receipt.** Circle K, 09/09/2026 09:47:
+  `95E0 miles  0,00L  0,00`, `Pump 6 Hind 1,884 EUR/L`, `KOKKU 0,00`, card charged `0,00 EUR`. A
+  pre-authorisation that dispensed nothing. Ground truth is `0.00 / 1.884 / 0.00`: the price is real
+  and the fill is not. **A parser that logs a fill-up from this is wrong**, and the arithmetic
+  fallback is defenceless here (`0 x 1.884 = 0` closes perfectly), so the zero has to be recognised
+  as a zero rather than resolved as a triple.
+- `receipt-057-gpn-valday-95-occluded-ru.jpg` - Газпромнефть, Новгородская обл., Валдайский р-н,
+  с. Едрово. АИ-95, `=3935.85`, `57.000` litres. **The unit price is occluded by the photographer's
+  thumb** - the line reads `9.05 x 57.000`, with the leading `6` under the finger. Ground truth
+  records `69.05` because it is recoverable **only by arithmetic** (`3935.85 / 57.000`), which is
+  exactly what the arithmetic fallback is for; a keyword-anchored read alone cannot get it. Kept as
+  a deliberate hard case, not as an accident.
