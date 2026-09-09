@@ -2,16 +2,18 @@ import SwiftUI
 import UIKit
 import TankbookCore
 
-// MARK: - PJ.48 + PJ.2 the receipt write for the Confirm sheet
+// MARK: - PJ.48 + PJ.2 + RV.149 the receipt write for the Confirm sheet
 //
 // Everything the Confirm sheet's Save writes about the receipt photo: the
 // attach-receipt row (PJ.48) and the one receipt write the scan and the attach
 // share (PJ.2). Kept out of `ManualFillUpView.swift` so that file stays within
 // the lint budget - the shape of a save is a peer concern to the form that
-// drives it.
+// drives it. RV.149: the write's degrade contract is a free seam here so it is
+// L1-testable - a lost photo must never block the entry (hard rule 1) and must
+// never be a silent drop (hard rule 8).
 
 /// The receipt photo could not be encoded or written (PJ.2); the save degrades
-/// to no photo - docs/ERRORS.md -> Confirm, "Storage full".
+/// to no photo and reports it - docs/ERRORS.md -> Confirm, the RV.149 row.
 enum ReceiptAttachmentError: Error {
     case notEncodable
 }
@@ -119,21 +121,6 @@ extension ManualFillUpView {
         attachedPrefill ?? prefill
     }
 
-    /// The receipt photo the whole save shares, or `[]` when there is none. A
-    /// write failure degrades to no photo, never blocks the entry (hard rule 1).
-    func receiptAttachmentIDs(scanned: ScannedSavePlan,
-                              repository: TankbookRepository) -> [AttachmentID] {
-        guard let attachmentID = scanned.attachmentID else { return [] }
-        do {
-            try writeReceiptAttachment(id: attachmentID, repository: repository,
-                                       extraction: scanned.extraction)
-            return [attachmentID]
-        } catch {
-            AppLog.error(operation: "confirmManual.receiptPhotoSave", category: .ui, error: error)
-            return []
-        }
-    }
-
     /// The prefill's per-field crop evidence becomes the extraction record's
     /// crop rects (`FieldExtraction.cropRect`, image pixel space).
     func cropRects(from crops: [ManualFillUpMath.Field: CropEvidence]) -> [FieldRef: CGRect] {
@@ -142,34 +129,93 @@ extension ManualFillUpView {
         }
     }
 
-    /// Writes the receipt photo once: file bytes into the shared attachments
-    /// directory (the same pool `InvoiceAttachmentFiles` uses, docs/SYNC.md),
-    /// one `Attachment` row shared by the fill-up and every accepted expense,
-    /// with the inline thumbnail in the payload (P4.6) and - RV.48 - the parse's
-    /// per-field ASSIGNMENT (`extraction`), so the recognised page shows what the
-    /// receipt said, not line soup.
-    func writeReceiptAttachment(id: AttachmentID,
-                                repository: TankbookRepository,
-                                extraction: ExtractionMeta?) throws {
-        guard let source = receiptSource, let sourceImage = source.sourceImage else { return }
-        guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
-            throw ReceiptAttachmentError.notEncodable
-        }
-        let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)
-        let thumbnail = (try? AttachmentRendition.thumbnailBase64(for: jpeg, kind: .photo)) ?? nil
-        let ocrText = source.ocrLines.isEmpty ? nil : source.ocrLines.map(\.text).joined(separator: "\n")
-        // The receipt's own printed date when the extraction read one, else the
-        // fiscal QR's timestamp (docs/SCHEMA.md, Attachment.extractedTimestamp).
-        let timestamp = (source.extraction?.date).flatMap { ConfirmDate.parse($0) }
-            ?? source.qrAnchor?.date
-        let now = Date()
-        let attachment = Attachment(
-            id: id, createdAt: now, updatedAt: now, deletedAt: nil,
-            kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
-            extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
-            // A parse that assigned nothing stores no container at all, never an
-            // empty one (RV.48).
-            extractionMeta: extraction?.assignmentOnly)
-        try repository.upsertAttachment(attachment)
+    /// RV.149: the save's report half, called ONLY after the entry is on disk.
+    /// A receipt photo the save could not keep is never a silent drop (hard
+    /// rule 8) and never blocks the entry (hard rule 1); the shared message -
+    /// the same sentence the expense save shows (PJ.28) - names the next step
+    /// (hard rule 7, docs/ERRORS.md -> Confirm, RV.149). Fired on the success
+    /// path only, so a failed save never claims it succeeded.
+    func reportLostReceiptPhoto(_ outcome: ReceiptWriteOutcome,
+                                toastCenter: AppToastCenter) {
+        guard outcome.lostPhoto else { return }
+        toastCenter.show(L10n.receiptNotSavedMessage)
     }
+}
+
+// MARK: - RV.149 the photo-write degrade contract (free, L1-testable)
+
+/// The outcome of the one shared receipt-photo write a scanned save attempts.
+/// `nothingToWrite` is the typed path; `lost` is a write that threw - the entry
+/// still saves, without the photo, and the save reports it (docs/ERRORS.md ->
+/// Confirm, the RV.149 row). Never a blocked save (hard rule 1), never a silent
+/// drop (hard rule 8).
+enum ReceiptWriteOutcome: Equatable {
+    case nothingToWrite
+    case wrote(AttachmentID)
+    case lost(AttachmentID)
+
+    /// The attachment ids the save references: the shared id when the photo
+    /// landed, empty on the typed path and when the photo was lost.
+    var sharedIDs: [AttachmentID] {
+        if case .wrote(let id) = self { return [id] }
+        return []
+    }
+
+    /// Whether the photo was lost and the user must be told.
+    var lostPhoto: Bool {
+        if case .lost = self { return true }
+        return false
+    }
+}
+
+/// Attempts the scanned save's one receipt-photo write and reports the outcome.
+/// Free of the view - the source photo is passed in, never read from `@State` -
+/// so the degrade contract is L1-testable. A write failure is logged here
+/// (shape-only, hard rule 12) and surfaces as `.lost`, never as a throw that
+/// blocks the entry (hard rule 1).
+func attemptReceiptPhotoWrite(scanned: ScannedSavePlan,
+                              source: ConfirmPrefill?,
+                              repository: TankbookRepository) -> ReceiptWriteOutcome {
+    guard let attachmentID = scanned.attachmentID else { return .nothingToWrite }
+    do {
+        try writeReceiptPhoto(id: attachmentID, source: source,
+                              extraction: scanned.extraction,
+                              repository: repository)
+        return .wrote(attachmentID)
+    } catch {
+        AppLog.error(operation: "confirmManual.receiptPhotoSave", category: .ui, error: error)
+        return .lost(attachmentID)
+    }
+}
+
+/// Writes the receipt photo once: file bytes into the shared attachments
+/// directory (the same pool `InvoiceAttachmentFiles` uses, docs/SYNC.md), one
+/// `Attachment` row shared by the fill-up and every accepted expense, with the
+/// inline thumbnail in the payload (P4.6) and - RV.48 - the parse's per-field
+/// ASSIGNMENT (`extraction`), so the recognised page shows what the receipt
+/// said, not line soup.
+func writeReceiptPhoto(id: AttachmentID,
+                       source: ConfirmPrefill?,
+                       extraction: ExtractionMeta?,
+                       repository: TankbookRepository) throws {
+    guard let source, let sourceImage = source.sourceImage else { return }
+    guard let jpeg = sourceImage.jpegData(compressionQuality: 0.8) else {
+        throw ReceiptAttachmentError.notEncodable
+    }
+    let (sha256, relativePath) = try VehiclePhotoStore.save(jpeg, id: id)
+    let thumbnail = (try? AttachmentRendition.thumbnailBase64(for: jpeg, kind: .photo)) ?? nil
+    let ocrText = source.ocrLines.isEmpty ? nil : source.ocrLines.map(\.text).joined(separator: "\n")
+    // The receipt's own printed date when the extraction read one, else the
+    // fiscal QR's timestamp (docs/SCHEMA.md, Attachment.extractedTimestamp).
+    let timestamp = (source.extraction?.date).flatMap { ConfirmDate.parse($0) }
+        ?? source.qrAnchor?.date
+    let now = Date()
+    let attachment = Attachment(
+        id: id, createdAt: now, updatedAt: now, deletedAt: nil,
+        kind: .photo, file: LocalFileRef(sha256: sha256, relativePath: relativePath),
+        extractedTimestamp: timestamp, ocrText: ocrText, thumbnailBase64: thumbnail,
+        // A parse that assigned nothing stores no container at all, never an
+        // empty one (RV.48).
+        extractionMeta: extraction?.assignmentOnly)
+    try repository.upsertAttachment(attachment)
 }

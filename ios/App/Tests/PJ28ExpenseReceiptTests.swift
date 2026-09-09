@@ -237,9 +237,9 @@ final class PJ28ExpenseReceiptTests: XCTestCase {
 
         // The surfaced message names what happened AND the next step - a toast
         // that only reported the loss would fail hard rule 7.
-        let message = L10n.expenseReceiptNotSavedMessage
+        let message = L10n.receiptNotSavedMessage
         XCTAssertTrue(message.contains("saved without it"),
-                      "the message must say the expense was saved: \(message)")
+                      "the message must say the entry was saved: \(message)")
         XCTAssertTrue(message.contains("Free up space"),
                       "the message must name its next step: \(message)")
     }

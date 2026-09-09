@@ -566,12 +566,11 @@ private extension ManualFillUpView {
             let plan = ReceiptGroupPlanner.plan(detection: detection,
                                                 fillUpAmount: derived.total,
                                                 acceptedLineIDs: acceptedLineIDs)
-            // The scanned save's one receipt photo: written once, shared by the
-            // fill-up and every accepted expense. A write failure degrades to
-            // no photo, never blocks the entry (ERRORS.md -> Confirm, "Storage full").
-            let attachmentIDs = receiptAttachmentIDs(scanned: scanned, repository: repository)
+            // The scanned save's one receipt photo, written once and shared by
+            // the whole save; a write failure degrades to no photo (RV.149).
+            let receiptWrite = attemptReceiptPhotoWrite(scanned: scanned, source: receiptSource, repository: repository)
             var toSave = buildFillUp(vehicle: vehicle, derived: derived,
-                                     attachments: attachmentIDs,
+                                     attachments: receiptWrite.sharedIDs,
                                      provenance: scanned.provenance,
                                      extraction: scanned.extraction)
             if let plan {
@@ -616,6 +615,7 @@ private extension ManualFillUpView {
             // after the sheet dismisses (a `.sheet` never re-triggers the
             // presenter's `.task` on iOS 26).
             toastCenter.noteEntryChanged()
+            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
             // P6.3 (F4, amended RV.38): a saved entry is corrected by its owner
             // alone - a late answer becomes an inbox suggestion keyed to this
             // entry, never a silent rewrite (hard rule 13).

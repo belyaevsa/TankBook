@@ -316,6 +316,13 @@ struct AppRootView: View {
             #if DEBUG
             // PJ.5/RV.78: replay a tap/action via the delegate's own handle.
             NotificationReplayDriver.driveIfRequested()
+            if ProcessInfo.processInfo.arguments.contains("-screenshotReceiptNotSavedToast") {
+                // RV.149 screenshot pose: the real shared message through the
+                // real toast host, held (`-freezeToasts`) so the frame is
+                // deterministic - the exact line a fill-up save with a lost
+                // photo runs (docs/ERRORS.md -> Confirm, RV.149).
+                toastCenter.show(L10n.receiptNotSavedMessage)
+            }
             #endif
             // RV.59: the automatic pass (config, sync, rates, the two outboxes)
             // is OWNED by the `scenePhase == .active` transition below - launch

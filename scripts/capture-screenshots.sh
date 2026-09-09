@@ -480,6 +480,20 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.28-expense    en -seedEditEntryScannedExpense -presentScreen editEntry
 capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntry
 
+# RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
+# Confirm, RV.149) - the message a fill-up save shows after its photo write
+# fails, rendered by the real toast host over Home. A pose: the exact line the
+# save runs, held on screen by `-freezeToasts` (the real toast auto-dismisses in
+# 4 s, which no `sleep 6` capture could catch). RU is where the sentence runs
+# longest and must not truncate its next step (hard rule 7).
+# The seed is `-seedHomeFullHistory`, NOT the bare Confirm vehicle: with the
+# latter Home renders its empty "Add your first car" state, so the frame showed
+# a correct toast in a state no user can reach - you cannot save a fill-up with
+# no car. A toast over an impossible screen is the "wrong seed looks like a
+# successful capture" failure this file warns about at the end.
+capture RV.149-receipt-not-saved    en -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
+capture RV.149-receipt-not-saved-ru ru -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
+
 # RV.10: the date row's picker OPEN on the Edit-entry screen - the flipped
 # (up) chevron and the whole-row collapse affordance above the calendar, the
 # two cues that make the no-change exit discoverable. `-openDatePicker` drives

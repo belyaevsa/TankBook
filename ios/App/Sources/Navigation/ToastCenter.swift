@@ -15,10 +15,23 @@ final class AppToastCenter {
     private(set) var revision = 0
     private var dismissTask: Task<Void, Never>?
 
+    /// Whether the auto-dismiss timer is parked. `-freezeToasts` (DEBUG) holds a
+    /// toast on screen indefinitely so a screenshot can capture a message that
+    /// would otherwise be gone in `visibility` seconds - the RV.149 receipt
+    /// pose uses it. Production never passes the argument.
+    private static let freezeForScreenshot: Bool = {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-freezeToasts")
+        #else
+        false
+        #endif
+    }()
+
     /// Shows `message` for a few seconds. Any previous toast is replaced.
     func show(_ message: String) {
         self.message = message
         revision += 1
+        guard !Self.freezeForScreenshot else { return }
         dismissTask?.cancel()
         dismissTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: Self.visibility)

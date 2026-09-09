@@ -80,6 +80,11 @@ struct ConfirmPrefill {
 ///   `-seedConfirmForeignLowConfidence` - the P2.5 foreign-currency states:
 ///   converted (rate in the seed pack), rate-pending (date outside it), and
 ///   low-confidence (asks, never converts).
+/// - `-seedConfirmReceiptWriteFails` - makes the scanned save's receipt-photo
+///   write throw (RV.149): the prefill's source image is empty, so `jpegData`
+///   returns nil exactly as a storage failure would. The entry must still save
+///   without the photo, and the user is told (docs/ERRORS.md -> Confirm,
+///   RV.149). Combine with `-seedConfirmPrefill` for a fully-resolved save.
 enum ConfirmPrefillSeed {
     static func from(arguments: [String]) -> ConfirmPrefill? {
         guard var prefill = rawPrefill(from: arguments) else { return nil }
@@ -94,6 +99,12 @@ enum ConfirmPrefillSeed {
         // this is what carries the photo the caption promises stays attached.
         if arguments.contains("-seedConfirmPrefillEmptyPhoto") {
             prefill.sourceImage = syntheticSourceImage()
+        }
+        // RV.149: force the save's photo write to fail. `rawPrefill` sets no
+        // source image for `-seedConfirmPrefill`, so the flag lands the empty
+        // frame on top of an otherwise resolved scan.
+        if arguments.contains("-seedConfirmReceiptWriteFails") {
+            prefill.sourceImage = UIImage()
         }
         return prefill
     }

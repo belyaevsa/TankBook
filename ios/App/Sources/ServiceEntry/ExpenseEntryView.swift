@@ -249,7 +249,7 @@ struct ExpenseEntryView: View {
                 // The receipt could not be kept: the entry saved without it and
                 // the failure names its next step (hard rule 7) - the photo is
                 // gone from this save, but the entry it documented is not.
-                toastCenter.show(L10n.expenseReceiptNotSavedMessage)
+                toastCenter.show(L10n.receiptNotSavedMessage)
             }
             dismiss()
             onSaved()
