@@ -3,23 +3,58 @@ import TankbookCore
 
 // MARK: - Currency chips
 
-/// The currency chip row (artboard): EUR/PLN/CZK/CHF plus a "More…" menu. One
-/// tap picks the entry's original currency; a foreign pick makes the money pair
+/// The currency chip row (artboard): the offer's fitted prefix plus a "More…"
+/// menu that carries the whole offer. The offer is ordered on the device
+/// (docs/SCHEMA.md -> Currency offer): the car's home currency first, then the
+/// user's recent currencies, then the region's - so the chips adapt to where
+/// the user is, and "More…" is the complete list, never a trap. One tap picks
+/// the entry's original currency; a foreign pick makes the money pair
 /// rate-pending (F9) - never silently converted (docs/ERRORS.md -> Confirm).
 /// Shared by the ConfirmManual sheet and the Edit-entry money card (P1.6
 /// lifted the chip row out of the section so both use the same component).
 struct CurrencyChipRow: View {
     @Binding var currency: CurrencyCode
-    let homeCurrency: CurrencyCode
+    /// The complete, ordered offer (see `CurrencyOfferBuilder`). The row shows
+    /// as many of its chips as fit without truncation; "More…" shows all of it.
+    let offer: [CurrencyCode]
     let lowConfidence: Bool
 
-    private static let chips: [CurrencyCode] = [
-        .eur, .pln, .czk, CurrencyCode(rawValue: "CHF")!
-    ]
+    /// The most chips the row ever attempts. Beyond this the rest live in
+    /// "More…" - the row is a cap, never a wrap (docs/DESIGN.md).
+    private static let maxVisibleChips = 6
+
+    /// The chips in display order: the offer as-is while the entry is in the
+    /// home currency (offer[0]), and with the current selection promoted to the
+    /// front once the user picked something further down - a selected currency
+    /// must stay visible as a chip, never a value hiding in the menu. Promotion
+    /// never adds a code the offer lacks, so every chip stays reachable from
+    /// "More…".
+    private var ordered: [CurrencyCode] {
+        guard currency != offer.first else { return offer }
+        guard offer.contains(currency) else { return offer }
+        return [currency] + offer.filter { $0 != currency }
+    }
 
     var body: some View {
+        ViewThatFits(in: .horizontal) {
+            chips(upTo: Self.maxVisibleChips)
+            chips(upTo: 5)
+            chips(upTo: 4)
+            chips(upTo: 3)
+            chips(upTo: 2)
+            chips(upTo: 1)
+            chips(upTo: 0)
+        }
+    }
+
+    /// One candidate row: the first `count` chips plus the "More…" menu, each
+    /// at its label's natural width. `ViewThatFits` picks the widest candidate
+    /// that fits, which is how the row caps at what fits without ever
+    /// truncating a label or overflowing off-screen (docs/DESIGN.md -> chip
+    /// rows: never compress a label).
+    private func chips(upTo count: Int) -> some View {
         HStack(spacing: 6) {
-            ForEach(Self.chips, id: \.self) { code in
+            ForEach(ordered.prefix(count), id: \.self) { code in
                 chip(code)
             }
             moreMenu
@@ -37,18 +72,21 @@ struct CurrencyChipRow: View {
             Text(chipLabel(code))
                 .font(.footnote.weight(selected ? .bold : .semibold))
                 .foregroundStyle(selected ? Theme.Palette.ink : Theme.Palette.inkSoft)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 13)
                 .padding(.vertical, 7)
                 .background(Capsule().fill(selected ? Theme.Palette.taillight.opacity(0.14) : Theme.Palette.dash))
                 .overlay(Capsule().stroke(border, lineWidth: selected ? 1.5 : 1))
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
         .accessibilityIdentifier("manualFillUpCurrency_\(code.rawValue)")
     }
 
     private var moreMenu: some View {
         Menu {
-            ForEach(AddVehicleSupport.currencyOptions, id: \.self) { code in
+            ForEach(offer, id: \.self) { code in
                 Button {
                     currency = code
                 } label: {
@@ -59,6 +97,8 @@ struct CurrencyChipRow: View {
             Text("More…")
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(Theme.Palette.inkSoft)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
                 .padding(.horizontal, 13)
                 .padding(.vertical, 7)
                 .background(Capsule().fill(Theme.Palette.dash))

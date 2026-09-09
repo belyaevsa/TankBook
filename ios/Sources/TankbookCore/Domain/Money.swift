@@ -58,6 +58,10 @@ public extension CurrencyCode {
     static let kzt = CurrencyCode(rawValue: "KZT")!
     static let jpy = CurrencyCode(rawValue: "JPY")!
     static let czk = CurrencyCode(rawValue: "CZK")!
+    static let chf = CurrencyCode(rawValue: "CHF")!
+    static let byn = CurrencyCode(rawValue: "BYN")!
+    static let kgs = CurrencyCode(rawValue: "KGS")!
+    static let uzs = CurrencyCode(rawValue: "UZS")!
 }
 
 /// Who supplied an exchange rate (docs/SCHEMA.md, Money.rateSource).

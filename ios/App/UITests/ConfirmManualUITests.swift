@@ -137,36 +137,50 @@ final class ConfirmManualUITests: XCTestCase {
 
     // MARK: - Currency chips
 
+    private var currencyChipPredicate: NSPredicate {
+        NSPredicate(format: "identifier BEGINSWITH %@", "manualFillUpCurrency_")
+    }
+
+    private func firstForeignCurrencyChip(_ app: XCUIApplication,
+                                          home: String) -> XCUIElement {
+        app.buttons.matching(currencyChipPredicate)
+            .matching(NSPredicate(format: "identifier != %@",
+                                  "manualFillUpCurrency_\(home)"))
+            .firstMatch
+    }
+
     /// The chip row folds away while the entry is in the home currency (paying
     /// abroad is rare). This test once asserted "reachable in one tap"; it is
     /// now **one tap to reveal, one to choose**, and the guarantee that matters
-    /// is `testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency`.
+    /// is `testCurrencyOpensItselfWhenItIsNotSimplyTheHomeCurrency`. The chip
+    /// picked here is the offer's first FOREIGN chip (docs/SCHEMA.md ->
+    /// Currency offer), never a hardcoded member: the whole point of RV.146 is
+    /// that the row adapts to the car and the device.
     func testCurrencyChipRowIsOneTapAway() {
-        let app = launch()
+        let app = launch(args: ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"])
         openManualForm(app)
 
         // Folded by default: the collapsed row names the currency in force.
         let collapsed = app.buttons["manualFillUpCurrencyCollapsed"]
         XCTAssertTrue(collapsed.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["manualFillUpCurrency_PLN"].exists,
+        XCTAssertEqual(app.buttons.matching(currencyChipPredicate).count, 0,
                        "the chip row must be folded while the entry is in the home currency")
 
         collapsed.tap()
 
-        // Folded, the section sits BELOW the numbers card, so the chips can be
-        // off-screen on a short device even once expanded - `exists` is not
-        // `isHittable`. Scroll to them the way a user would.
-        let chip = app.buttons["manualFillUpCurrency_PLN"]
-        XCTAssertTrue(chip.waitForExistence(timeout: 5))
-        var scrolls = 0
-        while !chip.isHittable && scrolls < 5 {
-            app.swipeUp()
-            scrolls += 1
-        }
-        XCTAssertTrue(chip.isHittable, "the chip row must be reachable after expanding")
+        // The home currency leads the row (EUR on the seeded car). Folded, the
+        // section sits BELOW the numbers card, so the chips can be off-screen
+        // on a short device even once expanded - `exists` is not `isHittable`.
+        // Scroll to them the way a user would.
+        let home = app.buttons["manualFillUpCurrency_EUR"]
+        XCTAssertTrue(home.waitForExistence(timeout: 5))
+        scrollClearOfSaveBar(app, home)
 
-        // Selecting the foreign currency: with no rates service the money pair
+        // Selecting a foreign currency: with no rates service the money pair
         // is rate-pending and the conversion card appears (the F9 state).
+        let chip = firstForeignCurrencyChip(app, home: "EUR")
+        XCTAssertTrue(chip.exists, "the offer must include a foreign chip")
+        XCTAssertTrue(chip.isHittable, "the chip row must be reachable after expanding")
         chip.tap()
         XCTAssertTrue(app.otherElements["manualFillUpConversionCard"].waitForExistence(timeout: 5))
     }

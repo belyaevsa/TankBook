@@ -16,6 +16,9 @@ struct EditEntryNonFillView: View {
     @Binding var form: EditEntryNonFillForm
     let entry: any Entry
     let vehicle: Vehicle
+    /// The complete, ordered currency offer for the edited entry's car
+    /// (docs/SCHEMA.md -> Currency offer).
+    let offer: [CurrencyCode]
     let attachments: [Attachment]
     @Binding var showDatePicker: Bool
     let syncOverwrite: SyncOverwrite?
@@ -136,7 +139,7 @@ struct EditEntryNonFillView: View {
             VStack(alignment: .leading, spacing: 6) {
                 SectionEyebrow("Currency")
                 CurrencyChipRow(currency: $form.currency,
-                                homeCurrency: vehicle.homeCurrency,
+                                offer: offer,
                                 lowConfidence: false)
             }
             .padding(.horizontal, Theme.Spacing.cardPadding)

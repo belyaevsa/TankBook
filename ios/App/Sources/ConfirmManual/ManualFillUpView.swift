@@ -43,7 +43,7 @@ struct ManualFillUpView: View {
     /// answer (whose payload carries the captureId) maps straight back to the
     /// entry - no separate capture->entry mapping to keep in sync.
     @State private var entryId = UUID.v7()
-    @State private var existingEntries: [any Entry] = []
+    @State var existingEntries: [any Entry] = []
     /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
     @State private var lastKnown: OdometerLastKnown?
     @State private var stations: [Station] = []
@@ -128,7 +128,7 @@ struct ManualFillUpView: View {
                 form: $form,
                 homeCurrency: vehicle.homeCurrency,
                 lowConfidence: currencyLowConfidence,
-                state: conversionState)
+                state: conversionState, offer: currencyOffer(vehicle: vehicle))
         }
     }
 

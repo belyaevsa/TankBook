@@ -484,6 +484,11 @@ struct ManualFillUpCurrencySection: View {
     let homeCurrency: CurrencyCode
     let lowConfidence: Bool
     let state: ForeignCurrencyState
+    /// The complete, ordered currency offer for this car (docs/SCHEMA.md ->
+    /// Currency offer): home first, then the user's recent currencies, then the
+    /// region's. Passed down so the chip row and this section's copy describe
+    /// the same list.
+    let offer: [CurrencyCode]
 
     /// Collapsed while the entry is in the home currency and the reading is
     /// confident - the overwhelmingly common case. Paying abroad is rare, and a
@@ -520,7 +525,7 @@ struct ManualFillUpCurrencySection: View {
         VStack(alignment: .leading, spacing: 6) {
             if form.isCurrencyExpanded || mustStayOpen {
                 SectionEyebrow("Currency")
-                CurrencyChipRow(currency: $form.currency, homeCurrency: homeCurrency,
+                CurrencyChipRow(currency: $form.currency, offer: offer,
                                 lowConfidence: lowConfidence)
                 hint
             } else {
@@ -571,7 +576,10 @@ struct ManualFillUpCurrencySection: View {
             hintText(L10n.localize("Which currency is this?"), color: Theme.Palette.warn,
                      identifier: "manualFillUpCurrencyHint")
         case .notForeign:
-            hintText(String(format: L10n.localize("Recent first · a foreign amount converts to %@ automatically"),
+            // The caption names the ordering the code actually implements
+            // (docs/SCHEMA.md -> Currency offer): the car's own currency is the
+            // first chip, then the user's recent currencies, then the region's.
+            hintText(String(format: L10n.localize("Your currency first, then recent and nearby · a foreign amount converts to %@ automatically"),
                             homeCurrency.rawValue),
                      color: Theme.Palette.inkSoft, identifier: nil)
         case .ratePending, .converted:

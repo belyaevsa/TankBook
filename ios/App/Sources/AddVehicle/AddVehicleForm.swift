@@ -219,10 +219,12 @@ enum AddVehicleSupport {
 
     /// The currencies offered in the Home currency menu (the ones the docs name
     /// plus the locales Tankbook targets; everything else stays reachable via
-    /// the free-text later, per SCHEMA.md).
+    /// the free-text later, per SCHEMA.md). CHF belongs here: the entry rows
+    /// offer it as a chip, and a chip a menu cannot reach is a dead end (hard
+    /// rule 7; docs/SCHEMA.md -> Currency offer).
     static var currencyOptions: [CurrencyCode] {
         [.eur, .usd, .gbp, .pln, .rub, .uah, .kzt,
-         CurrencyCode(rawValue: "BYN")!, .czk, .jpy]
+         CurrencyCode(rawValue: "BYN")!, .czk, .chf, .jpy]
     }
 }
 

@@ -88,6 +88,7 @@ rows like `%@ %@`) were found the same way and cost nothing to include.
 | `Possible duplicate – %@, %@ logged twice` | amounts | No (after dash) | `Возможный дубликат – 68,46 €, 390 € внесены дважды`. No change |
 | `Receipt total %1$@ · logging %2$@` | amounts | No | No change |
 | `Recent first · a foreign amount converts to %@ automatically` | currency code | No | No change |
+| `Your currency first, then recent and nearby · a foreign amount converts to %@ automatically` | currency code (home, e.g. EUR) | No - the slot sits at the end after a phrase that governs nothing (`переводится в %@`, like the existing `В %@`) | Reworded for RV.146: the row is ordered home → recent → region (docs/SCHEMA.md → Currency offer), so "Recent first" promised an order the code did not have. `Сначала ваша валюта, затем недавние и соседние · иностранная сумма автоматически переводится в %@` |
 | `removed on %@` | **device name** (server text) | Yes: `удалено на %@` put the name under `на` | **Fixed**: `устройство: %@` - nominative after a colon, no preposition reaches the slot |
 | `Replaced %@` | app-formatted day | No | `Заменено 2 дн. назад`. No change |
 | `Scanned %@` | date stamp | No | `Отсканировано 17 авг., 21:47`. No change |

@@ -166,7 +166,20 @@ struct EditEntryView: View {
     private func editCurrencySection(_ vehicle: Vehicle) -> some View {
         ManualFillUpCurrencySection(form: $fillForm,
                                     homeCurrency: vehicle.homeCurrency,
-                                    lowConfidence: false, state: editConversionState)
+                                    lowConfidence: false, state: editConversionState,
+                                    offer: currencyOffer(vehicle: vehicle))
+    }
+
+    /// The complete, ordered currency offer for the edited entry's car
+    /// (docs/SCHEMA.md -> Currency offer). The entry being edited counts as
+    /// history - it is the most recent currency use there is, so editing a PLN
+    /// fill offers PLN first. Pure local derivation - no network (hard rule 1).
+    private func currencyOffer(vehicle: Vehicle) -> [CurrencyCode] {
+        let entries = otherEntries + (currentEntry.map { [$0] } ?? [])
+        return CurrencyOfferBuilder.offer(
+            homeCurrency: vehicle.homeCurrency,
+            history: CurrencyHistory.recentCurrencies(in: entries),
+            region: Locale.current.region?.identifier)
     }
 
     private var odometerConflict: OdometerConflict? {
@@ -181,6 +194,7 @@ struct EditEntryView: View {
     private func nonFillContent(_ entry: any Entry, vehicle: Vehicle) -> some View {
         EditEntryNonFillView(form: $nonFillForm, entry: entry,
                              vehicle: vehicle,
+                             offer: currencyOffer(vehicle: vehicle),
                              attachments: attachments,
                              showDatePicker: $showDatePicker,
                              syncOverwrite: syncOverwrite,

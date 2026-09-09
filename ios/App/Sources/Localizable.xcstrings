@@ -8842,19 +8842,19 @@
         }
       }
     },
-    "Recent first · a foreign amount converts to %@ automatically": {
+    "Your currency first, then recent and nearby · a foreign amount converts to %@ automatically": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Recent first · a foreign amount converts to %@ automatically"
+            "value": "Your currency first, then recent and nearby · a foreign amount converts to %@ automatically"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сначала недавние · иностранная сумма автоматически переводится в %@"
+            "value": "Сначала ваша валюта, затем недавние и соседние · иностранная сумма автоматически переводится в %@"
           }
         }
       }
