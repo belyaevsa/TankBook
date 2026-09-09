@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.57** | flash | 90466 | `bk1f8hbry` (persistent) | `agents/briefs/PJ.57.md` |
+| **PJ.56** | flash | 62395 | `bb5l1c0es` (persistent) | `agents/briefs/PJ.56.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -80,9 +80,8 @@ in this order; the only reason to stop between them is to verify and commit the 
 
 | # | Task | Brief | Why here |
 |---|---|---|---|
-| 1 | **PJ.57** | `PJ.57.md` | The excluded-entries footnote link renders the **identical view** as the passive caption - verified in code and in the screenshot. `RV.141`'s last step; `RV.83`'s chevron is the settled answer, and amber must stay (hard rule 5) |
-| 2 | **PJ.56** | `PJ.56.md` | A `.mixed`/`.pending` group header says nothing while the divider over the same `MonthTotal` speaks. The brief's first job is to establish reachability - `.mixed` may not be reachable at all, and that finding is worth more than the fix |
-| 3 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
+| 1 | **PJ.56** | `PJ.56.md` | A `.mixed`/`.pending` group header says nothing while the divider over the same `MonthTotal` speaks. The brief's first job is to establish reachability - `.mixed` may not be reachable at all, and that finding is worth more than the fix |
+| 2 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
@@ -155,6 +154,7 @@ first, so the third guard does not invent a third way.
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
+| PJ.57 | `170bf91` | The excluded-entries footnote carries RV.83's chevron; amber untouched. **The brief's premise was partly wrong and the agent said so** - nothing renders the footnote passively, so that assertion needed a DEBUG seam or it was vacuous |
 | RV.159 | `a4dac65` | A sending gate is drawn as a gate, not an optional attachment. **Its agent died mid-run and the orchestrator finished it** - including a compile error three green gates could not see (`RV.174`) |
 | RV.149 | `0044e04` | A fill-up's lost receipt photo is reported, not swallowed; one shared sentence, renamed off "expense". **Its screenshots were re-posed by the orchestrator** - the agent's pair showed a correct toast over the empty-garage state, which no user saving a fill-up can be in |
 | RV.160 | `16ab0cb` | A terminal outcome collapses the composer into a confirmation panel. The old caption sat **113-133 points under the fold** - measured by the mutation, not asserted |
