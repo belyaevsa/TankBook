@@ -51,6 +51,15 @@ public enum TimelineValidator {
         /// other case returns nil so a stale acceptance is cleared when the
         /// entry re-flags or the timeline genuinely heals.
         public let acceptance: FlagAcceptance?
+        /// RV.117a: the odometer readings valid for this entry's date and the
+        /// dates valid for its odometer (docs/SCHEMA.md -> Validation -> Valid
+        /// range). Derived in the SAME pass as the flags - same neighbour walk,
+        /// same `limit` - so the two can never disagree. Nil only when the entry
+        /// records no odometer: there is then no field whose range could be
+        /// shown. Computed whether or not the entry currently flags (RV.104's
+        /// accepted entries still get one), never stored, never auto-applied
+        /// (hard rules 2 and 13).
+        public let validRange: TimelineValidRange?
 
         /// A flagged entry is never blocked from saving - the flag is advisory.
         public var isSaveable: Bool { true }
@@ -101,6 +110,7 @@ public enum TimelineValidator {
                                  limit: Double,
                                  attachmentsByID: [UUID: Attachment]) -> EntryValidation {
         var flags: [Flag] = []
+        var validRange: TimelineValidRange?
         let crossCheck = crossCheckIfApplicable(entry)
 
         if let odo = entry.odometer {
@@ -122,6 +132,9 @@ public enum TimelineValidator {
                 }
                 forward += 1
             }
+
+            validRange = Self.validRange(odometer: odo, date: entry.date, previous: previous,
+                                         next: next, limit: limit)
 
             // CHECK 1 - order: must fit strictly between date-neighbours.
             if let previous, odo <= previous.odometer {
@@ -177,7 +190,8 @@ public enum TimelineValidator {
             flags: flags,
             crossCheck: crossCheck,
             suggestions: suggestions(flags: flags, receiptDateIsGroundTruth: receiptDateIsGroundTruth),
-            acceptance: conflictAndAcceptance.acceptance
+            acceptance: conflictAndAcceptance.acceptance,
+            validRange: validRange
         )
     }
 
@@ -226,6 +240,117 @@ public enum TimelineValidator {
         }
         result.append(.fixOdometer(from: nil, to: nil))
         return result
+    }
+
+    // MARK: - Valid range (RV.117a)
+
+    /// The intervals an entry's two fields may take without flagging. Both are
+    /// intersections of the SAME two constraints the flags enforce, over the
+    /// SAME neighbour pair this pass already walked:
+    ///
+    /// - odometer (for the entry's date): strictly above the previous reading
+    ///   and at most `previous + limit x days(previous -> entry)`; strictly
+    ///   below the next reading and at least `next - limit x days(entry ->
+    ///   next)`. The upper end is therefore NOT `next - 1` when the pace toward
+    ///   the previous is the tighter bound (the Drivvo case, docs/COMPETITORS.md
+    ///   - on 13/07 the odometer must be between 490 500 and 490 983, not
+    ///   "below 491 206").
+    /// - dates (for the entry's odometer): the instants strictly between the
+    ///   neighbours on which that reading keeps both neighbours and stays within
+    ///   the pace limit. The bounds are pace-derived and inclusive; the exact
+    ///   neighbour instants are outside the claimed domain because there a
+    ///   same-day tie reorders the timeline or the `days > 0` guard drops a
+    ///   pace bound - the fixed-neighbourhood model no longer applies there.
+    ///
+    /// A missing neighbour leaves that side OPEN (`nil`), never a sentinel. A
+    /// neighbourhood whose constraints cross - `lower > upper` - yields `.none`:
+    /// no value is valid, and an inverted "between 490 983 and 490 500" would be
+    /// nonsense.
+    private static func validRange(odometer: Int, date: Date,
+                                   previous: (odometer: Int, date: Date)?,
+                                   next: (odometer: Int, date: Date)?,
+                                   limit: Double) -> TimelineValidRange {
+        TimelineValidRange(
+            odometer: odometerRange(date: date, previous: previous, next: next, limit: limit),
+            dates: dateRange(odometer: odometer, previous: previous, next: next, limit: limit)
+        )
+    }
+
+    /// The inclusive integer odometer readings valid for a date. Mirrors the
+    /// same-day guard: a same-day neighbour contributes no pace bound (the
+    /// `days > 0` guard in `validate(_:at:in:)`), so that side of the interval
+    /// is bounded by order alone.
+    private static func odometerRange(date: Date,
+                                      previous: (odometer: Int, date: Date)?,
+                                      next: (odometer: Int, date: Date)?,
+                                      limit: Double) -> ValidRange<Int> {
+        var lower: Int?
+        var upper: Int?
+        if let previous {
+            lower = previous.odometer + 1
+            let days = dayDiff(previous.date, date)
+            if days > 0 {
+                upper = paceUpperBound(from: previous.odometer, days: days, limit: limit)
+            }
+        }
+        if let next {
+            let orderUpper = next.odometer - 1
+            upper = upper.map { Swift.min($0, orderUpper) } ?? orderUpper
+            let days = dayDiff(date, next.date)
+            if days > 0 {
+                let paceLower = paceLowerBound(toward: next.odometer, days: days, limit: limit)
+                lower = lower.map { Swift.max($0, paceLower) } ?? paceLower
+            }
+        }
+        if let lower, let upper, lower > upper { return .none }
+        return .bounded(lower: lower, upper: upper)
+    }
+
+    /// The inclusive dates on which `odometer` keeps its two neighbours and the
+    /// implied pace to each stays within the limit.
+    private static func dateRange(odometer: Int,
+                                  previous: (odometer: Int, date: Date)?,
+                                  next: (odometer: Int, date: Date)?,
+                                  limit: Double) -> ValidRange<Date> {
+        // An odometer at or below the previous reading (or at or above the next)
+        // cannot sit between the two at ANY date - the order constraint fails for
+        // every instant the pair remains its neighbours.
+        if let previous, odometer <= previous.odometer { return .none }
+        if let next, odometer >= next.odometer { return .none }
+        guard limit > 0 else {
+            return (previous == nil && next == nil) ? .bounded(lower: nil, upper: nil) : .none
+        }
+        var lower: Date?
+        if let previous {
+            let daysNeeded = Double(odometer - previous.odometer) / limit
+            lower = previous.date.addingTimeInterval(daysNeeded * 86_400)
+        }
+        var upper: Date?
+        if let next {
+            let daysNeeded = Double(next.odometer - odometer) / limit
+            upper = next.date.addingTimeInterval(-daysNeeded * 86_400)
+        }
+        if let lower, let upper, lower > upper { return .none }
+        return .bounded(lower: lower, upper: upper)
+    }
+
+    /// The largest integer odometer whose implied pace from a previous reading
+    /// over `days` does not exceed the limit. Verified against the validator's
+    /// own expression (`Double(x - p) / days > limit`) so the boundary cannot
+    /// drift from the flag by a floating-point rounding.
+    private static func paceUpperBound(from previousOdometer: Int, days: Double, limit: Double) -> Int {
+        var x = Int((Double(previousOdometer) + limit * days).rounded(.down))
+        while Double(x + 1 - previousOdometer) <= limit * days { x += 1 }
+        while Double(x - previousOdometer) > limit * days { x -= 1 }
+        return x
+    }
+
+    /// The smallest integer odometer whose implied pace toward a next reading
+    /// over `days` does not exceed the limit.
+    private static func paceLowerBound(toward nextOdometer: Int, days: Double, limit: Double) -> Int {
+        var x = Int((Double(nextOdometer) - limit * days).rounded(.up))
+        while Double(nextOdometer - x) > limit * days { x += 1 }
+        return x
     }
 
     private static func crossCheckIfApplicable(_ entry: any Entry) -> CrossCheckState? {

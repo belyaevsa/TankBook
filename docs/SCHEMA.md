@@ -482,6 +482,29 @@ ConflictState = .none | .flagged(kind: .order | .pace, detectedAt: Date)
 
 A user may always save with `.flagged`: the entry shows the amber badge, and **any segment touching it is excluded from consumption math** (Trends footnotes the exclusion count). Resolution clears the flag via the edit screen.
 
+#### The valid range (RV.117a, [v1.1])
+
+A flagged entry quotes one neighbour; the RV.117 range says **which field is wrong**. It is a **derived pair returned alongside the flags** (`EntryValidation.validRange`), never stored (hard rule 2), computed by `TimelineValidator` in the SAME pass as the flags - same neighbour walk, same `paceLimitKmPerDay` - so a value inside the range is never flagged and a value outside always is. Both intervals exist for any entry that carries an odometer, flagged or not (an accepted entry's range is still computable, RV.104); an entry without an odometer has neither.
+
+```
+ODOMETER RANGE   The readings valid for the entry's date (integers, inclusive):
+                 lower = max(previous + 1,                    // CHECK 1, order
+                             next − limit × days(entry → next))   // CHECK 2, pace, only when days > 0
+                 upper = min(next − 1,                        // CHECK 1, order
+                             previous + limit × days(previous → entry)) // CHECK 2, pace, only when days > 0
+                 The upper end is therefore NOT next − 1 when the pace toward the
+                 previous is the tighter bound (Drivvo: "on 13/07 the odometer must be
+                 between 490 500 and 490 983" – 490 983 = 490 500 + limit × days, not
+                 "below 491 206", docs/COMPETITORS.md).
+DATE RANGE       The dates on which the entry's odometer x is consistent while it keeps
+                 the same two date-neighbours (inclusive instants, strictly between the
+                 neighbours' dates):
+                 lower = previous.date + (x − previous.odometer) / limit × 86400   (previous side)
+                 upper = next.date − (next.odometer − x) / limit × 86400           (next side)
+```
+
+**Open ends are first-class**: an absent bound is `nil` (open), never a large sentinel number. An entry with no `next` has no upper date bound, one with no `previous` no lower date bound; a same-day neighbour contributes **no pace bound** (the `days > 0` guard), so on that side the odometer range is bounded by order alone. **The empty case is representable**: when the two constraints cross - the neighbourhood itself is inconsistent, which a multi-year import can produce - the range is `.none`, never an inverted "between 490 983 and 490 500". An odometer that sits at or below its previous reading (or at or above its next) has no valid date between those neighbours either: `.none` on the date side is the signal that the odometer is the field to fix. The range claims dates strictly between the neighbours; the exact neighbour instants are outside its domain because there a same-day tie reorders the timeline or the `days > 0` guard drops a pace bound. The range never auto-corrects or reorders `suggestions` (hard rule 13; PRIORITY above is unchanged).
+
 ### S2 duplicates (derived, with one persisted fact)
 
 The S2 duplicate heuristic (SYNC.md) is **derived, never stored** – the same entry list always yields the same pairs, so every device computes identical numbers. While a pair is unresolved, **only one member counts** in consumption, month totals and every derived figure (the one a Merge would keep – deterministic: attachment wins, else earlier-created, else lower id). The one **persisted** fact is the user's decision:
