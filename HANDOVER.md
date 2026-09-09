@@ -1,92 +1,108 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-08 (evening). **The app is on TestFlight, the backend is deployed, and the product
-owner is now using it on their own multi-year imported data - which is where almost every new row
-came from.** Measured on the tree as left: **iOS 1671 tests / 186 suites**, **backend 437**, lint 0
-and the localization gate 0 (777 keys, 100% RU) from the repo **ROOT**, Release build 0. The `RV`
-backlog runs to **RV.143** and **22 rows are open**. **Nothing is running and the tree is clean.**
-Read this first, then `CLAUDE.md`, then `docs/TASKS.md`.*
+*Updated 2026-09-09 (evening). **A twenty-row session, and the most useful thing in it is not the
+code.** Measured on the tree as left: **iOS 1808 tests / 209 suites**, **backend 445**, lint 0 from
+the repo **ROOT**, localization 0 (811 keys, 100% RU), Release build 0. **99 open rows, 291 closed.**
+**One agent is still running - `RV.141`, pid 74473 - and its work is UNCOMMITTED in the tree.**
+Read this, then `CLAUDE.md`, then `docs/DEFECT-PATTERNS.md`, then `docs/TASKS.md`'s index.*
 
-## Where the work stands (2026-09-08 evening)
+## Read the two new documents before picking anything up
 
-**Shipped: 18 rows** - RV.82, RV.91, RV.92, RV.107, RV.111, RV.113, RV.121, RV.125, RV.126, RV.127,
-RV.128, RV.131, RV.132, RV.133, RV.135, RV.137, RV.140, RV.142 - each verified by the orchestrator's
-own gate runs rather than an agent's report, plus the release-signing repair below.
+- **`docs/DEFECT-PATTERNS.md`** - the eight code shapes and five product-reachability shapes this
+  codebase actually produces, each with the check that catches it. `CLAUDE.md` now lists it as
+  **read-before-writing-any-brief**. It is derived from evidence, not opinion: the zero-summing
+  defect was fixed on **five** surfaces across five rows before anyone named the shape.
+- **`agents/briefs/TEMPLATE.md`** - a brief is now **assembled** from this, not remembered. Part A's
+  five questions are the half that is easy to skip and expensive to skip.
 
-**Open: 22 rows, and 11 of them were filed today from the owner's own use.** RV.134, RV.136, RV.138,
-RV.139, RV.140-RV.143 all came from production logs or screenshots the owner supplied. The count did
-not fall as work shipped, which is the system behaving.
+## Where the work stands (2026-09-09 evening)
 
-## The six things this session would tell its successor
+**Shipped: 20 rows** - `RV.112`, `RV.136` (twice - see below), `RV.139b`, `RV.144`, `RV.145`,
+`RV.146`, `RV.147`, `RV.150`, `RV.151`, `RV.153`, `RV.154`, `RV.156`, `RV.157`, `RV.117a`,
+`RV.117b`, `PJ.19`, `PJ.25`, `PJ.28`, plus `RV.139` closed by observation. Each verified by the
+orchestrator's own gate runs and screenshots, never by an agent's report.
 
-1. **`opencode run` BLOCKS ON STDIN. Always pass `< /dev/null`.** This cost roughly five dispatches
-   and an afternoon. Without it the process starts, opens no connection, writes **zero bytes**, and
-   sits forever - identical to the "wedged provider" signature the previous handover describes, so I
-   misdiagnosed it as an outage twice and probed the provider three times. `codex exec` behaves the
-   same way and says so explicitly (`Reading additional input from stdin...`). The one-token probe
-   that settles it: `opencode run -m <model> "Reply with exactly: OK" < /dev/null`.
-2. **Mid-work agent deaths were MEMORY PRESSURE, not sabotage.** Several dispatches died at
-   250-500 KB of log with nothing wrong in them; the harness eventually named the cause. One agent
-   at a time is the mitigation, and it costs nothing because the file collisions already force it.
-   The tell is a log frozen at its kill byte-count while `pgrep` briefly still shows the process.
-3. **I diagnosed the same defect wrongly four times and an agent got it in one.** RV.142's XXXL wrap
-   test: I assumed the subtitle had become too short to wrap and tried four fixes (a different seed,
-   an accessibility text size, running in Russian, comment edits that broke the 700-line lint cap).
-   It was wrapping all along - the odometer and the date shared a `y` because **both** had already
-   moved to the second line, and the test's lookup read that as no wrap. **Dump what is actually
-   rendered before theorising about it**; I inferred the subtitle four times without once printing it.
-4. **A filter that matches nothing prints "0 tests" and EXITS 0.** It happened twice today, both
-   times because the new tests are an `extension HomeUITests` rather than their own class - the same
-   file-split pattern `ImportCarsUITests` uses. A `-quiet` run hides the zero entirely. **Check the
-   count, never the exit code.**
-5. **Opening the screenshot is still the check nothing else performs.** RV.126's RU capture was
-   correct, and looking at it revealed `Цена / л` and `считается из суммы ÷ литров` on a gallons car -
-   the same defect class, on the same screen, that the agent's own file-scoped audit could not see.
-   That became RV.134.
-6. **Four of my diagnoses were wrong and agents caught every one** (RV.125's cause, RV.137's premise,
-   RV.139's latch, RV.142's wrap). The pattern that works: pin the cause to a file and a line, then
-   write "verify this before building on it" and mean it.
+**Filed: 21 rows** (`RV.148`-`RV.168`, `PJ.55`). Most came from agents reporting findings **outside
+their fence** and from the product owner using the app. That ratio - a row filed for every row
+shipped - is the system working, not falling behind.
 
-## Release signing was broken today, and the repair is worth knowing
+## The five things this session would tell its successor
 
-Build 864 exported fine at 13:05; build 866 failed at 15:02. **Three separate faults, unpicked in
-order**:
-
-1. **"Always Trust" had been set on the development certificate** in Keychain Access, which breaks
-   the ARCHIVE - Xcode refuses to sign with a cert whose trust is not system default. Removed with
-   `security remove-trusted-cert`.
-2. **No distribution certificate existed at all** - not locally, and `portal has no cert` in the
-   distribution log. The Apple ID had been signed out of Xcode, which took the certificate with it.
-   Repaired by generating a keypair and CSR locally, issuing the cert in the portal, and importing
-   it. **The `.p12` backup is the thing whose absence cost the afternoon** - keep it.
-3. **The profile still embedded the dead certificate**, and two decoy profiles were installed (a
-   stale store profile and a Development-type one misleadingly named "App Store"). Both moved aside.
-
-`scripts/release.sh` now hands the App Store Connect API key to **xcodebuild**, not only to altool -
-it was required for the upload and never given to the signing step - and reuses an existing archive
-for the same commit rather than rebuilding it on every signing retry.
+1. **The backlog's shape is a handful of defects, not a hundred.** Five rows fixed one defect on five
+   surfaces; the echo loop took three arms and three fixes across three sessions. **Before fixing
+   anything, grep for the shape** (`TEMPLATE.md` Part A, Q1). `RV.166` was found this way in one
+   grep, while prototyping `RV.167`'s guard.
+2. **A comment can document the bug as deliberate, and it happened three times.**
+   `recordsEqual`'s said *"two records for the same **non-`Vehicle`** entity type"* - which is
+   exactly the omission that kept the echo loop alive through two fixes. The station row's cited
+   `PJ.19` as the thing that would make it live; `PJ.19` shipped and did not. `LogStream.group`'s
+   says *"never a rate-pending line summed as zero"* above a `?? Decimal.zero` (`RV.166`).
+   **When a comment asserts the absence of a bug, check.**
+3. **A green suite is not evidence, and here is why precisely.** `PJ.4` shipped a screen unreachable
+   in Release with a green suite, because the UI tests navigate via `-presentScreen`. `RV.156`
+   shipped a correctly rendered, permanently dead label. Every defect a test caught this session was
+   caught by a test written **for it, after a human found it** - with one exception, and the
+   exception is the lesson: an existing property test caught two real defects the moment **nine of
+   the owner's real receipts** entered the corpus. The suite did not get smarter; the input got real.
+4. **Two read-only agents cost 241 KB and audited the whole backlog.** `REVIEW-JOURNEYS` found
+   `PJ.55`; `VERIFY-SHIPPED` re-verified **27 ticked rows against the code** and found zero broken.
+   A build agent costs 400 KB-2 MB. **Read-only review is the cheapest tool here and was used once in
+   eleven days before today.**
+5. **Two agents run concurrently ONLY when the toolchains are disjoint.** `RV.157` (Swift) and
+   `RV.154` (backend C#) ran together cleanly. Two Swift tasks collide on files and on the simulator,
+   and `opencode` throws `database is locked` if two start in the same second - stagger them.
 
 ## What to do next
 
-**RV.139 is the one that unblocks the others.** The client still issues **no `/rates/pack` request
-at all** - confirmed across builds 841, 857 and 864 - so RV.135's historical EUR feed cannot help
-anyone yet. Two causes are ruled out by measurement (Low Power Mode, because sync defers on the same
-condition and sync runs; and the single-flight latch, which cannot form). It now ships a
-`rates.refresh` event carrying `attempted | joined | deferred`: **get one session's log from a device
-on a build with it and the branch names itself** - or the line is absent entirely, which moves the
-search into `runAutomaticPass`.
+1. **`RV.141` is mid-flight and uncommitted.** Verify its gates in your own hands, open its
+   screenshots, then commit and tick. Its brief was the first rebuilt from `TEMPLATE.md`, and Part A
+   earned its place: `excludedEntryCount` counts duplicate members while "Needs a look" filters on
+   conflicts only, so the obvious fix routes the user to a screen showing **fewer rows than the
+   number they tapped**.
+2. **`RV.166` then `RV.167`, in that order.** `RV.166` is a **live sixth instance** of the
+   zero-summing defect (`LogStream.swift:369`). `RV.167` is the architecture test that stops a
+   seventh - build it against `MonthlySummaryNotification.swift:180` (`RV.148`) so it has a failing
+   case after `RV.166` lands.
+3. **The journeys walk is now RECURRING** (`CLAUDE.md`): every 10 shipped rows or a phase gate,
+   whichever comes first, plus four event triggers. It had run **once, 643 commits ago**, and every
+   product-reachability gap traces to that run or to the owner using the app.
+4. Then the queue: `RV.152`, `RV.149`, `RV.155`, `RV.116`, and the guards `RV.162`-`RV.165`.
 
-**RV.112 is more visible than its row suggests.** RV.140's own screenshot shows `РАСХОДЫ ЗА СЕНТЯБРЬ
-0 €` sitting directly above two `110.00 USD` rows, because `HomeStats` sums absent home amounts as
-zero. RV.106 banned the bare `0 €` on the divider but not on the tile.
+## Decisions the product owner made 2026-09-09 (do not relitigate)
 
-**Briefed and ready to dispatch**: RV.141 (the excluded-entries count that names nothing - and note
-`excludedEntryCount` includes duplicate members while "Needs a look" filters on conflicts only, so
-the obvious route would show fewer rows than the footnote promises), RV.116 (amended to cover
-Drivvo's silently-dropped columns).
+- **Currency symbols everywhere** - `2416.00 $`, never `2416.00 USD`, with the ISO code as a named
+  fallback where the symbol resolves empty. Reverses `LogEntryAmount`'s code-not-symbol rule. (`RV.145`)
+- **A station's forecourt location is captured SILENTLY** - no prompt at save. Bounded: visible,
+  editable and clearable in the Garage, never overwriting an existing one, documented in
+  `SECURITY.md`, never logged. Battery was raised as the objection to the sync trigger and
+  **explicitly waived**. (`RV.150`, `RV.157`)
+- **A local write schedules a sync**, 3 s debounce, hooked at the database write signal so coverage
+  is by construction. The governing rule, verbatim: ***"save locally first, send to the cloud
+  asynchronously"*** - the save schedules and never awaits. (`RV.157`)
+- **A scanned receipt's station: save the BRAND and display it; when a site is identifiable, save it
+  next to the brand with the geo; the user can change either.** (`RV.161`, `[v1.1]`)
+- **Rows go pending rather than blocking**, and the home-currency prompt says so upfront; **no undo**
+  on the bulk convert, but the warning says the receipt amounts are never touched. (`RV.152`)
+- **`RV.148` (the monthly-summary push) is DEFERRED**, not undecided - *"we will come to it later"*.
 
-**Owed from shipped rows**: the EN/RU screenshots for RV.133 and RV.142 - both agents were stopped
-before capturing them, and RV.142's sandbox had no CoreSimulator.
+## RV.139 is closed, and the way it closed is the lesson
+
+The client never asked for rates across builds 841/857/864. Two investigations killed four
+hypotheses; the fix that mattered was **not code, it was a log line**. `RV.139b` shipped the
+`rates.refresh` event and `automatic.pass` step marks, and **one device log then answered it in a
+single session**: `step=rates` → `rates.refresh attempted` → `net.request /v1/rates/pack` → `200,
+157 KB`. Which change fixed it is **not established** and the row says so - it closed on the symptom.
+
+**`TEMPLATE.md` Part A now asks the general form of this**: if a change adds a failure path, what
+makes it visible in production?
+
+## What remains open on rates, and it is not a client bug
+
+`RV.158`: the span drain fires **eight `/v1/rates/pack` requests in seven milliseconds** and **seven
+come back empty** (`responseBytes=63`). The client now asks correctly and derives cross-base rates
+correctly (`RV.151`) - **the server has no data for the dates the owner's imported entries carry.**
+That is a coverage question about `RV.135`'s historical feed, and `RV.152`'s "convert the log" answer
+is limited by it.
 
 ## Product decisions recorded 2026-09-07 (do not relitigate)
 
