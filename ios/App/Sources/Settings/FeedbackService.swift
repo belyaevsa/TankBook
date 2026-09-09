@@ -21,6 +21,13 @@ enum FeedbackService {
     static func makeModel(arguments: [String] = ProcessInfo.processInfo.arguments) -> FeedbackModel {
         let consentStore = FeedbackConsentStore()
         #if DEBUG
+        // `-feedbackConsentReset` REMOVES the key rather than writing false,
+        // exactly like `-diagnosticsConsentReset`: a UI test pinning the
+        // default-off must reproduce a fresh install, never mask a default-on
+        // mutation behind an explicit false written by an earlier launch.
+        if arguments.contains("-feedbackConsentReset") {
+            consentStore.reset()
+        }
         if arguments.contains("-feedbackConsentOn") {
             consentStore.setConsented(true)
         }

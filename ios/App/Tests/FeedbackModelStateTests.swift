@@ -157,6 +157,30 @@ final class FeedbackModelStateTests: XCTestCase {
         await second.send()
         XCTAssertEqual(second.state, .consentRequired)
     }
+
+    /// RV.159 - the consent-comprehension defect's L1 half: the diagnostics
+    /// opt-in is a DIFFERENT property (`DiagnosticsConsentStore`) and must not
+    /// satisfy the feedback gate. A user who enabled "Attach diagnostics" and
+    /// then hit Send is refused because the gate reads only the feedback
+    /// consent; this pins that the two stores never meet.
+    func testDiagnosticsConsentDoesNotSatisfyTheFeedbackGate() async throws {
+        let diagnosticsSuite = freshSuite()
+        let diagnosticsDefaults = try XCTUnwrap(UserDefaults(suiteName: diagnosticsSuite))
+        diagnosticsDefaults.removePersistentDomain(forName: diagnosticsSuite)
+        let diagnosticsStore = DiagnosticsConsentStore(defaults: diagnosticsDefaults)
+        diagnosticsStore.setConsented(true)
+        XCTAssertTrue(diagnosticsStore.hasConsented,
+                      "the scenario needs the diagnostics opt-in ON")
+
+        let model = try makeModel(behavior: .success, consented: false,
+                                  suite: freshSuite())
+        model.text = "Attach diagnostics is on, yet this must not send"
+        await model.send()
+
+        XCTAssertEqual(model.state, .consentRequired,
+                       "enabling the diagnostics opt-in must not satisfy the feedback "
+                           + "consent gate - they are different properties (RV.159)")
+    }
 }
 
 /// Answers every request with a canned status (and headers).

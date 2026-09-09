@@ -5557,19 +5557,36 @@
         }
       }
     },
-    "Help improve scanning – attach this case": {
+    "Before you send": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Help improve scanning – attach this case"
+            "value": "Before you send"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Помогите улучшить распознавание – прикрепить этот случай"
+            "value": "Перед отправкой"
+          }
+        }
+      }
+    },
+    "Send this case to help improve scanning": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Send this case to help improve scanning"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отправить этот случай для улучшения распознавания"
           }
         }
       }
@@ -12124,19 +12141,19 @@
         }
       }
     },
-    "Turn on “Help improve scanning – attach this case” to send.": {
+    "Turn on “Send this case to help improve scanning” to send.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Turn on “Help improve scanning – attach this case” to send."
+            "value": "Turn on “Send this case to help improve scanning” to send."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Включите «Помогите улучшить распознавание – прикрепить этот случай», чтобы отправить."
+            "value": "Включите «Отправить этот случай для улучшения распознавания», чтобы отправить."
           }
         }
       }

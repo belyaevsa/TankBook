@@ -1,6 +1,6 @@
 import Foundation
 
-/// The once-asked "help improve scanning - attach this case" opt-in
+/// The once-asked "send this case to help improve scanning" opt-in
 /// (docs/ERRORS.md -> About & feedback). Default OFF, persisted, and changeable
 /// afterwards (hard rule 13: a value the user set is theirs). It is the
 /// load-bearing half of the feedback feature: a case is queued only with consent
@@ -30,5 +30,12 @@ public final class FeedbackConsentStore: @unchecked Sendable {
 
     public func setConsented(_ consented: Bool) {
         defaults.set(consented, forKey: key)
+    }
+
+    /// Removes the stored value, reproducing a fresh install (default off).
+    /// The diagnostics consent store carries the same seam for the same reason:
+    /// a UI test that pins the DEFAULT needs an unset key, not a written false.
+    public func reset() {
+        defaults.removeObject(forKey: key)
     }
 }

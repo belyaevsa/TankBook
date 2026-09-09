@@ -846,6 +846,23 @@ capture RV.166-home-partial-group-ru ru -seedSettingsSignedIn -seedHomeRV166Part
 # ("Saved – ...") - the copy that must never read as a failure. RU is where the
 # panel copy runs longest ("Сохранено – отправится автоматически, когда
 # появится связь.").
+# RV.159: the two consents, drawn as different kinds of object. The frame must
+# hold BOTH - the optional "Attach diagnostics" card above, and the gating
+# consent below it under its own "Before you send" eyebrow - because the defect
+# was that the two were indistinguishable, and a shot of either one alone
+# proves nothing. `-diagnosticsConsentOn` puts the optional one in its ON state
+# (where it used to look most like the gate) while `-feedbackConsentReset`
+# leaves the gate OFF at its default. The XL pair is the overflow check: a
+# RU runs 20-30% longer than EN, so its gate label is the one that clips.
+# There is NO XL capture here, deliberately: About has no scroll hook, and at
+# XL the gate sits entirely below the fold - the frame would show the eyebrow
+# clipped at the edge and none of the control it heads, which is a confident
+# picture of nothing (the P1.5-log-stream failure). The XL claim is covered by
+# `testRV159ConsentBlockRendersAtXLInEnglish/InRussian`, which assert the frames
+# directly. An About scroll hook would make the shot possible - filed as RV.175.
+capture RV.159-about-consents        en -presentScreen about -feedbackConsentReset -diagnosticsConsentOn
+capture RV.159-about-consents-ru     ru -presentScreen about -feedbackConsentReset -diagnosticsConsentOn
+
 capture RV.160-about-feedback-sent       en -feedbackConsentOn -feedbackTransportSuccess -feedbackAutoSend -presentScreen about
 capture RV.160-about-feedback-sent-ru    ru -feedbackConsentOn -feedbackTransportSuccess -feedbackAutoSend -presentScreen about
 capture RV.160-about-feedback-offline    en -feedbackConsentOn -feedbackTransportOffline -feedbackAutoSend -presentScreen about

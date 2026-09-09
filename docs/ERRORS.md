@@ -475,11 +475,21 @@ in RU (hard rule 7); nothing is dropped, the order yields.
 
 The composer (design/screens/About.dc.html "Tell us"): category chips (feature/problem/other), the
 message, an "Attach device model" toggle (default off - `deviceModel` rides only with it,
-docs/API.md), and "Reply to (optional)". **The load-bearing part is the consent**: "Help improve
-scanning – attach this case", default OFF, persisted, and changeable afterwards (hard rule 13). A
+docs/API.md), and "Reply to (optional)". **The load-bearing part is the consent**: "Send this case
+to help improve scanning", default OFF, persisted, and changeable afterwards (hard rule 13). A
 case is queued only with consent; without it Send surfaces the opt-in and queues nothing.
 
-**"Attach diagnostics" (OB.4, docs/LOGGING.md §5)** sits on About beneath the composer: a once-asked
+**The consent reads as the gate it is, never as a twin of "Attach diagnostics" (RV.159, decided
+2026-09-10).** Two pixel-identical opt-ins used to sit on About - "Attach diagnostics" (OB.4) and
+the consent - and only one of them gated the send, so a user who enabled the diagnostics one had
+every reason to believe they had already agreed. The consent now sits in its own section inside
+the composer under the **"Before you send"** eyebrow (`SectionEyebrow`, the idiom
+StationSettingsView uses) and its label no longer says "attach"; the diagnostics opt-in is a
+separate card above the composer with no such heading. The treatment rule: `docs/DESIGN.md` -> "A
+sending gate is never drawn as an optional attachment". `docs/DEFECT-PATTERNS.md` -> "Comprehension"
+names why a test on presence could never have caught this.
+
+**"Attach diagnostics" (OB.4, docs/LOGGING.md §5)** sits on About above the composer: a once-asked
 opt-in, default OFF and persisted (the same consent shape as above; hard rule 13). It is a
 separate consent from the feedback one, because it sends log data where the feedback consent sends
 none. While it is off the preview is unreachable; turning it on reveals **"Preview what will be
@@ -509,7 +519,7 @@ Re-entering About starts a fresh composer.
 | Condition | Shows | Next step |
 |---|---|---|
 | **Update recommended (`.recommended`, docs/CONFIG.md)** | Dismissible row in About: "A newer version of Tankbook is available." The App Store button renders only when a compiled-in app id exists - none today | Update (App Store, when a listing exists) · dismiss. Quiet information - nothing is withheld |
-| **Send without consent** | Amber line above the Send button: "Turn on "Help improve scanning – attach this case" to send." - the toggle is the next step, nothing is queued, the draft stays | Toggle consent on · leave it |
+| **Send without consent** | Amber line above the Send button, under the "Before you send" section: "Turn on "Send this case to help improve scanning" to send." - the toggle is the next step, named in the words on that toggle, nothing is queued, the draft stays | Toggle consent on · leave it |
 | Feedback sent (202) | The composer collapses into a confirmation panel: "Thanks – your feedback is on its way." (`feedbackSent`, `ok` checkmark) | Nothing to do |
 | Feedback send fails offline | Composer collapses into: "Saved – sends automatically when you're online." (`feedbackQueuedOffline` - queued, never an error) | Nothing to do |
 | Rate-limited (`rate_limited`) | Composer collapses into: "Saved – today's limit is reached, so this one's queued for tomorrow." (`feedbackRateLimited`) | Nothing to do |

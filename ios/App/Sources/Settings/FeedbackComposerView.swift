@@ -6,10 +6,16 @@ import TankbookCore
 /// `POST /feedback` through the core `FeedbackOutbox`, with queued-offline and
 /// 429 states that each name their next step and survive being ignored.
 ///
-/// The consent is the load-bearing part: "Help improve scanning - attach this
-/// case" defaults OFF, persists, and is changeable afterwards (hard rule 13);
-/// a case is queued only with consent. The device model rides only with its own
-/// toggle, per the contract.
+/// The consent is the load-bearing part: it defaults OFF, persists, and is
+/// changeable afterwards (hard rule 13); a case is queued only with consent.
+/// The device model rides only with its own toggle, per the contract.
+///
+/// RV.159: the consent is drawn as the requirement it is, not as a twin of
+/// About's optional "Attach diagnostics" opt-in above it. It sits in its own
+/// section under the "Before you send" eyebrow (the same SectionEyebrow idiom
+/// StationSettingsView uses), so the user can tell the gate - the one thing
+/// that must be ON for Send to work - from the optional attachments, whose
+/// consent never blocks anything.
 ///
 /// RV.160: a terminal outcome (sent OR queued - a queued case is not a failure)
 /// COLLAPSES the composer into a confirmation panel, because the outcome line
@@ -41,6 +47,7 @@ struct FeedbackComposerView: View {
             textEditor
             deviceModelToggle
             replyField
+            SectionEyebrow("Before you send", identifier: "feedbackConsentHeader")
             consentToggle
             refusalLine
             sendButton
@@ -144,6 +151,9 @@ struct FeedbackComposerView: View {
 
     /// The once-asked opt-in, default OFF. This is what "consent means
     /// something" is about: without it the outbox refuses to queue a case.
+    /// RV.159: the eyebrow above (`feedbackConsentHeader`, "Before you send")
+    /// is what keeps this from reading as a twin of About's optional "Attach
+    /// diagnostics" card - it is the one opt-in whose absence blocks Send.
     private var consentToggle: some View {
         VStack(alignment: .leading, spacing: 8) {
             Toggle(isOn: $model.hasConsented) {

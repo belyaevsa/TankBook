@@ -82,6 +82,34 @@ The scan-confirm card is styled as an echo of the pump readout the user just loo
 - The **cross-check line** is validation made visible: while `liters × price ≈ total` is unresolved it renders as a thin `inkSoft` rule; when it locks, it fills `taillight` with a tick and a light haptic. If it can't lock, the mismatched field gets a `warn` amber underline and the tap-to-edit affordance – never a modal alert.
 - Low-confidence OCR fields render at 60% opacity until confirmed by tap or edit. Confidence is shown, not hidden.
 
+## Consents: a sending gate is never drawn as an optional attachment (RV.159)
+
+One surface can carry two opt-ins a hasty reader will conflate, and conflating them is a
+consent-comprehension defect, not a styling one. About is the case that wrote the rule:
+
+- **A gate** – an opt-in whose absence blocks the send. The feedback composer's improve-scanning
+  consent: "Send this case to help improve scanning", default OFF; without it Send is refused.
+- **An offer** – optional context that never blocks anything. The "Attach diagnostics" card (its
+  own preview + share-sheet path) and the "Attach device model" row.
+
+Until RV.159 the gate and the diagnostics offer were drawn as the same object - the identical
+toggle treatment, both phrased around "attach" - so a user who enabled "Attach diagnostics" had
+every reason to believe they had already agreed to send.
+
+**Rule: a gate and an offer are different kinds of object, and the difference is structural, never
+decorative colour.**
+
+- A gate sits in its own section, introduced by a `SectionEyebrow` that names the act it gates
+  ("Before you send") - the same headed-section idiom StationSettingsView uses. An offer has no
+  section of its own; it stays a quiet row under the section that owns it.
+- A gate's label states what it permits in plain words ("send this case") and does not borrow the
+  offer's vocabulary ("attach"). The diagnostics card may say "Attach"; the gate may not.
+- A gate's weight comes from structure and copy - ordering, a headed section, a plain consequence -
+  never from amber or red (hard rule 5: a consent is neither an attention state nor a danger).
+- The refusal that names a gate as the next step quotes the gate in the words on its control, and
+  when the control's copy changes the refusal changes in the same change: RV.159's dead end was a
+  refusal a user could not match to a switch they had already looked at.
+
 ## Motion
 
 Three orchestrated moments; nothing else animates beyond system defaults.

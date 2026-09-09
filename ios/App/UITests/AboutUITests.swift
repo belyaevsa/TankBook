@@ -259,4 +259,152 @@ final class AboutUITests: XCTestCase {
         "feedbackRateLimited",
         "feedbackQueuedRetry"
     ]
+
+    // MARK: - RV.159 the two consents must not read as one object
+
+    /// The headline (docs/DEFECT-PATTERNS.md -> "Comprehension"): both opt-ins
+    /// render and both carry distinct accessibility identifiers, yet a user
+    /// could not tell them apart - so they enabled "Attach diagnostics" and
+    /// believed they had satisfied the send gate. The fix makes the GATE a
+    /// different kind of object from the optional attachment: the consent sits
+    /// in its own section under the "Before you send" eyebrow (the SectionEyebrow
+    /// idiom), the diagnostics opt-in does not. This asserts THAT property -
+    /// the header exists, sits above the consent switch, and sits BELOW the
+    /// diagnostics card - never merely that both toggles exist (they did before
+    /// the fix). The mutation (remove the header, restore the consent's bare
+    /// modifiers) makes `feedbackConsentHeader` vanish and this test go red.
+    func testRV159TheGatingConsentIsAHeadedSectionAndDiagnosticsIsNot() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentReset", "-diagnosticsConsentReset"])
+
+        let header = app.staticTexts["feedbackConsentHeader"]
+        XCTAssertTrue(header.waitForExistence(timeout: 10),
+                      "the gating consent must sit under its own 'Before you send' heading")
+        let consent = app.switches["feedbackConsentToggle"]
+        XCTAssertTrue(consent.exists, "the gating consent toggle renders")
+        XCTAssertLessThan(header.frame.minY, consent.frame.minY,
+                          "the heading must sit directly above the consent it gates")
+        XCTAssertLessThan(header.frame.maxY, consent.frame.minY,
+                          "the heading must end above the consent toggle, not overlap it")
+
+        let diagnostics = app.switches["diagnosticsConsentToggle"]
+        XCTAssertTrue(diagnostics.exists, "the diagnostics opt-in renders")
+        XCTAssertLessThan(diagnostics.frame.minY, header.frame.minY,
+                          "the diagnostics opt-in is a separate card ABOVE the composer, "
+                              + "not a member of the 'Before you send' section - the header must "
+                              + "not be heading both controls")
+    }
+
+    /// The dead end the row was filed for: a user writes feedback, enables the
+    /// WRONG toggle ("Attach diagnostics" - which shares the "attach" language
+    /// and, before RV.159, the exact look of the consent), presses Send, and is
+    /// refused. The refusal must name the improve-scanning switch IN THE WORDS
+    /// ON THAT SWITCH - diagnostics consent is a different property and must
+    /// not satisfy `FeedbackModel.send()`'s gate (docs/ERRORS.md).
+    func testRV159SendingWithOnlyDiagnosticsOnIsRefusedNamingTheConsentSwitch() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentReset", "-diagnosticsConsentOn",
+                          "-feedbackAutoSend"])
+
+        let diagnostics = app.switches["diagnosticsConsentToggle"]
+        XCTAssertTrue(diagnostics.waitForExistence(timeout: 10))
+        XCTAssertEqual(diagnostics.value as? String, "1",
+                       "the scenario needs 'Attach diagnostics' ON")
+        let consent = app.switches["feedbackConsentToggle"]
+        XCTAssertEqual(consent.value as? String, "0",
+                       "the improve-scanning consent must still be OFF - it is a "
+                           + "separate property from the diagnostics opt-in")
+
+        let refusal = app.staticTexts["feedbackConsentRequired"]
+        XCTAssertTrue(refusal.waitForExistence(timeout: 10),
+                      "Send with only diagnostics on must be refused")
+        let switchWords = consent.label
+        XCTAssertFalse(switchWords.isEmpty,
+                       "the consent switch must expose the words on it")
+        XCTAssertTrue(refusal.label.contains(switchWords),
+                      "the refusal must name the toggle it refers to in the words on "
+                          + "that toggle - got '\(refusal.label)' for switch words "
+                          + "'\(switchWords)'")
+    }
+
+    /// The mirror: with ONLY the improve-scanning consent on, Send succeeds
+    /// (the RV.160 collapse shows `feedbackSent`), and the diagnostics opt-in
+    /// rides nothing - it is OFF and its preview is unreachable. The diagnostics
+    /// attachment is a separate path entirely (docs/LOGGING.md §5, the share
+    /// sheet), never a passenger on `POST /feedback`.
+    func testRV159SendingWithOnlyTheConsentOnSucceedsAndNoDiagnosticsRideAlong() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentOn", "-diagnosticsConsentReset",
+                          "-feedbackTransportSuccess", "-feedbackAutoSend"])
+
+        let sent = app.staticTexts["feedbackSent"]
+        XCTAssertTrue(sent.waitForExistence(timeout: 10),
+                      "with the improve-scanning consent ON, Send must succeed")
+        let diagnostics = app.switches["diagnosticsConsentToggle"]
+        XCTAssertTrue(diagnostics.exists)
+        XCTAssertEqual(diagnostics.value as? String, "0",
+                       "the diagnostics opt-in must not ride the send - it was never on")
+        XCTAssertFalse(app.buttons["diagnosticsPreviewButton"].exists,
+                       "with the diagnostics opt-in off its preview must be unreachable")
+    }
+
+    /// L4, EN at the largest text size: the headed consent block - a two-line
+    /// toggle label beside the switch is exactly where a longer type scale
+    /// clips - must render with its heading above the switch and the full label
+    /// intact.
+    func testRV159ConsentBlockRendersAtXLInEnglish() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentReset", "-diagnosticsConsentOn",
+                          "-UIPreferredContentSizeCategoryName",
+                          "UICTContentSizeCategoryXL"])
+        assertRV159ConsentBlockSurvivesXL(app,
+                                          consentLabel: "Send this case to help improve scanning")
+    }
+
+    /// L4, RU at the largest text size: Russian runs 20-30% longer, so the
+    /// switch label ("Отправить этот случай для улучшения распознавания") is
+    /// the overflow case the EN pass cannot see.
+    func testRV159ConsentBlockRendersAtXLInRussian() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentReset", "-diagnosticsConsentOn",
+                          "-UIPreferredContentSizeCategoryName",
+                          "UICTContentSizeCategoryXL",
+                          "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"])
+        assertRV159ConsentBlockSurvivesXL(app,
+                                          consentLabel: "Отправить этот случай для улучшения распознавания")
+
+        // Restore the app's persisted language: `-AppleLanguages` writes to
+        // UserDefaults, which survives launches, so a suite running after this
+        // RU launch must not inherit Russian (P6.13 run, 2026-08-31).
+        app.terminate()
+        let reset = XCUIApplication()
+        reset.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        reset.launch()
+        reset.terminate()
+    }
+
+    private func assertRV159ConsentBlockSurvivesXL(_ app: XCUIApplication,
+                                                   consentLabel: String) {
+        let header = app.staticTexts["feedbackConsentHeader"]
+        XCTAssertTrue(header.waitForExistence(timeout: 10),
+                      "the 'Before you send' heading must render at the largest text size")
+        let consent = app.switches["feedbackConsentToggle"]
+        XCTAssertTrue(consent.waitForExistence(timeout: 10),
+                      "the consent switch must render at the largest text size")
+        XCTAssertLessThan(header.frame.maxY, consent.frame.minY,
+                          "the heading must stay above the consent at the largest text size")
+        XCTAssertTrue(consent.label.contains(consentLabel),
+                      "the switch label must be intact at the largest text size, "
+                          + "got '\(consent.label)'")
+        let diagnostics = app.switches["diagnosticsConsentToggle"]
+        XCTAssertTrue(diagnostics.waitForExistence(timeout: 10),
+                      "the diagnostics opt-in must render beside it at the largest text size")
+        // A two-line label beside a switch clips off the window's edge when the
+        // row does not yield; assert the switch stays inside the window.
+        let window = app.windows.firstMatch.frame
+        XCTAssertGreaterThanOrEqual(consent.frame.minX, window.minX - 1,
+                                    "the consent row must not clip off the left at XL")
+        XCTAssertLessThanOrEqual(consent.frame.maxX, window.maxX + 1,
+                                 "the consent row must not clip off the right at XL")
+    }
 }

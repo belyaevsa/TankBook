@@ -45,32 +45,56 @@ extension View {
 }
 
 /// The uppercase section eyebrow ("POWERTRAIN", "FUEL", "IMPROVES ACCURACY").
+/// An optional accessibility identifier lets a section be pinned in a UI test -
+/// the label alone is locale-dependent, the identifier is not.
 struct SectionEyebrow: View {
     let text: LocalizedStringKey
+    let identifier: String?
     let trailing: () -> AnyView
 
-    init(_ text: LocalizedStringKey, @ViewBuilder trailing: @escaping () -> some View) {
+    init(_ text: LocalizedStringKey,
+         identifier: String? = nil,
+         @ViewBuilder trailing: @escaping () -> some View) {
         self.text = text
+        self.identifier = identifier
         self.trailing = { AnyView(trailing()) }
     }
 
-    init(_ text: LocalizedStringKey) {
+    /// A plain eyebrow with no trailing accessory. `identifier` is optional
+    /// here too, so a headed section can be pinned in a UI test without
+    /// inventing an empty `trailing` closure at the call site.
+    init(_ text: LocalizedStringKey, identifier: String? = nil) {
         self.text = text
+        self.identifier = identifier
         self.trailing = { AnyView(EmptyView()) }
     }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
-            Text(text)
-                .font(.caption)
-                .textCase(.uppercase)
-                .tracking(1.2)
-                .foregroundStyle(Theme.Palette.inkSoft)
+            headerText
             trailing()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 2)
         .padding(.vertical, 7)
+    }
+
+    @ViewBuilder
+    private var headerText: some View {
+        if let identifier {
+            Text(text)
+                .font(.caption)
+                .textCase(.uppercase)
+                .tracking(1.2)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .accessibilityIdentifier(identifier)
+        } else {
+            Text(text)
+                .font(.caption)
+                .textCase(.uppercase)
+                .tracking(1.2)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        }
     }
 }
 

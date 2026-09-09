@@ -32,9 +32,11 @@ extension L10n {
     static var feedbackReplyTo: String { localize("Reply to (optional)") }
 
     /// The once-asked opt-in (docs/ERRORS.md -> About & feedback). Default OFF,
-    /// persisted, changeable afterwards (hard rule 13).
+    /// persisted, changeable afterwards (hard rule 13). RV.159: reworded so it
+    /// does not say "attach" - the gate must not read like the "Attach
+    /// diagnostics" opt-in above it, because only THIS one blocks the send.
     static var feedbackConsent: String {
-        localize("Help improve scanning – attach this case")
+        localize("Send this case to help improve scanning")
     }
 
     /// The consent's explanation: what "attach this case" sends and never sends.
@@ -70,9 +72,11 @@ extension L10n {
         localize("Saved – we'll try again when the service is back.")
     }
 
-    /// The consent gate's next step (hard rule 7): names the toggle to enable.
+    /// The consent gate's next step (hard rule 7): names the toggle to enable,
+    /// in the exact words on that toggle (RV.159 - a user who just enabled
+    /// "Attach diagnostics" must not think they already did this one).
     static var feedbackConsentRequired: String {
-        localize("Turn on “Help improve scanning – attach this case” to send.")
+        localize("Turn on “Send this case to help improve scanning” to send.")
     }
 
     /// The composer's footnote (design/screens/About.dc.html).
