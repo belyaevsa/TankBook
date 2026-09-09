@@ -69,9 +69,20 @@ public final class RateStore: @unchecked Sendable {
 
     /// The snapshot for converting `original` into `home` on the day `date`
     /// falls on. The rate is ORIGINAL per HOME (`homeAmount = amount / rate`,
-    /// docs/SCHEMA.md). A same-currency pair returns nil - it is already
-    /// snapshotted at rate 1 by `Money`. A pair not in the cache returns nil:
-    /// a miss, never an error.
+    /// docs/SCHEMA.md). A pair resolves three ways, in order: a DIRECT row
+    /// (`base == home`, `quote == original`) as-is; its INVERSE
+    /// (`base == original`, `quote == home`) as `1 / rate`; and, when neither
+    /// row exists, a DERIVED cross through a base both currencies share - the
+    /// cache is fed by EUR-based packs, so a non-EUR car (home USD) with a
+    /// non-EUR entry (RUB) hits neither row yet has both legs `(EUR, home)` and
+    /// `(EUR, original)` on the same day:
+    ///
+    ///     original per home = (base, original) / (base, home)
+    ///
+    /// Both legs must fall on the entry's day; a day missing either leg stays a
+    /// miss, never a nearby-day or today substitution (hard rule 3, F9). A
+    /// same-currency pair returns nil - it is already snapshotted at rate 1 by
+    /// `Money`. A pair not in the cache returns nil: a miss, never an error.
     public func snapshot(original: CurrencyCode, home: CurrencyCode, on date: Date) -> RateSnapshot? {
         guard original != home else { return nil }
         let day = calendar.startOfDay(for: date)
@@ -88,6 +99,24 @@ public final class RateStore: @unchecked Sendable {
             $0.base == original && $0.quote == home && calendar.startOfDay(for: $0.date) == day
         }), row.rate != 0 {
             return RateSnapshot(rate: Decimal(1) / row.rate, rateDate: day, source: row.source)
+        }
+        // The derived cross is the FALLBACK, never the primary: a pack that
+        // carries the pair outright is used as-is above. The source recorded is
+        // the `(base, original)` leg's - the publisher of the currency being
+        // converted - exactly what the direct path records for that currency
+        // (docs/SCHEMA.md -> Exchange rates): a RUB entry labels CIS because
+        // ECB does not publish RUB, a PLN one ECB. It is never `.manual` (the
+        // user did not type it) and never a new token: `rateSource` is
+        // schema-enumerated and travels inside synced `Money` snapshots.
+        for leg in rates where leg.quote == original
+            && leg.base != original && leg.base != home
+            && calendar.startOfDay(for: leg.date) == day && leg.rate != 0 {
+            if let homeLeg = rates.first(where: {
+                $0.base == leg.base && $0.quote == home
+                    && calendar.startOfDay(for: $0.date) == day
+            }), homeLeg.rate != 0 {
+                return RateSnapshot(rate: leg.rate / homeLeg.rate, rateDate: day, source: leg.source)
+            }
         }
         return nil
     }
