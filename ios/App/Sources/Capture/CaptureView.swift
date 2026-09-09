@@ -620,8 +620,12 @@ private extension CaptureView {
     /// hands the mapping's result to ExpenseEntry through the shared session
     /// and opens the expense sheet. A scan that resolves nothing writes an
     /// all-nil prefill, so the form opens empty, never an error (hard rule 7).
+    ///
+    /// PJ.28: the photograph travels alongside the values (`pendingCapture`),
+    /// so the save that follows this open persists the receipt it was read
+    /// from instead of throwing the image away.
     private func acceptExpenseScan(_ image: UIImage) async {
-        let extraction: FuelExtraction
+        let capture: ExpenseScanCapture
         #if DEBUG
         // DEBUG/test-only (`ExpenseScanTestSeed`): a canned recognition lets a
         // UI test assert what the user SEES without OCR over a corpus image.
@@ -629,18 +633,20 @@ private extension CaptureView {
         // the form's apply path below are exactly the shipped ones.
         if let seeded = ExpenseScanTestSeed.extraction(
             from: ProcessInfo.processInfo.arguments) {
-            extraction = seeded
+            capture = ExpenseScanCapture(image: image, extraction: seeded,
+                                         ocrLines: [])
             // The seeded path has no pipeline await to separate the cover's
             // dismissal from the sheet's presentation (see `coverDismissBeat`);
             // OCR's real wait does that for free in production.
             try? await Task.sleep(for: Self.coverDismissBeat)
         } else {
-            extraction = await expenseExtraction(from: image)
+            capture = await expenseCapture(from: image)
         }
         #else
-        extraction = await expenseExtraction(from: image)
+        capture = await expenseCapture(from: image)
         #endif
-        expenseSession.pendingPrefill = ExpensePrefillBuilder.prefill(from: extraction)
+        expenseSession.pendingPrefill = ExpensePrefillBuilder.prefill(from: capture.extraction)
+        expenseSession.pendingCapture = capture
         activeSheet = .manualForm(.expense)
     }
 
@@ -648,13 +654,16 @@ private extension CaptureView {
     /// `CapturePipeline` is the FILL-UP OCR, and that is deliberate here: its
     /// assembler is what resolves total, currency and date on a receipt; the
     /// fuel-specific fields it also resolves are dropped by the prefill
-    /// builder, never carried.
-    private func expenseExtraction(from image: UIImage) async -> FuelExtraction {
+    /// builder, never carried. The photograph and the raw OCR lines are kept
+    /// for the save's receipt attachment (PJ.28).
+    private func expenseCapture(from image: UIImage) async -> ExpenseScanCapture {
         let vehicle = try? currentVehicle()
         let prefill = await CapturePipeline.process(
             image, source: .receipt,
             bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle?.id))
-        return prefill.extraction ?? FuelExtraction()
+        return ExpenseScanCapture(image: image,
+                                  extraction: prefill.extraction ?? FuelExtraction(),
+                                  ocrLines: prefill.ocrLines)
     }
 
     /// The shutter circle: in Service mode the document camera (J7); in the

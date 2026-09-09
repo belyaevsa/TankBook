@@ -1,7 +1,9 @@
 #if DEBUG
 import CoreGraphics
 import Foundation
+import SwiftUI
 import TankbookCore
+import UIKit
 
 /// UI-test / screenshot seeding for the Edit entry screen. `-seedEditEntry`
 /// writes the smallest history that renders the artboard state
@@ -14,6 +16,10 @@ enum EditEntryTestSeed {
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-seedEditEntryScannedExpense") {
+            seedScannedExpense()
+            return
+        }
         if arguments.contains("-seedEditEntryManualRate") {
             seedManualRate()
             return
@@ -32,6 +38,64 @@ enum EditEntryTestSeed {
         } else if arguments.contains("-seedEditEntrySyncOverwrittenExpense") {
             seedSyncOverwrittenExpense()
         }
+    }
+
+    /// PJ.28 screenshot seam: a scanned Expense with its receipt attached -
+    /// the state the row's screenshot must show ("a saved scanned expense
+    /// showing its attached receipt"). Persisted through the REAL scanned
+    /// expense write (`ExpenseReceiptWrite` with a synthetic frame), so the
+    /// row is exactly what a scanned save writes: the Attachment row with its
+    /// file, the thumbnail, the receipt's printed timestamp and the extraction
+    /// assignment. `-presentScreen editEntry` opens the most recent entry, so
+    /// this expense must be the newest row. Like the other resetting seeds, it
+    /// wipes first under `-homeResetDatabase` so an EN-then-RU capture pair
+    /// both start from the same state.
+    @MainActor
+    private static func seedScannedExpense() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_579)
+        try? repository.upsertVehicle(vehicle)
+
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 900, height: 1200))
+        let image = renderer.image { context in
+            Theme.Palette.dash.uiColor().setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 900, height: 1200))
+            Theme.Palette.inkSoft.uiColor().setFill()
+            context.fill(CGRect(x: 120, y: 220, width: 660, height: 90))
+            context.fill(CGRect(x: 120, y: 420, width: 660, height: 90))
+            context.fill(CGRect(x: 120, y: 620, width: 660, height: 90))
+        }
+        // The scan the real Expense-mode capture would carry: total / currency /
+        // printed date, plus one OCR line - mirroring the fill-up recognizer's
+        // output for a shop receipt (no liters, no fuel kind).
+        let scan = ExpenseScanCapture(
+            image: image,
+            extraction: FuelExtraction(total: Decimal(string: "12.40")!, currency: .eur,
+                                       date: "09.09.2026"),
+            ocrLines: [OCRLine(text: "WINTER WIPER BLADES 12.40")])
+        guard let id = try? ExpenseReceiptWrite.write(scan: scan, repository: repository) else { return }
+        try? repository.upsertExpense(Expense(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: nil,
+            money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [id], provenance: .receiptScan, conflict: .none,
+            purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
+            recurrence: nil, installedInServiceId: nil))
     }
 
     /// The artboard edit-entry history (design/screens/EditEntry.dc.html): a
@@ -318,5 +382,12 @@ enum EditEntryTestSeed {
             stationId: nil, crossCheck: .verified, extraction: nil),
             syncState: .synced(scn: 2))
     }
+}
+
+extension Color {
+    /// The concrete UIColor of a palette token, for seed imagery only - the
+    /// same hard-rule-5 release `ConfirmPrefillSeed` uses for its synthetic
+    /// source frames (raw component colours are forbidden, CLAUDE.md rule 5).
+    fileprivate func uiColor() -> UIColor { UIColor(self) }
 }
 #endif

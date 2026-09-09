@@ -411,6 +411,15 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.2-edit-entry-receipt    en -seedEditEntry -presentScreen editEntry
 capture PJ.2-edit-entry-receipt-ru ru -seedEditEntry -presentScreen editEntry
 
+# PJ.28: a saved SCANNED EXPENSE showing its attached receipt - the row's whole
+# point (a scan's photograph used to be thrown away). `-seedEditEntryScannedExpense`
+# persists exactly what the real scanned save writes (ExpenseReceiptWrite over a
+# synthetic frame), so the receipt strip and its "Scanned" line are the shipped
+# shape, not a painted state. RU is where "Receipt photo"/"Добавить"/"Scanned"
+# copy and the expense fields are the overflow check.
+capture PJ.28-expense    en -seedEditEntryScannedExpense -presentScreen editEntry
+capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntry
+
 # RV.10: the date row's picker OPEN on the Edit-entry screen - the flipped
 # (up) chevron and the whole-row collapse affordance above the calendar, the
 # two cues that make the no-change exit discoverable. `-openDatePicker` drives

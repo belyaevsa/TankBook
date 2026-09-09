@@ -75,6 +75,10 @@ struct ExpenseEntryView: View {
     @State private var vehicle: Vehicle?
     @State private var showDatePicker = false
     @State private var didLoad = false
+    /// PJ.28: the receipt photo an Expense-mode scan produced, consumed from the
+    /// session on load and held here until Save persists it. `nil` is the typed
+    /// path (hard rule 15): no photo, and nothing about this save changes.
+    @State private var scan: ExpenseScanCapture?
     /// A reminder completion handed off by the ReminderComplete sheet (P3.5):
     /// pre-fills this form and, on save, completes the reminder with the
     /// entry's real id. Consumed at load; held locally for the save.
@@ -181,12 +185,35 @@ struct ExpenseEntryView: View {
         do {
             let repository = try AppStore.repository()
             let now = Date()
+            // PJ.28: a scanned expense persists the receipt its photograph was
+            // read from. The write is attempted first and its failure degrades
+            // to no photo - the expense below still saves, and the user is told
+            // (docs/ERRORS.md -> Service & expenses) - never a silent drop
+            // (hard rule 8) and never a blocked save (hard rule 15: the photo
+            // is a head start, never a requirement).
+            var attachmentIDs: [AttachmentID] = []
+            var photoWriteFailed = false
+            if let scan {
+                do {
+                    attachmentIDs = [try ExpenseReceiptWrite.write(scan: scan,
+                                                                  repository: repository)]
+                } catch {
+                    AppLog.error(operation: "expenseEntry.receiptPhotoSave",
+                                 category: .ui, error: error)
+                    photoWriteFailed = true
+                }
+            }
+            // A scan is never a `.manual` arrival once the photo path exists
+            // (docs/SCHEMA.md: provenance is never `.manual` when a pre-fill
+            // was applied); the typed door stays `.manual`.
             var expense = Expense(
                 id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
                 vehicleId: vehicle.id, date: form.date, odometer: nil,
                 money: Money(amount: amount, currency: vehicle.homeCurrency,
                              homeCurrency: vehicle.homeCurrency),
-                note: nil, attachments: [], provenance: .manual, conflict: .none,
+                note: nil, attachments: attachmentIDs,
+                provenance: scan != nil ? .receiptScan : .manual,
+                conflict: .none,
                 purchaseGroupId: nil, category: form.category, title: form.title,
                 recurrence: nil, installedInServiceId: nil)
             // PJ.11: F9a is checked on every write, not just capture. This
@@ -218,6 +245,12 @@ struct ExpenseEntryView: View {
             // `.task` on iOS 26) - the new expense must render, not wait for a
             // manual refresh (the Manual fill-up / Edit entry convention).
             toastCenter.noteEntryChanged()
+            if photoWriteFailed {
+                // The receipt could not be kept: the entry saved without it and
+                // the failure names its next step (hard rule 7) - the photo is
+                // gone from this save, but the entry it documented is not.
+                toastCenter.show(L10n.expenseReceiptNotSavedMessage)
+            }
             dismiss()
             onSaved()
         } catch {
@@ -308,6 +341,11 @@ struct ExpenseEntryView: View {
                 // second open of the form never re-applies a stale scan.
                 apply(prefill)
                 expenseSession.pendingPrefill = nil
+                // PJ.28: the scan's photograph is consumed with the values it
+                // was read from and held for THIS save - a second open of the
+                // form never re-attaches a stale photo (the same one-shot
+                // discipline the pre-fill values follow).
+                scan = expenseSession.consumePendingCapture()
             } else {
                 #if DEBUG
                 if let prefill = ExpenseEntryPrefillSeed.from(

@@ -132,4 +132,46 @@ final class ExpenseCaptureUITests: XCTestCase {
         XCTAssertFalse(app.alerts.firstMatch.exists,
                        "a currency the form cannot express is not an error")
     }
+
+    /// PJ.28 - the whole remaining row: a scanned expense KEEPS its receipt.
+    /// The pre-fill half shipped in RV.62 (asserting it here is the row's named
+    /// vacuous trap); this drives the real capture -> save -> entry path and
+    /// asserts the photo is attached to the SAVED expense and opens full-size
+    /// from it, the way a fill-up's receipt does. The chip is a control, so
+    /// "the photo is there" is proven by opening it, never by a paperclip.
+    func testScannedExpenseSavesWithItsReceiptOpenableFromTheSavedEntry() {
+        let app = captureExpense("-seedExpenseScan")
+        shootAndUse(app)
+
+        // A scanned expense still needs its title - typing is never replaced,
+        // only reduced (hard rule 15, PJ.50's seam).
+        let title = app.textFields["expenseEntryTitleField"]
+        XCTAssertTrue(title.waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        title.tap()
+        title.typeText("Wiper blades")
+        app.buttons["expenseEntrySaveButton"].tap()
+
+        // The save returns to Home with the expense in the log.
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15),
+                      "the saved expense must appear in the log")
+        row.tap()
+
+        // The entry's receipt strip renders the attached photo as a tappable
+        // control (the receipt is reachable, not merely referenced).
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15),
+                      "the saved expense must carry its receipt photo (PJ.28)")
+        XCTAssertTrue(chip.isHittable,
+                      "the receipt must be a control the user can tap")
+        chip.tap()
+
+        // And it opens full-size, exactly as a fill-up's receipt does.
+        let image = app.descendants(matching: .any)["attachmentViewerImage"]
+        XCTAssertTrue(image.waitForExistence(timeout: 10),
+                      "tapping the receipt must open the attachment viewer")
+        XCTAssertTrue(image.isHittable,
+                      "the full-size photo must be visible, not merely present")
+    }
 }

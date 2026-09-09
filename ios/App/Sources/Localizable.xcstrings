@@ -7329,6 +7329,23 @@
         }
       }
     },
+    "No space to keep the receipt photo – the expense was saved without it. Free up space and re-scan it.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No space to keep the receipt photo – the expense was saved without it. Free up space and re-scan it."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не хватило места для фото чека – расход сохранён без него. Освободите место и отсканируйте чек снова."
+          }
+        }
+      }
+    },
     "Not car-related · skipped": {
       "extractionState": "manual",
       "localizations": {

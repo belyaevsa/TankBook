@@ -264,6 +264,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Shelf part suggested but wrong | – (suggestion, not warning) | Dismiss chip; never auto-links |
 | Expense-mode scan read nothing (RV.62) | The ordinary EMPTY expense form – no caption, no warning (the expense form is not the fill-up Confirm, so the F1 caption does not apply) | Type the expense; the empty form IS the contract (hard rule 7) |
 | Expense-mode scan priced in a currency the home-only expense form cannot express (RV.62) | The amount stays BLANK – the recognised total is never offered as if it were home currency (a wrong fact is worse than none, hard rule 13); the date still pre-fills | Type the amount; currency mismatches are not an error, just an honest absence |
+| A scanned Expense's receipt photo could not be kept – the image would not encode, or there was no space (PJ.28) | The expense SAVES anyway (never a blocked save, hard rule 15 – the photo is a head start, never a requirement) and a toast reports it after the sheet closes: "No space to keep the receipt photo – the expense was saved without it. Free up space and re-scan it." Nothing is lost silently (hard rule 8): the failure is named, and the row keeps its data | Free up space and re-scan the receipt (the photo is gone from this save only; the entry stands) |
 
 ### Edit entry
 | Condition | Shows | Next step |
