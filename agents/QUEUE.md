@@ -107,6 +107,7 @@ early is a brief written against a tree that has moved.
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 | PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
 | PJ.19 | `b6ea56d` | The station suggestion is built and never required; filed RV.150 from its finding |
+| RV.136 (reopened) | `0011cc3` | Vehicle compared at the decoded level - the third arm of the echo loop |
 | RV.153 | `974be77` | A computed total no longer beats a printed one - main green again |
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
