@@ -62,13 +62,12 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.147** | flash | 48634 | `b1rbmhwax` (persistent) | `agents/briefs/RV.147.md` |
+| **RV.117a** | flash | 79066 | *armed at dispatch* | `agents/briefs/RV.117a.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 3 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | The valid-interval math in core; boundary assertions make it mechanical. A point release, so it sits behind the v1 rows |
 | 4 | RV.117b **[v1.1]** | - | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
 | 5 | PJ.28 **[v1.x]** | flash | `agents/briefs/PJ.28.md` | Owner priority. Half delivered by [RV.62]; only the ATTACHMENT remains, and it is the one row in the v1.1 queue that loses data |
 | 6 | PJ.25 **[v1.x]** | flash | `agents/briefs/PJ.25.md` | Owner priority. A navigation row, not a feature one: the shelf is built and tested, it needs a door from the Garage |
@@ -85,6 +84,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.136 | `85ba6d5` | A pull no longer re-dirties a Vehicle that did not change |
 | RV.145 | `628d000` | A money figure carries its own currency; symbols everywhere. **RU screenshots re-captured by the orchestrator** |
 | RV.146 | `20034fe` | The currency offer adapts to the car, the history and the region |
+| RV.147 | `62d0516` | Cost-per-km declines to report a figure it cannot state; filed RV.148 from its finding |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
