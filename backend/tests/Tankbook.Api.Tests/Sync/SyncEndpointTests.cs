@@ -275,6 +275,65 @@ public class SyncEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(good, await app.ScalarAsync<Guid>("SELECT id FROM records WHERE account_id = @p", new { p = accountId }));
     }
 
+    // ---- 4b. RV.154: every outcome resolves independently in one batch -------
+
+    /// <summary>
+    /// RV.154 regression guard: one batch carrying all four outcomes at once - a
+    /// validation rejection (settled before the transaction), a fresh insert, a
+    /// stale-base conflict and an idempotent replay - must resolve each item
+    /// independently and in order. The rejection and the conflict must never
+    /// take the accepted writes down, and the replay must return the existing
+    /// SCN without consuming a new one.
+    /// </summary>
+    [SkippableFact]
+    public async Task Push_MixedRejectedConflictReplayAccepted_EachResolvesIndependently()
+    {
+        var signer = new TestIdTokenSigner();
+        await using var app = await StartAsync(signer);
+        var (token, accountId, _) = await CreateSessionAsync(app, signer, "rv154-sub", "rv154@example.com");
+
+        // Seed one record at SCN 1 to serve as the conflict/replay target.
+        var existing = Guid.NewGuid();
+        var seeded = await PushBatchAsync(app.Client, token, new[] { NewVehicleChange(existing, 0) });
+        Assert.Equal(HttpStatusCode.OK, seeded.StatusCode);
+        Assert.Equal(1L, (await AcceptedScnsAsync(seeded))[0]);
+
+        var fresh = Guid.NewGuid();
+        var badUuid = Guid.NewGuid();
+        var batch = new JsonArray
+        {
+            // A schema violation: settles as rejected before the repository runs.
+            Change(badUuid, 0, JsonNode.Parse(VehiclePayload(badUuid).Replace($"\"{badUuid}\"", "\"not-a-uuid\"", StringComparison.Ordinal))!),
+            NewVehicleChange(fresh, 0),
+            NewVehicleChange(existing, baseScn: 999),
+            NewVehicleChange(existing, baseScn: 0),
+        };
+
+        var response = await PushBatchAsync(app.Client, token, batch);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var results = doc.RootElement.GetProperty("results").EnumerateArray().ToArray();
+        Assert.Equal(4, results.Length);
+
+        Assert.Equal("rejected", results[0].GetProperty("status").GetString());
+        Assert.Equal("payload_schema_violation", results[0].GetProperty("error").GetString());
+        Assert.Equal("/id", results[0].GetProperty("pointer").GetString());
+
+        Assert.Equal("accepted", results[1].GetProperty("status").GetString());
+        Assert.Equal(2L, results[1].GetProperty("newScn").GetInt64());
+
+        Assert.Equal("conflict", results[2].GetProperty("status").GetString());
+        Assert.Equal(1L, results[2].GetProperty("current").GetProperty("scn").GetInt64());
+
+        // The idempotent replay reports the existing SCN and consumes none.
+        Assert.Equal("accepted", results[3].GetProperty("status").GetString());
+        Assert.Equal(1L, results[3].GetProperty("newScn").GetInt64());
+
+        Assert.Equal(2, await app.CountAsync("records", "account_id = @p", new { p = accountId }));
+        Assert.Equal(2L, await app.ScalarAsync<long>("SELECT next_scn FROM account_seq WHERE account_id = @p", new { p = accountId }));
+    }
+
     // ---- 5. 410 on a revoked device ----------------------------------------
 
     [SkippableFact]
