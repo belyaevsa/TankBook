@@ -130,18 +130,23 @@ public enum RecordMerge {
 
     // MARK: - Record-level equivalence (RV.35)
 
-    /// True when two records for the same non-`Vehicle` entity type decode to
-    /// equal entities. Record-level LWW keeps a whole record, so "nothing
-    /// changed" is judged at the decoded level - never the raw payload bytes,
-    /// which do not converge across a lossy round-trip (a normalised number
-    /// token `1.0` vs `1`, a decimal string with a dropped trailing zero
-    /// `289.50` vs `289.5`, a date re-serialised without fractional seconds).
-    /// Re-dirtying on those bytes is the echo loop RV.35 fixes. When either side
+    /// True when two records for the same entity type decode to equal entities.
+    /// Record-level LWW keeps a whole record, so "nothing changed" is judged at
+    /// the decoded level - never the raw payload bytes, which do not converge
+    /// across a lossy round-trip (a normalised number token `1.0` vs `1`, a
+    /// decimal string with a dropped trailing zero `289.50` vs `289.5`, a date
+    /// re-serialised without fractional seconds). Re-dirtying on those bytes is
+    /// the echo loop RV.35 fixes. The switch carries one case per synced entity
+    /// type; the byte fallback below must stay reachable ONLY by a type this
+    /// build does not know, because a synced type that falls to it re-dirties
+    /// its own echo forever - the coverage is pinned by a test that walks the
+    /// closed catalog and fails when a synced type has no case. When either side
     /// cannot be decoded the comparison falls back to payload bytes, so a
     /// genuinely unreadable divergence is still treated as a difference (the
     /// same fallback the field merge uses) - hard rule 8, nothing lost silently.
     static func recordsEqual(_ local: SyncRecord, _ remote: SyncRecord) -> Bool {
         switch local.entityType {
+        case Vehicle.entityType: return equivalent(local, remote, Vehicle.self)
         case FillUp.entityType: return equivalent(local, remote, FillUp.self)
         case ChargeSession.entityType: return equivalent(local, remote, ChargeSession.self)
         case ServiceRecord.entityType: return equivalent(local, remote, ServiceRecord.self)
@@ -155,7 +160,8 @@ public enum RecordMerge {
         default:
             // An entity type this build does not understand has no typed decode
             // to reason at; the record is opaque, so bytes are the honest
-            // comparison.
+            // comparison. Every synced type this build DOES know is listed above
+            // - a test enumerating the catalog fails when one is missing.
             return local.payload == remote.payload
         }
     }
