@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.159** | flash | 21956 | `bjhc2p9nf` (persistent) | `agents/briefs/RV.159.md` |
+| **PJ.57** | flash | 90466 | `bk1f8hbry` (persistent) | `agents/briefs/PJ.57.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -80,10 +80,9 @@ in this order; the only reason to stop between them is to verify and commit the 
 
 | # | Task | Brief | Why here |
 |---|---|---|---|
-| 1 | **RV.159** | `RV.159.md` | Two consents render with the same three modifiers and only one gates sending. **In flight.** `RV.160` has just restructured `FeedbackComposerView.swift` substantially - the brief already says to re-read the file rather than trust its line numbers |
-| 2 | **PJ.57** | `PJ.57.md` | The excluded-entries footnote link renders the **identical view** as the passive caption - verified in code and in the screenshot. `RV.141`'s last step; `RV.83`'s chevron is the settled answer, and amber must stay (hard rule 5) |
-| 3 | **PJ.56** | `PJ.56.md` | A `.mixed`/`.pending` group header says nothing while the divider over the same `MonthTotal` speaks. The brief's first job is to establish reachability - `.mixed` may not be reachable at all, and that finding is worth more than the fix |
-| 4 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
+| 1 | **PJ.57** | `PJ.57.md` | The excluded-entries footnote link renders the **identical view** as the passive caption - verified in code and in the screenshot. `RV.141`'s last step; `RV.83`'s chevron is the settled answer, and amber must stay (hard rule 5) |
+| 2 | **PJ.56** | `PJ.56.md` | A `.mixed`/`.pending` group header says nothing while the divider over the same `MonthTotal` speaks. The brief's first job is to establish reachability - `.mixed` may not be reachable at all, and that finding is worth more than the fix |
+| 3 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
@@ -156,6 +155,7 @@ first, so the third guard does not invent a third way.
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
+| RV.159 | `a4dac65` | A sending gate is drawn as a gate, not an optional attachment. **Its agent died mid-run and the orchestrator finished it** - including a compile error three green gates could not see (`RV.174`) |
 | RV.149 | `0044e04` | A fill-up's lost receipt photo is reported, not swallowed; one shared sentence, renamed off "expense". **Its screenshots were re-posed by the orchestrator** - the agent's pair showed a correct toast over the empty-garage state, which no user saving a fill-up can be in |
 | RV.160 | `16ab0cb` | A terminal outcome collapses the composer into a confirmation panel. The old caption sat **113-133 points under the fold** - measured by the mutation, not asserted |
 | RV.141 | `85ba6d5` | The excluded-entries count reaches its entries and says why they are out |
@@ -189,6 +189,21 @@ run history stays honest about what was and was not walked:
 | 2026-09-09b | `REVIEW-JOURNEYS-2026-09-09b.md` | **Group A + Group B** - the half the morning run left | `PJ.56`, `PJ.57`; **0 ticked-but-untrue** |
 
 **Next run: Group C + Group D**, which neither run today covered.
+
+## When an agent dies mid-run, FINISH it - do not re-dispatch by reflex
+
+`RV.159`, 2026-09-10: the agent died at **373 KB** of log (the memory-pressure zone this file
+already names) with no report, but its work was **complete on disk** - code, five UI tests, L1
+additions, `DESIGN.md` and `ERRORS.md`. Re-dispatching would have redone all of it and risked
+colliding with another session that was live in the same checkout.
+
+**Check what is on disk before deciding.** A dead dispatch at ~17 KB with no writes is a wedged
+provider - kill and retry the same brief. A dead dispatch at 300 KB+ with a full diff is a task that
+needs **finishing and verifying**, which is orchestrator work anyway.
+
+**And run every gate yourself regardless**, because a dying agent stops at whatever gate it had
+reached. `RV.159` had not run `xcodebuild` at all, and its code **did not compile into the app** -
+while `swift build`, `swiftlint` and all 1826 package tests were green (`RV.174`).
 
 ## Standing rules for every dispatch here
 
