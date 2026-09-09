@@ -62,8 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.141** | flash | 74473 | `b68winmku` (persistent) | `agents/briefs/RV.141.md` |
-| **VERIFY-SHIPPED** *(read-only)* | pro | 15730 | `bqudkmf4n` (persistent) | `agents/briefs/VERIFY-SHIPPED-2026-09-09.md` |
+| **RV.167** | flash | 49354 | `bimnlfa3t` | `agents/briefs/RV.167.md` |
 
 ### Waiting, in order
 
@@ -71,27 +70,25 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | # | Task | Why here |
 |---|---|---|
-| 1 | **RV.166** | A **live** sixth instance of the zero-summing defect (`LogStream.swift:369`), in the very file that fixed it everywhere else, with a comment claiming it is not there. Small, and `RV.167` needs it done first |
-| 2 | **RV.149** | The fill-up receipt fails silently - the same data-loss class `PJ.28` fixed one screen over, reusing the string it added. Small |
-| 3 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. Found by the journeys walk; needs a product call on whether the rung stays |
-| 4 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
-| 5 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment |
+| 1 | **RV.149** | The fill-up receipt fails silently - the same data-loss class `PJ.28` fixed one screen over, reusing the string it added. Small |
+| 2 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. Found by the journeys walk; needs a product call on whether the rung stays |
+| 3 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
+| 4 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
 | # | Task | Why here |
 |---|---|---|
-| 6 | **RV.167** | The aggregation-bypass architecture test. Build it against `MonthlySummaryNotification.swift:180` so it still has a failing case after `RV.166` lands |
-| 7 | **RV.163** | "Who creates this entity?" - would have caught `RV.156` before three features were built on it, and `PJ.55` too |
-| 8 | **RV.162** | Screen reachability over `SCREENMAP.md` - catches `PJ.4`/`PJ.25`/`PJ.20`'s shape |
+| 5 | **RV.163** | "Who creates this entity?" - would have caught `RV.156` before three features were built on it, and `PJ.55` too |
+| 6 | **RV.162** | Screen reachability over `SCREENMAP.md` - catches `PJ.4`/`PJ.25`/`PJ.20`'s shape |
 
 **Tier 3 - decided design, ready to brief.**
 
 | # | Task | Why here |
 |---|---|---|
-| 9 | **RV.152** | The home-currency prompt. Design fully closed by the owner's decisions; `RV.151` unblocked its convert answer |
-| 10 | **RV.116** | An import must say what it is NOT bringing in |
-| 11 | **RV.161** **[v1.1]** | Extract the station from a scanned receipt. Only worth doing now that `RV.156` gives it somewhere to land |
+| 7 | **RV.152** | The home-currency prompt. Design fully closed by the owner's decisions; `RV.151` unblocked its convert answer |
+| 8 | **RV.116** | An import must say what it is NOT bringing in |
+| 9 | **RV.161** **[v1.1]** | Extract the station from a scanned receipt. Only worth doing now that `RV.156` gives it somewhere to land |
 
 **Tier 4 - needs something first.**
 
@@ -143,6 +140,9 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
+| RV.141 | `85ba6d5` | The excluded-entries count reaches its entries and says why they are out |
+| RV.166 | `378ee65` | A purchase group's header stops summing a rate-pending line as zero - the sixth instance of the shape, and the reason `RV.167` now has only ONE failing case left |
+| *(no row)* | `4bbb302` | **Screenshot hygiene, found by reading the capture script.** Ten pairs of capture lines shot the SAME frame under two names (21 of 248 lines), and only one name of each pair was ever re-shot - so the set held ten stale twins, `P1.1-shell-dark` six builds behind its identical `P1.4-home`. Frames are now captured once and copied (`alias_shot`), a post-run md5 pass fails an eleventh pair, `P1.5-log-stream` finally shows a log row instead of a second copy of Home, and `RV.141` got the screenshot its own scroll hook had no capture line for |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
