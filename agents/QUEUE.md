@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.167** | flash | 49354 | `bq2f9fc2a` (persistent) | `agents/briefs/RV.167.md` |
+| *(none)* | | | | |
 
 ### Waiting, in order
 
@@ -100,6 +100,8 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | **RV.165** | The journey suite. Large, and `RV.162`/`RV.163` catch a chunk of the same class for a fraction of the cost - do those first |
 | **RV.168** | Half-implemented already (`TEMPLATE.md` carries both rules). Its acceptance is **manual**: check the next three briefs actually name their mutation and source their oracles |
 | **RV.143** | Overlaps `RV.152`'s territory. Settle the prompt first, then see what is left |
+| **RV.169** / **RV.170** / **RV.171** | **Establish the seam before writing the guard.** All three came from `RV.167`'s "which further guards are worth a row" line. Each asks whether the tree HAS one owner today - a guard over a convention guards nothing - so each needs a cheap look first. `RV.171` waits on `RV.149` specifically: do the fix, then see what seam it leaves |
+| **RV.172** | Nothing to do unless a non-`reduce` money sum appears. Filed so `RV.167`'s coverage limit is written down rather than remembered |
 
 ### Not queued, and why
 
@@ -141,6 +143,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
 | RV.141 | `85ba6d5` | The excluded-entries count reaches its entries and says why they are out |
+| RV.167 | `62b61d2` | The aggregation-bypass guard: a `.reduce` over a `Money`'s home side outside the accumulator now fails the build, in BOTH source roots. `RV.148` is parked as the one reasoned exception, and landing it must delete the park |
 | RV.166 | `378ee65` | A purchase group's header stops summing a rate-pending line as zero - the sixth instance of the shape, and the reason `RV.167` now has only ONE failing case left |
 | *(no row)* | `4bbb302` | **Screenshot hygiene, found by reading the capture script.** Ten pairs of capture lines shot the SAME frame under two names (21 of 248 lines), and only one name of each pair was ever re-shot - so the set held ten stale twins, `P1.1-shell-dark` six builds behind its identical `P1.4-home`. Frames are now captured once and copied (`alias_shot`), a post-run md5 pass fails an eleventh pair, `P1.5-log-stream` finally shows a log row instead of a second copy of Home, and `RV.141` got the screenshot its own scroll hook had no capture line for |
 
