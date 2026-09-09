@@ -51,6 +51,11 @@ struct ManualFillUpView: View {
     /// PJ.19: a user's own menu pick; never overwritten by a later ranking pass
     /// (hard rule 13). Non-private: the suggestion extension reads and sets it.
     @State var stationChosenByUser = false
+    /// RV.150: the forecourt fix the Confirm sheet's ONE location read resolved
+    /// (PJ.19). Held so a save at a station with no recorded coordinate can
+    /// adopt it - no second read, no second permission ask, no background fix.
+    /// Non-private: the suggestion extension writes it when the read answers.
+    @State var stationLocationFix: GeoCoordinate?
     @State var currencyLowConfidence = false
     @State private var showDatePicker = false
     @State private var showTankLevel = false
@@ -588,6 +593,11 @@ private extension ManualFillUpView {
             }
             try loggedWrite(AppLog.shared, op: .create, entityType: FillUp.entityType,
                             entityId: toSave.id, source: source) { try repository.upsertFillUp(toSave) }
+            // RV.150: a save at a chosen station stamps the Station row the
+            // suggestion ranks by (lastUsedAt, the bought defaults, a missing
+            // location). A stamp write failure degrades to no stamp and never
+            // blocks the entry - the fields re-stamp on the next save there.
+            stampChosenStation(repository: repository, source: source)
             hasUnsavedChanges = false
             // OB.2: capture.pipeline is emitted AT the commit, where `userCorrected`
             // is finally knowable (docs/LOGGING.md §4, aggregate-safe by design).

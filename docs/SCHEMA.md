@@ -417,7 +417,7 @@ The Settings screen renders both kinds in one list; the split is invisible to th
 Station {
   id, createdAt, updatedAt, deletedAt
   name: String; brand: String?
-  location: CLLocationCoordinate2D?   // written once, when a fill is saved here with location granted; never updated silently; never on the entry
+  location: GeoCoordinate?   // captured by the fill-up SAVE, see below; never on the entry
   favorite: Bool
   defaults: { fuelKind: FuelKind?, fuelGrade: String? }   // pre-fill on next visit (smart defaults)
   // Suggestion ranking (favourite ≤300 m → last-used ≤300 m → most recent for the car → none): docs/JOURNEYS.md → J4, PJ.19
@@ -426,6 +426,34 @@ Station {
   lastUsedAt: Date?
 }
 ```
+
+**The save stamps the station the fill-up names (RV.150).** When a fill-up is saved at a chosen
+station, the save writes the fields the suggestion ranking reads - `lastUsedAt` = the save's
+moment, `defaults` = what was actually bought there (the fill's `fuelKind`, and its `fuelGrade`
+when the fill names one; a gradeless fill leaves a stored grade alone, blanks-fill-only), and
+`location` adopted from the forecourt fix the Confirm sheet already read - **only when the
+station has none** (fill-blanks-only, exactly like the rate backfill: a coordinate the station
+already has is the user's own and is never overwritten, and no fix - no permission, no GPS -
+writes nothing and is a non-event, hard rule 1). The stamp is applied to the LIVE row at save
+time (never a stale view snapshot) and rides the ordinary `.dirty` sync path like any other
+station edit. **A save that changes nothing writes nothing** ([RV.136]'s guard): the write is
+skipped when `lastUsedAt`, `defaults` and `location` all already equal the stored row.
+
+**Captured silently, never invisible (the product decision, 2026-09-09).** The adoption happens
+without a prompt or a toast at capture time - but a stored coordinate is inspectable and
+removable where per-station settings live: the Garage's Stations list opens a per-station
+settings screen that shows the coordinate and offers **Remove location** (clears it in place;
+a later save at the station with a fix re-adopts it). `docs/SECURITY.md` records the capture,
+and a coordinate is a domain value and is never logged (hard rule 12).
+
+**Sync class (what S9 means for Station).** Only `Vehicle` merges field-level (`docs/SYNC.md`
+S9). `Station` - like every other record - merges record-level LWW by `clientUpdatedAt`, so a
+stamped station converges across devices as one ordinary edit; pulling a pushed station back
+never re-dirties it because the merge compares decoded `Station` values, not payload bytes
+(`RecordMerge.recordsEqual`, the RV.35/RV.136 guard). The fill-blanks-only rule is per-write:
+because the stamp builds on the live row, anything a sync merge delivered before the save is
+preserved; a field that arrives AFTER the save on another device is a separate, newer write
+that wins whole-record LWW like any station edit.
 
 ### ExchangeRate (local cache, deliberately NOT synced)
 

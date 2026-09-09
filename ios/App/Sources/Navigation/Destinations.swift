@@ -38,6 +38,8 @@ struct DestinationView: View {
         case .partsShelf(let vehicleID): PartsShelfView(vehicleID: vehicleID)
         case .tireSets: TireSetsView()
         case .tireSetForm(let tireSetID): TireSetFormView(tireSetID: tireSetID)
+        case .stations: StationsListView()
+        case .stationSettings(let stationID): StationSettingsView(stationID: stationID)
         case .addVehicle: AddVehicleView()
         case .accountDevices: AccountDevicesView()
         case .paywall: LeafContent()

@@ -456,6 +456,21 @@ The user corrects the Volvo's tank capacity 71 → 60 L on the iPhone on Monday.
 
 The same reasoning covers `initialOdometer`, `homeCurrency`, `units` and `paceLimitKmPerDay`: all user decisions, all feeding calculations, all edited independently.
 
+**What S9 does NOT do - and why that is safe for the Station stamp (RV.150).** Field-level merge
+is `Vehicle`'s alone. `Station` merges record-level LWW like every other record, and a fill-up
+save now stamps the chosen station (`lastUsedAt`, the bought `defaults`, and a missing
+`location` - `docs/SCHEMA.md` → Station). The stamp is safe as an ordinary record edit for two
+reasons: the stamp is built on the **live** row at save time, so anything a sync merge delivered
+before the save survives it (the fill-blanks-only rule never overwrites a coordinate a station
+already has), and the echo guard that ends the RV.14/RV.35 loops applies to stations unchanged -
+a pushed-then-pulled-back station settles `.synced` because the merge compares decoded `Station`
+values, never payload bytes. The one LWW consequence to state plainly: two devices that each
+save at the same station while apart both write the whole station row, and the newer save wins
+wholesale - the same record-level behaviour every non-`Vehicle` edit has, and the reason a
+location adopted on one device before a newer, location-less save elsewhere is not
+field-preserved. Preventing that would need field-level merge for `Station`, which is RV.115's
+territory, not this row's.
+
 ### S7 · Server unavailable – during everything above
 The backend is down for a day; both devices keep logging, editing, deleting.
 - **Behavior:** every write lands locally and queues as `dirty`; capture, stats, reminders, export – all unaffected (F3/F4). No banners, no toasts. The only surface is a passive row in Settings/Garage: "Waiting to sync · 5 changes" with a relative timestamp, turning to "Synced just now" on recovery.

@@ -28,7 +28,10 @@ extension ManualFillUpView {
 
         // Pass 1 (synchronous): rung 3 needs no location, so a car with a
         // recorded station is proposed immediately; a seeded location feeds the
-        // distance rungs with no wait at all.
+        // distance rungs with no wait at all. RV.150: the seeded fix is also
+        // the one a save at a location-less station adopts - the screenshot and
+        // UI-test harnesses must not need a second GPS read.
+        stationLocationFix = reader.immediateFix
         applyStationProposal(makeProposal(reader: reader,
                                           fix: reader.immediateFix,
                                           vehicle: vehicle),
@@ -42,6 +45,7 @@ extension ManualFillUpView {
         // pattern as the gateway answer's `self.applyGatewayAnswer`).
         Task { @MainActor [reader] in
             let fix = await reader.readOnce()
+            stationLocationFix = fix
             applyStationProposal(makeProposal(reader: reader, fix: fix,
                                               vehicle: vehicle),
                                  vehicle: vehicle)

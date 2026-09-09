@@ -257,6 +257,31 @@ without this change needing to make that call. The stored text remains subject t
 as every other domain value: never logged (hard rule 12), at-rest protected like all attachments,
 and covered by `DELETE /account`.
 
+## Station coordinates at rest (RV.150 decision, 2026-09-09)
+
+A fuel station's recorded `location` is a coordinate the app stores per station - it is the
+**third** class of user location data this document names (after the captured photo's EXIF at
+`/extract` and the stored import file at `/import/parse`, both server-side; this one is
+**on-device only**, a synced `Station` field). The product decision made the capture silent at
+the moment of a fill-up save, so the bounds below are the rule, not a softening:
+
+- **When it is captured.** When a fill-up is saved at a chosen station that has no recorded
+  coordinate, the station adopts the forecourt fix the Confirm sheet already read for the
+  suggestion - the same single location read, never a second read or a second permission ask.
+  A station that already has a coordinate is never overwritten (fill-blanks-only), and no fix
+  (permission denied, no GPS) writes nothing. The station is the only row that carries it; the
+  entry never does (`SCHEMA.md` → Station).
+- **Where it lives and how it is protected.** It is a field on the synced `Station` record in
+  the same protected local database as every record (`completeUntilFirstUserAuthentication`),
+  and it syncs like any station edit - the backend's at-rest stance is unchanged (this is
+  account data, not a secret).
+- **How it is removed.** Per-station settings in the Garage show the coordinate and offer
+  **Remove location** (clears it in place; the field re-adopts on a later save with a fix).
+  `DELETE /account` purges it with the account like every synced record.
+- **Never logged.** A coordinate is a domain value (hard rule 12): not at any level, not in any
+  build. The stamping seam performs no logging of it, pinned by a source-scan gate
+  (`RV150StationStampLoggingGateTests`).
+
 ## LLM call ledger (added 2026-09-03)
 
 Hard rule 9's amendment: every call to an LLM gate (`/extract` today, `/agent/turn` when v2

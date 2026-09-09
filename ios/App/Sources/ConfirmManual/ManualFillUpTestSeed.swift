@@ -99,6 +99,19 @@ enum ManualFillUpTestSeed {
         if arguments.contains("-seedStationSuggestion") {
             seedStationSuggestionStations(repository: repository, now: now)
         }
+
+        // RV.150: the by-hand fixture. `-seedUnlocatedStation` adds ONE station
+        // with NO location and NO lastUsedAt - the exact state that hid the
+        // defect (a by-hand user's stations could never rank) - so a Confirm
+        // save can be proven to stamp it end to end.
+        if arguments.contains("-seedUnlocatedStation") {
+            let unlocated = Station(
+                id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+                name: "Prima Auto", brand: nil, location: nil, favorite: false,
+                defaults: Station.Defaults(fuelKind: nil, fuelGrade: nil),
+                lastUsedAt: nil)
+            try? repository.upsertStation(unlocated)
+        }
     }
 
     /// The two stations of the PJ.19 fixture. Prima Auto is the favourite at

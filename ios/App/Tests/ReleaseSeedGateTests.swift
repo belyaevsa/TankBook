@@ -34,6 +34,7 @@ final class ReleaseSeedGateTests: XCTestCase {
         "ReminderTestSeed", "ReminderFormPrefillSeed", "PartsShelfTestSeed",
         "ServiceEntryPrefillSeed", "ServiceEntryTestSeed", "SignInTestSeed", "TireSetTestSeed",
         "TrendsTestSeed", "GarageTestSeed", "TankLevelTestSeed", "VehicleDetailTestSeed",
+        "StationSettingsTestSeed",
         "AppConfigTestSeed", "DebugLaunch", "NotificationResponseReplay", "ConfirmPrefillSeed",
         "RateBackfillDebugHook", "ImportStubTransport", "FailingImportTransport",
         "ImportCancelFirstTransport", "ImportScenarioTransport",

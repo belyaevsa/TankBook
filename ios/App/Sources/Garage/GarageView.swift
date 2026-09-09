@@ -55,6 +55,7 @@ struct GarageView: View {
                     }
                 }
                 addCarRow
+                stationsRow
                 footer
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -274,6 +275,45 @@ struct GarageView: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("garageAddCar")
+    }
+
+    /// RV.150: the Garage door to the account-wide Stations list - the surface
+    /// where a station coordinate the fill-up save captured becomes visible and
+    /// removable. A calm management row (map glyph + title + caption + chevron,
+    /// the reminders-row vocabulary on Home), below the vehicle grid so the
+    /// car-picking rows keep their job; it navigates and never creates (station
+    /// management is RV.115's fence). Always present - a user who has never
+    /// logged at a named station reaches the list's own empty state.
+    private var stationsRow: some View {
+        NavigationLink(value: Route.stations) {
+            HStack(spacing: 12) {
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.Palette.action)
+                    .frame(width: 24)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Stations")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    Text("Review captured locations")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                chevron
+            }
+            .contentShape(Rectangle())
+            .padding(14)
+            .background(Theme.Palette.dash)
+            .clipShape(RoundedRectangle(cornerRadius: 15))
+            .overlay(
+                RoundedRectangle(cornerRadius: 15)
+                    .stroke(Theme.Palette.hairline, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("garageStationsLink")
     }
 
     /// A Garage with no cars yet: the honest empty state, leading to Add car.

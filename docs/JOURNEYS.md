@@ -103,10 +103,18 @@ exactly like a denial. Rung 3's "most recently used for this car" is derived fro
 fill history – the station of its most recent fill-up that names one – because
 `Station.lastUsedAt` is account-level, not per vehicle; rungs 1–2 rank on `Station.location` and
 `Station.lastUsedAt`. A suggestion that arrives after the user has picked a station is never
-applied (hard rule 13). **Deliberately not in PJ.19, still unbuilt:** the save path does not yet
-write `Station.lastUsedAt`, `Station.defaults` or a missing `Station.location` back when a fill
-is saved at a station, so the fields rungs 1–2 rank on are today populated by imports and (in
-tests) seeds.
+applied (hard rule 13).
+
+**The save stamps the ranking's inputs (RV.150, shipped 2026-09-09).** A fill-up saved at a
+chosen station now writes the fields rungs 1–2 read: `lastUsedAt` = the save's moment,
+`defaults` = what was actually bought there, and `location` adopted from the forecourt fix this
+Confirm already read – **only when the station has none** (fill-blanks-only; a coordinate the
+station already has is never overwritten, and no fix writes nothing, a non-event). The adoption
+is **silent at capture** – no prompt, no toast – by product decision, and it is bounded there:
+the coordinate is visible and removable on the station in the Garage (Stations → the station →
+**Remove location**), documented in `docs/SECURITY.md`, and never logged (hard rule 12). The
+stamp applies to the LIVE station row at save time and rides the ordinary `.dirty` sync path;
+a save that changes nothing writes nothing ([RV.136]'s guard, `docs/SCHEMA.md` → Station).
 
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
 

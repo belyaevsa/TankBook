@@ -6615,6 +6615,40 @@
         }
       }
     },
+    "Location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Местоположение"
+          }
+        }
+      }
+    },
+    "Location saved": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Location saved"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Местоположение сохранено"
+          }
+        }
+      }
+    },
     "Log": {
       "extractionState": "manual",
       "localizations": {
@@ -7291,6 +7325,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Пока нет напоминаний"
+          }
+        }
+      }
+    },
+    "No stations yet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No stations yet"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправок пока нет"
           }
         }
       }
@@ -9080,6 +9131,23 @@
         }
       }
     },
+    "Remove location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove location"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убрать местоположение"
+          }
+        }
+      }
+    },
     "Remove odometer": {
       "extractionState": "manual",
       "localizations": {
@@ -10578,6 +10646,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "Заправка"
+          }
+        }
+      }
+    },
+    "Review captured locations": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Review captured locations"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сохранённые координаты"
+          }
+        }
+      }
+    },
+    "Station not found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Station not found"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправка не найдена"
+          }
+        }
+      }
+    },
+    "Stations": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stations"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправки"
+          }
+        }
+      }
+    },
+    "Stations appear here when you log a fill-up at one.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stations appear here when you log a fill-up at one."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заправки появляются здесь, когда вы сохраняете заправку на одной из них."
           }
         }
       }
@@ -14874,6 +15010,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Попробуйте снова или пришлите файл нам."
+          }
+        }
+      }
+    },
+    "No location": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No location"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нет местоположения"
           }
         }
       }

@@ -56,6 +56,8 @@ enum DebugLaunch {
         // Vehicle detail row opens, so a screenshot can show the shelf as it
         // looks reached from the Garage.
         "partsShelfPushed": .partsShelf(nil),
+        "stations": .stations,
+        "stationSettings": .stationSettings(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
         "importWizard": .importWizard,

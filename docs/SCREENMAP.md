@@ -100,6 +100,11 @@ flowchart TD
 
     Garage -->|vehicle| VehicleDetail
     Garage -->|Add car| AddVehicle
+    Garage -->|Stations door| Stations
+    Stations -->|row| StationSettings
+    Stations -.->|back| Garage
+    StationSettings -.->|back| Stations
+    StationSettings -->|Remove location (in place)| StationSettings
     VehicleDetail -.->|back| Garage
     VehicleDetail -->|Tire sets| TireSets
     VehicleDetail -->|Parts shelf [v1.x] PJ.25| PartsShelf
@@ -186,6 +191,32 @@ path asks, and nothing is lost. The pushed screen does not consult a sheet disca
 at all - it pops. Do not "fix" the classification because of the pushed door; it governs
 the other presentation.
 
+### The Stations door (RV.150, 2026-09-09)
+
+The coordinate a fill-up save captures silently must be inspectable and removable where
+per-station settings live - the Garage. The door and screens, decided here because nothing like
+them existed:
+
+- **The row lives on the Garage tab root, BELOW the vehicle grid** (between "Add car" and the
+  footer), not above the cars: the rejection that kept reminders off a Garage row applies to the
+  car-picking region - "Garage rows carry one-line vitals ... their job is picking a car" - and a
+  stations door is a calm account-wide management row (map glyph + "Stations" + caption +
+  chevron), the reminders-row vocabulary on Home. It is **always present**, count or no count,
+  like Home's reminders row: a user who never logged at a named station reaches the list's own
+  empty state ("No stations yet ... when you log a fill-up at one"), never a blank.
+- **It navigates and never creates.** Station creation, renaming, merging and brands are RV.115's
+  fence; this door only lists and opens.
+- **Two pushed screens, one vocabulary.** `Stations` (the account-wide list, every station ever
+  logged at) rows push `Station settings` for that station, which shows the recorded location -
+  in DIN, runtime data, POSIX-formatted so RU and EN render the same string - and, when one
+  exists, **Remove location**. Clearing acts immediately with no confirmation because it is
+  reversible: the coordinate is derived (a later save at the station with a fix re-adopts it),
+  the asymmetry Vehicle detail's archive row already uses. Both screens have no artboard yet and
+  follow the Vehicle-detail/Tire-sets card vocabulary; the screenshot pair for this task is the
+  record.
+- **Back paths.** Both are pushed `Route`s on the tab stack: chevron + edge-swipe back to the
+  screen that pushed them. Nothing here holds typed input, so no door ever asks before leaving.
+
 **The Welcome root (PJ.3, re-argued in RV.23).** One screen (`design/screens/Welcome.dc.html` / `LightWelcome.dc.html`), no tab bar, shown only while the log holds **no vehicle and no session** – decided at launch, never again once a car exists. Its three paths are equal doors (hard rule 15): Add your car, Import from another app, and "Sign in to Tankbook" – the last a full-width button like the other two, carrying the one benefit hardest to guess ("Cloud receipt reading, sync and backup"; `/extract` is bearer-only, so a guest never gets the cloud model). **Add your car stays a peer**: it continues with no account, first and in taillight, and nothing on the screen frames the user who never signs in as having chosen the lesser path (hard rule 1).
 
 Beneath the three doors sits a fourth affordance that is **not** a peer door but a returning user's line: "Already use Tankbook? Restore your garage." It is the only thing on the screen that claims "I am coming back", so it – and only it – carries the restore intent into the sign-in sheet (`arrivedViaRestore: true`, RV.23). That split is the whole difference between a reinstall/Android migrant being offered their account and being funnelled into "Add your car" as if new, and in the other direction it keeps J11a's wrong-provider question away from a brand-new user whose account is empty because it is new. The **guest Home** is that Add-car path's landing state (`GuestHome`): the Home tab rendered for a session-less user, real since PJ.3 – no longer the `-forceGuestHome` presentation fixture.
@@ -209,10 +240,12 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Edit entry | Log entry, duplicate/conflict cards, RecentlyDeleted · the account-wide flagged list ("Needs a look") and the inbox's "use a different receipt", both of which pass an EXPLICIT entry id | Save / Delete → Home · photo → viewer · Restore my version · a foreign-currency entry renders the conversion card (resolved from the rate store) and its rate is editable there, including a rate the user set before (hard rule 13) | X → opener |
 | **Attachment viewer** (RV.9 + RV.17 + RV.37, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | Share/save the full rendition via the system share sheet (RV.17, offered only once the rendition is local – never the 44 pt thumbnail) · swipe to the recognised-data page when the attachment carried any, absent rather than empty otherwise. **RV.48 changed what that page IS**: the headline is now the ASSIGNMENT the parse concluded - date, fuel kind, volume, price per litre, total, currency, each with the value it read - and the raw OCR lines are demoted behind a disclosure rather than being the page. An attachment whose parse assigned nothing SAYS SO instead of rendering an empty card. The page presents STORED data and never re-runs OCR: a fresh read could contradict a value the user has already confirmed (hard rule 13) · **Delete** (system-confirmed: tombstones the attachment and unlinks it from the entry, hard rule 8) · **Replace photo** (the same camera/Photos door as "Add receipt"; a new attachment plus a tombstone for the old, then the ask – "Re-read this and update the entry?" with "Leave it as it is" the default, hard rule 13). Rotate, crop and edit remain their own decisions | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
 | Trends | tab root | gear → Settings · insight cards → (chart detail, planned) · capture | tab root |
-| Garage | tab root | gear → Settings · vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
+| Garage | tab root | gear → Settings · vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · **Stations (RV.150, below the grid - the account-wide Stations door)** · capture | tab root |
 | Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (the car AND the entries that went down with it restorable, RV.98) · Tire sets → Tire sets · **Parts shelf → Parts shelf [v1.x]** (PJ.25 - the third per-car management row, always present like Tire sets: a car with nothing on the shelf still reaches the shelf, whose own empty state says so) · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due; **hidden for an archived car**, RV.81). **RV.137 (2026-09-08): editing the Make · model row now offers the SAME bundled-catalog suggestions Add car does** (typing an edit mounts them; merely focusing the filled field does not). A pick fills make, model and year as text the user owns and records no catalogue id - preserving the screen's permanence decision (its own header: nothing here stores a catalog id for a later pack to rewrite); name, powertrain, fuel kinds, capacity and units are never rewritten by a pick. **The pinned Save bar steps aside while any field is focused** (RV.137, same report): a `safeAreaInset` bar floats above the keyboard over the one region that does not scroll, which hid the fuel chips mid-edit; with the keyboard up the form owns the whole space above it and the bar returns when focus leaves the field | back → Garage (or opener) |
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
+| **Stations** (RV.150) | the Garage tab root's Stations door | a row → Station settings | back → Garage |
+| **Station settings** (RV.150) | the Stations list's row for that station | **Remove location** (in place; a later save with a fix re-adopts) | back → Stations |
 | **Parts shelf** **[v1.x]** (P3.2 screen; PJ.25 gave it its second door) | Vehicle detail's "Parts shelf" row (**pushed**, PJ.25) · a service entry's "View shelf" button (**nested sheet**, P3.2 - unchanged) · `-presentScreen partsShelf` (nested-sheet pose) / `-presentScreen partsShelfPushed` (the pushed door's pose) | none - a read-only list (`.parts` expenses not yet installed in any service; derived, never stored) | **pushed**: back chevron + edge-swipe → the Vehicle detail that pushed it. **nested sheet**: swipe-down / close → the service entry. The shelf has no typed input, so neither door ever asks before leaving - nothing to lose (hard rule 8). The `SheetRoute.partsShelf` `.discardSilently` classification governs the SHEET presentation only; the pushed door is a stack pop, never a discard |
 
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
@@ -470,5 +503,6 @@ The map names screens that exist as nodes but have no artboard yet – listed so
   outranks the OCR total (docs/SCHEMA.md -> FISCAL QR): `.disagrees` fills the QR total,
   a mixed receipt keeps the fuel line (hard rule 4), and the difference is P2.4's job.
 - **A reminder notification is actionable from the banner** (RV.78, `design/screens/ReminderNotification.dc.html`): **Mark done** opens the app on the completion sheet rather than completing silently - declining the cost log is first-class but it stays the user's choice (J7c) - and **Push a week** defers the reminder by seven days and re-arms, the one action that needs no screen. Both route through the same lifecycle the Reminders screen uses, never a second implementation. What "a week" defers and how an odometer-only reminder behaves: `docs/NOTIFICATIONS.md` -> the actions. ✓
+- **Stations and Station settings (RV.150) are pushed screens** (chevron + edge-swipe back to the Garage / Stations that pushed them); their one in-place action, **Remove location**, is reversible - the coordinate re-adopts on a later save with a fix - so it never strands and never needs a system confirm. ✓
 - **Notifications deep-link** into Reminders/Trends – both roots with full navigation, never into a bare sheet with no context. ✓ **(PJ.5):** the tap routes by the identifier's family - `reminder.<uuid>.<kind>` switches to Log, pushes Reminders and surfaces that reminder's completion sheet; `monthly-summary.*` switches to the Trends tab. An unknown or malformed identifier (a stale notification for a reminder deleted since it was scheduled) is inert: the app opens normally and routes nowhere (hard rule 7). The mapping is a pure value type in core (`NotificationRoute`, `NotificationRouteParser`); `didReceive` resolves through it and hands the route to the `NotificationRouter`, which `AppRootView` drives.
 - Welcome is unreachable after onboarding except via Restoring's cancel (over an empty garage) – a full sign-out with a car lands on the **guest Home**, not Welcome, because Welcome shows only with *no vehicle* AND *no session* (PJ.3); intentional, it is not part of the daily graph. ✓

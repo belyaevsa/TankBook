@@ -64,6 +64,13 @@ enum Route: Hashable {
     /// The tire-set name form. `nil` = create a new set (the list's "New tire
     /// set"); otherwise the set being renamed.
     case tireSetForm(UUID?)
+    /// RV.150: the account-wide Stations list (every station ever logged at),
+    /// reached from the Garage tab root - the calm management door that makes a
+    /// captured Station.location inspectable and removable.
+    case stations
+    /// RV.150: one station's settings. `nil` = "no specific station" (a debug
+    /// pose): the screen falls back to the first live station.
+    case stationSettings(UUID?)
     case addVehicle
     case accountDevices
     case paywall
@@ -91,6 +98,8 @@ enum Route: Hashable {
         case .vehicleDetail: "Vehicle"
         case .tireSets: "Tire sets"
         case .tireSetForm: "Tire set"
+        case .stations: "Stations"
+        case .stationSettings: "Station"
         case .partsShelf: "Parts shelf"
         case .addVehicle: "Add car"
         case .accountDevices: "Account & devices"
