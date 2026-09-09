@@ -158,3 +158,64 @@ Recorded because each cost real time and each is now cheap to avoid:
    reporting something they were told not to touch - `RV.148`, `RV.149`, `RV.150`, `RV.153`'s
    leftovers, and the two Trends observations. A fence plus a report is how a task stays one task
    and nothing gets lost.
+
+---
+
+# Part 2: product reachability gaps
+
+*The code works. The user cannot get to it, cannot create the state it needs, or cannot tell what
+happened. **This is the largest class in the project** - fourteen instances against roughly five for
+the biggest code pattern above - and almost none were caught by tests, review or code reading. The
+product owner found most of them by using the app.*
+
+## The five sub-types, with every instance
+
+| Sub-type | Instances |
+|---|---|
+| **Orphan screen** - built and tested, no production route | `PJ.4` Reminders (the only route was gated on a DEBUG flag, so it was **unreachable in a Release build**) · `PJ.25` parts shelf (only from inside a service entry) · `PJ.20` About (P6.10 and the import wizard both routed "send us this case" to a screen that did not exist) |
+| **Orphan state** - the feature operates on data nothing creates | `RV.156` stations: ranking (`PJ.19`), stamping (`RV.150`) and a Garage list all stood on a set `upsertStation` had no production caller for |
+| **Broken promise** - copy names a destination or outcome that is not there | `RV.98` the delete alert promised *"moves to Recently deleted for 30 days"* and the view never queried deleted vehicles · `PJ.36` a dead "Export everything" row · `RV.146` *"Recent first"* with no history lookup · `RV.158` a "Check for rates" that cannot succeed because the server has no data for those dates · `ERRORS.md`'s "Storage full" sheet, documented and unbuilt |
+| **Dead end / no feedback** - the user acts and cannot tell what happened | `RV.160` feedback sends with the confirmation below the fold in `inkSoft` · `RV.159` the send is blocked by a toggle the error names differently from the switch beside it · `RV.141` "8 entries excluded" names nothing and is not tappable |
+| **Captured then discarded** | `PJ.28` photographs the receipt, reads it, and throws the image away |
+
+## Why the existing suite cannot catch these
+
+**The UI suite bypasses exactly the two things this class lives in: navigation and state creation.**
+`-presentScreen editEntry`, `-seedStationSettings`, `-openFirstFlaggedEdit`, `-selectTrendsTab`,
+`-seedHome*` all teleport into a screen with its state pre-made. A test that *starts* inside Edit
+entry can never discover that Edit entry is unreachable - which is how `PJ.4` shipped a screen no
+Release user could open, with a green suite and a correct screenshot.
+
+`RV.156` is the sharpest example: a green suite, and a screenshot showing a correctly rendered,
+correctly coloured, permanently dead label.
+
+## The fix, in two layers
+
+**Layer 1 - three static guards, cheap and fast.** Each is the same shape as the source-scan guard
+that already keeps `SYNC.md`'s triggers honest:
+
+1. **Reachability over `SCREENMAP.md`**: every screen it lists has at least one **non-DEBUG**
+   production route reachable from a tab root. Catches the orphan-screen sub-type outright.
+2. **"Who creates this?" over `SCHEMA.md`**: every entity has a production writer that is neither a
+   test seed nor the import path. One assertion would have caught `RV.156` before three features
+   were built on it.
+3. **Next-step-exists in `ERRORS.md`'s audit**: its 3-question rule already asks whether an error
+   names its next step; extend it to ask whether **that step exists in code**.
+
+**Layer 2 - full-journey scenarios.** A journey test **starts at a cold launch with an empty
+database and reaches everything by tapping**: no `-presentScreen`, no navigation seed, no seeded
+state the journey is supposed to create. Seeds stay legitimate for **data volume** (500 fill-ups
+cannot be typed), never for navigation.
+
+The assertion is **the outcome the user came for**, not that a screen appeared: *the receipt is
+openable from the saved entry*, not *the attachment row exists*.
+
+They are slow - this project measured five full UI runs at ~2h15m - so they belong at a **phase
+gate**, not per task, exactly as `docs/TESTING.md` already rules for the UI suite.
+
+## What neither layer catches
+
+**Comprehension.** `RV.159`'s two consents are both present, both correctly rendered, both
+distinguishable by accessibility identifier - and a user cannot tell which one gates sending. No
+assertion expresses "the user understood". That residue is what the journey **walk** is for, and it
+is why this class keeps reaching the product owner first.
