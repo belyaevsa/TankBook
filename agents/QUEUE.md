@@ -62,7 +62,13 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| *(none)* | | | | |
+| **RV.149** | flash | 2769 | `b926dohek` (persistent) | `agents/briefs/RV.149.md` |
+| **REVIEW-JOURNEYS-b** *(read-only)* | pro | 4756 | `b7wf886sx` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-09b.md` |
+
+**These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
+no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
+says so explicitly. That is the ONLY parallel pair this file sanctions; two build agents still
+collide, and two Swift agents starting in the same second still hit `database is locked`.
 
 ### Waiting, in order
 
@@ -70,10 +76,9 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | # | Task | Why here |
 |---|---|---|
-| 1 | **RV.149** | The fill-up receipt fails silently - the same data-loss class `PJ.28` fixed one screen over, reusing the string it added. Small |
-| 2 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. Found by the journeys walk; needs a product call on whether the rung stays |
-| 3 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
-| 4 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment |
+| 1 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
+| 2 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment. Pairs naturally with `RV.141`'s footnote-reads-as-a-label observation |
+| 3 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. **Blocked on a product call**: does the rung stay (and something must set it) or go? Do not brief it until that is answered |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
@@ -149,6 +154,30 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
+
+## The recurring journeys walk
+
+**It is a standing item on this queue, not an event.** `CLAUDE.md` sets the cadence: **every 10
+shipped rows or at a phase gate, whichever comes first**, plus the four event triggers in
+`agents/briefs/REVIEW-JOURNEYS.md` (a screen ships; a reader of an entity ships; copy naming a
+destination ships; a row ships partially).
+
+**Dispatch it in parallel with whatever build agent is running** - it is read-only, so it costs
+nothing but tokens and it is the cheapest tool here. The argument, from the brief's own run
+history: it ran **once** between 2026-08-29 and 2026-09-09 while **643 commits** landed, and every
+product-reachability gap in `docs/DEFECT-PATTERNS.md` Part 2 was found either by that run or by the
+product owner using the app - never by a test, a code review or the type checker.
+
+Each run gets its **own dated brief file** narrowing the recurring one to that run's scope, so the
+run history stays honest about what was and was not walked:
+
+| Run | Brief | Scope | Yield |
+|---|---|---|---|
+| 2026-08-29 | `REVIEW-JOURNEYS.md` (4 agents) | all groups | 66 `PJ` rows |
+| 2026-09-09 | `REVIEW-JOURNEYS-2026-09-09.md` | deep on J4 / J7b / money+rates / feedback | `PJ.55` |
+| 2026-09-09b | `REVIEW-JOURNEYS-2026-09-09b.md` | **Group A + Group B** - the half the morning run left | *in flight* |
+
+**Next run: Group C + Group D**, which neither run today covered.
 
 ## Standing rules for every dispatch here
 
