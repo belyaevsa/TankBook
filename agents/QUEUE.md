@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.117b** | flash | 47482 | `bxchj0p5b` (persistent) | `agents/briefs/RV.117b.md` |
+| *(none - the queue is empty)* | | | | |
 
 ### Waiting, in order
 
@@ -86,6 +86,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 | PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
 | PJ.19 | `b6ea56d` | The station suggestion is built and never required; filed RV.150 from its finding |
+| RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
