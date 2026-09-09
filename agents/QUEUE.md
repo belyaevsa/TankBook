@@ -71,7 +71,7 @@ early is a brief written against a tree that has moved.
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 2 | RV.157 | flash | *at dispatch* | **BLOCKED on a product decision** - implement the debounced write trigger `docs/SYNC.md:151` promises, or delete the clause. Do not brief until that is settled; the two answers are different tasks |
+| 2 | RV.157 | flash | *at dispatch* | **UNBLOCKED 2026-09-09**: implement the debounced write trigger (option a). The owner waived the battery cost and stated the governing rule - *save locally first, send to the cloud asynchronously* - so the save schedules a cycle and never awaits it |
 | 3 | RV.154 | flash | *at dispatch* | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
 | 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
 | 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
