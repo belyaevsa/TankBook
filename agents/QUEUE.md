@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.147** | flash | 48634 | *armed at dispatch* | `agents/briefs/RV.147.md` |
+| **RV.147** | flash | 48634 | `b1rbmhwax` (persistent) | `agents/briefs/RV.147.md` |
 
 ### Waiting, in order
 
