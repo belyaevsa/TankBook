@@ -87,6 +87,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 | PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
 | PJ.19 | `b6ea56d` | The station suggestion is built and never required; filed RV.150 from its finding |
+| RV.153 | `974be77` | A computed total no longer beats a printed one - main green again |
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
