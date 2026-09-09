@@ -62,13 +62,12 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.146** | flash | 91030 | `bl41jqf01` (persistent) | `agents/briefs/RV.146.md` |
+| **RV.147** | flash | 48634 | *armed at dispatch* | `agents/briefs/RV.147.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 2 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - its brief opens by telling the agent to verify RV.145 landed and to stop if it has not |
 | 3 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | The valid-interval math in core; boundary assertions make it mechanical. A point release, so it sits behind the v1 rows |
 | 4 | RV.117b **[v1.1]** | - | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
 | 5 | PJ.28 **[v1.x]** | flash | `agents/briefs/PJ.28.md` | Owner priority. Half delivered by [RV.62]; only the ATTACHMENT remains, and it is the one row in the v1.1 queue that loses data |
@@ -85,6 +84,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.139b | `e92d147` | Observability so the next device log can answer RV.139; the row itself stays open |
 | RV.136 | `85ba6d5` | A pull no longer re-dirties a Vehicle that did not change |
 | RV.145 | `628d000` | A money figure carries its own currency; symbols everywhere. **RU screenshots re-captured by the orchestrator** |
+| RV.146 | `20034fe` | The currency offer adapts to the car, the history and the region |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
