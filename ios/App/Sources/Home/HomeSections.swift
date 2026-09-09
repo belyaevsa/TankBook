@@ -309,6 +309,9 @@ struct HomeRecentEntries: View {
     let stations: [Station]
     let vehicle: Vehicle
     let excludedEntryCount: Int
+    /// The excluded entries' ids, most recent first - the footnote's destination
+    /// needs the concrete entry (N == 1) or the count of them (N > 1, the list).
+    let excludedEntryIDs: [UUID]
     /// The F9 pending-rates footnote count (docs/JOURNEYS.md F9) - how many
     /// entries are still waiting on a rate. Derived by `HomeStats` (P5.2a);
     /// the footnote renders beside the excluded one and disappears at zero.
@@ -387,10 +390,25 @@ struct HomeRecentEntries: View {
     }
 
     /// The excluded-count footnote, via the shared component Trends also uses -
-    /// one implementation, one wording (docs/ERRORS.md -> Home, F9a/S2).
+    /// one implementation, one wording (docs/ERRORS.md -> Home, F9a/S2). RV.141:
+    /// Home gets the same next step as Trends - the footnote opens the excluded
+    /// entry when exactly one is out, the excluded-entries list when more are
+    /// (a singular route could only ever reach one of N).
     @ViewBuilder
     private var excludedFootnote: some View {
-        ExcludedEntriesFootnote(count: excludedEntryCount, identifier: "homeExcludedFootnote")
+        ExcludedEntriesFootnote(count: excludedEntryCount,
+                                identifier: "homeExcludedFootnote",
+                                destination: excludedDestination)
+            .id(HomeLogRevealAnchor.excludedFootnoteID)
+    }
+
+    /// The footnote's destination (hard rule 7): a single excluded entry opens
+    /// its editor, several open the list that names all of them and why.
+    private var excludedDestination: Route? {
+        if excludedEntryIDs.count > 1 {
+            return .excludedEntries
+        }
+        return excludedEntryIDs.first.map(Route.editEntry)
     }
 
     // MARK: Rows

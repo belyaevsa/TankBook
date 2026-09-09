@@ -83,6 +83,13 @@ enum Route: Hashable {
     /// RV.38: the in-app notification inbox (the bell on the tab-root header) -
     /// work that finished after the user moved on, plus later reminders.
     case inbox
+    /// RV.141: the selected car's excluded entries - timeline conflicts plus the
+    /// non-counting members of unresolved duplicate pairs, each row stating why
+    /// (docs/ERRORS.md -> Home, rows F9a and S2). Reached from the "N entries
+    /// excluded" footnote when N > 1; N == 1 opens the entry directly. The list
+    /// is car-scoped because the count it answers is - "Needs a look"
+    /// (`.flaggedEntries`) stays account-wide and conflicts-only.
+    case excludedEntries
 
     /// Navigation title, resolved through the String Catalog (EN + RU).
     var title: LocalizedStringKey {
@@ -107,6 +114,7 @@ enum Route: Hashable {
         case .importWizard: "Import"
         case .flaggedEntries: "Needs a look"
         case .inbox: "Inbox"
+        case .excludedEntries: "Excluded entries"
         }
     }
 }

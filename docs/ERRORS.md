@@ -53,7 +53,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Home (incl. guest/empty)
 | Condition | Shows | Next step |
 |---|---|---|
-| Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted |
+| Entry timeline conflict (F9a/S3) | Amber badge on entry; footnote "N entries excluded" | Tap badge → Edit entry with discrepancy pre-highlighted · Tap the footnote → the excluded entry when one is out, else the excluded-entries list that names all N and each one's reason (RV.141) |
 | Possible duplicate (S2) | Combined card "Possible duplicate – Shell, 42.3 L logged twice" that shows BOTH members as rows – time of day, odometer, total, and which one carries the attachment (the Merge survivor) – each opening its own edit screen | Open either entry · Merge · Keep both (one counts until resolved) |
 | Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **The month divider never prints a bare `0 €` while rows wait** (RV.106): a month whose rows are all pending shows "N entries pending rates" where the figure would be; a mixed month shows its known sum with the pending phrase beneath it. **The divider's figure is always the currency its rows were recorded in - never the car's (RV.145)**: a euro month on a dollar car reads `91 €`, and a month whose known rows span currencies lists per-currency subtotals (`91 € · 45 $`). **RV.111:** once a demand pass has reached the provider and still left a pre-window row pending, the footnote swaps "Check for rates" for the dead-end line "No rate exists for these dates. Add a manual rate to each entry." - it stops promising a check that cannot help. **RV.132:** a tap is acknowledged IMMEDIATELY - the action becomes "Checking for rates…" in place, before the network resolves - and the demand's outcome is then told apart (a filled or nothing-pending drain posts a toast; the dead end stays the footnote's own copy; offline stays silent), see the note below | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates - the launch refresh's rolling 400-day pack cannot reach a row dated years back) · wait (rows fill automatically once the rate archive reaches their dates - RV.88; the divider only reports what the data supports) · edit the entry → the conversion card offers a manual rate (a rate the service can never serve, see the note below) |
 | Archived car returned via sync (S5) | Quiet Garage notice "Volvo came back with 1 new entry – stays archived." | Delete again · keep |
@@ -61,6 +61,21 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 | Reminder due | Amber banner "Insurance renews in 12 days · View" | View → Reminders |
 | Consumption drift detected (J9) | Amber insight card in the Log, in the car's own unit, naming BOTH windows compared ("Consumption is up 21% vs a year ago" + "Last 90 days: 6.5 L/100km · a year earlier: 5.4 L/100km"); tap → evidence (chart of the drift + what it costs per month at the driver's own recent prices – RV.121, never a guessed cause, docs/VISION.md → "What we will not tell a driver") | Act → creates a service reminder · dismiss with reason (teaches the model) – both always present (a card with only dismiss teaches nothing; only act is a nag) |
 | First fill logged, no segment yet (D4) | Hint on vitals: "One more full tank and your consumption appears" | Capture (the card links it) |
+
+**The excluded count names its entries and each one's reason (RV.141).** The "N
+entries excluded" footnote is a next step on Home AND Trends (hard rule 7): with
+ONE entry out it opens that entry's editor; with MORE it opens the
+excluded-entries list (docs/SCREENMAP.md -> "Excluded entries"), which shows ALL
+N - the conflict-flagged entries (F9a/S3) plus the non-counting members of
+unresolved duplicate pairs (S2) - newest first, each row naming its reason
+because the fix differs: a row reads "Timeline conflict – check the odometer or
+date" or "Possible duplicate – Merge or Keep both", and a tap opens the entry.
+The list is CAR-scoped because the count it answers is (the count comes from the
+selected car's `HomeStats`; the account-wide "Needs a look" list is a different
+population - conflicts only, every car - and is NOT the destination). The count
+and the list are ONE derivation (core `ExcludedEntries.derive`: conflicts union
+the S2-excluded members), so the destination never shows fewer - or more - rows
+than the number the user just tapped.
 
 **Imported money and the drain (F9, RV.88).** The import commit writes foreign rows
 rate-pending on purpose (hard rule 3: `rateDate` is the ENTRY date, and a 2015 rate is not
@@ -305,7 +320,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 ### Trends
 | Condition | Shows | Next step |
 |---|---|---|
-| Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
+| Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the excluded entry when one is out, else the excluded-entries list that names all N and each one's reason (RV.141) |
 | Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **A rate-pending month is a GAP in the spend/cost charts, never a dipped bar or point** (RV.112); the spend TILE prints no number for a `.pending` month and marks a `.partial` one with the pending phrase (docs/DESIGN.md -> Trends). **The windowed COST / KM tile reports a figure only when its 90-day window's money is exact (RV.147)**: a rate-pending row - or known figures homed in more than one currency - inside the window withholds the tile ENTIRELY, never a plausible-but-low `0.07 €`. The figure is a RATIO, so an understated numerator over a complete odometer span is low by an unknown amount while looking real - absent (with this footnote saying why) reads as unknown, which is the truth | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |

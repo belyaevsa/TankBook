@@ -86,8 +86,13 @@ public struct HomeStats: Equatable, Sendable {
     /// Conflict-flagged entries plus the excluded members of unresolved S2
     /// duplicate pairs - the "N entries excluded" footnote count. Derived from
     /// the validation/duplicate engines' flags, never hard-coded
-    /// (docs/ERRORS.md -> Home, rows F9a and S2).
+    /// (docs/ERRORS.md -> Home, rows F9a and S2). One derivation
+    /// (`ExcludedEntries.derive`) feeds this count AND the destination list the
+    /// footnote opens, so the two cannot disagree about the population (RV.141).
     public let excludedEntryCount: Int
+    /// The excluded entries, most recent first, each carrying WHY it is out -
+    /// the reason a destination list states per row (RV.141).
+    public let excluded: [ExcludedEntry]
     /// The excluded entries' IDs, most recent first - the footnote's "tap -> the
     /// flagged entry" next step needs a concrete target (hard rule 7).
     public let excludedEntryIDs: [UUID]
@@ -141,15 +146,14 @@ public struct HomeStats: Equatable, Sendable {
 
         self.odometer = countingEntries.compactMap(\.odometer).max() ?? vehicle.initialOdometer
         self.updatedAt = countingEntries.compactMap(\.date).max()
-        var excluded: Set<UUID> = excludedIDs
-        for entry in entries where entry.conflict != .none {
-            excluded.insert(entry.id)
-        }
+        // The one population derivation: conflicts (on any entry type) unioned
+        // with the S2-excluded members (fills only). The count, the ids and the
+        // reason-carrying rows all come from the same list, so a footnote that
+        // says N and a destination that shows N rows can never drift apart.
+        let excluded = ExcludedEntries.derive(in: entries, duplicatePairs: pairs)
+        self.excluded = excluded
         self.excludedEntryCount = excluded.count
-        self.excludedEntryIDs = entries
-            .filter { excluded.contains($0.id) }
-            .sorted { $0.date > $1.date }
-            .map(\.id)
+        self.excludedEntryIDs = excluded.map(\.id)
         self.pendingRateCount = countingEntries
             .filter { $0.money?.isRatePending == true }
             .count

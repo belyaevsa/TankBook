@@ -62,6 +62,7 @@ enum DebugLaunch {
         "accountDevices": .accountDevices,
         "importWizard": .importWizard,
         "flaggedEntries": .flaggedEntries,
+        "excludedEntries": .excludedEntries,
         "inbox": .inbox
     ]
 }

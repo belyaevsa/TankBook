@@ -91,7 +91,7 @@ struct TrendsView: View {
                 ExcludedEntriesFootnote(
                     count: stats.home.excludedEntryCount,
                     identifier: "trendsExcludedFootnote",
-                    destination: stats.home.excludedEntryIDs.first.map(Route.editEntry))
+                    destination: excludedDestination(stats.home))
                     .padding(.top, 4)
             }
             if stats.pendingRateCount > 0 {
@@ -112,6 +112,16 @@ struct TrendsView: View {
         } else {
             TrendsEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }
+    }
+
+    /// The footnote's destination (hard rule 7): a single excluded entry opens
+    /// its editor, several open the list that names all of them and why (RV.141
+    /// - a singular route could only ever reach one of N).
+    private func excludedDestination(_ home: HomeStats) -> Route? {
+        if home.excludedEntryIDs.count > 1 {
+            return .excludedEntries
+        }
+        return home.excludedEntryIDs.first.map(Route.editEntry)
     }
 
     // MARK: - The tile grid

@@ -213,8 +213,8 @@ final class SyncChipUITests: XCTestCase {
         let badge = app.buttons["conflictBadgeButton"]
         XCTAssertTrue(badge.waitForExistence(timeout: 10),
                       "the selected car's conflict badge must render (unchanged)")
-        XCTAssertTrue(app.staticTexts["homeExcludedFootnote"].exists,
-                       "the excluded footnote must still name the count (unchanged)")
+        XCTAssertTrue(app.buttons["homeExcludedFootnoteButton"].waitForExistence(timeout: 5),
+                      "the excluded footnote must still name the count (unchanged)")
         badge.tap()
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5),
                       "the conflict badge must still open the entry (unchanged)")

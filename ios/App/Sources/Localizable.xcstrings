@@ -4979,6 +4979,23 @@
         }
       }
     },
+    "Excluded entries": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Excluded entries"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исключённые записи"
+          }
+        }
+      }
+    },
     "Expecting your data?": {
       "extractionState": "manual",
       "localizations": {
@@ -7601,6 +7618,23 @@
         }
       }
     },
+    "Nothing is excluded right now": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is excluded right now"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сейчас ничего не исключено"
+          }
+        }
+      }
+    },
     "Nothing is stored under this %1$@. Last time, did you sign in with %2$@?": {
       "extractionState": "manual",
       "localizations": {
@@ -7954,23 +7988,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Открыть мой гараж"
-          }
-        }
-      }
-    },
-    "Opens the excluded entry": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Opens the excluded entry"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Открывает исключённую запись"
           }
         }
       }
@@ -8379,6 +8396,40 @@
           "stringUnit": {
             "state": "translated",
             "value": "Исправьте даты в экспорте и выберите файл снова."
+          }
+        }
+      }
+    },
+    "Possible duplicate – Merge or Keep both": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Possible duplicate – Merge or Keep both"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возможный дубликат – «Объединить» или «Оставить обе»"
+          }
+        }
+      }
+    },
+    "Shows the excluded entries": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Shows the excluded entries"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Показывает исключённые записи"
           }
         }
       }
@@ -8957,6 +9008,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Чеки определяются автоматически"
+          }
+        }
+      }
+    },
+    "Timeline conflict – check the odometer or date": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timeline conflict – check the odometer or date"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Конфликт в хронологии – проверьте пробег или дату"
           }
         }
       }

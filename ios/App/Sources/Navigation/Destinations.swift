@@ -46,6 +46,7 @@ struct DestinationView: View {
         case .importWizard: ImportWizardView()
         case .flaggedEntries: FlaggedEntriesView()
         case .inbox: InboxView()
+        case .excludedEntries: ExcludedEntriesView()
         }
     }
 }

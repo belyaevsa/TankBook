@@ -153,11 +153,19 @@ struct HomeView: View {
     /// view at the whole-month reveal seam - the load-more row that only exists
     /// while a car's history outgrows the preview. The reveal renders after the
     /// async load, so the scroll is deferred until the seeded log is on screen.
-    /// Screenshot-only; no test drives it (`simctl` cannot scroll).
+    /// Screenshot-only; no test drives it (`simctl` cannot scroll). RV.141:
+    /// `-homeScrollToExcludedFootnote` parks Home at the excluded footnote the
+    /// same way, so the footnote's screenshot shows it without a tap.
     private func scrollToRevealSeamIfRequested(_ proxy: ScrollViewProxy) {
-        guard ProcessInfo.processInfo.arguments.contains("-homeScrollLogReveal") else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            proxy.scrollTo(HomeLogRevealAnchor.seamID, anchor: .bottom)
+        if ProcessInfo.processInfo.arguments.contains("-homeScrollLogReveal") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                proxy.scrollTo(HomeLogRevealAnchor.seamID, anchor: .bottom)
+            }
+        }
+        if ProcessInfo.processInfo.arguments.contains("-homeScrollToExcludedFootnote") {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                proxy.scrollTo(HomeLogRevealAnchor.excludedFootnoteID, anchor: .center)
+            }
         }
     }
     #endif
@@ -256,6 +264,7 @@ struct HomeView: View {
             HomeRecentEntries(entries: entries, stations: stations,
                               vehicle: stats.vehicle,
                               excludedEntryCount: stats.excludedEntryCount,
+                              excludedEntryIDs: stats.excludedEntryIDs,
                               pendingRateCount: stats.pendingRateCount,
                               duplicateResolutions: resolvedDuplicateKeys,
                               pendingInboxEntryIDs: inbox.pendingEntryIDs,

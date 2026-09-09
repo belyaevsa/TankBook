@@ -274,7 +274,9 @@ final class EditEntryUITests: XCTestCase {
         let badge = app.buttons["conflictBadgeButton"]
         XCTAssertTrue(badge.waitForExistence(timeout: 5),
                       "save-anyway must keep the conflict flag visible on Home")
-        XCTAssertTrue(app.staticTexts["1 entry excluded"].exists)
+        let footnote = app.buttons["homeExcludedFootnoteButton"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 5))
+        XCTAssertTrue(footnote.label.contains("1 entry excluded"))
     }
 
     // MARK: - P5.2b the manual rate is editable "again afterwards" (rule 13)

@@ -10,6 +10,9 @@ enum HomeLogRevealAnchor {
     /// The load-more row's own view identity - the seam between the visible
     /// whole months and the hidden ones.
     static let seamID = "homeLogRevealSeam"
+    /// The excluded-entries footnote's view identity (RV.141), so the DEBUG
+    /// screenshot hook can park Home at it (`-homeScrollToExcludedFootnote`).
+    static let excludedFootnoteID = "homeExcludedFootnoteAnchor"
 }
 
 /// The visible slice of the log stream for a reveal state. Built over the

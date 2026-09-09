@@ -157,12 +157,14 @@ final class HomeUITests: XCTestCase {
         let app = launch(args: ["-seedHomeConflict"])
 
         // F9a/S3: the amber badge renders on the conflicting entry and routes
-        // to Edit entry; the excluded count is footnoted.
+        // to Edit entry; the excluded count is footnoted as a link like Trends'.
         let badge = app.buttons["conflictBadgeButton"]
         XCTAssertTrue(badge.waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["homeExcludedFootnote"].exists)
-        XCTAssertTrue(app.staticTexts["1 entry excluded"].exists)
-
+        let footnote = app.buttons["homeExcludedFootnoteButton"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 5),
+                      "the excluded footnote must render as a reachable link")
+        XCTAssertTrue(footnote.label.contains("1 entry excluded"),
+                      "the footnote must state the real count, got '\(footnote.label)'")
         badge.tap()
         XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 5))
     }
@@ -429,8 +431,8 @@ final class HomeUITests: XCTestCase {
 
         XCTAssertTrue(anyElement(app, "homeDuplicateCard").waitForExistence(timeout: 10))
         XCTAssertTrue(textContaining(app, "logged twice").exists)
-        let footnote = textContaining(app, "entry excluded")
-        XCTAssertTrue(footnote.exists)
+        XCTAssertTrue(buttonContaining(app, "entry excluded").waitForExistence(timeout: 5),
+                      "the excluded footnote must render as a link naming the count")
 
         app.buttons["homeKeepBothButton"].tap()
 
@@ -441,7 +443,7 @@ final class HomeUITests: XCTestCase {
         waitForExpectations(timeout: 5)
         XCTAssertEqual(app.buttons.matching(identifier: "logEntryButton").count, 2,
                        "Keep both must leave both fills as normal log rows")
-        XCTAssertFalse(textContaining(app, "entry excluded").exists,
+        XCTAssertFalse(buttonContaining(app, "entry excluded").exists,
                        "a resolved pair excludes nothing")
     }
 
@@ -462,14 +464,17 @@ final class HomeUITests: XCTestCase {
     }
 
     /// The excluded-count footnote is the REAL number, derived from the
-    /// detector's flags: with one unresolved pair it reads "1 entry excluded".
+    /// detector's flags: with one unresolved pair it reads "1 entry excluded"
+    /// (RV.141: Home's footnote is a link like Trends' - the count is its label).
     func testExcludedFootnoteShowsTheRealCountForADuplicate() {
         let app = launch(args: ["-seedHomeDuplicate"])
 
         XCTAssertTrue(anyElement(app, "homeDuplicateCard").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.staticTexts["1 entry excluded"].waitForExistence(timeout: 5),
-                      "the footnote must report the one excluded pair member")
-        XCTAssertTrue(textContaining(app, "entry excluded").exists)
+        let footnote = app.buttons["homeExcludedFootnoteButton"]
+        XCTAssertTrue(footnote.waitForExistence(timeout: 5),
+                      "the footnote must render as a link")
+        XCTAssertTrue(footnote.label.contains("1 entry excluded"),
+                      "the footnote must report the one excluded pair member, got '\(footnote.label)'")
     }
 
     // MARK: - P5.2b the F9 pending-rates footnote
@@ -680,6 +685,12 @@ final class HomeUITests: XCTestCase {
 
     private func textContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {
         app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", substring)).firstMatch
+    }
+    /// The excluded footnote is a link since RV.141, so its label lives on a
+    /// BUTTON, not a static text - match buttons whose label carries the phrase.
+    private func buttonContaining(_ app: XCUIApplication, _ substring: String) -> XCUIElement {
+        app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@", substring)).firstMatch
     }
 
