@@ -23,6 +23,20 @@ echo "dispatched, pid $!"
 while kill -0 <pid> 2>/dev/null; do sleep 20; done; echo "<id> (pid <pid>) EXITED"
 ```
 
+**If the monitor keeps getting killed, use a persistent `Monitor` task instead.** On a
+memory-constrained machine the harness reclaims transient background commands: on 2026-09-09 three
+monitors in a row were killed ("system is running low on memory") while the agents they watched kept
+running. The agent survives that - only the waiter dies - but a dead waiter is a dispatch nobody is
+watching. The durable form is a `Monitor` with `persistent: true`, which is not reaped:
+
+```
+Monitor(command: 'while kill -0 <pid> 2>/dev/null; do sleep 60; done; echo "<id> EXITED"',
+        persistent: true, timeout_ms: 3600000)
+```
+
+**Whenever a monitor dies, check the AGENT first** (`kill -0 <pid>`) - it is almost always still
+alive - then re-arm rather than re-dispatching.
+
 **The `nohup` in step 1 is correct and the monitor in step 2 must NOT use it.** A `nohup ... &`
 waiter is a *log*, not a monitor: it cannot wake the orchestrator, so the dispatch finishes and
 nothing says so. `OB.2` completed unnoticed exactly that way, and an unwatched `RV.58` is how a fake
@@ -48,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.146** | flash | 91030 | `bhb12p24j` | `agents/briefs/RV.146.md` |
+| **RV.146** | flash | 91030 | `bl41jqf01` (persistent) | `agents/briefs/RV.146.md` |
 
 ### Waiting, in order
 
