@@ -63,7 +63,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
 | **RV.141** | flash | 74473 | `b68winmku` (persistent) | `agents/briefs/RV.141.md` |
-| **REVIEW-JOURNEYS** *(read-only)* | pro | 1173 | `bocrdj0ff` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-09.md` |
+| **VERIFY-SHIPPED** *(read-only)* | pro | 15730 | `bqudkmf4n` (persistent) | `agents/briefs/VERIFY-SHIPPED-2026-09-09.md` |
 
 ### Waiting, in order
 
