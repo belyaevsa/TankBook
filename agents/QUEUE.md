@@ -62,12 +62,13 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| *(none - the queue is empty)* | | | | |
+| **RV.151** | flash | 25440 | `bbix9u1gf` (persistent) | `agents/briefs/RV.151.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
+| 1 | RV.152 | flash | *to be written* | The home-currency change prompt. Behind [RV.151]: its "convert the log" answer is only as good as the cross-base lookup, and the prompt's pending count would be misleading before it |
 | *(empty - RV.117b is the last briefed row)* | | | | |
 
 ### Shipped this session (2026-09-08/09)
