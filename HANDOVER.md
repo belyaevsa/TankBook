@@ -1,9 +1,9 @@
 # Tankbook – Session Handover
 
-*Updated 2026-09-09 (evening). **A twenty-row session, and the most useful thing in it is not the
-code.** Measured on the tree as left: **iOS 1808 tests / 209 suites**, **backend 445**, lint 0 from
-the repo **ROOT**, localization 0 (811 keys, 100% RU), Release build 0. **99 open rows, 291 closed.**
-**One agent is still running - `RV.141`, pid 74473 - and its work is UNCOMMITTED in the tree.**
+*Updated 2026-09-09 (late). **A twenty-one-row session, and the most useful thing in it is not the
+code.** Measured on the tree as left: **iOS 1814 tests / 210 suites**, **backend 445**, lint 0 from
+the repo **ROOT**, localization 0 (815 keys, 100% RU), Release build 0. **98 open rows, 292 closed.**
+**One agent is running - `RV.166`, pid 94408, monitor `b3xx0c4k2`** - the tree is otherwise clean.
 Read this, then `CLAUDE.md`, then `docs/DEFECT-PATTERNS.md`, then `docs/TASKS.md`'s index.*
 
 ## Read the two new documents before picking anything up
@@ -17,8 +17,8 @@ Read this, then `CLAUDE.md`, then `docs/DEFECT-PATTERNS.md`, then `docs/TASKS.md
 
 ## Where the work stands (2026-09-09 evening)
 
-**Shipped: 20 rows** - `RV.112`, `RV.136` (twice - see below), `RV.139b`, `RV.144`, `RV.145`,
-`RV.146`, `RV.147`, `RV.150`, `RV.151`, `RV.153`, `RV.154`, `RV.156`, `RV.157`, `RV.117a`,
+**Shipped: 21 rows** - `RV.112`, `RV.136` (twice - see below), `RV.139b`, `RV.141`, `RV.144`,
+`RV.145`, `RV.146`, `RV.147`, `RV.150`, `RV.151`, `RV.153`, `RV.154`, `RV.156`, `RV.157`, `RV.117a`,
 `RV.117b`, `PJ.19`, `PJ.25`, `PJ.28`, plus `RV.139` closed by observation. Each verified by the
 orchestrator's own gate runs and screenshots, never by an agent's report.
 
@@ -48,25 +48,42 @@ shipped - is the system working, not falling behind.
    `PJ.55`; `VERIFY-SHIPPED` re-verified **27 ticked rows against the code** and found zero broken.
    A build agent costs 400 KB-2 MB. **Read-only review is the cheapest tool here and was used once in
    eleven days before today.**
-5. **Two agents run concurrently ONLY when the toolchains are disjoint.** `RV.157` (Swift) and
+5. **The brief template proved itself on its first two uses, and the proof is specific.** `RV.141`'s
+   Part A sweep found that `excludedEntryCount` counts duplicate members while "Needs a look"
+   filters on conflicts only - so the obvious fix would have routed the user to a screen showing
+   **fewer rows than the number they tapped**. `RV.166`'s sweep produced a five-site inventory that
+   **separates true instances of the shape from look-alikes** (a draft form's untyped cost and an
+   OCR line sum are not the same defect), which is exactly the distinction `RV.167`'s guard must
+   encode. Both took minutes.
+6. **Two agents run concurrently ONLY when the toolchains are disjoint.** `RV.157` (Swift) and
    `RV.154` (backend C#) ran together cleanly. Two Swift tasks collide on files and on the simulator,
    and `opencode` throws `database is locked` if two start in the same second - stagger them.
 
 ## What to do next
 
-1. **`RV.141` is mid-flight and uncommitted.** Verify its gates in your own hands, open its
-   screenshots, then commit and tick. Its brief was the first rebuilt from `TEMPLATE.md`, and Part A
-   earned its place: `excludedEntryCount` counts duplicate members while "Needs a look" filters on
-   conflicts only, so the obvious fix routes the user to a screen showing **fewer rows than the
-   number they tapped**.
-2. **`RV.166` then `RV.167`, in that order.** `RV.166` is a **live sixth instance** of the
-   zero-summing defect (`LogStream.swift:369`). `RV.167` is the architecture test that stops a
-   seventh - build it against `MonthlySummaryNotification.swift:180` (`RV.148`) so it has a failing
-   case after `RV.166` lands.
+1. **`RV.166` is mid-flight** (pid 94408) - a **live sixth instance** of the zero-summing defect at
+   `LogStream.swift:369`, in the file that fixed it everywhere else, with a comment claiming it is
+   not there. Verify its gates yourself and commit.
+2. **`RV.167` next, and build it against a real failure.** It is the architecture test that stops a
+   seventh instance. `MonthlySummaryNotification.swift:180` (`RV.148`, deferred by the owner) stays
+   as its failing case after `RV.166` lands - a guard that passes on its first run usually means the
+   pattern is too narrow, which is the row's named trap.
 3. **The journeys walk is now RECURRING** (`CLAUDE.md`): every 10 shipped rows or a phase gate,
    whichever comes first, plus four event triggers. It had run **once, 643 commits ago**, and every
    product-reachability gap traces to that run or to the owner using the app.
 4. Then the queue: `RV.152`, `RV.149`, `RV.155`, `RV.116`, and the guards `RV.162`-`RV.165`.
+
+## Two observations from screenshots, not yet filed
+
+Both are comprehension defects - the code is correct and a test cannot see them. Decide whether they
+are worth rows.
+
+- **`RV.141`'s Home footnote is now a button that still looks like a label.** "2 записи исключены" is
+  amber with no chevron and no action colour, directly below "Проверить курсы" which is blue. Amber
+  is *correct* here (hard rule 5: it is a warning, not an action), so the answer is probably a
+  chevron - the affordance `RV.83` added to the Garage attention strip - not a recolour.
+- **`RV.159` is the same class and IS filed**: two consents render identically and only one gates
+  sending. Worth doing them together if either is picked up.
 
 ## Decisions the product owner made 2026-09-09 (do not relitigate)
 
