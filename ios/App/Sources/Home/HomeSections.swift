@@ -571,8 +571,9 @@ struct HomeRecentEntries: View {
     // MARK: Purchase group card
 
     /// One physical purchase from a single receipt (docs/SCHEMA.md CHECK 3).
-    /// The group's trailing figure is the grand total; the fuel row inside it
-    /// shows the FUEL amount - never the other way around (hard rule 4).
+    /// The group's trailing figure states the receipt total exactly as honestly
+    /// as the month dividers do (RV.166); the fuel row inside it shows the FUEL
+    /// amount - never the other way around (hard rule 4).
     private func groupCard(_ group: LogStream.LogGroup) -> some View {
         let collapsed = collapsedGroupIDs.contains(group.id)
         return VStack(spacing: 0) {
@@ -606,18 +607,7 @@ struct HomeRecentEntries: View {
                             .foregroundStyle(Theme.Palette.inkSoft)
                     }
                     Spacer(minLength: 8)
-                    // The receipt total rendered with the currency its lines
-                    // are denominated in (RV.145) - never the vehicle's, which
-                    // is how a euro receipt once printed a dollar figure. A
-                    // group whose known lines span home currencies has no bare
-                    // total to show; the member rows below state each amount.
-                    if let currency = group.grandTotalCurrency {
-                        Text(HomeFormat.entryAmount(group.grandTotal,
-                                                    symbol: AddVehicleSupport.moneySymbol(for: currency)))
-                            .font(.custom(AppFonts.dinAlternateBold, size: 16))
-                            .foregroundStyle(Theme.Palette.ink)
-                            .accessibilityIdentifier("logGroupGrandTotal")
-                    }
+                    groupTotalFigure(group)
                     Image(systemName: collapsed ? "chevron.down" : "chevron.up")
                         .font(.caption2.weight(.bold))
                         .foregroundStyle(Theme.Palette.inkSoft)

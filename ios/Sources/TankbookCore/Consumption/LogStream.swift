@@ -18,12 +18,17 @@ import Foundation
 ///   mixes (RV.145) - and is carried WITH the figure so a renderer cannot pair
 ///   it with a foreign symbol.
 /// - Entries sharing a `purchaseGroupId` become one purchase group - the
-///   receipt as the user holds it. The group's grand total is the sum of its
-///   members' home amounts: never the fill-up's amount alone (hard rule 4 /
-///   docs/SCHEMA.md CHECK 3 - the fuel amount is the FUEL LINE, not the receipt
-///   grand total), and never summed into consumption maths. Until P2.4 stores
-///   the receipt's own total, the sum of the logged lines is the honest figure
-///   the group can show.
+///   receipt as the user holds it. The group states its receipt total exactly
+///   as honestly as the month dividers do: the members' home amounts reduced
+///   through the shared accumulator (RV.112, RV.166), so a group whose receipt
+///   still waits on a rate is `.partial` (its known sum marked with the pending
+///   count), never a bare total that reads as the whole receipt - and a group
+///   whose known lines span home currencies is `.mixed`, with no single figure.
+///   The total is never the fill-up's amount alone (hard rule 4 / docs/SCHEMA.md
+///   CHECK 3 - the fuel amount is the FUEL LINE, not the receipt grand total),
+///   never summed into consumption maths, and counted ONCE in a month's
+///   divider. Until P2.4 stores the receipt's own total, the sum of the logged
+///   lines is the honest figure the group can show.
 ///
 /// Every display decision (what shows, what is omitted) lives here so it tests
 /// without a simulator (docs/TESTING.md, L1); the SwiftUI layer only formats
@@ -149,16 +154,18 @@ public struct LogStream: Equatable, Sendable {
         public let id: UUID
         /// Member entries, newest first.
         public let members: [LogEntry]
-        /// The receipt total as logged: the sum of the members' home amounts.
-        /// One number, counted once in a month's divider total.
-        public let grandTotal: Decimal
-        /// The currency `grandTotal` is denominated in: the ONE home currency
-        /// all members' KNOWN figures share, or `nil` when the known members
-        /// span currencies or none is known (a receipt whose home currencies
-        /// differ cannot be stated as a single figure - RV.145). The renderer
-        /// shows the figure only beside this currency's marker; a `nil` receipt
-        /// shows no bare total.
-        public let grandTotalCurrency: CurrencyCode?
+        /// The receipt's stated figure, classified exactly as the month divider
+        /// classifies a month's (the SAME `MonthTotal` from the SAME accumulator
+        /// - RV.112, RV.166, docs/ERRORS.md -> Home, F9). `.complete` is the
+        /// exact sum of the members' known home amounts and may print bare;
+        /// `.partial` is that exact sum MARKED with the pending count - a
+        /// rate-pending member's home amount is not known, and summing it as
+        /// zero would present the receipt as fully stated (the RV.106 lie);
+        /// `.mixed` has no single figure (the known lines span home currencies -
+        /// the member rows state each amount, RV.145); `.pending` has no home
+        /// figure at all. The group contributes this ONE figure to a month's
+        /// divider total (hard rule 4), never one per member row.
+        public let total: MonthTotal
         /// True when any member keeps a receipt or photo (they share it).
         public let hasAttachment: Bool
     }
@@ -341,7 +348,8 @@ public struct LogStream: Equatable, Sendable {
                     .sorted(by: EntryOrder.descending)
                     .map { LogEntry(vehicle: vehicle, entry: $0, stations: stations,
                                     closingPer100: per100ByClosingFillID[$0.id]) }
-                rows.append(.group(Self.group(id: groupID, members: logMembers)))
+                rows.append(.group(Self.group(id: groupID, members: logMembers,
+                                              homeCurrency: vehicle.homeCurrency)))
                 continue
             }
             if let pair = pairByCountedID[entry.id],
@@ -359,22 +367,20 @@ public struct LogStream: Equatable, Sendable {
                                            homeCurrency: vehicle.homeCurrency)
     }
 
-    /// A purchase group's display figure (RV.145): the sum of the members'
-    /// KNOWN home amounts (never a rate-pending line summed as zero), paired
-    /// with the ONE home currency they share - or `nil` when the known lines
-    /// span currencies or none is known, in which case the renderer shows no
-    /// bare total for the group header.
-    private static func group(id: UUID, members: [LogEntry]) -> LogGroup {
-        let grandTotal = members.reduce(Decimal.zero) { partial, member in
-            partial + (member.money?.homeAmount ?? Decimal.zero)
-        }
-        let knownHome = Set(members.compactMap { member -> CurrencyCode? in
-            guard let money = member.money, money.homeAmount != nil else { return nil }
-            return money.homeCurrency
-        })
+    /// A purchase group's display figure (RV.166): the members' money pairs
+    /// reduced through the SAME accumulator the month dividers and the stats
+    /// reduce through (RV.112) - so a rate-pending member is COUNTED but never
+    /// summed as zero, and a group whose known lines span home currencies can
+    /// never pair one sum with a foreign symbol (RV.145). The classification
+    /// therefore agrees with the divider that sums the same receipt's members,
+    /// and the divider's partial/mixed/pending rendering rules apply verbatim
+    /// to the group header.
+    private static func group(id: UUID, members: [LogEntry],
+                              homeCurrency: CurrencyCode) -> LogGroup {
+        var accumulator = LogStream.MonthTotal.Accumulator(vehicleHome: homeCurrency)
+        accumulator.add(contentsOf: members.map(\.money))
         return LogGroup(id: id, members: members,
-                        grandTotal: grandTotal,
-                        grandTotalCurrency: knownHome.count == 1 ? knownHome.first : nil,
+                        total: accumulator.monthTotal,
                         hasAttachment: members.contains { $0.hasAttachment })
     }
 

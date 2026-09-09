@@ -134,7 +134,11 @@ show the same `.complete` / `.partial` / `.pending` classification as the month'
 tile's caption (visibly partial, never a bare total); a `.pending` month prints NO number at all -
 the tile is omitted, exactly as any other data-hungry vital is omitted, and the F9 footnote below
 says why. A `0 €` beside rows that carry no home amount is a wrong number wherever it appears,
-not just on the divider.
+not just on the divider. **The purchase-group header states the same honesty (RV.166).** A receipt
+whose known lines total 30.00 EUR beside a rate-pending line is `.partial`: its header prints the
+known sum with the pending phrase beneath it, never a bare `30.00 €` that reads as the whole
+receipt - the group's figure is the same `MonthTotal` from the same accumulator, so a group header
+and the month divider that sums it can never disagree about the same receipt.
 
 **A rate-pending month is a GAP in a Trends chart, never a dipped point (RV.112).** The monthly
 spend and cost/km series plot a point only for a `.complete` month. A `.partial` month is not

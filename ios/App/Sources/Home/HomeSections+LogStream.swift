@@ -253,3 +253,45 @@ extension HomeFormat {
             .joined(separator: " · ")
     }
 }
+
+// MARK: - Purchase group header figure (RV.166)
+
+extension HomeRecentEntries {
+
+    /// The group header's trailing figure, from the group's OWN `total`
+    /// classification (never recomputed here - hard rule 2). `.complete` is the
+    /// bare DIN total rendered with the currency it is denominated in (RV.145 -
+    /// never the vehicle's, which is how a euro receipt once printed a dollar
+    /// figure). `.partial` prints that known sum with the pending phrase beneath
+    /// it - visibly partial, never a bare total that reads as the whole receipt
+    /// while a member still waits on a rate (RV.166). `.mixed` and `.pending`
+    /// print no figure: a receipt whose known lines span home currencies has no
+    /// single total to state, and one with no known figure at all has nothing to
+    /// print - the member rows below state each amount, exactly as before.
+    /// Kept in this file so `HomeSections.swift` stays under the lint ceiling.
+    @ViewBuilder
+    func groupTotalFigure(_ group: LogStream.LogGroup) -> some View {
+        switch group.total {
+        case .complete(let amount, let currency):
+            groupTotalText(amount, currency: currency)
+        case .partial(let amount, let currency, let pendingCount):
+            VStack(alignment: .trailing, spacing: 1) {
+                groupTotalText(amount, currency: currency)
+                Text(L10n.pendingRates(pendingCount))
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .accessibilityIdentifier("logGroupPendingRates")
+            }
+        case .mixed, .pending:
+            EmptyView()
+        }
+    }
+
+    private func groupTotalText(_ amount: Decimal, currency: CurrencyCode) -> some View {
+        Text(HomeFormat.entryAmount(amount,
+                                    symbol: AddVehicleSupport.moneySymbol(for: currency)))
+            .font(.custom(AppFonts.dinAlternateBold, size: 16))
+            .foregroundStyle(Theme.Palette.ink)
+            .accessibilityIdentifier("logGroupGrandTotal")
+    }
+}

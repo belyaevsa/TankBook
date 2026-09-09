@@ -308,7 +308,8 @@ struct LogStreamTests {
             Issue.record("expected a group row")
             return
         }
-        #expect(group.grandTotal == Decimal(string: "79.02"))
+        #expect(group.total == LogStream.MonthTotal.complete(
+            amount: Decimal(string: "79.02")!, currency: .eur))
         // Newest first: the fill (hour 12) sits above the wash (hour 9).
         #expect(group.members.map(\.kind) == [.fuel, .expense])
     }
