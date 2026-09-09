@@ -536,7 +536,7 @@ private extension EditEntryView {
                                              onFixDate: { showDatePicker = true })
                     neighbourhoodCard
                         .id(Self.neighbourhoodScrollTarget)
-                    ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                    ManualFillUpStationRow(stations: $stations, selection: $selectedStation)
                     ManualFillUpFuelFullCard(form: $fillForm, fuelKinds: vehicle.fuelKinds)
                     if editCurrencyNeedsAttention(vehicle) { editCurrencySection(vehicle) }
                     ManualFillUpNumbersCard(form: $fillForm, focus: $fillFocus,

@@ -1,31 +1,36 @@
 import CryptoKit
 import Foundation
 
-// An imported file's free-text station column (Drivvo's `Азс` / `Gas station`,
-// docs/SCHEMA.md -> Import mapping) becomes a real `Station` record so the Log
-// row can title itself with the name (docs/DESIGN.md -> "Entry card content",
-// RV.142). The resolution is decided once, here, and is PURE: the classifier
-// runs without a repository (docs/TESTING.md, L1), so the fill carries the
-// station id it will have AFTER the commit, and the commit simply materialises
-// the missing Station rows.
+// A free-text station name becomes a real `Station` record so the Log row can
+// title itself with the name (docs/DESIGN.md -> "Entry card content", RV.142).
+// Two paths feed names in - an imported file's station column (Drivvo's `Азс` /
+// `Gas station`, docs/SCHEMA.md -> Import mapping) and a user typing one on the
+// entry row or in the Garage (RV.156) - and BOTH resolve here, so one minting
+// rule serves every source. The resolution is PURE: the classifier runs without
+// a repository (docs/TESTING.md, L1), so an import's fill carries the station id
+// it will have AFTER the commit, and the commit simply materialises the missing
+// Station rows; the typed path writes the resolved row through the repository.
 
-/// Resolves an imported station name to a `Station`. Decision: match an
-/// existing station whose name is exactly the trimmed file value, else create a
-/// new record. Brand normalisation (Газпром / Газпромнефть / ...) is [RV.115]'s
-/// reference-data list; this matcher deliberately does not fork it - two
-/// spellings are two stations until the brand list exists.
+/// Resolves a station name - typed or imported - to a `Station`. Decision:
+/// match an existing station whose name is exactly the trimmed value, else
+/// create a new record. Brand normalisation (Газпром / Газпромнефть / ...) is
+/// [RV.115]'s reference-data list; this matcher deliberately does not fork it -
+/// two spellings are two stations until the brand list exists.
 public enum ImportStationResolver {
 
-    /// The `Station` an imported name maps to. `existing` is the destination
-    /// device's live stations, so a name the user already uses (typed or a
-    /// previous import) keeps ITS record - its `favorite`, `defaults` and
-    /// `lastUsedAt` are never clobbered. An unmatched name gets a NEW record
-    /// whose id is deterministic in the name.
+    /// The `Station` a name maps to - the typed path's and an import's shared
+    /// rule (RV.156 routes `TankbookRepository.createStation` through here).
+    /// `existing` is the destination device's live stations, so a name the user
+    /// already uses (typed or a previous import) keeps ITS record - its
+    /// `favorite`, `defaults` and `lastUsedAt` are never clobbered. An unmatched
+    /// name gets a NEW record whose id is deterministic in the name.
     ///
     /// Determinism is what keeps the flow honest: the pure classifier mints the
     /// id at conversion time (before any write - F6a), and the commit re-creates
     /// the same id from the same name, so a rebuild after a review edit cannot
-    /// drift, and two devices parsing the same file resolve to the same station.
+    /// drift, two devices parsing the same file resolve to the same station, and
+    /// two devices typing the same name converge on one record instead of
+    /// duplicating.
     public static func station(for name: String, existing: [Station],
                                now: Date = Date()) -> Station {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)

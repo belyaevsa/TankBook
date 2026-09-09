@@ -154,7 +154,7 @@ struct ManualFillUpView: View {
                                              onFixDate: { showDatePicker = true },
                                              lastKnown: lastKnown,
                                              paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
-                    ManualFillUpStationRow(stations: stations, selection: $selectedStation,
+                    ManualFillUpStationRow(stations: $stations, selection: $selectedStation,
                                            onChose: { stationChosenByUser = true })
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
@@ -347,6 +347,9 @@ struct ManualFillUpView: View {
                ProcessInfo.processInfo.arguments.indices.contains(index + 1) {
                 form.odometer = ProcessInfo.processInfo.arguments[index + 1]
             }
+            #if DEBUG
+            applyStationRowCreatedPoseIfRequested()
+            #endif
         } catch {
             AppLog.error(operation: "confirmManual.load", category: .ui, error: error)
         }

@@ -112,6 +112,15 @@ enum ManualFillUpTestSeed {
                 lastUsedAt: nil)
             try? repository.upsertStation(unlocated)
         }
+
+        // RV.156 screenshot pose `-seedStationRowSelected`: the created-and-
+        // selected state the row's add flow leaves the user in. The station is
+        // created through the SAME repository call the row uses (never a direct
+        // Station row - the minting rule must be the shared one), and the view's
+        // DEBUG load hook selects it.
+        if arguments.contains("-seedStationRowSelected") {
+            _ = try? repository.createStation(named: "Prima Auto")
+        }
     }
 
     /// The two stations of the PJ.19 fixture. Prima Auto is the favourite at

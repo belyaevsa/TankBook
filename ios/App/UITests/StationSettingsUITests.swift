@@ -89,4 +89,44 @@ final class StationSettingsUITests: XCTestCase {
                       "with no stations the list must show its empty state")
         XCTAssertTrue(app.staticTexts["No stations yet"].exists)
     }
+
+    /// RV.156: the Stations list carries its own add door, so a station can be
+    /// named where stations are managed - not only mid-entry - and it appears
+    /// in the list. The created name goes through the same deterministic rule
+    /// the entry row uses (the two doors can never disagree).
+    func testTheStationsListCanAddAStationByName() {
+        let app = launch([])
+        openGarage(app)
+        openStations(app)
+
+        // Even an empty list offers the door (the Garage's dashed-tile idiom);
+        // the empty state's own copy points at it.
+        XCTAssertTrue(app.staticTexts["stationsEmptyState"].waitForExistence(timeout: 5))
+        let add = app.buttons["stationsAddStationButton"]
+        XCTAssertTrue(add.waitForExistence(timeout: 5),
+                      "the Stations list must offer the add door")
+        if !add.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(add.isHittable, "the add door must be reachable")
+        add.tap()
+
+        let alert = app.alerts["Add station"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 5),
+                      "the add door must present the naming dialog")
+        let field = alert.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        field.typeText("Shell")
+        alert.buttons["Add"].tap()
+
+        // The named station appears in the list and the empty state retires.
+        let row = app.buttons["stationListRow"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5),
+                      "the named station must appear in the list")
+        XCTAssertTrue(row.label.contains("Shell"),
+                      "the list must show the station just named, got '\(row.label)'")
+        XCTAssertFalse(app.staticTexts["stationsEmptyState"].exists,
+                       "a non-empty list must not keep its empty state")
+    }
 }

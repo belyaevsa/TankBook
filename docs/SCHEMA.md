@@ -448,6 +448,13 @@ settings screen that shows the coordinate and offers **Remove location** (clears
 a later save at the station with a fix re-adopts it). `docs/SECURITY.md` records the capture,
 and a coordinate is a domain value and is never logged (hard rule 12).
 
+**Creation by name (RV.156).** A station is created from a user-typed name on the entry row or in
+the Garage's Stations list - a name is all creation asks for; `favorite`, `defaults` and
+`location` are filled by use (the save stamp above). Creation reuses the import path's
+deterministic resolver (`ImportStationResolver.station(for:)`), so two devices typing the same
+name mint the same id and converge instead of duplicating, and an exact name match selects the
+existing station rather than minting a second row. A blank or whitespace-only name creates nothing.
+
 **Sync class (what S9 means for Station).** Only `Vehicle` merges field-level (`docs/SYNC.md`
 S9). `Station` - like every other record - merges record-level LWW by `clientUpdatedAt`, so a
 stamped station converges across devices as one ordinary edit; pulling a pushed station back

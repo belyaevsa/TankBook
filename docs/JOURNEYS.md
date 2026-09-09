@@ -74,16 +74,16 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 Same shape as J3, with the deltas: camera pointed at the pump display before hanging up the nozzle (→ prompt tip on first use: "no receipt? Shoot the pump"); OCR reads the three numbers, arithmetic triple-match assigns them (⚠ glare/LED segments – the spike's ~95% gate applies before this ships); station name auto-suggested from location + favorites. This journey is **unowned by any competitor** – it must feel as reliable as J3 or not exist.
 
-**Station suggestion – the logic (written 2026-08-30, shipped as PJ.19 [v1.1]; until then the
-Confirm row shows an honest "Not set" placeholder and promises nothing).** The station field is a
-default input (hard rule 13): the app proposes one, the user changes it in one tap, and a changed
-station is theirs. The proposal is ranked, first match wins:
+**Station suggestion – the logic (written 2026-08-30, shipped as PJ.19 [v1.1]).** The station
+field is a default input (hard rule 13): the app proposes one, the user changes it in one tap, and
+a changed station is theirs. The proposal is ranked, first match wins:
 
 1. a **favourite** station within 300 m of the device;
 2. the **last-used** station within 300 m;
 3. the **most recently used** station for this car, regardless of distance – this rung needs no
    location permission and is what most users get most of the time;
-4. nothing – the row stays "Not set".
+4. nothing – the pick menu's "Choose station", or the **add door** when no station exists (an
+   empty station set is creatable, RV.156 - never the dead label this row once was).
 
 Rungs 1–2 need location; rungs 3–4 never do. **Permission is asked on the first Confirm after the
 second fill-up** – the earliest moment the question can be answered with a station on file –
@@ -92,6 +92,24 @@ distance rungs, forever, with no re-prompt. Location is read once per Confirm, w
 open, and is never stored on the entry – only `Station.location` is written, and only when the
 user saves a fill at a station the app has no coordinate for (`SCHEMA.md` → Station). Offline is
 a non-event: the ranking is local (F3). Coordinates are Sensitive and never logged (hard rule 12).
+
+**The creation door (RV.156, shipped 2026-09-09).** PJ.19 ranks existing stations and never
+creates one, so a user who typed their entries had an empty station set forever and every rung
+starved. The row is now interactive in **both** states - an empty set offers "Add station", a
+populated set keeps the menu and gains the same entry at its end (a user with one station must be
+able to add a second) - and the Garage's Stations list carries the same door (a dashed tile in
+both states), so a station can be named wherever the user notices they want one (hard rule 15's
+spirit: never a dead end). **A name is all creation asks for**: `favorite`, `defaults` and
+`location` are filled by use - RV.150's save already stamps `lastUsedAt`, the bought defaults and
+a missing coordinate - never asked up front. Naming goes through the SAME deterministic minting
+rule the import path uses (`ImportStationResolver.station(for:)`): two devices typing the same
+name resolve to the same id and converge instead of duplicating, and a name that exactly matches
+an existing station selects that one - a second row is never minted, so the UI never looks like it
+created a duplicate (merging stays RV.115's fence). An empty or whitespace-only name creates
+nothing (it is a cancel): a station's row and its Log title live on the name, so an unnamed
+station is not creatable. A created station is a synced entity written `.dirty` like any station
+edit, and it is **selected on the entry that created it** - the add is never a dead end in slow
+motion.
 
 **Implementation note (PJ.19, shipped 2026-09-09).** The ranking above is now a pure core
 function (`StationSuggestion`, L1-tested over injected coordinates, no CoreLocation) called once

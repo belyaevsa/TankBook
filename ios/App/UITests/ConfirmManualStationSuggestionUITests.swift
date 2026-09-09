@@ -6,9 +6,10 @@ import XCTest
 /// changeable. The location is INJECTED (`-seedStationLocation`), never the
 /// simulator's real fix, so the test is deterministic; the stations come from
 /// `-seedStationSuggestion` (a favourite at the injected coordinate plus a
-/// plain station ~40 m away). Hard rule 13: a suggestion is a default input,
-/// and its absence is a non-event - no stations means no suggestion label at
-/// all, exactly the pre-PJ.19 row.
+/// plain station ~40 m away). Hard rule 13: a suggestion is a default input.
+/// RV.156: with no stations there is no suggestion AND no menu - the empty row
+/// offers the add door (tested here as the absence of a suggestion; the door
+/// itself is RV.156's own suite).
 @MainActor
 extension ConfirmManualUITests {
 
@@ -50,19 +51,21 @@ extension ConfirmManualUITests {
         waitForExpectations(timeout: 5)
     }
 
-    func testNoStationsShowsNoSuggestionAndTheHonestPlaceholder() {
+    func testNoStationsShowsNoSuggestionAndOffersTheAddDoor() {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase", "-seedVehicleForUITests",
                                "-seedStationLocation", "59.4378,24.7536"]
         app.launch()
         openManualForm(app)
 
-        // No stations on file: there is no suggestion label and no menu at all -
-        // the row is the honest "Not set" placeholder (docs/ERRORS.md -> Confirm).
-        let notSet = app.staticTexts["manualFillUpStationRow"]
-        XCTAssertTrue(notSet.waitForExistence(timeout: 10))
+        // No stations on file: there is no suggestion label and no menu - the
+        // row's right side is the add door (RV.156), never the dead "Not set"
+        // placeholder the pre-RV.156 row rendered (docs/ERRORS.md -> Confirm).
+        let addDoor = app.buttons["manualFillUpAddStationButton"]
+        XCTAssertTrue(addDoor.waitForExistence(timeout: 10),
+                      "with no stations the row must offer the add door")
         XCTAssertFalse(app.buttons["manualFillUpStationButton"].exists,
-                       "with no stations there is nothing to suggest and nothing to open")
+                       "with no stations there is no menu to open")
         XCTAssertFalse(app.staticTexts["Prima Auto"].exists)
         XCTAssertFalse(app.staticTexts["Circle K Sadama"].exists)
     }

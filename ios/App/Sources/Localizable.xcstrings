@@ -1900,6 +1900,23 @@
         }
       }
     },
+    "Add": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить"
+          }
+        }
+      }
+    },
     "Add %@": {
       "extractionState": "manual",
       "localizations": {
@@ -2151,6 +2168,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Добавить чек"
+          }
+        }
+      }
+    },
+    "Add station": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add station"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавить заправку"
           }
         }
       }
@@ -10667,6 +10701,23 @@
         }
       }
     },
+    "Station name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Station name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название заправки"
+          }
+        }
+      }
+    },
     "Station not found": {
       "extractionState": "manual",
       "localizations": {
@@ -10701,19 +10752,19 @@
         }
       }
     },
-    "Stations appear here when you log a fill-up at one.": {
+    "Stations appear here when you log a fill-up at one, or add one.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Stations appear here when you log a fill-up at one."
+            "value": "Stations appear here when you log a fill-up at one, or add one."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Заправки появляются здесь, когда вы сохраняете заправку на одной из них."
+            "value": "Заправки появляются здесь, когда вы заправляетесь на одной из них или добавляете её."
           }
         }
       }

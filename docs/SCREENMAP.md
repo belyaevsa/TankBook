@@ -203,9 +203,12 @@ them existed:
   stations door is a calm account-wide management row (map glyph + "Stations" + caption +
   chevron), the reminders-row vocabulary on Home. It is **always present**, count or no count,
   like Home's reminders row: a user who never logged at a named station reaches the list's own
-  empty state ("No stations yet ... when you log a fill-up at one"), never a blank.
-- **It navigates and never creates.** Station creation, renaming, merging and brands are RV.115's
-  fence; this door only lists and opens.
+  empty state ("No stations yet ... log a fill-up at one, or add one"), never a blank.
+- **The Garage door navigates; the list creates.** The door itself only lists and opens. The
+  Stations list it opens carries the add door (RV.156, the dashed "+ Add station" tile in both
+  states - the same idiom as "Add car" on the Garage grid): a station can be named where stations
+  are managed, not only mid-entry. Naming is the ONLY station creation - renaming, merging and
+  brands stay RV.115's fence.
 - **Two pushed screens, one vocabulary.** `Stations` (the account-wide list, every station ever
   logged at) rows push `Station settings` for that station, which shows the recorded location -
   in DIN, runtime data, POSIX-formatted so RU and EN render the same string - and, when one
@@ -244,7 +247,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (the car AND the entries that went down with it restorable, RV.98) · Tire sets → Tire sets · **Parts shelf → Parts shelf [v1.x]** (PJ.25 - the third per-car management row, always present like Tire sets: a car with nothing on the shelf still reaches the shelf, whose own empty state says so) · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due; **hidden for an archived car**, RV.81). **RV.137 (2026-09-08): editing the Make · model row now offers the SAME bundled-catalog suggestions Add car does** (typing an edit mounts them; merely focusing the filled field does not). A pick fills make, model and year as text the user owns and records no catalogue id - preserving the screen's permanence decision (its own header: nothing here stores a catalog id for a later pack to rewrite); name, powertrain, fuel kinds, capacity and units are never rewritten by a pick. **The pinned Save bar steps aside while any field is focused** (RV.137, same report): a `safeAreaInset` bar floats above the keyboard over the one region that does not scroll, which hid the fuel chips mid-edit; with the keyboard up the form owns the whole space above it and the bar returns when focus leaves the field | back → Garage (or opener) |
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
-| **Stations** (RV.150) | the Garage tab root's Stations door | a row → Station settings | back → Garage |
+| **Stations** (RV.150) | the Garage tab root's Stations door | a row → Station settings · **Add station (RV.156)** - the dashed tile in both states, naming through the same deterministic rule the entry row uses | back → Garage |
 | **Station settings** (RV.150) | the Stations list's row for that station | **Remove location** (in place; a later save with a fix re-adopts) | back → Stations |
 | **Parts shelf** **[v1.x]** (P3.2 screen; PJ.25 gave it its second door) | Vehicle detail's "Parts shelf" row (**pushed**, PJ.25) · a service entry's "View shelf" button (**nested sheet**, P3.2 - unchanged) · `-presentScreen partsShelf` (nested-sheet pose) / `-presentScreen partsShelfPushed` (the pushed door's pose) | none - a read-only list (`.parts` expenses not yet installed in any service; derived, never stored) | **pushed**: back chevron + edge-swipe → the Vehicle detail that pushed it. **nested sheet**: swipe-down / close → the service entry. The shelf has no typed input, so neither door ever asks before leaving - nothing to lose (hard rule 8). The `SheetRoute.partsShelf` `.discardSilently` classification governs the SHEET presentation only; the pushed door is a stack pop, never a discard |
 
