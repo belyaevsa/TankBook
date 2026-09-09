@@ -60,7 +60,6 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | PJ.22 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
 | PJ.23 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
 | PJ.24 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
-| PJ.25 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
 | PJ.26 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
 | PJ.27 | PRIORITY (product owner, 2026-08-31) | `[ ]` | below · PJ · Journeys review (2026-08-29) |
 | PJ.29 | v1.x | `[ ]` | below · PJ · Journeys review (2026-08-29) |
@@ -361,6 +360,7 @@ dispatch ledger moved to `docs/TASKS-HISTORY.md`.*
 | RV.146 | The currency chips are a hardcoded four, and the hint under them is a lie | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.147 | costPerKm still sums a rate-pending row as zero | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | PJ.28 | PRIORITY (product owner, 2026-08-31) | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
+| PJ.25 | PRIORITY (product owner, 2026-08-31) | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.140 | Changing a car's home currency leaves every pending entry pending, and the Log hides money it a | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.135 | EUR rates older than the service's own first run can NEVER be fetched, so a multi-year import s | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
 | RV.133 | "Needs a look" costs two taps and a dialog to accept one row, and cannot delete at all | `[x]` | TASKS-DONE.md · RV · Reviewer bugs (first TestFlight build, 2026-09-02/03) |
@@ -656,7 +656,6 @@ route through (Welcome, Reminders, the S5 notice, the post-sign-in push) exist o
 | **[ ]** PJ.22 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7 "app proposes the next reminder"; P3.4 never included it) **Lifetime editor** (km / months) on a service line item; on save create the proposal reminder anchored at the record's date/odometer, write `proposedReminderId` (always nil today, `ServiceEntryDraft.swift:122`), accept/decline line on the sheet; unlocks the km-lifetime odometer rule | L1: draft with lifetime -> one `Reminder` linked by `sourceEntryId`; decline writes none. L4 `ServiceEntryUITests`: proposal shown, accepted reminder appears in Reminders; EN+RU |
 | **[ ]** PJ.23 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7 "`.other` promoted later without data loss") **Edit entry edits service line items** (title / category / cost) and Expense category | L1: `.other("x")` -> `.oil` keeps title, cost, attachments, links. L4 `EditEntryUITests`; EN+RU |
 | **[ ]** PJ.24 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7c Complete; `SCREENMAP.md:134` "Scan invoice / Type") **"Scan invoice" on ReminderComplete** -> document camera -> ServiceEntry pre-filled with the completion (sheet offers Type and Skip only today) | L4 `RemindersUITests`: scan door present, lands in ServiceEntry with the completion pre-fill; EN+RU |
-| **[ ]** PJ.25 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7b Shelf "visible under Garage") **Parts shelf reachable** from VehicleDetail/Garage (only nested from ServiceEntry today) | L4 `VehicleDetailUITests` + `PartsShelfUITests` |
 | **[ ]** PJ.26 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7b "a tire purchase becomes a TireSet") **"Make this a tire set"** from a `.parts` Expense writing `purchaseExpenseId` (zero references today); the set shows its purchase | L1: link written once, set survives expense edit. L4 `TireSetsUITests` |
 | **[ ]** PJ.27 | **PRIORITY (product owner, 2026-08-31).** **[v1.x]** **gap** (J7b "swap reminder each season") **Seasonal swap reminder** created from a mount record (category `.tires`, recurrence by months) | L1: mount -> reminder anchored at mount date. L4 `TireSetsUITests` + `RemindersUITests` |
 | **[ ]** PJ.29 | **[v1.x]** **gap** (J7 "opt-in cloud LLM (tier 3) as the only model-assisted path") **Invoice pages through `/extract`** (opt-in, 3 s budget, fill-blanks-only), or a written decision that invoices stay rules-only (the gateway serves the fill-up path only today) | L1: late answer fills blank rows only. L4 `GatewayCaptureUITests` for the service path - or doc edits only |
