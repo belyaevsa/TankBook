@@ -62,14 +62,13 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.28** | flash | 666 | *armed at dispatch* | `agents/briefs/PJ.28.md` |
+| **PJ.25** | flash | 40172 | `bsfi7ltih` (persistent) | `agents/briefs/PJ.25.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
 | 4 | RV.117b **[v1.1]** | flash | *being written now* | The neighbourhood chart. RV.117a has landed, so its return shape (`ValidRange`) is known and the brief can be written; PJ.28 went first only because its brief was already on disk |
-| 6 | PJ.25 **[v1.x]** | flash | `agents/briefs/PJ.25.md` | Owner priority. A navigation row, not a feature one: the shelf is built and tested, it needs a door from the Garage |
 | 7 | PJ.19 **[v1.1]** | flash | `agents/briefs/PJ.19.md` | Owner priority. The ranking and the permission-optional location are genuinely unbuilt; the row's "inert label" half is already stale |
 
 ### Shipped this session (2026-09-08/09)
@@ -85,6 +84,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.146 | `20034fe` | The currency offer adapts to the car, the history and the region |
 | RV.147 | `62d0516` | Cost-per-km declines to report a figure it cannot state; filed RV.148 from its finding |
 | RV.117a | `e249a13` | The valid interval in core - the substance half of RV.117 |
+| PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
