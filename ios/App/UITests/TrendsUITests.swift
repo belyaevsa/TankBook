@@ -320,6 +320,29 @@ final class TrendsUITests: XCTestCase {
                       "Trends must carry the pending phrase that explains the absent figure")
     }
 
+    // MARK: - RV.147 a pending window never shows a plausible cost/km
+
+    /// The windowed COST / KM tile is a RATIO, so a rate-pending row inside its
+    /// 90-day window must not yield a plausible-but-low figure (RV.147) - the
+    /// old engine summed the pending rows as zero and the tile read `0.07 €` on
+    /// a car with entries still waiting on a rate. The tile must be ABSENT while
+    /// the window holds a pending row - never an understated bare number - with
+    /// the consumption tile still present (the car HAS data; only the window's
+    /// money is inexact) and the F9 footnote saying why.
+    /// `-seedHomeRV147Pending` dates its pending rows relative to launch so they
+    /// stay inside the trailing window on any run date.
+    func testRV147PendingWindowCostPerKmTilePrintsNoNumber() {
+        let app = launch(args: ["-seedHomeRV147Pending"])
+
+        XCTAssertTrue(anyElement(app, "trendsConsumptionTile").waitForExistence(timeout: 10),
+                      "the seeded car must render the consumption tile - without data the "
+                          + "absent cost/km tile proves nothing")
+        XCTAssertTrue(app.staticTexts["trendsPendingRatesFootnote"].waitForExistence(timeout: 10),
+                      "the pending phrase must explain the withheld figure")
+        XCTAssertFalse(anyElement(app, "trendsCostPerKmTile").exists,
+                       "a window holding a rate-pending row must not report a bare cost-per-km figure")
+    }
+
     // MARK: - Helpers
 
     private func anyElement(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {

@@ -186,7 +186,8 @@ struct HomeStatsTests {
         // Home does no arithmetic of its own: the stats ARE the engine's output.
         #expect(stats.headline == ConsumptionEngine.headline(segments: segments, asOf: Self.asOf))
         #expect(stats.lifetime == ConsumptionEngine.lifetime(segments: segments))
-        #expect(stats.costPerKm == ConsumptionEngine.costPerKm(entries: entries, asOf: Self.asOf))
+        #expect(stats.costPerKm == ConsumptionEngine.costPerKm(entries: entries, asOf: Self.asOf,
+                                                               homeCurrency: .eur))
     }
 
     // MARK: - RV.29: a foreign price never wears the home symbol

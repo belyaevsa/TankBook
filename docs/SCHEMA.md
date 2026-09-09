@@ -549,10 +549,27 @@ EV         same structure: segments between charges with known SoC, or simple kW
            sessions when odometer deltas exist; €/100km = window cost / window km (the household
            comparison needs nothing extra).
 COST/KM    all-in: Σ homeAmount of ALL entry types in window / km in window.
-           Its honest label follows the same rule as the headline: the span the
-           km data actually covers (never the full window when the data is
-           younger) - "last 3 months" over a full window, "last month" over two
-           weeks of readings.
+           Stated only when the window's money is EXACT (RV.147, decided
+           2026-09-09): every money-bearing row in the window has converted AND
+           the known figures share ONE home currency - the shared accumulator's
+           `.complete` (`LogStream.MonthTotal.Accumulator`, the same classifier
+           the Log divider and the month tiles reduce through, RV.112/RV.145).
+           This figure is a RATIO, and that is what makes a partial numerator
+           different here from a partial month sum: known money over a COMPLETE
+           odometer span is a number low by an unknown - possibly large -
+           amount that looks perfectly plausible, which is worse than a visibly
+           missing number. So while the window holds a rate-pending row the
+           tile reports NOTHING (the F9 footnote says why and names the next
+           step), exactly as the monthly cost/km series leaves a `.partial`
+           month a gap, never a point at an understated figure (RV.112). A
+           window whose known figures are homed in more than one currency also
+           reports nothing - no single number exists to divide (RV.145). The
+           reported figure carries the currency its amount is denominated in
+           (never the vehicle's by default) and its honest label follows the
+           same rule as the headline: the span the km data actually covers
+           (never the full window when the data is younger) - "last 3 months"
+           over a full window, "last month" over two weeks of readings. A
+           window with no km span has nothing to divide and is absent.
 ```
 
 

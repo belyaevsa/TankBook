@@ -315,6 +315,13 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
 
 // MARK: - Derived stats follow (hard rule 2)
 
+/// RV.147 rewrote the pre-backfill half of this contract: the old test asserted
+/// costPerKm = 0.1 with the pending PLN row SKIPPED (summed as nothing) - the
+/// exact defect RV.147 removes. A window holding a rate-pending row has NO
+/// exact cost-per-km: a partial numerator over the complete 1000 km span would
+/// be low by an unknown amount while looking plausible (docs/SCHEMA.md ->
+/// COST/KM). The figure is absent until the backfill lands and the window's
+/// money is exact.
 @Test func derivedCostPerKmFollowsBackfill() throws {
     let repo = try makeRepository()
     let vehicle = makeVehicle()
@@ -328,10 +335,10 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
                                      odometer: 2000, money: pendingMoney(currency: .pln, amount: "289.50")))
 
     let entriesBefore = try repo.liveEntries(forVehicle: vehicle.id)
-    let before = ConsumptionEngine.costPerKm(entries: entriesBefore, asOf: asOf)
-    #expect(before != nil)
-    // 100 EUR over 1000 km - the pending PLN entry is skipped before backfill.
-    #expect(abs(before! - 0.1) < 0.000_1)
+    let before = ConsumptionEngine.costPerKm(entries: entriesBefore, asOf: asOf,
+                                             homeCurrency: .eur)
+    #expect(before == nil,
+            "before backfill the window holds a rate-pending row - no exact cost/km exists (was the RV.147 defect)")
 
     let entryDay = asOf.addingTimeInterval(-3 * 86_400)
     let store = RateStore(seed: [
@@ -340,12 +347,15 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
     _ = try MoneyBackfillService(store: store).backfill(repo)
 
     let entriesAfter = try repo.liveEntries(forVehicle: vehicle.id)
-    let after = ConsumptionEngine.costPerKm(entries: entriesAfter, asOf: asOf)
+    let after = ConsumptionEngine.costPerKm(entries: entriesAfter, asOf: asOf,
+                                            homeCurrency: .eur)
     // 289.50 / 4.2706 = 67.79, computed here INDEPENDENTLY of the production
     // expression: (100 + 67.79) / 1000.
+    #expect(after?.amount == decimal("167.79"),
+            "once the rate lands the figure's amount is the exact converted sum, to the cent")
     let expected = (100.0 + 67.79) / 1000.0
-    #expect(abs(after! - expected) < 0.000_1)
-    #expect(after! != before!, "backfill must change the derived all-in cost/km")
+    #expect(abs((after?.perKm ?? 0) - expected) < 0.000_1)
+    #expect(after != before, "backfill must make the absent figure appear")
 }
 
 // MARK: - Pending count is real

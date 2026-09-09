@@ -122,7 +122,6 @@ struct TrendsView: View {
     ]
 
     private func tileGrid(_ stats: TrendsStats) -> some View {
-        let symbol = AddVehicleSupport.moneySymbol(for: stats.vehicle.homeCurrency)
         return LazyVGrid(columns: Self.twoColumns, spacing: 10) {
             if let headline = stats.home.headline {
                 StatTile(title: L10n.localize("Consumption"),
@@ -136,9 +135,9 @@ struct TrendsView: View {
             }
             if let costPerKm = stats.home.costPerKm, let spanMonths = stats.costPerKmSpanMonths {
                 StatTile(title: L10n.localize("Cost / km"),
-                         value: ManualFillUpFormat.decimal(costPerKm, fractionDigits: 2),
+                         value: ManualFillUpFormat.decimal(costPerKm.perKm, fractionDigits: 2),
                          identifier: "trendsCostPerKmTile",
-                         unit: symbol,
+                         unit: AddVehicleSupport.moneySymbol(for: costPerKm.currency),
                          caption: L10n.honestSpanLabel(.window(months: spanMonths)),
                          series: stats.costSeries.map(\.value),
                          trend: stats.costTrend)

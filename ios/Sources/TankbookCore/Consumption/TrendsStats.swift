@@ -88,8 +88,10 @@ public struct TrendsStats: Equatable, Sendable {
     /// series' final point IS the tile's figure.
     public let priceSeries: [TrendPoint]
     /// The honest span of the cost/km figure in months: the time its km span
-    /// actually covers, never the full window when the data is younger
-    /// (the same honesty rule as the headline's label).
+    /// actually covers, never the full window when the data is younger (the
+    /// same honesty rule as the headline's label). `nil` whenever the figure
+    /// itself is absent (RV.147) - a window whose money is not exact has no
+    /// figure, so it has no span label to describe one.
     public let costPerKmSpanMonths: Int?
     /// Entries still waiting on a rate - the F9 "N entries pending rates"
     /// footnote count. Delegated to `HomeStats`, which computes it from the
@@ -130,7 +132,14 @@ public struct TrendsStats: Equatable, Sendable {
         self.spendSeries = Self.monthlySpendSeries(entries: countingEntries, calendar: calendar, asOf: asOf,
                                                    vehicleHome: vehicle.homeCurrency)
         self.priceSeries = Self.priceSeries(entries: countingEntries, vehicleHome: vehicle.homeCurrency)
-        self.costPerKmSpanMonths = Self.costPerKmSpanMonths(entries: countingEntries, asOf: asOf)
+        // The span label describes the figure that is actually shown: when the
+        // window's money is not exact (a pending row, or mixed home currencies),
+        // the figure is absent and no label may claim a span for a number that
+        // is not there (RV.147 - a caption over nothing is the same lie in
+        // smaller type).
+        self.costPerKmSpanMonths = self.home.costPerKm == nil
+            ? nil
+            : Self.costPerKmSpanMonths(entries: countingEntries, asOf: asOf)
     }
 
     // MARK: - Series derivation (all on top of the engine)

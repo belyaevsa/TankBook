@@ -71,7 +71,8 @@ enum HomeTestSeed {
             ("-seedHomeRV142Log", RV142HomeTestSeed.seedLog),
             ("-seedHomeRV142KindRepeat", RV142HomeTestSeed.seedKindRepeat),
             ("-seedHomeRV145Owner", RV145HomeTestSeed.seedOwner),
-            ("-seedHomeRV145Mixed", RV145HomeTestSeed.seedMixed)
+            ("-seedHomeRV145Mixed", RV145HomeTestSeed.seedMixed),
+            ("-seedHomeRV147Pending", RV147HomeTestSeed.seedPending)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }

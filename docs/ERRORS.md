@@ -128,7 +128,13 @@ plotted at its known-so-far sum and a `.pending` month is not plotted at zero - 
 path there and the bar chart leaves the slot empty, so the absence reads as unknown, never as a
 drop. A `.mixed` month (known figures spanning home currencies, RV.145) is a hole for the same
 reason: no single number exists to plot. The F9 footnote carries the pending phrase whenever such
-a month is inside the plotted window.
+a month is inside the plotted window. **The windowed COST / KM headline follows the monthly series,
+one surface further out (RV.147).** A cost-per-km is a RATIO: a partial numerator (pending rows
+omitted) over a COMPLETE odometer denominator is low by an unknown amount while looking perfectly
+plausible - worse than a visibly missing number - so the tile reports nothing while any
+money-bearing row inside its 90-day window is still waiting on a rate, and nothing when the
+window's known figures span home currencies. The tile appears the moment the rates land; until
+then the F9 footnote says why.
 
 **A row dated outside the pack window needs the DEMAND check, and its empty answer is a dead
 end (RV.111).** The launch pass refreshes the rolling 400 days only, so a row from a
@@ -297,7 +303,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Entries excluded (conflicts/duplicates) | Footnote "N entries excluded" (real plural rules, EN + RU) | Tap → the flagged entry |
-| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **A rate-pending month is a GAP in the spend/cost charts, never a dipped bar or point** (RV.112); the spend TILE prints no number for a `.pending` month and marks a `.partial` one with the pending phrase (docs/DESIGN.md -> Trends) | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
+| Entries pending a rate (F9) | Passive footnote "N entries pending rates" (real plural rules, EN + RU) with a **"Check for rates"** action (RV.106: hard rule 7 - the count names its next step). **A rate-pending month is a GAP in the spend/cost charts, never a dipped bar or point** (RV.112); the spend TILE prints no number for a `.pending` month and marks a `.partial` one with the pending phrase (docs/DESIGN.md -> Trends). **The windowed COST / KM tile reports a figure only when its 90-day window's money is exact (RV.147)**: a rate-pending row - or known figures homed in more than one currency - inside the window withholds the tile ENTIRELY, never a plausible-but-low `0.07 €`. The figure is a RATIO, so an understated numerator over a complete odometer span is low by an unknown amount while looking real - absent (with this footnote saying why) reads as unknown, which is the truth | Check for rates (RV.111: a DEMAND drain over the pending rows' own dates) · wait (rows fill automatically once the archive reaches their dates) · edit the entry → the conversion card offers a manual rate, see Home's F9 note |
 | Below data floor | Honest label: "first estimate · 1 fill cycle" / extended window "last 5 months" | Keep logging; label explains itself |
 | Anomaly detected (J9) | Amber insight card with evidence chart | Act (creates reminder) · dismiss with reason (teaches the model) |
 

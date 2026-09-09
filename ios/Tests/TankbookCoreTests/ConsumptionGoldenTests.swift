@@ -447,14 +447,15 @@ private func round2(_ value: Double) -> Double {
     )
     // Window km span: 100600 - 100000 = 600 km. Home total: 50 + 200 = 250.
     let perKm = ConsumptionEngine.costPerKm(entries: [fuel, service, expense],
-                                            windowDays: 90, asOf: asOf)
-    #expect(abs((perKm ?? 0) - 250.0 / 600.0) < 0.001)
+                                            windowDays: 90, asOf: asOf, homeCurrency: .eur)
+    #expect(perKm?.amount == 250, "the exact converted sum, to the cent")
+    #expect(abs((perKm?.perKm ?? 0) - 250.0 / 600.0) < 0.001)
 
     // Out-of-window entries contribute neither money nor km span: fuel and
     // service span 100500 - 100000 = 500 km; late's 9999 EUR is excluded.
     var late = makeFill(date: asOf + 200 * day, odometer: 110_000, litres: 40, isFull: true)
     late.money = Money(amount: 9_999, currency: .eur, homeCurrency: .eur)
     let latePerKm = ConsumptionEngine.costPerKm(entries: [fuel, service, late],
-                                                windowDays: 90, asOf: asOf)
-    #expect(abs((latePerKm ?? 0) - 50.0 / 500.0) < 0.001)
+                                                windowDays: 90, asOf: asOf, homeCurrency: .eur)
+    #expect(abs((latePerKm?.perKm ?? 0) - 50.0 / 500.0) < 0.001)
 }

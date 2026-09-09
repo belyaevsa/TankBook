@@ -43,8 +43,16 @@ public struct HomeStats: Equatable, Sendable {
     public let headlineTrend: TrendDirection?
     /// All-history distance-weighted consumption; `nil` with no usable distance.
     public let lifetime: Double?
-    /// All-in cost per km over the window; `nil` with no km span in the window.
-    public let costPerKm: Double?
+    /// All-in cost per km over the window, stated only when the window's money
+    /// is exact (RV.147): every money-bearing row converted and the known
+    /// figures sharing one home currency. A window holding a rate-pending row -
+    /// or known figures homed in more than one currency - has NO figure, `nil`,
+    /// and the F9 footnote says why: a partial numerator over a complete
+    /// odometer denominator would be low by an unknown amount while looking
+    /// plausible (docs/SCHEMA.md -> COST/KM). The figure carries the currency
+    /// its amount is denominated in. `nil` also when no km span exists in the
+    /// window.
+    public let costPerKm: CostPerKmFigure?
     /// Sum of home-currency spend in the calendar month containing `asOf`,
     /// stated exactly as honestly as the data allows (docs/ERRORS.md -> Home,
     /// F9). A rate-pending row's home amount is not known, so it is never
@@ -123,7 +131,8 @@ public struct HomeStats: Equatable, Sendable {
         self.headlineTrend = TrendDirection.lowerIsBetter(
             segments.sorted { $0.closes < $1.closes }.map(\.per100))
         self.lifetime = ConsumptionEngine.lifetime(segments: segments)
-        self.costPerKm = ConsumptionEngine.costPerKm(entries: countingEntries, asOf: asOf)
+        self.costPerKm = ConsumptionEngine.costPerKm(entries: countingEntries, asOf: asOf,
+                                                      homeCurrency: vehicle.homeCurrency)
         self.monthSpend = Self.monthSpend(entries: countingEntries, asOf: asOf, calendar: calendar,
                                           vehicleHome: vehicle.homeCurrency)
         self.lastUnitPrice = Self.lastUnitPrice(entries: countingEntries,

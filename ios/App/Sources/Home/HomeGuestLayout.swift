@@ -93,10 +93,18 @@ struct HomeGuestLayout: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
+            // The per-km column states the figure only when it is EXACT
+            // (RV.147): a window holding a rate-pending row - or known figures
+            // homed in more than one currency - has no cost-per-km, so the
+            // column is omitted and the F9 footnote below says why (a partial
+            // numerator over a complete km span would be low by an unknown
+            // amount while looking plausible). The symbol is the figure's OWN
+            // currency, never the car's by default.
             if let cost = stats.costPerKm {
                 Divider().overlay(Theme.Palette.hairline).frame(height: 40)
                 vitalColumn(label: L10n.localize("per km"),
-                            value: HomeFormat.costPerKm(cost, symbol: symbol(stats)),
+                            value: HomeFormat.costPerKm(cost.perKm,
+                                                        symbol: AddVehicleSupport.moneySymbol(for: cost.currency)),
                             identifier: "homeCostPerKmTile")
             }
             // The month-spend column states exactly what the month divider may
@@ -152,13 +160,6 @@ struct HomeGuestLayout: View {
             return String(format: L10n.localize("updated %@"), HomeFormat.day(updatedAt))
         }
         return String(format: L10n.localize("added %@"), HomeFormat.day(stats.vehicle.createdAt))
-    }
-
-    /// The money figures this strip derives are in the vehicle's home currency
-    /// (cost/km); a currency whose symbol is not distinct from its code falls
-    /// back to the code (RV.145) - a figure never renders bare.
-    private func symbol(_ stats: HomeStats) -> String {
-        AddVehicleSupport.moneySymbol(for: stats.vehicle.homeCurrency)
     }
 
     /// The caption under a spend figure: the pending phrase when rows still

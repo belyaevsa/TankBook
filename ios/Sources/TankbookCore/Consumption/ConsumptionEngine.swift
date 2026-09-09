@@ -77,6 +77,35 @@ extension Headline.Label {
     }
 }
 
+/// The all-in cost-per-km figure over a window (docs/SCHEMA.md, Derived:
+/// consumption -> COST/KM), as an EXACT statement only: `amount` is the full,
+/// converted home sum over the window in `currency`, and the figure exists
+/// solely when no money-bearing row in the window is still rate-pending and the
+/// known figures share one home currency (RV.147). `nil` in its place means the
+/// window cannot state a figure - the tile is omitted, never a plausible
+/// understatement. Carrying the amount and its currency together means a
+/// renderer cannot pair the figure with a foreign symbol (the RV.145 rule, now
+/// applied to the ratio).
+public struct CostPerKmFigure: Equatable, Sendable {
+    /// The exact Σ homeAmount the ratio is built on, in `currency`.
+    public let amount: Decimal
+    /// The currency `amount` is denominated in - the marker to print beside it.
+    public let currency: CurrencyCode
+    /// The odometer span dividing `amount` (the ratio's known denominator).
+    public let km: Double
+    /// The ratio as displayed: `amount / km`. Money stays Decimal in `amount`;
+    /// the Double is the final rendered rate, computed exactly as before.
+    public var perKm: Double {
+        (amount as NSDecimalNumber).doubleValue / km
+    }
+
+    public init(amount: Decimal, currency: CurrencyCode, km: Double) {
+        self.amount = amount
+        self.currency = currency
+        self.km = km
+    }
+}
+
 /// Pure consumption math (docs/SCHEMA.md, Derived: consumption). All functions
 /// are stateless: derived values are computed on demand and NEVER cached or
 /// stored. Any change to any FillUp of a vehicle triggers a full recompute via
@@ -186,24 +215,40 @@ public enum ConsumptionEngine {
 
     // MARK: Cost
 
-    /// All-in cost per km: Σ homeAmount of ALL entry types (FillUp, ChargeSession,
-    /// ServiceRecord, Expense) inside the window, divided by the odometer span
-    /// covered inside that window (docs/SCHEMA.md, Derived: consumption ->
-    /// COST/KM). `nil` when no km span exists in the window. Money stays Decimal;
-    /// only the final rate is exposed as Double.
+    /// All-in cost per km, stated only when the window's money is EXACT
+    /// (RV.147, docs/SCHEMA.md, Derived: consumption -> COST/KM).
+    ///
+    /// A cost-per-km is a RATIO: a partial numerator (rate-pending rows omitted)
+    /// over a COMPLETE odometer denominator is low by an unknown amount while
+    /// looking perfectly plausible - worse than a visibly missing number. So the
+    /// figure exists only when the shared month classifier (the same accumulator
+    /// the Log divider and the month tiles reduce through, RV.112/RV.145) calls
+    /// the window `.complete`: every money-bearing row has converted AND the
+    /// known figures share one home currency. A window holding a rate-pending
+    /// row, or known figures homed in more than one currency, has NO figure -
+    /// the tile is absent and the F9 footnote says why. `amount` is exact in
+    /// `currency` (never the vehicle's by default - the figure carries its own
+    /// marker, RV.145).
     public static func costPerKm(entries: [any Entry], windowDays: Int = 90,
-                                 asOf: Date) -> Double? {
+                                 asOf: Date, homeCurrency: CurrencyCode) -> CostPerKmFigure? {
         let start = asOf.addingTimeInterval(-Double(windowDays) * 86400)
         let inWindow = entries.filter { $0.date >= start && $0.date <= asOf }
-        let homeTotal = inWindow.reduce(Decimal.zero) { partial, entry in
-            guard let homeAmount = entry.money?.homeAmount else { return partial }
-            return partial + homeAmount
+        var accumulator = LogStream.MonthTotal.Accumulator(vehicleHome: homeCurrency)
+        accumulator.add(contentsOf: inWindow.map(\.money))
+        let known: (amount: Decimal, currency: CurrencyCode)
+        switch accumulator.monthTotal {
+        case .complete(let amount, let currency):
+            known = (amount, currency)
+        case .partial, .mixed, .pending:
+            // A pending row has no home amount yet, and a partial or mixed
+            // window has no exact total to divide - never an understated figure.
+            return nil
         }
         let odometers = inWindow.compactMap(\.odometer)
         guard let maxOdo = odometers.max(), let minOdo = odometers.min(),
               maxOdo > minOdo else { return nil }
         let km = Double(maxOdo - minOdo)
-        return (homeTotal as NSDecimalNumber).doubleValue / km
+        return CostPerKmFigure(amount: known.amount, currency: known.currency, km: km)
     }
 
     // MARK: EV

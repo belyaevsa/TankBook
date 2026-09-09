@@ -118,7 +118,7 @@ struct TrendsLabelTests {
                            amount: Decimal(string: "60")!)
         let fuelOnly = TrendsStats(vehicle: Self.vehicle(), entries: [f1, f2], asOf: Self.asOf).home.costPerKm
         // 110 EUR over the 800 km window span.
-        #expect(abs((fuelOnly ?? 0) - 110.0 / 800.0) < 0.0001)
+        #expect(abs((fuelOnly?.perKm ?? 0) - 110.0 / 800.0) < 0.0001)
 
         let service = ServiceRecord(
             id: UUID.v7(), createdAt: Self.asOf, updatedAt: Self.asOf, deletedAt: nil,
@@ -130,7 +130,7 @@ struct TrendsLabelTests {
 
         let withService = TrendsStats(vehicle: Self.vehicle(),
                                       entries: [f1, f2, service], asOf: Self.asOf).home.costPerKm
-        #expect(abs((withService ?? 0) - (110.0 + 148.0) / 800.0) < 0.0001,
+        #expect(abs((withService?.perKm ?? 0) - (110.0 + 148.0) / 800.0) < 0.0001,
                 "a service record must move the all-in cost/km")
         #expect(withService != fuelOnly)
     }

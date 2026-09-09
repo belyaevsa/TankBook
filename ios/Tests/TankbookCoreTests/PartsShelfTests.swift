@@ -123,8 +123,9 @@ import Testing
                                                  vehicleId: vehicle.id, id: serviceId))
 
         func entries() throws -> [any Entry] { try repo.liveEntries(forVehicle: vehicle.id) }
-        func rate() throws -> Double? {
-            ConsumptionEngine.costPerKm(entries: try entries(), windowDays: 90, asOf: asOf)
+        func rate() throws -> CostPerKmFigure? {
+            ConsumptionEngine.costPerKm(entries: try entries(), windowDays: 90, asOf: asOf,
+                                        homeCurrency: .eur)
         }
 
         // The expected rate: every amount counted exactly once, over the fill
@@ -138,7 +139,7 @@ import Testing
 
         let before = try rate()
         #expect(before != nil)
-        #expect(abs((before ?? 0) - expected) < 0.001, "pre-link rate must count each amount once")
+        #expect(abs((before?.perKm ?? 0) - expected) < 0.001, "pre-link rate must count each amount once")
 
         // Link every part, one at a time; the rate must not move and the
         // service's money (the number that WOULD re-price a part) must not move.
@@ -149,7 +150,7 @@ import Testing
             (expense, service) = PartsShelf.link(expense, to: service)
             try repo.saveLink(expense: expense, service: service)
             let after = try rate()
-            #expect(abs((after ?? 0) - expected) < 0.001, "linking must not move cost/km")
+            #expect(abs((after?.perKm ?? 0) - expected) < 0.001, "linking must not move cost/km")
             let serviceAfter = try repo.liveServiceRecords(forVehicle: vehicle.id).first { $0.id == serviceId }!
             #expect(serviceAfter.money == serviceMoneyBefore, "linking re-prices nothing")
         }
@@ -161,7 +162,7 @@ import Testing
             (expense, service) = PartsShelf.unlink(expense, from: service)
             try repo.saveLink(expense: expense, service: service)
             let after = try rate()
-            #expect(abs((after ?? 0) - expected) < 0.001, "unlinking must not move cost/km")
+            #expect(abs((after?.perKm ?? 0) - expected) < 0.001, "unlinking must not move cost/km")
         }
 
         // Relink: still identical.
@@ -172,7 +173,7 @@ import Testing
             try repo.saveLink(expense: expense, service: service)
         }
         let relinked = try rate()
-        #expect(abs((relinked ?? 0) - expected) < 0.001, "relinking must not move cost/km")
+        #expect(abs((relinked?.perKm ?? 0) - expected) < 0.001, "relinking must not move cost/km")
     }
 
     // MARK: - Both sides of the link are written
@@ -244,9 +245,10 @@ import Testing
 
         // The all-in rate counts 40 + 42 + 12.40 + 89 exactly once each over 1000 km.
         let entries = try repo.liveEntries(forVehicle: vehicle.id)
-        let rate = ConsumptionEngine.costPerKm(entries: entries, windowDays: 90, asOf: asOf)
+        let rate = ConsumptionEngine.costPerKm(entries: entries, windowDays: 90, asOf: asOf,
+                                               homeCurrency: .eur)
         let expected = (40.0 + 42.0 + 12.40 + 89.0) / 1000.0
-        #expect(abs((rate ?? 0) - expected) < 0.001)
+        #expect(abs((rate?.perKm ?? 0) - expected) < 0.001)
     }
 
     // MARK: - Shelf membership
