@@ -63,7 +63,6 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
 | **RV.149** | flash | 2769 | `b926dohek` (persistent) | `agents/briefs/RV.149.md` |
-| **REVIEW-JOURNEYS-b** *(read-only)* | pro | 4756 | `b7wf886sx` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-09b.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -78,7 +77,9 @@ collide, and two Swift agents starting in the same second still hit `database is
 |---|---|---|
 | 1 | **RV.160** | Sending feedback looks like nothing happened. User-facing, small, and `RV.132` already settled the pattern |
 | 2 | **RV.159** | Two consents look identical and only one gates sending. Comprehension defect - the agent must decide and record the treatment. Pairs naturally with `RV.141`'s footnote-reads-as-a-label observation |
-| 3 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. **Blocked on a product call**: does the rung stay (and something must set it) or go? Do not brief it until that is answered |
+| 3 | **PJ.57** | The excluded-entries footnote link renders identically to the passive caption. From the 2026-09-09b walk, verified in code AND in the screenshot; it is `RV.141`'s last step and `RV.83` already settled the affordance. Small, and pairs with `RV.159` |
+| 4 | **PJ.56** | A `.mixed`/`.pending` purchase-group header states nothing while the divider over the same figure speaks. From the 2026-09-09b walk. Needs one design call on what `.mixed` says |
+| 5 | **PJ.55** | Rung 1 of the station ranking reads `favorite`, which nothing can set. **Blocked on a product call**: does the rung stay (and something must set it) or go? Do not brief it until that is answered |
 
 **Tier 2 - guards that stop the recurrence, cheapest first.**
 
@@ -175,7 +176,7 @@ run history stays honest about what was and was not walked:
 |---|---|---|---|
 | 2026-08-29 | `REVIEW-JOURNEYS.md` (4 agents) | all groups | 66 `PJ` rows |
 | 2026-09-09 | `REVIEW-JOURNEYS-2026-09-09.md` | deep on J4 / J7b / money+rates / feedback | `PJ.55` |
-| 2026-09-09b | `REVIEW-JOURNEYS-2026-09-09b.md` | **Group A + Group B** - the half the morning run left | *in flight* |
+| 2026-09-09b | `REVIEW-JOURNEYS-2026-09-09b.md` | **Group A + Group B** - the half the morning run left | `PJ.56`, `PJ.57`; **0 ticked-but-untrue** |
 
 **Next run: Group C + Group D**, which neither run today covered.
 
