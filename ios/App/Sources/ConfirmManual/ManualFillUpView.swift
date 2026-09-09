@@ -46,8 +46,11 @@ struct ManualFillUpView: View {
     @State var existingEntries: [any Entry] = []
     /// PJ.14: the last-known odometer + entry date, driving the live delta caption.
     @State private var lastKnown: OdometerLastKnown?
-    @State private var stations: [Station] = []
-    @State private var selectedStation: Station?
+    @State var stations: [Station] = []
+    @State var selectedStation: Station?
+    /// PJ.19: a user's own menu pick; never overwritten by a later ranking pass
+    /// (hard rule 13). Non-private: the suggestion extension reads and sets it.
+    @State var stationChosenByUser = false
     @State var currencyLowConfidence = false
     @State private var showDatePicker = false
     @State private var showTankLevel = false
@@ -111,27 +114,6 @@ struct ManualFillUpView: View {
     /// draw-in degrades to a plain state change - the tick still appears, just
     /// without the animation. The launch-argument override exists so a UI test
     /// can pin the setting it cannot reach through XCUITest.
-    /// A currency needing attention renders ABOVE the numbers card; the folded
-    /// home-currency case sits below it. Opening itself below the fold would not
-    /// be opening at all.
-    private var currencyNeedsAttention: Bool {
-        guard let vehicle else { return false }
-        return ManualFillUpCurrencySection.needsAttention(
-            currency: form.currency, homeCurrency: vehicle.homeCurrency,
-            lowConfidence: currencyLowConfidence, state: conversionState)
-    }
-
-    @ViewBuilder
-    private var currencySection: some View {
-        if let vehicle {
-            ManualFillUpCurrencySection(
-                form: $form,
-                homeCurrency: vehicle.homeCurrency,
-                lowConfidence: currencyLowConfidence,
-                state: conversionState, offer: currencyOffer(vehicle: vehicle))
-        }
-    }
-
     private var reduceMotion: Bool {
         accessibilityReduceMotion || ProcessInfo.processInfo.arguments.contains("-forceReduceMotion")
     }
@@ -167,7 +149,8 @@ struct ManualFillUpView: View {
                                              onFixDate: { showDatePicker = true },
                                              lastKnown: lastKnown,
                                              paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
-                    ManualFillUpStationRow(stations: stations, selection: $selectedStation)
+                    ManualFillUpStationRow(stations: stations, selection: $selectedStation,
+                                           onChose: { stationChosenByUser = true })
                     ManualFillUpFuelFullCard(form: $form, fuelKinds: vehicle!.fuelKinds)
                     FuelKindMismatchNotice(scannedKind: prefill?.extraction?.fuelKind, fuelKinds: vehicle!.fuelKinds)
                     if !form.isFull {
@@ -324,6 +307,9 @@ struct ManualFillUpView: View {
                 detectMixedReceipt(prefill)
                 startGatewayReading(prefill: prefill)
             }
+            // PJ.19: run the station suggestion before the snapshots, so the
+            // pre-fill is never an edit.
+            runStationSuggestion(vehicle: vehicle)
             // The pre-fill snapshots are taken AFTER the convenience pre-fills
             // (odometer, date, extraction): none of them count as an edit.
             form.initialOdometer = form.odometer
@@ -332,6 +318,7 @@ struct ManualFillUpView: View {
             form.initialLiters = form.liters
             form.initialPricePerL = form.pricePerL
             form.initialManualRate = form.manualRate
+            form.initialFuelKind = form.fuelKind
             // P6.3: touch tracking is armed only after the load-time pre-fills
             // have been written - from now on, a change is a user touch.
             gatewayTouchTrackingArmed = true

@@ -83,6 +83,12 @@ struct ManualFillUpFormState: Equatable {
     var initialLiters = ""
     var initialPricePerL = ""
     var initialManualRate = ""
+    /// PJ.19: the fuel kind as the sheet opened it - the vehicle default, a
+    /// scan's kind or the ranked station's last-visit default. The discard
+    /// guard compares against THIS, not the vehicle default, so a convenience
+    /// pre-fill (the station suggestion's fuel default) is not an edit; a fuel
+    /// the user changes after the sheet opens is.
+    var initialFuelKind: FuelKind?
 
     // MARK: Parsing
 
@@ -180,7 +186,7 @@ struct ManualFillUpFormState: Equatable {
         if OdometerFormat.ungrouped(odometer) != OdometerFormat.ungrouped(initialOdometer) { return true }
         if !Calendar.current.isDate(date, inSameDayAs: initialDate) { return true }
         if !isFull { return true }
-        if fuelKind != (vehicle.fuelKinds.first ?? .petrol95) { return true }
+        if fuelKind != (initialFuelKind ?? vehicle.fuelKinds.first ?? .petrol95) { return true }
         if currency != vehicle.homeCurrency { return true }
         if manualRate != initialManualRate { return true }
         return false

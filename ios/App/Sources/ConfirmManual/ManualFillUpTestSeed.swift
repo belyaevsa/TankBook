@@ -15,6 +15,13 @@ import TankbookCore
 /// argument stays a modifier on `-seedVehicleForUITests`, never a separate
 /// harness flag, because WelcomeGate's tabbed-app decision keys on the parent
 /// flag.
+///
+/// PJ.19 station suggestion fixture: `-seedStationSuggestion` (a modifier on
+/// the same parent flag) adds two stations - a favourite ("Prima Auto") at a
+/// fixed coordinate and a plain "Circle K Sadama" ~40 m east of it. The UI
+/// tests inject the favourite's own coordinate with `-seedStationLocation`, so
+/// rung 1 of the ranking (nearest favourite within 300 m) deterministically
+/// proposes Prima Auto and the row is then provably changeable.
 enum ManualFillUpTestSeed {
     /// The seeded car's fuel kinds, from a launch argument (P2.3b). The
     /// default is a single-kind petrol car - the only kind of car that exists
@@ -85,6 +92,37 @@ enum ManualFillUpTestSeed {
             fuelKind: fuelKinds.first ?? .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
             stationId: nil, crossCheck: .verified, extraction: nil)
         try? repository.upsertFillUp(prior)
+
+        // PJ.19: the two-station fixture (see the type doc). Coordinates are
+        // fixed so a test-injected location can make a specific station the
+        // ranking's winner deterministically.
+        if arguments.contains("-seedStationSuggestion") {
+            seedStationSuggestionStations(repository: repository, now: now)
+        }
+    }
+
+    /// The two stations of the PJ.19 fixture. Prima Auto is the favourite at
+    /// the coordinate the tests inject; Circle K Sadama is ~40 m east, not a
+    /// favourite and never used, so it can only win after the user's own menu
+    /// pick - never from rung 1.
+    private static func seedStationSuggestionStations(repository: TankbookRepository,
+                                                      now: Date) {
+        let prima = Station(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Prima Auto", brand: nil,
+            location: GeoCoordinate(latitude: 59.4378, longitude: 24.7536),
+            favorite: true,
+            defaults: Station.Defaults(fuelKind: .petrol95, fuelGrade: nil),
+            lastUsedAt: nil)
+        let circleK = Station(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Circle K Sadama", brand: nil,
+            location: GeoCoordinate(latitude: 59.4378, longitude: 24.7543),
+            favorite: false,
+            defaults: Station.Defaults(fuelKind: .petrol95, fuelGrade: nil),
+            lastUsedAt: nil)
+        try? repository.upsertStation(prima)
+        try? repository.upsertStation(circleK)
     }
 }
 #endif

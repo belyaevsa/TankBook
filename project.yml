@@ -54,6 +54,10 @@ targets:
         GoogleClientID: "$(TANKBOOK_GOOGLE_CLIENT_ID)"
         NSCameraUsageDescription: "Tankbook uses the camera to scan receipts and pump displays so you do not have to type them."
         NSPhotoLibraryUsageDescription: "Tankbook uses your photo library so you can log a receipt from an existing photo when the camera is not available."
+        # PJ.19: the station ranking reads the device location while the Confirm
+        # sheet is open (never at launch). The description is a REQUIRED key -
+        # requestWhenInUseAuthorization without one crashes.
+        NSLocationWhenInUseUsageDescription: "Tankbook uses your location to suggest the fuel station you are at, so you have less to type."
     entitlements:
       # The file at this path is GENERATED from `properties` on every
       # `xcodegen generate` - it is not a file to hand-edit. Editing

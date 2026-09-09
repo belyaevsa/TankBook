@@ -12,4 +12,25 @@ extension ManualFillUpView {
             history: CurrencyHistory.recentCurrencies(in: existingEntries),
             region: Locale.current.region?.identifier)
     }
+
+    /// A currency needing attention renders ABOVE the numbers card; the folded
+    /// home-currency case sits below it. Opening itself below the fold would not
+    /// be opening at all.
+    var currencyNeedsAttention: Bool {
+        guard let vehicle else { return false }
+        return ManualFillUpCurrencySection.needsAttention(
+            currency: form.currency, homeCurrency: vehicle.homeCurrency,
+            lowConfidence: currencyLowConfidence, state: conversionState)
+    }
+
+    @ViewBuilder
+    var currencySection: some View {
+        if let vehicle {
+            ManualFillUpCurrencySection(
+                form: $form,
+                homeCurrency: vehicle.homeCurrency,
+                lowConfidence: currencyLowConfidence,
+                state: conversionState, offer: currencyOffer(vehicle: vehicle))
+        }
+    }
 }

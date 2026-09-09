@@ -518,6 +518,10 @@ struct ManualFillUpOdometerCard: View {
 struct ManualFillUpStationRow: View {
     let stations: [Station]
     @Binding var selection: Station?
+    /// PJ.19: called when the USER picks a station from the menu - the moment
+    /// that makes the pick theirs (hard rule 13), so no later suggestion pass
+    /// may move it.
+    var onChose: () -> Void = {}
 
     /// A chosen station's name is runtime data; the placeholder is copy. Coalescing
     /// them into one `String` sends the literal through `Text(_: String)`, which
@@ -552,6 +556,7 @@ struct ManualFillUpStationRow: View {
                     ForEach(stations, id: \.id) { station in
                         Button {
                             selection = station
+                            onChose()
                         } label: {
                             Text(station.name)
                         }

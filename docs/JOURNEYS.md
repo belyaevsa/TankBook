@@ -93,6 +93,21 @@ open, and is never stored on the entry – only `Station.location` is written, a
 user saves a fill at a station the app has no coordinate for (`SCHEMA.md` → Station). Offline is
 a non-event: the ranking is local (F3). Coordinates are Sensitive and never logged (hard rule 12).
 
+**Implementation note (PJ.19, shipped 2026-09-09).** The ranking above is now a pure core
+function (`StationSuggestion`, L1-tested over injected coordinates, no CoreLocation) called once
+per Confirm sheet as a default input: it pre-selects the winning station, and pre-fills the
+station's recorded last-visit fuel kind when the fuel row is still the sheet's untouched default
+and the scan resolved no kind of its own. The permission ask fires **once, ever** (persisted),
+only when a prior fill-up is on the car AND a station is on file; a `.restricted` status behaves
+exactly like a denial. Rung 3's "most recently used for this car" is derived from the VEHICLE's
+fill history – the station of its most recent fill-up that names one – because
+`Station.lastUsedAt` is account-level, not per vehicle; rungs 1–2 rank on `Station.location` and
+`Station.lastUsedAt`. A suggestion that arrives after the user has picked a station is never
+applied (hard rule 13). **Deliberately not in PJ.19, still unbuilt:** the save path does not yet
+write `Station.lastUsedAt`, `Station.defaults` or a missing `Station.location` back when a fill
+is saved at a station, so the fields rungs 1–2 rank on are today populated by imports and (in
+tests) seeds.
+
 **Success metric:** pump-photo share of all captures (target ≥15% – proves the niche is real); extraction accuracy ≥95% on the confirm screen.
 
 ### J3b · Type it (the peer path, every locale)

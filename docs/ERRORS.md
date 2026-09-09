@@ -245,8 +245,8 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 
 > **Superseded (2026-09-05, RV.71):** the 2026-08-30 AdBlue row that once sat here ("warn under the fuel row → 'This car isn't set up for AdBlue - add it to the car?' → one tap adds `.adBlue` to the car's fuel kinds") described a flow the v1 build does not carry - `.adBlue` is not in the shipped `FuelKind` enum (its SCHEMA plan is unchanged). The same shape - *kind not in the car's offer set* - is now governed by the RV.71 row above, and RV.71 decided **against** the mid-capture add-to-car offer: per-car fuel kinds are a Garage setting (docs/DESIGN.md), a possibly-misread scan value is the least trustworthy source for a config change, and the row must not put a modal question in the capture path. The warn names the check instead; logging a kind the car does not declare never required declaring it (hard rule 13).
 
-| Station: nothing to suggest yet (no stations on file; or PJ.19 not shipped) | none – `inkSoft` placeholder "Not set" | – | Type or pick one later; the row is never action-coloured while it cannot act |
-| Station: location denied (PJ.19) | none – no banner, no re-prompt | – | The ranking runs without its distance rungs: the car's most recent station is still proposed |
+| Station: nothing to suggest yet (no stations on file, or none ever used by this car - PJ.19) | none – `inkSoft` placeholder "Not set" | – | Type or pick one later; the row is never action-coloured while it cannot act |
+| Station: location denied or restricted (PJ.19) | none – no banner, no re-prompt | – | The ranking runs without its distance rungs: the car's most recent station is still proposed |
 | Station: none within 300 m (PJ.19) | none | – | Falls through to the most recent station, else "Not set" |
 
 ### Tank level (sheet)

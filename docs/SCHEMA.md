@@ -421,6 +421,8 @@ Station {
   favorite: Bool
   defaults: { fuelKind: FuelKind?, fuelGrade: String? }   // pre-fill on next visit (smart defaults)
   // Suggestion ranking (favourite ≤300 m → last-used ≤300 m → most recent for the car → none): docs/JOURNEYS.md → J4, PJ.19
+  // Rung 3's "most recent for the car" is derived from the vehicle's fill history, never from
+  // lastUsedAt (which is account-level, not per vehicle): see JOURNEYS.md → J4 → Implementation note.
   lastUsedAt: Date?
 }
 ```
