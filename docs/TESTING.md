@@ -155,6 +155,23 @@ saving worth reasoning about.
    build to save a minute; both have cost far more than a minute exactly once, which is why they are
    now unconditional in their column.
 
+### The money-aggregation guard (RV.167)
+
+`MoneyHomeSideSumGuardTests` is a source-scan guard (same shape as `SyncTriggerSourceGuardTests`,
+`PaletteAccentGuardTests`) that makes bypassing `LogStream.MonthTotal.Accumulator` a build failure.
+The zero-summing defect - a rate-pending row's missing `homeAmount` banked as zero - was fixed one
+surface at a time over six rows (RV.106, RV.112, RV.145, RV.147, RV.166), each time because nothing
+made the next copy fail. The guard flags any `.reduce` whose closure reads a `Money`'s home side
+(`homeAmount`) across **both** `ios/Sources/TankbookCore` and `ios/App/Sources`, and fails with
+`file:line` naming the accumulator as the thing to route through. It is a pure function over source
+text, so a newly written fixture can be shown to it - it matches the shape, not the one known line,
+and the look-alike sums (a draft's untyped cost, an always-known original `amount`, an OCR
+`Decimal`) are asserted NOT to flag. The accumulator's own file is the implicit allowlist; any other
+entry is a reasoned, commented exception - the monthly-summary push (RV.148) is parked there, and a
+bare path entry fails the guard's own self-check. Keeping this row's teeth is part of closing the
+deferred defect: when RV.148 lands, route it through the accumulator and delete the parked entry in
+the same change (the guard's stale-entry check demands it).
+
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
 **Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE
