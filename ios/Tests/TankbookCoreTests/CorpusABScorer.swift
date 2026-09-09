@@ -313,6 +313,16 @@ enum PostSweepCorpusAdditions {
     /// `Spike/ReceiptSpike/fixtures/receipts/README.md` and `pump/README.md`.
     static let byClass: [String: Set<String>] = [
         "receipts": [
+            // 2026-09-09: the owner's own fills. receipt-053/pump-074,
+            // receipt-054/pump-075 and receipt-055/pump-076 are three matched
+            // receipt/pump pairs of the SAME fill; 056 is a zero receipt and
+            // 057 has its unit price under a thumb. Declared, not swept - the
+            // A/B arms are frozen.
+            "receipt-053-gpn-tver-95-ru.jpg",
+            "receipt-054-circlek-tallinn-95-et.jpg",
+            "receipt-055-circlek-tallinn-98-discount-et.jpg",
+            "receipt-056-circlek-tallinn-zero-et.jpg",
+            "receipt-057-gpn-valday-95-occluded-ru.jpg",
             "receipt-036-tatneft-azs172-98-terminal-slip-ru.jpeg",
             "receipt-037-tatneft-azs172-98-vat22-qr-ru.jpeg",
             "receipt-038-circlek-sikupilli-95e0-pump8-ee.jpg",
@@ -363,6 +373,12 @@ enum PostSweepCorpusAdditions {
             "receipt-052-gazpromneft-tver-gdrive95-fuelcard-pair-ru.jpeg",
         ],
         "pump": [
+            // 2026-09-09: the owner's own fills, three of them the matched
+            // halves of receipt-053/054/055. Declared, not swept.
+            "pump-074-gpn-tver-95-ru.jpg",
+            "pump-075-gilbarco-circlek-ee-95.jpg",
+            "pump-076-gilbarco-circlek-ee-preset-150.jpg",
+            "pump-077-gilbarco-ee-2054.jpg",
             "pump-018-gilbarco-tatneft-tver-98-ru.jpeg",
             "pump-019-gilbarco-circlek-sikupilli-pump8-ee.jpg",
             "pump-020-gilbarco-circlek-sikupilli-pump7-ee.jpg",

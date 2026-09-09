@@ -41,7 +41,13 @@ public enum PumpPhotoGate {
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
     /// miss - is not committed.
-    public static let measuredCommitted: Int = 37
+    ///
+    /// Committed exceeds `measuredCommittedCorrect` for the first time as of
+    /// the 2026-09-09 corpus: the four Estonian Gilbarco displays added then
+    /// produced three committed values that are WRONG, so precision is no
+    /// longer 100%. That is the corpus doing its job - the mode was already off
+    /// on coverage and stays off on precision too.
+    public static let measuredCommitted: Int = 40
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
@@ -57,7 +63,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 199
+    public static let measuredNumericTotal: Int = 210
 
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong

@@ -747,3 +747,22 @@ because each artefact is ground truth for the other.
 - `pump-077-gilbarco-ee-2054.jpg` - Gilbarco Veeder-Root, `0050,41 €`, `0024,54 L`, `2,054 €/L`.
   No receipt for this one. Note the price display is the **four-digit** `2,054` while the cost and
   volume are zero-padded to six - three different digit widths on one facia.
+
+## The 2026-09-09 corpus growth broke precision, and that is the point
+
+Adding `pump-074..077` moved the measured pump numbers to **37/210 numeric recall, 40 committed,
+37 committed-correct** - so **precision fell from 100% to 92.5%** and coverage rose 18.6% -> 19.0%.
+
+Precision was the one metric that had held at 100% through B1 and B2, and the READMEs above say so
+repeatedly. It was holding on a corpus that did not contain these four displays. Of the eleven new
+numeric cells the parser **committed to three and got all three wrong, and resolved none correctly**.
+
+Nothing ships differently: the mode was already off on coverage (19.0% against the 0.60 floor) and
+is now off on precision as well (0.925 against 0.99), so no user meets a wrong pre-fill. The gate is
+behaving exactly as P2.7 designed it - a corpus that only ever gets easier cannot fail, and these
+fixtures are the owner's own fills rather than curated easy ones.
+
+**Which three cells are wrong, and why, is deliberately NOT investigated here** - it needs its own
+row. A confident-wrong value deserves more attention than an abstention: abstaining is safe by
+construction, while a wrong digit is precisely what hard rule 13 cannot protect a user from, because
+a pre-filled volume looks like every other pre-filled volume on the Confirm screen.
