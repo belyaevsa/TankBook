@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.19** | flash | 98538 | *armed at dispatch* | `agents/briefs/PJ.19.md` |
+| **PJ.19** | flash | 98538 | `bsw32hm60` (persistent) | `agents/briefs/PJ.19.md` |
 
 ### Waiting, in order
 
@@ -84,7 +84,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.147 | `62d0516` | Cost-per-km declines to report a figure it cannot state; filed RV.148 from its finding |
 | RV.117a | `e249a13` | The valid interval in core - the substance half of RV.117 |
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
-| PJ.25 | (this commit) | The parts shelf has a door from the Garage |
+| PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
