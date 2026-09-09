@@ -26,6 +26,7 @@ set -uo pipefail
 DEVICE="${1:-iPhone 17}"   # override: scripts/capture-screenshots.sh "iPhone 17 Pro"
 BUNDLE="app.tankbook.Tankbook"
 OUT="design/screenshots"
+CAPTURED=()   # names this run actually wrote, for alias_shot
 # Resolve the app THIS checkout built, by asking xcodebuild for its own build
 # settings. The old `ls -dt DerivedData/Tankbook-*` picked the most RECENTLY
 # BUILT app anywhere on the machine - which, with git worktrees, is routinely a
@@ -122,16 +123,51 @@ capture() {
     fi
     sleep 6
     if xcrun simctl io "${DEVICE}" screenshot "${path}" >/dev/null 2>&1; then
+        CAPTURED+=("${name}")
         echo "  ok   ${path}"
     else
         echo "  FAIL ${path}" >&2
     fi
 }
 
+# alias_shot <captured-name> <second-name>...
+# Two task ids can be the record of the SAME frame - the same appearance, the
+# same launch arguments, one picture. Shooting it twice under two names does not
+# double the coverage; it doubles the launches and creates a pair that DRIFTS,
+# because in practice only one of the two ever gets re-shot. Every such pair in
+# this file was last written by a different commit on a different date: on
+# 2026-09-09 `P1.4-home` was current and `P1.1-shell-dark`, its identical twin,
+# was six builds stale - a confident picture of the wrong code, which is the
+# exact failure the SKIP_BUILD comment above warns about.
+# So the frame is captured ONCE and copied to the other names. The names survive
+# (briefs, docs/SITE.md and site/ reference them by filename), the record stays
+# per-task, and the two files can no longer disagree.
+# It copies only a frame THIS run produced: with FILTER set, a skipped canonical
+# must not overwrite its alias with a stale file.
+alias_shot() {
+    local from="$1"; shift
+    local name
+    # `set -u` plus bash 3.2 (what macOS ships) treats "${empty[@]}" as unbound,
+    # so an all-filtered run must bail before the expansion, not inside it.
+    if [ "${#CAPTURED[@]}" -eq 0 ]; then
+        echo "  skip ${from} was not captured this run; its aliases are unchanged"
+        return 0
+    fi
+    for name in "${CAPTURED[@]}"; do
+        if [ "${name}" = "${from}" ]; then
+            for name in "$@"; do
+                cp "${OUT}/${from}.png" "${OUT}/${name}.png"
+                echo "  ok   ${OUT}/${name}.png (copy of ${from})"
+            done
+            return 0
+        fi
+    done
+    echo "  skip ${from} was not captured this run; its aliases are unchanged"
+}
+
 # Each task's screen, in task order. Both languages except where a task's
 # screenshot is deliberately single-language (the light-theme shell, and the
 # rejected accent-tab-bar record kept from P1.1).
-capture P1.1-shell-dark            en -seedHomeFullHistory
 capture P1.2-add-vehicle           en -presentScreen addVehicle
 capture P1.2-add-vehicle-ru        ru -presentScreen addVehicle
 capture P1.3-confirm-manual        en -seedVehicleForUITests -presentScreen confirmManual
@@ -140,12 +176,27 @@ capture P1.4-home                  en -seedHomeFullHistory
 capture P1.4-home-ru               ru -seedHomeFullHistory
 capture P1.4-home-empty            en -seedHomeEmptyVehicle
 capture P1.4-home-empty-ru         ru -seedHomeEmptyVehicle
-capture P1.5-log-stream            en -seedHomeFullHistory
-capture P1.5-log-stream-ru         ru -seedHomeFullHistory
+# P1.1's dark shell IS the Home frame - the same seed, the same appearance. It
+# is kept as a name because docs/SITE.md, site/hugo.toml and two briefs cite it,
+# and because P1.1-shell-light is only legible next to a dark counterpart.
+alias_shot P1.4-home P1.1-shell-dark
+# P1.5's subject is the LOG STREAM, which lives below the fold: shot unscrolled
+# it produced a second copy of P1.4-home and never showed a log row. RV.103's
+# `-homeScrollLogReveal` parks Home at the reveal seam, and RV.103's own seed is
+# the history long enough to have one.
+capture P1.5-log-stream            en -seedHomeRV103Reveal -homeScrollLogReveal
+capture P1.5-log-stream-ru         ru -seedHomeRV103Reveal -homeScrollLogReveal
 capture P1.6-edit-entry            en -seedEditEntry -presentScreen editEntry
 capture P1.6-edit-entry-ru         ru -seedEditEntry -presentScreen editEntry
+# PJ.2's subject - the receipt card a scanned save now persists - sits at the
+# top of this very frame, so PJ.2's record is this picture under its own name.
+alias_shot P1.6-edit-entry    PJ.2-edit-entry-receipt
+alias_shot P1.6-edit-entry-ru PJ.2-edit-entry-receipt-ru
 capture P1.7-recently-deleted      en -seedRecentlyDeleted -presentScreen recentlyDeleted
 capture P1.7-recently-deleted-ru   ru -seedRecentlyDeleted -presentScreen recentlyDeleted
+# PJ.7's deleted reminder is a row on this list - the same frame.
+alias_shot P1.7-recently-deleted    PJ.7-deleted-reminder
+alias_shot P1.7-recently-deleted-ru PJ.7-deleted-reminder-ru
 capture P1.8-duplicate-card        en -seedHomeDuplicate
 capture P1.8-duplicate-card-ru     ru -seedHomeDuplicate
 capture P1.9-tank-level            en -seedTankLevel -presentScreen tankLevel
@@ -157,6 +208,9 @@ capture P1.11-car-switcher         en -seedHomeCarSwitcher -presentScreen carSwi
 capture P1.11-car-switcher-ru      ru -seedHomeCarSwitcher -presentScreen carSwitcher
 capture P1.12-vehicle-detail       en -seedHomeCarSwitcher -presentScreen vehicleDetail
 capture P1.12-vehicle-detail-ru    ru -seedHomeCarSwitcher -presentScreen vehicleDetail
+# P5.5b's per-car export row is a row ON Vehicle detail - the same frame.
+alias_shot P1.12-vehicle-detail    P5.5b-export
+alias_shot P1.12-vehicle-detail-ru P5.5b-export-ru
 capture P2.1-capture               en -presentScreen capture -cameraStatus authorized
 capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus authorized
 # The four-chip worst case: only a plug-in hybrid is offered both Fill-up and
@@ -200,14 +254,14 @@ capture P2.5-confirm-foreign        en -seedVehicleForUITests -presentScreen con
 capture P2.5-confirm-foreign-ru     ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeign
 capture P2.5-confirm-foreign-pending    en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 capture P2.5-confirm-foreign-pending-ru ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
+# P5.2b's next-step row is ON the rate-pending card this frame already shows.
+alias_shot P2.5-confirm-foreign-pending    P5.2b-confirm-pending-next-step
+alias_shot P2.5-confirm-foreign-pending-ru P5.2b-confirm-pending-next-step-ru
 
-# P5.2b: the rate-pending card's missing next step (the manual-rate row on the
-# card itself, hard rule 7), the same card flipped to converted from a manual
-# rate (source "Manual"), and the F9 "N entries pending rates" footnote on
-# Trends and Home. RU is where "Изменить курс" and "N записей ждут курс" are
+# P5.2b: the rate-pending card flipped to converted from a manual rate (source
+# "Manual"), and the F9 "N entries pending rates" footnote on Trends and Home.
+# Its missing-next-step shot is the P2.5 frame above, aliased there. RU is where "Изменить курс" and "N записей ждут курс" are
 # tightest.
-capture P5.2b-confirm-pending-next-step     en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
-capture P5.2b-confirm-pending-next-step-ru  ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending
 capture P5.2b-confirm-manual-rate           en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending -manualRate 4.2706
 capture P5.2b-confirm-manual-rate-ru        ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignPending -manualRate 4.2706
 capture P5.2b-trends-pending-footnote       en -seedHomePendingRates -selectTrendsTab
@@ -295,6 +349,9 @@ capture PJ.11-service-flagged-ru ru -seedVehicleForUITests -seedServiceEntryConf
 # section labels ("ТРЕБУЕТ ВНИМАНИЯ") are tightest.
 capture P3.4-reminders            en -seedReminders -presentScreen reminders
 capture P3.4-reminders-ru         ru -seedReminders -presentScreen reminders
+# PJ.4's list shot is this same screen under the same seed.
+alias_shot P3.4-reminders    PJ.4-reminders
+alias_shot P3.4-reminders-ru PJ.4-reminders-ru
 capture P3.4-reminders-empty      en -presentScreen reminders
 capture P3.4-reminders-empty-ru   ru -presentScreen reminders
 capture P3.4-reminder-form        en -seedReminders -seedReminderForm -presentScreen reminderForm
@@ -414,13 +471,6 @@ capture P6.3-gateway-late-answer-ru   ru -seedVehicleForUITests -presentScreen c
 capture P4.6-photo-syncing        en -seedPhotoSyncing -presentScreen editEntry
 capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 
-# PJ.2: the Edit-entry screen of a SCANNED fill-up showing its receipt card -
-# the photo a scanned save now persists (one receipt Attachment, scan
-# provenance, the extraction record). `-seedEditEntry` seeds exactly that save
-# shape, so the strip is in frame at the top of the screen, not below the fold.
-capture PJ.2-edit-entry-receipt    en -seedEditEntry -presentScreen editEntry
-capture PJ.2-edit-entry-receipt-ru ru -seedEditEntry -presentScreen editEntry
-
 # PJ.28: a saved SCANNED EXPENSE showing its attached receipt - the row's whole
 # point (a scan's photograph used to be thrown away). `-seedEditEntryScannedExpense`
 # persists exactly what the real scanned save writes (ExpenseReceiptWrite over a
@@ -456,12 +506,16 @@ capture PJ.48-edit-suggestion-ru  ru -seedEditEntryTypedAttached -presentScreen 
 # is a two-count sentence and the duplicate warning is a paragraph.
 capture P5.5b-import-source     en -presentScreen importWizard -importStubFormats one
 capture P5.5b-import-source-ru  ru -presentScreen importWizard -importStubFormats one
+# PJ.33's "How to export" link rides the format row on this same screen.
+alias_shot P5.5b-import-source    PJ.33-import-guide
+alias_shot P5.5b-import-source-ru PJ.33-import-guide-ru
 capture P5.5b-import-preview    en -presentScreen importWizard -importStubParse mfm -seedImportPreview
 capture P5.5b-import-preview-ru ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
+# PJ.10's once-per-file date question is the gate ON this preview - same frame.
+alias_shot P5.5b-import-preview    PJ.10-import-date-question
+alias_shot P5.5b-import-preview-ru PJ.10-import-date-question-ru
 capture P5.5b-import-review     en -presentScreen importWizard -importStubParse review -seedImportReview
 capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse review -seedImportReview
-capture P5.5b-export            en -seedHomeCarSwitcher -presentScreen vehicleDetail
-capture P5.5b-export-ru         ru -seedHomeCarSwitcher -presentScreen vehicleDetail
 
 # PJ.36/PJ.38: the export lanes. `-presentExportShare` / `-presentCarExportShare`
 # are DEBUG hooks that drive the SAME build the row's tap runs, because simctl
@@ -474,12 +528,10 @@ capture PJ.36-export-share-ru    ru -presentScreen settings -seedSettingsPending
 capture PJ.38-car-export         en -seedHomeCarSwitcher -presentScreen vehicleDetail -presentCarExportShare
 capture PJ.38-car-export-ru      ru -seedHomeCarSwitcher -presentScreen vehicleDetail -presentCarExportShare
 
-# PJ.10/PJ.9: the preview's once-per-file date-format question (confirm stays
-# disabled until answered) and the review list's non-fuel row with its
-# "Import as service" action. The service seed's review screen holds exactly
-# one service row, so the action is in frame without scrolling.
-capture PJ.10-import-date-question     en -presentScreen importWizard -importStubParse mfm -seedImportPreview
-capture PJ.10-import-date-question-ru  ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
+# PJ.9: the review list's non-fuel row with its "Import as service" action. The
+# service seed's review screen holds exactly one service row, so the action is
+# in frame without scrolling. (PJ.10's date-format question - confirm stays
+# disabled until answered - is the P5.5b preview frame above, aliased there.)
 capture PJ.9-import-nonfuel-row        en -presentScreen importWizard -importStubFormats one -seedImportService
 capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStubFormats one -seedImportService
 
@@ -488,13 +540,6 @@ capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStu
 # before anything is written (F6a).
 capture PJ.11-import-flagged-row    en -presentScreen importWizard -seedImportTimeline
 capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTimeline
-
-# PJ.33: the per-source export guide (docs/JOURNEYS.md J2 "their UIs hide
-# export"). The format row carries "How to export" from the wire's helpUrl -
-# the link that tells a switcher where the CSV export lives. RU is where the
-# label runs longest; the link must stay in the card, never over the edge.
-capture PJ.33-import-guide    en -presentScreen importWizard -importStubFormats one
-capture PJ.33-import-guide-ru ru -presentScreen importWizard -importStubFormats one
 
 # PR.6: the transport-timeout cancels (docs/PRACTICES.md U6). The import parse's
 # Cancel - the source screen mid-upload, driven by the slow stub so `isParsing`
@@ -535,14 +580,15 @@ capture RV.68-import-contract-ru  ru -presentScreen importWizard -importTranspor
 # legible in every capture, EN and RU, dark and light.
 capture PJ.3b-welcome         en -presentWelcome
 capture PJ.3b-welcome-ru      ru -presentWelcome
-# RV.23 re-argued the same screen: the third promise is two-sided instead of
-# "No account needed", sign-in is a peer button naming what an account buys,
+# RV.23 re-argued this same dark frame: the third promise is two-sided instead
+# of "No account needed", sign-in is a peer button naming what an account buys,
 # and the returning user's line is one whole localised phrase (it used to be
 # concatenated, which rendered the noun "Вход" where a verb belongs). RU is the
 # frame that proves it - the door's benefit line is where the 20-30% expansion
-# lands, and the restore line is where the old defect was visible.
-capture RV.23-welcome         en -presentWelcome
-capture RV.23-welcome-ru      ru -presentWelcome
+# lands, and the restore line is where the old defect was visible. Same seed,
+# same appearance, one picture; the light pair below is a different frame.
+alias_shot PJ.3b-welcome    RV.23-welcome
+alias_shot PJ.3b-welcome-ru RV.23-welcome-ru
 xcrun simctl ui "${DEVICE}" appearance light >/dev/null 2>&1
 capture PJ.3b-welcome-light      en -presentWelcome
 capture PJ.3b-welcome-light-ru   ru -presentWelcome
@@ -558,8 +604,6 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 # дней") and the list's chip run longest.
 capture PJ.4-home-reminder    en -seedSettingsSignedIn -seedHomeReminderDue
 capture PJ.4-home-reminder-ru ru -seedSettingsSignedIn -seedHomeReminderDue
-capture PJ.4-reminders        en -seedReminders -presentScreen reminders
-capture PJ.4-reminders-ru     ru -seedReminders -presentScreen reminders
 
 # PJ.5: the notification deep link - a tapped reminder opens Reminders with
 # the completion sheet for the REMINDER the identifier named (the fixed
@@ -573,15 +617,11 @@ capture PJ.5-summary-tap     en -seedHomeFullHistory -replayNotificationResponse
 capture PJ.5-summary-tap-ru  ru -seedHomeFullHistory -replayNotificationResponse monthly-summary.3F2504E0-4F89-41D3-9A0C-0305E82C3301.2026-08
 
 # PJ.7: a deleted reminder is a tombstone like any entry (hard rule 8) - it
-# appears on Recently deleted with its countdown and a Restore, and deleting a
-# reminder is reversible for 30 days. The list shot shows the seeded reminder
-# row (the "Oil change" with its own Restore); the alert shot shows the
-# CORRECTED delete confirmation - the 30-day truth, never "this can't be
-# undone" (`-presentReminderDeleteAlert`, since simctl cannot tap the row menu).
-# RU is where the alert sentence and the countdown ("Удалено <день> · Осталось
-# 24 дня") run longest.
-capture PJ.7-deleted-reminder     en -seedRecentlyDeleted -presentScreen recentlyDeleted
-capture PJ.7-deleted-reminder-ru  ru -seedRecentlyDeleted -presentScreen recentlyDeleted
+# appears on Recently deleted with its countdown and a Restore (that list is the
+# P1.7 frame above, aliased there), and deleting a reminder is reversible for 30
+# days. The alert shot shows the CORRECTED delete confirmation - the 30-day
+# truth, never "this can't be undone" (`-presentReminderDeleteAlert`, since
+# simctl cannot tap the row menu). RU is where the alert sentence runs longest.
 capture PJ.7-delete-alert         en -seedReminders -presentScreen reminders -presentReminderDeleteAlert
 capture PJ.7-delete-alert-ru      ru -seedReminders -presentScreen reminders -presentReminderDeleteAlert
 
@@ -732,14 +772,14 @@ xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 capture RV.131-home-duplicate    en -seedSettingsSignedIn -seedHomeDuplicateFields
 capture RV.131-home-duplicate-ru ru -seedSettingsSignedIn -seedHomeDuplicateFields
 
-# RV.140: a rate-pending Log row shows the ORIGINAL amount - dimmed, with the
-# ISO code - instead of hiding money it knows. The owner's exact shape (USD
-# rows on an EUR car still waiting on a rate): the Log rows carry
-# "110.00 USD" beside the "2 entries pending rates" footnote, never nothing.
-# RU is where the footnote count and the divider run longest; the amount line
-# itself is locale-invariant (pinned decimal separator, ISO code).
-capture RV.140-log-original-amount    en -seedHomeRV88USDPending
-capture RV.140-log-original-amount-ru ru -seedHomeRV88USDPending
+# RV.141: the excluded-entries footnote on Home - the count that now reaches its
+# entries and says why they are out. The footnote lives below the log, so
+# `-homeScrollToExcludedFootnote` (RV.141's own hook) parks Home on it; without
+# it the shot is the top of Home and the subject is off-screen. RU is where
+# "2 записи исключены" and its next step are tightest - and this pair is the one
+# that shows whether the footnote reads as a button or as a label.
+capture RV.141-home-excluded    en -seedHomeExcludedMix -homeScrollToExcludedFootnote
+capture RV.141-home-excluded-ru ru -seedHomeExcludedMix -homeScrollToExcludedFootnote
 
 # RV.142: imported stations become row titles, a blank station falls back to
 # the fuel kind without repeating it, and closing fills show engine-derived
@@ -765,8 +805,43 @@ capture RV.144-edit-entry-ru ru -seedSettingsSignedIn -seedHomeRV144Resolved -pr
 # tile prints no false figure and the pending footnote carries the phrase.
 capture RV.112-home    en -seedHomeRV88USDPending
 capture RV.112-home-ru ru -seedHomeRV88USDPending
+# RV.140 is the SAME frame: its subject - a rate-pending Log row showing the
+# ORIGINAL amount, dimmed, with the ISO code ("110.00 USD" beside the "2 entries
+# pending rates" footnote) - is the log rows underneath RV.112's vitals tile in
+# this very picture. RU is where the footnote count and the divider run longest;
+# the amount line itself is locale-invariant.
+alias_shot RV.112-home    RV.140-log-original-amount
+alias_shot RV.112-home-ru RV.140-log-original-amount-ru
 capture RV.112-trends    en -seedHomeRV106Pending -selectTrendsTab
 capture RV.112-trends-ru ru -seedHomeRV106Pending -selectTrendsTab
+
+# RV.166: a purchase group whose known members (30.00 EUR) share a receipt with
+# a rate-pending line. The header must print the known sum MARKED with the
+# pending phrase beneath it - never the bare `30.00 €` the old code printed
+# while a member still waited. Signed in like the log screenshots (the log
+# layout only renders with a session, PJ.3). RU is where the pending phrase
+# ("1 запись ждёт курс") runs longest under the figure.
+capture RV.166-home-partial-group    en -seedSettingsSignedIn -seedHomeRV166PartialGroup
+capture RV.166-home-partial-group-ru ru -seedSettingsSignedIn -seedHomeRV166PartialGroup
+
+# Two names for one picture is a defect this file produced ten times before
+# anyone counted (see alias_shot). A deliberate alias is a copy and is expected;
+# anything else identical means two capture lines are shooting the same frame -
+# collapse one into an alias_shot rather than paying for the launch and letting
+# the pair drift. Only frames captured in THIS run are compared.
+if [ "${#CAPTURED[@]}" -gt 1 ]; then
+    echo
+    echo "checking for capture lines that shot the same frame..."
+    dupes="$(for name in "${CAPTURED[@]}"; do
+                 [ -f "${OUT}/${name}.png" ] && echo "$(md5 -q "${OUT}/${name}.png") ${name}"
+             done | sort | awk '{ if ($1 == prev) { print "  " prevname " == " $2 } prev = $1; prevname = $2 }')"
+    if [ -n "${dupes}" ]; then
+        echo "${dupes}"
+        echo "  ^ identical frames under different names - make one an alias_shot." >&2
+    else
+        echo "  none - every capture line produced its own frame."
+    fi
+fi
 
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
