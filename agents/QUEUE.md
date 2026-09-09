@@ -62,7 +62,8 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.151** | flash | 25440 | `bbix9u1gf` (persistent) | `agents/briefs/RV.151.md` |
+| **RV.141** | flash | 74473 | `b68winmku` (persistent) | `agents/briefs/RV.141.md` |
+| **REVIEW-JOURNEYS** *(read-only)* | pro | 1173 | `bocrdj0ff` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-09.md` |
 
 ### Waiting, in order
 
@@ -81,7 +82,6 @@ which two agents are safe here - two Swift tasks would collide on files and on t
 | 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
 | 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
 | 7 | RV.155 | flash | *at dispatch* | The pull cursor regressed and re-fetched 274 records. Filed with its mechanism as a HYPOTHESIS; run it after RV.154, which may remove the 40-second window the overlap needs |
-| 8 | RV.141 | flash | `agents/briefs/RV.141.md` | Brief already on disk from an earlier session - **re-read it against the current tree before dispatch**, several rows have moved since |
 | 9 | RV.116 | flash | `agents/briefs/RV.116.md` | Same - brief exists, amended for Drivvo's silently-dropped columns, but predates this session's work |
 
 ### Not queued, and why
