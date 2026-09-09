@@ -71,7 +71,6 @@ early is a brief written against a tree that has moved.
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 1 | RV.156 | flash | *at dispatch* | Nothing in the app can create a station, so three SHIPPED features are inert: PJ.19's ranking, [RV.150]'s stamping and the Garage Stations list all operate on a set a hand-typing user cannot populate. Self-contained, and the product owner hit it themselves |
 | 2 | RV.157 | flash | *at dispatch* | **BLOCKED on a product decision** - implement the debounced write trigger `docs/SYNC.md:151` promises, or delete the clause. Do not brief until that is settled; the two answers are different tasks |
 | 3 | RV.154 | flash | *at dispatch* | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
 | 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
