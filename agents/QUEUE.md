@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| *(none - the queue is empty)* | | | | |
+| **RV.150** | flash | 35933 | `b3wule8mk` (persistent) | `agents/briefs/RV.150.md` |
 
 ### Waiting, in order
 
