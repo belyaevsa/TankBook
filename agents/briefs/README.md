@@ -16,6 +16,18 @@ because there was no code.
 A brief is also the cheapest place to fix a recurring mistake: a fence added here is a mistake that does
 not happen again.
 
+## Assemble a brief from `TEMPLATE.md`, do not remember it
+
+`TEMPLATE.md` carries the three pre-brief questions, the section order, the standing fences with the
+incident behind each, and what to ask for in the report. **Every fence in it exists because something
+went wrong once** - and they demonstrably work: after the `git stash` fence was added mid-session, no
+later agent repeated it; after the `pgrep -x` fence, no sibling was killed. What is fragile is the
+orchestrator remembering to paste them, which is what the template is for.
+
+**Part A is the half that is easy to skip and expensive to skip**: does this defect have siblings,
+does anything create the state it touches, does the doc match the code. Those three questions come
+from `docs/DEFECT-PATTERNS.md`, where each is backed by a class that cost multiple rows.
+
 ## What a brief contains
 
 The pattern these converged on, in order:
