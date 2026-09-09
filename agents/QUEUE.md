@@ -48,13 +48,12 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| *(none)* | | | | |
+| **RV.146** | flash | 91030 | `bhb12p24j` | `agents/briefs/RV.146.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 1 | **RV.146** *(next)* | flash | `agents/briefs/RV.146.md` | Adaptive currency chips. Independent of the money rows; the design is closed by the [RV.115] precedence |
 | 2 | RV.147 | flash | `agents/briefs/RV.147.md` | `costPerKm` reuses the accumulator RV.145 reshapes, so it goes **after** it - its brief opens by telling the agent to verify RV.145 landed and to stop if it has not |
 | 3 | RV.117a **[v1.1]** | flash | `agents/briefs/RV.117a.md` | The valid-interval math in core; boundary assertions make it mechanical. A point release, so it sits behind the v1 rows |
 | 4 | RV.117b **[v1.1]** | - | *written after RV.117a lands* | The neighbourhood chart. Its shape depends on what RV.117a returns, so briefing it now would be guessing |
