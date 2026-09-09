@@ -66,10 +66,30 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 ### Waiting, in order
 
+**Nothing is dispatched.** Briefs are written at dispatch time, not now - a brief written days
+early is a brief written against a tree that has moved.
+
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 1 | RV.152 | flash | *to be written* | The home-currency change prompt. Behind [RV.151]: its "convert the log" answer is only as good as the cross-base lookup, and the prompt's pending count would be misleading before it |
-| *(empty - RV.117b is the last briefed row)* | | | | |
+| 1 | RV.156 | flash | *at dispatch* | Nothing in the app can create a station, so three SHIPPED features are inert: PJ.19's ranking, [RV.150]'s stamping and the Garage Stations list all operate on a set a hand-typing user cannot populate. Self-contained, and the product owner hit it themselves |
+| 2 | RV.157 | flash | *at dispatch* | **BLOCKED on a product decision** - implement the debounced write trigger `docs/SYNC.md:151` promises, or delete the clause. Do not brief until that is settled; the two answers are different tasks |
+| 3 | RV.154 | flash | *at dispatch* | Backend-only, no UI. Three DB round trips per record made the owner's import spend ~9 minutes pushing. Fixing it plausibly dissolves RV.155, so it goes first of the two |
+| 4 | RV.152 | flash | *at dispatch* | The home-currency prompt. Design fully closed by the owner's two decisions (2026-09-09); [RV.151] shipping unblocked its "convert the log" answer |
+| 5 | RV.149 | flash | *at dispatch* | The fill-up receipt photo fails silently - the same silent-loss class [PJ.28] fixed one screen over, reusing the string it added. Small |
+| 6 | RV.148 | flash | *at dispatch* | **BLOCKED on a product decision** - suppress the monthly-summary push while a month is partial, or mark the figure in the body. First instance of this shape to reach a lock screen, where there is no footnote and no way to update once read |
+| 7 | RV.155 | flash | *at dispatch* | The pull cursor regressed and re-fetched 274 records. Filed with its mechanism as a HYPOTHESIS; run it after RV.154, which may remove the 40-second window the overlap needs |
+| 8 | RV.141 | flash | `agents/briefs/RV.141.md` | Brief already on disk from an earlier session - **re-read it against the current tree before dispatch**, several rows have moved since |
+| 9 | RV.116 | flash | `agents/briefs/RV.116.md` | Same - brief exists, amended for Drivvo's silently-dropped columns, but predates this session's work |
+
+### Not queued, and why
+
+- **RV.139** - the instrumentation shipped ([RV.139b], `e92d147`); the next step is ONE device log
+  from a build carrying the `rates.refresh` event. That is the product owner's, not an agent's, and
+  queueing it would invite a fifth speculative fix.
+- **RV.143** - a home-currency change arriving by sync re-homes nothing on the receiving device.
+  Overlaps [RV.152]'s territory; decide the prompt first, then see what is left.
+- **RV.153's leftovers** - `receipt-055`'s volume still reads 17.56 against a true 77.56. That needs
+  P2.9's decimal ladder and was deliberately out of RV.153's scope.
 
 ### Shipped this session (2026-09-08/09)
 
