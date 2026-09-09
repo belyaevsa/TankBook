@@ -31,6 +31,22 @@ produced every instance in `DEFECT-PATTERNS.md` Part 2:**
 4. **A row ships PARTIALLY** - a brief fenced part of it out. File the remainder AND re-walk the
    journey. (`RV.62` delivered half of `PJ.28` and the photo was dropped for months.)
 
+## Two passes, not one: reachability AND sequence
+
+A journey is not only a set of screens. **Half of what breaks lives between valid states**, not on
+them, and a walk that only asks "can I reach this screen" will miss it.
+
+- **Pass 1, reachability**: can a user get here, from a cold launch, with no debug flag?
+- **Pass 2, sequence**: does the journey survive being *lived*? Walk **create → edit → sync →
+  delete → restore**, and **pending → rated** for anything money-shaped. `RV.144` (an edit
+  re-homing to the car's OLD currency) and `RV.140` (a currency change reaching no pending entry)
+  were both sequence defects: every individual screen was correct.
+
+**Also note what the enumeration guards CANNOT do.** `RV.162`/`RV.163` assert a property of every
+item a spec lists - so they protect the spec's contents, and are blind to what the spec forgot. **You
+are the check on the spec itself.** A screen, entity or state you find that `SCREENMAP.md` or
+`SCHEMA.md` does not list is a finding, and a more valuable one than a gap inside them.
+
 ## What is different on a RE-run
 
 - **Read the run history above and the existing `PJ` rows first.** A gap already tracked is

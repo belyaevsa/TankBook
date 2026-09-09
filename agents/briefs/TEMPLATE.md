@@ -22,6 +22,17 @@ Each comes from a class in `docs/DEFECT-PATTERNS.md` that cost this project mult
    `PJ.19` and `RV.139` all carried stale premises; `recordsEqual`'s comment documented its own bug
    as deliberate. **Name the stale part in the brief** so the agent does not re-derive it.
 
+4. **Which environment axes does this change cross, and which will you test?** Release vs Debug is
+   only one - and it is the one that hid `PJ.4`'s unreachable screen. The others that have bitten
+   this project: **clean install vs upgrade**, **offline**, **locale** (`RU` strings run 20-30%
+   longer and RU screenshots have caught three defects), **Low Power Mode**, **signed-out**, and
+   **stale cache**. Name the axes the change touches and say which you exercised; "none" is an
+   answer, but it has to be a stated one.
+5. **If this adds a failure path, what makes it visible in production?** `RV.139` cost three builds
+   because no event existed to say which branch was taken - the fix was not code, it was a log line.
+   A new error, fallback, deferral or silent no-op needs the shape-only event that would let one
+   session's log answer "did this happen?" (`docs/LOGGING.md`, hard rule 12).
+
 Then: **pin the cause to a file and a line.** A task with a confirmed cause is mechanical whatever
 area it touches, and that is what makes flash the right default.
 
@@ -40,6 +51,15 @@ area it touches, and that is what makes flash the right default.
 7. **Checks** - build, lint **from the repo ROOT**, full test suite, named UI suites, localization,
    Release when a `#if DEBUG` seam is touched. Judged by **exit code**.
 8. **Tests you must add**, including at least one that **fails on the current code**.
+   - **Every expectation names its ORACLE** - the domain rule, the independent calculation, or the
+     hand-verified fixture the number came from. *"150.00 because the receipt's `KOKKU` line says
+     so"* is an oracle; *"expect 150.00"* is not. A checks row is where a plausible wrong number gets
+     frozen: `MoneyBackfillServiceTests` asserted `costPerKm == 0.1` for a window whose pending row
+     was skipped, canonising the defect `RV.147` later removed.
+   - **The BRIEF names the mutation**, not the agent. Pick the line that carries the row's headline
+     claim and say "revert this, the test must go red". An agent choosing its own mutation proves
+     sensitivity to *that edit*, not that the assertion encodes the requirement - and it will choose
+     the easy one.
 9. **Vacuous traps, named** for this task.
 10. **Screenshots** for any UI change, EN and RU.
 11. **Report back** - exit codes observed, whether each test was **run or only written**, and
