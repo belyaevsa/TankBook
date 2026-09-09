@@ -57,10 +57,12 @@ extension L10n {
         localize("Saved – sends automatically when you're online.")
     }
 
-    /// "That's a lot of feedback today – this one's queued for tomorrow."
-    /// (docs/ERRORS.md, the 429 state).
+    /// "Saved – today's limit is reached, so this one's queued for tomorrow."
+    /// (docs/ERRORS.md, the 429 state). RV.160: leads with "Saved" like the
+    /// other queued rows - a queued case is not a failure, and the first word
+    /// is what stops a user re-sending the same report.
     static var feedbackRateLimited: String {
-        localize("That's a lot of feedback today – this one's queued for tomorrow.")
+        localize("Saved – today's limit is reached, so this one's queued for tomorrow.")
     }
 
     /// A transient server error: still saved, still sends (hard rule 8).

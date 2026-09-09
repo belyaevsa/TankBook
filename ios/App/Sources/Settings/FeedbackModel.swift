@@ -19,6 +19,16 @@ final class FeedbackModel {
         case queuedOffline
         case queuedRateLimited
         case queuedRetry
+
+        /// RV.160: the outcomes that mean "this message is handled" - with the
+        /// server, or stored in the outbox. A queued case is not a failure.
+        /// `consentRequired` is a refusal, not an outcome, and is excluded.
+        var isTerminalOutcome: Bool {
+            switch self {
+            case .sent, .queuedOffline, .queuedRateLimited, .queuedRetry: true
+            case .idle, .sending, .consentRequired: false
+            }
+        }
     }
 
     private let outbox: FeedbackOutbox
@@ -54,6 +64,15 @@ final class FeedbackModel {
     /// Submits the draft. The consent gate is the load-bearing rule: without it
     /// nothing is queued and the composer surfaces the opt-in (hard rule 7 -
     /// the next step is named). The `deviceModel` rides only with its toggle.
+    ///
+    /// RV.160: every terminal outcome clears the draft, queued ones included. A
+    /// submitted message no longer lives in the composer - it is with the server
+    /// or in the outbox - so an editable-looking copy would invite "fix a typo
+    /// and send again", which queues a duplicate of a case that is already
+    /// stored. The composer collapses into the outcome panel
+    /// (`FeedbackComposerView`); clearing here keeps the state honest if the
+    /// form is ever shown again. `consentRequired` is a refusal, not an
+    /// outcome: it clears nothing, the draft stays for after the toggle goes on.
     func send() async {
         guard canSend else { return }
         guard hasConsented else {
@@ -73,15 +92,23 @@ final class FeedbackModel {
             state = .consentRequired
         case .sent:
             state = .sent
-            text = ""
-            replyTo = ""
+            clearDraft()
         case .queued(let reason):
             switch reason {
             case .offline: state = .queuedOffline
             case .rateLimited: state = .queuedRateLimited
             case .serverError: state = .queuedRetry
             }
+            clearDraft()
         }
+    }
+
+    /// Empties the draft after a terminal outcome. The composer collapses
+    /// (FeedbackComposerView), so this is state honesty more than visible
+    /// change: nothing on screen keeps the submitted text as editable.
+    private func clearDraft() {
+        text = ""
+        replyTo = ""
     }
 
     private var trimmedReplyTo: String? {

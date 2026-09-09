@@ -838,6 +838,19 @@ capture RV.112-trends-ru ru -seedHomeRV106Pending -selectTrendsTab
 capture RV.166-home-partial-group    en -seedSettingsSignedIn -seedHomeRV166PartialGroup
 capture RV.166-home-partial-group-ru ru -seedSettingsSignedIn -seedHomeRV166PartialGroup
 
+# RV.160: a send acknowledges itself - the composer collapses into a
+# confirmation panel where the form's top was, so the confirmation is visible
+# at About's top scroll with no tap needed (`-feedbackAutoSend` + the transport
+# seam reach the terminal state; `simctl` cannot tap). The sent pose shows the
+# `.sent` outcome (202), the offline pose the queued-outcome reassurance
+# ("Saved – ...") - the copy that must never read as a failure. RU is where the
+# panel copy runs longest ("Сохранено – отправится автоматически, когда
+# появится связь.").
+capture RV.160-about-feedback-sent       en -feedbackConsentOn -feedbackTransportSuccess -feedbackAutoSend -presentScreen about
+capture RV.160-about-feedback-sent-ru    ru -feedbackConsentOn -feedbackTransportSuccess -feedbackAutoSend -presentScreen about
+capture RV.160-about-feedback-offline    en -feedbackConsentOn -feedbackTransportOffline -feedbackAutoSend -presentScreen about
+capture RV.160-about-feedback-offline-ru ru -feedbackConsentOn -feedbackTransportOffline -feedbackAutoSend -presentScreen about
+
 # Two names for one picture is a defect this file produced ten times before
 # anyone counted (see alias_shot). A deliberate alias is a copy and is expected;
 # anything else identical means two capture lines are shooting the same frame -

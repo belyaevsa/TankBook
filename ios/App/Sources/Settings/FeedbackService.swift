@@ -75,6 +75,10 @@ enum FeedbackService {
             transport = FailingFeedbackTransport()
         } else if arguments.contains("-feedbackRateLimit") {
             transport = RateLimitedFeedbackTransport()
+        } else if arguments.contains("-feedbackTransportServerError") {
+            transport = ServerErrorFeedbackTransport()
+        } else if arguments.contains("-feedbackTransportSuccess") {
+            transport = SucceedingFeedbackTransport()
         } else {
             transport = appTransport(SeededLaunch.transport(arguments))
         }
@@ -160,6 +164,23 @@ struct FailingFeedbackTransport: TankbookHTTPTransport {
 struct RateLimitedFeedbackTransport: TankbookHTTPTransport {
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         TankbookHTTPResponse(status: 429, headers: ["Retry-After": "3600"])
+    }
+}
+
+/// RV.160: forces the `202` success state for the "sent" UI test and
+/// screenshot - the one outcome no seeded launch can reach, because every other
+/// seeded transport answers offline.
+struct SucceedingFeedbackTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        TankbookHTTPResponse(status: 202)
+    }
+}
+
+/// RV.160: forces a transient server error (the "saved, will retry" queued
+/// state) for its UI test.
+struct ServerErrorFeedbackTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        TankbookHTTPResponse(status: 500)
     }
 }
 #endif

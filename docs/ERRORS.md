@@ -487,14 +487,33 @@ shared"**, which opens the Diagnostics preview sheet showing the exact text that
 not a summary (docs/LOGGING.md §5: the user reads the bytes). Sharing goes through the system share
 sheet (`ActivityView`); the bundle is never posted automatically.
 
+**A send acknowledges itself where the user is looking (RV.160, decided 2026-09-10).** The complaint
+was "after feedback sent, there is no confirmation that the feedback was sent". A confirmation
+existed but could not do its job: it rendered as a muted `inkSoft` caption BELOW the Send button at
+the bottom of a tall composer inside About's scroll view - below the fold at the moment of the tap
+on a small screen, under the keyboard when one was up, and the only loud change was the form
+emptying, which read as "my message vanished". The fix is the same surface split RV.132 settled for
+the rate door: a user-initiated action that completes speaks. **A terminal outcome (sent OR queued)
+collapses the composer into a confirmation panel** where the form's top was: a bordered `dash` card
+with a leading status glyph, `ink` text, and each outcome's own accessibility identifier (= its
+localization key). The queued ones are reassurance, never errors - the message is stored and will
+go, so each phrase leads with "Saved –" (the 429 row was re-worded to do so; the other two already
+did). `.sent` is the one positive-done state and uses `Theme.Palette.ok` (RV.22). `consentRequired`
+is a refusal, NOT an outcome: it leaves the whole form in place and shows its warn line above the
+Send button - the toggle it names is the next step. After any terminal outcome the draft is cleared
+and the composer stays collapsed for the rest of this About visit: a submitted message no longer
+lives in the composer (it is with the server or in the outbox), so an editable-looking copy would
+invite "fix a typo and send again", which queues a duplicate of a case that is already stored.
+Re-entering About starts a fresh composer.
+
 | Condition | Shows | Next step |
 |---|---|---|
 | **Update recommended (`.recommended`, docs/CONFIG.md)** | Dismissible row in About: "A newer version of Tankbook is available." The App Store button renders only when a compiled-in app id exists - none today | Update (App Store, when a listing exists) · dismiss. Quiet information - nothing is withheld |
-| **Send without consent** | Amber line: "Turn on "Help improve scanning – attach this case" to send." - the toggle is the next step, nothing is queued | Toggle consent on · leave it |
-| Feedback sent (202) | "Thanks – your feedback is on its way." | Nothing to do |
-| Feedback send fails offline | "Saved – sends automatically when you're online." (queued, like everything) | Nothing to do |
-| Rate-limited (`rate_limited`) | "That's a lot of feedback today – this one's queued for tomorrow." | Nothing to do |
-| Service error (other non-202) | "Saved – we'll try again when the service is back." (queued, hard rule 8) | Nothing to do |
+| **Send without consent** | Amber line above the Send button: "Turn on "Help improve scanning – attach this case" to send." - the toggle is the next step, nothing is queued, the draft stays | Toggle consent on · leave it |
+| Feedback sent (202) | The composer collapses into a confirmation panel: "Thanks – your feedback is on its way." (`feedbackSent`, `ok` checkmark) | Nothing to do |
+| Feedback send fails offline | Composer collapses into: "Saved – sends automatically when you're online." (`feedbackQueuedOffline` - queued, never an error) | Nothing to do |
+| Rate-limited (`rate_limited`) | Composer collapses into: "Saved – today's limit is reached, so this one's queued for tomorrow." (`feedbackRateLimited`) | Nothing to do |
+| Service error (other non-202) | Composer collapses into: "Saved – we'll try again when the service is back." (`feedbackQueuedRetry` - queued, hard rule 8) | Nothing to do |
 | **Diagnostics opt-in off** | The "Attach diagnostics" row shows its toggle (default OFF) and explanation; no preview affordance | Toggle it on · leave it off |
 | **Diagnostics preview** | The preview sheet renders the exact bundle text, with Share in the bar | Share (system sheet) · Close / swipe-down - nothing was sent |
 

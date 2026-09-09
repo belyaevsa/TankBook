@@ -22,6 +22,33 @@ final class AboutUITests: XCTestCase {
         return app
     }
 
+    /// The bottom edge of the About content region: the owned tab bar's top on a
+    /// pushed screen. Anything below it is under the bar and cannot be seen
+    /// without scrolling - `isHittable` lies about this (RV.84).
+    func visibleContentBottom(_ app: XCUIApplication) -> CGFloat {
+        let window = app.windows.firstMatch.frame
+        let tabbar = app.otherElements["tabbar"]
+        return tabbar.exists ? tabbar.frame.minY : window.maxY
+    }
+
+    /// RV.84's lesson, applied: an element that EXISTS can still be 86% clipped
+    /// and report `isHittable == true`. Visibility is a frame question, and the
+    /// window's frame is not the visible region - About ends where the owned
+    /// tab bar begins.
+    func assertFullyVisibleWithoutScrolling(_ element: XCUIElement, in app: XCUIApplication,
+                                            file: StaticString = #filePath,
+                                            line: UInt = #line) {
+        let frame = element.frame
+        let bottom = visibleContentBottom(app)
+        XCTAssertGreaterThanOrEqual(frame.minY, 0,
+                                    "confirmation must start inside the visible region", file: file, line: line)
+        XCTAssertLessThanOrEqual(frame.maxY, bottom,
+                                 "confirmation must sit above the fold - it ended at \(frame.maxY) "
+                                 + "but visible content ends at \(bottom). The old line below Send was "
+                                 + "under this edge and read as nothing happening.",
+                                 file: file, line: line)
+    }
+
     /// The feedback row renders: category chips, the text editor, the consent
     /// toggle (default off - the value itself is an L1 assertion), the
     /// device-model toggle, and the send button.
@@ -149,4 +176,87 @@ final class AboutUITests: XCTestCase {
         XCTAssertFalse(text.contains("64.20"),
                        "the seeded amount must not appear in the preview")
     }
+
+    // MARK: - RV.160 a send must be acknowledged where the user can see it
+
+    /// The reported defect: after feedback was sent there was no confirmation
+    /// that it was sent. One existed but rendered as a muted caption BELOW the
+    /// Send button at the bottom of a tall composer inside About's scroll view -
+    /// below the fold at the moment of the tap, and under the keyboard when one
+    /// was up - while the only loud change was the form emptying. A
+    /// confirmation the user cannot see is the same failure as no confirmation.
+    /// The fix collapses the composer into a confirmation panel where the
+    /// form's top was: visible at ANY scroll position, because the About content
+    /// above the composer never moves and the collapse shortens the scroll.
+    /// These tests assert the ROW'S claim - the confirmation must be findable
+    /// without scrolling (a frame assertion, never `isHittable`, RV.84) - and
+    /// that each of the four outcomes is its own distinct element keyed by its
+    /// localization key, the queued ones never reading as errors
+    /// (docs/ERRORS.md -> About & feedback).
+
+    /// The headline. A `.sent` outcome (the transport seam
+    /// `-feedbackTransportSuccess` answers 202) must surface a confirmation the
+    /// test can see WITHOUT scrolling: on the unfixed code this row's
+    /// "confirmation" sat below the Send button, under the fold, and existed
+    /// without being visible.
+    func testRV160SentConfirmationIsVisibleWithoutScrolling() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentOn", "-feedbackTransportSuccess",
+                          "-feedbackAutoSend"])
+
+        let confirmation = app.staticTexts["feedbackSent"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10),
+                      "the sent confirmation must render after a send")
+        // The element EXISTS on the unfixed code too (it passed that check for
+        // months); the assertion is the frame - visible bounds, not the window.
+        assertFullyVisibleWithoutScrolling(confirmation, in: app)
+    }
+
+    /// Offline is the outcome reachable with the network off (the launch-args
+    /// axis docs/ERRORS.md names). The queued copy is reassurance, never an
+    /// error, and it too must be visible without scrolling.
+    func testRV160QueuedOfflineConfirmationIsVisibleWithoutScrolling() {
+        let app = launch(["-presentScreen", "about",
+                          "-feedbackConsentOn", "-feedbackTransportOffline",
+                          "-feedbackAutoSend"])
+
+        let confirmation = app.staticTexts["feedbackQueuedOffline"]
+        XCTAssertTrue(confirmation.waitForExistence(timeout: 10))
+        assertFullyVisibleWithoutScrolling(confirmation, in: app)
+        XCTAssertEqual(confirmation.label, "Saved – sends automatically when you're online.",
+                       "the queued copy must read as saved, never as failed (docs/ERRORS.md)")
+    }
+
+    /// All four outcomes are distinct states with distinct copy, and a queued
+    /// case is not the sent case. Driven through the real outbox by the same
+    /// `-feedbackAutoSend` seam the offline/429 tests already use - each launch
+    /// forces one wire outcome and the composer must render THAT outcome's key
+    /// and none of the others.
+    func testRV160EachOutcomeShowsItsOwnConfirmation() {
+        let scenarios: [(arguments: [String], expected: String)] = [
+            (["-feedbackTransportSuccess"], "feedbackSent"),
+            (["-feedbackTransportOffline"], "feedbackQueuedOffline"),
+            (["-feedbackRateLimit"], "feedbackRateLimited"),
+            (["-feedbackTransportServerError"], "feedbackQueuedRetry")
+        ]
+        for scenario in scenarios {
+            let app = launch(["-presentScreen", "about",
+                              "-feedbackConsentOn"] + scenario.arguments
+                             + ["-feedbackAutoSend"])
+            let expected = app.staticTexts[scenario.expected]
+            XCTAssertTrue(expected.waitForExistence(timeout: 10),
+                          "the \(scenario.expected) outcome must render for \(scenario.arguments)")
+            for other in Self.allOutcomeIdentifiers where other != scenario.expected {
+                XCTAssertFalse(app.staticTexts[other].exists,
+                               "\(scenario.expected) must not also render \(other)")
+            }
+        }
+    }
+
+    private static let allOutcomeIdentifiers = [
+        "feedbackSent",
+        "feedbackQueuedOffline",
+        "feedbackRateLimited",
+        "feedbackQueuedRetry"
+    ]
 }

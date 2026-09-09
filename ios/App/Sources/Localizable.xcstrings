@@ -11387,19 +11387,19 @@
         }
       }
     },
-    "That's a lot of feedback today – this one's queued for tomorrow.": {
+    "Saved – today's limit is reached, so this one's queued for tomorrow.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "That's a lot of feedback today – this one's queued for tomorrow."
+            "value": "Saved – today's limit is reached, so this one's queued for tomorrow."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сегодня много отзывов – этот встанет в очередь до завтра."
+            "value": "Сохранено – лимит на сегодня исчерпан, поэтому это сообщение отправится завтра."
           }
         }
       }
