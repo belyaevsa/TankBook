@@ -191,6 +191,86 @@ final class VehicleDetailUITests: XCTestCase {
                       "the share sheet must carry the CSV files; caption was '\(shareCaption.label)'")
     }
 
+    // MARK: - The parts shelf door (PJ.25)
+
+    /// PJ.25, the row's whole point: the parts shelf opens from Vehicle detail
+    /// WITHOUT passing through a service entry, and shows the seeded on-shelf
+    /// parts. The pre-PJ.25 app had exactly one door to this screen (nested
+    /// inside a service entry), so asserting the ROW exists in the source would
+    /// prove nothing - this drives the real navigation and asserts the shelf's
+    /// content arrived.
+    func testPartsShelfOpensFromVehicleDetailWithoutAServiceEntry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeCarSwitcher", "-seedPartsShelf",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        openDetail(app)
+
+        let row = app.buttons["vehicleDetailPartsShelfLink"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5),
+                      "Vehicle detail must carry a Parts shelf row")
+        scrollTo(row, in: app)
+        row.tap()
+
+        // The pushed shelf shows the seeded parts - no service entry in between.
+        XCTAssertTrue(app.navigationBars["Parts shelf"].waitForExistence(timeout: 5),
+                      "the row must PUSH the Parts shelf screen (a nav bar with a back path)")
+        XCTAssertTrue(app.staticTexts["Oil filter"].waitForExistence(timeout: 5),
+                      "the shelf shows the seeded on-shelf part")
+        XCTAssertTrue(app.staticTexts["Brake pads front"].exists)
+        XCTAssertTrue(app.staticTexts["On shelf"].firstMatch.exists,
+                      "the on-shelf state is visible, not silent")
+    }
+
+    /// PJ.25 back path: the pushed shelf's back chevron returns to the Vehicle
+    /// detail it was opened from (docs/SCREENMAP.md: pushed screens - back
+    /// chevron + edge-swipe, back never discards). The shelf is NOT a sheet, so
+    /// this must be a stack pop, never a dismiss-to-opener.
+    func testPartsShelfBackReturnsToVehicleDetail() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeCarSwitcher", "-seedPartsShelf",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        openDetail(app)
+
+        let row = app.buttons["vehicleDetailPartsShelfLink"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        scrollTo(row, in: app)
+        row.tap()
+        XCTAssertTrue(app.navigationBars["Parts shelf"].waitForExistence(timeout: 5))
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5),
+                      "back from the pushed shelf returns to the Vehicle detail that pushed it")
+        XCTAssertTrue(app.textFields["vehicleDetailNameField"].waitForExistence(timeout: 5),
+                      "and the Vehicle detail is the same car's editable form")
+    }
+
+    /// PJ.25 empty state: a car with no parts on the shelf shows what that
+    /// means and what to do next (hard rule 7), never a blank list. The empty
+    /// state belongs to the shared PartsShelfView, so the pushed door reaches
+    /// the same one the nested sheet showed.
+    func testPartsShelfShowsEmptyStateForACarWithNoParts() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsSignedIn",
+                               "-seedHomeCarSwitcher",
+                               "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        openDetail(app)
+
+        let row = app.buttons["vehicleDetailPartsShelfLink"]
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        scrollTo(row, in: app)
+        row.tap()
+
+        XCTAssertTrue(app.otherElements["partsShelfEmptyState"].waitForExistence(timeout: 5),
+                      "a car with nothing on the shelf shows the empty state, not a blank list")
+        XCTAssertTrue(app.staticTexts["Parts you buy sit here until installed"].exists,
+                      "the empty state says what the shelf is for")
+    }
+
     // MARK: - Archive updates the Car switcher's row (J13)
 
     func testArchivingFromDetailUpdatesTheSwitcherRow() {

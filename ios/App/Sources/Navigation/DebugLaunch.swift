@@ -50,6 +50,12 @@ enum DebugLaunch {
         "vehicleDetail": .vehicleDetail(nil),
         "tireSets": .tireSets,
         "tireSetForm": .tireSetForm(nil),
+        // PJ.25: the pushed Garage door to the parts shelf. The bare
+        // `partsShelf` name above resolves to the nested SHEET pose first (the
+        // P3.2 screenshot shows that door); this pose pushes the Route that the
+        // Vehicle detail row opens, so a screenshot can show the shelf as it
+        // looks reached from the Garage.
+        "partsShelfPushed": .partsShelf(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
         "importWizard": .importWizard,

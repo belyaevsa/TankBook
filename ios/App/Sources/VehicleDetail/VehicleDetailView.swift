@@ -107,34 +107,7 @@ struct VehicleDetailView: View {
                                      idPrefix: "vehicleDetail")
                 }
                 VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
-                section("Tire sets") {
-                    linkRow(title: "Tire sets",
-                            subtitle: "Manage sets and swap history",
-                            identifier: "vehicleDetailTireSetsLink") {
-                        Route.tireSets
-                    }
-                }
-                // The Reminders management row (PJ.4) is HIDDEN on an archived
-                // car (RV.81, decided 2026-09-06). Archiving strips the car's
-                // armed notifications and every reminder surface answers "what
-                // needs doing", so a sold car's rows are not shown anywhere
-                // while it is archived - the merged list already excludes them
-                // by the same decision (docs/SCHEMA.md -> Reminder lifecycle).
-                // The rows are never deleted or tombstoned (hard rule 8): they
-                // come back on THIS row, the per-car list and the merged list
-                // when the car is unarchived. A visible row here could only
-                // open the SELECTED car's list for a car the user is not
-                // looking at, which is a misleading door - removing it is part
-                // of putting the car away, and the row returns with Unarchive.
-                if !vehicle.archived {
-                    section("Reminders") {
-                        linkRow(title: "Reminders",
-                                subtitle: "Track dates and odometer limits",
-                                identifier: "vehicleDetailRemindersLink") {
-                            Route.reminders
-                        }
-                    }
-                }
+                managementRows(vehicle)
                 section("Your data") {
                     VehicleExportRow(vehicle: vehicle)
                 }
@@ -165,6 +138,58 @@ struct VehicleDetailView: View {
         VStack(alignment: .leading, spacing: 4) {
             SectionEyebrow(title)
             content()
+        }
+    }
+
+    /// The three per-car management rows (docs/SCREENMAP.md): Tire sets, the
+    /// parts shelf (PJ.25) and Reminders. Extracted so `formView` stays inside
+    /// its lint budget.
+    @ViewBuilder
+    private func managementRows(_ vehicle: Vehicle) -> some View {
+        section("Tire sets") {
+            linkRow(title: "Tire sets",
+                    subtitle: "Manage sets and swap history",
+                    identifier: "vehicleDetailTireSetsLink") {
+                Route.tireSets
+            }
+        }
+        // PJ.25: the parts shelf door from the Garage. The shelf itself was
+        // built and tested in P3.2 but had exactly one entry point - nested
+        // inside a service entry - so a user who only wanted to see what was on
+        // the shelf had to start logging a service they may not be logging. This
+        // row is the calm door (docs/JOURNEYS.md J7b: the shelf is "visible
+        // under Garage"). It pushes the SAME PartsShelfView the nested sheet
+        // shows (never a second implementation) and carries the car whose detail
+        // hosts it, so a non-selected car's shelf is that car's, never the
+        // selection's. The row is present with nothing on the shelf: the shelf
+        // screen owns its own empty state (a car with no parts says so and names
+        // the next step - hard rule 7).
+        section("Parts shelf") {
+            linkRow(title: "Parts shelf",
+                    subtitle: "Parts waiting to be installed",
+                    identifier: "vehicleDetailPartsShelfLink") {
+                Route.partsShelf(vehicle.id)
+            }
+        }
+        // The Reminders management row (PJ.4) is HIDDEN on an archived car
+        // (RV.81, decided 2026-09-06). Archiving strips the car's armed
+        // notifications and every reminder surface answers "what needs doing",
+        // so a sold car's rows are not shown anywhere while it is archived - the
+        // merged list already excludes them by the same decision (docs/SCHEMA.md
+        // -> Reminder lifecycle). The rows are never deleted or tombstoned (hard
+        // rule 8): they come back on THIS row, the per-car list and the merged
+        // list when the car is unarchived. A visible row here could only open the
+        // SELECTED car's list for a car the user is not looking at, which is a
+        // misleading door - removing it is part of putting the car away, and the
+        // row returns with Unarchive.
+        if !vehicle.archived {
+            section("Reminders") {
+                linkRow(title: "Reminders",
+                        subtitle: "Track dates and odometer limits",
+                        identifier: "vehicleDetailRemindersLink") {
+                    Route.reminders
+                }
+            }
         }
     }
 

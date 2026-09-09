@@ -5,12 +5,24 @@ import TankbookCore
 /// installed in any service. The "on shelf" state is VISIBLE on purpose - a
 /// silent shelf means forgotten parts, and the journey names that as the failure
 /// mode. The list is derived (`PartsShelf.onShelf`), never stored.
+///
+/// Two doors share this screen (PJ.25): the nested "View shelf" sheet inside a
+/// service entry and the pushed route from Vehicle detail. Both are per-car;
+/// `vehicleID` names the car the pushed door opened (nil = the selected car -
+/// the service entry's shelf, and the debug-launch/screenshot pose).
 struct PartsShelfView: View {
     @Environment(AppCarSelection.self) private var carSelection
+
+    /// The vehicle whose shelf is shown. `nil` = the selected car.
+    let vehicleID: UUID?
 
     @State private var vehicle: Vehicle?
     @State private var shelfParts: [Expense] = []
     @State private var didLoad = false
+
+    init(vehicleID: UUID? = nil) {
+        self.vehicleID = vehicleID
+    }
 
     var body: some View {
         ScrollView {
@@ -65,9 +77,11 @@ struct PartsShelfView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            guard let vehicle = carSelection.selectedVehicle(vehicles) else { return }
-            self.vehicle = vehicle
-            shelfParts = try repository.partsOnShelf(forVehicle: vehicle.id)
+            let selected = carSelection.selectedVehicle(vehicles)
+            let target = vehicleID.flatMap { id in vehicles.first { $0.id == id } } ?? selected
+            guard let target else { return }
+            self.vehicle = target
+            shelfParts = try repository.partsOnShelf(forVehicle: target.id)
         } catch {
             AppLog.error(operation: "partsShelf.load", category: .ui, error: error)
         }

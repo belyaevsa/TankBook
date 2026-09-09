@@ -67,6 +67,30 @@ final class PartsShelfUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Parts on your shelf"].exists)
     }
 
+    // MARK: - The service-entry nested route (PJ.25 regression guard)
+
+    /// PJ.25 regression: the ORIGINAL door to the parts shelf - the "View
+    /// shelf" button nested inside a service entry - still works after the row
+    /// added a pushed door from Vehicle detail. The nested route presents the
+    /// SAME PartsShelfView as the pushed one, so the shelf shows the seeded
+    /// part; driving the tap (rather than `-presentScreen partsShelf`) is what
+    /// proves the nested wiring itself survived.
+    func testViewShelfInsideAServiceEntryStillOpensTheNestedShelf() {
+        let app = launch(["-seedServiceEntryLink", "-presentScreen", "serviceEntry"])
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
+                      "the service entry sheet must open for its View shelf button to exist")
+
+        let viewShelf = app.buttons["serviceEntryViewShelfButton"]
+        XCTAssertTrue(viewShelf.waitForExistence(timeout: 5),
+                      "a service with an on-shelf part offers the View shelf button")
+        viewShelf.tap()
+
+        XCTAssertTrue(app.staticTexts["Oil filter"].waitForExistence(timeout: 5),
+                      "the nested shelf route still opens the shelf and shows its part")
+        XCTAssertTrue(app.staticTexts["On shelf"].firstMatch.exists,
+                      "the nested shelf still renders the on-shelf state")
+    }
+
     // MARK: - The Expense entry (the peer path, hard rule 15)
 
     func testPartsModeOpensTheExpenseEntry() {

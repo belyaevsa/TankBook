@@ -8145,6 +8145,23 @@
         }
       }
     },
+    "Parts waiting to be installed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parts waiting to be installed"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запчасти, ожидающие установки"
+          }
+        }
+      }
+    },
     "Per-car settings (currency, units, tank size) live on each car in the Garage.": {
       "extractionState": "manual",
       "localizations": {

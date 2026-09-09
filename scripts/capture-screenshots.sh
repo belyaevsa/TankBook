@@ -273,6 +273,16 @@ capture P3.2-parts-shelf-ru    ru -seedPartsShelf -presentScreen partsShelf
 capture P3.2-service-link      en -seedServiceEntryLink -presentScreen serviceEntry
 capture P3.2-service-link-ru   ru -seedServiceEntryLink -presentScreen serviceEntry
 
+# PJ.25: the shelf reached from the Garage as a PUSHED screen (the Vehicle
+# detail row's door) - the `partsShelfPushed` pose, distinct from P3.2's nested
+# sheet pose. The filled pair shows the seeded parts; the empty pair shows the
+# shelf's own empty state for a car with nothing on it (hard rule 7). RU is
+# where the nav title ("Полка запчастей") and the row subtitle run longest.
+capture PJ.25-parts-shelf        en -seedPartsShelf -presentScreen partsShelfPushed
+capture PJ.25-parts-shelf-ru     ru -seedPartsShelf -presentScreen partsShelfPushed
+capture PJ.25-parts-shelf-empty    en -seedHomeCarSwitcher -presentScreen partsShelfPushed
+capture PJ.25-parts-shelf-empty-ru ru -seedHomeCarSwitcher -presentScreen partsShelfPushed
+
 # PJ.11: the F9a conflict on the service save - a service odometer below its
 # date-neighbour (119 486 -> 11 948) shows the amber warning and Fix, and the
 # save is never blocked (hard rule 13). The seed pairs the prior-fill vehicle

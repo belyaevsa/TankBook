@@ -102,7 +102,10 @@ flowchart TD
     Garage -->|Add car| AddVehicle
     VehicleDetail -.->|back| Garage
     VehicleDetail -->|Tire sets| TireSets
+    VehicleDetail -->|Parts shelf [v1.x] PJ.25| PartsShelf
     VehicleDetail -->|Reminders| Reminders
+    PartsShelf -.->|back| VehicleDetail
+    ServiceEntry -->|View shelf| PartsShelf2[Parts shelf, nested sheet]
     TireSets -->|New tire set / row| TireSetForm
     TireSets -.->|back| VehicleDetail
     TireSetForm -->|Save| TireSets
@@ -157,6 +160,32 @@ flowchart TD
 
 Dashed arrows = back/dismiss paths. `Back[return to opener]` = the screen is reachable from several places and back always returns to the specific opener (standard stack behavior), never to a hardcoded screen.
 
+### The parts shelf door **[v1.x]** (PJ.25, 2026-09-09)
+
+The shelf (P3.2, docs/JOURNEYS.md J7b) is **per-car**, decided here: the row lives on
+Vehicle detail - a per-car screen - beside the other per-car rows (Tire sets, Reminders),
+and the shelf's data is stored per-car (`partsOnShelf(forVehicle:)`, each part is an
+`.parts` Expense with a `vehicleId`). An all-cars shelf would need a new query and a
+screen that names every row's car; nothing in J7b or this map asks for one, and the
+service-entry nested door is already per-car. So the pushed door carries the vehicle the
+row belongs to, exactly as the row's siblings do.
+
+**Two doors, one screen.** The nested "View shelf" sheet (P3.2, inside a service entry)
+is unchanged; PJ.25 added the pushed row, and both render the SAME `PartsShelfView` -
+never a second implementation. The Vehicle detail row is always present (like Tire sets,
+unlike Reminders which RV.81 hides for an archived car): a car with nothing on the shelf
+still reaches the shelf, whose own empty state says what the shelf is for and what to do
+next (hard rule 7) instead of a blank list.
+
+**Back path / discard conclusion.** The pushed door is a `Route.partsShelf` on the tab's
+NavigationStack, so back = chevron + edge-swipe returning to the Vehicle detail that
+pushed it - standard pushed-screen behaviour, never a discard. The `.discardSilently`
+classification on `SheetRoute.partsShelf` (Routes.swift) was written for the NESTED
+SHEET, and it is still right there: the shelf holds no typed input, so neither dismiss
+path asks, and nothing is lost. The pushed screen does not consult a sheet discard policy
+at all - it pops. Do not "fix" the classification because of the pushed door; it governs
+the other presentation.
+
 **The Welcome root (PJ.3, re-argued in RV.23).** One screen (`design/screens/Welcome.dc.html` / `LightWelcome.dc.html`), no tab bar, shown only while the log holds **no vehicle and no session** – decided at launch, never again once a car exists. Its three paths are equal doors (hard rule 15): Add your car, Import from another app, and "Sign in to Tankbook" – the last a full-width button like the other two, carrying the one benefit hardest to guess ("Cloud receipt reading, sync and backup"; `/extract` is bearer-only, so a guest never gets the cloud model). **Add your car stays a peer**: it continues with no account, first and in taillight, and nothing on the screen frames the user who never signs in as having chosen the lesser path (hard rule 1).
 
 Beneath the three doors sits a fourth affordance that is **not** a peer door but a returning user's line: "Already use Tankbook? Restore your garage." It is the only thing on the screen that claims "I am coming back", so it – and only it – carries the restore intent into the sign-in sheet (`arrivedViaRestore: true`, RV.23). That split is the whole difference between a reinstall/Android migrant being offered their account and being funnelled into "Add your car" as if new, and in the other direction it keeps J11a's wrong-provider question away from a brand-new user whose account is empty because it is new. The **guest Home** is that Add-car path's landing state (`GuestHome`): the Home tab rendered for a session-less user, real since PJ.3 – no longer the `-forceGuestHome` presentation fixture.
@@ -181,9 +210,11 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | **Attachment viewer** (RV.9 + RV.17 + RV.37, sheet over Edit entry) | the receipt strip's photo chip on Edit entry – the fill-up form and the non-fill form alike; the chip is a control, not decoration | Share/save the full rendition via the system share sheet (RV.17, offered only once the rendition is local – never the 44 pt thumbnail) · swipe to the recognised-data page when the attachment carried any, absent rather than empty otherwise. **RV.48 changed what that page IS**: the headline is now the ASSIGNMENT the parse concluded - date, fuel kind, volume, price per litre, total, currency, each with the value it read - and the raw OCR lines are demoted behind a disclosure rather than being the page. An attachment whose parse assigned nothing SAYS SO instead of rendering an empty card. The page presents STORED data and never re-runs OCR: a fresh read could contradict a value the user has already confirmed (hard rule 13) · **Delete** (system-confirmed: tombstones the attachment and unlinks it from the entry, hard rule 8) · **Replace photo** (the same camera/Photos door as "Add receipt"; a new attachment plus a tombstone for the old, then the ask – "Re-read this and update the entry?" with "Leave it as it is" the default, hard rule 13). Rotate, crop and edit remain their own decisions | **Close and swipe-down, both** – a viewer that can only be left by a gesture traps the user who does not know the gesture |
 | Trends | tab root | gear → Settings · insight cards → (chart detail, planned) · capture | tab root |
 | Garage | tab root | gear → Settings · vehicle → VehicleDetail (per-car settings) · Add car (the ONE monetization surface - the free-tier cap shows the limit sheet) · capture | tab root |
-| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (the car AND the entries that went down with it restorable, RV.98) · Tire sets → Tire sets · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due; **hidden for an archived car**, RV.81). **RV.137 (2026-09-08): editing the Make · model row now offers the SAME bundled-catalog suggestions Add car does** (typing an edit mounts them; merely focusing the filled field does not). A pick fills make, model and year as text the user owns and records no catalogue id - preserving the screen's permanence decision (its own header: nothing here stores a catalog id for a later pack to rewrite); name, powertrain, fuel kinds, capacity and units are never rewritten by a pick. **The pinned Save bar steps aside while any field is focused** (RV.137, same report): a `safeAreaInset` bar floats above the keyboard over the one region that does not scroll, which hid the fuel chips mid-edit; with the keyboard up the form owns the whole space above it and the bar returns when focus leaves the field | back → Garage (or opener) |
+| Vehicle detail (P1.12) | Garage vehicle, Car switcher archived row, limit sheet "Archive a car" | Save changes → back · Archive/Unarchive (in place) · Delete → system confirm → Recently deleted (the car AND the entries that went down with it restorable, RV.98) · Tire sets → Tire sets · **Parts shelf → Parts shelf [v1.x]** (PJ.25 - the third per-car management row, always present like Tire sets: a car with nothing on the shelf still reaches the shelf, whose own empty state says so) · **Reminders → Reminders** (PJ.4 - the second door, present with nothing due; **hidden for an archived car**, RV.81). **RV.137 (2026-09-08): editing the Make · model row now offers the SAME bundled-catalog suggestions Add car does** (typing an edit mounts them; merely focusing the filled field does not). A pick fills make, model and year as text the user owns and records no catalogue id - preserving the screen's permanence decision (its own header: nothing here stores a catalog id for a later pack to rewrite); name, powertrain, fuel kinds, capacity and units are never rewritten by a pick. **The pinned Save bar steps aside while any field is focused** (RV.137, same report): a `safeAreaInset` bar floats above the keyboard over the one region that does not scroll, which hid the fuel chips mid-edit; with the keyboard up the form owns the whole space above it and the bar returns when focus leaves the field | back → Garage (or opener) |
 | Tire sets (P3.3) | Vehicle detail | row → Tire set form (rename) · New tire set → form · Archive (row menu, in place) | back → Vehicle detail |
 | Tire set form (P3.3) | Tire sets (New / row) | Save → Tire sets | back → Tire sets |
+| **Parts shelf** **[v1.x]** (P3.2 screen; PJ.25 gave it its second door) | Vehicle detail's "Parts shelf" row (**pushed**, PJ.25) · a service entry's "View shelf" button (**nested sheet**, P3.2 - unchanged) · `-presentScreen partsShelf` (nested-sheet pose) / `-presentScreen partsShelfPushed` (the pushed door's pose) | none - a read-only list (`.parts` expenses not yet installed in any service; derived, never stored) | **pushed**: back chevron + edge-swipe → the Vehicle detail that pushed it. **nested sheet**: swipe-down / close → the service entry. The shelf has no typed input, so neither door ever asks before leaving - nothing to lose (hard rule 8). The `SheetRoute.partsShelf` `.discardSilently` classification governs the SHEET presentation only; the pushed door is a stack pop, never a discard |
+
 | Car switcher (sheet) | Home car card/chip | pick → Home · Add car · archived → VehicleDetail | swipe-down → Home |
 | Reminders | Home banner, VehicleDetail | complete → ReminderComplete · New reminder → form | back → opener |
 | **Reminders, all cars** **[v1.1]** (RV.75, `design/screens/RemindersAll.dc.html`) | the Home "Reminders" row and a Garage car's attention count (RV.76/RV.79), and every reminder notification (RV.74 - the deep link lands HERE, so it cannot land on the wrong car, and the reminder's own car is selected first, never an archived one) | a row → ReminderComplete · the car chip narrows to one car's Reminders · New reminder → form, **which asks which car** - defaulting silently to the selected one is the quiet guess hard rule 13 forbids | back → opener |

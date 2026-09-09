@@ -35,6 +35,7 @@ struct DestinationView: View {
         case .recentlyDeleted: RecentlyDeletedView()
         case .editEntry(let entryID): EditEntryView(entryID: entryID)
         case .vehicleDetail(let vehicleID): VehicleDetailView(vehicleID: vehicleID)
+        case .partsShelf(let vehicleID): PartsShelfView(vehicleID: vehicleID)
         case .tireSets: TireSetsView()
         case .tireSetForm(let tireSetID): TireSetFormView(tireSetID: tireSetID)
         case .addVehicle: AddVehicleView()

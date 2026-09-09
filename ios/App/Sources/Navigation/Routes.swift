@@ -49,6 +49,16 @@ enum Route: Hashable {
     /// vehicle. Reached from Garage, the Car switcher's archived row and the
     /// limit sheet's "Archive a car".
     case vehicleDetail(UUID?)
+    /// PJ.25: the parts shelf (P3.2, docs/JOURNEYS.md J7b) as a PUSHED
+    /// destination - the Garage door. `.partsShelf` also exists as a
+    /// `SheetRoute` for the nested "View shelf" door inside a service entry;
+    /// this pushed variant is what the Vehicle detail row opens, and it is NOT
+    /// a sheet, so the `SheetRoute`'s `.discardSilently` discard policy never
+    /// applies to it - a pushed read-only list pops via the back chevron /
+    /// edge-swipe like every other pushed screen (docs/SCREENMAP.md). The
+    /// vehicle the shelf shows: `nil` = the selected car (the debug-launch and
+    /// nested-service-entry pose), otherwise the car whose detail pushed it.
+    case partsShelf(UUID?)
     /// The selected car's tire sets (P3.3), reached from Vehicle detail.
     case tireSets
     /// The tire-set name form. `nil` = create a new set (the list's "New tire
@@ -81,6 +91,7 @@ enum Route: Hashable {
         case .vehicleDetail: "Vehicle"
         case .tireSets: "Tire sets"
         case .tireSetForm: "Tire set"
+        case .partsShelf: "Parts shelf"
         case .addVehicle: "Add car"
         case .accountDevices: "Account & devices"
         case .paywall: "Tankbook Pro"
