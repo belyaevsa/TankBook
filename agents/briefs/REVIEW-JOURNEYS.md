@@ -8,6 +8,7 @@ parallel. Output feeds a dated "Journeys review" section in `docs/TASKS.md`.*
 | Run | Tree | Yield |
 |---|---|---|
 | 2026-08-29 | `93d2619` | 66 `PJ` rows (36 since shipped, 30 open) |
+| 2026-09-09 | `4cc801a` | 1 row (`PJ.55`), 0 ticked-but-not-true. One read-only agent, deep on J4 / J7b / money+rates / feedback rather than shallow across all - see `diagnostics/REVIEW-JOURNEYS-2026-09-09.md` |
 
 **The 2026-08-29 run was never repeated, and 643 commits landed after it.** Every product
 reachability gap catalogued in `docs/DEFECT-PATTERNS.md` Part 2 was found either by that review or
