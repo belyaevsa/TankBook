@@ -62,13 +62,13 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.19** | flash | 98538 | `bsw32hm60` (persistent) | `agents/briefs/PJ.19.md` |
+| **RV.117b** | flash | 47482 | `bxchj0p5b` (persistent) | `agents/briefs/RV.117b.md` |
 
 ### Waiting, in order
 
 | # | Task | Model | Brief | Why this position |
 |---|---|---|---|---|
-| 4 | RV.117b **[v1.1]** | flash | *being written now* | The neighbourhood chart. RV.117a has landed, so its return shape (`ValidRange`) is known and the brief can be written; PJ.28 went first only because its brief was already on disk |
+| *(empty - RV.117b is the last briefed row)* | | | | |
 
 ### Shipped this session (2026-09-08/09)
 
@@ -85,6 +85,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | RV.117a | `e249a13` | The valid interval in core - the substance half of RV.117 |
 | PJ.28 | `8005181` | A scanned expense keeps its receipt; filed RV.149 from its finding |
 | PJ.25 | `8d6324e` | The parts shelf has a door from the Garage |
+| PJ.19 | `b6ea56d` | The station suggestion is built and never required; filed RV.150 from its finding |
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
