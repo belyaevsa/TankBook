@@ -1,5 +1,56 @@
 import Foundation
 import GRDB
+import os
+
+/// A fire-and-forget "a write committed" signal the app can observe
+/// (docs/SYNC.md, the debounced write trigger). The repository itself knows
+/// nothing about sync - it only announces that a local write happened; the app
+/// decides whether that means a sync cycle should run. The signal is a single
+/// shared box per database, so every `TankbookRepository` copy (and the app's
+/// cached instance) observes the same writes. Thread-safe: writes commit on
+/// whichever thread called them.
+public final class DatabaseWriteSignal: @unchecked Sendable {
+    private struct State {
+        var observer: (@Sendable () -> Void)?
+        /// Nestable suppression: while > 0 the signal stays silent. The sync
+        /// engine raises it for the duration of a cycle so its OWN writes (the
+        /// bookkeeping that is the response to a sync) never announce as a new
+        /// local write - without this, an offline push that leaves rows dirty
+        /// would re-trigger the debounced write-trigger forever.
+        var suppression = 0
+    }
+    private let lock = OSAllocatedUnfairLock(initialState: State())
+
+    public init() {}
+
+    /// The observer the app registers once. nil = nobody is listening (tests,
+    /// un-wired embeddings), and `fire()` is then a no-op.
+    public var observer: (@Sendable () -> Void)? {
+        get { lock.withLock { $0.observer } }
+        set { lock.withLock { $0.observer = newValue } }
+    }
+
+    /// Silences announcements until the matching `resume` runs. Nestable and
+    /// thread-safe (the engine brackets a whole asynchronous cycle with it).
+    public func suppress() {
+        lock.withLock { $0.suppression += 1 }
+    }
+
+    /// Re-arms announcements after `suppress`. Safe to over-call (clamped at 0).
+    public func resume() {
+        lock.withLock { $0.suppression = max(0, $0.suppression - 1) }
+    }
+
+    /// Invokes the observer, if any and not suppressed. Called after every
+    /// successful write transaction; never from within the transaction.
+    public func fire() {
+        let observer = lock.withLock { state -> (@Sendable () -> Void)? in
+            guard state.suppression == 0 else { return nil }
+            return state.observer
+        }
+        observer?()
+    }
+}
 
 /// Owns the SQLite connection and applies the migrations on open.
 ///
@@ -12,6 +63,10 @@ import GRDB
 public struct TankbookDatabase {
     public let writer: any DatabaseWriter
     public let migrator: DatabaseMigrator
+    /// Fired after every successful write transaction (the app's debounced
+    /// write-trigger seam). A reference type stored on the struct, so all
+    /// copies of one database share the same signal.
+    public let writeSignal = DatabaseWriteSignal()
 
     /// Opens (creating if needed) the database at `path` and migrates it.
     public init(path: String, migrator: DatabaseMigrator = TankbookMigrations.migrator) throws {
@@ -60,7 +115,9 @@ public struct TankbookDatabase {
 
     /// Runs a write access in a transaction.
     public func write<T>(_ block: (Database) throws -> T) throws -> T {
-        try writer.write(block)
+        let result = try writer.write(block)
+        writeSignal.fire()
+        return result
     }
 
     /// Names of all tables, queried from `sqlite_master`. Exposed so tests and

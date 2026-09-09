@@ -145,6 +145,12 @@ public struct SyncEngine {
                 recordsPulled: outcome.pulled,
                 recordsPushed: outcome.pushed))
         }
+        // RV.157: the writes THIS cycle performs are the response to a sync,
+        // never a new local write - silence the database write signal for the
+        // whole cycle so its bookkeeping cannot re-trigger the debounced
+        // write-trigger (which would make an offline push retry forever).
+        repository.database.writeSignal.suppress()
+        defer { repository.database.writeSignal.resume() }
 
         try? repository.recoverStuckPushes()
         var affected = Set<UUID>()

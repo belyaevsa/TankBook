@@ -148,7 +148,25 @@ row revoked; ordinary sign-out is the milder control that sits between "keep syn
 
 - **Push:** for each change, if `baseScn` matches the server's current SCN for that id (or the record is new), the server writes it and assigns the next SCN. Otherwise → `conflict` with the current server record; the client merges and re-pushes with the new base. First-writer-wins at the transport level; the *merge* decides content. **Idempotent replay:** a `baseScn` of 0 against an id the server already holds (a new-record push whose response the client never received) returns the same accepted outcome with the record's existing SCN - it never writes a second row or allocates a second SCN. This is what makes the endpoints idempotent "by id + baseScn".
 - **Pull:** strictly ordered by SCN, paginated, cursor stored per device (`last_pull_scn`). A device that was offline for a year just replays the stream. Fresh install + sign-in = pull from 0 (this IS restore).
-- Sync cycle: pull → merge → push, triggered on app foreground, after every local write (debounced), and by push notification nudge (silent APNs "there's news" – no content in the push).
+- Sync cycle: pull → merge → push. **Wired triggers (RV.157 source-scan guard:
+  each `name()` listed here must have a call site in the sources, or the test
+  fails):**
+  - **App foreground** – `runOpportunisticSync()` (the automatic pass,
+    `TabRoots.runAutomaticPass`).
+  - **After every local write (debounced)** – a local write commits, the
+    repository write signal fires, and `AppSync.noteLocalWrite()` pokes the
+    `SyncWriteScheduler`, which coalesces a burst into one `.background` cycle
+    through the SAME `runSync(trigger: .background)` door the foreground pass
+    uses – never a second `SyncEngine`. A save never awaits the scheduled cycle
+    (hard rule 1); a guest's write is a cheap no-op (no account, nothing to
+    push). Under Low Power Mode the cycle defers to the `LowPowerResumer` like
+    the foreground pass. The engine suppresses the write signal for the duration
+    of a cycle, so its own bookkeeping (the response to a sync) never
+    re-triggers the trigger; a write that lands in that brief in-flight window
+    is not lost - it stays dirty and goes with the next trigger (S7).
+  - **Push notification nudge** (silent APNs "there's news" – no content in the
+    push): **[v1.x], NOT wired** – designed in NOTIFICATIONS.md, no call site
+    exists, and the source-scan guard does not expect one.
 
 **Push batches are bounded by records AND by encoded bytes (RV.97, 2026-09-06).** One push request is a batch of dirty changes, capped two ways at once (`SyncEngine`):
 
@@ -487,7 +505,7 @@ was silently cancelled has no next step (hard rule 7) and reads as a hang.
 
 | Defers while Low Power Mode is on | Never defers |
 |---|---|
-| Opportunistic sync cycles (launch, foreground) | Any **save** – always local, always immediate (hard rule 1) |
+| Opportunistic sync cycles (launch, foreground, debounced write) | Any **save** – always local, always immediate (hard rule 1) |
 | Attachment/blob **upload** – the heaviest work there is; **prefetch** *(policy present, call site not wired)* | A sync, restore, export or retry the **user asked for** |
 | Rate pack refresh (`RateStore.refresh`) | Capture, OCR and the confirm sheet the user is standing in |
 | Vehicle catalog pack fetch *(policy present, call site not wired)* | An already-scheduled local notification |

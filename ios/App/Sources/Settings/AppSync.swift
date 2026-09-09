@@ -129,6 +129,15 @@ final class AppSync {
     /// the first registration instead of stacking a duplicate drain.
     private static let deferredSyncID = UUID()
 
+    /// RV.157: the debounced write trigger (docs/SYNC.md - a cycle runs "after
+    /// every local write (debounced)"). Poked by the database write signal; run
+    /// through `runSync(.background)`, the SAME door as the foreground pass.
+    /// Built lazily; a guest's pokes are no-ops.
+    private var writeTrigger: SyncWriteScheduler?
+    /// The `DatabaseWriteSignal` under observation, so re-arming (e.g. after a
+    /// test reset rebuilt the database) replaces rather than stacks the observer.
+    private var armedWriteSignal: DatabaseWriteSignal?
+
     private(set) var session: AuthSession?
     private(set) var dirtyCount = 0
     private(set) var flaggedCount = 0
@@ -328,7 +337,66 @@ final class AppSync {
                                                       sessionStore: sessionStore,
                                                       powerState: powerState)
         core = coordinator
+        ensureWriteTriggerArmed(repository: repository)
         return coordinator
+    }
+
+    /// RV.157: arms the database write signal - the seam every local write
+    /// passes through. The trigger's gates decide whether a cycle runs; a poke
+    /// that dirtied nothing is a no-op. Re-arms when a test reset rebuilt the
+    /// database; never armed under a seeded launch (UI test / screenshot).
+    private func ensureWriteTriggerArmed(repository: TankbookRepository) {
+        #if DEBUG
+        guard !SeededLaunch.isSeeded() else { return }
+        #endif
+        let writeSignal = repository.database.writeSignal
+        if writeSignal === armedWriteSignal { return }
+        writeSignal.observer = { [weak self] in
+            Task { @MainActor in self?.noteLocalWrite() }
+        }
+        armedWriteSignal = writeSignal
+    }
+
+    /// A local write landed (RV.157). Cheap and non-blocking - the write already
+    /// committed; this only nudges the debounced trigger. A guest's poke is a
+    /// no-op; a frozen screenshot launch skips it like the launch cycle. Loads
+    /// `session` on demand so a relaunch's first edit is not lost.
+    private func noteLocalWrite() {
+        #if DEBUG
+        guard !SeededLaunch.freezesSyncState() else { return }
+        #endif
+        if session == nil { session = try? sessionStore.load() }
+        guard signedIn else { return }
+        let trigger = writeTrigger ?? makeWriteTrigger()
+        writeTrigger = trigger
+        trigger.noteWrite()
+    }
+
+    /// Builds the app's one write trigger; gates read live state at fire time.
+    /// Shares AppSync's deferred-work id so write + foreground deferrals in one
+    /// Low Power session coalesce into one drain.
+    private func makeWriteTrigger() -> SyncWriteScheduler {
+        let trigger = SyncWriteScheduler(powerState: powerState, resumer: resumer,
+                                         deferredWorkID: Self.deferredSyncID)
+        trigger.isArmed = { [weak self] in
+            self?.session != nil && (self?.configService.allowsServerBacked ?? false)
+        }
+        trigger.isBusy = { [weak self] in self?.isSyncing ?? false }
+        trigger.hasWork = { [weak self] in
+            guard let repository = try? AppStore.repository() else { return false }
+            return ((try? repository.fetchDirtyRows())?.isEmpty == false)
+        }
+        trigger.isRetryPending = { [weak self] in
+            self?.core?.scheduledRetryDelay() != nil
+        }
+        trigger.run = { [weak self] in await self?.runWriteTriggeredCycle() }
+        return trigger
+    }
+
+    /// The write trigger's cycle uses the SAME door as the foreground pass
+    /// (`runSync(.background)`) - never a second path.
+    private func runWriteTriggeredCycle() async {
+        await runSync(trigger: .background)
     }
 
     /// Reads the session, the derived counts and the coordinator's last outcome.
@@ -366,6 +434,7 @@ final class AppSync {
         }
         do {
             let repository = try AppStore.repository()
+            ensureWriteTriggerArmed(repository: repository)
             let dirty = (try? repository.fetchDirtyRows()) ?? []
             dirtyCount = dirty.count
             flaggedCount = (try? repository.flaggedEntryCount()) ?? 0
@@ -471,8 +540,8 @@ final class AppSync {
         await refresh()
     }
 
-    /// The launch / foreground / timer cycle (docs/SYNC.md -> Low Power Mode:
-    /// "opportunistic sync cycles (launch, foreground, timer)"). Passes
+    /// The launch / foreground cycle (docs/SYNC.md -> Low Power Mode; the
+    /// debounced write trigger is the other `.background` door). Passes
     /// `.background`, so the cycle defers while the mode is on - the queue is
     /// exactly as it was (hard rule 8) - and the deferred cycle is registered
     /// with the resumer, which drains it the moment the mode ends. The ONLY
