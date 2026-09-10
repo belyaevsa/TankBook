@@ -98,16 +98,15 @@ can settle it.
 
 ### The product owner's own open reports - these outrank everything
 
-Twelve defects were reported by using the app on 2026-09-09/10. **Eight shipped**; these four are
-what is left, and they are the top of the queue because a defect the owner hit is a defect a user
-hits.
+Twelve defects were reported by using the app on 2026-09-09/10. **Eight shipped**, `RV.181` is
+**skipped by the owner** (see *Not queued, and why*), and these three are what is left - top of the
+queue, because a defect the owner hit is a defect a user hits.
 
 | Task | | Where it stands |
 |---|---|---|
 | **RV.192** | in flight | *"one more problem with odo and fill ups at the same day."* Their **SECOND** report of that shape - `RV.186` fixed the order check and deliberately left the pace check. Dispatched with `PJ.45`, which makes the limit theirs |
 | **RV.189** `[!]` | briefed | *"drivvo import has gas station names, but they are ignored."* An **INVESTIGATION** brief: the orchestrator's first diagnosis was wrong and the brief records it |
 | **RV.182** | **briefed now** | *"list has a tank volume and it's not filled up automatically when I selected it."* Reported early on 2026-09-10, decided the same day (blank-fields-only), then slid behind newer reports all day. **It was the only one of the twelve with nothing scheduled against it** |
-| **RV.181** `[!]` | **BLOCKED ON THE OWNER** | *"I select a destination, but nothing is dispatched."* Committed as hardening (`ae775cf`); the cause is unestablished and the first diagnosis withdrawn. **No agent can advance this** - it does not reproduce on the simulator, and the next step is one share attempt from the owner's own iPhone 13 on a build carrying the new outcome logging |
 
 ### Briefed and ready, in order
 
@@ -189,6 +188,15 @@ mutation reconstructed `RV.156` exactly; `RV.170` and `RV.171` are sequenced the
 
 
 ### Not queued, and why
+
+- **RV.181** `[!]` - *"I select a destination, but nothing is dispatched."* **SKIPPED by the product
+  owner, 2026-09-10.** The row stays OPEN and unfixed; it is simply not being worked. `ae775cf`
+  shipped the hardening and, more usefully, the outcome record: a share that fails at its
+  destination is now logged as `failed` with its activity type and error code, where before it was
+  indistinguishable from a cancel. **So the next report of this is answerable from a diagnostics
+  bundle**, which is what makes skipping it cheap now and expensive-to-diagnose never. Nothing here
+  is agent work: it does not reproduce on the simulator, and the only remaining evidence is one
+  share attempt from a physical device.
 
 - **RV.148** - the monthly-summary push summing a partial month. **Deferred by the product owner,
   2026-09-09** (*"with monthly results - we will come to it later"*). Not blocked on a decision that
