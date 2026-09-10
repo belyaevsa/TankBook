@@ -175,6 +175,7 @@ struct TimelineNeighbourhoodChart: View {
                 trendLine(layout)
                 neighbourMarks(layout)
                 offendingMark(layout)
+                pointLabels(layout, size: geo.size)
                 accessibilityOverlay(layout)
             }
         }
@@ -256,6 +257,33 @@ struct TimelineNeighbourhoodChart: View {
         }
     }
 
+    /// Visible labels on the plotted points (RV.188): the odometer in DIN and
+    /// the day, so the point that disagrees is named on the chart and not only
+    /// to VoiceOver. Placement is computed by
+    /// `TimelineNeighbourhoodChartLayout.labelFrames` - see there for why the
+    /// side cannot be chosen by the point's index. The per-point accessibility
+    /// overlay above remains the VoiceOver channel; these carry
+    /// `neighbourhoodChartOdometerLabel` / `…DateLabel` so a UI test can read the
+    /// visible text back.
+    private func pointLabels(_ layout: TimelineNeighbourhoodChartLayout,
+                             size: CGSize) -> some View {
+        let frames = layout.labelFrames(in: size)
+        return ForEach(layout.allPoints) { mark in
+            VStack(spacing: 0) {
+                Text("\(OdometerFormat.grouped(mark.odometer)) \(L10n.distanceUnit(distanceUnit))")
+                    .font(.custom(AppFonts.dinAlternateBold, size: 10))
+                    .monospacedDigit()
+                    .accessibilityIdentifier("neighbourhoodChartOdometerLabel")
+                Text(EntryDateText.dayMonth(mark.date))
+                    .font(.system(size: 9))
+                    .accessibilityIdentifier("neighbourhoodChartDateLabel")
+            }
+            .foregroundStyle(mark.isOffending ? Theme.Palette.warn : Theme.Palette.inkSoft)
+            .fixedSize()
+            .position(frames[mark.id]?.center ?? mark.position)
+        }
+    }
+
     private func pointLabel(isOffending: Bool) -> Text {
         if isOffending {
             return Text("This entry")
@@ -298,9 +326,62 @@ struct TimelineNeighbourhoodChartLayout {
         allPoints.first { $0.isOffending }
     }
 
+    /// The label box, sized for the widest string this chart draws: a grouped
+    /// six-figure odometer with its unit over a short date. RU is the wider
+    /// locale, so the width is set from it.
+    static let labelSize = CGSize(width: 84, height: 26)
+
+    /// Where each point's label sits, keyed by the point's id.
+    ///
+    /// **The side is chosen by the point's own height, never by its index.** The
+    /// series rises left to right, so the free space is BELOW a point in the
+    /// lower half of the plot and ABOVE one in the upper half - the line itself
+    /// occupies the other side. Alternating by index instead put the offending
+    /// point's label on top of its neighbour's mark and the neighbour's label on
+    /// top of that, which is what the RV.188 screenshots showed: two labels
+    /// printed over each other at the same corner, one of the three points
+    /// effectively unlabelled.
+    ///
+    /// Overlaps are then resolved by pushing the later label further from the
+    /// plot, so two points close in x (a day apart on a three-week span) still
+    /// read as two labels. Everything stays inside `size`.
+    func labelFrames(in size: CGSize) -> [UUID: CGRect] {
+        let box = Self.labelSize
+        let midY = size.height / 2
+        var placed: [CGRect] = []
+        var frames: [UUID: CGRect] = [:]
+
+        // Nearest the plot's vertical centre first: the points with the least
+        // room get the side they need before the outer ones claim it.
+        for mark in allPoints.sorted(by: { abs($0.position.y - midY) < abs($1.position.y - midY) }) {
+            let goesUp = mark.position.y < midY
+            var frame = Self.frame(for: mark.position, box: box, goesUp: goesUp, step: 0, in: size)
+            var step = 1
+            while placed.contains(where: { $0.intersects(frame) }), step <= 3 {
+                frame = Self.frame(for: mark.position, box: box, goesUp: goesUp, step: step, in: size)
+                step += 1
+            }
+            placed.append(frame)
+            frames[mark.id] = frame
+        }
+        return frames
+    }
+
+    /// One candidate box, `step` label-heights away from the point on the chosen
+    /// side, clamped so no part of it leaves the chart.
+    private static func frame(for point: CGPoint, box: CGSize, goesUp: Bool,
+                              step: Int, in size: CGSize) -> CGRect {
+        let gap = box.height / 2 + 8 + CGFloat(step) * box.height
+        let rawY = goesUp ? point.y - gap : point.y + gap
+        let clampedY = min(max(rawY, box.height / 2), max(size.height - box.height / 2, box.height / 2))
+        let clampedX = min(max(point.x, box.width / 2), max(size.width - box.width / 2, box.width / 2))
+        return CGRect(x: clampedX - box.width / 2, y: clampedY - box.height / 2,
+                      width: box.width, height: box.height)
+    }
+
     init(points: [TimelineNeighbourhood.Point], size: CGSize) {
-        // Room above and below the plotted span so a mark at either extreme is
-        // drawn whole rather than clipped by the chart's edge.
+        // Room above and below for the point labels RV.188 draws: marks stay
+        // clear of the edges so a label never runs off the chart.
         let topPad: CGFloat = 24
         let bottomPad: CGFloat = 24
         let usableHeight = max(size.height - topPad - bottomPad, 1)
@@ -333,4 +414,10 @@ struct TimelineNeighbourhoodChartLayout {
         allPoints = marks
         validPoints = marks.filter { !$0.isOffending }
     }
+}
+
+extension CGRect {
+    /// The box's centre - what SwiftUI's `.position` takes, where the layout
+    /// reasons in frames so overlaps can be tested.
+    var center: CGPoint { CGPoint(x: midX, y: midY) }
 }
