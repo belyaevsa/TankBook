@@ -63,7 +63,8 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.23** | flash | 26446 | `bozyn6wcq` (persistent) | `agents/briefs/PJ.23.md` |
+| **RV.198** `[!]` | flash | 80286 | `bzqqqa6mk` (persistent) | `agents/briefs/RV.198.md` |
+| **REVIEW-SERVICE** *(read-only)* | pro | 92830 | `b2j4nvrb1` (persistent) | `agents/briefs/REVIEW-SERVICE-2026-09-10.md` |
 | **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
@@ -113,7 +114,7 @@ Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
 
 | # | Task | Brief | Note |
 |---|---|---|---|
-| 1 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
+| ~~1~~ | ~~**PJ.23**~~ **shipped `fd57e7b`** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
 | 2 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
 | 3 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
 | 4 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
@@ -140,6 +141,22 @@ on code that does not compile into the app), `RV.182` (the tank pre-fill, decisi
 
 **The recurring journeys walk is due**: it runs every 10 shipped rows or at a phase gate. Eleven
 rows shipped since Groups C+D on 2026-09-10.
+
+## The service loop is under review, 2026-09-10
+
+`PJ.23` shipped and the product owner immediately found what it did not do - add and delete a line -
+which J7's own Fallbacks sentence has promised since the journey was written (*"the user
+renames/splits by hand"*). **Six rows touch this loop and none owns it**: `PJ.23` (shipped),
+`RV.198` (in flight), `RV.199`, `PJ.22`, `PJ.26`, `PJ.27`.
+
+Rather than group them by theme - which this file's own rule forbids - `REVIEW-SERVICE` is walking
+J7/J7b/J7d/J7c end to end and will come back with **either a grouped dispatch list whose seams are
+named, or a reasoned "leave them as they are"**. It also owns a blind spot neither guard can cover:
+**`TireSet` has no `###` section in `docs/SCHEMA.md`**, so `RV.163` and `RV.196` cannot see any of
+its fields, including the dead `purchaseExpenseId` that `PJ.26` exists to write.
+
+**Do not brief `PJ.22` or dispatch `PJ.26+PJ.27` until that report lands** - they are the two rows
+most likely to be regrouped by it.
 
 ## Grouping: what ships together, and why (decided 2026-09-10)
 
