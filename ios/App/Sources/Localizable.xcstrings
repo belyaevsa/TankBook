@@ -15557,6 +15557,57 @@
           }
         }
       }
+    },
+    "Favourite": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favourite"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранное"
+          }
+        }
+      }
+    },
+    "Favourite station": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Favourite station"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранная заправка"
+          }
+        }
+      }
+    },
+    "A favourite within 300 m is proposed first when you log a fill-up.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A favourite within 300 m is proposed first when you log a fill-up."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Избранная заправка в радиусе 300 м предлагается первой при вводе заправки."
+          }
+        }
+      }
     }
   },
   "version": "1.0"

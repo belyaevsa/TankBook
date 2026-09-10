@@ -880,6 +880,10 @@ capture RV.160-about-feedback-sent-ru    ru -feedbackConsentOn -feedbackTranspor
 capture RV.160-about-feedback-offline    en -feedbackConsentOn -feedbackTransportOffline -feedbackAutoSend -presentScreen about
 capture RV.160-about-feedback-offline-ru ru -feedbackConsentOn -feedbackTransportOffline -feedbackAutoSend -presentScreen about
 
+# PJ.55: the per-station favourite control on RV.150's Station settings screen.
+capture PJ.55-station-favourite    en -seedStationSettings -presentScreen stationSettings
+capture PJ.55-station-favourite-ru ru -seedStationSettings -presentScreen stationSettings
+
 # Two names for one picture is a defect this file produced ten times before
 # anyone counted (see alias_shot). A deliberate alias is a copy and is expected;
 # anything else identical means two capture lines are shooting the same frame -

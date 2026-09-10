@@ -27,6 +27,7 @@ struct StationSettingsView: View {
                 if let station {
                     header(station)
                     section("Location") { locationCard(station) }
+                    section("Favourite") { favouriteCard(station) }
                 } else if loadFailed {
                     notFound
                 }
@@ -105,6 +106,33 @@ struct StationSettingsView: View {
         .formCard()
     }
 
+    /// PJ.55: the favourite control. `Station.favorite` is the one station field
+    /// that cannot be inferred from use (the save stamp fills `lastUsedAt`,
+    /// `defaults` and `location`), so it needs an explicit control: a favourite
+    /// within 300 m is the ranking's first rung (PJ.19). The toggle is
+    /// reversible - clearing writes `false` and persists like setting does -
+    /// and never inferred from visit count (hard rule 13).
+    private func favouriteCard(_ station: Station) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Toggle(isOn: Binding(
+                get: { station.favorite },
+                set: { setFavorite($0) }
+            )) {
+                Text("Favourite station")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+            }
+            .tint(Theme.Palette.action)
+            .accessibilityIdentifier("stationSettingsFavoriteToggle")
+            Text("A favourite within 300 m is proposed first when you log a fill-up.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(Theme.Spacing.cardPadding)
+        .formCard()
+    }
+
     private var notFound: some View {
         VStack(spacing: 8) {
             Image(systemName: "mappin.slash")
@@ -132,6 +160,27 @@ struct StationSettingsView: View {
             reload()
         } catch {
             AppLog.error(operation: "stationSettings.clearLocation", category: .ui, error: error)
+        }
+    }
+
+    /// The favourite write, wrapped in the mutation pair so the diagnostics log
+    /// answers "did the favourite write land?" without a domain value: the
+    /// station id and the field NAME only (hard rule 12). A failed write leaves
+    /// the toggle reverted by `reload()` and names its next step in the log.
+    private func setFavorite(_ favorite: Bool) {
+        do {
+            let repository = try AppStore.repository()
+            if let station {
+                _ = try loggedWrite(AppLog.shared, op: .update,
+                                    entityType: Station.entityType,
+                                    entityId: station.id, source: .manual,
+                                    fieldsChanged: ["favorite"]) {
+                    try repository.setStationFavorite(id: station.id, favorite)
+                }
+            }
+            reload()
+        } catch {
+            AppLog.error(operation: "stationSettings.setFavorite", category: .ui, error: error)
         }
     }
 

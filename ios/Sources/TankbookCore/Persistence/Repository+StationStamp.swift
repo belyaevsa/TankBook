@@ -56,4 +56,21 @@ extension TankbookRepository {
         try upsertStation(live, syncState: .dirty)
         return true
     }
+
+    /// PJ.55: sets or clears a station's favourite - the user's own statement,
+    /// never inferred from use (hard rule 13). `Station.favorite` is what
+    /// `StationSuggestion` reads for rung 1, so this is the write that lets a
+    /// favourite within 300 m win. It is an ordinary `.dirty` station edit
+    /// (record-level LWW, docs/SCHEMA.md -> Station) and reversible: clearing
+    /// writes `false` just as setting writes `true`. Returns whether a write
+    /// happened (false when the flag already held the requested value).
+    @discardableResult
+    public func setStationFavorite(id: UUID, _ favorite: Bool,
+                                   at now: Date = Date()) throws -> Bool {
+        guard var live = try station(id: id), live.favorite != favorite else { return false }
+        live.favorite = favorite
+        live.updatedAt = now
+        try upsertStation(live, syncState: .dirty)
+        return true
+    }
 }

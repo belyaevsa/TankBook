@@ -420,7 +420,7 @@ Station {
   id, createdAt, updatedAt, deletedAt
   name: String; brand: String?
   location: GeoCoordinate?   // captured by the fill-up SAVE, see below; never on the entry
-  favorite: Bool
+  favorite: Bool   // the USER's statement, set on the Garage's station settings; never inferred (PJ.55)
   defaults: { fuelKind: FuelKind?, fuelGrade: String? }   // pre-fill on next visit (smart defaults)
   // Suggestion ranking (favourite ≤300 m → last-used ≤300 m → most recent for the car → none): docs/JOURNEYS.md → J4, PJ.19
   // Rung 3's "most recent for the car" is derived from the vehicle's fill history, never from
@@ -449,11 +449,22 @@ a later save at the station with a fix re-adopts it). `docs/SECURITY.md` records
 and a coordinate is a domain value and is never logged (hard rule 12).
 
 **Creation by name (RV.156).** A station is created from a user-typed name on the entry row or in
-the Garage's Stations list - a name is all creation asks for; `favorite`, `defaults` and
-`location` are filled by use (the save stamp above). Creation reuses the import path's
-deterministic resolver (`ImportStationResolver.station(for:)`), so two devices typing the same
-name mint the same id and converge instead of duplicating, and an exact name match selects the
-existing station rather than minting a second row. A blank or whitespace-only name creates nothing.
+the Garage's Stations list - a name is all creation asks for; `defaults` and `location` are filled
+by use (the save stamp above). `favorite` is the one field use cannot fill (see below). Creation
+reuses the import path's deterministic resolver (`ImportStationResolver.station(for:)`), so two
+devices typing the same name mint the same id and converge instead of duplicating, and an exact
+name match selects the existing station rather than minting a second row. A blank or
+whitespace-only name creates nothing.
+
+**The favourite is set by the user, never inferred (PJ.55).** `favorite` is the only station field
+the save stamp does not write: a favourite is a statement about the user's preference, not an
+observation about a visit, so no visit count, `lastUsedAt` or later curation may set it, and the
+import path only ever writes the `false` default when it mints a station (hard rule 13). The
+control lives on the per-station settings screen the Garage opens (Stations → the station →
+**Favourite**), and it is **reversible** - clearing writes `false` and persists exactly as setting
+writes `true`; a one-way toggle would be the same defect in a new costume. Both directions are
+ordinary `.dirty` station edits on the record-level LWW path below. It is user data, never catalog
+data, so no reference-data update touches it.
 
 **Sync class (what S9 means for Station).** Only `Vehicle` merges field-level (`docs/SYNC.md`
 S9). `Station` - like every other record - merges record-level LWW by `clientUpdatedAt`, so a
@@ -462,7 +473,11 @@ never re-dirties it because the merge compares decoded `Station` values, not pay
 (`RecordMerge.recordsEqual`, the RV.35/RV.136 guard). The fill-blanks-only rule is per-write:
 because the stamp builds on the live row, anything a sync merge delivered before the save is
 preserved; a field that arrives AFTER the save on another device is a separate, newer write
-that wins whole-record LWW like any station edit.
+that wins whole-record LWW like any station edit. `favorite` rides this same path: the stamp never
+writes it and the import path only writes `false` on creation, so the only writer of a `true`
+favourite is the user, and two devices that each edit the same station while apart settle by
+whole-record LWW like any station field (per-field preservation would be [RV.115]'s field-merge
+work, not this field's).
 
 ### ExchangeRate (local cache, deliberately NOT synced)
 

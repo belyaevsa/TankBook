@@ -129,4 +129,96 @@ final class StationSettingsUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["stationsEmptyState"].exists,
                        "a non-empty list must not keep its empty state")
     }
+
+    // MARK: - PJ.55 the favourite writer
+
+    /// Walks the real user route - Garage tab -> Stations door -> the station's
+    /// row -> per-station settings - with no `-presentScreen` teleport, so this
+    /// also proves the screen (and therefore the toggle) is reachable without a
+    /// debug flag. Language-independent identifiers only: the RU pass reuses it.
+    private func openFirstStationSettings(_ app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
+        app.buttons["tabbar.garage"].tap()
+        XCTAssertTrue(app.staticTexts["garageHeaderTitle"].waitForExistence(timeout: 5))
+
+        let link = app.buttons["garageStationsLink"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5),
+                      "the Garage must always offer the Stations door")
+        if !link.isHittable {
+            app.swipeUp()
+        }
+        link.tap()
+
+        let row = app.buttons["stationListRow"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "the seeded station must be listed")
+        row.tap()
+        XCTAssertTrue(app.switches["stationSettingsFavoriteToggle"].waitForExistence(timeout: 5),
+                      "a station's settings must offer the favourite toggle (PJ.55)")
+    }
+
+    /// PJ.55: the toggle is reachable from the Garage and REVERSIBLE - on, then
+    /// off, each flipping the persisted value. A one-way toggle, or one whose
+    /// off state does not persist, is the same defect in a new costume.
+    func testFavouriteToggleIsReachableFromTheGarageAndReversible() {
+        let app = launch(["-seedStationSettings"])
+        openFirstStationSettings(app)
+
+        let toggle = app.switches["stationSettingsFavoriteToggle"]
+        XCTAssertEqual(toggle.value as? String, "0",
+                       "a freshly seeded station is not a favourite")
+        toggle.tap()
+        XCTAssertEqual(app.switches["stationSettingsFavoriteToggle"].value as? String, "1",
+                       "turning the favourite on must persist")
+        app.switches["stationSettingsFavoriteToggle"].tap()
+        XCTAssertEqual(app.switches["stationSettingsFavoriteToggle"].value as? String, "0",
+                       "turning the favourite off must persist")
+    }
+
+    /// PJ.55: both states survive a relaunch (the second and third launches keep
+    /// the database, so a write that only touched view state would read back
+    /// unchanged). This is the round trip hard rule 13 requires.
+    func testFavouriteOnAndOffStatesSurviveRelaunch() {
+        let app = launch(["-seedStationSettings"])
+        openFirstStationSettings(app)
+        app.switches["stationSettingsFavoriteToggle"].tap()
+        XCTAssertEqual(app.switches["stationSettingsFavoriteToggle"].value as? String, "1")
+        app.terminate()
+
+        // Relaunch WITHOUT the database reset: the seed is idempotent, so the
+        // stored favourite must read back ON.
+        let relaunched = XCUIApplication()
+        relaunched.launchArguments = ["-seedStationSettings"]
+        relaunched.launch()
+        openFirstStationSettings(relaunched)
+        let on = relaunched.switches["stationSettingsFavoriteToggle"]
+        XCTAssertEqual(on.value as? String, "1",
+                       "the favourite must survive a relaunch")
+        on.tap()
+        XCTAssertEqual(relaunched.switches["stationSettingsFavoriteToggle"].value as? String, "0")
+        relaunched.terminate()
+
+        let third = XCUIApplication()
+        third.launchArguments = ["-seedStationSettings"]
+        third.launch()
+        openFirstStationSettings(third)
+        XCTAssertEqual(third.switches["stationSettingsFavoriteToggle"].value as? String, "0",
+                       "the cleared state must survive a relaunch too")
+    }
+
+    /// PJ.55 RU: the control renders in Russian and still works. The identifier
+    /// is language-independent, but the visible label must be the catalogue's
+    /// Russian copy (hard rule 10) - the RU pass is where a missing translation
+    /// shows.
+    func testFavouriteToggleRendersInRussian() {
+        let app = launch(["-seedStationSettings",
+                          "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"])
+        openFirstStationSettings(app)
+
+        let toggle = app.switches["stationSettingsFavoriteToggle"]
+        XCTAssertTrue(toggle.label.contains("Избранная заправка"),
+                      "the RU toggle label must be translated, got '\(toggle.label)'")
+        toggle.tap()
+        XCTAssertEqual(app.switches["stationSettingsFavoriteToggle"].value as? String, "1",
+                       "the RU toggle must still write the favourite")
+    }
 }

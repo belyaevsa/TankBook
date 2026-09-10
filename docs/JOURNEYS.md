@@ -78,7 +78,8 @@ Same shape as J3, with the deltas: camera pointed at the pump display before han
 field is a default input (hard rule 13): the app proposes one, the user changes it in one tap, and
 a changed station is theirs. The proposal is ranked, first match wins:
 
-1. a **favourite** station within 300 m of the device;
+1. a **favourite** station within 300 m of the device (the one ranking field use cannot fill: the
+   user sets it on the station in the Garage, PJ.55);
 2. the **last-used** station within 300 m;
 3. the **most recently used** station for this car, regardless of distance – this rung needs no
    location permission and is what most users get most of the time;
@@ -99,9 +100,12 @@ starved. The row is now interactive in **both** states - an empty set offers "Ad
 populated set keeps the menu and gains the same entry at its end (a user with one station must be
 able to add a second) - and the Garage's Stations list carries the same door (a dashed tile in
 both states), so a station can be named wherever the user notices they want one (hard rule 15's
-spirit: never a dead end). **A name is all creation asks for**: `favorite`, `defaults` and
-`location` are filled by use - RV.150's save already stamps `lastUsedAt`, the bought defaults and
-a missing coordinate - never asked up front. Naming goes through the SAME deterministic minting
+spirit: never a dead end). **A name is all creation asks for**: `defaults` and `location` are
+filled by use - RV.150's save already stamps `lastUsedAt`, the bought defaults and a missing
+coordinate - never asked up front. **`favorite` is the exception (PJ.55)**: a favourite is a
+statement, not an observation, so use never fills it and creation never asks for it either - the
+user sets it afterwards on the station's own settings screen (Stations → the station →
+**Favourite**), and can clear it there just as easily. Naming goes through the SAME deterministic minting
 rule the import path uses (`ImportStationResolver.station(for:)`): two devices typing the same
 name resolve to the same id and converge instead of duplicating, and a name that exactly matches
 an existing station selects that one - a second row is never minted, so the UI never looks like it
@@ -122,6 +126,13 @@ fill history – the station of its most recent fill-up that names one – becau
 `Station.lastUsedAt` is account-level, not per vehicle; rungs 1–2 rank on `Station.location` and
 `Station.lastUsedAt`. A suggestion that arrives after the user has picked a station is never
 applied (hard rule 13).
+
+**Rung 1's favourite has a writer (PJ.55, shipped 2026-09-10).** Until this row `Station.favorite`
+had a reader (rung 1), a column, a decoder and a dozen test seeds - and no production writer, so
+rung 1 could never fire. The user now sets it on the per-station settings screen the Garage opens
+(Stations → the station → **Favourite**), reversibly; it is the one ranking field the save stamp
+never writes and the import path only ever sets to its `false` default, because a favourite is a
+statement, not an observation (`docs/SCHEMA.md` → Station).
 
 **The save stamps the ranking's inputs (RV.150, shipped 2026-09-09).** A fill-up saved at a
 chosen station now writes the fields rungs 1–2 read: `lastUsedAt` = the save's moment,
