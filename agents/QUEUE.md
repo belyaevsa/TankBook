@@ -101,21 +101,22 @@ can settle it.
 |---|---|---|---|
 | 1 | **RV.196** | `RV.196.md` | `RV.163`'s field-level blind spot, with three live instances named. A source scanner: fast, no simulator |
 | 2 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
-| 3 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
-| 4 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
-| 5 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
-| 6 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
+| 3 | **RV.192+PJ.45** | `RV.192+PJ.45.md` | The pace bound: make it right, then make it the user's. `RV.192` is the owner's SECOND same-day report; `PJ.45` has been PRIORITY since 2026-08-31. Same seam, so one dispatch - shipping the fix without the tunable leaves the owner's case answerable only by an agent |
+| 4 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped today as `RV.195` without anyone noticing the row existed; the SERVICE half is what remains, and `RV.195` is its worked example one entry kind over |
+| 5 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
+| 6 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
+| 7 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
+| 8 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
 
 ### Filed 2026-09-10, no brief yet
 
 | Task | Why it is worth a brief |
 |---|---|
 | **RV.194** | The 138 reconstructed capture lines were never run. A wrong line is worse than none - the check goes green on a line EXISTING, not on it reproducing the frame, which is the failure `RV.176` was filed against. Also: frames caught mid-transition, with a previous screen's header bleeding through |
-| **RV.192** | The product owner's SECOND same-day case, which `RV.186` deliberately did not cover. Needs a DECISION first: `SCHEMA.md`'s prose and a deliberate sub-day test disagree about what "same day" means for the pace bound |
 | **RV.191** | RU: the import picker's dead-end card falls below the fold at the real format count (hard rule 7's next step, found by re-shooting the screenshot honestly) |
 | **PJ.58** | A SECOND hardcoded `.eur`, on service line-item costs - outside `RV.185`'s fence and invisible to `RV.167`'s guard |
 | **PJ.59** | `RecentlyDeletedView`'s "Overwritten by sync" is still a fixture while `PR.14` is ticked |
-| **RV.195's leftover** | A SERVICE still shows only a Vendor field - its line items and categories are not editable at all, the same shape one entry kind over |
+| ~~RV.195's leftover~~ | **It was `PJ.23` all along** - PRIORITY since 2026-08-31, briefed now. Filing it as a new finding is the duplication this queue keeps producing; see `RV.110`/`RV.165` |
 
 ### Standing, unbriefed
 
@@ -142,6 +143,11 @@ shipped on 2026-09-10 and the rule held every time; two remain:
 
 **Deliberately NOT grouped**: `RV.187`'s Log-row work with `RV.119`/`RV.134` (`RV.119` is a large
 `[v1.1]` redesign); `RV.181`, `RV.182` and `RV.174` stay standalone.
+
+**Check the backlog for the row before filing a finding as new.** Twice on 2026-09-10 a finding was
+filed that an existing row already carried: `RV.195`'s "leftover" was `PJ.23`, PRIORITY since
+2026-08-31, and `RV.165` duplicated `RV.110`. Both pairs were found by reading the list, not by the
+process. **A new row costs nothing to file and something real to discover twice.**
 
 **The ordering that works, proven twice**: build a guard against a seam that has just been settled,
 never a hypothetical one. `RV.163` was dispatched after `PJ.55`'s seam for that reason and its

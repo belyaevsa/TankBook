@@ -158,10 +158,17 @@ enum EntityWriterScanner {
         return true
     }
 
+    /// Comments, strings and `#if DEBUG` regions blanked, preserving length and
+    /// newlines. RV.196's field scanner reads the same text this guard does, so
+    /// prose, literals and debug-only code are invisible to both.
+    static func masked(_ source: String) -> String {
+        maskDebugRegions(maskCommentsAndStrings(source))
+    }
+
     /// Whether `source` contains a CALL to `symbol` (not a definition, not a
     /// mention). Comments, strings and `#if DEBUG` regions are masked first.
     static func containsCall(to symbol: String, in source: String) -> Bool {
-        let masked = maskDebugRegions(maskCommentsAndStrings(source))
+        let masked = masked(source)
         let chars = Array(masked)
         let needle = Array(symbol)
         guard needle.count <= chars.count else { return false }
