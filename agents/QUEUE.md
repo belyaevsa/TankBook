@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.177 + RV.178** | flash | 59396 | `btv7ki0gy` (persistent) | `agents/briefs/RV.177.md` |
+| **RV.181** `[!]` | flash | 18970 | `byo52dcmu` (persistent) | `agents/briefs/RV.181.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -98,7 +98,7 @@ failing case rather than a hypothetical:
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
-| **RV.181** `[!]` | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
+| ~~RV.181~~ **in flight** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
 
 **Ready to brief - cause pinned, no decision outstanding** (added 2026-09-10, all filed from this
 session's own findings):
@@ -165,6 +165,7 @@ session's own findings):
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
 | RV.162 | `5c53a4f` | A screen whose only door is `#if DEBUG` fails the build - `PJ.4`'s shape. **The agent corrected the brief three times**, including a stale doc claim the brief had repeated: the car-limit sheet's "Pro" is not Paywall's live v1 door, `RV.70` removed it too |
 | PJ.55 | `c933a3b` | The station ranking's first rung can finally fire. **The strongest mutation of the session**: dropping only the persist call turned red on the RANKING, not the flag - the field had a column, a decoder, ten seeds and a reader for months and rung 1 still never fired |
+| RV.177 + RV.178 | `e4766fb` | The currency question became a sheet with a real hierarchy, and **no Cancel** - Save means Save. Its mutation SAMPLES rendered pixels, the first test here that can see "these two look identical" |
 | RV.161 | `17f6294` | A scanned receipt keeps its station - **ticked PARTIAL** (the brand/site split is `RV.180`) and **unmeasured**. Its corpus column was self-scored at 46/46 and was reverted whole; `RV.179` measures it against an oracle the extractor cannot see |
 | RV.116 | `fe94b0f` | An import says what it is not bringing in |
 | RV.163 | `3a72037` | An entity nothing can create fails the build. The mutation removed both `createStation` doors while leaving the table, the decoder, the import writer and ten seeds in place - **RV.156 reconstructed exactly**. Entity-level; `PJ.55` is the field-level instance it cannot see |
@@ -180,6 +181,17 @@ session's own findings):
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
+
+## SKIP_BUILD=1 after a mutation photographs the MUTATED app
+
+2026-09-10, `RV.177`. The orchestrator mutated the sheet, watched the test go red, restored the
+source byte-identically, then re-captured with `SKIP_BUILD=1` - which reuses the **already-built**
+binary. The frame showed both buttons filled taillight: the defect itself, committed as proof of the
+fix. Caught only by opening the image; the file was written and the script reported `ok`.
+
+**`SKIP_BUILD=1` is safe only when nothing has touched the source since the last build.** After a
+mutation - or any edit - it is exactly wrong. The script's own header warns that a stale capture is
+evidence for the wrong code; this is that warning, from the inside.
 
 ## A 100% score on a new class is evidence of circularity, not quality
 
