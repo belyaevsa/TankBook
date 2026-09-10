@@ -20,6 +20,46 @@ enum EditEntryRows {
                         onAttachmentChanged: onAttachmentChanged)
     }
 
+    /// The post-pick, pre-save receipt card shared by the fill-up and non-fill
+    /// edit forms: the photo is held in memory and written when Save runs. A
+    /// spinner marks the OCR still reading; the `editAttachReady` identifier
+    /// flips on when the reading finishes, so a UI test can wait for the attach
+    /// to settle before saving.
+    static func pendingReceiptCard(processing: Bool) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Theme.Palette.dash)
+                .frame(width: 44, height: 56)
+                .overlay(
+                    Image(systemName: "photo")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Receipt photo")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Text("Receipt attached")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            Spacer(minLength: 0)
+            if processing {
+                ProgressView()
+                    .controlSize(.mini)
+                    .tint(Theme.Palette.inkSoft)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.taillight)
+            }
+        }
+        .padding(12)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier(processing ? "editAttachProcessing" : "editAttachReady")
+    }
+
     static func noteRow(text: Binding<String>, identifier: String) -> some View {
         EditNoteRow(text: text, identifier: identifier)
             .formCard()

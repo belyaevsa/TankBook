@@ -946,12 +946,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.23-service-items": {
-      "commit": "14bfdfd",
+      "commit": "408e076",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.23-service-items-ru": {
-      "commit": "14bfdfd",
+      "commit": "408e076",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1676,12 +1676,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.198-service-items": {
-      "commit": "14bfdfd",
+      "commit": "408e076",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.198-service-items-ru": {
-      "commit": "14bfdfd",
+      "commit": "408e076",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1702,6 +1702,16 @@
     },
     "RV.199-service-sum-ru": {
       "commit": "e545b3a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.202-service-receipt": {
+      "commit": "408e076",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.202-service-receipt-ru": {
+      "commit": "408e076",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

@@ -531,10 +531,15 @@ capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntr
 # under the items and a trash affordance on each row, so the frame is captured
 # once and aliased - the two names are one picture, and shooting it twice would
 # let them drift. RU is where a delete affordance plus a cost on one row bites.
+#
+# RV.202 (2026-09-11): the same service arrives with NO attachment, so the frame
+# now also shows the "Add receipt" affordance on the receipt strip - the
+# non-fill form used to render no card at all for such an entry. Aliased to the
+# same picture rather than shot twice: the seed and the appearance are identical.
 capture PJ.23-service-items    en -seedEditEntryService -presentScreen editEntry
 capture PJ.23-service-items-ru ru -seedEditEntryService -presentScreen editEntry
-alias_shot PJ.23-service-items    RV.198-service-items
-alias_shot PJ.23-service-items-ru RV.198-service-items-ru
+alias_shot PJ.23-service-items    RV.198-service-items RV.202-service-receipt
+alias_shot PJ.23-service-items-ru RV.198-service-items-ru RV.202-service-receipt-ru
 
 # RV.199 (2026-09-11): a service's line sum stated beside its independently
 # editable Amount, with the disagreement marked as ATTENTION - never a gate and

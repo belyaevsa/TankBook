@@ -1,10 +1,21 @@
 import Foundation
+import UIKit
 import TankbookCore
 
 // PJ.23: the non-fill write split out of EditEntryView.swift, which sits at the
 // linter's file-length ceiling. The extraction is functional: injecting the
 // repository lets the L1 tests drive the EXACT write `saveNonFill` performs and
 // read the stored row back, so a dropped line item is caught as data loss.
+
+/// A receipt photo held in memory between the picker and Save, with the OCR the
+/// shared attach path ran. `extraction` is nil when the read resolved nothing -
+/// the photo is still written (hard rule 15: a capture is a head start, never a
+/// gate). RV.202.
+struct HeldReceiptPhoto {
+    let image: UIImage
+    let ocrLines: [OCRLine]
+    let extraction: FuelExtraction?
+}
 
 extension EditEntryView {
 
@@ -71,6 +82,44 @@ extension EditEntryView {
         }
         resolveEditedMoneyAtCommit(entryID: updated.id, vehicleID: vehicle.id,
                                    repository: repository)
+    }
+
+    /// RV.202: the non-fill save with a freshly-attached receipt. The photo is
+    /// written FIRST through the same shared seam the fill-up and Confirm saves
+    /// use (`attemptReceiptPhotoWrite`), so a write failure degrades to no
+    /// photo and surfaces as `.lost` rather than throwing - the entry still
+    /// saves (hard rule 1) and the caller reports the loss AFTER it is on disk
+    /// (hard rule 8, docs/ERRORS.md -> Confirm, RV.149). The entry's existing
+    /// attachments are kept; the new one is appended only when the write
+    /// landed. The report itself stays with the view so this function is a pure
+    /// repository seam the L1 tests drive.
+    @MainActor
+    static func writeNonFillWithHeldReceipt(
+        _ entry: any Entry, vehicle: Vehicle,
+        form: EditEntryNonFillForm,
+        otherEntries: [any Entry],
+        heldPhoto: HeldReceiptPhoto?,
+        repository: TankbookRepository
+    ) throws -> ReceiptWriteOutcome {
+        var target = entry
+        var outcome = ReceiptWriteOutcome.nothingToWrite
+        if let heldPhoto {
+            let source = ConfirmPrefill(extraction: heldPhoto.extraction,
+                                        ocrLines: heldPhoto.ocrLines,
+                                        sourceImage: heldPhoto.image)
+            // A typed entry that gains a photo stays `.manual` provenance (the
+            // entry was typed, not scanned); the extraction record is the
+            // attach's own OCR so the viewer's recognised page works (RV.48).
+            let plan = ScannedSavePlan(
+                attachmentID: UUID.v7(), provenance: .manual,
+                extraction: heldPhoto.extraction.flatMap { ScannedSavePlanner.assignment(from: $0) })
+            outcome = attemptReceiptPhotoWrite(scanned: plan, source: source,
+                                               repository: repository)
+            target.attachments = entry.attachments + outcome.sharedIDs
+        }
+        try writeNonFill(target, vehicle: vehicle, form: form,
+                         otherEntries: otherEntries, repository: repository)
+        return outcome
     }
 
     /// A non-fill edit resolves at commit when it can - the same claim an

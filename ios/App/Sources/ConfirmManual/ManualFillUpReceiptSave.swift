@@ -129,18 +129,20 @@ extension ManualFillUpView {
             result[entry.key.fieldRef] = entry.value.rect
         }
     }
+}
 
-    /// RV.149: the save's report half, called ONLY after the entry is on disk.
-    /// A receipt photo the save could not keep is never a silent drop (hard
-    /// rule 8) and never blocks the entry (hard rule 1); the shared message -
-    /// the same sentence the expense save shows (PJ.28) - names the next step
-    /// (hard rule 7, docs/ERRORS.md -> Confirm, RV.149). Fired on the success
-    /// path only, so a failed save never claims it succeeded.
-    func reportLostReceiptPhoto(_ outcome: ReceiptWriteOutcome,
-                                toastCenter: AppToastCenter) {
-        guard outcome.lostPhoto else { return }
-        toastCenter.show(L10n.receiptNotSavedMessage)
-    }
+/// RV.149/RV.202: the save's report half, called ONLY after the entry is on
+/// disk. A receipt photo the save could not keep is never a silent drop (hard
+/// rule 8) and never blocks the entry (hard rule 1); the shared message - the
+/// same sentence the expense save shows (PJ.28) - names the next step (hard
+/// rule 7, docs/ERRORS.md -> Confirm, RV.149). Fired on the success path only,
+/// so a failed save never claims it succeeded. Shared by the Confirm sheet and
+/// the Edit-entry non-fill save, so one situation keeps one sentence.
+@MainActor
+func reportLostReceiptPhoto(_ outcome: ReceiptWriteOutcome,
+                            toastCenter: AppToastCenter) {
+    guard outcome.lostPhoto else { return }
+    toastCenter.show(L10n.receiptNotSavedMessage)
 }
 
 // MARK: - RV.149 the photo-write degrade contract (free, L1-testable)

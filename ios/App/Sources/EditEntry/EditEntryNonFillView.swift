@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import TankbookCore
 
 /// Which field of the non-fill edit form holds focus (drives the whole-row
@@ -25,6 +26,16 @@ struct EditEntryNonFillView: View {
     let onRestore: () -> Void
     let pendingBlobIDs: Set<UUID>
     let onAttachmentChanged: (FuelExtraction?) -> Void
+    /// RV.202: the receipt a non-fill entry is being given. `attachImage` drives
+    /// the pending card; `showAttachSource` is the camera/Photos chooser's
+    /// binding; `onAddReceipt` opens it and `onAttachImage` runs the shared
+    /// `attachReceipt` path. The chooser hangs off the card, never the screen
+    /// (RV.11).
+    let attachImage: UIImage?
+    let attachProcessing: Bool
+    @Binding var showAttachSource: Bool
+    let onAddReceipt: () -> Void
+    let onAttachImage: (UIImage) -> Void
 
     @FocusState private var nonFillFocus: EditEntryNonFillFocus?
 
@@ -33,11 +44,7 @@ struct EditEntryNonFillView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 9) {
-                if !attachments.isEmpty {
-                    EditEntryRows.receiptCard(attachments: attachments, entry: entry,
-                                              pendingBlobIDs: pendingBlobIDs,
-                                              onAttachmentChanged: onAttachmentChanged)
-                }
+                receiptCard
                 typeCard
                 moneyCard
                 ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
@@ -59,6 +66,32 @@ struct EditEntryNonFillView: View {
             .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.immediately)
+    }
+
+    /// RV.202: the same three-way receipt branch the fill-up form uses. An
+    /// entry that already carries a receipt shows it (view/replace/delete live
+    /// in the shared card); a photo just picked but not yet saved shows the
+    /// pending card; an entry with neither shows the card WITH the "Add
+    /// receipt" affordance and the camera/Photos chooser. The chooser is
+    /// attached to the CARD, not the screen - iOS 26 anchors a
+    /// `confirmationDialog` popover to the view it is attached to (RV.11).
+    @ViewBuilder
+    private var receiptCard: some View {
+        if !attachments.isEmpty {
+            EditEntryRows.receiptCard(attachments: attachments, entry: entry,
+                                      pendingBlobIDs: pendingBlobIDs,
+                                      onAttachmentChanged: onAttachmentChanged)
+        } else if attachImage != nil {
+            EditEntryRows.pendingReceiptCard(processing: attachProcessing)
+        } else {
+            EditEntryRows.receiptCard(attachments: attachments, entry: entry,
+                                      pendingBlobIDs: pendingBlobIDs,
+                                      onAddReceipt: onAddReceipt)
+                .receiptAttachSource(isPresented: $showAttachSource,
+                                     title: "Add receipt") { image in
+                    onAttachImage(image)
+                }
+        }
     }
 
     @ViewBuilder

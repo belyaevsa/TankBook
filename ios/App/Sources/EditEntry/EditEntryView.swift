@@ -200,7 +200,12 @@ struct EditEntryView: View {
                              syncOverwrite: syncOverwrite,
                              onRestore: restoreSyncOverwrite,
                              pendingBlobIDs: pendingBlobIDs,
-                             onAttachmentChanged: handleAttachmentChanged)
+                             onAttachmentChanged: handleAttachmentChanged,
+                             attachImage: attachImage,
+                             attachProcessing: attachProcessing,
+                             showAttachSource: $showAttachSource,
+                             onAddReceipt: { showAttachSource = true },
+                             onAttachImage: { image in attachReceipt(image) })
             .safeAreaInset(edge: .bottom) { saveBar }
     }
 
@@ -314,11 +319,23 @@ struct EditEntryView: View {
     private func saveNonFill(_ entry: any Entry, vehicle: Vehicle) {
         do {
             let repository = try AppStore.repository()
-            try Self.writeNonFill(entry, vehicle: vehicle, form: nonFillForm,
-                                  otherEntries: otherEntries, repository: repository)
+            // RV.202: a receipt attached to a non-fill entry is written FIRST,
+            // through the same shared photo-write seam the fill-up and Confirm
+            // saves use. A failed write degrades to no photo rather than
+            // blocking the entry (hard rule 1), and the report fires only after
+            // the entry is on disk, so a failed save never claims success (hard
+            // rule 8, docs/ERRORS.md -> Confirm, RV.149).
+            let held = attachImage.map {
+                HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
+                                 extraction: attachExtraction)
+            }
+            let receiptWrite = try Self.writeNonFillWithHeldReceipt(
+                entry, vehicle: vehicle, form: nonFillForm,
+                otherEntries: otherEntries, heldPhoto: held, repository: repository)
             // A non-fill edit never moves consumption segments; there is no
             // delta to toast about - Home just reloads.
             toastCenter.noteEntryChanged()
+            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
             dismiss()
         } catch {
             AppLog.error(operation: "editEntry.save", category: .ui, error: error)
@@ -450,7 +467,7 @@ private extension EditEntryView {
                                                   pendingBlobIDs: pendingBlobIDs,
                                                   onAttachmentChanged: handleAttachmentChanged)
                     } else if attachImage != nil {
-                        pendingReceiptCard
+                        EditEntryRows.pendingReceiptCard(processing: attachProcessing)
                     } else {
                         // RV.11: the chooser hangs off the CARD that carries the
                         // "Add receipt" button, not off the screen. iOS 26 renders
@@ -547,61 +564,31 @@ extension EditEntryView {
     /// decides which fields are blank on the TYPED entry, and only those are
     /// offered as dimmed pre-fills (hard rule 13). A typed value is never
     /// overwritten and raises no amber (docs/ERRORS.md -> Edit entry).
+    ///
+    /// RV.202: shared by the fill-up and the three non-fill kinds. The
+    /// blank-fields-only merge is a FILL-UP concern - a service invoice or an
+    /// expense receipt has no fuel fields to pre-fill - so a non-fill attach
+    /// holds the photo without any value merge; widening recognition over entry
+    /// kind is RV.201's, not this path's. The photo itself is written on Save
+    /// (`saveNonFill`), reusing the shared `attemptReceiptPhotoWrite` seam.
     func attachReceipt(_ image: UIImage) {
-        guard let fillUp else { return }
+        guard let vehicle else { return }
         attachFailed = false
         attachImage = image
         attachProcessing = true
         Task {
             let prefill = await CapturePipeline.process(
                 image, source: .receipt,
-                bandProvider: AppFuelPriceBand.provider(vehicleId: fillUp.vehicleId))
+                bandProvider: AppFuelPriceBand.provider(vehicleId: vehicle.id))
             attachOcrLines = prefill.ocrLines
             let extraction = prefill.extraction ?? FuelExtraction()
             attachExtraction = extraction
-            let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
-            fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+            if let fillUp {
+                let suggestions = ReceiptAttachMerge.suggestions(entry: fillUp, extraction: extraction)
+                fillForm.applyAttachedSuggestions(suggestions, extraction: extraction)
+            }
             attachProcessing = false
         }
-    }
-
-    /// The post-pick, pre-save receipt card: the photo is held in memory and
-    /// will be written when Save runs. A spinner marks the OCR still reading;
-    /// the `editAttachReady` identifier flips on when the reading finishes, so
-    /// a UI test can wait for the attach to settle before saving.
-    private var pendingReceiptCard: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 6)
-                .fill(Theme.Palette.dash)
-                .frame(width: 44, height: 56)
-                .overlay(
-                    Image(systemName: "photo")
-                        .font(.caption)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                )
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Receipt photo")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                Text("Receipt attached")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-            }
-            Spacer(minLength: 0)
-            if attachProcessing {
-                ProgressView()
-                    .controlSize(.mini)
-                    .tint(Theme.Palette.inkSoft)
-            } else {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.taillight)
-            }
-        }
-        .padding(12)
-        .formCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier(attachProcessing ? "editAttachProcessing" : "editAttachReady")
     }
 
     /// The failed-write warn row (docs/ERRORS.md -> Edit entry, the PJ.48 row):

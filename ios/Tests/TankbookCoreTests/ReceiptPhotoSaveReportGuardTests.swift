@@ -61,4 +61,16 @@ struct ReceiptPhotoSaveReportGuardTests {
         #expect(lines.contains(where: { $0.contains("L10n.receiptNotSavedMessage") }),
                 "both surfaces must share ONE sentence: \(lines)")
     }
+
+    /// RV.202: the Edit-entry non-fill save (service/expense attach) must report
+    /// a lost photo through the same shared symbol, after the entry is on disk -
+    /// the half RV.149 had to be filed for when PJ.28's fence stopped one entry
+    /// kind short. This is the source-scan half; `RV202NonFillReceiptAttachTests`
+    /// pins the `.lost` flag the report keys off.
+    @Test("The Edit-entry non-fill save reports a lost receipt photo")
+    func editEntryNonFillSaveReportsThroughTheSharedSymbol() throws {
+        let view = try Self.source(of: "EditEntry/EditEntryView.swift")
+        #expect(view.contains("reportLostReceiptPhoto("),
+                "the non-fill save must report a lost photo, never a silent drop (RV.202)")
+    }
 }

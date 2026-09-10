@@ -331,6 +331,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Replace photo tapped (RV.37) | The camera/Photos choice – the same door "Add receipt" uses (hard rule 15) | Camera · Photos → the new photo is written and the old one tombstoned, never mutated in place (the 30-day undo has something to restore) |
 | The replacement landed (RV.37) | The ask: "Re-read this and update the entry?" – "Leave it as it is" is the default; the photo is already swapped, and the entry's values change only on an explicit "Update entry" | Leave it as it is · Update entry (re-reads and fills blank fields only, each dimmed until tapped – hard rule 13) · Use a different receipt (replace again) |
 | The replacement could not be written – disk full, the photo would not encode (RV.37) | `warn` line: "Couldn't replace the photo – the entry is unchanged." | Try again; the entry's fields are never touched by a failed replace |
+| Add receipt to a service or an expense (RV.202): photo could not be saved (disk full, the photo would not encode) | The entry SAVES anyway (never a blocked save, hard rule 1) and the shared "could not be kept" toast reports it after the entry is on disk – the SAME sentence the fill-up and expense saves show for the identical situation (RV.149) | Free up space and re-scan the receipt (the photo is gone from this save only; the entry stands) |
 
 ### Recently deleted
 | Condition | Shows | Next step |

@@ -268,6 +268,18 @@ shows the per-currency breakdown instead). The sum is the same one the create sc
 derives, so the two doors cannot state different totals for the same service. The mismatch is
 attention, never a gate: nothing is wrong and Save is never blocked.
 
+**The receipt can be given, not only shown (RV.202, 2026-09-11).** Opening a service in Edit
+entry shows the same receipt strip a fill-up has. An entry that already carries a photo shows it -
+view, replace and delete live there (J8b) - but an entry that arrived **without** a photo used to
+show no card at all and had no way to gain one. It now offers **Add receipt** through the same
+camera/Photos door the fill-up uses (hard rule 15 - typing and scanning are peers). Attaching is
+**local**: the photo is written to the shared pool when Save runs and nothing here touches the
+network (hard rule 1). A write that fails never blocks the save - the service still lands without
+the photo, and the shared "could not be kept" message says so **after** the entry is on disk (hard
+rule 8, docs/ERRORS.md -> Confirm, RV.149), the same contract an expense already had. Recognition
+on a non-fill attach does **not** yet pre-fill fields: a service invoice's reading is not a fuel
+extraction, and generalising that merge over entry kind is [RV.201].
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
@@ -363,9 +375,9 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 
 **Success metric:** ≥40% of MAU open Trends monthly; session length short (it's a glance, not a report).
 
-### J8b · Look at the receipt again (RV.9, RV.17, RV.37)
+### J8b · Look at the receipt again (RV.9, RV.17, RV.37, RV.202)
 **Trigger:** a figure is questioned weeks later – "did that fill really cost 71.02?" – or the paper is gone and the photo is the only record.
-**Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). If the receipt carried anything recognised, a second page beside the photo shows what was read (the OCR lines and the scan timestamp) – a swipe away, not chrome over the photo, and absent when there was nothing. The Share affordance (RV.17) hands the **full** rendition to the system share sheet – Save Image, Save to Files, share to apps – and is offered only once that rendition is local, never over the thumbnail; sharing is the user's deliberate act. Close or swipe down and the entry is exactly as it was, still editable.
+**Journey:** Log → the entry → the receipt strip's chip is a **tap target**, not decoration → the photo opens full-screen, fitted, and pinch or double-tap magnifies it to read a printed line the 44x56 chip could never show. A PDF invoice opens in the PDF viewer instead of a blank frame. When the full rendition has not reached this device, the viewer shows the payload's thumbnail from the first frame and says so, naming the next step – it never shows an empty screen and never blocks the entry (hard rules 1 and 7). If the receipt carried anything recognised, a second page beside the photo shows what was read (the OCR lines and the scan timestamp) – a swipe away, not chrome over the photo, and absent when there was nothing. The Share affordance (RV.17) hands the **full** rendition to the system share sheet – Save Image, Save to Files, share to apps – and is offered only once that rendition is local, never over the thumbnail; sharing is the user's deliberate act. Close or swipe down and the entry is exactly as it was, still editable. An entry that arrived without a receipt offers **Add receipt** on the same strip (RV.202), so the photo this journey is about can be supplied after the fact, not only viewed.
 
 **Delete and replace (RV.37):** the viewer also offers **Delete** – system-confirmed, which removes the receipt from this entry and tombstones the attachment record for the 30-day window (the blob itself is left alone; reclamation is a separate concern) – and **Replace photo**, which opens the same camera/Photos door as "Add receipt", writes a **new** attachment and tombstones the old one (never an in-place mutation, so the 30-day undo has something to restore). The replace then asks – *"Re-read this and update the entry?"* – and "Leave it as it is" is the default: a silent re-read would overwrite values the user already confirmed, which hard rule 13 forbids. On an explicit "Update entry" the extracted values are still suggestions filling **blank fields only**, each dimmed until tapped. "Use a different receipt" is just replace again.
 
