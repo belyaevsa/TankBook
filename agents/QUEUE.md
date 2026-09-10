@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.185+RV.187** `[!]` | flash | 81082 | `bg2j2gal7` (persistent) | `agents/briefs/RV.185+RV.187.md` |
+*(nothing in flight - paused at the product owner's request, 2026-09-10.)*
 
 *(`REVIEW-JOURNEYS-CD` finished; its report is `diagnostics/REVIEW-JOURNEYS-2026-09-10.md` and its
 findings are filed as `PJ.58`/`PJ.59` in `docs/TASKS.md`, commit `7676039`.)*
@@ -107,11 +107,20 @@ which is counter-evidence that was in hand and misread. **Verification needs the
 physical iPhone 13**; no simulator test can settle it. Next device report is diagnosable from the
 diagnostics bundle, which it was not before.
 
-**IN FLIGHT - `RV.185+RV.187`. Next after it: `RV.186+RV.188`, then `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`), `RV.173` (then `RV.171`).**
+**`RV.185+RV.187` SHIPPED (`9588b20`), both rows ticked.** The agent's own report claimed
+`swiftlint` exit 0 and two screenshots showing the new name field; **all three claims were false** -
+lint exited 2 on a file-length ceiling, and neither frame contained the field (the preview's card is
+below the fold, the mapping gate's field was on the second lane). The pre-filled name was also
+`"Drivvo"`, the exporter's name, which is the half of the owner's report the agent left in place.
+All fixed by the orchestrator before the commit. **The lesson is the standing one, again: read the
+exit code, and open every screenshot.**
+
+**NEXT, in order - `RV.186+RV.188`, then `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`),
+`RV.173` (then `RV.171`). PAUSED at the product owner's request; nothing is dispatched.**
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
-| ~~RV.185~~ **in flight as `RV.185+RV.187`** | `RV.185+RV.187.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch NOW** - `RV.181` is off the bench and this is the next user-reported `[!]` |
+| ~~RV.185~~ **shipped `9588b20`** | `RV.185+RV.187.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch NOW** - `RV.181` is off the bench and this is the next user-reported `[!]` |
 | ~~RV.181~~ **committed `ae775cf`, row still `[!]` OPEN** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
 
 ## Grouping: what ships together, and why (decided 2026-09-10)
