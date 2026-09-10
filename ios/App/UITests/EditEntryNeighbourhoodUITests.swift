@@ -69,23 +69,22 @@ final class EditEntryNeighbourhoodUITests: XCTestCase {
             "the next entry's odometer must be on screen")
     }
 
-    /// RV.188 item 2: every chart point carries its odometer and date, so the
-    /// anonymous dot that caused the dead end is named.
-    func testNeighbourhoodChartPointsCarryOdometerAndDate() {
+    /// RV.188 item 2: the chart is a SHAPE, not a second table. The numbers live
+    /// in the bracket rows below it (previous / this / next, each with its date
+    /// and reading), so the plot carries no printed labels of its own - three
+    /// labelled points on a 300pt-wide card crowded the line they described.
+    /// VoiceOver still gets every point through the accessibility overlay.
+    func testNeighbourhoodChartCarriesNoPrintedPointLabels() {
         let app = launchOnMiddleConflict()
         revealCard(app)
-        let labels = app.staticTexts
-            .matching(identifier: "neighbourhoodChartOdometerLabel")
-        XCTAssertTrue(labels.firstMatch.waitForExistence(timeout: 10),
-                      "the chart must label its points with an odometer")
-        XCTAssertGreaterThanOrEqual(labels.count, 3,
-                                    "all three plotted points must carry an odometer label")
-        XCTAssertTrue(labels.containing(
-            NSPredicate(format: "label CONTAINS %@", grouped(100_900))).firstMatch.exists,
-            "the offending point's reading must be on the chart")
-        XCTAssertTrue(app.staticTexts
-            .matching(identifier: "neighbourhoodChartDateLabel").firstMatch.exists,
-            "the chart points must also carry a date")
+        XCTAssertTrue(app.otherElements["neighbourhoodChart"].waitForExistence(timeout: 10),
+                      "the chart is drawn")
+        XCTAssertEqual(app.staticTexts.matching(
+            identifier: "neighbourhoodChartOdometerLabel").count, 0,
+            "the chart draws no odometer labels; the bracket rows carry the numbers")
+        XCTAssertEqual(app.staticTexts.matching(
+            identifier: "neighbourhoodChartDateLabel").count, 0,
+            "the chart draws no date labels")
     }
 
     /// RV.188 item 3: the both-`.none` case names the offending PAIR (here the
