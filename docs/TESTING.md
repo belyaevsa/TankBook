@@ -172,6 +172,26 @@ bare path entry fails the guard's own self-check. Keeping this row's teeth is pa
 deferred defect: when RV.148 lands, route it through the accumulator and delete the parked entry in
 the same change (the guard's stale-entry check demands it).
 
+### The entity-writer guard (RV.163)
+
+`SchemaEntityWriterGuardTests` + the `EntityWriterScanner` pure function it is built on: every
+`###` entity heading in `docs/SCHEMA.md` must have a production writer outside test seeds, the
+import path, sync and `#if DEBUG`, or the build fails naming the entity. It is the guard for the
+`RV.156` shape - `upsertStation` was defined and called only by the import path and seeds, so three
+shipped features stood on a set no hand-typing user could populate - and it binds the doc to the
+repository's write calls across **both** `ios/Sources/TankbookCore` and `ios/App/Sources`. A writer
+is a **call** (`.upsertVehicle(`, `createStation(`), never a definition, and comments, strings and
+`#if DEBUG` regions are masked first, so prose and seed-only calls cannot satisfy it. Headings that
+do not map mechanically to a row are resolved by a reasoned spec (`Entry` is the envelope of its
+four concrete types; `ServiceRecord & Expense` is two rows; `ExchangeRate` is a local cache,
+deliberately NOT synced, written by the /rates fetch -> persist path). An entity that legitimately
+has no writer is a deliberate, reasoned entry in `documentedExceptions`; a bare entry fails the
+self-check, and a spec whose heading leaves the doc is stale and fails. The named mutation is
+deleting the `RV.156` station-creation door (or `#if DEBUG`-wrapping it): the guard then reports
+`Station` with no production writer. **A field that a ranking, filter or query reads and nothing
+writes is the same shape one level down** (`PJ.55`'s `Station.favorite`, open) and is NOT covered
+here - a field-level guard is its own row.
+
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
 **Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE
