@@ -192,6 +192,25 @@ deleting the `RV.156` station-creation door (or `#if DEBUG`-wrapping it): the gu
 writes is the same shape one level down** (`PJ.55`'s `Station.favorite`, open) and is NOT covered
 here - a field-level guard is its own row.
 
+### The screen-reachability guard (RV.162)
+
+`ScreenRouteGuardTests` + the `ScreenRouteScanner` pure function it is built on: every screen in
+`docs/SCREENMAP.md`'s per-screen index must have a **non-DEBUG production door**, or be recorded in
+the doc's machine-readable `### Screens with no production route` marker (reason required - a bare
+entry fails the self-check). It is the guard for the `PJ.4` shape - the Reminders screen whose only
+route was gated on a DEBUG flag, so it was reachable to every UI test (they navigate through
+`-presentScreen`, itself DEBUG) and to no Release user - and for `PJ.25` (a shelf reachable only
+mid-service) and `PJ.20` (copy routing to a screen that did not exist). A DEBUG-wrapped route does
+not count: comments, strings and `#if DEBUG` regions are masked before a witness is looked for, and
+`DebugLaunch.swift`, `Routes.swift` and `Destinations.swift` are not door hosts - an enum case or a
+destination map is not a way in. Each binding names the literal door (`Route.about` is Settings'
+`NavigationLink`; `return .serviceEntry` is the capture-mode mapping) and carries a note, so the
+table cannot degrade into a skip list. The named mutation is wrapping a real production door in
+`#if DEBUG`: the guard then names that screen. **The reachability it proves is "a non-DEBUG door
+exists", not graph reachability** - a door on an unreachable screen, or one behind a runtime
+condition that can never be true, still passes; full-journey tapping is `RV.165`'s layer, at a phase
+gate.
+
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
 **Per task: only the UI tests that cover what the task touched. The full suite runs at PHASE
