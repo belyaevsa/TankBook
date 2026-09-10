@@ -259,5 +259,28 @@ No open architecture questions remain – the decided list above plus GRDB (pers
 - **Health-check every dispatch ~5 minutes in** (standing instruction, 2026-08-23): `scripts/agent-health.sh <task-id> <logfile>`. Roughly **one dispatch in four comes up dead** – the process exists but holds no network connection, burns almost no CPU and never writes a byte of log, and it stays that way indefinitely (one such run sat for six hours). Both observed cases recovered on an immediate re-dispatch of the **same** brief, so treat it as provider flakiness: kill and retry, do not rewrite the brief. The decisive signal is **log bytes** – a healthy run writes ~17 KB in its first 30 seconds, a wedged one is still at 0 after 25 minutes. Log *freshness* proves nothing on its own: nothing is written during model inference, so multi-minute silences are normal.
 - **Every agent brief is written to `agents/briefs/<task-id>.md` before dispatch** (standing instruction, 2026-08-23), never to a temp directory. The brief is the record of what the agent was actually asked to do – without it you cannot tell a bad agent from a bad brief, and every fence in there exists because something went wrong once. See `agents/briefs/README.md` for the structure these converged on.
 - **Every UI task ships a screenshot in EN *and* RU** (standing instruction, 2026-08-23): capture from a booted simulator and commit to `design/screenshots/` as `<task-id>-<screen>.png` and `<task-id>-<screen>-ru.png`, in the **dark** theme (the brand's home theme, `docs/DESIGN.md`) unless the task is specifically about light. RU needs no device change: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`. RU is not a formality – Russian runs 20-30% longer than English and **short strings expand worst** (`Fix` → `Исправить` is 3×, `Log` → `Журнал` is 2×), which is exactly what overflows tab labels, chips and the action affordance on an error row. A truncated next step also breaks hard rule 7. The RU pass on P1.4 caught a grammar bug no test could: `"%@ spend"` composed as `"%@ расходы"` rendered "АВГУСТ РАСХОДЫ", word-order nonsense - **composed strings need a full localised phrase per language, never concatenation**. This is the one check no test performs – XCUITest asserts behaviour and never colour, which is exactly how P1.1 shipped an accent-red tab bar that violated hard rule 5 while its suite stayed green. Compare the shot against the task's `design/screens/*.dc.html` artboard before committing, and **take it outside a test run** – `simctl` and `xcodebuild test` fight over the device.
+- **Every task belongs to a scenario, and a scenario is not done until it is reviewed** (standing
+  instruction, 2026-09-10). Three parts, and the third is the one that catches things:
+  - **Every row in `docs/TASKS.md` and every entry in `agents/QUEUE.md` names its parent journey** -
+    the id from `docs/JOURNEYS.md` (`J7`, `F9a`, …) written in the row's first cell, the way the `PJ`
+    rows already do it: `(J7 "app proposes the next reminder")`. A row that genuinely serves no user
+    journey says `no-scenario: <reason>` - infrastructure and tooling are allowed, silence is not.
+    Without the link you cannot tell what a task is FOR, or when the story it belongs to is finished.
+    `scripts/scenario-index.py --check` fails an OPEN row with no scenario; closed rows are not
+    policed retroactively.
+  - **When every row naming a scenario is closed, dispatch the completion review** -
+    `agents/briefs/REVIEW-SCENARIO.md`, on `pro`, read-only, so it runs beside a build agent.
+    `scripts/scenario-index.py` lists which scenarios are ready. **A scenario is NOT implemented
+    because its tasks are ticked**: tasks are what somebody thought of, the journey is what the user
+    is promised, and the review is the only step that compares the two. It ends in a verdict, and
+    only an `IMPLEMENTED` verdict may write `**Status: implemented <date>**` under the journey's
+    heading. The evidence for the rule: J7's Fallbacks sentence promised *"the user renames/splits by
+    hand"* from the day it was written, `PJ.23` shipped the rename half, and nobody noticed the split
+    was never filed until the product owner opened the screen.
+  - **A task or a piece of feedback that CHANGES a story updates `docs/JOURNEYS.md` in the same
+    change** - the journey is the specification, not a record of what was built, so a row that adds,
+    removes or redefines what the user is promised edits the journey text with it. If that scenario
+    was marked implemented, the change **clears the status line back to unreviewed**: the story it
+    was reviewed against no longer exists.
 - Entity/field names exactly as `docs/SCHEMA.md` spells them, in every language.
 - When a task touches a journey, screen, error state, or schema shape that the docs don't cover yet: extend the doc in the same change – the docs are the spec, not documentation-after-the-fact.

@@ -2,6 +2,26 @@
 
 *Mobile UX companion to `VISION.md` (features, flows) and `DESIGN.md` (visual language). Each journey names its trigger, walks the stages with what the user does / thinks / feels, flags pain points (⚠) and design opportunities (→), and ends with the metric that tells us the journey works.*
 
+## Scenario status - what "implemented" means here
+
+**A journey is the specification, not a record of what was built.** Its stages and fallbacks are
+what the user is promised; `docs/TASKS.md` rows are one team's guess at how to satisfy them, and the
+gap between the two is where this project's defects have actually lived.
+
+So a journey carries a **status line under its heading**, and only one thing may write it:
+
+    **Status: implemented 2026-09-10** (reviewed by REVIEW-SCENARIO, <run>)
+
+**No status line means unreviewed**, whatever its rows say. The line is set by the completion review
+(`agents/briefs/REVIEW-SCENARIO.md`), dispatched when `scripts/scenario-index.py` reports that every
+row naming the scenario is closed - and only on an `IMPLEMENTED` verdict. Ticked tasks are not
+evidence: J7's Fallbacks sentence promised *"the user renames/splits by hand"* from the day it was
+written, `PJ.23` shipped the rename, and the missing half was found by the product owner opening the
+screen rather than by any row, test or review.
+
+**A change to what the user is promised edits this file in the same change**, and clears the status
+line: the story that was reviewed no longer exists.
+
 ## Personas
 
 - **P1 · The commuter (Andrus, diesel Volvo).** Logs every fill-up for years, has history in another app, cares about consumption trends and typo-free data. Fills up 3–5×/month, often in a hurry, sometimes abroad.

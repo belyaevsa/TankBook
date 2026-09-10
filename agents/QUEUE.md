@@ -54,6 +54,12 @@ Three rules that come from things that went wrong:
 
 ## The queue
 
+**Every entry here names its parent scenario** (standing instruction, 2026-09-10) - the journey id
+from `docs/JOURNEYS.md`, or `no-scenario:` with a reason. `scripts/scenario-index.py` is the map, and
+`--check` fails an open `docs/TASKS.md` row that names none. Without the link a queue is a list of
+chores; with it you can see which story a dispatch advances and when that story is ready for its
+completion review.
+
 **Update this file at BOTH ends of a dispatch**: add the row to *In flight* when it launches, and
 REMOVE it when its commit lands. A queue that says a shipped row is still running is worse than no
 queue - it is the file a fresh session trusts to know what is left. Shipped rows leave this file
@@ -61,11 +67,10 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 ### In flight
 
-| Task | Model | PID | Monitor | Brief |
-|---|---|---|---|---|
-| **RV.198** `[!]` | flash | 80286 | `bzqqqa6mk` (persistent) | `agents/briefs/RV.198.md` |
-| **REVIEW-SERVICE** *(read-only)* | pro | 92830 | `b2j4nvrb1` (persistent) | `agents/briefs/REVIEW-SERVICE-2026-09-10.md` |
-| **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
+| Task | Scenario | Model | PID | Monitor | Brief |
+|---|---|---|---|---|---|
+| **RV.198** `[!]` | **J7** | flash | 80286 | `bzqqqa6mk` (persistent) | `agents/briefs/RV.198.md` |
+| **REVIEW-SERVICE** *(read-only)* | **J7 / J7b / J7d / J7c** | pro | 92830 | `b2j4nvrb1` (persistent) | `agents/briefs/REVIEW-SERVICE-2026-09-10.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
 no edits, no builds, no tests, so it cannot collide on files or on the simulator, and `CLAUDE.md`
@@ -112,14 +117,13 @@ to end and you find it in one run.**
 
 Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
 
-| # | Task | Brief | Note |
-|---|---|---|---|
-| ~~1~~ | ~~**PJ.23**~~ **shipped `fd57e7b`** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
-| 2 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
-| 3 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
-| 4 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
-| 5 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
-| 6 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
+| # | Task | Scenario | Brief | Note |
+|---|---|---|---|---|
+| 1 | **PJ.34** | **F9a** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
+| 2 | **PJ.26+PJ.27** | **J7b** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
+| 3 | **RV.173** | **J3** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
+| 4 | **RV.171** | *no-scenario: a guard over the receipt seam* | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
+| 5 | **RV.194** | *no-scenario: screenshot tooling* | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
 
 ### Filed 2026-09-10, no brief yet
 
@@ -141,6 +145,17 @@ on code that does not compile into the app), `RV.182` (the tank pre-fill, decisi
 
 **The recurring journeys walk is due**: it runs every 10 shipped rows or at a phase gate. Eleven
 rows shipped since Groups C+D on 2026-09-10.
+
+## Scenarios READY FOR REVIEW, and nobody has looked
+
+`scripts/scenario-index.py` reports **six scenarios whose every row is closed and which have never
+been reviewed end to end**: `F2`, `F3`, `F5`, `F6b`, `F8`, `J5`. Under the 2026-09-10 rule each needs
+`agents/briefs/REVIEW-SCENARIO.md` before its journey may carry a `Status: implemented` line - and a
+first run is EXPECTED to come back NOT IMPLEMENTED, because ticked tasks were never evidence that a
+story is whole.
+
+**Run them on `pro`, read-only, beside whatever build agent is live.** They are the cheapest tool
+here and the only one that compares what the user was promised against what the code does.
 
 ## The service loop is under review, 2026-09-10
 
