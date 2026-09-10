@@ -60,7 +60,8 @@ extension EditEntryView {
                     return
                 }
                 let all = try repository.liveEntries(forVehicle: vehicle.id)
-                guard let target = all.first(where: { $0.id == Self.mostRecentID(all) }) else {
+                guard let targetID = Self.targetID(in: all),
+                      let target = all.first(where: { $0.id == targetID }) else {
                     loadFailed = true
                     return
                 }
@@ -153,5 +154,19 @@ extension EditEntryView {
 
     private static func mostRecentID(_ entries: [any Entry]) -> UUID? {
         entries.max { $0.date < $1.date }?.id
+    }
+
+    /// The entry an id-less open targets: the newest, unless the DEBUG pose
+    /// `-editEntryFlagged` asks for the first conflicted entry. The RV.188 panel
+    /// needs a flagged MIDDLE entry (one with a next neighbour), and a middle
+    /// entry is never the newest, so no real tap can pose it.
+    private static func targetID(in entries: [any Entry]) -> UUID? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-editEntryFlagged"),
+           let flagged = entries.first(where: { $0.conflict != .none }) {
+            return flagged.id
+        }
+        #endif
+        return mostRecentID(entries)
     }
 }

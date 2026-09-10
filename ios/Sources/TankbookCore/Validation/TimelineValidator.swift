@@ -16,12 +16,22 @@ public enum TimelineValidator {
             /// CHECK 1: the odometer does not fit between its date-neighbours.
             /// The dates are the neighbours' `date` values, so the ConfirmManual
             /// sheet can quote the conflicting entry ("Aug 17 already recorded
-            /// 119 486 km." - docs/ERRORS.md -> Confirm -> F9a).
-            case order(previousOdometer: Int?, previousDate: Date?,
+            /// 119 486 km." - docs/ERRORS.md -> Confirm -> F9a). `side` is the
+            /// neighbour the comparison actually failed against.
+            case order(side: NeighbourSide, previousOdometer: Int?, previousDate: Date?,
                        nextOdometer: Int?, nextDate: Date?)
             /// CHECK 2: implied km/day against a neighbour exceeds the limit.
-            case pace(kmPerDay: Double, limitKmPerDay: Double)
+            case pace(side: NeighbourSide, kmPerDay: Double, limitKmPerDay: Double)
         }
+    }
+
+    /// Which side of an entry a failed comparison was against. The validator
+    /// knows this when it appends the flag; carrying it lets the F9a
+    /// neighbourhood panel name the offending PAIR instead of gesturing at "the
+    /// entries around this one" (RV.188).
+    public enum NeighbourSide: Equatable, Sendable {
+        case previous
+        case next
     }
 
     /// An ordered resolution suggestion list. When an attachment carries an
@@ -66,10 +76,25 @@ public enum TimelineValidator {
     }
 
     /// The INVARIANT: for the vehicle's entries with an odometer, sorted by
-    /// date, odometer strictly increases.
+    /// date, the reading never falls, and it strictly increases between the
+    /// kinds that MEASURE travel (FillUp, ChargeSession). A ServiceRecord or an
+    /// Expense is an annotation at a point - work done at the pump without
+    /// moving - so it may share a reading with a neighbour; two travel entries
+    /// at one reading claim travel that did not happen and do not hold
+    /// (docs/SCHEMA.md, Validation).
     public static func invariantHolds(entries: [any Entry]) -> Bool {
-        let odometers = entries.sorted(by: entryOrder).compactMap(\.odometer)
-        return zip(odometers, odometers.dropFirst()).allSatisfy { $0 < $1 }
+        let sorted = entries.sorted(by: entryOrder).filter { $0.odometer != nil }
+        guard let first = sorted.first else { return true }
+        var previous = first
+        for entry in sorted.dropFirst() {
+            guard let odo = entry.odometer, let previousOdo = previous.odometer else { continue }
+            if odo < previousOdo { return false }
+            if odo == previousOdo && measuresTravel(entry) && measuresTravel(previous) {
+                return false
+            }
+            previous = entry
+        }
+        return true
     }
 
     /// Validates every entry in the timeline against its date-neighbours.
@@ -106,6 +131,15 @@ public enum TimelineValidator {
 
     // MARK: Private
 
+    /// An odometer-bearing neighbour, with whether it measures travel. The
+    /// travel flag decides whether an equal reading is a conflict or an
+    /// annotation sharing a point (docs/SCHEMA.md, Validation).
+    private struct Neighbour {
+        let odometer: Int
+        let date: Date
+        let measuresTravel: Bool
+    }
+
     private static func validate(_ entry: any Entry, at index: Int, in sorted: [any Entry],
                                  limit: Double,
                                  attachmentsByID: [UUID: Attachment]) -> EntryValidation {
@@ -114,12 +148,14 @@ public enum TimelineValidator {
         let crossCheck = crossCheckIfApplicable(entry)
 
         if let odo = entry.odometer {
-            var previous: (odometer: Int, date: Date)?
-            var next: (odometer: Int, date: Date)?
+            let entryTravels = measuresTravel(entry)
+            var previous: Neighbour?
+            var next: Neighbour?
             var back = index - 1
             while back >= 0 {
                 if let value = sorted[back].odometer {
-                    previous = (value, sorted[back].date)
+                    previous = Neighbour(odometer: value, date: sorted[back].date,
+                                         measuresTravel: measuresTravel(sorted[back]))
                     break
                 }
                 back -= 1
@@ -127,24 +163,33 @@ public enum TimelineValidator {
             var forward = index + 1
             while forward < sorted.count {
                 if let value = sorted[forward].odometer {
-                    next = (value, sorted[forward].date)
+                    next = Neighbour(odometer: value, date: sorted[forward].date,
+                                     measuresTravel: measuresTravel(sorted[forward]))
                     break
                 }
                 forward += 1
             }
 
-            validRange = Self.validRange(odometer: odo, date: entry.date, previous: previous,
-                                         next: next, limit: limit)
+            validRange = Self.validRange(odometer: odo, date: entry.date,
+                                         entryMeasuresTravel: entryTravels,
+                                         previous: previous, next: next, limit: limit)
 
-            // CHECK 1 - order: must fit strictly between date-neighbours.
-            if let previous, odo <= previous.odometer {
+            // CHECK 1 - order. The reading never falls for any kind; it must
+            // strictly increase only between two travel-measuring entries, so a
+            // service or expense may share a reading with the fill it annotates
+            // (docs/SCHEMA.md, Validation).
+            if let previous, odo < previous.odometer
+                || (odo == previous.odometer && entryTravels && previous.measuresTravel) {
                 flags.append(Flag(kind: .order,
-                                  detail: .order(previousOdometer: previous.odometer, previousDate: previous.date,
+                                  detail: .order(side: .previous,
+                                                 previousOdometer: previous.odometer, previousDate: previous.date,
                                                  nextOdometer: next?.odometer, nextDate: next?.date)))
             }
-            if let next, odo >= next.odometer {
+            if let next, odo > next.odometer
+                || (odo == next.odometer && entryTravels && next.measuresTravel) {
                 flags.append(Flag(kind: .order,
-                                  detail: .order(previousOdometer: previous?.odometer, previousDate: previous?.date,
+                                  detail: .order(side: .next,
+                                                 previousOdometer: previous?.odometer, previousDate: previous?.date,
                                                  nextOdometer: next.odometer, nextDate: next.date)))
             }
 
@@ -155,7 +200,8 @@ public enum TimelineValidator {
                     let pace = Double(abs(odo - previous.odometer)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
-                                          detail: .pace(kmPerDay: pace, limitKmPerDay: limit)))
+                                          detail: .pace(side: .previous,
+                                                        kmPerDay: pace, limitKmPerDay: limit)))
                     }
                 }
             }
@@ -165,7 +211,8 @@ public enum TimelineValidator {
                     let pace = Double(abs(next.odometer - odo)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
-                                          detail: .pace(kmPerDay: pace, limitKmPerDay: limit)))
+                                          detail: .pace(side: .next,
+                                                        kmPerDay: pace, limitKmPerDay: limit)))
                     }
                 }
             }
@@ -248,13 +295,14 @@ public enum TimelineValidator {
     /// intersections of the SAME two constraints the flags enforce, over the
     /// SAME neighbour pair this pass already walked:
     ///
-    /// - odometer (for the entry's date): strictly above the previous reading
-    ///   and at most `previous + limit x days(previous -> entry)`; strictly
-    ///   below the next reading and at least `next - limit x days(entry ->
-    ///   next)`. The upper end is therefore NOT `next - 1` when the pace toward
-    ///   the previous is the tighter bound (the Drivvo case, docs/COMPETITORS.md
-    ///   - on 13/07 the odometer must be between 490 500 and 490 983, not
-    ///   "below 491 206").
+    /// - odometer (for the entry's date): at or above the previous reading (or
+    ///   strictly above it when both entries measure travel) and at most
+    ///   `previous + limit x days(previous -> entry)`; at or below the next
+    ///   reading (or strictly below it when both travel) and at least `next -
+    ///   limit x days(entry -> next)`. The upper end is therefore NOT `next - 1`
+    ///   when the pace toward the previous is the tighter bound (the Drivvo
+    ///   case, docs/COMPETITORS.md - on 13/07 the odometer must be between
+    ///   490 500 and 490 983, not "below 491 206").
     /// - dates (for the entry's odometer): the instants strictly between the
     ///   neighbours on which that reading keeps both neighbours and stays within
     ///   the pace limit. The bounds are pace-derived and inclusive; the exact
@@ -266,35 +314,41 @@ public enum TimelineValidator {
     /// neighbourhood whose constraints cross - `lower > upper` - yields `.none`:
     /// no value is valid, and an inverted "between 490 983 and 490 500" would be
     /// nonsense.
-    private static func validRange(odometer: Int, date: Date,
-                                   previous: (odometer: Int, date: Date)?,
-                                   next: (odometer: Int, date: Date)?,
+    private static func validRange(odometer: Int, date: Date, entryMeasuresTravel: Bool,
+                                   previous: Neighbour?,
+                                   next: Neighbour?,
                                    limit: Double) -> TimelineValidRange {
         TimelineValidRange(
-            odometer: odometerRange(date: date, previous: previous, next: next, limit: limit),
-            dates: dateRange(odometer: odometer, previous: previous, next: next, limit: limit)
+            odometer: odometerRange(date: date, entryMeasuresTravel: entryMeasuresTravel,
+                                    previous: previous, next: next, limit: limit),
+            dates: dateRange(odometer: odometer, entryMeasuresTravel: entryMeasuresTravel,
+                             previous: previous, next: next, limit: limit)
         )
     }
 
     /// The inclusive integer odometer readings valid for a date. Mirrors the
     /// same-day guard: a same-day neighbour contributes no pace bound (the
     /// `days > 0` guard in `validate(_:at:in:)`), so that side of the interval
-    /// is bounded by order alone.
-    private static func odometerRange(date: Date,
-                                      previous: (odometer: Int, date: Date)?,
-                                      next: (odometer: Int, date: Date)?,
+    /// is bounded by order alone. The order bound is inclusive on a side whose
+    /// neighbour does not also measure travel (an annotation may share the
+    /// reading); between two travel entries it stays exclusive.
+    private static func odometerRange(date: Date, entryMeasuresTravel: Bool,
+                                      previous: Neighbour?,
+                                      next: Neighbour?,
                                       limit: Double) -> ValidRange<Int> {
         var lower: Int?
         var upper: Int?
         if let previous {
-            lower = previous.odometer + 1
+            let sharesReading = !(entryMeasuresTravel && previous.measuresTravel)
+            lower = previous.odometer + (sharesReading ? 0 : 1)
             let days = dayDiff(previous.date, date)
             if days > 0 {
                 upper = paceUpperBound(from: previous.odometer, days: days, limit: limit)
             }
         }
         if let next {
-            let orderUpper = next.odometer - 1
+            let sharesReading = !(entryMeasuresTravel && next.measuresTravel)
+            let orderUpper = next.odometer - (sharesReading ? 0 : 1)
             upper = upper.map { Swift.min($0, orderUpper) } ?? orderUpper
             let days = dayDiff(date, next.date)
             if days > 0 {
@@ -308,15 +362,22 @@ public enum TimelineValidator {
 
     /// The inclusive dates on which `odometer` keeps its two neighbours and the
     /// implied pace to each stays within the limit.
-    private static func dateRange(odometer: Int,
-                                  previous: (odometer: Int, date: Date)?,
-                                  next: (odometer: Int, date: Date)?,
+    private static func dateRange(odometer: Int, entryMeasuresTravel: Bool,
+                                  previous: Neighbour?,
+                                  next: Neighbour?,
                                   limit: Double) -> ValidRange<Date> {
-        // An odometer at or below the previous reading (or at or above the next)
-        // cannot sit between the two at ANY date - the order constraint fails for
-        // every instant the pair remains its neighbours.
-        if let previous, odometer <= previous.odometer { return .none }
-        if let next, odometer >= next.odometer { return .none }
+        // A reading below the previous one (or above the next) cannot sit
+        // between the two at ANY date - the order constraint fails for every
+        // instant the pair remains its neighbours. Equal readings fail only
+        // between two travel-measuring entries.
+        if let previous, odometer < previous.odometer
+            || (odometer == previous.odometer && entryMeasuresTravel && previous.measuresTravel) {
+            return .none
+        }
+        if let next, odometer > next.odometer
+            || (odometer == next.odometer && entryMeasuresTravel && next.measuresTravel) {
+            return .none
+        }
         guard limit > 0 else {
             return (previous == nil && next == nil) ? .bounded(lower: nil, upper: nil) : .none
         }
@@ -361,6 +422,14 @@ public enum TimelineValidator {
 
     private static func dayDiff(_ a: Date, _ b: Date) -> Double {
         abs(a.timeIntervalSince(b)) / 86400
+    }
+
+    /// Whether an entry's reading measures travel. A FillUp or a ChargeSession
+    /// is a point on the journey; a ServiceRecord or an Expense is an annotation
+    /// at a point and may share a reading with the fill it accompanies
+    /// (docs/SCHEMA.md, Validation).
+    private static func measuresTravel(_ entry: any Entry) -> Bool {
+        entry is FillUp || entry is ChargeSession
     }
 
     private static func entryOrder(_ a: any Entry, _ b: any Entry) -> Bool {

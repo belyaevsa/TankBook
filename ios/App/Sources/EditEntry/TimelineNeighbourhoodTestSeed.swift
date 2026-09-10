@@ -54,5 +54,31 @@ enum TimelineNeighbourhoodTestSeed {
             conflict: .flagged(kind: .pace, detectedAt: Date()))
         try? repository.upsertFillUp(flagged)
     }
+
+    /// RV.188: a MIDDLE pace conflict whose two constraints cross, so the
+    /// panel's both-`.none` case fires WITH a next entry and two culprits. The
+    /// flagged fill (20 days ago, 100 900 km) is over the 20 km/day limit from
+    /// BOTH neighbours - 100 000 km 40 days earlier (45 km/day) and 101 500 km a
+    /// day later (600 km/day) - so no reading and no date fits between them. The
+    /// panel must list the next entry, label every chart point, and name both
+    /// failing pairs instead of the generic sentence.
+    static func seedMiddleConflict(_ repository: TankbookRepository) {
+        let vehicle = HomeTestSeed.makeVehicle(paceLimitKmPerDay: 20)
+        try? repository.upsertVehicle(vehicle)
+        try? repository.upsertFillUp(
+            HomeTestSeed.makeFill(vehicleID: vehicle.id,
+                                  HomeTestSeed.FillSpec(daysAgo: 40, odometer: 100_000, litres: 41.2,
+                                                        amount: "66.90", price: "1.624", stationID: nil)))
+        let flagged = HomeTestSeed.makeFill(
+            vehicleID: vehicle.id,
+            HomeTestSeed.FillSpec(daysAgo: 20, odometer: 100_900, litres: 42.3,
+                                  amount: "71.02", price: "1.679", stationID: nil),
+            conflict: .flagged(kind: .pace, detectedAt: Date()))
+        try? repository.upsertFillUp(flagged)
+        try? repository.upsertFillUp(
+            HomeTestSeed.makeFill(vehicleID: vehicle.id,
+                                  HomeTestSeed.FillSpec(daysAgo: 19, odometer: 101_500, litres: 40.0,
+                                                        amount: "67.00", price: "1.675", stationID: nil)))
+    }
 }
 #endif

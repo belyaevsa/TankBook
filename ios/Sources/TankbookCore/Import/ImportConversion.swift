@@ -390,7 +390,7 @@ public enum ImportReviewClassifier {
                 var previousOdometer: Int?
                 var previousDate: Date?
                 if let flag = validation?.flags.first,
-                   case .order(let previousOdometerValue, let previousDateValue, _, _) = flag.detail {
+                   case .order(_, let previousOdometerValue, let previousDateValue, _, _) = flag.detail {
                     previousOdometer = previousOdometerValue
                     previousDate = previousDateValue
                 }

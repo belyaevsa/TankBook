@@ -32,6 +32,10 @@ enum EditEntryTestSeed {
             seedConflict(pace: true)
             return
         }
+        if arguments.contains("-seedEditEntryConflictMiddle") {
+            seedMiddleConflict()
+            return
+        }
         if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
             seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
             return
@@ -66,6 +70,19 @@ enum EditEntryTestSeed {
         } else {
             TimelineNeighbourhoodTestSeed.seedOrderConflict(repository)
         }
+    }
+
+    /// RV.188: the middle pace conflict, so `-presentScreen editEntry` can open a
+    /// flagged entry that has BOTH neighbours and the panel's next-entry row.
+    @MainActor
+    private static func seedMiddleConflict() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+        TimelineNeighbourhoodTestSeed.seedMiddleConflict(repository)
     }
 
     /// PJ.28 screenshot seam: a scanned Expense with its receipt attached -

@@ -507,8 +507,14 @@ Devices fill this cache from the backend's public `/rates` endpoint (see Referen
 
 ```
 INVARIANT  For a vehicle's entries with odometer set, sorted by date (same-day ties by odometer,
-           per the Entry ordering rule above): odometer strictly increases.
-CHECK 1    Order: odometer fits between date-neighbors. Violation → discrepancy UI.
+           per the Entry ordering rule above): the reading never falls, and it strictly increases
+           between the kinds that MEASURE travel. A FillUp or a ChargeSession is a point on the
+           journey; a ServiceRecord or an Expense is an ANNOTATION at a point - work done at the
+           pump without moving - and may equal a neighbour's reading. Two travel entries at one
+           reading claim travel that did not happen and conflict.
+CHECK 1    Order: odometer fits between date-neighbors. A falling reading conflicts for every
+           kind; an equal reading conflicts ONLY between two travel-measuring entries. Violation →
+           discrepancy UI.
 CHECK 2    Pace: implied km/day against neighbors ≤ vehicle.paceLimitKmPerDay.
 CHECK 3    Cross-check: volume × unitPrice ≈ FillUp.money.amount (tolerance max(0.02, amount × 0.005)).
 CHECK 4    AdBlue (2026-08-30): `.adBlue` in Vehicle.fuelKinds requires `.diesel` in the same set; an AdBlue fill never opens, closes or feeds a fuel segment (FuelKind.family) - see → AdBlue.
@@ -556,10 +562,13 @@ A flagged entry quotes one neighbour; the RV.117 range says **which field is wro
 
 ```
 ODOMETER RANGE   The readings valid for the entry's date (integers, inclusive):
-                 lower = max(previous + 1,                    // CHECK 1, order
-                             next − limit × days(entry → next))   // CHECK 2, pace, only when days > 0
-                 upper = min(next − 1,                        // CHECK 1, order
+                 lower = max(previous + (travel ? 1 : 0),     // CHECK 1, order: exclusive only
+                             next − limit × days(entry → next))   //   between two travel entries,
+                 upper = min(next − (travel ? 1 : 0),         //   inclusive for an annotation
                              previous + limit × days(previous → entry)) // CHECK 2, pace, only when days > 0
+                 `travel` means BOTH this entry and that neighbour measure travel
+                 (FillUp/ChargeSession); a ServiceRecord or Expense neighbour shares
+                 the reading, so the order bound is inclusive on that side.
                  The upper end is therefore NOT next − 1 when the pace toward the
                  previous is the tighter bound (Drivvo: "on 13/07 the odometer must be
                  between 490 500 and 490 983" – 490 983 = 490 500 + limit × days, not
@@ -571,7 +580,7 @@ DATE RANGE       The dates on which the entry's odometer x is consistent while i
                  upper = next.date − (next.odometer − x) / limit × 86400           (next side)
 ```
 
-**Open ends are first-class**: an absent bound is `nil` (open), never a large sentinel number. An entry with no `next` has no upper date bound, one with no `previous` no lower date bound; a same-day neighbour contributes **no pace bound** (the `days > 0` guard), so on that side the odometer range is bounded by order alone. **The empty case is representable**: when the two constraints cross - the neighbourhood itself is inconsistent, which a multi-year import can produce - the range is `.none`, never an inverted "between 490 983 and 490 500". An odometer that sits at or below its previous reading (or at or above its next) has no valid date between those neighbours either: `.none` on the date side is the signal that the odometer is the field to fix. The range claims dates strictly between the neighbours; the exact neighbour instants are outside its domain because there a same-day tie reorders the timeline or the `days > 0` guard drops a pace bound. The range never auto-corrects or reorders `suggestions` (hard rule 13; PRIORITY above is unchanged).
+**Open ends are first-class**: an absent bound is `nil` (open), never a large sentinel number. An entry with no `next` has no upper date bound, one with no `previous` no lower date bound; a same-day neighbour contributes **no pace bound** (the `days > 0` guard), so on that side the odometer range is bounded by order alone. **The empty case is representable**: when the two constraints cross - the neighbourhood itself is inconsistent, which a multi-year import can produce - the range is `.none`, never an inverted "between 490 983 and 490 500". An odometer that falls below its previous reading (or rises above its next) has no valid date between those neighbours either; an equal reading has none only between two travel-measuring entries: `.none` on the date side is the signal that the odometer is the field to fix. The range claims dates strictly between the neighbours; the exact neighbour instants are outside its domain because there a same-day tie reorders the timeline or the `days > 0` guard drops a pace bound. The range never auto-corrects or reorders `suggestions` (hard rule 13; PRIORITY above is unchanged).
 
 ### S2 duplicates (derived, with one persisted fact)
 

@@ -178,7 +178,7 @@ extension ServiceEntryFormState {
         guard let validation = validations.first(where: { $0.entryID == candidate.id }),
               let flag = validation.flags.first else { return nil }
         switch flag.detail {
-        case .order(let previousOdometer, let previousDate, _, _):
+        case .order(_, let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
                 let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
                 let quote = String(format: L10n.localize("%@ already recorded %@ km."),
