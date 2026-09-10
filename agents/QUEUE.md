@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-*(nothing in flight.)*
+| **RV.183+RV.184** | flash | 8015 | `bdiurjupr` (persistent) | `agents/briefs/RV.183+RV.184.md` |
 
 *(`REVIEW-JOURNEYS-CD` finished; its report is `diagnostics/REVIEW-JOURNEYS-2026-09-10.md` and its
 findings are filed as `PJ.58`/`PJ.59` in `docs/TASKS.md`, commit `7676039`.)*
@@ -128,7 +128,11 @@ files, reported by the product owner. Also filed this pass: **`RV.191`** (RU dea
 fold once the real format list is shown) and **`RV.192`** (the owner's SECOND same-day case, which
 RV.186 deliberately did not cover).
 
-**NEXT, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`), `RV.173` (then
+**IN FLIGHT - `RV.183+RV.184`; `RV.176+PR.28` is dispatched the moment it exits (standing
+instruction, 2026-09-10: run the queue one after another).** Then: `RV.189` (then `RV.170`),
+`RV.173` (then `RV.171`), `RV.191`, `RV.192`.
+
+~~NEXT, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`), `RV.173` (then
 `RV.171`), `RV.191`, `RV.192`.**
 
 | Task | Brief | Why it outranks the queue |
