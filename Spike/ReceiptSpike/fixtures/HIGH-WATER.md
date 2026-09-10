@@ -48,6 +48,27 @@ a band injected, `70.92` is recognisable as the price and `25.52` as the volume,
 fixture resolves for a real reason. **Do not raise this number by restoring a tie-break
 heuristic.**
 
+## The unmarked pair, and the band's lower edge
+
+`receipt-061` (2026-09-10) is the corpus's clearest statement of what the price band can and
+cannot settle. Its money line is `71.18 x 42.000`, read at confidence **1.00** and **unmarked** -
+no `л`, no `руб`, no labelled column. The RU 2024+ petrol band is `40..500`, so **both** operands
+are plausible prices, nothing pins which is which, and the parser abstains on `liters` and
+`unitPrice` while still resolving the total, fuel kind and currency.
+
+Its sibling `receipt-060`, from the same brand and card, resolves every cell - because `21.000`
+falls **below** the band floor and is therefore not a candidate price. The two differ in nothing
+but the size of the fill. The band resolves small fills and abstains on ordinary ones.
+
+The paired `pump-084` is what makes the truth provable rather than argued: the display states the
+three values separately and labelled (`СУММА` / `ЛИТРЫ` / `ЦЕНА ЗА ЛИТР`), so `42` is the volume
+beyond dispute. That is the case for shooting both (`README.md` -> matched pairs).
+
+**Do not close this gap with a decimal-count tie-break.** Two decimals against three looks like a
+free signal here and is the same heuristic the `screenshots` re-baseline above exists to keep
+out; `receipt-036`/`receipt-037` already show the same till printing the operands in both orders
+one minute apart. What closes it is step 3 of the ladder - the user's own price history.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

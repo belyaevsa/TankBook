@@ -379,6 +379,11 @@ enum PostSweepCorpusAdditions {
             "receipt-058-circlek-peetri-98e0-pump7-4353l-ee.jpg",
             "receipt-059-circlek-peetri-db0-pump5-768l-night-wet-ee.jpg",
             "receipt-060-gazpromneft-azs12089-95-fuelcard-pair-ru.jpeg",
+            // 2026-09-10: the paper half of pump-084 - a Gazpromneft Okulovka
+            // AZS 1010 fuel-card fill whose money line `71.18 x 42.000` is
+            // unmarked and whose operands both sit inside the RUB price band,
+            // so the parser abstains on volume and price. Declared, not swept.
+            "receipt-061-gazpromneft-okulovka-azs1010-gdrive95-fuelcard-pair-ru.jpeg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -495,6 +500,10 @@ enum PostSweepCorpusAdditions {
             // receipt says 2249.92 - the truncated-total shape, with its paper
             // half at receipt-052. Declared, not swept.
             "pump-073-wayne-gazpromneft-tver-truncated-total-pair-ru.jpeg",
+            // 2026-09-10: the Wayne half of receipt-061, and the only
+            // Gazpromneft pair in the corpus whose display agrees with the
+            // paper to the cent. Declared, not swept.
+            "pump-084-dresser-wayne-gpn-okulovka-exact-total-pair-ru.jpeg",
         ],
     ]
 
