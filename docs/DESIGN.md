@@ -110,6 +110,38 @@ decorative colour.**
   when the control's copy changes the refusal changes in the same change: RV.159's dead end was a
   refusal a user could not match to a switch they had already looked at.
 
+## Consequential actions: hierarchy is structure, not role (RV.177)
+
+A system alert can only separate a consequential action from a harmless one by giving the
+consequential one `role: .destructive` - and that renders it the system's red. That fails here,
+because the app's accent **is** a red-orange: `taillight` and `.destructive` are the same colour
+family, and in the dark theme the two are close enough to read as the same signal. RV.152's
+home-currency alert is the case that wrote the rule: "Convert the log" rewrites every entry's
+derived half and cannot be undone, "Keep the entries as they are" changes no entry at all, and
+with neither button carrying a role iOS tinted both with the accent - two opposite consequences,
+one appearance, chosen by position.
+
+**Rule: when a consequential action and a harmless one would render the same colour, the
+hierarchy is structural - a filled primary against a quiet secondary - never a role that renders
+the same colour.** Red is legal inside a system dialog (hard rule 5), which is exactly why the
+distinction cannot be carried by colour: the colour that would mark danger is the colour that
+marks the primary.
+
+- The consequential answer is the **filled** action: `taillight` ground, `midnight` text (the
+  text-on-accent rule above), full width. The harmless answer is **quiet**: no fill, a hairline
+  outline and `ink` text - the "Not this time" treatment the service reminder offer already uses.
+- The two must never be made "consistent" by filling both or by outlining both: identical pixels
+  for opposite consequences is the defect this rule removes. The distinguishability is asserted on
+  the rendered fill, not on the buttons' existence.
+- A system alert is the wrong control when its roles cannot separate the answers. Build a custom
+  sheet you can style - and because a `.sheet` is swipe-dismissible by default, a decision that
+  must be answered refuses dismissal (`.interactiveDismissDisabled(true)`, no close affordance)
+  rather than letting a drag abandon it silently.
+- The negative half is a product decision, not an omission: when the surrounding action is already
+  committed (here, Save), the sheet asks only the open question and offers **no cancel** - both
+  answers commit, so a cancel would be a third outcome the flow does not have (RV.178,
+  `docs/ERRORS.md` -> Vehicle detail).
+
 ## Motion
 
 Three orchestrated moments; nothing else animates beyond system defaults.

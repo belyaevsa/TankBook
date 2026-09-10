@@ -136,32 +136,29 @@ struct VehicleDetailView: View {
                 saveBar
             }
         }
-        // RV.152: the home-currency question, asked BEFORE the vehicle write
-        // (hard rule 3 governs the answer, docs/ERRORS.md -> Vehicle detail).
-        // Two plain answers, no cancel: the write happens only once the user
-        // picks one. The message states the pending count upfront, that the
-        // receipt amounts are never touched, and that there is no undo.
-        .alert(currencyChangeTitle,
-               isPresented: currencyChangePresented,
-               presenting: currencyChange) { prompt in
-            Button("Convert the log") { commit(prompt.updated, answer: .convert) }
-            Button("Keep the entries as they are") { commit(prompt.updated, answer: .keep) }
-        } message: { prompt in
-            Text(L10n.homeCurrencyChangeMessage(pending: prompt.plan.stillPendingCount))
+        // RV.177/RV.178: the home-currency question, asked BEFORE the vehicle
+        // write (hard rule 3 governs the answer, docs/ERRORS.md -> Vehicle
+        // detail). It is a custom sheet, not the system alert RV.152 shipped:
+        // the accent IS taillight red, so an alert tinted the irreversible
+        // "Convert the log" and the harmless "Keep the entries as they are"
+        // identically. The sheet gives the two answers a structural hierarchy
+        // (filled primary, quiet secondary) and refuses to be dismissed without
+        // an answer. There is no cancel - Save already decided the change, so
+        // this asks only what to do with the entries that exist.
+        .sheet(item: $currencyChange) { prompt in
+            HomeCurrencyChangeSheet(
+                title: L10n.homeCurrencyChangeTitle(currency: prompt.updated.homeCurrency.rawValue),
+                pendingCount: prompt.plan.stillPendingCount,
+                onConvert: {
+                    currencyChange = nil
+                    commit(prompt.updated, answer: .convert)
+                },
+                onKeep: {
+                    currencyChange = nil
+                    commit(prompt.updated, answer: .keep)
+                }
+            )
         }
-    }
-
-    /// RV.152: whether the home-currency question must be asked - the currency
-    /// actually changed AND the car already has a log. An empty car needs no
-    /// question (nothing to restate) and re-picking the same currency needs
-    /// none either (nothing changed).
-    private var currencyChangePresented: Binding<Bool> {
-        Binding(get: { currencyChange != nil },
-                set: { if !$0 { currencyChange = nil } })
-    }
-
-    private var currencyChangeTitle: String {
-        L10n.homeCurrencyChangeTitle(currency: form.homeCurrency.rawValue)
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {

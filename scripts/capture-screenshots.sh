@@ -903,6 +903,17 @@ if [ "${#CAPTURED[@]}" -gt 1 ]; then
     fi
 fi
 
+# RV.177: the home-currency question as a SHEET with a real hierarchy - the
+# irreversible "Convert the log" filled in taillight, the harmless "Keep the
+# entries as they are" quiet. It replaced a system alert whose two buttons were
+# both accent-tinted and therefore identical (RV.152's frames, retired in the
+# same change). `-presentCurrencyChangePrompt` raises it over Vehicle detail;
+# `-presentScreen vehicleDetail` is NOT optional - without it the capture
+# photographs the Log and looks like a success. RU is where the warning grows a
+# line and pushes the actions down.
+capture RV.177-home-currency-change    en -seedHomeRV152 -presentScreen vehicleDetail -presentCurrencyChangePrompt
+capture RV.177-home-currency-change-ru ru -seedHomeRV152 -presentScreen vehicleDetail -presentCurrencyChangePrompt
+
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
 echo "shows the intended screen. A wrong seed renders an empty or error state"
