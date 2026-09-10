@@ -391,6 +391,23 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Export fails (anything else) | Alert: "Couldn't build the export." | Try again · OK |
 | **Language changed (RV.24, RV.42)** | On the Settings Language row itself: "Language changes the next time you open Tankbook". RV.42 moved it there because the picker-only caption died with the sheet, leaving a setting that visibly took effect against an app that visibly did not change (a broken switch, not a pending one). The prompt renders exactly while the stored choice differs from the language actually running - **derived, never stored** - and self-clears on the next launch; it also still shows below the list while the picker is open | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
+**A failed share shows the user nothing, and is recorded in full (RV.181, decided
+2026-09-10).** The destination owns its own error surface - Mail's composer, the Files browser -
+and a second alert from Tankbook on top of it would fire on the cancel path too, which is the
+common one; that teaches the user to dismiss it. So no user-facing message.
+
+**The log is the other half of that decision, and it was the missing half.** The seam used to keep
+only `completed`, which the system reports as `false` for a cancel and for a share whose activity
+failed alike - so a report of "I picked a destination and nothing arrived" looked in the log
+exactly like closing the sheet. Each surface now logs `outcome` as one of `completed` /
+`cancelled` / **`failed`** (`diagnostics.share`, `attachmentViewer.share`, `export.share`,
+`import.sendFile.share`), and a `failed` share adds a Warning carrying the activity type and the
+error's domain and code. All of it is shape - system codes and the payload class (photo / pdf /
+csv / text / file) - never a filename, a destination app's content, or the shared item itself
+(hard rule 12). `docs/LOGGING.md` -> Shares carries the field list. **A user who reports a share
+that never arrived can now be answered from their diagnostics bundle**; before this row they could
+not.
+
 ### Inbox (RV.38, RV.45, RV.64)
 
 The bell's screen: work that finished after the user moved on. The first case is a cloud

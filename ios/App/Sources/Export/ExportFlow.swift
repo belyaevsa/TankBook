@@ -39,8 +39,17 @@ struct ExportFlowModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .sheet(item: $shareable) { item in
-                ActivityView(items: item.items)
-                    .presentationDetents([.medium, .large])
+                // No `.presentationDetents`: the activity controller is no
+                // longer this sheet's root (ActivityView presents it from a
+                // host), so sizing this sheet would size the empty host, not
+                // the share sheet.
+                ActivityView(items: item.items) { outcome in
+                    // Shape only: that the share ended, how, and that the
+                    // payload was the CSV/archive export - never a filename, a
+                    // row or a destination app (hard rule 12).
+                    AppLog.share(operation: "export.share", kind: "csv",
+                                 outcome: outcome)
+                }
             }
             .alert("Couldn't build the export", isPresented: showsError) {
                 Button("Try again") { retry() }

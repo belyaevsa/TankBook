@@ -167,6 +167,26 @@ Every create / update / delete logs **twice**: an intent and an outcome, so a cr
 
 The pair is emitted around **user-initiated writes only** (capture, manual, import, reminder): a sync merge of N records emits ONE `sync.merge` line, never N mutation pairs (docs/LOGGING.md §7, volume discipline). The caller names the `source` – the repository cannot know which door a write came through – and `create` vs `update` is the caller's knowledge too.
 
+### Shares (RV.181)
+Every share in the app goes through one seam (`Shared/ActivityView.swift`) and logs through one
+helper, `AppLog.share`. The event is `<surface>.share` - `diagnostics.share`, `export.share`,
+`attachmentViewer.share`, `import.sendFile.share`.
+
+| Event | Fields |
+|---|---|
+| `<surface>.share` | `outcome` (`completed` / `cancelled` / **`failed`**), `kind` - the payload class (`text` / `photo` / `pdf` / `csv` / `file`), never a filename |
+| `<surface>.share` (Warning, only when `outcome == failed`) | `reason` = `activity=<UIActivity type> error=<domain>#<code>` |
+
+**`failed` is a distinct outcome, and that is the point of the row.** A share the user chose that
+then failed at its destination used to be logged as `cancelled`, because the seam kept only
+`UIActivityViewController`'s `completed` flag and dropped the activity type and the error. A device
+report of "I picked a destination and nothing arrived" was therefore indistinguishable in the log
+from "I closed the sheet", which is why RV.181 could not be diagnosed from diagnostics alone.
+
+The warning's `reason` is Safe-class throughout: an Apple activity identifier and an error domain
+and code are system codes, never the shared content (hard rule 12). The items being shared - a
+diagnostics text, a receipt image, an export - never reach the log at any level.
+
 ### Sync client
 `sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
 

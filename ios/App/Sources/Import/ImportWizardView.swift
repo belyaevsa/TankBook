@@ -538,13 +538,19 @@ struct SendFileConsentSheet: View {
         .presentationDetents([.medium])
         .sheet(isPresented: $showingShare) {
             // PJ.20: the actual file rides the share sheet, with the consent
-            // sentence alongside it - never the sentence alone.
-            ActivityView(items: [fileURL as Any, L10n.sendFileMessage]) { _ in
+            // sentence alongside it - never the sentence alone. No detents: the
+            // activity controller presents itself (ActivityView), so sizing
+            // this sheet would size the empty host, not the share sheet.
+            ActivityView(items: [fileURL as Any, L10n.sendFileMessage]) { outcome in
+                // Shape only: that the share ended, how, and that the payload
+                // was the staged file - never its name, its bytes or a
+                // destination app (hard rule 12).
+                AppLog.share(operation: "import.sendFile.share", kind: "file",
+                             outcome: outcome)
                 // The share sheet has read the file (or the user dismissed it);
                 // the staged copy has served its purpose either way.
                 dispose?()
             }
-            .presentationDetents([.medium, .large])
         }
         .onDisappear {
             // Cancelled or swiped away without sharing - dispose only when the

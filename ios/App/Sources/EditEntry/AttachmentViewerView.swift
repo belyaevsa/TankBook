@@ -132,11 +132,13 @@ struct AttachmentViewerView: View {
             #endif
         }
         .sheet(item: $shareable) { item in
-            ActivityView(items: item.items) { completed in
-                // Shape only: that the share ended and how - never what was
-                // shared, its hash or its size (hard rule 12).
-                AppLog.info(operation: "attachmentViewer.share", category: .ui,
-                            outcome: completed ? "completed" : "cancelled")
+            ActivityView(items: item.items) { outcome in
+                // Shape only: that the share ended, how, and the payload class
+                // (photo or pdf) - never what was shared, its hash, its size or
+                // a destination app (hard rule 12).
+                AppLog.share(operation: "attachmentViewer.share",
+                             kind: attachment.kind == .pdf ? "pdf" : "photo",
+                             outcome: outcome)
             }
         }
         .alert("Delete this receipt?", isPresented: $showDeleteConfirm) {

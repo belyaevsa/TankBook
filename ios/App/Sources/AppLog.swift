@@ -25,10 +25,13 @@ enum AppLog {
     }
 
     /// Emits a typed info record (docs/LOGGING.md §3: info = the per-op
-    /// records). `operation` and `outcome` are stable codes, never domain
-    /// values (hard rule 12).
-    static func info(operation: String, category: LogCategory, outcome: String) {
-        shared.emit(AppEvent(operation: operation, category: category, outcome: outcome))
+    /// records). `operation`, `outcome` and `kind` are stable codes, never
+    /// domain values (hard rule 12). `kind` is the shape-only payload class a
+    /// share reports (photo / pdf / csv / text / file) - never a filename.
+    static func info(operation: String, category: LogCategory, outcome: String,
+                     kind: String? = nil) {
+        shared.emit(AppEvent(operation: operation, category: category,
+                             outcome: outcome, kind: kind))
     }
 
     private static func deviceId() -> String? {
@@ -45,11 +48,15 @@ struct AppEvent: LogEvent {
     let level = LogLevel.info
     let fields: [LogField]
 
-    init(operation: String, category: LogCategory, outcome: String) {
+    init(operation: String, category: LogCategory, outcome: String, kind: String? = nil) {
         self.category = category
-        fields = [
+        var fields: [LogField] = [
             .safe("operation", operation),
             .safe("outcome", outcome)
         ]
+        if let kind {
+            fields.append(.safe("kind", kind))
+        }
+        self.fields = fields
     }
 }

@@ -35,12 +35,13 @@ struct DiagnosticsPreviewView: View {
                     }
                 }
                 .sheet(item: $shareable) { item in
-                    ActivityView(items: [item.text]) { completed in
-                        // Shape only (docs/LOGGING.md §4): that the share ended
-                        // and how - never the text, its length or its hash
-                        // (hard rule 12).
-                        AppLog.info(operation: "diagnostics.share", category: .ui,
-                                    outcome: completed ? "completed" : "cancelled")
+                    ActivityView(items: [item.text]) { outcome in
+                        // Shape only (docs/LOGGING.md §4): that the share ended,
+                        // how, and that the payload was text - never the text,
+                        // its length, its hash or a destination app (hard rule
+                        // 12).
+                        AppLog.share(operation: "diagnostics.share", kind: "text",
+                                     outcome: outcome)
                     }
                 }
                 .task { await model.buildPreviewText() }
