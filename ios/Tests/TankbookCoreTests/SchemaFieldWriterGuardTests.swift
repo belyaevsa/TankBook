@@ -64,8 +64,8 @@ struct SchemaFieldWriterGuardTests {
     private static let documentedEntityExceptions: [String: String] = [
         "ChargeSession": "The EV capture path is [v1.x] and unbuilt (PJ.12): a ChargeSession is "
             + "created only by import/sync and the decoder, so its fields have no production "
-            + "construction yet. The entity-level guard already records its writer; the brief says "
-            + "not to re-report its fields one by one."
+            + "construction yet. The entity-level guard already resolves the heading's writer; the "
+            + "brief says not to re-report its fields one by one."
     ]
 
     // MARK: - Source location
@@ -115,7 +115,25 @@ struct SchemaFieldWriterGuardTests {
         let headings = EntityWriterScanner.entityHeadings(in: schema)
 
         #expect(!headings.isEmpty, "the doc parse found no entities - a parse bug must not read as green")
+        assertEveryHeadingResolves(headings, sources: sources)
+        reportSelfCheckProblems(schema: schema, sources: sources)
 
+        let unwritten = FieldWriterScanner.unwrittenFields(
+            schemaText: schema, sources: sources,
+            exceptions: Self.documentedExceptions,
+            entityExceptions: Self.documentedEntityExceptions)
+        for field in unwritten {
+            Issue.record("""
+                \(field) has no production writer: no assignment, no non-default init argument and \
+                no reachable repository write call outside test seeds, sync, #if DEBUG and the \
+                decoder. A field a reader consumes and nothing can set is PJ.55's shape - build \
+                the door, or record a reasoned exception in documentedExceptions.
+                """)
+        }
+    }
+
+    private func assertEveryHeadingResolves(_ headings: [String],
+                                            sources: [FieldWriterScanner.SourceFile]) {
         for heading in headings {
             if heading == "Entry (common envelope)" { continue }
             let typeNames = FieldWriterScanner.typeNames(forHeading: heading)
@@ -125,7 +143,10 @@ struct SchemaFieldWriterGuardTests {
                         "\(heading) -> \(typeName) must expose readable fields")
             }
         }
+    }
 
+    private func reportSelfCheckProblems(schema: String,
+                                         sources: [FieldWriterScanner.SourceFile]) {
         for spec in FieldWriterScanner.entityFieldSpecs {
             if let problem = FieldWriterScanner.noteProblem(in: spec) {
                 Issue.record("field spec self-check: \(problem)")
@@ -151,19 +172,6 @@ struct SchemaFieldWriterGuardTests {
         for heading in FieldWriterScanner.staleEntityExceptions(
             schemaText: schema, entityExceptions: Self.documentedEntityExceptions) {
             Issue.record("stale entity exception: \(heading) is no longer a SCHEMA heading")
-        }
-
-        let unwritten = FieldWriterScanner.unwrittenFields(
-            schemaText: schema, sources: sources,
-            exceptions: Self.documentedExceptions,
-            entityExceptions: Self.documentedEntityExceptions)
-        for field in unwritten {
-            Issue.record("""
-                \(field) has no production writer: no assignment, no non-default init argument and \
-                no reachable repository write call outside test seeds, the import path, sync, \
-                #if DEBUG and the decoder. A field a reader consumes and nothing can set is PJ.55's \
-                shape - build the door, or record a reasoned exception in documentedExceptions.
-                """)
         }
     }
 
