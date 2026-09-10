@@ -215,6 +215,43 @@ extension ImportFlowModel {
     /// signal that the file has no currency column, so the wizard must ask. The
     /// default offered is the destination car's home currency (EUR for the seeded
     /// Volvo), and the answer reaches every committed row.
+    /// RV.189: installs a stub Drivvo parse whose fill carries the file's
+    /// station (`Газпром`) - the owner's case, where the Log row must title
+    /// itself with the station. The destination car's usual fuel is set to the
+    /// row's kind so the fuel kind earns no subtitle place: before the fix the
+    /// fill lost its station in the batch merge and the row titled itself
+    /// "92", the owner's report.
+    func installSeededStationParse() {
+        if var vehicle = (try? repository.liveVehicles())?.first {
+            vehicle.fuelKinds = [.petrol92]
+            try? repository.upsertVehicle(vehicle)
+            liveVehicles = [vehicle]
+            targetCar = .existing(vehicle)
+        }
+        let candidate = ImportCandidate(
+            entityType: "fillUp",
+            date: Date(timeIntervalSince1970: 1_786_924_800),  // 2026-08-17
+            odometer: 121_727, volumeL: 40, unitPrice: "220",
+            money: ImportMoney(amount: "8800", currency: "EUR"),
+            fuelKind: "petrol92", isFull: true, tankLevelAfterPct: nil, note: nil,
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "drivvo"),
+            sourceRow: 1, station: "Газпром")
+        let response = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000189", format: "drivvo",
+            scope: "vehicle", candidates: [candidate], unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        currencyAnswer = nil
+        adoptSingleFile(fileName: "Drivvo_export.csv",
+                        rawData: Data("""
+                        ##Refuelling
+                        "Odometer (km)","Date","Fuel","Price / l","Total cost","Volume","Full tank","Азс"
+                        "121727.0","2025-08-24 17:37:33","Бензин АИ92","220","8800","40","Да","Газпром"
+                        """.utf8),
+                        parse: response)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
     func installSeededCurrencyParse() {
         func fill(_ row: Int, _ date: Date, _ odo: Int, _ amount: String) -> ImportCandidate {
             ImportCandidate(

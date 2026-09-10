@@ -223,7 +223,7 @@ extension ImportCandidate {
                         fuelKind: fuelKind, isFull: isFull,
                         tankLevelAfterPct: tankLevelAfterPct, note: note,
                         vehicleName: vehicleName, provenance: provenance,
-                        sourceRow: sourceRow + offset, items: items,
+                        sourceRow: sourceRow + offset, station: station, items: items,
                         category: category, title: title)
     }
 }

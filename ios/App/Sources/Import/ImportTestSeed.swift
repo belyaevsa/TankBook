@@ -30,6 +30,7 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportBatch")
             || arguments.contains("-seedImportBatchAnomaly")
             || arguments.contains("-seedImportCurrency")
+            || arguments.contains("-seedImportStation")
             || arguments.contains("-seedImportUnsupported") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
@@ -67,6 +68,11 @@ enum ImportTestSeed {
             model.showPreview()
         } else if arguments.contains("-seedImportCurrency") {
             model.installSeededCurrencyParse()
+            model.showPreview()
+        } else if arguments.contains("-seedImportStation") {
+            // RV.189: a fill whose file row named its station - the Log row must
+            // title itself with the station, never the fuel kind ("92").
+            model.installSeededStationParse()
             model.showPreview()
         } else if arguments.contains("-seedImportNewCar") {
             // RV.185: no existing car (the Volvo seed is deliberately skipped for
