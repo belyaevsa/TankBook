@@ -1,4 +1,8 @@
-# RV.185 - a car created by an import ignores the declared currency and cannot be named
+# RV.185 + RV.187 - the import drops columns the file carries
+
+**Two rows, one dispatch.** Both are the same shape - the Drivvo file states something and the
+import does not carry it through - and both live in `DrivvoParser.cs` and the commit path, so
+separate agents would collide. RV.187 additionally has a render half in the Log row.
 
 You are working in `/Users/sbelyaev/repos/fuel-counter-ios`. **Write only inside that repo.**
 Write code first, explore second. Do not commit; the orchestrator commits after verifying.
@@ -78,11 +82,55 @@ something else. **Report** whether the import knows better for any of these (the
 units - `docs/SCHEMA.md` → Import mapping), and file nothing; a second row is cheaper than a wrong
 guess baked into a factory.
 
+## RV.187 - the second row: a service or expense arrives with no name
+
+Product owner, 2026-09-10, with Log screenshots: imported expenses render as a tag glyph, an
+odometer, a date and an amount - **no title at all**; services show the bare word "Service".
+
+**Pinned to a line.** `DrivvoParser.cs:320-321` builds an expense title as
+`title("Заголовок") ?? note("Примечание")`, and `:378-379` a service title as
+`serviceName("Название сервиса") ?? title ?? note`. In the owner's real file
+(`Spike/ImportFixtures/drivvo/drivvo-ru-3sections.csv:258,259,262,263,270`) **every one of those
+columns is empty**, while the column that actually names the thing - `Вид расхода` / `Вид сервиса` -
+holds **`Техосмотр`**, **`Страхование`**, **`Замена масла`**. It is read (`:319`, `:377`) only to
+choose a category tag, never as a name. So `title` arrives `null` and the row has nothing to render.
+
+**Both halves are needed; fixing either alone leaves the rows blank.**
+
+1. **Import**: the kind column is a name, not only a category. Fall back to it when the title columns
+   are empty. Decide whether the raw source text or the mapped category's display name is the better
+   label when both exist, and record the decision.
+2. **Render**: give a service or expense row its own title the way a fill-up gets its station
+   ([RV.142]'s rule) - the title when there is one, the category when there is not, and never the
+   bare type name when better text exists. **Check BOTH surfaces** - the Log row and the
+   Excluded-entries list - and reuse **one** title function; two is the defect this prevents. Say
+   what a multi-item service shows (first item plus a count is the obvious answer) and record it.
+
+### RV.187's tests
+
+- **L1 (import), against the owner's real fixture**: the rows at `drivvo-ru-3sections.csv:258,259,
+  262,263` import with the titles `Техосмотр`, `Страхование`. **Use THAT file** - a fixture whose
+  `Заголовок` column is populated passes on the defect.
+- **L1**: a service with an item title renders that title, not "Service" - assert the VALUE.
+- **L1**: one with no title at all falls back to its category, and only then to the type name.
+- **L4**: the Log row and the Excluded-entries list show the SAME title for the same entry - assert
+  they agree.
+
+### RV.187's mutation
+
+**Restore the title fallback chain to `title ?? note`** (dropping the kind), leaving the render half
+in place. The import L1 **must go red naming the empty title**, and the render tests must stay green
+on an entry that has a title from another source. Report both outputs.
+
 ## Explicitly out of scope
 
 - `ImportConversion`'s per-entry currency handling.
 - [RV.152]'s home-currency change prompt and its conversion.
-- [RV.116]'s unsupported-column notice (shipped today, same screen).
+- [RV.116]'s unsupported-column notice (shipped today, same screen). **Note the interaction**: if
+  the kind column now becomes a name, check whether `RV.116`'s unsupported list still describes
+  reality - a column that IS imported must not be reported as dropped.
+- [RV.119] (the month divider's extra figures) and [RV.134] (units baked into sentences) - Log-row
+  work in the same files, deliberately NOT in this dispatch. Cite them if you touch their area.
 - The duplicate/merge counting on the mapping gate.
 
 ## Docs to read before writing (in order)

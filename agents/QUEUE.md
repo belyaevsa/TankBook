@@ -110,17 +110,22 @@ that has been catching real defects.
 
 | Dispatch | Rows | Why grouped |
 |---|---|---|
-| **Import: what the file carries** | `RV.185` + `RV.187` | Both are "the parser drops a column the file has" - the declared currency and the `Вид расхода`/`Вид сервиса` name. One agent reads `DrivvoParser` and the commit path once. RV.187 also has a render half |
-| **Timeline conflict** | `RV.186` + `RV.188` | `RV.188`'s panel is **how you diagnose** `RV.186`. Fixing the validator without the panel leaves no way to confirm it, which is exactly the position the owner and the orchestrator were both in |
-| **Attachment viewer** | `RV.183` + `RV.184` | Both edit `AttachmentRecognisedView.swift` - the "Scanned" caption reads the wrong field, and the station row is never stored to render |
-| **Screenshot integrity** | `RV.176` + `PR.28` | `PR.28` **already specifies RV.176's check**: a `manifest.json` written by the capture script, CI failing a PNG with no entry. RV.176 is the defect, PR.28 the mechanism - building either alone touches the same file twice |
-| **Station seam** | `RV.189` **then** `RV.170` | RV.189 is an INVESTIGATION (its cause is not established); RV.170 is the guard for the seam it settles. `RV.170`'s own row says establish the seam first |
+| **Import: what the file carries** | `RV.185` + `RV.187` — `RV.185+RV.187.md` | Both are "the parser drops a column the file has" - the declared currency and the `Вид расхода`/`Вид сервиса` name. One agent reads `DrivvoParser` and the commit path once. RV.187 also has a render half |
+| **Timeline conflict** | `RV.186` + `RV.188` — `RV.186+RV.188.md` | `RV.188`'s panel is **how you diagnose** `RV.186`. Fixing the validator without the panel leaves no way to confirm it, which is exactly the position the owner and the orchestrator were both in |
+| **Attachment viewer** | `RV.183` + `RV.184` — `RV.183+RV.184.md` | Both edit `AttachmentRecognisedView.swift` - the "Scanned" caption reads the wrong field, and the station row is never stored to render |
+| **Screenshot integrity** | `RV.176` + `PR.28` — `RV.176+PR.28.md` | `PR.28` **already specifies RV.176's check**: a `manifest.json` written by the capture script, CI failing a PNG with no entry. RV.176 is the defect, PR.28 the mechanism - building either alone touches the same file twice |
+| **Station seam** | `RV.189` — `RV.189.md` — **then** `RV.170` | RV.189 is an INVESTIGATION (its cause is not established); RV.170 is the guard for the seam it settles. `RV.170`'s own row says establish the seam first |
 | **Receipt seam** | `RV.173` **then** `RV.171` | Same shape. `RV.171` already says *"do RV.149 first, then see what seam it leaves"* - `RV.173` IS that leftover |
 
 **Deliberately NOT grouped**: `RV.187` with `RV.119`/`RV.134` (Log-row work, but RV.119 is a large
 `[v1.1]` redesign); `RV.181`, `RV.182`, `RV.174` stay standalone. **`RV.165`** surfaced in three
 separate searches for these seams - it is the row that would have caught most of the owner's
 findings, and it is large.
+
+**All five briefs are written** (`agents/briefs/`), each with its cause pinned, its mutation named
+and its vacuous traps listed. `RV.189` is deliberately an INVESTIGATION brief: its four-step trace is
+the deliverable even if no fix follows, and it records the orchestrator's own wrong diagnosis so it
+is not repeated.
 
 **The ordering that works, proven today**: build a guard against a seam that has just been settled,
 not a hypothetical one. `RV.163` was dispatched before `PJ.55` for that reason and its mutation
