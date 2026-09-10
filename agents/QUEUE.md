@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.163** | flash | 12703 | `bza0bkxgq` (persistent) | `agents/briefs/RV.163.md` |
+| **PJ.55** | flash | 85572 | `bllrwi36y` (persistent) | `agents/briefs/PJ.55.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -86,8 +86,7 @@ in this order; the only reason to stop between them is to verify and commit the 
 
 | # | Task | Brief | Why here |
 |---|---|---|---|
-| 6 | **RV.163** | `RV.163.md` | "Who creates this entity?" - would have caught `RV.156` and `PJ.55`. Its failing case is `PJ.55`, so **dispatch it BEFORE PJ.55 ships** or the brief must find another; the brief says so |
-| 7 | **RV.162** | `RV.162.md` | Screen reachability over `SCREENMAP.md`. **Its first deliverable is not the test**: the planned-not-drawn list is a prose paragraph at `SCREENMAP.md:477` mixing five rows of history, so the marker has to be made machine-readable before a guard is writable at all |
+| 2 | **RV.162** | `RV.162.md` | Screen reachability over `SCREENMAP.md`. **Its first deliverable is not the test**: the planned-not-drawn list is a prose paragraph at `SCREENMAP.md:477` mixing five rows of history, so the marker has to be made machine-readable before a guard is writable at all |
 
 Both follow `RV.167`'s shipped idiom (`MoneyHomeSideSumGuardTests`): a pure function over source
 text, a tree walk, and a reasoned allowlist with a stale-entry check. Both briefs say to read it
@@ -153,6 +152,7 @@ first, so the third guard does not invent a third way.
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
+| RV.163 | `3a72037` | An entity nothing can create fails the build. The mutation removed both `createStation` doors while leaving the table, the decoder, the import writer and ten seeds in place - **RV.156 reconstructed exactly**. Entity-level; `PJ.55` is the field-level instance it cannot see |
 | PJ.56 | `c87ca1b` | A group header that withholds a figure says why. **The screenshot caught a pre-existing sibling** - the divider printed "0 entries pending rates" under a complete breakdown, invisible until this row rendered the app's first `.mixed` month |
 | PJ.57 | `170bf91` | The excluded-entries footnote carries RV.83's chevron; amber untouched. **The brief's premise was partly wrong and the agent said so** - nothing renders the footnote passively, so that assertion needed a DEBUG seam or it was vacuous |
 | RV.159 | `a4dac65` | A sending gate is drawn as a gate, not an optional attachment. **Its agent died mid-run and the orchestrator finished it** - including a compile error three green gates could not see (`RV.174`) |
