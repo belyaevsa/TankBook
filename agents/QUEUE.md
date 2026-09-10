@@ -101,6 +101,31 @@ failing case rather than a hypothetical:
 | **RV.185** `[!]` | `RV.185.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch after `RV.181`** - both are user-reported `[!]` |
 | ~~RV.181~~ **in flight** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
 
+## Grouping: what ships together, and why (decided 2026-09-10)
+
+Fifteen open rows collapse to six dispatches. **A group is justified by a shared SEAM, never a
+shared theme** - if two rows would edit the same file, or one row is how you diagnose the other,
+they are one dispatch. Otherwise the mutation stops being a single named claim, which is the part
+that has been catching real defects.
+
+| Dispatch | Rows | Why grouped |
+|---|---|---|
+| **Import: what the file carries** | `RV.185` + `RV.187` | Both are "the parser drops a column the file has" - the declared currency and the `Вид расхода`/`Вид сервиса` name. One agent reads `DrivvoParser` and the commit path once. RV.187 also has a render half |
+| **Timeline conflict** | `RV.186` + `RV.188` | `RV.188`'s panel is **how you diagnose** `RV.186`. Fixing the validator without the panel leaves no way to confirm it, which is exactly the position the owner and the orchestrator were both in |
+| **Attachment viewer** | `RV.183` + `RV.184` | Both edit `AttachmentRecognisedView.swift` - the "Scanned" caption reads the wrong field, and the station row is never stored to render |
+| **Screenshot integrity** | `RV.176` + `PR.28` | `PR.28` **already specifies RV.176's check**: a `manifest.json` written by the capture script, CI failing a PNG with no entry. RV.176 is the defect, PR.28 the mechanism - building either alone touches the same file twice |
+| **Station seam** | `RV.189` **then** `RV.170` | RV.189 is an INVESTIGATION (its cause is not established); RV.170 is the guard for the seam it settles. `RV.170`'s own row says establish the seam first |
+| **Receipt seam** | `RV.173` **then** `RV.171` | Same shape. `RV.171` already says *"do RV.149 first, then see what seam it leaves"* - `RV.173` IS that leftover |
+
+**Deliberately NOT grouped**: `RV.187` with `RV.119`/`RV.134` (Log-row work, but RV.119 is a large
+`[v1.1]` redesign); `RV.181`, `RV.182`, `RV.174` stay standalone. **`RV.165`** surfaced in three
+separate searches for these seams - it is the row that would have caught most of the owner's
+findings, and it is large.
+
+**The ordering that works, proven today**: build a guard against a seam that has just been settled,
+not a hypothetical one. `RV.163` was dispatched before `PJ.55` for that reason and its mutation
+reconstructed `RV.156` exactly.
+
 **Ready to brief - cause pinned, no decision outstanding** (added 2026-09-10, all filed from this
 session's own findings):
 
