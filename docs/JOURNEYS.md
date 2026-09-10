@@ -258,6 +258,16 @@ last row leaves it rather than being forbidden. `partNumber` and `lifetime` are 
 through untouched, keyed to the row they were loaded from so a delete never shifts them onto a
 neighbour (PJ.22/PJ.26 own their editors) - dropping either on save would be data loss.
 
+**[v1.x] The total and the lines agree, or say why not (RV.199, 2026-09-11).** The record's
+**Amount stays independently editable**, because an invoice's grand total legitimately differs from
+its lines - tax, a discount, a line the user did not itemise (the same truth hard rule 4 encodes
+for fuel) - and a total the user set is theirs (hard rule 13). What the screen no longer does is
+stay silent: the money card states the **line sum** beside the Amount, in amber when the two
+disagree, and never a summed cross-currency figure (hard rule 3 - a set of lines in two currencies
+shows the per-currency breakdown instead). The sum is the same one the create screen's header
+derives, so the two doors cannot state different totals for the same service. The mismatch is
+attention, never a gate: nothing is wrong and Save is never blocked.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables

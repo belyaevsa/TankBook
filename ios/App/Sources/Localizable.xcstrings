@@ -4473,6 +4473,40 @@
         }
       }
     },
+    "Different currencies – no single total": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Different currencies – no single total"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Разные валюты – единой суммы нет"
+          }
+        }
+      }
+    },
+    "Differs from the amount above": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Differs from the amount above"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не совпадает с суммой выше"
+          }
+        }
+      }
+    },
     "Discard": {
       "extractionState": "manual",
       "localizations": {
@@ -6923,6 +6957,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Связано"
+          }
+        }
+      }
+    },
+    "Line items": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Line items"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Позиции"
           }
         }
       }

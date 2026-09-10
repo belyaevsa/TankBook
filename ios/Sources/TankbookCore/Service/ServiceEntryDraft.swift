@@ -86,13 +86,14 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         return requiresOdometer ? .odometerRequired : .ready
     }
 
-    /// The header total: the sum of the items' original amounts (hard rule 2 -
-    /// derived, never stored). An item without a cost contributes zero, so a
-    /// blank-cost row does not break the total.
+    /// The header total when the items share one currency, or zero when they
+    /// state none. The summation itself is `[ServiceItem].costSum()` - the ONE
+    /// rule the create and edit screens share, so the two doors cannot state
+    /// different totals for the same items. A mixed-currency set has no single
+    /// total and reads zero here; `build` then states no money rather than
+    /// fabricating a cross-currency figure (hard rule 3).
     public var total: Decimal {
-        items.reduce(Decimal.zero) { partial, item in
-            partial + (item.cost?.amount ?? Decimal.zero)
-        }
+        items.costSum().summedAmount ?? .zero
     }
 
     /// A lump sum - exactly one item carrying the whole total - is a first-class

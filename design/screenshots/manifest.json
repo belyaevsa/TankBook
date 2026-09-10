@@ -1685,6 +1685,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.199-service-mixed": {
+      "commit": "e545b3a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.199-service-mixed-ru": {
+      "commit": "e545b3a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.199-service-sum": {
+      "commit": "e545b3a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.199-service-sum-ru": {
+      "commit": "e545b3a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.21-garage": {
       "commit": "dc8ea81",
       "device": "iPhone 17",

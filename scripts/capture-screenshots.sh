@@ -536,6 +536,19 @@ capture PJ.23-service-items-ru ru -seedEditEntryService -presentScreen editEntry
 alias_shot PJ.23-service-items    RV.198-service-items
 alias_shot PJ.23-service-items-ru RV.198-service-items-ru
 
+# RV.199 (2026-09-11): a service's line sum stated beside its independently
+# editable Amount, with the disagreement marked as ATTENTION - never a gate and
+# never a rewrite of the user's total (hard rule 13). The first pose's stored
+# Amount (160.00) differs from its lines (89.00 + 59.00 = 148.00), the honest
+# invoice shape (tax, a discount, an un-itemised line). The second pose's items
+# span currencies (89.00 EUR + 59.00 USD), so the card states the per-currency
+# breakdown and NEVER a summed cross-currency total (hard rule 3, RV.145). RU is
+# where "Позиции" plus a mismatch sentence on one card is the overflow check.
+capture RV.199-service-sum      en -seedEditEntryServiceMismatch -presentScreen editEntry
+capture RV.199-service-sum-ru   ru -seedEditEntryServiceMismatch -presentScreen editEntry
+capture RV.199-service-mixed      en -seedEditEntryServiceMixedCurrency -presentScreen editEntry
+capture RV.199-service-mixed-ru   ru -seedEditEntryServiceMixedCurrency -presentScreen editEntry
+
 # RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
 # Confirm, RV.149) - the message a fill-up save shows after its photo write
 # fails, rendered by the real toast host over Home. A pose: the exact line the

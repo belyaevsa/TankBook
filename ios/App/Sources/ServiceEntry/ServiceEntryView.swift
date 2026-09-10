@@ -148,9 +148,26 @@ struct ServiceEntryView: View {
 
     // MARK: - Derived
 
+    /// The derived header total, rendered from the ONE shared line sum the edit
+    /// screen also uses, so the two doors cannot state different totals for the
+    /// same items. The create path cannot produce a mixed-currency set (every
+    /// scanned row is new, every typed row is home), but the classification
+    /// states the honest per-currency breakdown if it ever did (hard rule 3).
     private var totalText: String {
-        let symbol = AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur)
-        return HomeFormat.entryAmount(form.totalDecimal, symbol: symbol)
+        let home = vehicle?.homeCurrency ?? .eur
+        switch form.lineSum(homeCurrency: home) {
+        case .none:
+            return HomeFormat.entryAmount(.zero,
+                                          symbol: AddVehicleSupport.moneySymbol(for: home))
+        case .summed(let amount, let currency):
+            return HomeFormat.entryAmount(amount,
+                                          symbol: AddVehicleSupport.moneySymbol(for: currency))
+        case .mixed(let subtotals):
+            return subtotals.map {
+                HomeFormat.entryAmount($0.amount,
+                                       symbol: AddVehicleSupport.moneySymbol(for: $0.currency))
+            }.joined(separator: " · ")
+        }
     }
 
     private var symbol: String {

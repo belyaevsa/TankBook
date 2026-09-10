@@ -152,6 +152,35 @@ struct EditEntryNonFillForm: Equatable {
     mutating func removeServiceItem(id: UUID) {
         items.removeAll { $0.id == id }
     }
+
+    // MARK: - Line sum vs Amount (RV.199)
+
+    /// The service's line sum, classified by currency - the SAME rule the
+    /// create screen's header uses, so the two doors cannot state different
+    /// totals for the same items. Meaningful only for a service; the other
+    /// kinds carry no items.
+    func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
+        items.lineSum(homeCurrency: homeCurrency)
+    }
+
+    /// True when the Amount and the line sum both state a figure and disagree,
+    /// or the lines span currencies so no single figure can match. ATTENTION,
+    /// never a gate: the Amount stays independently editable - an invoice's
+    /// grand total legitimately differs from its lines (tax, a discount, an
+    /// un-itemised line) and the user's value is theirs (hard rule 13) - so the
+    /// entry always saves. `false` when no item carries a cost, so there is
+    /// nothing to compare.
+    func lineSumDiffersFromAmount(homeCurrency: CurrencyCode) -> Bool {
+        switch lineSum(homeCurrency: homeCurrency) {
+        case .none:
+            return false
+        case .summed(let amount, let currency):
+            guard let typed = amountDecimal else { return true }
+            return typed != amount || currency != self.currency
+        case .mixed:
+            return true
+        }
+    }
 }
 
 // MARK: - The delta toast copy

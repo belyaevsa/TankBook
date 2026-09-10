@@ -219,8 +219,79 @@ struct EditEntryNonFillView: View {
             }
             .padding(.horizontal, Theme.Spacing.cardPadding)
             .padding(.vertical, 6)
+            lineSumBlock
         }
         .formCard()
+    }
+
+    /// RV.199: the service's line sum beside the independently-editable Amount,
+    /// with a stated mismatch when the two disagree. ATTENTION, not an error:
+    /// the sum is amber and the entry always saves (hard rule 5 - amber is
+    /// attention, never a gate; hard rule 13 - the Amount is the user's own).
+    /// The sum comes from the SAME function the create screen's header uses
+    /// (`form.lineSum(homeCurrency:)`), so the two doors cannot drift. The row
+    /// renders only when an item carries a cost - with none, there is nothing
+    /// to state beside the Amount.
+    @ViewBuilder
+    private var lineSumBlock: some View {
+        if entry is ServiceRecord, let presentation = lineSumPresentation {
+            CardDivider()
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text("Line items")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                    Spacer(minLength: 8)
+                    Text(presentation.value)
+                        .font(.custom(AppFonts.dinAlternateBold, size: 17))
+                        .foregroundStyle(presentation.differs ? Theme.Palette.warn
+                                                               : Theme.Palette.ink)
+                        .accessibilityIdentifier("editEntryLineSumValue")
+                }
+                if let note = presentation.note {
+                    Text(note)
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Palette.warn)
+                        .accessibilityIdentifier("editEntryLineSumMismatch")
+                }
+            }
+            .padding(.horizontal, Theme.Spacing.cardPadding)
+            .padding(.vertical, 8)
+        }
+    }
+
+    /// The line sum as the money card states it: the exact figure under its own
+    /// currency's marker, the mismatch sentence when it disagrees with the
+    /// Amount, and whether it is styled as attention. `.none` (no costed item)
+    /// yields nil so no empty row renders; `.mixed` states the per-currency
+    /// breakdown and never a summed cross-currency total (hard rule 3).
+    private struct LineSumPresentation {
+        let value: String
+        let note: String?
+        let differs: Bool
+    }
+
+    private var lineSumPresentation: LineSumPresentation? {
+        let home = vehicle.homeCurrency
+        switch form.lineSum(homeCurrency: home) {
+        case .none:
+            return nil
+        case .summed(let amount, let currency):
+            let differs = form.lineSumDiffersFromAmount(homeCurrency: home)
+            return LineSumPresentation(
+                value: HomeFormat.entryAmount(amount,
+                                              symbol: AddVehicleSupport.moneySymbol(for: currency)),
+                note: differs ? L10n.localize("Differs from the amount above") : nil,
+                differs: differs)
+        case .mixed(let subtotals):
+            return LineSumPresentation(
+                value: subtotals.map {
+                    HomeFormat.entryAmount($0.amount,
+                                           symbol: AddVehicleSupport.moneySymbol(for: $0.currency))
+                }.joined(separator: " · "),
+                note: L10n.localize("Different currencies – no single total"),
+                differs: true)
+        }
     }
 
     private var odometerRow: some View {

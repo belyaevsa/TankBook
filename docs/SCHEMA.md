@@ -230,6 +230,13 @@ ServiceItem {
 }
 ServiceCategory: .oil | .brakes | .tires | .battery | .filters | .inspection | .repair | .parts | .wash | .other(String)
 
+// money is the record's stated grand total, INDEPENDENT of the item costs: an invoice's total
+// legitimately differs from its lines (tax, a discount, an un-itemised line), so it is never
+// derived from them and never rewritten when a line changes (hard rule 13). The edit screen
+// states the items' sum beside it and marks a disagreement as attention, never a gate (RV.199).
+// The sum is over each item's ORIGINAL cost amount, grouped by currency - a set spanning
+// currencies has no single total and is shown as a per-currency breakdown (hard rule 3).
+
 Expense: EntryCommon {          // money NOT tied to work: insurance, tax, parking, tolls, fines, accessories –
                                 // and PARTS bought standalone (online order, shelf stock)
   category: .insurance | .tax | .parking | .toll | .fine | .accessory | .parts | .other(String)

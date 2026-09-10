@@ -109,6 +109,19 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     }
 }
 
+extension Array where Element == ServiceEntryItemDraft {
+    /// THE line sum of an editable service, shared by the create screen's
+    /// header and the edit screen's money card so the two doors cannot state
+    /// different totals for the same items. The rows are converted through the
+    /// SAME `serviceItem(homeCurrency:)` the save path uses - a new row's cost
+    /// is in the vehicle's home currency, a loaded row keeps its stored cost
+    /// pair - and the sum itself is the core `[ServiceItem].costSum()`, so this
+    /// is a mapping, never a second summation ([RV.169]'s defect).
+    func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
+        map { $0.serviceItem(homeCurrency: homeCurrency) }.costSum()
+    }
+}
+
 // MARK: - Mode
 
 /// Which entry the ServiceEntry sheet is capturing. Only Service and Tires are
@@ -164,10 +177,14 @@ struct ServiceEntryFormState: Equatable {
         return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
-    /// The header total: the sum of the items' exact costs (hard rule 2 -
-    /// derived, never stored).
-    var totalDecimal: Decimal {
-        items.reduce(Decimal.zero) { $0 + ($1.costDecimal ?? Decimal.zero) }
+    /// The line sum, classified by currency - the SAME rule the edit screen's
+    /// money card uses (`lineSum(homeCurrency:)`), so the two doors cannot
+    /// state different totals for the same items (hard rule 2 - derived, never
+    /// stored). A typed row's cost is in the vehicle's home currency; the
+    /// create path cannot produce a mixed set (every scanned row is new), but
+    /// the classification handles one honestly all the same.
+    func lineSum(homeCurrency: CurrencyCode) -> ServiceItemSum {
+        items.lineSum(homeCurrency: homeCurrency)
     }
 
     /// At least one item carries a title - the baseline save gate. A lump sum

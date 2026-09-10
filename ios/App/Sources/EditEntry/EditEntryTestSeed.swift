@@ -16,6 +16,9 @@ enum EditEntryTestSeed {
     @MainActor
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
+        // The three service poses live in their own file, so this enum stays
+        // under the linter's body-length ceiling.
+        if EditEntryServiceTestSeed.seedIfRequested(arguments: arguments) { return }
         if arguments.contains("-seedEditEntryScannedExpense") {
             seedScannedExpense()
             return
@@ -38,10 +41,6 @@ enum EditEntryTestSeed {
         }
         if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
             seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
-            return
-        }
-        if arguments.contains("-seedEditEntryService") {
-            seedService()
             return
         }
         let standard = arguments.contains("-seedEditEntry")
@@ -145,54 +144,6 @@ enum EditEntryTestSeed {
             note: nil, attachments: [id], provenance: .receiptScan, conflict: .none,
             purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
             recurrence: nil, installedInServiceId: nil))
-    }
-
-    /// PJ.23 screenshot/test seam: a SERVICE record with two line items, the
-    /// first carrying a `partNumber` and a `lifetime` that the edit screen does
-    /// not show but must not drop. It is the newest entry, so
-    /// `-presentScreen editEntry` opens it. One item is a fixed category
-    /// (`.oil`) and the other a custom `.other(...)`, so the frame shows both
-    /// the chooser and the free-text field. Like the other resetting seeds, it
-    /// wipes first under `-homeResetDatabase` so an EN-then-RU capture pair
-    /// both start from the same state.
-    @MainActor
-    private static func seedService() {
-        let arguments = ProcessInfo.processInfo.arguments
-        if arguments.contains("-homeResetDatabase") {
-            AppStore.resetForTestsOncePerLaunch()
-        }
-        guard let repository = try? AppStore.repository() else { return }
-        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
-
-        let now = Date()
-        let vehicle = Vehicle(
-            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
-            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
-            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
-            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
-                                  energy: .kWhPer100),
-            photo: nil, archived: false, paceLimitKmPerDay: 1500,
-            initialOdometer: 118_579)
-        try? repository.upsertVehicle(vehicle)
-
-        try? repository.upsertServiceRecord(ServiceRecord(
-            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
-            vehicleId: vehicle.id, date: now, odometer: 119_486,
-            money: Money(amount: Decimal(string: "148.00")!, currency: .eur, homeCurrency: .eur),
-            note: nil, attachments: [], provenance: .manual, conflict: .none,
-            purchaseGroupId: nil, vendor: nil,
-            items: [
-                ServiceItem(title: "Oil service incl. filter", category: .oil,
-                            cost: Money(amount: Decimal(string: "89.00")!,
-                                        currency: .eur, homeCurrency: .eur),
-                            partNumber: "MANN W 712/75",
-                            lifetime: ServiceItem.Lifetime(km: 15_000, months: 12)),
-                ServiceItem(title: "Brake pads front", category: .other("Bremsbeläge VA"),
-                            cost: Money(amount: Decimal(string: "59.00")!,
-                                        currency: .eur, homeCurrency: .eur))
-            ],
-            usedParts: [], tireSetId: nil, proposedReminderId: nil))
     }
 
     /// The artboard edit-entry history (design/screens/EditEntry.dc.html): a
