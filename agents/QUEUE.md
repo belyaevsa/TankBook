@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| *(none)* | | | | |
+| **RV.177 + RV.178** | flash | 59396 | `btv7ki0gy` (persistent) | `agents/briefs/RV.177.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -93,6 +93,17 @@ failing case rather than a hypothetical:
 | ~~7~~ | **RV.152** | **Briefed and in flight.** The brief pins the seam (`VehicleDetailView.swift:313-328`) and names the restructuring the row needs: RV.140's re-home runs AFTER `upsertVehicle`, and the question has to precede the write |
 | ~~8~~ | **RV.116** | **Briefed and in flight.** The brief settles the split the row's wording blurs: the unsupported column NAMES are per-format reference data in `GET /import/formats`, but the COUNT of rows carrying a value is per-file and can only come from `POST /import/parse`. Backend + iOS |
 | ~~9~~ | **RV.161** **[v1.1]** | **Briefed and in flight.** The brief solves the row's hardest part - the ORACLE: ground truth for the new corpus column must not come from the extractor's own output. The fixture FILENAMES are human-written from the images and predate any station extractor, so they are the independent source; the OCR dump cross-checks them |
+
+**Ready to brief - cause pinned, no decision outstanding** (added 2026-09-10, all filed from this
+session's own findings):
+
+| Task | Why here |
+|---|---|
+| **RV.173** | A grouped save whose photo write fails leaves its accepted expenses holding a **dangling** attachment id. `RV.149`'s deliberately fenced-out half; the outcome type it needs already exists |
+| **RV.176** | Committed screenshots **no capture line produces** - `RV.150`'s station pair was shot out-of-band. Mechanical (diff the names against the script) and then a check, mirroring the duplicate-frame check `4bbb302` added |
+| **RV.175** | About has no screenshot scroll hook, so its lower half cannot be photographed - it cost `RV.159` its XL frame, which was deleted rather than committed |
+| **RV.179** | Measure station extraction. **The oracle is the row's whole content** and it is already solved there: the fixture filenames predate any extractor |
+| **RV.174** | The baseline gate can be green on code that does not compile into the app. Proposes hard-rule-14 wording - **the owner approves the wording**, the agent does not edit `CLAUDE.md` |
 
 **Tier 4 - needs something first.**
 
