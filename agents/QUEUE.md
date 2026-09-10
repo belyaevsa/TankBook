@@ -307,10 +307,7 @@ journeys walk and validation), `deepseek/deepseek-v4-flash-vision-exp`, and the
 **There is no `v4.1` in this install** - re-check `opencode models` before assuming one, because
 flash-at-pro-quality would change the routing rule.
 
-**`-vision-exp` is worth a trial on a screenshot-heavy row.** Every agent this session reported *"I
-cannot see images"*, and the three defects that reached a commit were **visual**: `RV.71`'s disabled
-Save, `RV.149`'s toast over an impossible screen, `PJ.56`'s `0 entries pending rates`. An agent that
-can open its own capture would close the one gap the orchestrator currently fills by hand.
+**`-vision-exp` is NOT worth using, and the reason is the one that matters** (product owner, 2026-09-10). The orchestrator can already open a screenshot, so vision buys the agent nothing the process lacks - and giving the agent eyes would let it **grade its own work**. That is exactly the circularity that produced `RV.161`'s fake **46/46**: ground truth written from the thing under test. The value of the orchestrator opening a capture is not that *someone* can see it, it is that a **different party** sees it - one that did not write the code. That independence caught `RV.149`'s toast over an unreachable screen, `PJ.56`'s `0 entries pending rates`, and the orchestrator's own re-capture of a mutated binary. **Keep the screenshot check with the orchestrator; it is a separation of duties, not a capability gap.**
 
 ## When an agent dies mid-run, FINISH it - do not re-dispatch by reflex
 
