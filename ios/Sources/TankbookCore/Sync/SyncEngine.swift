@@ -242,7 +242,8 @@ public struct SyncEngine {
         }
 
         // 3. Domain re-validation after the merge batch (docs/SYNC.md S3).
-        outcome.flaggedEntries = (try? repository.revalidateTimeline(vehicleIds: affected)) ?? 0
+        outcome.flaggedEntries = (try? repository.revalidateTimeline(vehicleIds: affected,
+                                                                      log: log)) ?? 0
         return outcome
     }
 

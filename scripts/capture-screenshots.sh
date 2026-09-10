@@ -246,6 +246,10 @@ capture P1.12-vehicle-detail-ru    ru -seedHomeCarSwitcher -presentScreen vehicl
 # P5.5b's per-car export row is a row ON Vehicle detail - the same frame.
 alias_shot P1.12-vehicle-detail    P5.5b-export
 alias_shot P1.12-vehicle-detail-ru P5.5b-export-ru
+# PJ.45: the editable pace limit sits below the fold, so the pose scrolls it to
+# the top of the viewport (simctl cannot scroll).
+capture PJ.45-pace-limit           en -seedHomeCarSwitcher -presentScreen vehicleDetail -scrollToPaceLimit
+capture PJ.45-pace-limit-ru        ru -seedHomeCarSwitcher -presentScreen vehicleDetail -scrollToPaceLimit
 capture P2.1-capture               en -presentScreen capture -cameraStatus authorized
 capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus authorized
 # The four-chip worst case: only a plug-in hybrid is offered both Fill-up and

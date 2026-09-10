@@ -51,11 +51,7 @@ struct SchemaFieldWriterGuardTests {
         .init(field: "Station.brand",
               reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
                   + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
-                  + "field. Out of scope for RV.196."),
-        .init(field: "Vehicle.paceLimitKmPerDay",
-              reason: "No screen edits the pace limit; every production construction passes the "
-                  + "1500 default (AddVehicleView.swift:219). Reported by RV.196; the bound is "
-                  + "documented (SCHEMA.md, F9a) but has no user surface.")
+                  + "field. Out of scope for RV.196.")
     ]
 
     /// A heading whose fields are legitimately out of this row's scope, with the
@@ -217,8 +213,7 @@ struct SchemaFieldWriterGuardTests {
             "Preferences.notifications.reminders",
             "Preferences.proFeedbackDiagnostics",
             "ServiceRecord.proposedReminderId",
-            "Station.brand",
-            "Vehicle.paceLimitKmPerDay"
+            "Station.brand"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
 

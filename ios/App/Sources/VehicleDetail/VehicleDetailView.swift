@@ -85,80 +85,90 @@ struct VehicleDetailView: View {
     // MARK: - Content
 
     private func formView(_ vehicle: Vehicle) -> some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                VehicleDetailHeader(vehicle: vehicle,
-                                    onArchive: toggleArchive,
-                                    onDelete: { showDeleteConfirm = true })
-                if vehicle.archived {
-                    VehicleDetailArchivedBanner(vehicle: vehicle)
-                }
-                VehiclePhotoTile(photo: $form.photo, photoItem: $photoItem)
-                VehicleIdentityCard(name: $form.name, makeModel: $form.makeModel,
-                                    plate: $form.plate, make: $form.make,
-                                    model: $form.model, year: $form.year,
-                                    focus: $focus, showNameWarning: form.showNameWarning,
-                                    idPrefix: "vehicleDetail")
-                makeModelSuggestions
-                section("Powertrain") {
-                    VehiclePowertrainPicker(powertrain: $form.powertrain,
-                                            selectedFuelKinds: $form.selectedFuelKinds,
-                                            idPrefix: "vehicleDetail")
-                }
-                section("Fuel") {
-                    VehicleFuelPills(powertrain: $form.powertrain,
-                                     selectedFuelKinds: $form.selectedFuelKinds,
-                                     idPrefix: "vehicleDetail")
-                }
-                VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
-                managementRows(vehicle)
-                section("Your data") {
-                    VehicleExportRow(vehicle: vehicle)
-                }
-                section("Improves accuracy") {
-                    VehicleDetailAccuracyCard(form: $form, focus: $focus)
-                }
-                hint
+        ScrollViewReader { proxy in
+            ScrollView {
+                formContent(vehicle)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 24)
-        }
-        .scrollDismissesKeyboard(.immediately)
-        // RV.137: the pinned Save bar must not float above the keyboard and
-        // cover the fuel-chip row while a field is focused - a bar in a
-        // `safeAreaInset` is the one region that does NOT scroll, so a chip
-        // underneath it is unreachable mid-edit, not merely below the fold
-        // (the RV.84 class). While the keyboard is up the bar steps aside and
-        // the whole space above the keyboard belongs to the form; it returns
-        // the moment focus leaves the field.
-        .safeAreaInset(edge: .bottom) {
-            if focus == nil {
-                saveBar
-            }
-        }
-        // RV.177/RV.178: the home-currency question, asked BEFORE the vehicle
-        // write (hard rule 3 governs the answer, docs/ERRORS.md -> Vehicle
-        // detail). It is a custom sheet, not the system alert RV.152 shipped:
-        // the accent IS taillight red, so an alert tinted the irreversible
-        // "Convert the log" and the harmless "Keep the entries as they are"
-        // identically. The sheet gives the two answers a structural hierarchy
-        // (filled primary, quiet secondary) and refuses to be dismissed without
-        // an answer. There is no cancel - Save already decided the change, so
-        // this asks only what to do with the entries that exist.
-        .sheet(item: $currencyChange) { prompt in
-            HomeCurrencyChangeSheet(
-                title: L10n.homeCurrencyChangeTitle(currency: prompt.updated.homeCurrency.rawValue),
-                pendingCount: prompt.plan.stillPendingCount,
-                onConvert: {
-                    currencyChange = nil
-                    commit(prompt.updated, answer: .convert)
-                },
-                onKeep: {
-                    currencyChange = nil
-                    commit(prompt.updated, answer: .keep)
+            .scrollDismissesKeyboard(.immediately)
+            // RV.137: the pinned Save bar must not float above the keyboard and
+            // cover the fuel-chip row while a field is focused - a bar in a
+            // `safeAreaInset` is the one region that does NOT scroll, so a chip
+            // underneath it is unreachable mid-edit, not merely below the fold
+            // (the RV.84 class). While the keyboard is up the bar steps aside and
+            // the whole space above the keyboard belongs to the form; it returns
+            // the moment focus leaves the field.
+            .safeAreaInset(edge: .bottom) {
+                if focus == nil {
+                    saveBar
                 }
-            )
+            }
+            // RV.177/RV.178: the home-currency question, asked BEFORE the vehicle
+            // write (hard rule 3 governs the answer, docs/ERRORS.md -> Vehicle
+            // detail). It is a custom sheet, not the system alert RV.152 shipped:
+            // the accent IS taillight red, so an alert tinted the irreversible
+            // "Convert the log" and the harmless "Keep the entries as they are"
+            // identically. The sheet gives the two answers a structural hierarchy
+            // (filled primary, quiet secondary) and refuses to be dismissed without
+            // an answer. There is no cancel - Save already decided the change, so
+            // this asks only what to do with the entries that exist.
+            .sheet(item: $currencyChange) { prompt in
+                HomeCurrencyChangeSheet(
+                    title: L10n.homeCurrencyChangeTitle(currency: prompt.updated.homeCurrency.rawValue),
+                    pendingCount: prompt.plan.stillPendingCount,
+                    onConvert: {
+                        currencyChange = nil
+                        commit(prompt.updated, answer: .convert)
+                    },
+                    onKeep: {
+                        currencyChange = nil
+                        commit(prompt.updated, answer: .keep)
+                    }
+                )
+            }
+            #if DEBUG
+            .task { scrollToPaceLimitIfRequested(proxy) }
+            #endif
         }
+    }
+
+    @ViewBuilder
+    private func formContent(_ vehicle: Vehicle) -> some View {
+        VStack(spacing: 9) {
+            VehicleDetailHeader(vehicle: vehicle,
+                                onArchive: toggleArchive,
+                                onDelete: { showDeleteConfirm = true })
+            if vehicle.archived {
+                VehicleDetailArchivedBanner(vehicle: vehicle)
+            }
+            VehiclePhotoTile(photo: $form.photo, photoItem: $photoItem)
+            VehicleIdentityCard(name: $form.name, makeModel: $form.makeModel,
+                                plate: $form.plate, make: $form.make,
+                                model: $form.model, year: $form.year,
+                                focus: $focus, showNameWarning: form.showNameWarning,
+                                idPrefix: "vehicleDetail")
+            makeModelSuggestions
+            section("Powertrain") {
+                VehiclePowertrainPicker(powertrain: $form.powertrain,
+                                        selectedFuelKinds: $form.selectedFuelKinds,
+                                        idPrefix: "vehicleDetail")
+            }
+            section("Fuel") {
+                VehicleFuelPills(powertrain: $form.powertrain,
+                                 selectedFuelKinds: $form.selectedFuelKinds,
+                                 idPrefix: "vehicleDetail")
+            }
+            VehicleDetailOdometerCard(form: $form, focus: $focus, units: form.units)
+            managementRows(vehicle)
+            section("Your data") {
+                VehicleExportRow(vehicle: vehicle)
+            }
+            section("Improves accuracy") {
+                VehicleDetailAccuracyCard(form: $form, focus: $focus)
+            }
+            hint
+        }
+        .padding(.horizontal, Theme.Spacing.screenMargin)
+        .padding(.bottom, 24)
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -373,6 +383,12 @@ struct VehicleDetailView: View {
                 updated.photo = nil
             }
             try repository.upsertVehicle(updated)
+            // PJ.45/RV.192: the pace limit is an INPUT to timeline validation,
+            // so a vehicle edit re-derives the stored flags from the entries and
+            // the new limit - a raised limit clears a flag that only existed
+            // under the old one, without re-saving every entry. No entry rows
+            // are rewritten unless a flag actually changed.
+            try repository.revalidateTimeline(vehicleIds: [updated.id], log: AppLog.shared)
             if vehicle.homeCurrency != updated.homeCurrency {
                 let service = MoneyBackfillService(store: AppRates.store)
                 if answer == .convert {
@@ -621,6 +637,11 @@ struct VehicleDetailAccuracyCard: View {
                     // tank (RV.69). kWh is skipped inside the form state.
                     form.reconvertCapacityVolume(from: oldUnit, to: newUnit)
                 }
+            CardDivider()
+            // PJ.45: the pace limit is the threshold timeline validation
+            // compares an implied daily pace against; it sits with the other
+            // values that tune the car's derived figures.
+            VehiclePaceLimitRow(paceLimit: $form.paceLimit, focus: $focus)
         }
         .formCard()
     }

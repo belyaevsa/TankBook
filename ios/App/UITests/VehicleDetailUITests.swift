@@ -166,6 +166,31 @@ final class VehicleDetailUITests: XCTestCase {
         XCTAssertTrue(save.exists && save.isHittable)
     }
 
+    // MARK: - The pace limit row (PJ.45)
+
+    /// PJ.45: the row is present, editable, states its consequence in the
+    /// caption, and an edit is the car's own value, surviving a reopen.
+    func testPaceLimitRowIsEditableAndSurvivesAReopen() {
+        let app = launch()
+        openDetail(app)
+        let field = app.textFields["vehicleDetailPaceLimitField"]
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        scrollTo(field, in: app)
+        XCTAssertEqual(field.value as? String, "1500")
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "Needs a look")).firstMatch.exists)
+        replaceText(in: field, app: app, with: "2200")
+        XCTAssertEqual(field.value as? String, "2200")
+        scrollTo(field, in: app)
+        app.buttons["vehicleDetailSaveButton"].tap()
+        XCTAssertTrue(app.buttons["garageCarRow"].firstMatch.waitForExistence(timeout: 10))
+        app.buttons["garageCarRow"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
+        let reopened = app.textFields["vehicleDetailPaceLimitField"]
+        scrollTo(reopened, in: app)
+        XCTAssertEqual(reopened.value as? String, "2200")
+    }
+
     // MARK: - The per-car export's share sheet carries the CSV (PJ.38)
 
     /// Tapping the per-car export row builds the archive AND the four CSV files,

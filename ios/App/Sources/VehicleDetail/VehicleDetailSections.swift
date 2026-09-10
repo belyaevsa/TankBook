@@ -90,6 +90,55 @@ struct VehicleDetailOdometerCard: View {
     }
 }
 
+// MARK: - Pace limit (PJ.45)
+
+/// The per-car pace limit (PJ.45). `paceLimitKmPerDay` is the threshold CHECK 2
+/// compares an implied daily pace against; a flag lands the entry in "Needs a
+/// look" and excludes its segment from consumption (docs/SCHEMA.md, Validation).
+/// The field is a suggestion the user owns (hard rule 13): pre-filled from the
+/// car, editable here, and the caption states the consequence - the same
+/// structure PJ.55's favourite row uses. Editing it re-derives the stored flags
+/// on save (`VehicleDetailView.commit` calls `revalidateTimeline`), so raising
+/// the limit clears a flag that only existed under the old one.
+struct VehiclePaceLimitRow: View {
+    /// The ScrollViewReader id the row carries, so the `-scrollToPaceLimit`
+    /// screenshot pose can bring it into view (the RV.117b pattern).
+    static let scrollTarget = "vehicleDetailPaceLimitScrollTarget"
+
+    @Binding var paceLimit: String
+    @FocusState.Binding var focus: AddVehicleFocus?
+    var idPrefix: String = "vehicleDetail"
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            FocusableFieldRow("Pace limit", $focus, equals: .paceLimit,
+                              rowIdentifier: "\(idPrefix)PaceLimitRow") {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    TextField("", text: $paceLimit)
+                        .keyboardType(.numberPad)
+                        .multilineTextAlignment(.trailing)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .focused($focus, equals: .paceLimit)
+                        .accessibilityIdentifier("\(idPrefix)PaceLimitField")
+                        .numericInput($paceLimit, kind: .integer)
+                    Text("km/day")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+            }
+            Text("Entries whose daily pace exceeds this are marked “Needs a look”.")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, Theme.Spacing.cardPadding)
+                .padding(.bottom, 12)
+        }
+        .accessibilityIdentifier("\(idPrefix)PaceLimitCard")
+        .id(Self.scrollTarget)
+    }
+}
+
 // MARK: - Archive / delete banner
 
 /// The archived-car banner (J13): the car is out of active stats, its history

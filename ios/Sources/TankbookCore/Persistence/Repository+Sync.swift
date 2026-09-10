@@ -517,14 +517,24 @@ extension TankbookRepository {
     /// moment the entry re-flags or the timeline heals - the acceptance is the
     /// validator's INPUT, never a stored result a later pass would resurrect.
     /// Returns the number of entries newly flagged.
+    ///
+    /// `log`, when supplied, receives one `timeline.pace.suppressed` line per
+    /// vehicle whose same-day neighbours skipped a pace comparison (RV.192):
+    /// the suppression is a bound dropped, and a dropped bound has no on-screen
+    /// trace, so the counts-only line is what answers "did the same-day rule
+    /// suppress a pace check?" (hard rule 12).
     @discardableResult
-    public func revalidateTimeline(vehicleIds: Set<UUID>) throws -> Int {
+    public func revalidateTimeline(vehicleIds: Set<UUID>, log: TankbookLog? = nil) throws -> Int {
         var flagged = 0
         for vehicleId in vehicleIds {
             guard let vehicle = try vehicle(id: vehicleId) else { continue }
             let entries = try liveEntries(forVehicle: vehicleId)
             let attachments = try liveAttachments()
             let validations = TimelineValidator.validate(entries: entries, vehicle: vehicle, attachments: attachments)
+            let suppressed = validations.reduce(0) { $0 + $1.sameDayPaceSuppressions }
+            if suppressed > 0 {
+                log?.emit(TimelinePaceSuppressed(vehicleId: vehicleId, suppressed: suppressed))
+            }
             let byID = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
             try database.write { db in
                 for validation in validations {

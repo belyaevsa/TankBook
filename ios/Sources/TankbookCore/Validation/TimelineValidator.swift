@@ -70,6 +70,12 @@ public enum TimelineValidator {
         /// accepted entries still get one), never stored, never auto-applied
         /// (hard rules 2 and 13).
         public let validRange: TimelineValidRange?
+        /// RV.192: how many pace comparisons this entry's same-calendar-day
+        /// neighbours suppressed. The same-day rule drops a bound (docs/SCHEMA.md,
+        /// Validation), so a flag that used to fire can stop firing with no other
+        /// trace; `revalidateTimeline` sums this into the shape-only
+        /// `timeline.pace.suppressed` event. Counts only (hard rule 12).
+        public let sameDayPaceSuppressions: Int
 
         /// A flagged entry is never blocked from saving - the flag is advisory.
         public var isSaveable: Bool { true }
@@ -105,13 +111,22 @@ public enum TimelineValidator {
     /// - CHECK 3 (cross-check): `volumeL x unitPrice ≈ amount` for FillUps.
     /// - PRIORITY: entries whose attachment has an `extractedTimestamp` treat
     ///   the date as ground truth when ranking resolution suggestions.
+    ///
+    /// `calendar` decides what "same day" means for the pace bound: a pair on
+    /// the same calendar day contributes no pace bound (docs/SCHEMA.md,
+    /// Validation). It is injected, defaulting to `.current`, so a caller (a
+    /// test, or a future per-car timezone) can pin it - the `LogStream.init`
+    /// precedent. A device-local `.current` means a car driven across a
+    /// timezone has entries stamped in two zones and is judged by the device's.
     public static func validate(entries: [any Entry], vehicle: Vehicle,
-                                attachments: [Attachment] = []) -> [EntryValidation] {
+                                attachments: [Attachment] = [],
+                                calendar: Calendar = .current) -> [EntryValidation] {
         let attachmentsByID = Dictionary(uniqueKeysWithValues: attachments.map { ($0.id, $0) })
         let sorted = entries.sorted(by: entryOrder)
+        let constraints = Constraints(limit: vehicle.paceLimitKmPerDay, calendar: calendar)
         return sorted.indices.map { index in
             validate(sorted[index], at: index, in: sorted,
-                     limit: vehicle.paceLimitKmPerDay, attachmentsByID: attachmentsByID)
+                     constraints: constraints, attachmentsByID: attachmentsByID)
         }
     }
 
@@ -140,11 +155,23 @@ public enum TimelineValidator {
         let measuresTravel: Bool
     }
 
+    /// The two values every check in one pass shares: the car's pace limit and
+    /// the calendar that decides what "same day" means. Bundled so the
+    /// neighbour walk and the two range builders stay within the parameter
+    /// budget as the same-day rule threads through them.
+    private struct Constraints {
+        let limit: Double
+        let calendar: Calendar
+    }
+
     private static func validate(_ entry: any Entry, at index: Int, in sorted: [any Entry],
-                                 limit: Double,
+                                 constraints: Constraints,
                                  attachmentsByID: [UUID: Attachment]) -> EntryValidation {
         var flags: [Flag] = []
         var validRange: TimelineValidRange?
+        var sameDayPaceSuppressions = 0
+        let limit = constraints.limit
+        let calendar = constraints.calendar
         let crossCheck = crossCheckIfApplicable(entry)
 
         if let odo = entry.odometer {
@@ -172,7 +199,8 @@ public enum TimelineValidator {
 
             validRange = Self.validRange(odometer: odo, date: entry.date,
                                          entryMeasuresTravel: entryTravels,
-                                         previous: previous, next: next, limit: limit)
+                                         previous: previous, next: next,
+                                         constraints: constraints)
 
             // CHECK 1 - order. The reading never falls for any kind; it must
             // strictly increase only between two travel-measuring entries, so a
@@ -193,10 +221,17 @@ public enum TimelineValidator {
                                                  nextOdometer: next.odometer, nextDate: next.date)))
             }
 
-            // CHECK 2 - pace: implied km/day against each neighbour.
+            // CHECK 2 - pace: implied km/day against each neighbour. A pair on
+            // the same CALENDAR DAY contributes no pace bound - the instant
+            // between two entries hours apart is a fraction of a day, which
+            // would turn a short hop into a pace in the thousands (RV.192).
+            // The comparison stays in fractional days across a day boundary:
+            // the guard is the calendar day, never "less than 24 hours".
             if let previous {
-                let days = dayDiff(previous.date, entry.date)
-                if days > 0 {
+                if calendar.isDate(previous.date, inSameDayAs: entry.date) {
+                    sameDayPaceSuppressions += 1
+                } else {
+                    let days = dayDiff(previous.date, entry.date)
                     let pace = Double(abs(odo - previous.odometer)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
@@ -206,8 +241,10 @@ public enum TimelineValidator {
                 }
             }
             if let next {
-                let days = dayDiff(entry.date, next.date)
-                if days > 0 {
+                if calendar.isDate(entry.date, inSameDayAs: next.date) {
+                    sameDayPaceSuppressions += 1
+                } else {
+                    let days = dayDiff(entry.date, next.date)
                     let pace = Double(abs(next.odometer - odo)) / days
                     if pace > limit {
                         flags.append(Flag(kind: .pace,
@@ -238,7 +275,8 @@ public enum TimelineValidator {
             crossCheck: crossCheck,
             suggestions: suggestions(flags: flags, receiptDateIsGroundTruth: receiptDateIsGroundTruth),
             acceptance: conflictAndAcceptance.acceptance,
-            validRange: validRange
+            validRange: validRange,
+            sameDayPaceSuppressions: sameDayPaceSuppressions
         )
     }
 
@@ -307,8 +345,8 @@ public enum TimelineValidator {
     ///   neighbours on which that reading keeps both neighbours and stays within
     ///   the pace limit. The bounds are pace-derived and inclusive; the exact
     ///   neighbour instants are outside the claimed domain because there a
-    ///   same-day tie reorders the timeline or the `days > 0` guard drops a
-    ///   pace bound - the fixed-neighbourhood model no longer applies there.
+    ///   same-day tie reorders the timeline or the same-day rule drops a pace
+    ///   bound - the fixed-neighbourhood model no longer applies there.
     ///
     /// A missing neighbour leaves that side OPEN (`nil`), never a sentinel. A
     /// neighbourhood whose constraints cross - `lower > upper` - yields `.none`:
@@ -317,32 +355,34 @@ public enum TimelineValidator {
     private static func validRange(odometer: Int, date: Date, entryMeasuresTravel: Bool,
                                    previous: Neighbour?,
                                    next: Neighbour?,
-                                   limit: Double) -> TimelineValidRange {
+                                   constraints: Constraints) -> TimelineValidRange {
         TimelineValidRange(
             odometer: odometerRange(date: date, entryMeasuresTravel: entryMeasuresTravel,
-                                    previous: previous, next: next, limit: limit),
+                                    previous: previous, next: next, constraints: constraints),
             dates: dateRange(odometer: odometer, entryMeasuresTravel: entryMeasuresTravel,
-                             previous: previous, next: next, limit: limit)
+                             previous: previous, next: next, constraints: constraints)
         )
     }
 
     /// The inclusive integer odometer readings valid for a date. Mirrors the
-    /// same-day guard: a same-day neighbour contributes no pace bound (the
-    /// `days > 0` guard in `validate(_:at:in:)`), so that side of the interval
-    /// is bounded by order alone. The order bound is inclusive on a side whose
-    /// neighbour does not also measure travel (an annotation may share the
-    /// reading); between two travel entries it stays exclusive.
+    /// same-day guard in `validate(_:at:in:)`: a neighbour on the SAME CALENDAR
+    /// DAY contributes no pace bound, so that side of the interval is bounded
+    /// by order alone. The order bound is inclusive on a side whose neighbour
+    /// does not also measure travel (an annotation may share the reading);
+    /// between two travel entries it stays exclusive.
     private static func odometerRange(date: Date, entryMeasuresTravel: Bool,
                                       previous: Neighbour?,
                                       next: Neighbour?,
-                                      limit: Double) -> ValidRange<Int> {
+                                      constraints: Constraints) -> ValidRange<Int> {
+        let limit = constraints.limit
+        let calendar = constraints.calendar
         var lower: Int?
         var upper: Int?
         if let previous {
             let sharesReading = !(entryMeasuresTravel && previous.measuresTravel)
             lower = previous.odometer + (sharesReading ? 0 : 1)
-            let days = dayDiff(previous.date, date)
-            if days > 0 {
+            if !calendar.isDate(previous.date, inSameDayAs: date) {
+                let days = dayDiff(previous.date, date)
                 upper = paceUpperBound(from: previous.odometer, days: days, limit: limit)
             }
         }
@@ -350,8 +390,8 @@ public enum TimelineValidator {
             let sharesReading = !(entryMeasuresTravel && next.measuresTravel)
             let orderUpper = next.odometer - (sharesReading ? 0 : 1)
             upper = upper.map { Swift.min($0, orderUpper) } ?? orderUpper
-            let days = dayDiff(date, next.date)
-            if days > 0 {
+            if !calendar.isDate(date, inSameDayAs: next.date) {
+                let days = dayDiff(date, next.date)
                 let paceLower = paceLowerBound(toward: next.odometer, days: days, limit: limit)
                 lower = lower.map { Swift.max($0, paceLower) } ?? paceLower
             }
@@ -362,10 +402,21 @@ public enum TimelineValidator {
 
     /// The inclusive dates on which `odometer` keeps its two neighbours and the
     /// implied pace to each stays within the limit.
+    ///
+    /// The same-day rule widens a bound that falls on the neighbour's own
+    /// calendar day: there the pace constraint does not apply, so the entry may
+    /// sit anywhere from that neighbour's instant (previous side) up to the
+    /// other neighbour's instant (next side). A pace bound that lands on a
+    /// LATER day is kept exactly - same-day dates before it are valid too, but
+    /// including them would also include the invalid different-day dates just
+    /// past the neighbour, and a range that suggests a flagged date is the one
+    /// failure the range must not have (docs/SCHEMA.md -> Valid range).
     private static func dateRange(odometer: Int, entryMeasuresTravel: Bool,
                                   previous: Neighbour?,
                                   next: Neighbour?,
-                                  limit: Double) -> ValidRange<Date> {
+                                  constraints: Constraints) -> ValidRange<Date> {
+        let limit = constraints.limit
+        let calendar = constraints.calendar
         // A reading below the previous one (or above the next) cannot sit
         // between the two at ANY date - the order constraint fails for every
         // instant the pair remains its neighbours. Equal readings fail only
@@ -383,13 +434,17 @@ public enum TimelineValidator {
         }
         var lower: Date?
         if let previous {
-            let daysNeeded = Double(odometer - previous.odometer) / limit
-            lower = previous.date.addingTimeInterval(daysNeeded * 86_400)
+            let paceLower = previous.date.addingTimeInterval(
+                Double(odometer - previous.odometer) / limit * 86_400)
+            lower = calendar.isDate(paceLower, inSameDayAs: previous.date)
+                ? previous.date : paceLower
         }
         var upper: Date?
         if let next {
-            let daysNeeded = Double(next.odometer - odometer) / limit
-            upper = next.date.addingTimeInterval(-daysNeeded * 86_400)
+            let paceUpper = next.date.addingTimeInterval(
+                -Double(next.odometer - odometer) / limit * 86_400)
+            upper = calendar.isDate(paceUpper, inSameDayAs: next.date)
+                ? next.date : paceUpper
         }
         if let lower, let upper, lower > upper { return .none }
         return .bounded(lower: lower, upper: upper)

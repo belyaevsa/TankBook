@@ -22,6 +22,11 @@ struct VehicleDetailFormState {
     var odometer = ""
     var homeCurrency: CurrencyCode = LocaleCurrency.defaultCurrency(for: .current)
     var capacity = ""
+    /// PJ.45: the pace limit as text, in km/day (the unit `paceLimitKmPerDay`
+    /// stores). A suggestion the user owns (hard rule 13): it is pre-filled
+    /// from the car, editable here, and an edit is never overwritten by a
+    /// catalog or locale default - `applying(to:)` writes the car's own value.
+    var paceLimit = ""
     var units = Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100)
     var photo: Data?
     /// The vehicle's current attachment id + photo bytes, so saving can tell an
@@ -53,6 +58,7 @@ struct VehicleDetailFormState {
         } else {
             capacity = ""
         }
+        paceLimit = Self.paceLimitText(vehicle.paceLimitKmPerDay)
         units = vehicle.units
         photo = photoData
         originalPhotoID = vehicle.photo
@@ -85,6 +91,22 @@ struct VehicleDetailFormState {
     }
 
     var isElectric: Bool { powertrain == .ev }
+
+    /// The edited pace limit, or nil when the field is empty, unparseable or
+    /// non-positive. A non-positive limit would flag every entry, so `applying`
+    /// keeps the car's stored value rather than writing one (hard rule 13: a
+    /// blank field is not a decision to remove the bound).
+    var paceLimitValue: Double? {
+        let trimmed = paceLimit.trimmingCharacters(in: .whitespaces)
+        guard let value = Double(trimmed), value > 0 else { return nil }
+        return value
+    }
+
+    /// Whole numbers print without a trailing `.0`; a fractional limit the user
+    /// typed is preserved.
+    static func paceLimitText(_ value: Double) -> String {
+        value.rounded() == value ? String(Int(value)) : String(value)
+    }
 
     /// The Add-car empty-name warn, adapted: saving an edited car with no name
     /// is blocked and the warn clears live as soon as a name is typed
@@ -133,6 +155,9 @@ struct VehicleDetailFormState {
         vehicle.homeCurrency = homeCurrency
         vehicle.units = units
         vehicle.initialOdometer = odometerValue
+        if let paceLimitValue {
+            vehicle.paceLimitKmPerDay = paceLimitValue
+        }
         return vehicle
     }
 

@@ -1045,6 +1045,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.45-pace-limit": {
+      "commit": "eed307a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.45-pace-limit-ru": {
+      "commit": "eed307a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.48-edit-add-receipt": {
       "commit": "7586202",
       "device": "iPhone 17",

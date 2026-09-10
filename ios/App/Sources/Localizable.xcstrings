@@ -5000,6 +5000,23 @@
         }
       }
     },
+    "Entries whose daily pace exceeds this are marked “Needs a look”.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entries whose daily pace exceeds this are marked “Needs a look”."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Записи с суточным пробегом выше этого помечаются как «Требуют внимания»."
+          }
+        }
+      }
+    },
     "Entry": {
       "extractionState": "manual",
       "localizations": {
@@ -8474,6 +8491,23 @@
         }
       }
     },
+    "Pace limit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pace limit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Лимит пробега в день"
+          }
+        }
+      }
+    },
     "Page %1$@ of %2$@": {
       "extractionState": "manual",
       "localizations": {
@@ -9337,6 +9371,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Чеки определяются автоматически"
+          }
+        }
+      }
+    },
+    "Timeline checks": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timeline checks"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверки хронологии"
           }
         }
       }
@@ -14025,6 +14076,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "км"
+          }
+        }
+      }
+    },
+    "km/day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "km/day"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "км/день"
           }
         }
       }

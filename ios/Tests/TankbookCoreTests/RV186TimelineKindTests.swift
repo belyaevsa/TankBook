@@ -263,17 +263,21 @@ struct RV186DrivvoFixtureTests {
         }, "annotations sharing a fill reading must not be order-flagged")
     }
 
-    /// The owner's second case, reproduced: two fill-ups on 20 Sep 2020 at
-    /// 360 200 and 360 519 are NOT order-flagged (CHECK 1 passes), but they ARE
-    /// pace-flagged. The orchestrator read the `days > 0` guard as "same-day
-    /// contributes no pace bound"; it is a same-INSTANT guard, and the two fills
-    /// are 2 h 27 min and 319 km apart, an implied 3 124 km/day over the 1 500
-    /// limit. The culprit is CHECK 2 itself - no third entry and no third rule -
-    /// and the pace rule is out of RV.186's scope, so this row reports it rather
-    /// than widening the order rule to swallow it.
-    @Test func ownerSecondCaseIsPaceNotOrder() throws {
+    /// The owner's second case, now RV.192's: two fill-ups on 20 Sep 2020 at
+    /// 360 200 and 360 519 are NOT order-flagged (CHECK 1 passes) and - since
+    /// RV.192 made the pace guard a CALENDAR-DAY rule - not pace-flagged either.
+    /// RV.186 correctly left the pace half alone, and this test recorded the
+    /// defect: 2 h 27 min and 319 km apart is an implied 3 124 km/day under the
+    /// old fractional-instant guard. RV.192's decision is that a same-day
+    /// neighbour contributes no pace bound (docs/SCHEMA.md, Validation), so the
+    /// pair is clean. The fixture dates are parsed in UTC, so the check pins a
+    /// UTC calendar rather than inheriting the machine's.
+    @Test func ownerSecondCaseIsSameDayAndNotPaceFlagged() throws {
+        var utc = Calendar(identifier: .gregorian)
+        utc.timeZone = TimeZone(identifier: "UTC")!
         let entries = try DrivvoFixture.entries()
-        let validations = TimelineValidator.validate(entries: entries, vehicle: kindVehicle())
+        let validations = TimelineValidator.validate(entries: entries, vehicle: kindVehicle(),
+                                                     calendar: utc)
         let byID = Dictionary(uniqueKeysWithValues: entries.map { ($0.id, $0) })
 
         let secondCase = validations.filter { validation in
@@ -282,9 +286,9 @@ struct RV186DrivvoFixtureTests {
         #expect(secondCase.count == 2, "the fixture must carry both 20 Sep fills")
         #expect(secondCase.allSatisfy { validation in
             !validation.flags.contains { $0.kind == .order }
-        }, "CHECK 1 is not what flags the pair")
+        }, "CHECK 1 is not what flags the pair (RV.186 holds)")
         #expect(secondCase.allSatisfy { validation in
-            validation.flags.contains { $0.kind == .pace }
-        }, "CHECK 2's sub-day pace is what flags the pair")
+            !validation.flags.contains { $0.kind == .pace }
+        }, "RV.192: a same-day pair contributes no pace bound, so the pair is clean")
     }
 }

@@ -63,7 +63,6 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.192+PJ.45** | flash | 45015 | `bics7qt98` (persistent) | `agents/briefs/RV.192+PJ.45.md` |
 | **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
@@ -98,13 +97,12 @@ can settle it.
 
 ### The product owner's own open reports - these outrank everything
 
-Twelve defects were reported by using the app on 2026-09-09/10. **Eight shipped**, `RV.181` is
-**skipped by the owner** (see *Not queued, and why*), and these three are what is left - top of the
-queue, because a defect the owner hit is a defect a user hits.
+Twelve defects were reported by using the app on 2026-09-09/10. **Nine shipped** (`RV.192` closed 2026-09-10 with `PJ.45`), `RV.181` is **skipped by the owner**
+(see *Not queued, and why*), and these two are what is left - top of the queue, because a defect the
+owner hit is a defect a user hits.
 
 | Task | | Where it stands |
 |---|---|---|
-| **RV.192** | in flight | *"one more problem with odo and fill ups at the same day."* Their **SECOND** report of that shape - `RV.186` fixed the order check and deliberately left the pace check. Dispatched with `PJ.45`, which makes the limit theirs |
 | **RV.189** `[!]` | briefed | *"drivvo import has gas station names, but they are ignored."* An **INVESTIGATION** brief: the orchestrator's first diagnosis was wrong and the brief records it |
 | **RV.182** | **briefed now** | *"list has a tank volume and it's not filled up automatically when I selected it."* Reported early on 2026-09-10, decided the same day (blank-fields-only), then slid behind newer reports all day. **It was the only one of the twelve with nothing scheduled against it** |
 
@@ -116,11 +114,11 @@ queue, because a defect the owner hit is a defect a user hits.
 | 2 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
 | 3 | **RV.192+PJ.45** | `RV.192+PJ.45.md` | The pace bound: make it right, then make it the user's. `RV.192` is the owner's SECOND same-day report; `PJ.45` has been PRIORITY since 2026-08-31. Same seam, so one dispatch - shipping the fix without the tunable leaves the owner's case answerable only by an agent |
 | 4 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped today as `RV.195` without anyone noticing the row existed; the SERVICE half is what remains, and `RV.195` is its worked example one entry kind over |
-| 5 | **RV.182** | `RV.182.md` | The owner's tank-volume report. Decision already made (blank-fields-only); the brief carries TWO mutations, because proving a pick fills an empty field is the easy half and proving it never touches a filled one is hard rule 13 |
-| 6 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
-| 7 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
-| 8 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
-| 9 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
+| 4 | **RV.182** | `RV.182.md` | The owner's tank-volume report. Decision already made (blank-fields-only); the brief carries TWO mutations, because proving a pick fills an empty field is the easy half and proving it never touches a filled one is hard rule 13 |
+| 5 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
+| 6 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
+| 7 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
+| 8 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
 
 ### The PRIORITY `PJ` block (product owner, 2026-08-31) - grouped 2026-09-10
 
@@ -133,7 +131,7 @@ exist yet:
 |---|---|---|
 | **Tire loop** | `PJ.26` + `PJ.27` — `PJ.26+PJ.27.md` | **Briefed, ready now.** Both are J7b and both write through `TireSet`: one links the set to the expense that bought it, the other creates the swap reminder. **`TireSet.purchaseExpenseId` is a dead field** - a column, a comment protecting it, and `nil` at its only write site - so `PJ.26` is `PJ.55`'s shape again |
 | **Service lifetimes** | `PJ.22` | **After `PJ.23`.** It adds a lifetime editor to a service line item and writes `proposedReminderId` - **also always nil today**. `PJ.23` is what makes an item editable at all, so this needs the seam that row settles |
-| **F9a suggestions** | `PJ.34` | **After `RV.192`.** It makes the F9a sheet consume `validation.suggestions`; `RV.192` changes what the validator produces. Rendering suggestions computed by the rule being fixed is the wrong order |
+| **F9a suggestions** | `PJ.34` | **UNBLOCKED** - `RV.192` shipped, so the validator now produces the right suggestions. Ready to brief |
 | **Reminder scan door** | `PJ.24` | **Ready to brief.** *"Scan invoice"* on ReminderComplete, which offers Type and Skip only today. Its own seam - reminders plus the document camera |
 | **Background prefetch** | `PJ.35` | **Ready to brief.** Photos download newest-first after a pull, gated by Low Power and constrained-network. `P6.20` already records `.blobPrefetch` as unwired. Sync/blobs - shares nothing with the rest |
 

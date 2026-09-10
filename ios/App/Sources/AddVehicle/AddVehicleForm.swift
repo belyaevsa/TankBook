@@ -5,7 +5,7 @@ import TankbookCore
 /// Which Add car field currently holds focus (drives suggestions + field
 /// underlines). Internal so the section subviews can share it.
 enum AddVehicleFocus: Hashable {
-    case name, makeModel, plate, odometer, capacity
+    case name, makeModel, plate, odometer, capacity, paceLimit
 }
 
 // MARK: - Form state
