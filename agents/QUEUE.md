@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.161** | flash | 11944 | `b30skk2ow` (persistent) | `agents/briefs/RV.161.md` |
+| *(none)* | | | | |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -148,6 +148,7 @@ failing case rather than a hypothetical:
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
 | RV.162 | `5c53a4f` | A screen whose only door is `#if DEBUG` fails the build - `PJ.4`'s shape. **The agent corrected the brief three times**, including a stale doc claim the brief had repeated: the car-limit sheet's "Pro" is not Paywall's live v1 door, `RV.70` removed it too |
 | PJ.55 | `c933a3b` | The station ranking's first rung can finally fire. **The strongest mutation of the session**: dropping only the persist call turned red on the RANKING, not the flag - the field had a column, a decoder, ten seeds and a reader for months and rung 1 still never fired |
+| RV.161 | `17f6294` | A scanned receipt keeps its station - **ticked PARTIAL** (the brand/site split is `RV.180`) and **unmeasured**. Its corpus column was self-scored at 46/46 and was reverted whole; `RV.179` measures it against an oracle the extractor cannot see |
 | RV.116 | `fe94b0f` | An import says what it is not bringing in |
 | RV.163 | `3a72037` | An entity nothing can create fails the build. The mutation removed both `createStation` doors while leaving the table, the decoder, the import writer and ten seeds in place - **RV.156 reconstructed exactly**. Entity-level; `PJ.55` is the field-level instance it cannot see |
 | PJ.56 | `c87ca1b` | A group header that withholds a figure says why. **The screenshot caught a pre-existing sibling** - the divider printed "0 entries pending rates" under a complete breakdown, invisible until this row rendered the app's first `.mixed` month |
@@ -162,6 +163,38 @@ failing case rather than a hypothetical:
 
 **Still open and NOT queued**: `RV.139` itself - the symptom is unfixed and the next step is one
 device log from a build carrying the `rates.refresh` event, which is not agent work.
+
+## A 100% score on a new class is evidence of circularity, not quality
+
+`RV.161`, 2026-09-10. A fresh extraction class was added to the corpus and scored **46 of 46**. It
+was a tautology: the ground truth had been written from the extractor's own output, and because
+**the scorer skips an empty cell rather than counting it a miss**, every case the extractor failed
+was silently left blank. `receipt-007-lukoil` scored as "no ground truth" while its OCR's first line
+reads `"ЛУКОНЛ-СЕВЕРО-ЗАПАДНЕФТЕПРОДУКТ"`.
+
+**When a brief adds a corpus column, it must name the oracle and forbid the obvious one.** The
+fixture filenames are the source here - the product owner wrote them from the images before any
+extractor existed - and the OCR dump cross-checks them, because it is the extractor's INPUT.
+
+**Two guards caught the orchestrator's own half-fix**, which is why the revert had to be total:
+`assertedStation > 0` refuses a column that measures nothing, and `CorpusCompressionTests` keeps a
+recorded mark **separate** from `high-water.json`, so reverting one leaves the pair inconsistent.
+
+## Check the COUNT, not the exit code - three times in one session
+
+2026-09-10, all three green with exit 0 and all three worthless:
+
+- `PJ.56`: a combined `xcodebuild` invocation silently dropped a `TankbookTests` filter and reported
+  3 tests instead of 8.
+- `RV.161`: `-only-testing:TankbookUITests/RV161StationPrefillUITests` matched **nothing** - the file
+  declares `extension ConfirmManualUITests`, so the class-name filter found no such suite. Output:
+  `Executed 0 tests` … `TEST SUCCEEDED`.
+- The orchestrator's own edit removed a test while tidying, and the run went green at 5/5 where 6
+  functions existed.
+
+**A filter matching nothing is the default failure, not the exception.** Grep the `@Test`/`func
+test` count in the file and compare it to `Executed N tests`; if `Executed` is absent from the
+output entirely, that is not a pass either.
 
 ## The recurring journeys walk
 
