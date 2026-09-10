@@ -2,217 +2,193 @@
 
 You are working in `/Users/sbelyaev/repos/fuel-counter-ios`. **Write only inside that repo.**
 Write code first, explore second. Do not commit; the orchestrator commits after verifying.
+**Never move, rename or delete a file you did not create** - assume you are not alone in this
+checkout. If a file is in your way or a test is red that is not yours, report it and carry on.
 
-## The promise, in the product owner's own words (2026-09-07)
+**This row spans BOTH tiers** - the C# backend and the iOS client. Budget for both; the backend half
+is where the data lives and the client half is only rendering.
 
-> "worth to say for this program, what data we don't support (as a notification), such as driver
-> and other fields"
+## The defect
 
-Today the parser reads what it understands and **the rest evaporates silently**. A fleet user
-importing a driver-per-row history discovers only later that the column they care about is gone.
+Product owner, 2026-09-07: *"worth to say for this program, what data we don't support (as a
+notification), such as driver and other fields"*.
 
-**This is deliberately NOT hard rule 8.** Nothing is deleted - the source file is untouched and the
-rows the app keeps are complete. It is a **completeness promise**: an import that quietly narrows
-the data is a migration a user cannot trust. Do not file it as a data-loss bug or reach for
-tombstones.
+**Measured on the Drivvo export**: of 29 refuelling columns, Tankbook has no home for `Водитель`
+(driver - the fleet feature that is Drivvo's whole positioning), `Метод оплаты` (payment method),
+`Тип расхода`, `Скидка` (discount), the second- and third-fuel blocks, and the EV columns when the
+row is a liquid fill. The `##Service` and `##Expense` sections carry `Заголовок` and
+`Название сервиса` with no destination either. MFM has the same shape with different names.
 
-## Design questions ALREADY CLOSED - do not reopen
+**The parser reads what it understands and the rest evaporates, silently.** A fleet user importing a
+driver-per-row history discovers only later that the column they cared about is gone.
 
-These are the decisions the row leaves open and I am closing them. Implement them as written; if you
-believe one is wrong, say so and stop rather than quietly choosing differently.
+**This is NOT hard rule 8.** Nothing is deleted - the source file is untouched and the rows the app
+keeps are complete. That is exactly why it needs its own rule: it is a **completeness promise**, and
+an import that quietly narrows the data is a migration a user cannot trust.
 
-1. **The split between declaration and count.** The *names* are static data per format; the
-   *counts* are per-file and can only come from a parse. So:
-   - `GET /import/formats` -> each format declares its **unsupported field keys** (a stable string
-     array). This is the "make it data, not code" half - a new parser cannot forget to declare, and
-     the client hardcodes no per-format copy.
-   - `POST /import/parse` -> the response carries, for that file, **each declared key that had at
-     least one non-empty cell, with its row count**.
-2. **Stable KEYS on the wire, localized text on the device.** The server sends
-   `["driver", "paymentMethod", "discount", ...]`, never a display string, because hard rule 10 puts
-   every user-facing string in the String Catalog with EN and RU. The client maps a key to a
-   localized label. **An unknown key falls back to rendering the key's server-supplied English
-   label**, so a format added server-side still says something useful on an older client - that
-   fallback is the whole reason the format registry also carries a label per key.
-3. **Zero-count columns are NOT mentioned.** A column empty in every row of *this* file is omitted.
-   The row's author states this preference and the reason is sound: "a notice about nothing is
-   noise", and burying the one column that matters is the failure mode. **Assert this decision in a
-   test** - the row explicitly asks for the decision to be pinned either way.
-4. **Where it goes: `ios/App/Sources/Import/ImportPreviewView.swift`.** That is the screen titled
-   **"Review import"** (`:22`) and it is the gate before the commit - `ImportReviewView` is the
-   per-row screen that comes *after* it in the wizard (`ImportWizardView.swift:153` `.preview`,
-   `:166` `.review`). Putting the notice on the per-row screen is the obvious wrong choice.
-5. **It is a card in the scroll content, not a fixed region.** Follow the existing
-   `outOfScopeCard(message)` precedent at `ImportPreviewView.swift:52-54` - same placement, same
-   non-blocking shape. **Do not use `safeAreaInset`**: RV.84 fixed exactly that mistake on the
-   import parse-error card, because that region does not scroll and the content clipped in RU.
-6. **Never blocking.** The primary Import action is untouched. This is a notice, not an error and
-   not a dialog. Per hard rule 7 it still names what to do instead - the copy below carries that.
+## The contract split - the row's wording could mislead you, so read this
 
-## Hard rules this touches, and why none of them block you
+The row says *"each `format` in `GET /import/formats` declares its unsupported fields"*. That is
+half of it, and the other half **cannot** live there:
 
-- **Rule 9** - the server reads domain meaning here. That is already licensed: `/import/parse` is
-  hard rule 9's **named exception**, and counting non-empty cells in a column is squarely inside the
-  parse. You are not adding a new domain endpoint. Do not stop to escalate this.
-- **Rule 12** - never log domain values. Field *names*, *keys* and *counts* are loggable; a driver's
-  name is not. Log shape only.
-- **Rule 10** - EN and RU from day one, full localized phrases, never concatenation.
+| What | Where | Why |
+|---|---|---|
+| the unsupported column **names**, per format | `GET /import/formats` | static per parser, ETag'd reference data, **data not code** |
+| **how many rows carried a value** in each | `POST /import/parse` response | per *file*; the server cannot know it until it reads the user's CSV |
+
+A count in `/import/formats` is impossible; copy hardcoded in the client is the thing that rots. Get
+this split right and the rest is mechanical.
+
+**Both endpoints are already the licensed hard-rule-9 exception** (`CLAUDE.md` rule 9, amended
+2026-08-27): `/import/parse` is the one endpoint that reads what a field means. Counting non-empty
+cells in a column you are already parsing is **inside** that exception. Do not let it spread further.
+
+## Where things are, confirmed on the tree
+
+- `backend/src/Tankbook.Api/Import/ImportFormats.cs` - `ImportFormatInfo(Id, DisplayName, FileKinds,
+  HelpUrl, AddedInPackVersion)` and the static registry with `mfm` and `drivvo`.
+- `backend/src/Tankbook.Api/Import/ImportModels.cs:102` - `ImportParseResponse`.
+- `backend/src/Tankbook.Api/Import/ImportService.cs:215` - `BuildResponse`.
+- `backend/src/Tankbook.Api/Import/DrivvoParser.cs`, and the MFM parser beside it.
+- `ios/Sources/TankbookCore/Import/ImportModels.swift:12` - the client `ImportFormat`, which mirrors
+  the wire record field for field.
+- `docs/API.md:409` - the `/import/formats` contract; `docs/API.md:430` - the parse response shape.
+
+## This brief's reading is a hypothesis - confirm it before you change anything
+
+Line numbers were read on the tree as left. **Verify the parsers actually discard these columns
+silently** before you build the notice - if any already surfaces something, say so and build on it.
 
 ## What to build
 
-### A. Backend: declare the unsupported fields
+**Say what is not coming in, BEFORE the commit, at the review gate** - the F6a moment where the user
+has written nothing yet. Name the unsupported columns **and how many rows carried a value in each**,
+so the number tells the user whether it matters to them:
 
-`backend/src/Tankbook.Api/Import/ImportFormats.cs` - `ImportFormatInfo` gains the declaration.
-Model it as a record so a key carries its fallback English label:
+> "Driver, payment method and discount are not imported (250 rows carry a driver)."
 
-```csharp
-public sealed record UnsupportedField(string Key, string Label);
-```
+**Say it once, calmly.** A notice at the gate, never a blocking dialog and never an error. Continue
+is never disabled by it. Hard rule 7 still applies: it names what to do instead, which is *the file
+stays on your phone if you need those columns*.
 
-and `ImportFormatInfo` gains `IReadOnlyList<UnsupportedField> UnsupportedFields`.
+**Decide whether a column that is empty in every row is mentioned at all.** My preference is **no** -
+a notice about nothing is noise, and listing every unsupported column buries the one that matters.
+**Whichever you choose, assert the decision** and write it in `docs/API.md`.
 
-For the one format that exists today (`mfm`), declare the columns MFM carries that Tankbook has no
-home for. **Read `MfmParser.cs` and derive this from what the parser actually ignores** - do not
-invent a list, and do not copy Drivvo's columns (that format does not exist yet; RV.113 adds it).
-
-### B. Backend: count them per file
-
-The parse computes, for the uploaded file, which declared keys had **at least one non-empty cell**
-and how many rows carried a value. Add to `ImportParseResponse`
-(`backend/src/Tankbook.Api/Import/ImportModels.cs:102-110`) a field carrying
-`{key, rowCount}` pairs, **omitting every key whose count is zero** (closed decision 3).
-
-`ImportParseRow` (the stored metadata row, `:88-99`) holds **counts only, never values** - its
-existing comment says so. If you persist anything here, keep to that.
-
-### C. iOS: the model and the notice
-
-- `ios/Sources/TankbookCore/Import/ImportModels.swift:12-27` - `ImportFormat` gains the declared
-  fields; the parse response type gains the counts. Both `Codable`, matching the wire names.
-- `ios/App/Sources/Import/ImportPreviewView.swift` - a card in the `ScrollView`'s `VStack`
-  (closed decisions 4 and 5), shown only when the count list is non-empty. Accessibility identifier
-  `importPreviewUnsupportedFields`.
-- Copy, as **one full localized phrase per language** (EN + RU in `Localizable.xcstrings`). The
-  count is what makes it actionable, so it is in the sentence, not implied:
-  - Title: EN `"Not imported"` / RU `"Не импортируется"`
-  - Per row: the localized field label and its count, e.g. EN `"Driver - 250 rows"` /
-    RU `"Водитель - 250 строк"`. **Use a proper plural rule for RU** (строка/строки/строк) via the
-    String Catalog's plural variations - Russian has three forms and 250 takes a different one than
-    2 or 21. This is the half a naive `"%d строк"` gets wrong.
-  - The next step (hard rule 7): EN `"Your file stays on your phone if you need these columns."` /
-    RU with equivalent meaning, not a word-for-word calque.
-
-### D. The doc
-
-`docs/API.md` is the authority for the HTTP contract and **changes here are a breaking-change
-review**. Update the "Import parsing" section for both `GET /import/formats` and
-`POST /import/parse` in the same change - the new fields, the zero-count omission rule, and the
-keys-not-strings decision with its reason. `CLAUDE.md` says keeping the docs reconciled is part of
-every task's definition of done.
+**`docs/API.md` changes here, and `CLAUDE.md` calls that a breaking-change review.** Both endpoints
+gain a field. State in your report whether an **older client** ignoring the new fields still works
+(it must) and whether an **older server** omitting them leaves the client sane (it must - no notice,
+not a crash).
 
 ## Explicitly out of scope
 
-- **RV.113** (the Drivvo importer). Do not add a `drivvo` format, do not read
-  `Spike/ImportFixtures/drivvo/`.
-- Making any currently-unsupported column supported. This row reports the gap; it does not close it.
-- The per-row review screen, the commit path, or anything after the gate.
-- Changing what `/import/parse` stores or its 30-day retention.
+- New importers. `mfm` and `drivvo` are the two that exist.
+- The parsers' mapping decisions - which columns are supported is settled; you are declaring the
+  complement, not changing it.
+- [PJ.9] (the review row cannot change what a row became) and [RV.113]. Cite if you touch their area.
 
 ## Docs to read before writing (in order)
 
-1. `CLAUDE.md` - hard rules 7, 9 (**read the named import exception in full**), 10, 12, 13.
-2. `docs/API.md` -> "Import parsing" (**the authority for this task**).
-3. `docs/ERRORS.md` -> the severity vocabulary, to confirm this is a **notice**, not a warning or an
-   error, and that it needs no dismissal state.
-4. `docs/JOURNEYS.md` -> F6a, the failure journey this sits in.
+1. `docs/API.md` -> **Import parsing**, both endpoints. **The authority for the wire contract**; you
+   are extending it, in the same change.
+2. `docs/SCHEMA.md` -> **Import mapping (launch importers)** - the column tables that say what IS
+   supported. The unsupported list is its complement; derive it there rather than inventing a list.
+3. `docs/ERRORS.md` -> **Import**, the review gate's existing copy - the notice must sit beside it
+   without becoming an error.
+4. `CLAUDE.md` hard rules 7, 9 (the import exception and its five bounding properties), 10, 12.
 
-## Checks
+## Environment axes this crosses
 
-Baseline on the tree you are handed: **iOS 1625 tests / 181 suites**, **backend 411**, `swift build`
-0, `swiftlint` 0 errors **from the repo ROOT**, `dotnet build`/`format` 0, localization gate 0
-(770 keys, 100% RU).
+**Locale** - the notice is user-facing copy, EN and RU, gate at 100%. RU is where a comma-separated
+column list plus a count runs longest. **Offline** is unchanged (parsing already needs the network -
+rule 1's bounded exception). **Screenshots: EN and RU of the review gate carrying the notice.**
+Backend changes need `dotnet build` **and** `dotnet format --verify-no-changes`.
 
-1. `cd backend && dotnet build` - 0; `dotnet test` - 0, report the observed count (must rise).
-2. `cd backend && dotnet format --verify-no-changes` - 0.
-3. `cd ios && swift build` - 0.
-4. `swiftlint lint` from the **repo root** - exit 0. Root-relative `excluded:` paths; running it
-   from `ios/` gives a wrong answer.
-5. `cd ios && swift test` - full suite, **never subsetted**, **>= 1625** and report the number.
-6. `xcodegen generate`, then the UI suite you touched **by name**:
-   `-only-testing:TankbookUITests/ImportCarsUITests` plus any import suite your change reaches.
-   Report the observed count and **check it is non-zero** - a filter matching nothing prints
-   "0 tests ... passed".
-7. Localization gate - 0, 100% RU, and report the new key count.
-8. Release build **not required** unless you touch a `#if DEBUG` seam. Say which applies.
+## If this adds a failure path, what makes it visible in production?
 
-### Tests you must add
+The parse already logs shape only - format name, row counts, error counts (hard rule 9's *"nothing
+is logged but shape"*). **A column name is shape; a cell's value is not.** If you log the
+unsupported-column counts, log the **count and the column name**, never a driver's name or any cell
+content (hard rule 12). Say what you added.
 
-- **L1 backend**: a format declares its unsupported fields; a file with values in two of them
-  reports exactly those two **with their row counts**; a column empty in every row is **absent**
-  from the response (closed decision 3, asserted).
-- **L1 backend**: the counts are row counts of **non-empty** cells, not total rows - a column with
-  3 values in a 250-row file reports **3**.
-- **L1 iOS**: an unknown key renders the server's fallback label rather than the raw key or an
-  empty string.
-- **L1 iOS**: the RU plural form is correct for 1, 2, 5 and 250 rows.
-- **L4**: the gate shows the notice with its counts, and the primary Import action is **still
-  enabled and still works** with the notice present.
+## Tests you must add
 
-### Vacuous traps, named
+- **L1 (backend), and it FAILS TODAY**: the parse result declares the unsupported columns for its
+  format **with the count of rows carrying a value in each**. **Oracle**: a fixture CSV you control -
+  N rows with a driver, M without - so the expected count is arithmetic, not a guess.
+- **L1 (backend)**: a column empty in **every** row follows your decision - asserted either way.
+- **L1 (backend)**: `GET /import/formats` declares the column names per format, and the two formats
+  declare **different** lists (they have different column names - a shared list would be the bug).
+- **L4 (iOS)**: the review gate shows the notice **with the counts**, and **Continue is never
+  blocked** - assert the button is enabled with the notice present.
+- **L1 (iOS)**: the client renders whatever the server declared - feed it a format with an
+  unsupported list the app has never heard of and it still renders. This is the anti-hardcoding
+  assertion.
 
-- **Hardcoding the copy in the client per format** - the thing that rots, and the reason decision 1
-  puts the declaration on the server.
-- **Listing every unsupported column including the empty ones** - buries the one that matters.
-- **Asserting the notice exists without asserting the COUNT** - the count is what makes it
-  actionable, and a notice with a wrong number is worse than none.
-- **Blocking the import on it.**
-- Asserting a localization key exists rather than what it renders.
-- A single RU plural form for every number.
+Report the observed, **non-zero** count for every suite, and **run any app-target iOS suite
+separately** - a combined `xcodebuild` invocation silently dropped a `TankbookTests` filter on
+2026-09-10 ([PJ.56]).
 
-## Screenshots
+## The mutation you must run - I am naming it, do not choose your own
 
-The gate with the notice visible, dark theme, EN and RU:
-`design/screenshots/RV.116-import-preview.png` and `RV.116-import-preview-ru.png`.
+**Return the unsupported-column list with all counts forced to zero** (leave the names). The L4 test
+**must go red on the COUNT**, not on the notice's presence. Then restore and re-run. Report both
+outputs verbatim.
 
-- Seeds are idempotent and silently do nothing on a populated database - pass the reset flag
-  alongside the seed.
-- RU: `xcrun simctl launch <device> app.tankbook.Tankbook -AppleLanguages "(ru)" -AppleLocale ru_RU`.
-- Take them **outside** a test run - `simctl` and `xcodebuild test` fight over the device.
-- **OCR your own capture and read the text back** before reporting it. A committed screenshot has
-  twice shown the opposite of the row's claim because it was taken before the screen settled.
-- RU runs 20-30% longer and short strings expand worst. If a label truncates, fix the layout - do
-  not shorten the Russian.
+That is the mutation because the count is the whole value of the notice: *"driver is not imported"*
+is trivia, *"250 rows carry a driver"* is a decision. A test that passes on a notice with no numbers
+is testing the sentence, not the feature.
+
+## Vacuous traps, named
+
+- **Hardcoding the copy in the client per format** - the thing that rots, and the row names it first.
+- **Listing every unsupported column including the empty ones**, which buries the one that matters.
+- **Asserting the notice exists without asserting the count** - the count is what makes it
+  actionable.
+- Blocking or disabling Continue on it.
+- Putting the counts in `/import/formats`, which cannot know them.
+- A single shared unsupported list for both formats - their columns differ.
+
+## Never stash, move or `git checkout` to get a "clean baseline"
+
+Write the test, run it against the unmodified code, then make the change. **Do not** `git stash`,
+`git checkout`, or move files out of the tree: an agent did that on 2026-09-08 and a bad `mv` loop
+destroyed three of its own new files.
 
 ## Never `pgrep -f` for a build process
 
-Your brief is part of your command line, so `pgrep -f "xcodebuild.*test"` matches **you**. Use
-`pgrep -x xcodebuild` / `pgrep -x dotnet`. Never `pkill -f`.
+Your brief is part of your command line, so `pgrep -f "xcodebuild.*test"` matches **this agent**.
+Use `pgrep -x xcodebuild`. **Never `pkill -f`.**
+
+## `simctl launch` on a running app ignores new arguments - `terminate` first
+
+**You cannot see your own screenshots**: state what you captured, never that it looks right. **Check
+what is BEHIND your subject** - on 2026-09-10 a correct toast was photographed over a screen no user
+can reach, and it looked like a successful capture.
+
+## Standing checks
+
+Re-measure the baseline yourself and report what you observe. As left, `main` is **1857 tests / 219
+suites**, **826** localization keys at 100% RU, backend **445** tests.
+
+1. `cd ios && swift build` - exit 0.
+2. `swiftlint lint` from the **repo ROOT** - exit 0. From the root, **not** `ios/`: the `excluded:`
+   paths are root-relative and from `ios/` it exits 2 with ~5000 phantom errors.
+3. `cd ios && swift test` - full, never subsetted; report the count.
+4. **`cd backend && dotnet build`** and **`dotnet test`** - exit 0, report the count.
+5. **`cd backend && dotnet format --verify-no-changes`** - exit 0. This is half the backend gate and
+   is the one that gets forgotten.
+6. **`xcodebuild ... build` for the app target.** `swift build` compiles only the SwiftPM package;
+   anything under `ios/App/Sources` is invisible to it ([RV.174], 2026-09-10).
+7. `xcodegen generate`, then the UI suite you touched by name with an observed, **non-zero** count.
+8. Localization gate - exit 0; report keys and RU percentage.
+9. Release build if you touch a `#if DEBUG` seam. Say which applies.
+
+Verify by **exit code** (`echo $?`), and report the codes you observed.
 
 ## Report back
 
-Every check with the **exit code you observed**, and whether each test was **run or only written**.
-Name any closed decision above you think is wrong, and stop there rather than absorbing it - four
-of the orchestrator's diagnoses have been wrong and every one was caught by an agent pushing back.
-
----
-
-## AMENDED 2026-09-08: drivvo is now IN scope, and it is the sharper case
-
-The out-of-scope line above excluded `drivvo` because [RV.113] had not landed when this brief was
-written. **[RV.113] has since landed** (`01ae3fa`), and a previous run of this brief found the
-consequence before it was killed - confirm it yourself, then act on it:
-
-`DrivvoParser.BuildIndex` looks up **known headers only**, so a column whose header is not in the
-mapping is never read and its data is **silently dropped**. On the real export that is `Водитель`
-(the driver - Drivvo's whole fleet positioning), `Метод оплаты`, `Тип расхода` and `Скидка`.
-
-So the format this row exists to describe honestly is the one that drops the most, and it now
-exists. **Declare `drivvo`'s unsupported fields alongside `mfm`'s.** Everything else in this brief
-is unchanged - the same declaration-plus-count split, the same stable keys with localized labels on
-the device, the same zero-count omission rule.
-
-Still out of scope: changing `DrivvoParser` to start importing any of those columns. This row
-reports the gap; it does not close it.
-
-**Baselines have moved** - `main` is green at **1644 tests / 184 suites**, backend **423**, **774**
-localization keys. Re-measure and report what you observe.
+Every check with the **exit code you observed** and the observed counts; whether each test was **run
+or only written**; **the named mutation's red-then-green output, verbatim**; your decision on
+all-empty columns and where you wrote it down; **the old-client / old-server compatibility answer**;
+what you added for observability; and **anything you found and did not fix**.

@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.152** | flash | 67302 | `btf3704mx` (persistent) | `agents/briefs/RV.152.md` |
+| **RV.116** | flash | 92908 | `bfcmlfrbt` (persistent) | `agents/briefs/RV.116.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -91,7 +91,7 @@ failing case rather than a hypothetical:
 | # | Task | Why here |
 |---|---|---|
 | ~~7~~ | **RV.152** | **Briefed and in flight.** The brief pins the seam (`VehicleDetailView.swift:313-328`) and names the restructuring the row needs: RV.140's re-home runs AFTER `upsertVehicle`, and the question has to precede the write |
-| 8 | **RV.116** | An import must say what it is NOT bringing in |
+| ~~8~~ | **RV.116** | **Briefed and in flight.** The brief settles the split the row's wording blurs: the unsupported column NAMES are per-format reference data in `GET /import/formats`, but the COUNT of rows carrying a value is per-file and can only come from `POST /import/parse`. Backend + iOS |
 | 9 | **RV.161** **[v1.1]** | Extract the station from a scanned receipt. Only worth doing now that `RV.156` gives it somewhere to land |
 
 **Tier 4 - needs something first.**
