@@ -52,6 +52,8 @@ Scale (SwiftUI):
 
 Units are always typographically subordinate to their number: small, uppercase, soft ink, positioned after the figure. The number is the content; the unit is the caption.
 
+**A date-only value never renders a time (RV.183, decided 2026-09-10).** Some values carry a time and some do not, and a formatter must not invent the difference. `Attachment.extractedTimestamp` is the date the receipt printed (`docs/SCHEMA.md` -> Attachment & extraction provenance) - a date-only fact - while `Attachment.createdAt` is the capture instant, a real moment. Rendering the printed date through `.hour().minute()` asserted a precision it never had and printed a fabricated `00:00`, which the user cannot distinguish from a lost time. The rule: **format a value at the precision it actually has** - a date-only value renders `.month().day().year()` (or shorter) with no time component, and only a value that carries a time may render one. The recognised page's caption therefore reads the capture instant from `createdAt` (`AttachmentRecognisedView.capturedLine`), and the receipt's printed date stays in the `Date` field row, date-only (`AttachmentValueFormat.dateOnly`).
+
 ## Signature element: the Pump Card
 
 The scan-confirm card is styled as an echo of the pump readout the user just looked at – the one moment of boldness in an otherwise quiet app.

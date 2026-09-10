@@ -11,6 +11,13 @@ import TankbookCore
 /// contradict values the user has already confirmed (hard rule 13) and the whole
 /// point of the viewer is to look, not to re-derive.
 ///
+/// RV.183 split the two dates the page used to conflate: the caption is the
+/// CAPTURE time (`Attachment.createdAt`, a real instant), while the receipt's
+/// own printed date is a date-only fact carried by the `Date` field row
+/// (`docs/SCHEMA.md` -> Attachment.extractionMeta, `FieldValue.text`). The
+/// caption no longer reads `extractedTimestamp`, which is the printed date, so
+/// it no longer prints a fabricated `00:00`.
+///
 /// Hard rule 13 is untouched. The stored assignment is a record of what the
 /// scan CONCLUDED, not a fact and not a source that may overwrite a user's
 /// value: `FieldExtraction.userCorrected` already marks a field the user
@@ -18,7 +25,7 @@ import TankbookCore
 struct AttachmentRecognisedView: View {
     let extractionMeta: ExtractionMeta?
     let ocrText: String?
-    let extractedTimestamp: Date?
+    let createdAt: Date
 
     var body: some View {
         ScrollView {
@@ -27,11 +34,10 @@ struct AttachmentRecognisedView: View {
                     .font(.headline)
                     .foregroundStyle(Theme.Palette.ink)
                     .accessibilityIdentifier("attachmentViewerRecognisedTitle")
-                if let timestamp = extractedTimestamp {
-                    Text(Self.scannedLine(timestamp))
-                        .font(.footnote)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
+                Text(Self.capturedLine(createdAt))
+                    .font(.footnote)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .accessibilityIdentifier("attachmentViewerCapturedAt")
                 let rows = AttachmentValueFormat.rows(from: extractionMeta)
                 if rows.isEmpty {
                     nothingRecognisedCard
@@ -140,13 +146,14 @@ struct AttachmentRecognisedView: View {
         .accessibilityIdentifier("attachmentViewerRawTextDisclosure")
     }
 
-    /// "Scanned 3 Sept, 14:32" - the timestamp the pipeline stamped on the
-    /// attachment. One full localised phrase per language (the RU pass on P1.4
-    /// proved composed strings need a full localised phrase), the date formatted
-    /// locale-aware.
-    private static func scannedLine(_ timestamp: Date) -> String {
-        let stamp = timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute())
-        return String(format: L10n.localize("Scanned %@"), stamp)
+    /// "Captured 3 Sept, 14:32" - the capture instant `Attachment.createdAt`
+    /// records. One full localised phrase per language (the RU pass on P1.4
+    /// proved composed strings need a full localised phrase), the instant
+    /// formatted locale-aware. This is deliberately NOT `extractedTimestamp`:
+    /// that is the receipt's printed date, which has no time (RV.183).
+    static func capturedLine(_ capturedAt: Date) -> String {
+        let stamp = capturedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+        return String(format: L10n.localize("Captured %@"), stamp)
     }
 
     /// The OCR text as something worth rendering - nil when empty or whitespace.
@@ -230,7 +237,7 @@ enum AttachmentValueFormat {
             }
         case .text(let text):
             if ref == .date, let parsed = ConfirmDate.parse(text) {
-                return .plain(parsed.formatted(.dateTime.month(.abbreviated).day().year()))
+                return .plain(dateOnly(parsed))
             }
             return .plain(text)
         case .fuelKind(let kind):
@@ -245,5 +252,13 @@ enum AttachmentValueFormat {
     private static func currency(in fields: [FieldRef: FieldExtraction]) -> CurrencyCode? {
         guard case .currency(let code)? = fields[.currency]?.value else { return nil }
         return code
+    }
+
+    /// A date-only value renders date-only: month, day and year, never a time
+    /// (RV.183, docs/DESIGN.md -> Typography). The receipt's printed date has no
+    /// time component, so a formatter that appends `.hour().minute()` asserts a
+    /// precision the value never had and prints a fabricated `00:00`.
+    static func dateOnly(_ date: Date) -> String {
+        date.formatted(.dateTime.month(.abbreviated).day().year())
     }
 }

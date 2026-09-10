@@ -92,7 +92,8 @@ extension ManualFillUpView {
     func scannedSavePlan(derived: ManualFillUpMath.Derived) -> ScannedSavePlan {
         let saved = ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
                                       unitPrice: derived.unitPrice, currency: form.currency,
-                                      fuelKind: form.fuelKind, date: form.date)
+                                      fuelKind: form.fuelKind, date: form.date,
+                                      stationName: selectedStation?.name)
         // PJ.48: an attached receipt on the typed path. Provenance stays
         // `.manual` (the entry was typed); no QR anchor, so the OCR never fights
         // a typed value; the extraction records the attach.

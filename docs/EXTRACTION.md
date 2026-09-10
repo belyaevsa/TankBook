@@ -45,6 +45,12 @@ so a scanned name and a typed one resolve to one deterministic id (RV.156) inste
 Splitting that line into a canonical `brand` and a `site` is RV.115's brand list, deliberately not
 forked here.
 
+**It is also written to the attachment's stored assignment (RV.184, 2026-09-10).** `ScannedSavePlanner`
+records the station beside the six value fields in `Attachment.extractionMeta`, so the viewer's "What
+was read" page can show what the scan concluded about the station exactly as it does for the total or
+the date. That record is presentation only: the value is the scan's own proposal (what was READ),
+`userCorrected` marks a name the user changed, and it never feeds back into the entry (hard rule 13).
+
 **One heuristic, two callers.** The shape - letters, at most six tokens, at most one numeric token,
 not a date, not a document label - lives in `CompanyNameLine.isCompanyName`, shared with the
 service-invoice vendor finder (`InvoiceSplitter.detectVendor`). The fuel extractor adds exactly three

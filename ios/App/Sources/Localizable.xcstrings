@@ -2992,6 +2992,23 @@
         }
       }
     },
+    "Captured %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Captured %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Снято %@"
+          }
+        }
+      }
+    },
     "Car not found": {
       "extractionState": "manual",
       "localizations": {

@@ -478,4 +478,57 @@ final class AttachmentViewerUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Use a different receipt"].exists,
                       "the ask must offer replacing with another receipt")
     }
+
+    // MARK: - RV.183 + RV.184 the capture caption and the station
+
+    /// RV.183: the receipt's printed date and the capture instant are DIFFERENT
+    /// facts. `-seedPhotoCaptureVsPrinted` sets them two days apart, so a caption
+    /// that reads the printed date renders 8 Sep where the capture is 10 Sep
+    /// 14:32 - this asserts both values are on the page, distinctly.
+    func testTheRecognisedPageShowsCaptureTimeAndPrintedDateDistinctly() {
+        let app = launch("-seedPhotoCaptureVsPrinted",
+                         extra: ["-openAttachmentViewer", "-openAttachmentViewerRecognised"])
+
+        let caption = app.descendants(matching: .any)["attachmentViewerCapturedAt"]
+        XCTAssertTrue(caption.waitForExistence(timeout: 15),
+                      "the capture caption must render")
+        XCTAssertTrue(caption.isHittable,
+                      "the capture caption must be visible, not merely present")
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let captured = calendar.date(from: DateComponents(year: 2026, month: 9, day: 10,
+                                                          hour: 14, minute: 32))!
+        let captureStamp = captured.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+        XCTAssertTrue(caption.label.contains(captureStamp),
+                      "the caption must carry the CAPTURE instant \(captureStamp), got \(caption.label)")
+
+        let fields = app.descendants(matching: .any)["attachmentViewerRecognisedFields"]
+        XCTAssertTrue(fields.waitForExistence(timeout: 10),
+                      "the assigned-field card must render")
+        let printed = calendar.date(from: DateComponents(year: 2026, month: 9, day: 8))!
+        let printedStamp = printed.formatted(.dateTime.month(.abbreviated).day().year())
+        XCTAssertTrue(fields.staticTexts[printedStamp].exists,
+                      "the receipt's printed date must render in the Date row: \(printedStamp)")
+        XCTAssertNotEqual(caption.label, printedStamp,
+                          "the capture caption and the printed date must be distinct values")
+    }
+
+    /// RV.184: the station the scan resolved is stored in the assignment and
+    /// shown on the page with its exact name - asserting the NAME, not merely
+    /// that a Station row exists.
+    func testTheRecognisedPageShowsTheExtractedStation() {
+        let app = launch("-seedPhotoCaptureVsPrinted",
+                         extra: ["-openAttachmentViewer", "-openAttachmentViewerRecognised"])
+
+        let fields = app.descendants(matching: .any)["attachmentViewerRecognisedFields"]
+        XCTAssertTrue(fields.waitForExistence(timeout: 15),
+                      "the assigned-field card must render")
+        XCTAssertTrue(fields.isHittable,
+                      "the assigned-field card must be visible, not merely present")
+        XCTAssertTrue(fields.staticTexts["Circle K Sikupilli"].exists,
+                      "the Station row must show the exact name the scan resolved")
+        XCTAssertTrue(fields.staticTexts["Station"].exists,
+                      "the row must be labelled Station")
+    }
 }

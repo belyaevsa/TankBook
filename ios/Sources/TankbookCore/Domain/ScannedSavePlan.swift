@@ -23,16 +23,23 @@ public struct ScannedSaveValues: Sendable, Equatable {
     public var currency: CurrencyCode?
     public var fuelKind: FuelKind?
     public var date: Date?
+    /// The station the save records, by name - the user's final selection
+    /// (`Station.name`), compared against the scan's proposed
+    /// `FuelExtraction.stationName` for `userCorrected`. nil when the user chose
+    /// no station, so a scan that proposed one reads as corrected (RV.184).
+    public var stationName: String?
 
     public init(total: Decimal? = nil, volumeL: Double? = nil,
                 unitPrice: Decimal? = nil, currency: CurrencyCode? = nil,
-                fuelKind: FuelKind? = nil, date: Date? = nil) {
+                fuelKind: FuelKind? = nil, date: Date? = nil,
+                stationName: String? = nil) {
         self.total = total
         self.volumeL = volumeL
         self.unitPrice = unitPrice
         self.currency = currency
         self.fuelKind = fuelKind
         self.date = date
+        self.stationName = stationName
     }
 }
 
@@ -164,6 +171,13 @@ public enum ScannedSavePlanner {
             fields[.fuelKind] = FieldExtraction(cropRect: nil, confidence: confidence,
                                                 userCorrected: false, value: .fuelKind(kind))
         }
+        // RV.184: the station the scan concluded, stored like every other field
+        // so the recognised page can show it. Presentation only - it is never
+        // fed back into the entry (hard rule 13).
+        if let station = extraction.stationName {
+            fields[.station] = FieldExtraction(cropRect: nil, confidence: confidence,
+                                               userCorrected: false, value: .text(station))
+        }
         guard !fields.isEmpty else { return nil }
         return ExtractionMeta(fields: fields, pipeline: pipeline)
     }
@@ -220,6 +234,18 @@ public enum ScannedSavePlanner {
                 confidence: confidence[.fuelKind] ?? onDeviceConfidenceDefault,
                 userCorrected: saved.fuelKind != kind,
                 value: .fuelKind(kind))
+        }
+        // RV.184: the station the scan concluded, beside the six fields above, so
+        // the attachment's stored record says what the scan read about the
+        // station too. `userCorrected` compares against the station the user
+        // finally selected (hard rule 13); the value stays the scan's own
+        // proposal, never the selection, because this is what was READ.
+        if let station = extraction.stationName {
+            fields[.station] = FieldExtraction(
+                cropRect: nil,
+                confidence: confidence[.station] ?? onDeviceConfidenceDefault,
+                userCorrected: saved.stationName.map { $0 != station } ?? true,
+                value: .text(station))
         }
         return ExtractionMeta(fields: fields, pipeline: pipeline)
     }

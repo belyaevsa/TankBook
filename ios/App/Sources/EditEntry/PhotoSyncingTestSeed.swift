@@ -23,6 +23,11 @@ import TankbookCore
 /// - `-seedPhotoLocalNoOCR` (RV.17): a local photo with NO recognised data
 ///   (`ocrText` and `extractedTimestamp` both nil), so the viewer's recognised
 ///   page is absent rather than empty.
+/// - `-seedPhotoCaptureVsPrinted` (RV.183/184): a recognised page whose capture
+///   instant (`createdAt`, 10 Sep 14:32) and receipt's printed date (8 Sep)
+///   DIFFER, and whose assignment carries the station. The two dates are the
+///   whole point - a fixture where they match proves nothing about which one
+///   the caption reads.
 ///
 /// The entry is openable and editable in every one of them (hard rule 1).
 enum PhotoSyncingTestSeed {
@@ -42,6 +47,8 @@ enum PhotoSyncingTestSeed {
             variant = .localNoOCR
         } else if arguments.contains("-seedPhotoNothingAssigned") {
             variant = .nothingAssigned
+        } else if arguments.contains("-seedPhotoCaptureVsPrinted") {
+            variant = .captureVsPrinted
         } else {
             variant = nil
         }
@@ -69,6 +76,7 @@ enum PhotoSyncingTestSeed {
         case remote
         case localNoOCR
         case nothingAssigned
+        case captureVsPrinted
     }
 
     /// The JPEG the seeded slow transport returns, and the bytes the `.remote`
@@ -96,6 +104,17 @@ enum PhotoSyncingTestSeed {
         try? repository.upsertVehicle(vehicle)
 
         let scannedAt = now.addingTimeInterval(-3600)
+        // RV.183/184: the printed-vs-capture fixture. The capture instant and
+        // the receipt's printed date are fixed and DIFFERENT, so the caption
+        // (capture) and the `Date` row (printed) cannot be mistaken for one
+        // another. `-seedPhotoLocal` keeps the old same-instant shape.
+        let calendar = Calendar(identifier: .gregorian)
+        let captureVsPrinted = variant == .captureVsPrinted
+        let capture = captureVsPrinted
+            ? (calendar.date(from: DateComponents(year: 2026, month: 9, day: 10,
+                                                  hour: 14, minute: 32)) ?? scannedAt)
+            : scannedAt
+        let printed = calendar.date(from: DateComponents(year: 2026, month: 9, day: 8))
         // RV.17: `.localNoOCR` and `.remote` carry nothing recognised - the
         // first so the viewer's recognised page is absent, the second so the
         // slow-fetch capture shows the progress indication cleanly (no second
@@ -103,26 +122,36 @@ enum PhotoSyncingTestSeed {
         // the page is reachable.
         let recognised: (timestamp: Date?, ocr: String?) =
             (variant == .localNoOCR || variant == .remote)
-                ? (nil, nil) : (scannedAt, "SHELL 71.02 42.30 1.679")
+                ? (nil, nil)
+                : (captureVsPrinted ? printed : scannedAt, "SHELL 71.02 42.30 1.679")
         // RV.48: the `.local` receipt carries the parse's per-field ASSIGNMENT, so
         // the recognised page shows meaning. `.nothingAssigned` carries the raw
         // lines but no assignment, so it shows the "nothing usable" state.
-        let extractionMeta: ExtractionMeta? = (variant == .local)
-            ? ExtractionMeta(fields: [
-                .total: FieldExtraction(cropRect: nil, confidence: 0.98, userCorrected: false,
-                                        value: .money(Decimal(string: "71.02")!)),
-                .volume: FieldExtraction(cropRect: nil, confidence: 0.97, userCorrected: false,
-                                         value: .number(42.30)),
-                .unitPrice: FieldExtraction(cropRect: nil, confidence: 0.96, userCorrected: false,
-                                            value: .money(Decimal(string: "1.679")!)),
-                .currency: FieldExtraction(cropRect: nil, confidence: 0.99, userCorrected: false,
-                                           value: .currency(.eur)),
-                .fuelKind: FieldExtraction(cropRect: nil, confidence: 0.95, userCorrected: false,
-                                           value: .fuelKind(.petrol95)),
-            ], pipeline: "vision+rules v3")
+        // RV.183/184: `.captureVsPrinted` adds the printed `Date` and the
+        // `Station` the scan read, so the page shows both.
+        var fields: [FieldRef: FieldExtraction] = [
+            .total: FieldExtraction(cropRect: nil, confidence: 0.98, userCorrected: false,
+                                    value: .money(Decimal(string: "71.02")!)),
+            .volume: FieldExtraction(cropRect: nil, confidence: 0.97, userCorrected: false,
+                                     value: .number(42.30)),
+            .unitPrice: FieldExtraction(cropRect: nil, confidence: 0.96, userCorrected: false,
+                                        value: .money(Decimal(string: "1.679")!)),
+            .currency: FieldExtraction(cropRect: nil, confidence: 0.99, userCorrected: false,
+                                       value: .currency(.eur)),
+            .fuelKind: FieldExtraction(cropRect: nil, confidence: 0.95, userCorrected: false,
+                                       value: .fuelKind(.petrol95)),
+        ]
+        if captureVsPrinted {
+            fields[.date] = FieldExtraction(cropRect: nil, confidence: 0.97, userCorrected: false,
+                                            value: .text("08.09.2026"))
+            fields[.station] = FieldExtraction(cropRect: nil, confidence: 0.9, userCorrected: false,
+                                               value: .text("Circle K Sikupilli"))
+        }
+        let extractionMeta: ExtractionMeta? = (variant == .local || captureVsPrinted)
+            ? ExtractionMeta(fields: fields, pipeline: "vision+rules v3")
             : nil
         let attachment = Attachment(
-            id: UUID.v7(), createdAt: scannedAt, updatedAt: scannedAt, deletedAt: nil,
+            id: UUID.v7(), createdAt: capture, updatedAt: capture, deletedAt: nil,
             kind: variant == .pdf ? .pdf : .photo,
             file: fileRef(for: variant),
             extractedTimestamp: recognised.timestamp,
@@ -157,7 +186,7 @@ enum PhotoSyncingTestSeed {
             return LocalFileRef(
                 sha256: BlobHash.sha256(Self.remoteRendition),
                 relativePath: "photos/pending/remote.jpg")
-        case .local, .localNoOCR, .nothingAssigned, .pdf:
+        case .local, .localNoOCR, .nothingAssigned, .pdf, .captureVsPrinted:
             let data = variant == .pdf ? samplePDF() : sampleJPEG(size: 900)
             guard let data, let saved = try? VehiclePhotoStore.save(data, id: UUID.v7()) else {
                 return LocalFileRef(sha256: "", relativePath: "")

@@ -24,10 +24,11 @@ import UIKit
 ///    and paging. Unreadable bytes get an explicit state, never a blank frame.
 ///
 /// RV.17 adds two surfaces on top of RV.9:
-/// - the recognised data (`Attachment.ocrText`, `extractedTimestamp`) as a
-///   second page beside the photo, reachable by swiping - present only when the
-///   attachment carries anything, absent rather than empty otherwise. This is
-///   presentation of stored data; the viewer never re-runs OCR (hard rule 13).
+/// - the recognised data (`Attachment.ocrText`, `extractionMeta`, and the
+///   capture time `Attachment.createdAt`) as a second page beside the photo,
+///   reachable by swiping - present only when the attachment carries anything,
+///   absent rather than empty otherwise. This is presentation of stored data;
+///   the viewer never re-runs OCR (hard rule 13).
 /// - a Share affordance that hands the FULL rendition to the system share sheet
 ///   (save-to-Photos, share, save-to-Files), offered only once `.full` is
 ///   reached - a share sheet over a 44 pt thumbnail is worse than none.
@@ -191,7 +192,7 @@ struct AttachmentViewerView: View {
                     .tag(0)
                 AttachmentRecognisedView(extractionMeta: attachment.extractionMeta,
                                          ocrText: attachment.ocrText,
-                                         extractedTimestamp: attachment.extractedTimestamp)
+                                         createdAt: attachment.createdAt)
                     .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .automatic))

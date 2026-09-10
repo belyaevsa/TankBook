@@ -786,6 +786,14 @@ capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToC
 capture RV.48-attachment-recognised    en -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
 capture RV.48-attachment-recognised-ru ru -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
 
+# RV.183 + RV.184: the recognised page with the CAPTURE caption
+# (`Attachment.createdAt`, 10 Sep 14:32) beside the receipt's PRINTED date
+# (8 Sep) in the `Date` row, and the extracted Station row. The seed's two dates
+# deliberately differ, so the shot proves which one the caption reads. RU is
+# where "Снято ..." plus "Заправка" plus the printed date row overflow the list.
+capture RV.183-184-attachment-capture-station    en -seedPhotoCaptureVsPrinted -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
+capture RV.183-184-attachment-capture-station-ru ru -seedPhotoCaptureVsPrinted -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerRecognised
+
 # RV.42: the language restart notice survives being ignored - Settings showing
 # the pending notice on the Language row AFTER the picker was dismissed (the
 # whole point; a shot of the picker does not demonstrate the fix). The notice is
