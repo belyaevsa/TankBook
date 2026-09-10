@@ -25,6 +25,13 @@ public struct FuelExtractor: Sendable {
         // would delete the evidence the gate runs on.
         result.currency = CurrencyDetection.detect(in: lines)
         result.date = detectDate(lines)
+        // RV.161: the station identity line. A pump display names no station
+        // (and that mode ships off - hard rule 15's re-measurement), so only
+        // the receipt-like sources read one. The line is a default input the
+        // user edits (hard rule 13), never logged (hard rule 12).
+        if source != .pump {
+            result.stationName = StationNameExtractor.stationName(from: lines)
+        }
         // RV.48: the band is era-keyed (docs/SCHEMA.md -> Fuel price bands),
         // so the ladder needs the receipt's own date, never today's. The date
         // string `detectDate` produced is parsed once here and handed down;

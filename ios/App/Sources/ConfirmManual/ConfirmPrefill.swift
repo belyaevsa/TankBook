@@ -124,6 +124,7 @@ enum ConfirmPrefillSeed {
             // caption at all (hard rule 15).
             return ConfirmPrefill(extraction: FuelExtraction())
         }
+        if let station = stationPrefill(from: arguments) { return station }
         if arguments.contains("-seedConfirmPrefillSparse") {
             return ConfirmPrefill(extraction: FuelExtraction(liters: 42.30,
                                                              currency: .eur,
@@ -189,6 +190,17 @@ enum ConfirmPrefillSeed {
                                   crops: crops(for: [.volume, .unitPrice]))
         }
         return nil
+    }
+
+    /// RV.161: a scan that resolved the receipt's station line. The row shows
+    /// the brand as a selected, changeable default input.
+    private static func stationPrefill(from arguments: [String]) -> ConfirmPrefill? {
+        guard arguments.contains("-seedConfirmPrefillStation") else { return nil }
+        return ConfirmPrefill(extraction: FuelExtraction(liters: 42.30, unitPrice: 1.679,
+                                                         total: 71.02, currency: .eur,
+                                                         fuelKind: .petrol95,
+                                                         date: "17.08.2026",
+                                                         stationName: "Circle K Sikupilli"))
     }
 
     /// RV.71: a DIESEL receipt scanned against the default petrol-95 test car

@@ -8,6 +8,26 @@ import TankbookCore
 
 extension ManualFillUpView {
 
+    /// RV.161: writes the station a scan resolved, at the moment the user
+    /// commits the entry. `scannedStationID` is the resolved id and the row's
+    /// selection; if the user changed the station in between, the ids differ
+    /// and nothing is written. The write routes through the shared
+    /// deterministic `createStation`, so it resolves to the same id the entry
+    /// already carries. A failed write degrades to no station row (the entry
+    /// still saves) - the fields re-resolve on the next capture there.
+    func persistScannedStation(repository: TankbookRepository) {
+        guard let scannedStationID,
+              selectedStation?.id == scannedStationID,
+              let name = selectedStation?.name else { return }
+        self.scannedStationID = nil
+        do {
+            _ = try repository.createStation(named: name)
+        } catch {
+            AppLog.error(operation: "confirmManual.stationCreate",
+                         category: .ui, error: error)
+        }
+    }
+
     /// RV.150: a save at a chosen station stamps the Station row the suggestion
     /// ranks by - `lastUsedAt` becomes the save's moment, `defaults` records
     /// what was actually bought, and a station with no recorded location adopts

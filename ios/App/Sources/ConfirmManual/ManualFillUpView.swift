@@ -51,6 +51,11 @@ struct ManualFillUpView: View {
     /// PJ.19: a user's own menu pick; never overwritten by a later ranking pass
     /// (hard rule 13). Non-private: the suggestion extension reads and sets it.
     @State var stationChosenByUser = false
+    /// RV.161: the id of the station a scan resolved and has NOT yet written.
+    /// It is shown selected (a default input the user edits) but is persisted
+    /// only at save, so a misread never mints a synced station on a sheet the
+    /// user cancels. Nil on the typed path and once the user picks another.
+    @State var scannedStationID: UUID?
     /// RV.150: the forecourt fix the Confirm sheet's ONE location read resolved
     /// (PJ.19). Held so a save at a station with no recorded coordinate can
     /// adopt it - no second read, no second permission ask, no background fix.
@@ -400,6 +405,7 @@ struct ManualFillUpView: View {
         // total is handled above, per its resolution source).
         if extraction.liters != nil { form.resolvedByExtraction.insert(.volume) }
         if extraction.unitPrice != nil { form.resolvedByExtraction.insert(.unitPrice) }
+        applyScannedStation(extraction.stationName)
     }
 
     private func applyTotal(_ total: Decimal?) {
@@ -422,21 +428,6 @@ struct ManualFillUpView: View {
     }
 
     // MARK: - P6.3 the gateway reading (docs/API.md rules 2 & 3)
-
-    /// The fields the on-device extraction resolved - the late answer's
-    /// "not blank" boundary. The QR-anchored total is NOT one of these: a QR
-    /// total is exact, and treating it as on-device-resolved would be fine too
-    /// (it is never blank), but the extraction's own fields are the honest set.
-    private static func onDeviceResolvedFields(_ extraction: FuelExtraction) -> Set<FieldRef> {
-        var resolved = Set<FieldRef>()
-        if extraction.total != nil { resolved.insert(.total) }
-        if extraction.liters != nil { resolved.insert(.volume) }
-        if extraction.unitPrice != nil { resolved.insert(.unitPrice) }
-        if extraction.date != nil { resolved.insert(.date) }
-        if extraction.currency != nil { resolved.insert(.currency) }
-        if extraction.fuelKind != nil { resolved.insert(.fuelKind) }
-        return resolved
-    }
 
     /// Fires the background `/extract` request when this scan has a photo and a
     /// gateway is available (signed in, or a seeded test transport). The card
@@ -569,6 +560,10 @@ private extension ManualFillUpView {
             // The scanned save's one receipt photo, written once and shared by
             // the whole save; a write failure degrades to no photo (RV.149).
             let receiptWrite = attemptReceiptPhotoWrite(scanned: scanned, source: receiptSource, repository: repository)
+            // RV.161: the scanned station is persisted only now - the user has
+            // committed the entry, and the row they saw (and could change) is
+            // the one written. A cancelled sheet writes no station.
+            persistScannedStation(repository: repository)
             var toSave = buildFillUp(vehicle: vehicle, derived: derived,
                                      attachments: receiptWrite.sharedIDs,
                                      provenance: scanned.provenance,

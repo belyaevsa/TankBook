@@ -35,6 +35,47 @@ receipt is a present-tense local signal that beats device region and beats any I
 facts stay **default inputs the user can change** (hard rule 13) - a receipt read is a suggestion,
 and the corpus records Vision misreading a digit at confidence 1.00.
 
+### The station line, extracted (RV.161, 2026-09-10)
+
+The fuel path now resolves the station identity line the receipt prints - `ООО "Газпромнефть-центр"
+... Место расчетов АЗС №12089`, `Circle K Sikupilli teenindusjaam` - as `FuelExtraction.stationName`,
+and it reaches the entry only through the Confirm pre-fill, where the user sees and can change it
+(hard rule 13). It is stored as the `Station`'s **name**, the string `ImportStationResolver` keys on,
+so a scanned name and a typed one resolve to one deterministic id (RV.156) instead of duplicating.
+Splitting that line into a canonical `brand` and a `site` is RV.115's brand list, deliberately not
+forked here.
+
+**One heuristic, two callers.** The shape - letters, at most six tokens, at most one numeric token,
+not a date, not a document label - lives in `CompanyNameLine.isCompanyName`, shared with the
+service-invoice vendor finder (`InvoiceSplitter.detectVendor`). The fuel extractor adds exactly three
+rules the invoice path does not need, and they are the whole difference:
+
+1. **A confidence floor (0.5).** A fuel receipt photographs a pump and a counter, so low-confidence
+   fragments sit above the brand (`G Э` at 0.30 on receipt-060).
+2. **A receipt-furniture deny list.** `КАССОВЫЙ ЧЕК`, `ИНН`, `ЗН ККТ`, `СПАСИБО`, card-terminal
+   boilerplate and address lines all have the shape of a company name; an invoice prints its vendor
+   first, so the shared predicate alone is enough there.
+3. **A person-name and currency-figure filter.** A cashier line (`НАФАНАИЛОВА Т.В.`) and a bare
+   amount (`79,32 EUR`) have the same shape.
+
+**NOT measured - and the corpus deliberately carries NO station column yet.** The first attempt
+added one and reported **46/46**, which was a tautology rather than an accuracy: the cells were
+filled from the extractor's own output, so on `receipt-007-lukoil` the cell was left blank while the
+OCR's first line reads `"ЛУКОНЛ-СЕВЕРО-ЗАПАДНЕФТЕПРОДУКТ"` - a miss recorded as "no ground truth" -
+and values like `ПИТАЛ` and `Крым` are parser fragments no human would write. The scorer skips an
+empty cell rather than counting it a miss, which is what let the blanks hide the misses. The column,
+its scorer support and the moved mark were all reverted; the receipts mark stands at **240/280**,
+unchanged by this row.
+
+Ground truth here has to come from something the extractor cannot see: the fixture **filenames**,
+which the product owner wrote from the images before any station extractor existed, cross-checked
+against the OCR. That is **RV.179**. Until it lands **this feature's accuracy is unknown**, and the
+tests below assert structure only - convergence, the logging gate, and the write path.
+
+**Hard rule 12.** A station name, brand or address is a domain value and is never logged, at any
+level, in any build; only counts and confidence are shape. A source-scan gate
+(`RV161StationLoggingGateTests`) pins the extraction and pre-fill seams against it.
+
 ## The one-sentence version
 
 Vision reads the characters; **the hard part is deciding what each number means**, and every

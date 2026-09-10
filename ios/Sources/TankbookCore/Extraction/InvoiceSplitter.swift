@@ -122,29 +122,19 @@ public struct InvoiceSplitter: Sendable {
     // MARK: - Vendor
 
     /// The first line that reads as a company name: letters, few tokens, no
-    /// more than one number, and not a date/total/VAT/payment line.
+    /// more than one number, and not a date/total/VAT/payment line. The shape
+    /// itself lives in `CompanyNameLine`, shared with the fuel station
+    /// extractor so the two cannot drift.
     func detectVendor(_ lines: [OCRLine]) -> String? {
         for line in lines {
             let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { continue }
-            guard text.contains(where: \.isLetter) else { continue }
-            guard detectDateString([line]) == nil else { continue }
-            if isTotalOrExcludedLine(text) { continue }
-            let tokens = text.split(separator: " ").filter { !$0.isEmpty }
-            guard tokens.count <= 6 else { continue }
-            let numberTokens = tokens.filter { $0.contains(where: \.isNumber) }
-            guard numberTokens.count <= 1 else { continue }
-            let upper = text.uppercased()
-            if Self.vendorDenyList.contains(where: upper.contains) { continue }
+            guard !isTotalOrExcludedLine(text) else { continue }
+            guard CompanyNameLine.isCompanyName(text) else { continue }
             return text
         }
         return nil
     }
-
-    private static let vendorDenyList = [
-        "RECHNUNG", "INVOICE", "СЧЕТ", "СЧЁТ", "ФАКТУРА", "QUITTUNG", "BELEG",
-        "DATUM", "DATE", "ДАТА", "TEL", "TEL.", "PHONE", "ТЕЛ", "WWW", "HTTP"
-    ]
 
     // MARK: - Date
 

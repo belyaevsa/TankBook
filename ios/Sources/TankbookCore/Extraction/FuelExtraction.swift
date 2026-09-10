@@ -19,6 +19,12 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
     public var currency: CurrencyCode?
     public var fuelKind: FuelKind?
     public var date: String?
+    /// The station identity line the receipt prints (`ООО "Газпромнефть-центр"
+    /// ... АЗС №12089`, `Circle K Sikupilli teenindusjaam`), or nil when the
+    /// document names no station. A default input the user edits (hard rule
+    /// 13): it reaches the entry only through the Confirm pre-fill, and a save
+    /// writes it. Never logged (hard rule 12).
+    public var stationName: String?
     /// The four-outcome cross-check of `liters x unitPrice` vs `total`
     /// (docs/EXTRACTION.md -> "Cross-check: four outcomes, not two"). Computed
     /// by `FuelExtractor.extract`; a manually-built extraction carries the
@@ -40,6 +46,7 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         currency: CurrencyCode? = nil,
         fuelKind: FuelKind? = nil,
         date: String? = nil,
+        stationName: String? = nil,
         crossCheck: ExtractionCrossCheck = .notApplicable,
         digitRepair: DigitRepair.Result? = nil
     ) {
@@ -49,6 +56,7 @@ public struct FuelExtraction: Sendable, Equatable, Codable {
         self.currency = currency
         self.fuelKind = fuelKind
         self.date = date
+        self.stationName = stationName
         self.crossCheck = crossCheck
         self.digitRepair = digitRepair
     }
