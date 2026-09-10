@@ -157,21 +157,41 @@ story is whole.
 **Run them on `pro`, read-only, beside whatever build agent is live.** They are the cheapest tool
 here and the only one that compares what the user was promised against what the code does.
 
-## The service loop is under review, 2026-09-10
+## The service loop, regrouped by its walk (2026-09-10)
 
-`PJ.23` shipped and the product owner immediately found what it did not do - add and delete a line -
-which J7's own Fallbacks sentence has promised since the journey was written (*"the user
-renames/splits by hand"*). **Six rows touch this loop and none owns it**: `PJ.23` (shipped),
-`RV.198` (in flight), `RV.199`, `PJ.22`, `PJ.26`, `PJ.27`.
+`REVIEW-SERVICE` walked J7 / J7b / J7d / J7c end to end
+(`diagnostics/REVIEW-SERVICE-2026-09-10.md`). Its verdict on the product owner's question - group or
+rebuild - was **neither**: *"the six rows are the right DECOMPOSITION, but the dispatch boundaries
+are wrong in two places, and one decision is missing."* **Three seams and one sweep, not six atoms
+and not one theme.**
 
-Rather than group them by theme - which this file's own rule forbids - `REVIEW-SERVICE` is walking
-J7/J7b/J7d/J7c end to end and will come back with **either a grouped dispatch list whose seams are
-named, or a reasoned "leave them as they are"**. It also owns a blind spot neither guard can cover:
-**`TireSet` has no `###` section in `docs/SCHEMA.md`**, so `RV.163` and `RV.196` cannot see any of
-its fields, including the dead `purchaseExpenseId` that `PJ.26` exists to write.
+| Group | Rows | The seam | Order |
+|---|---|---|---|
+| **A - the item surface** | `RV.198` + `RV.199` | The item collection and its total on the EDIT screen - one card, one save path | `RV.198` is IN FLIGHT; `RV.199` follows immediately |
+| **B - a reminder is born** | `PJ.62` **then** `PJ.22` | `ReminderOffer`, plus the `lifetime` editor that rides the same item row Group A is finishing | after A, and **`PJ.62` must be DECIDED first** |
+| **C - the tire loop** | `PJ.26` + `PJ.27` | `.tires` mode, `TireSet`, `TireSetsUITests` | after `PJ.63`; independent of A and B |
+| **D - the dead-field sweep** | `PJ.63` **then** `PJ.60` + `PJ.61` | `SCHEMA.md` headings and `FieldWriterScanner.entityFieldSpecs` | `PJ.63` first, so the guard can SEE the fields |
 
-**Do not brief `PJ.22` or dispatch `PJ.26+PJ.27` until that report lands** - they are the two rows
-most likely to be regrouped by it.
+**Three things the walk changed, and each is a decision I would have got wrong:**
+
+1. **`RV.199` is not a standalone row.** *"Shipping add/delete while the total stays stale IS the
+   RV.199 bug."* Adding a line must move the total, or the screen must say it will not. My `RV.198`
+   brief fenced `RV.199` OUT - so the dispatch now running will produce exactly that gap, and
+   `RV.199` goes out the moment it lands.
+2. **`PJ.22` as filed would mint a second reminder link.** Its row says *write `proposedReminderId`*
+   without noticing `Reminder.sourceEntryId` already carries that relationship and is already
+   written by the shipped `ReminderOffer` - **the exact second-path defect `RV.169`/`RV.170`/`RV.171`
+   exist to prevent.** `PJ.62` decides it before PJ.22 may be briefed.
+3. **`PJ.63` must precede `PJ.26`.** `TireSet` has no `###` heading, so `RV.196`'s guard is green
+   while three fields in this loop are dead. Fix the blind spot first and the guard becomes the
+   thing that PROVES `PJ.26` fixed something.
+
+**Zero ticked-but-untrue rows.** `PJ.23`, `P3.1b`, `P3.2`, `P3.3` and `PJ.25` were all verified
+present and reachable in Release.
+
+**One finding filed by nobody yet**: `ServiceRecord.usedParts` has a writer and **no reader** - the
+reverse of the dead-field shape. A saved service never shows which parts it installed. Left as a
+product call, likely `PJ.52`'s (v2 parts shelf).
 
 ## Grouping: what ships together, and why (decided 2026-09-10)
 
