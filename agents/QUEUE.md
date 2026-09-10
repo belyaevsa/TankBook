@@ -61,10 +61,9 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 ### In flight
 
-*(nothing in flight)*
-
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
+| **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
 no edits, no builds, no tests, so it cannot collide on files or on the simulator, and `CLAUDE.md`
@@ -80,12 +79,12 @@ every other dispatch below needs a brief written first.
 failing case rather than a hypothetical. Their blind spots are the argument for `RV.165` and
 `RV.172`:
 
-| Guard | Catches | Its stated blind spot |
-|---|---|---|
-| `RV.167` money aggregation | a `.reduce` over a `Money`'s home side outside the accumulator | the `.reduce` shape only; a `+=` loop walks past (`RV.172`) |
-| `RV.163` entity writers | an entity `SCHEMA.md` names that nothing can create | entity-level; `PJ.55` was the FIELD-level instance it cannot see |
-| `RV.162` screen routes | a screen whose only door is `#if DEBUG` (`PJ.4`'s shape) | proves a door NAMES the screen, does not walk the view graph (`RV.165`) |
-| `RV.176` screenshot manifest | a committed PNG no capture line produces | proves a line EXISTS, not that it reproduces that frame (`RV.194`) |
+| Guard | Catches | Its stated blind spot | Closing it |
+|---|---|---|---|
+| `RV.167` money aggregation | a `.reduce` over a `Money`'s home side outside the accumulator | the `.reduce` shape only; a `+=` loop walks past | **`RV.172` CLOSED as a decision** - the grep finds no such site, and widening a guard against a hypothetical is the one thing the sequencing rule forbids |
+| `RV.163` entity writers | an entity `SCHEMA.md` names that nothing can create | entity-level; `PJ.55` was the FIELD-level instance it cannot see | **`RV.196`, briefed** - and its instances are LIVE: `Settings.anomalies` and `eagerMediaOnWiFi` are decoder-only |
+| `RV.162` screen routes | a screen whose only door is `#if DEBUG` (`PJ.4`'s shape) | proves a door NAMES the screen, does not walk the view graph | **`RV.165`, IN FLIGHT** - four journeys from a cold launch, plus a guard that fails a journey passing a navigation argument |
+| `RV.176` screenshot manifest | a committed PNG no capture line produces | proves a line EXISTS, not that it reproduces that frame | **`RV.194`, briefed** - narrow 470 frames to a suspect list by comparing below the status bar |
 
 **One row is committed but deliberately NOT closed.** `RV.181` (`ae775cf`) shipped hardening and a
 diagnosis, not a fix: the share seam now records the whole completion tuple, so a share that FAILED
@@ -100,10 +99,12 @@ can settle it.
 
 | # | Task | Brief | Note |
 |---|---|---|---|
-| 1 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
-| 2 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
-| 3 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
-| 4 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
+| 1 | **RV.196** | `RV.196.md` | `RV.163`'s field-level blind spot, with three live instances named. A source scanner: fast, no simulator |
+| 2 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
+| 3 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
+| 4 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
+| 5 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
+| 6 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
 
 ### Filed 2026-09-10, no brief yet
 
