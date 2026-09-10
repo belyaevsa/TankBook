@@ -63,6 +63,7 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
+| **RV.182** | flash | 53893 | `bqowxkgkd` (persistent) | `agents/briefs/RV.182.md` |
 | **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
@@ -114,11 +115,12 @@ owner hit is a defect a user hits.
 | 2 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
 | 3 | **RV.192+PJ.45** | `RV.192+PJ.45.md` | The pace bound: make it right, then make it the user's. `RV.192` is the owner's SECOND same-day report; `PJ.45` has been PRIORITY since 2026-08-31. Same seam, so one dispatch - shipping the fix without the tunable leaves the owner's case answerable only by an agent |
 | 4 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped today as `RV.195` without anyone noticing the row existed; the SERVICE half is what remains, and `RV.195` is its worked example one entry kind over |
-| 4 | **RV.182** | `RV.182.md` | The owner's tank-volume report. Decision already made (blank-fields-only); the brief carries TWO mutations, because proving a pick fills an empty field is the easy half and proving it never touches a filled one is hard rule 13 |
+| ~~4~~ | ~~**RV.182**~~ *in flight* | `RV.182.md` | The owner's tank-volume report. Decision already made (blank-fields-only); the brief carries TWO mutations, because proving a pick fills an empty field is the easy half and proving it never touches a filled one is hard rule 13 |
 | 5 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
 | 6 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
 | 7 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
 | 8 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
+| 9 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192` on 2026-09-10. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run in production, and **nothing renders `suggestions` at all** - it is computed on every validation, pinned by `TimelineValidationTests:239-282`, and consumed by nobody. `RV.129`'s shape, on an output rather than a field |
 
 ### The PRIORITY `PJ` block (product owner, 2026-08-31) - grouped 2026-09-10
 
@@ -131,7 +133,7 @@ exist yet:
 |---|---|---|
 | **Tire loop** | `PJ.26` + `PJ.27` — `PJ.26+PJ.27.md` | **Briefed, ready now.** Both are J7b and both write through `TireSet`: one links the set to the expense that bought it, the other creates the swap reminder. **`TireSet.purchaseExpenseId` is a dead field** - a column, a comment protecting it, and `nil` at its only write site - so `PJ.26` is `PJ.55`'s shape again |
 | **Service lifetimes** | `PJ.22` | **After `PJ.23`.** It adds a lifetime editor to a service line item and writes `proposedReminderId` - **also always nil today**. `PJ.23` is what makes an item editable at all, so this needs the seam that row settles |
-| **F9a suggestions** | `PJ.34` | **UNBLOCKED** - `RV.192` shipped, so the validator now produces the right suggestions. Ready to brief |
+| **F9a suggestions** | `PJ.34` — `PJ.34.md` | **Briefed 2026-09-10**, unblocked by `RV.192` the same day |
 | **Reminder scan door** | `PJ.24` | **Ready to brief.** *"Scan invoice"* on ReminderComplete, which offers Type and Skip only today. Its own seam - reminders plus the document camera |
 | **Background prefetch** | `PJ.35` | **Ready to brief.** Photos download newest-first after a pull, gated by Low Power and constrained-network. `P6.20` already records `.blobPrefetch` as unwired. Sync/blobs - shares nothing with the rest |
 
