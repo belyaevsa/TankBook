@@ -63,6 +63,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
 | **RV.181** `[!]` | flash | 18970 | `byo52dcmu` (persistent) | `agents/briefs/RV.181.md` |
+| **REVIEW-JOURNEYS-CD** *(read-only)* | pro | 20102 | `b6n752mdp` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-10.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -277,8 +278,39 @@ run history stays honest about what was and was not walked:
 | 2026-08-29 | `REVIEW-JOURNEYS.md` (4 agents) | all groups | 66 `PJ` rows |
 | 2026-09-09 | `REVIEW-JOURNEYS-2026-09-09.md` | deep on J4 / J7b / money+rates / feedback | `PJ.55` |
 | 2026-09-09b | `REVIEW-JOURNEYS-2026-09-09b.md` | **Group A + Group B** - the half the morning run left | `PJ.56`, `PJ.57`; **0 ticked-but-untrue** |
+| 2026-09-10 | `REVIEW-JOURNEYS-2026-09-10.md` | **Group C + Group D** - never walked before. C is import/currency/F6/F9, where **six of the owner's ten reported defects live** | *in flight* |
 
-**Next run: Group C + Group D**, which neither run today covered.
+**Next run: whatever the C+D walk does not reach**, and a re-walk of A/B once the owner's current
+findings ship.
+
+## What can run in parallel, and what actually limits it (measured 2026-09-10)
+
+**Two agents, and only ONE may touch the simulator.** File-disjointness is not the binding
+constraint:
+
+| Limit | Effect |
+|---|---|
+| **Simulator** | One `iPhone 17`. Two agents running `xcodebuild test` or `simctl` fight and both lose - the capture script refuses a run for this reason |
+| **Memory** | Two agents died at 300-500 KB today, and an orchestrator gate run was OOM-killed with ~75 MB free. **This is the real ceiling** |
+| **`opencode` DB** | `database is locked` when two start in the same second - stagger, do not serialise |
+| **Files** | `RV.185+RV.187` collides with `RV.189` (both import); `RV.187` collides with `RV.186+RV.188` (both render the Excluded-entries list) |
+
+**The safe pair is one build agent + the read-only journeys walk** - no writes, no simulator, no
+builds. `RV.176+PR.28` looks like tooling but runs the capture script to prove its manifest, so it
+needs the simulator and is **not** a free parallel slot.
+
+## Models available here (checked 2026-09-10)
+
+`deepseek/deepseek-v4-flash` (the default for a pinned-cause row), `deepseek/deepseek-v4-pro` (the
+journeys walk and validation), `deepseek/deepseek-v4-flash-vision-exp`, and the
+`alibaba-token-plan/*` mirrors including `deepseek-v4-flash-0731` and `deepseek-v4-pro-0813`.
+**There is no `v4.1` in this install** - re-check `opencode models` before assuming one, because
+flash-at-pro-quality would change the routing rule.
+
+**`-vision-exp` is worth a trial on a screenshot-heavy row.** Every agent this session reported *"I
+cannot see images"*, and the three defects that reached a commit were **visual**: `RV.71`'s disabled
+Save, `RV.149`'s toast over an impossible screen, `PJ.56`'s `0 entries pending rates`. An agent that
+can open its own capture would close the one gap the orchestrator currently fills by hand.
 
 ## When an agent dies mid-run, FINISH it - do not re-dispatch by reflex
 
