@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.183+RV.184** | flash | 8015 | `bdiurjupr` (persistent) | `agents/briefs/RV.183+RV.184.md` |
+*(nothing in flight.)*
 
 *(`REVIEW-JOURNEYS-CD` finished; its report is `diagnostics/REVIEW-JOURNEYS-2026-09-10.md` and its
 findings are filed as `PJ.58`/`PJ.59` in `docs/TASKS.md`, commit `7676039`.)*
@@ -128,12 +128,40 @@ files, reported by the product owner. Also filed this pass: **`RV.191`** (RU dea
 fold once the real format list is shown) and **`RV.192`** (the owner's SECOND same-day case, which
 RV.186 deliberately did not cover).
 
-**IN FLIGHT - `RV.183+RV.184`; `RV.176+PR.28` is dispatched the moment it exits (standing
-instruction, 2026-09-10: run the queue one after another).** Then: `RV.189` (then `RV.170`),
-`RV.173` (then `RV.171`), `RV.191`, `RV.192`.
+**Everything briefed has shipped.** 2026-09-10 closed `RV.181` (hardening, row OPEN),
+`RV.185+RV.187`, `RV.190`, `RV.186+RV.188`, `RV.183+RV.184`, `RV.176+PR.28` and `RV.195+RV.193`.
+**The queue is now BRIEF-BOUND, not agent-bound**: the next dispatch needs a brief written first.
 
-~~NEXT, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`), `RV.173` (then
-`RV.171`), `RV.191`, `RV.192`.**
+### Briefed and ready, in order
+
+| # | Task | Brief | Note |
+|---|---|---|---|
+| 1 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
+| 2 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
+| 3 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
+| 4 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
+
+### Filed today, no brief yet
+
+| Task | Why it is worth a brief |
+|---|---|
+| **RV.194** | The 138 reconstructed capture lines were never run. A wrong line is worse than none - the check goes green on a line EXISTING, not on it reproducing the frame, which is the failure `RV.176` was filed against. Also: frames caught mid-transition, with a previous screen's header bleeding through |
+| **RV.192** | The product owner's SECOND same-day case, which `RV.186` deliberately did not cover. Needs a DECISION first: `SCHEMA.md`'s prose and a deliberate sub-day test disagree about what "same day" means for the pace bound |
+| **RV.191** | RU: the import picker's dead-end card falls below the fold at the real format count (hard rule 7's next step, found by re-shooting the screenshot honestly) |
+| **PJ.58** | A SECOND hardcoded `.eur`, on service line-item costs - outside `RV.185`'s fence and invisible to `RV.167`'s guard |
+| **PJ.59** | `RecentlyDeletedView`'s "Overwritten by sync" is still a fixture while `PR.14` is ticked |
+| **RV.195's leftover** | A SERVICE still shows only a Vendor field - its line items and categories are not editable at all, the same shape one entry kind over |
+
+### Standing, unbriefed
+
+`RV.164` (an error names a next step that does not exist), `RV.165` (full-journey scenarios),
+`RV.168` (how briefs ask for proof), `RV.169`/`RV.170`/`RV.171`/`RV.172` (the four guards awaiting
+their seams), `RV.148`/`RV.155`/`RV.158` (sync and rates), `RV.174` (the baseline gate can be green
+on code that does not compile into the app), `RV.182` (the tank pre-fill, decision made, no brief).
+**Ten `PJ` rows are marked PRIORITY by the product owner (2026-08-31) and none has been briefed.**
+
+**The recurring journeys walk is due**: it runs every 10 shipped rows or at a phase gate. Eleven
+rows shipped since Groups C+D on 2026-09-10.
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
