@@ -61,3 +61,22 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `RV.65` | **flash** | 2026-09-05 | 1536 KB |
 | `RV.67` | **flash** | 2026-09-05 | 515 KB |
 | `RV.68` | **flash** | 2026-09-05 | 596 KB |
+| `RV.185+RV.187` | **flash** | 2026-09-10 | 444 KB |
+| `RV.186+RV.188` | **flash** | 2026-09-10 | 740 KB |
+| `RV.183+RV.184` | **flash** | 2026-09-10 | 392 KB |
+| `RV.176+PR.28` | **flash** | 2026-09-10 | 700 KB |
+
+## What the four grouped dispatches of 2026-09-10 cost to verify
+
+All four ran on flash and all four produced work worth shipping. **All four also needed the
+orchestrator to catch something the agent's own report said was fine**, which is the evidence behind
+the standing rule that a report is not a gate:
+
+| Dispatch | What the report claimed | What checking found |
+|---|---|---|
+| `RV.185+RV.187` | `swiftlint` exit 0; two screenshots showing the new name field | Lint exited **2** on a file-length ceiling, and **neither frame contained the field**. The pre-filled name was still the exporter's own ("Drivvo") - the half of the owner's report the agent left in place |
+| `RV.186+RV.188` | Green, with the session's best mutation | True. But the chart placed its labels by point INDEX, so two of three **overprinted at one corner** - visible only by opening the screenshot, because a UI test finds a label by identifier while it sits underneath another one |
+| `RV.183+RV.184` | Green, and the brief's hypothesis was **incomplete** - said so unprompted | Correct on both counts. The real scanned-save path used a second builder the brief did not name; fixing only the named one would have left a real scan blank |
+| `RV.176+PR.28` | 198 orphans audited, all given lines | True, but **138 of those lines were never run** - their seeds were inferred. A wrong line is worse than none: the check goes green on a line EXISTING, not on it reproducing the frame. Filed as `RV.194` |
+
+**Three of the four were caught by opening a screenshot**, which no agent can do.
