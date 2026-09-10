@@ -83,6 +83,10 @@ public enum ImportBatchMerge {
         var unparsed: [ImportUnparsedRow] = []
         var rawLines: [Int: String] = [:]
         var ambiguityByKey: [String: ImportAmbiguity] = [:]
+        // RV.116: unsupported-column counts sum across the files of a whole-
+        // export pick, exactly as the ambiguities' row counts do - the notice is
+        // once per export, so the number must cover every file the user picked.
+        var unsupportedByColumn: [String: Int] = [:]
 
         for (index, file) in files.enumerated() {
             let offset = offsets[index]
@@ -133,6 +137,10 @@ public enum ImportBatchMerge {
                     ambiguityByKey[key] = ambiguity
                 }
             }
+
+            for (column, count) in file.parse.unsupported ?? [:] {
+                unsupportedByColumn[column, default: 0] += count
+            }
         }
 
         let groups = groupOrder.compactMap { key -> ImportVehicleGroup? in
@@ -151,7 +159,8 @@ public enum ImportBatchMerge {
             candidates: candidates,
             unparsed: unparsed,
             ambiguities: Array(ambiguityByKey.values),
-            vehicleGroups: groups)
+            vehicleGroups: groups,
+            unsupported: unsupportedByColumn.isEmpty ? nil : unsupportedByColumn)
 
         return ImportBatchView(parse: mergedParse, rawLinesByRow: rawLines)
     }

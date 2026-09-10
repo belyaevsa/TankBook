@@ -18,6 +18,50 @@ public sealed record UnparsedRow(int Row, string Reason);
 public sealed record ImportAmbiguity(string Kind, IReadOnlyList<string> Options, int RowCount);
 
 /// <summary>
+/// A column the parser has no home for, and how many rows of the uploaded file
+/// carried a value in it (RV.116). The column NAME is the format's declared
+/// name (see <see cref="ImportFormatInfo.UnsupportedColumns"/>); the count is a
+/// property of THIS file, which is why it cannot live in GET /import/formats.
+/// Counting non-empty cells in a column the parser already reads is inside hard
+/// rule 9's import exception; the value itself is never read or logged.
+/// </summary>
+public sealed record ImportUnsupportedColumn(string Column, int RowCount);
+
+/// <summary>
+/// Reads one raw cell only far enough to say whether it carried a value
+/// (RV.116). An unset cell is empty; a numeric column additionally treats a
+/// zero-only cell as unset, because the formats write "0" there for "not
+/// recorded" (Drivvo's discount is "0" on every row, and counting it would bury
+/// the driver column that matters). Text columns pass <paramref name="zeroIsEmpty"/>
+/// as false - a hex colour of "000000" is black, not absence. The content
+/// itself is never returned or logged (hard rule 12).
+/// </summary>
+public static class ImportCell
+{
+    public static bool HasValue(string cell, bool zeroIsEmpty)
+    {
+        var trimmed = cell.Trim();
+        if (trimmed.Length == 0)
+        {
+            return false;
+        }
+
+        if (!zeroIsEmpty)
+        {
+            return true;
+        }
+
+        var normalized = trimmed.Replace(',', '.');
+        return !decimal.TryParse(
+                   normalized,
+                   System.Globalization.NumberStyles.Number,
+                   System.Globalization.CultureInfo.InvariantCulture,
+                   out var value)
+               || value != 0m;
+    }
+}
+
+/// <summary>
 /// The result of parsing one file: entity-shaped candidate payloads, the rows
 /// that failed with their reasons, and the ambiguities the client must resolve
 /// once per file. Pure function output - it commits nothing (hard rule 9).
@@ -33,6 +77,13 @@ public sealed class MfmParseResult
     public required IReadOnlyList<ImportAmbiguity> Ambiguities { get; init; }
 
     public required int DataRowCount { get; init; }
+
+    /// <summary>
+    /// The format's unsupported columns that carried a value in at least one row
+    /// of THIS file, with the count each (RV.116). A column empty in every row
+    /// is omitted - a notice about nothing is noise.
+    /// </summary>
+    public required IReadOnlyList<ImportUnsupportedColumn> Unsupported { get; init; }
 
     /// <summary>
     /// The candidates grouped by the source file's vehicle-name column
@@ -106,4 +157,5 @@ public sealed record ImportParseResponse(
     JsonNode? Candidates,
     JsonNode? Unparsed,
     JsonNode? Ambiguities,
-    JsonNode? VehicleGroups);
+    JsonNode? VehicleGroups,
+    JsonNode? Unsupported);

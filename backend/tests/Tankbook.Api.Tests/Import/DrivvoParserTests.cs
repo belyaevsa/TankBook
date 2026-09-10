@@ -215,6 +215,66 @@ public class DrivvoParserTests
         Assert.Equal("Gazprom", en["station"]!.GetValue<string>());
     }
 
+    // ---- RV.116: the unsupported columns and their per-file counts -----------
+
+    /// <summary>
+    /// The real export's driver column: 110 refuelling + 6 expense + 23 service
+    /// rows carry one (139 total). The discount column is "0" on every row -
+    /// absence, not a value - so it is omitted; the second/third fuel and EV
+    /// columns are empty on a liquid fill and are omitted too.
+    /// </summary>
+    [Fact]
+    public void RealFile_ReportsTheDriverColumnWithItsNonEmptyRowCount()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        var driver = Assert.Single(result.Unsupported, c => c.Column == "Driver");
+        Assert.Equal(139, driver.RowCount);
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Discount");
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Second fuel");
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Charge type");
+    }
+
+    /// <summary>
+    /// The count is arithmetic on a file the test controls: driver on rows 1 and
+    /// 3 (2), a real discount on row 1 (1), payment method on row 2 (1). A count
+    /// forced from this fixture cannot be a guess.
+    /// </summary>
+    [Fact]
+    public void UnsupportedColumns_ReportOnlyTheRowsThatCarriedAValue()
+    {
+        using var file = RefuellingFile(
+            RefuellingRow(driver: "driver-a", discount: "500", payment: ""),
+            RefuellingRow(driver: "", discount: "0", payment: "card"),
+            RefuellingRow(driver: "driver-b", discount: "0", payment: ""));
+
+        var result = DrivvoParser.Parse(file, CancellationToken.None);
+
+        // Declared order, and only the non-empty columns appear.
+        Assert.Collection(result.Unsupported,
+            c => { Assert.Equal("Driver", c.Column); Assert.Equal(2, c.RowCount); },
+            c => { Assert.Equal("Payment method", c.Column); Assert.Equal(1, c.RowCount); },
+            c => { Assert.Equal("Discount", c.Column); Assert.Equal(1, c.RowCount); });
+    }
+
+    /// <summary>A column empty in every row is omitted - the decision this task made.</summary>
+    [Fact]
+    public void UnsupportedColumns_EmptyInEveryRow_AreOmitted()
+    {
+        using var file = RefuellingFile(
+            RefuellingRow(driver: "driver-a", discount: "0", payment: ""),
+            RefuellingRow(driver: "driver-b", discount: "0", payment: ""));
+
+        var result = DrivvoParser.Parse(file, CancellationToken.None);
+
+        var driver = Assert.Single(result.Unsupported);
+        Assert.Equal("Driver", driver.Column);
+        Assert.Equal(2, driver.RowCount);
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Payment method");
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Discount");
+    }
+
     // ---- the 422 path -------------------------------------------------------
 
     [Fact]
@@ -248,6 +308,36 @@ public class DrivvoParserTests
         }
 
         return new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+    }
+
+    /// <summary>The real RU header plus the supplied refuelling rows (RV.116 tests).</summary>
+    private static Stream RefuellingFile(params string[] rows)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("##Refuelling");
+        sb.AppendLine(RussianRefuellingHeader);
+        foreach (var row in rows)
+        {
+            sb.AppendLine(row);
+        }
+
+        return new MemoryStream(Encoding.UTF8.GetBytes(sb.ToString()));
+    }
+
+    /// <summary>
+    /// One full 29-column RU refuelling row with the three unsupported cells the
+    /// RV.116 tests vary. Every other unsupported cell stays empty.
+    /// </summary>
+    private static string RefuellingRow(string driver, string discount, string payment)
+    {
+        var fields = new[]
+        {
+            "491206.0", "2025-08-02 06:55:11", "Бензин АИ92", "220", "6630", "30.136", "Да",
+            "", "0", "0", "0", "Нет", "", "0", "0", "0", "Нет",
+            "6,414 л/100км", "585.0", "", "", "", "", "Газпром",
+            driver, "", payment, "", discount,
+        };
+        return string.Join(",", fields.Select(f => $"\"{f}\""));
     }
 
     // The real RU header and one real RU data row.

@@ -398,7 +398,10 @@ public static class TankbookLog
 
     /// <summary>A file was parsed (docs/API.md "Import parsing"). Shape only -
     /// format, file kind and counts - never a station, note, amount or coordinate
-    /// (hard rule 12).</summary>
+    /// (hard rule 12). <paramref name="unsupportedColumns"/> carries the
+    /// format-unsupported column NAMES and their non-empty row counts (RV.116):
+    /// a column name is a field name (loggable), a cell value is not - and no
+    /// cell value has a route into this event by construction.</summary>
     public static void ImportParse(
         ILogger logger,
         string format,
@@ -407,6 +410,7 @@ public static class TankbookLog
         int candidates,
         int unparsed,
         int ambiguities,
+        string unsupportedColumns,
         TimeSpan duration,
         string outcome)
         => Emit(logger, LogLevel.Information, "import.parse",
@@ -416,6 +420,7 @@ public static class TankbookLog
             ("Candidates", candidates),
             ("Unparsed", unparsed),
             ("Ambiguities", ambiguities),
+            ("UnsupportedColumns", unsupportedColumns),
             ("DurationMs", duration.TotalMilliseconds),
             ("Outcome", outcome));
 

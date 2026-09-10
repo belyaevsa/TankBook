@@ -985,6 +985,18 @@ The entry rows (Confirm sheet, Edit entry – fill-up and the other three types)
 
 Import rules (F6): ambiguity (units/currency) asks once per file; unparseable rows import partially with a review list; `provenance = .import(source)` on every row; conflicts flagged, not dropped.
 
+**The complement is declared, not silently dropped (RV.116).** A format's unmapped columns are the
+complement of the mappings above - Drivvo's `Водитель` (driver), `Метод оплаты`, `Тип расхода`,
+`Скидка`, the second/third-fuel blocks and the EV columns a liquid fill leaves blank; MFM's unmapped
+vehicle fields (`Vehicle price`, `Initial tank status`, `LPG tank volume`, `Initial LPG tank status`,
+`Color`). `GET /import/formats` declares those names per format and `POST /import/parse` reports, for
+the columns that carried a value in the uploaded file, how many rows did - so the review gate can say
+what is not coming in before anything is written (docs/API.md, docs/ERRORS.md -> Import wizard).
+**Decision: a column empty in every row is omitted** - a notice about nothing is noise and buries the
+column that matters. A zero-only numeric cell counts as absence too (Drivvo's discount is `0` on
+every row). Consumption and distance are deliberately NOT in Drivvo's list: they are derived (hard
+rule 2) and recomputed by the app, so no user data is lost.
+
 **Currency rule (RV.113, applies to every importer):** an importer whose format has **no
 currency column** (Drivvo, and any future one) does **not** guess one. Money lands without a
 currency and the wizard asks the question once per file, offering the **destination car's home

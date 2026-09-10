@@ -1,0 +1,3 @@
+[
+  { "id": "drivvo", "displayName": "Drivvo", "fileKinds": ["csv"], "helpUrl": "https://tankbook.live/import-guide/", "addedInPackVersion": 1, "unsupportedColumns": ["Driver", "Payment method", "Discount"] }
+]

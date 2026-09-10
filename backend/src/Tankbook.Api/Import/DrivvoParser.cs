@@ -116,6 +116,10 @@ public static class DrivvoParser
         var candidates = new List<JsonObject>();
         var unparsed = new List<UnparsedRow>();
         var moneyRows = 0;
+        // RV.116: how many rows carried a value in each column the format has no
+        // home for. Counted per file (all sections accumulate) and returned with
+        // the parse, never with the format list - only the file can know it.
+        var unsupportedCounts = new Dictionary<string, int>();
 
         foreach (var (marker, section) in sections)
         {
@@ -123,13 +127,13 @@ public static class DrivvoParser
             switch (marker)
             {
                 case RefuellingMarker:
-                    MapRefuelling(section, candidates, unparsed, ref moneyRows, cancellationToken);
+                    MapRefuelling(section, candidates, unparsed, unsupportedCounts, ref moneyRows, cancellationToken);
                     break;
                 case ExpenseMarker:
-                    MapExpense(section, candidates, unparsed, ref moneyRows, cancellationToken);
+                    MapExpense(section, candidates, unparsed, unsupportedCounts, ref moneyRows, cancellationToken);
                     break;
                 case ServiceMarker:
-                    MapService(section, candidates, unparsed, ref moneyRows, cancellationToken);
+                    MapService(section, candidates, unparsed, unsupportedCounts, ref moneyRows, cancellationToken);
                     break;
             }
         }
@@ -151,6 +155,13 @@ public static class DrivvoParser
             Unparsed = unparsed,
             Ambiguities = ambiguities,
             DataRowCount = sections.Values.Sum(s => s.Rows.Count),
+            // Only the columns that carried a value are reported, in the order
+            // the format declares them (RV.116). An all-empty column is omitted:
+            // a notice about nothing buries the column that matters.
+            Unsupported = ImportFormats.All.Single(f => f.Id == "drivvo").UnsupportedColumns
+                .Where(c => unsupportedCounts.GetValueOrDefault(c) > 0)
+                .Select(c => new ImportUnsupportedColumn(c, unsupportedCounts[c]))
+                .ToArray(),
             // One car per file: no vehicle column, so every candidate shares one
             // unnamed group - the single-car flow, exactly as the row requires.
             VehicleGroups = MfmParser.GroupByVehicleName(candidates),
@@ -207,11 +218,13 @@ public static class DrivvoParser
         Section section,
         List<JsonObject> candidates,
         List<UnparsedRow> unparsed,
+        Dictionary<string, int> unsupportedCounts,
         ref int moneyRows,
         CancellationToken cancellationToken)
     {
         var header = section.Header ?? [];
         var language = DetectLanguage(header);
+        CountUnsupported(language, section, unsupportedCounts);
         var index = BuildIndex(language, header, "odometer", "date", "fuel", "unitPrice", "totalCost", "volume", "fullTank", "station", "note");
 
         var rowNumber = 0;
@@ -284,11 +297,13 @@ public static class DrivvoParser
         Section section,
         List<JsonObject> candidates,
         List<UnparsedRow> unparsed,
+        Dictionary<string, int> unsupportedCounts,
         ref int moneyRows,
         CancellationToken cancellationToken)
     {
         var header = section.Header ?? [];
         var language = DetectLanguage(header);
+        CountUnsupported(language, section, unsupportedCounts);
         var index = BuildIndex(language, header, "odometer", "date", "totalCost", "expenseKind", "note", "title");
 
         var rowNumber = 0;
@@ -340,11 +355,13 @@ public static class DrivvoParser
         Section section,
         List<JsonObject> candidates,
         List<UnparsedRow> unparsed,
+        Dictionary<string, int> unsupportedCounts,
         ref int moneyRows,
         CancellationToken cancellationToken)
     {
         var header = section.Header ?? [];
         var language = DetectLanguage(header);
+        CountUnsupported(language, section, unsupportedCounts);
         var index = BuildIndex(language, header, "odometer", "date", "totalCost", "serviceKind", "serviceName", "title", "note");
 
         var rowNumber = 0;
@@ -402,6 +419,43 @@ public static class DrivvoParser
         => index.TryGetValue(key, out var i) && i < f.Length ? f[i] : "";
 
     private static string? NullIfEmpty(string text) => string.IsNullOrEmpty(text) ? null : text;
+
+    /// <summary>
+    /// Adds one to the count of every format-unsupported column that carried a
+    /// value in a row of this section (RV.116). The column is located by its
+    /// localised header text; only whether the cell is non-empty is observed -
+    /// the value is never read, and only the column name and the count leave
+    /// (hard rule 12). Repeated headers (the second/third fuel blocks share
+    /// `Объем`) are not in the unsupported map, so no occurrence is ambiguous.
+    /// </summary>
+    private static void CountUnsupported(Language language, Section section, Dictionary<string, int> counts)
+    {
+        var header = section.Header ?? [];
+        var byIndex = new Dictionary<int, (string Name, bool ZeroIsEmpty)>();
+        for (var i = 0; i < header.Length; i++)
+        {
+            if (language.UnsupportedHeaders.TryGetValue(header[i], out var column))
+            {
+                byIndex[i] = column;
+            }
+        }
+
+        if (byIndex.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var row in section.Rows)
+        {
+            foreach (var (index, column) in byIndex)
+            {
+                if (index < row.Length && ImportCell.HasValue(row[index], column.ZeroIsEmpty))
+                {
+                    counts[column.Name] = counts.GetValueOrDefault(column.Name) + 1;
+                }
+            }
+        }
+    }
 
     private static Dictionary<string, int> BuildIndex(Language language, string[] header, params string[] keys)
     {
@@ -505,7 +559,8 @@ public static class DrivvoParser
         string No,
         IReadOnlyDictionary<string, string> FuelGrades,
         IReadOnlyDictionary<string, string> ExpenseKinds,
-        IReadOnlyDictionary<string, string> ServiceKinds);
+        IReadOnlyDictionary<string, string> ServiceKinds,
+        IReadOnlyDictionary<string, (string Name, bool ZeroIsEmpty)> UnsupportedHeaders);
 
     /// <summary>Measured from the committed Russian export (Spike/ImportFixtures/drivvo/).</summary>
     private static readonly Language Russian = new(
@@ -558,6 +613,27 @@ public static class DrivvoParser
             ["Новые шины"] = "tires",
             ["Балансировка шин"] = "tires",
             ["Аккумулятор"] = "battery",
+        },
+        UnsupportedHeaders: new Dictionary<string, (string Name, bool ZeroIsEmpty)>
+        {
+            // The columns the parser has no home for, keyed by the header text
+            // the user's file carries. Values are the canonical names declared by
+            // ImportFormats (RV.116), with whether a zero-only cell counts as
+            // absence (numeric columns) or as a value (text). Second/third fuel
+            // blocks are counted by their fuel-name cell; their repeated
+            // price/total/volume headers are not listed, so no occurrence is
+            // ambiguous.
+            ["Второе топливо"] = ("Second fuel", false),
+            ["Третье топливо"] = ("Third fuel", false),
+            ["Тип зарядки"] = ("Charge type", false),
+            ["Начальный заряд (%)"] = ("Charge start %", true),
+            ["Конечный заряд (%)"] = ("Charge end %", true),
+            ["Длительность (мин)"] = ("Charge duration", true),
+            ["Водитель"] = ("Driver", false),
+            ["Тип расхода"] = ("Expense type", false),
+            ["Метод оплаты"] = ("Payment method", false),
+            ["Скидка"] = ("Discount", true),
+            ["Местный расход"] = ("Local cost", true),
         });
 
     /// <summary>
@@ -609,6 +685,22 @@ public static class DrivvoParser
             ["Brake discs"] = "brakes",
             ["New tires"] = "tires",
             ["Battery"] = "battery",
+        },
+        UnsupportedHeaders: new Dictionary<string, (string Name, bool ZeroIsEmpty)>
+        {
+            // The English set is derived from Drivvo's documented export and is
+            // UNVERIFIED against a real English file, exactly like Headers above.
+            ["Second fuel"] = ("Second fuel", false),
+            ["Third fuel"] = ("Third fuel", false),
+            ["Charging type"] = ("Charge type", false),
+            ["Start charge (%)"] = ("Charge start %", true),
+            ["End charge (%)"] = ("Charge end %", true),
+            ["Duration (min)"] = ("Charge duration", true),
+            ["Driver"] = ("Driver", false),
+            ["Expense type"] = ("Expense type", false),
+            ["Payment method"] = ("Payment method", false),
+            ["Discount"] = ("Discount", true),
+            ["Local cost"] = ("Local cost", true),
         });
 
     private static readonly IReadOnlyList<Language> Languages = [Russian, English];

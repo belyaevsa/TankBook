@@ -28,7 +28,8 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportCarsDecided")
             || arguments.contains("-seedImportBatch")
             || arguments.contains("-seedImportBatchAnomaly")
-            || arguments.contains("-seedImportCurrency") else { return }
+            || arguments.contains("-seedImportCurrency")
+            || arguments.contains("-seedImportUnsupported") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
             try? repository.upsertVehicle(HomeTestSeed.makeVehicle())
@@ -64,6 +65,11 @@ enum ImportTestSeed {
             model.showPreview()
         } else if arguments.contains("-seedImportCurrency") {
             model.installSeededCurrencyParse()
+            model.showPreview()
+        } else if arguments.contains("-seedImportUnsupported") {
+            // RV.116: the review gate carrying the "not imported" notice with
+            // its per-column row counts (Driver 250), and Continue not blocked.
+            model.installSeededUnsupportedParse()
             model.showPreview()
         } else if arguments.contains("-seedImportResolvedDates") {
             // RV.85: the detectable-file preview - the server resolved the

@@ -26,7 +26,7 @@ public static class ImportEndpoints
     public static IResult Formats(HttpContext httpContext)
     {
         var body = JsonSerializer.Serialize(
-            ImportFormats.All.Select(f => new FormatResponse(f.Id, f.DisplayName, f.FileKinds, f.HelpUrl, f.AddedInPackVersion)),
+            ImportFormats.All.Select(f => new FormatResponse(f.Id, f.DisplayName, f.FileKinds, f.HelpUrl, f.AddedInPackVersion, f.UnsupportedColumns)),
             WireJson);
 
         httpContext.Response.Headers.CacheControl = CacheControl;
@@ -174,5 +174,5 @@ public static class ImportEndpoints
     private static IResult Problem(int status, string code, string title, string detail)
         => ProblemResponses.Problem(status, code, title, detail);
 
-    private sealed record FormatResponse(string Id, string DisplayName, string[] FileKinds, string? HelpUrl, int AddedInPackVersion);
+    private sealed record FormatResponse(string Id, string DisplayName, string[] FileKinds, string? HelpUrl, int AddedInPackVersion, string[] UnsupportedColumns);
 }

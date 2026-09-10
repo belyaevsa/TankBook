@@ -534,6 +534,26 @@ public class MfmParserTests
         Assert.Empty(result.Unparsed);
     }
 
+    /// <summary>
+    /// RV.116: vehicles.csv has columns the parser does not map. Vehicle price is
+    /// non-zero on two of five rows, Initial tank status on all five, Color on
+    /// all five; LPG tank volume and Initial LPG tank status are "0" everywhere
+    /// and are omitted.
+    /// </summary>
+    [Fact]
+    public void VehiclesCsv_ReportsTheUnsupportedColumnsWithTheirCounts()
+    {
+        using var stream = MfmFixture.Open(MfmFixture.VehiclesCsv);
+        var result = MfmParser.Parse(stream, CancellationToken.None);
+
+        Assert.Collection(result.Unsupported,
+            c => { Assert.Equal("Vehicle price", c.Column); Assert.Equal(2, c.RowCount); },
+            c => { Assert.Equal("Initial tank status", c.Column); Assert.Equal(5, c.RowCount); },
+            c => { Assert.Equal("Color", c.Column); Assert.Equal(5, c.RowCount); });
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "LPG tank volume");
+        Assert.DoesNotContain(result.Unsupported, c => c.Column == "Initial LPG tank status");
+    }
+
     [Fact]
     public void IncomesCsv_IsAccepted_AndYieldsNothingRatherThanErroring()
     {

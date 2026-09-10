@@ -1473,6 +1473,59 @@
         }
       }
     },
+    "%lld rows carry a value": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld row carries a value"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld rows carry a value"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строки содержат значение"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строк содержат значение"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строка содержит значение"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld строк содержат значение"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld–": {
       "extractionState": "manual",
       "localizations": {
@@ -7756,6 +7809,23 @@
         }
       }
     },
+    "Not imported": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not imported"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не импортируется"
+          }
+        }
+      }
+    },
     "Note": {
       "extractionState": "manual",
       "localizations": {
@@ -10784,6 +10854,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Некоторые даты читаются двояко"
+          }
+        }
+      }
+    },
+    "Some columns in this file aren't imported. The file stays on your phone if you need them.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some columns in this file aren't imported. The file stays on your phone if you need them."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Некоторые столбцы из этого файла не импортируются. Файл останется на телефоне, если они вам нужны."
           }
         }
       }

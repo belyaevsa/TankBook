@@ -314,6 +314,59 @@ public class ImportEndpointTests : IClassFixture<PostgresFixture>
         }
     }
 
+    /// <summary>
+    /// RV.116: every format declares the columns it does not map, and the two
+    /// formats declare DIFFERENT lists - their columns have different names, so
+    /// one shared list would be the bug the task warns about.
+    /// </summary>
+    [SkippableFact]
+    public async Task Formats_DeclarePerFormatUnsupportedColumns_DifferentLists()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        using var client = app.Client;
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/v1/import/formats");
+        using var response = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var byId = body.RootElement.EnumerateArray()
+            .ToDictionary(f => f.GetProperty("id").GetString()!,
+                          f => f.GetProperty("unsupportedColumns").EnumerateArray()
+                                .Select(c => c.GetString()!).ToArray());
+
+        Assert.Contains("Driver", byId["drivvo"]);
+        Assert.Contains("Payment method", byId["drivvo"]);
+        Assert.Contains("Color", byId["mfm"]);
+        Assert.DoesNotContain("Driver", byId["mfm"]);
+        Assert.DoesNotContain("Color", byId["drivvo"]);
+        Assert.NotEqual(byId["mfm"].OrderBy(x => x, StringComparer.Ordinal),
+                        byId["drivvo"].OrderBy(x => x, StringComparer.Ordinal));
+    }
+
+    /// <summary>
+    /// RV.116: the parse response reports the unsupported columns that carried a
+    /// value in THIS file, with the count. The real Drivvo export has a driver
+    /// on 139 rows (110 refuelling + 6 expense + 23 service) and a discount of
+    /// "0" on every row - absence, so it is not reported.
+    /// </summary>
+    [SkippableFact]
+    public async Task Parse_ReportsUnsupportedColumnsWithCounts()
+    {
+        var storage = new RecordingBlobStorage();
+        await using var app = await StartAsync(storage);
+        var deviceId = Guid.NewGuid();
+
+        using var response = await ParseAsync(app.Client, "drivvo",
+            DrivvoFixture.ReadAllBytes(DrivvoFixture.ThreeSectionsCsv), "drivvo.csv", deviceId);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var unsupported = body.RootElement.GetProperty("unsupported");
+        Assert.Equal(139, unsupported.GetProperty("Driver").GetInt32());
+        Assert.False(unsupported.TryGetProperty("Discount", out _),
+                     "an all-zero discount column is absence, not a value");
+    }
+
     // ---- the error statuses -------------------------------------------------
 
     [SkippableFact]

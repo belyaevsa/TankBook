@@ -34,6 +34,9 @@ struct ImportPreviewView: View {
                     if model.hasCurrencyQuestion {
                         currencyCard
                     }
+                    if model.hasUnsupportedColumns {
+                        unsupportedNoticeCard
+                    }
                     figuresCard
                     targetCarCard
                     if let message = model.outOfScopeMessage {
@@ -346,6 +349,49 @@ struct ImportPreviewView: View {
         .padding(16)
         .formCard()
         .accessibilityIdentifier("importOutOfScopeNotice")
+    }
+
+    /// RV.116: say what is NOT coming in, at the gate where nothing is written
+    /// yet. Every entry is a column the format has no home for with the number
+    /// of rows that carried a value in it - the count is what turns "driver is
+    /// not imported" (trivia) into a decision. It is a notice, never an error,
+    /// and it never gates Continue. The names are server-declared, so a column
+    /// this build has never heard of still renders.
+    private var unsupportedNoticeCard: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: "info.circle")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .padding(.top, 1)
+                VStack(alignment: .leading, spacing: 4) {
+                    SectionEyebrow("Not imported")
+                    Text("Some columns in this file aren't imported. The file stays on your phone if you need them.")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                        .lineSpacing(1.4)
+                }
+            }
+            ForEach(model.unsupportedColumns, id: \.column) { item in
+                HStack(alignment: .firstTextBaseline) {
+                    Text(item.column)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    Spacer(minLength: 8)
+                    Text(L10n.unsupportedColumnRows(item.rowCount))
+                        .font(.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("importUnsupportedColumn-\(item.column)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(16)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("importUnsupportedNotice")
     }
 
     private var reviewRow: some View {

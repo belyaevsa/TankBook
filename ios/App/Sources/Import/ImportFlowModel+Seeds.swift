@@ -247,6 +247,34 @@ extension ImportFlowModel {
         rebuildClassification()
     }
 
+    /// RV.116: installs a stub Drivvo parse that reports unsupported columns
+    /// with non-zero counts (Driver 250, Payment method 12) and declares them
+    /// through the picked format. The preview must show the "not imported"
+    /// notice WITH those counts and must not disable Continue.
+    func installSeededUnsupportedParse() {
+        guard let url = Bundle.main.url(forResource: "import-parse-unsupported", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let result = try? decoder.decode(ImportParseResponse.self, from: data) else { return }
+        pickedFormat = ImportFormat(id: "drivvo", displayName: "Drivvo", fileKinds: ["csv"],
+                                    helpUrl: "https://tankbook.live/import-guide/",
+                                    addedInPackVersion: 1,
+                                    unsupportedColumns: ["Driver", "Payment method", "Discount"])
+        dateFormatAnswer = nil
+        currencyAnswer = nil
+        adoptSingleFile(fileName: "Drivvo_export.csv",
+                        rawData: Data("""
+                        ##Refuelling
+                        "Одометр (км)","Дата","Топливо","Цена / л","Общая стоимость","Объем","Полный бак","Азс","Водитель","Метод оплаты"
+                        "491206.0","2026-08-17 06:55:11","Бензин АИ92","220","8442","40","Да","Газпром","driver-a","card"
+                        "491791.0","2026-08-24 17:37:33","Бензин АИ92","225","6630","40","Да","Газпром","driver-b",""
+                        """.utf8),
+                        parse: result)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
     /// RV.93: installs a stub WHOLE-EXPORT pick (two files, no picker/server)
     /// so the UI tests drive the "one mapping for several files" surface: the
     /// fuel file holds two cars (the RV.86 fixture), the costs file holds a

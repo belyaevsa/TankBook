@@ -116,6 +116,7 @@ public sealed class ImportService
             result.Candidates.Count,
             result.Unparsed.Count,
             result.Ambiguities.Count,
+            string.Join(";", result.Unsupported.Select(u => $"{u.Column}={u.RowCount}")),
             stopwatch.Elapsed,
             "accepted");
 
@@ -232,7 +233,17 @@ public sealed class ImportService
             ["sourceRows"] = new JsonArray(g.SourceRows.Select(r => (JsonNode)r).ToArray()),
         }).ToArray());
 
-        return new ImportParseResponse(importId, format, Scope, candidates, unparsed, ambiguities, vehicleGroups);
+        // RV.116: the unsupported columns that carried a value in this file, as
+        // a name -> row-count object. The names are the format's declared ones
+        // (GET /import/formats); only the per-file count is new here. Empty
+        // columns are already absent from result.Unsupported.
+        var unsupported = new JsonObject();
+        foreach (var column in result.Unsupported)
+        {
+            unsupported[column.Column] = column.RowCount;
+        }
+
+        return new ImportParseResponse(importId, format, Scope, candidates, unparsed, ambiguities, vehicleGroups, unsupported);
     }
 
     private static byte[] ToJsonBytes(ImportParseResponse response)
@@ -267,6 +278,15 @@ public sealed class ImportService
             }).ToArray());
         }
 
+        // RV.116: a parse stored before the unsupported-column field existed
+        // (older server build, within the 30-day window) has no `unsupported` -
+        // the resumed review simply shows no notice rather than failing to read.
+        JsonNode? unsupported = null;
+        if (root.TryGetProperty("unsupported", out var storedUnsupported))
+        {
+            unsupported = JsonSerializer.Deserialize<JsonNode>(storedUnsupported.GetRawText(), WireJson);
+        }
+
         return new ImportParseResponse(
             root.GetProperty("importId").GetGuid(),
             root.GetProperty("format").GetString()!,
@@ -274,7 +294,8 @@ public sealed class ImportService
             candidates,
             unparsed,
             ambiguities,
-            vehicleGroups);
+            vehicleGroups,
+            unsupported);
     }
 
     private static async Task<byte[]> ReadWithLimitAsync(Stream stream, long maxBytes, CancellationToken cancellationToken)

@@ -407,8 +407,21 @@ on 2026-08-27. It exists so a single parser serves every client and a mapping bu
 deploy rather than an App Store release.
 
 **`GET /import/formats`** - the supported-source list, **server-driven and public**. Returns
-`[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion } ]`, ETag'd like the other reference
-data. Today it lists two formats: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }` and `{ id: "drivvo", displayName: "Drivvo", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1 }`.
+`[ { id, displayName, fileKinds, helpUrl?, addedInPackVersion, unsupportedColumns } ]`, ETag'd like the other reference
+data. Today it lists two formats: `{ id: "mfm", displayName: "My Fuel Manager", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1, unsupportedColumns: ["Vehicle price", "Initial tank status", "LPG tank volume", "Initial LPG tank status", "Color"] }` and `{ id: "drivvo", displayName: "Drivvo", fileKinds: ["csv"], helpUrl: "https://tankbook.live/import-guide/", addedInPackVersion: 1, unsupportedColumns: ["Second fuel", "Third fuel", "Charge type", "Charge start %", "Charge end %", "Charge duration", "Driver", "Expense type", "Payment method", "Discount", "Local cost"] }`.
+
+**`unsupportedColumns` is the format's complement, declared here and nowhere else (RV.116).** Every
+foreign format carries columns Tankbook has no home for - Drivvo's `Водитель` (driver), payment
+method, discount, the second/third fuel blocks and the EV columns; MFM's unmapped vehicle fields.
+The parser reads what it understands and the rest used to evaporate silently: a fleet user importing
+a driver-per-row history discovered only later that the column they cared about was gone. This is
+**not** hard rule 8 (nothing is deleted - the source file is untouched and the rows the app keeps are
+complete); it is a **completeness promise**, so the review gate says what is not coming in. The
+**names** live here because they are static per parser and a new importer must not be able to forget
+them; the **count of rows that carried a value** cannot live here - only `POST /import/parse` has
+read the user's file. The client renders whatever names the server declares, so a column this build
+has never heard of still renders (nothing is keyed on a known name). A column empty in every row is
+omitted from the parse response: a notice about nothing buries the column that matters.
 
 **`helpUrl` points at the site's per-source export guide** (J2's "their UIs hide export"; PJ.33).
 The client renders a "How to export" link on the format row and inside the 422 / not-listed
@@ -429,7 +442,16 @@ reasoning as the currency chip on Confirm.
 `multipart` upload of a third-party export (`format: "mfm" | ...` **as declared by the user**, file <= 8 MB) ->
 `{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
    ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ],
-   vehicleGroups: [ { name, sourceRows } ]? }`
+   vehicleGroups: [ { name, sourceRows } ]?, unsupported: { <column name>: <row count> }? }`
+
+- **The response gained `unsupported` on 2026-09-10 (RV.116) - a contract change, additive only.**
+  It maps each of the format's `unsupportedColumns` that **carried a value in at least one row** of
+  this file to that row count, so the review gate can say *"Driver, payment method and discount are
+  not imported (250 rows carry a driver)"* before anything is written (F6a). Only a **count** and a
+  **column name** cross the wire; no cell content does (hard rule 12). The field is **new**: an older
+  client that never heard of it decodes the rest of the response exactly as before, and a stored
+  parse that predates the field omits it - the device then shows no notice, never an error. The
+  counts sum across the files of a whole-export pick, exactly as the ambiguities' row counts do.
 
 - **The response gained `vehicleGroups` on 2026-09-06 (RV.86) - a contract change, additive
   only.** A file can hold several cars (the real MFM export has five), and before RV.86 the parser

@@ -49,6 +49,23 @@ public static class MfmParser
         ["reminders"] = 5,
     };
 
+    // RV.116: the columns the parser has no home for, by their fixed position in
+    // the kind's row (docs/SCHEMA.md "Import mapping"). Only vehicles.csv has
+    // any - fuel/costs map every column, and incomes/reminders are whole-file
+    // out of scope (reported by the `outOfScope` ambiguity, not as columns).
+    private static readonly Dictionary<string, (int Index, string Name, bool ZeroIsEmpty)[]> UnsupportedColumnsByKind = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["vehicles"] =
+        [
+            (5, "Vehicle price", true),
+            (7, "Initial tank status", true),
+            (8, "LPG tank volume", true),
+            (9, "Initial LPG tank status", true),
+            // A hex colour: "000000" is black, a real value, so zero is not absence.
+            (10, "Color", false),
+        ],
+    };
+
     // Reason codes carried in unparsed (stable; the client renders these).
     public const string ReasonWrongColumnCount = "wrong_column_count";
     public const string ReasonInvalidDate = "invalid_date";
@@ -179,6 +196,9 @@ public static class MfmParser
         var unparsed = new List<UnparsedRow>();
         int rowsWithCurrency = 0;
         string? currency = null;
+        // RV.116: how many rows carried a value in each column this kind does
+        // not map. Only the cell's emptiness is observed; the value is never read.
+        var unsupportedCounts = new Dictionary<string, int>();
 
         foreach (var fields in rows)
         {
@@ -189,6 +209,8 @@ public static class MfmParser
                 unparsed.Add(new UnparsedRow(rowNumber, ReasonWrongColumnCount));
                 continue;
             }
+
+            CountUnsupported(fileKind, fields, unsupportedCounts);
 
             try
             {
@@ -248,8 +270,35 @@ public static class MfmParser
             Unparsed = unparsed,
             Ambiguities = ambiguities,
             DataRowCount = rowNumber,
+            // RV.116: only the columns that carried a value, in the format's
+            // declared order. An all-empty column is omitted.
+            Unsupported = ImportFormats.All.Single(f => f.Id == "mfm").UnsupportedColumns
+                .Where(c => unsupportedCounts.GetValueOrDefault(c) > 0)
+                .Select(c => new ImportUnsupportedColumn(c, unsupportedCounts[c]))
+                .ToArray(),
             VehicleGroups = GroupByVehicleName(candidates),
         };
+    }
+
+    /// <summary>
+    /// Adds one to the count of every unmapped column that carried a value in
+    /// this row (RV.116). Positional, because the header text is not unique in
+    /// this format's kinds; the cell's value is never read (hard rule 12).
+    /// </summary>
+    private static void CountUnsupported(string fileKind, string[] fields, Dictionary<string, int> counts)
+    {
+        if (!UnsupportedColumnsByKind.TryGetValue(fileKind, out var columns))
+        {
+            return;
+        }
+
+        foreach (var (index, name, zeroIsEmpty) in columns)
+        {
+            if (index < fields.Length && ImportCell.HasValue(fields[index], zeroIsEmpty))
+            {
+                counts[name] = counts.GetValueOrDefault(name) + 1;
+            }
+        }
     }
 
     private static string[]? ReadRow(TextFieldParser parser) => parser.EndOfData ? null : parser.ReadFields();

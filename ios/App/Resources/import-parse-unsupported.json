@@ -1,0 +1,38 @@
+{
+  "importId": "00000000-0000-4000-8000-000000000320",
+  "format": "drivvo",
+  "scope": "vehicle",
+  "candidates": [
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-17T00:00:00Z",
+      "odometer": 491206,
+      "volumeL": 40,
+      "unitPrice": "220",
+      "money": { "amount": "8442", "currency": "EUR" },
+      "fuelKind": "petrol92",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Газпром",
+      "provenance": { "tag": "import", "source": "drivvo" },
+      "sourceRow": 1
+    },
+    {
+      "entityType": "fillUp",
+      "date": "2026-08-24T00:00:00Z",
+      "odometer": 491791,
+      "volumeL": 40,
+      "unitPrice": "225",
+      "money": { "amount": "6630", "currency": "EUR" },
+      "fuelKind": "petrol92",
+      "isFull": true,
+      "tankLevelAfterPct": 100,
+      "note": "Газпром",
+      "provenance": { "tag": "import", "source": "drivvo" },
+      "sourceRow": 2
+    }
+  ],
+  "unparsed": [],
+  "ambiguities": [],
+  "unsupported": { "Driver": 250, "Payment method": 12 }
+}

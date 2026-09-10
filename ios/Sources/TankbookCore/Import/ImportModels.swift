@@ -15,14 +15,37 @@ public struct ImportFormat: Codable, Sendable, Equatable, Hashable {
     public let fileKinds: [String]
     public let helpUrl: String?
     public let addedInPackVersion: Int
+    /// RV.116: the columns this format has no home for, declared by the server
+    /// (`GET /import/formats`) so a new importer cannot forget them and the
+    /// names do not rot in the client. The client renders whatever is listed -
+    /// an unknown name still renders. nil on an older server that omits the
+    /// field: no notice, never a decode failure.
+    public let unsupportedColumns: [String]?
 
     public init(id: String, displayName: String, fileKinds: [String],
-                helpUrl: String?, addedInPackVersion: Int) {
+                helpUrl: String?, addedInPackVersion: Int,
+                unsupportedColumns: [String]? = nil) {
         self.id = id
         self.displayName = displayName
         self.fileKinds = fileKinds
         self.helpUrl = helpUrl
         self.addedInPackVersion = addedInPackVersion
+        self.unsupportedColumns = unsupportedColumns
+    }
+}
+
+/// RV.116: one unsupported column and how many rows of the parsed file carried
+/// a value in it, resolved for display. The wire carries the counts as a
+/// name -> count object on the parse response; this pairs a declared name with
+/// its count so the view can render it. An unknown name the app has never heard
+/// of still renders - nothing here is keyed on a known format.
+public struct ImportUnsupportedColumn: Sendable, Equatable {
+    public let column: String
+    public let rowCount: Int
+
+    public init(column: String, rowCount: Int) {
+        self.column = column
+        self.rowCount = rowCount
     }
 }
 
@@ -306,11 +329,17 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
     /// in file order of first appearance. Absent on parses stored before the
     /// field existed - the device derives groups from the candidates then.
     public let vehicleGroups: [ImportVehicleGroup]?
+    /// RV.116: how many rows of THIS file carried a value in each column the
+    /// format has no home for, keyed by the format's declared column name.
+    /// Absent on an older server / an older stored parse - the preview then
+    /// shows no notice rather than failing to decode.
+    public let unsupported: [String: Int]?
 
     public init(importId: String, format: String, scope: String,
                 candidates: [ImportCandidate], unparsed: [ImportUnparsedRow],
                 ambiguities: [ImportAmbiguity],
-                vehicleGroups: [ImportVehicleGroup]? = nil) {
+                vehicleGroups: [ImportVehicleGroup]? = nil,
+                unsupported: [String: Int]? = nil) {
         self.importId = importId
         self.format = format
         self.scope = scope
@@ -318,6 +347,7 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
         self.unparsed = unparsed
         self.ambiguities = ambiguities
         self.vehicleGroups = vehicleGroups
+        self.unsupported = unsupported
     }
 
     /// The currency the file declares, if any (the `currency` ambiguity's first
@@ -362,7 +392,8 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
             importId: importId, format: format, scope: scope,
             candidates: candidates.map { $0.reDatingToDMY(calendar: calendar) ?? $0 },
             unparsed: unparsed, ambiguities: ambiguities,
-            vehicleGroups: vehicleGroups)
+            vehicleGroups: vehicleGroups,
+            unsupported: unsupported)
     }
 }
 

@@ -103,6 +103,33 @@ extension ImportFlowModel {
         }
     }
 
+    // MARK: - Unsupported columns (RV.116)
+
+    /// The columns this file carries that the app has no home for, with how many
+    /// rows carried a value in each. The names come from the format the server
+    /// declared (`GET /import/formats`) so the copy cannot rot in the client; the
+    /// counts come from the parse, which is the only place that can know them.
+    /// A name the app has never heard of still renders - nothing here is keyed
+    /// on a known format (the anti-hardcoding property).
+    ///
+    /// The server omits a column that was empty in every row, so an entry here
+    /// means the number is real. A parse from an older server (or a stored parse
+    /// from before the field) carries no `unsupported` - the list is empty and
+    /// the preview shows no notice, never a crash.
+    var unsupportedColumns: [ImportUnsupportedColumn] {
+        guard let counts = parse?.unsupported, !counts.isEmpty else { return [] }
+        var ordered = pickedFormat?.unsupportedColumns ?? []
+        for name in counts.keys.sorted() where !ordered.contains(name) {
+            ordered.append(name)
+        }
+        return ordered.compactMap { name in
+            guard let count = counts[name] else { return nil }
+            return ImportUnsupportedColumn(column: name, rowCount: count)
+        }
+    }
+
+    var hasUnsupportedColumns: Bool { !unsupportedColumns.isEmpty }
+
     // MARK: - Review list
 
     /// "Leave out" / "Import" toggle for a review row. A row with no record to
