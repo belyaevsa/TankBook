@@ -88,25 +88,24 @@ final class EditEntryNeighbourhoodUITests: XCTestCase {
             "the chart points must also carry a date")
     }
 
-    /// RV.188 item 3: the both-`.none` case names the offending PAIR (here the
-    /// previous and the next, both over the pace limit).
-    func testNeighbourhoodMessageNamesTheFailingPair() {
+    /// The both-`.none` case says nothing in prose: the chart and the three
+    /// bracket rows carry the reading and its neighbours, and the row's banner
+    /// above carries the next step. Two amber paragraphs restating the same
+    /// numbers in words were the panel's bulk and none of its meaning (product
+    /// owner, 2026-09-10). Asserted as an ABSENCE so re-adding them is a
+    /// deliberate decision, not a drift.
+    func testTheInconsistentCaseRendersNoProseParagraph() {
         let app = launchOnMiddleConflict()
         revealCard(app)
-        let culprits = app.staticTexts.matching(identifier: "neighbourhoodCulpritStatement")
-        XCTAssertTrue(culprits.firstMatch.waitForExistence(timeout: 10),
-                      "the inconsistent case must name its culprits")
-        XCTAssertGreaterThanOrEqual(culprits.count, 2,
-                                    "both failing comparisons must be named, not just the first")
-        XCTAssertTrue(culprits.containing(
-            NSPredicate(format: "label CONTAINS %@", "previous entry")).firstMatch.exists,
-            "the previous-side pair must be named")
-        XCTAssertTrue(culprits.containing(
-            NSPredicate(format: "label CONTAINS %@", "next entry")).firstMatch.exists,
-            "the next-side pair must be named")
-        XCTAssertTrue(culprits.containing(
-            NSPredicate(format: "label CONTAINS %@", grouped(100_000))).firstMatch.exists,
-            "the named previous pair must carry its odometer")
+        XCTAssertTrue(app.otherElements["neighbourhoodChart"].waitForExistence(timeout: 10),
+                      "the chart and its bracket rows are the explanation")
+        XCTAssertEqual(app.staticTexts.matching(
+            identifier: "neighbourhoodCulpritStatement").count, 0)
+        XCTAssertEqual(app.staticTexts.matching(
+            identifier: "neighbourhoodInconsistentStatement").count, 0)
+        // The numbers are still on screen - in the rows, where they belong.
+        XCTAssertTrue(app.staticTexts["This entry"].exists)
+        XCTAssertTrue(app.staticTexts["Previous entry"].exists)
     }
 
     /// RV.188 item 4: a flagged newest entry has no next, and the panel renders

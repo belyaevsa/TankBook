@@ -120,21 +120,14 @@ struct TimelineNeighbourhoodCard: View {
                                        distanceUnit: DistanceUnit) -> [Statement] {
         switch (model.validRange.odometer, model.validRange.dates) {
         case (.none, .none):
-            // The dead end RV.188 fixes: name every failed comparison rather
-            // than gesturing at "the entries around this one". The validator
-            // carried the side of each flag, so each sentence points at the
-            // pair that disagrees. The generic sentence remains only as the
-            // no-culprit fallback - never a blank panel.
-            guard !model.culprits.isEmpty else {
-                return [Statement(text: TimelineNeighbourhoodSentences.inconsistentNeighbourhood,
-                                  identifier: "neighbourhoodInconsistentStatement",
-                                  isAttention: true)]
-            }
-            return model.culprits.map { culprit in
-                Statement(text: TimelineNeighbourhoodSentences.culprit(culprit, unit: distanceUnit),
-                          identifier: "neighbourhoodCulpritStatement",
-                          isAttention: true)
-            }
+            // Nothing to say in prose. When neither field has a valid range the
+            // chart and the three bracket rows ARE the explanation - the reading
+            // that sits off the line, with its neighbours' dates and readings
+            // beside it - and the row's amber banner above already carries the
+            // next step (hard rule 7, docs/ERRORS.md -> Confirm -> F9a). A
+            // paragraph restating the same two numbers in words was the panel's
+            // bulk and none of its meaning (product owner, 2026-09-10).
+            return []
         default:
             let unit = distanceUnit
             let dateText = EntryDateText.dayMonth(model.entryDate)

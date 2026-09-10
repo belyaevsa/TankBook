@@ -43,28 +43,6 @@ struct TimelineNeighbourhood: Equatable {
     let previous: Neighbour?
     /// The immediate next neighbour, nil when the entry is the newest.
     let next: Neighbour?
-    /// The failed comparisons the validator reported, each carrying the side it
-    /// failed against and the neighbour's facts. The card renders one sentence
-    /// per culprit: an empty range with two disagreeing neighbours has two
-    /// culprits, and naming them all is the decision (RV.188) - naming only the
-    /// first would hide the entry the user must actually fix.
-    let culprits: [Culprit]
-
-    /// One failed comparison, as the card needs to name the pair.
-    struct Culprit: Equatable {
-        let side: TimelineValidator.NeighbourSide
-        let neighbourDate: Date
-        let neighbourOdometer: Int
-        let reason: Reason
-
-        enum Reason: Equatable {
-            /// CHECK 1: the reading is out of order against this neighbour.
-            case order
-            /// CHECK 2: the implied pace against this neighbour is over the limit.
-            case pace(kmPerDay: Double, limit: Double)
-        }
-    }
-
     /// The point immediately before the offending one, when one exists.
     var previousPoint: Point? {
         guard let index = offendingIndex, index > 0 else { return nil }
@@ -143,41 +121,7 @@ extension ManualFillUpFormState {
             validRange: validRange,
             points: points,
             previous: behind.first,
-            next: ahead.first,
-            culprits: Self.culprits(from: validation.flags,
-                                    previous: behind.first, next: ahead.first))
-    }
-
-    /// Resolves each validator flag to the neighbour it failed against. A flag
-    /// whose side has no odometer-bearing neighbour is dropped rather than
-    /// guessed at (the validator only reports a side it actually walked).
-    private static func culprits(
-        from flags: [TimelineValidator.Flag],
-        previous: TimelineNeighbourhood.Neighbour?,
-        next: TimelineNeighbourhood.Neighbour?
-    ) -> [TimelineNeighbourhood.Culprit] {
-        flags.compactMap { flag in
-            switch flag.detail {
-            case .order(let side, _, _, _, _):
-                return culprit(side: side, previous: previous, next: next, reason: .order)
-            case .pace(let side, let kmPerDay, let limit):
-                return culprit(side: side, previous: previous, next: next,
-                               reason: .pace(kmPerDay: kmPerDay, limit: limit))
-            }
-        }
-    }
-
-    private static func culprit(
-        side: TimelineValidator.NeighbourSide,
-        previous: TimelineNeighbourhood.Neighbour?,
-        next: TimelineNeighbourhood.Neighbour?,
-        reason: TimelineNeighbourhood.Culprit.Reason
-    ) -> TimelineNeighbourhood.Culprit? {
-        let neighbour = side == .previous ? previous : next
-        guard let neighbour else { return nil }
-        return TimelineNeighbourhood.Culprit(
-            side: side, neighbourDate: neighbour.date,
-            neighbourOdometer: neighbour.odometer, reason: reason)
+            next: ahead.first)
     }
 }
 
@@ -262,50 +206,6 @@ enum TimelineNeighbourhoodSentences {
                               odometerText, lower)
             case (nil, nil):
                 return nil
-            }
-        }
-    }
-
-    /// Both sides `.none`: the neighbourhood itself is inconsistent, so neither
-    /// single field can be called out. One sentence instead of two, never a
-    /// blank panel.
-    static var inconsistentNeighbourhood: String {
-        L10n.localize("The entries around this one can't all be right – no odometer or date fits between them.")
-    }
-
-    /// One failed comparison, named: the entry and the neighbour it failed
-    /// against, with the numbers that failed. The `.none`-both case renders one
-    /// of these per culprit (RV.188) instead of the generic gesture, so the
-    /// user is told which pair to check. Full localised phrase per unit, never a
-    /// unit label spliced onto a shared stem (hard rule 10).
-    static func culprit(_ culprit: TimelineNeighbourhood.Culprit,
-                        unit: DistanceUnit) -> String {
-        let neighbourText = TimelineNeighbourhoodCard.bracketValue(
-            date: culprit.neighbourDate, odometer: culprit.neighbourOdometer, unit: unit)
-        switch culprit.reason {
-        case .order:
-            switch culprit.side {
-            case .previous:
-                return String(format: L10n.localize("This reading conflicts with the previous entry (%@)."),
-                              neighbourText)
-            case .next:
-                return String(format: L10n.localize("This reading conflicts with the next entry (%@)."),
-                              neighbourText)
-            }
-        case .pace(let kmPerDay, let limit):
-            let paceText = OdometerFormat.grouped(Int(kmPerDay.rounded()))
-            let limitText = OdometerFormat.grouped(Int(limit.rounded()))
-            switch culprit.side {
-            case .previous:
-                return String(format: L10n.localize(unit == .km
-                    ? "This reading is %1$@ km/day from the previous entry (%2$@) – over the %3$@ km/day limit."
-                    : "This reading is %1$@ mi/day from the previous entry (%2$@) – over the %3$@ mi/day limit."),
-                              paceText, neighbourText, limitText)
-            case .next:
-                return String(format: L10n.localize(unit == .km
-                    ? "This reading is %1$@ km/day from the next entry (%2$@) – over the %3$@ km/day limit."
-                    : "This reading is %1$@ mi/day from the next entry (%2$@) – over the %3$@ mi/day limit."),
-                              paceText, neighbourText, limitText)
             }
         }
     }
