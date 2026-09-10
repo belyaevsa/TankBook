@@ -63,6 +63,7 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
+| **PJ.23** | flash | 26446 | `bozyn6wcq` (persistent) | `agents/briefs/PJ.23.md` |
 | **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
@@ -112,7 +113,6 @@ Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
 
 | # | Task | Brief | Note |
 |---|---|---|---|
- **Unblocked by `RV.189` tonight** - the station seam it guards is now settled, and RV.189 filed the exact hole for it: `ImportCandidate.init` DEFAULTS `station` to nil, so the next copy helper can drop it as silently as `remappingSourceRow` did. A guard with a live failing case, which is the only kind this queue dispatches |
 | 1 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
 | 2 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
 | 3 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
