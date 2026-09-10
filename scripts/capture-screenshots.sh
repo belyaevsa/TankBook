@@ -838,6 +838,18 @@ capture RV.112-trends-ru ru -seedHomeRV106Pending -selectTrendsTab
 capture RV.166-home-partial-group    en -seedSettingsSignedIn -seedHomeRV166PartialGroup
 capture RV.166-home-partial-group-ru ru -seedSettingsSignedIn -seedHomeRV166PartialGroup
 
+# PJ.56: the two purchase-group headers that used to say nothing while the
+# divider over them spoke. The pending pair shows an ALL-rate-pending receipt
+# whose header now says "3 entries pending rates" in place of a figure (RU is
+# where that phrase - "3 записи ждут курс" - runs longest under the divider's
+# identical sentence); the mixed pair shows a receipt whose known lines span
+# home currencies (EUR + USD), whose header now states the per-currency
+# breakdown exactly as the divider above it does - never a summed total.
+capture PJ.56-home-pending-group    en -seedSettingsSignedIn -seedHomePJ56PendingGroup
+capture PJ.56-home-pending-group-ru ru -seedSettingsSignedIn -seedHomePJ56PendingGroup
+capture PJ.56-home-mixed-group    en -seedSettingsSignedIn -seedHomePJ56MixedGroup
+capture PJ.56-home-mixed-group-ru ru -seedSettingsSignedIn -seedHomePJ56MixedGroup
+
 # RV.160: a send acknowledges itself - the composer collapses into a
 # confirmation panel where the form's top was, so the confirmation is visible
 # at About's top scroll with no tap needed (`-feedbackAutoSend` + the transport

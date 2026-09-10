@@ -179,8 +179,15 @@ extension HomeRecentEntries {
     /// whole slot there).
     private func pendingNote(_ total: LogStream.MonthTotal) -> String? {
         switch total {
-        case .partial(_, _, let pendingCount), .mixed(_, let pendingCount):
+        case .partial(_, _, let pendingCount):
             return L10n.pendingRates(pendingCount)
+        case .mixed(_, let pendingCount):
+            // A mixed month whose every member HAS converted is fully stated -
+            // its breakdown is the whole truth and there is nothing waiting, so
+            // the phrase would read "0 entries pending rates" beneath a
+            // complete figure. `HomeFormat.groupPendingNote` guards the same
+            // case for the group header (PJ.56); this is the divider's half.
+            return pendingCount > 0 ? L10n.pendingRates(pendingCount) : nil
         case .complete, .pending:
             return nil
         }
@@ -252,46 +259,101 @@ extension HomeFormat {
             .map { spend($0.amount, symbol: AddVehicleSupport.moneySymbol(for: $0.currency)) }
             .joined(separator: " · ")
     }
+
+    // MARK: - Purchase-group header figure text (RV.166, PJ.56)
+
+    /// The text a purchase-group header states for its own `total` - the same
+    /// figure the month divider over the same members would state, in the
+    /// row-level style the group's figures always used (two fraction digits,
+    /// RV.166). `.complete` and `.partial` state their exact known sum;
+    /// `.mixed` states its per-currency breakdown - each figure paired with its
+    /// own currency's symbol (RV.145), never a summed cross-currency total
+    /// (hard rule 3); `.pending` has no figure at all (`nil`) - the header
+    /// prints the pending phrase in place of a number (PJ.56).
+    static func groupFigure(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .complete(let amount, let currency), .partial(let amount, let currency, _):
+            return entryAmount(amount, symbol: AddVehicleSupport.moneySymbol(for: currency))
+        case .mixed(let subtotals, _):
+            return subtotals
+                .map { entryAmount($0.amount,
+                                   symbol: AddVehicleSupport.moneySymbol(for: $0.currency)) }
+                .joined(separator: " · ")
+        case .pending:
+            return nil
+        }
+    }
+
+    /// The pending phrase a purchase-group header carries for a `total` that is
+    /// not fully stated (PJ.56) - the SAME phrase the month divider prints over
+    /// the same members (RV.166): beneath the known figure for `.partial`,
+    /// beneath the breakdown for a `.mixed` whose members still wait, and ALONE
+    /// for `.pending`, where it is the whole slot (a `0 €` is never built -
+    /// RV.106). `nil` for a fully-stated total: `.complete`, and a `.mixed`
+    /// whose every member has converted.
+    static func groupPendingNote(_ total: LogStream.MonthTotal) -> String? {
+        switch total {
+        case .partial(_, _, let pendingCount), .pending(let pendingCount):
+            return L10n.pendingRates(pendingCount)
+        case .mixed(_, let pendingCount):
+            return pendingCount > 0 ? L10n.pendingRates(pendingCount) : nil
+        case .complete:
+            return nil
+        }
+    }
 }
 
-// MARK: - Purchase group header figure (RV.166)
+// MARK: - Purchase group header figure (RV.166, PJ.56)
 
 extension HomeRecentEntries {
 
     /// The group header's trailing figure, from the group's OWN `total`
-    /// classification (never recomputed here - hard rule 2). `.complete` is the
-    /// bare DIN total rendered with the currency it is denominated in (RV.145 -
-    /// never the vehicle's, which is how a euro receipt once printed a dollar
-    /// figure). `.partial` prints that known sum with the pending phrase beneath
-    /// it - visibly partial, never a bare total that reads as the whole receipt
-    /// while a member still waits on a rate (RV.166). `.mixed` and `.pending`
-    /// print no figure: a receipt whose known lines span home currencies has no
-    /// single total to state, and one with no known figure at all has nothing to
-    /// print - the member rows below state each amount, exactly as before.
+    /// classification (never recomputed here - hard rule 2). Every case states
+    /// exactly what the month divider over the same members states (RV.166,
+    /// PJ.56 - both reduce the receipt through the shared accumulator, so they
+    /// must not explain the same classification differently):
+    ///
+    /// - `.complete` is the bare DIN total rendered with the currency it is
+    ///   denominated in (RV.145 - never the vehicle's, which is how a euro
+    ///   receipt once printed a dollar figure).
+    /// - `.partial` prints that known sum with the pending phrase beneath it -
+    ///   visibly partial, never a bare total that reads as the whole receipt
+    ///   while a member still waits on a rate (RV.166).
+    /// - `.mixed` (known lines spanning home currencies) prints the per-currency
+    ///   breakdown - each figure exact with its own symbol, never a summed
+    ///   cross-currency total (hard rule 3, RV.145) - with the pending phrase
+    ///   beneath it when a member still waits.
+    /// - `.pending` (no member has a home figure) prints the pending phrase in
+    ///   place of a figure - a slot that would read `0 €` is never built
+    ///   (RV.106), and the header says why instead of leaving blank space the
+    ///   divider one row up already explains (PJ.56).
+    ///
+    /// The figures and notes come from `HomeFormat.groupFigure` /
+    /// `HomeFormat.groupPendingNote` - the seams the L1 tests assert through,
+    /// so a `.complete` / `.partial` rendering is unchanged to the pixel (a
+    /// single-child `VStack` lays out its child at the child's own size).
     /// Kept in this file so `HomeSections.swift` stays under the lint ceiling.
     @ViewBuilder
     func groupTotalFigure(_ group: LogStream.LogGroup) -> some View {
-        switch group.total {
-        case .complete(let amount, let currency):
-            groupTotalText(amount, currency: currency)
-        case .partial(let amount, let currency, let pendingCount):
+        if let figure = HomeFormat.groupFigure(group.total) {
             VStack(alignment: .trailing, spacing: 1) {
-                groupTotalText(amount, currency: currency)
-                Text(L10n.pendingRates(pendingCount))
-                    .font(.caption2)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .accessibilityIdentifier("logGroupPendingRates")
+                Text(figure)
+                    .font(.custom(AppFonts.dinAlternateBold, size: 16))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .accessibilityIdentifier("logGroupGrandTotal")
+                if let note = HomeFormat.groupPendingNote(group.total) {
+                    groupPendingText(note)
+                }
             }
-        case .mixed, .pending:
-            EmptyView()
+        } else if let note = HomeFormat.groupPendingNote(group.total) {
+            groupPendingText(note)
         }
     }
 
-    private func groupTotalText(_ amount: Decimal, currency: CurrencyCode) -> some View {
-        Text(HomeFormat.entryAmount(amount,
-                                    symbol: AddVehicleSupport.moneySymbol(for: currency)))
-            .font(.custom(AppFonts.dinAlternateBold, size: 16))
-            .foregroundStyle(Theme.Palette.ink)
-            .accessibilityIdentifier("logGroupGrandTotal")
+    private func groupPendingText(_ note: String) -> some View {
+        Text(note)
+            .font(.caption2)
+            .foregroundStyle(Theme.Palette.inkSoft)
+            .accessibilityIdentifier("logGroupPendingRates")
     }
 }

@@ -142,7 +142,20 @@ not just on the divider. **The purchase-group header states the same honesty (RV
 whose known lines total 30.00 EUR beside a rate-pending line is `.partial`: its header prints the
 known sum with the pending phrase beneath it, never a bare `30.00 €` that reads as the whole
 receipt - the group's figure is the same `MonthTotal` from the same accumulator, so a group header
-and the month divider that sums it can never disagree about the same receipt.
+and the month divider that sums it can never disagree about the same receipt. **The header never
+stays silent where the divider over the same members speaks (PJ.56).** A receipt whose members are
+ALL rate-pending is `.pending`: its header prints "N entries pending rates" in place of a figure -
+never blank space over a divider that already says the same sentence - and a receipt whose known
+lines span home currencies is `.mixed`: its header prints the per-currency breakdown
+(`91.02 € · 8.00 $`, RV.145's divider vocabulary in the group's own two-fraction figure style),
+never a "mixed" marker and never a summed cross-currency total (hard rule 3). A `.mixed` receipt
+that still has a member waiting carries the pending phrase beneath the breakdown exactly as
+`.partial` does. `.pending` is reachable - a foreign receipt logged offline and dated outside
+every rate source's reach stays pending, and `.mixed` is reachable too, through the same mechanism
+that makes a month mixed (RV.145): a member snapshotted before a Garage home change keeps its old
+home currency forever, while an RV.144 amount/currency edit of one member of the same receipt
+re-homes that member to the car's current home - one edited line beside siblings still snapshotted
+under the old home is a real, if rare, state.
 
 **A rate-pending month is a GAP in a Trends chart, never a dipped point (RV.112).** The monthly
 spend and cost/km series plot a point only for a `.complete` month. A `.partial` month is not

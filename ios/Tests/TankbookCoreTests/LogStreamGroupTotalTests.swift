@@ -201,4 +201,66 @@ struct LogStreamGroupTotalTests {
         #expect(stream.sections[0].total == accumulator.monthTotal,
                 "the divider must agree with the group header on the same members")
     }
+
+    // MARK: - PJ.56 - the states a header must not stay silent about
+
+    /// A receipt whose members are ALL rate-pending has no home figure at all:
+    /// `.pending`, carrying the count the header and the divider both explain
+    /// with - never a zero figure that reads as a free receipt. The month
+    /// divider over the same members states the SAME count (the shared
+    /// accumulator), so the header and the divider one row up say the same
+    /// sentence (PJ.56).
+    @Test func allPendingGroupReportsPendingAndTheDividerStatesTheSameCount() {
+        let groupID = UUID.v7()
+        let month = Self.date(2026, 8, 10)
+        let entries: [any Entry] = [
+            Self.pendingExpense(month, amount: "71.02", group: groupID),
+            Self.pendingExpense(Self.date(2026, 8, 10, 9), amount: "20.00", group: groupID),
+            Self.pendingExpense(Self.date(2026, 8, 10, 8), amount: "8.00", group: groupID)
+        ]
+        let stream = LogStream(vehicle: Self.vehicle(), entries: entries, calendar: Self.calendar)
+        guard case .group(let group) = stream.allRows[0] else {
+            Issue.record("expected a group row")
+            return
+        }
+        #expect(group.total == LogStream.MonthTotal.pending(pendingCount: 3))
+        #expect(group.total != LogStream.MonthTotal.complete(amount: .zero, currency: .eur),
+                "an all-pending receipt must never read as a zero-cost receipt")
+        // The divider over the same members carries the same count - the header
+        // explains itself with the divider's own number (PJ.56).
+        #expect(stream.sections[0].total == group.total,
+                "the divider must state the same pending count as the group header")
+    }
+
+    /// A receipt whose known members span home currencies is `.mixed` for the
+    /// group header exactly as for the divider over the same members - the two
+    /// surfaces explain the same classification with the same per-currency
+    /// subtotals, never one cross-currency total (hard rule 3, PJ.56).
+    @Test func mixedGroupAndItsDividerStateTheSameBreakdown() {
+        let groupID = UUID.v7()
+        let month = Self.date(2026, 8, 10)
+        let entries: [any Entry] = [
+            Self.fill(month, amount: "71.02", group: groupID),                    // home EUR
+            Self.expense(Self.date(2026, 8, 10, 9), amount: "20.00", group: groupID,
+                         home: .eur),                                             // home EUR
+            Self.expense(Self.date(2026, 8, 10, 8), amount: "8.00", group: groupID,
+                         home: .usd)                                              // home USD
+        ]
+        let stream = LogStream(vehicle: Self.vehicle(), entries: entries, calendar: Self.calendar)
+        guard case .group(let group) = stream.allRows[0] else {
+            Issue.record("expected a group row")
+            return
+        }
+        // Largest subtotal first (the accumulator's stable display order).
+        let expected = LogStream.MonthTotal.mixed(
+            subtotals: [
+                LogStream.SpendSubtotal(amount: Decimal(string: "91.02")!, currency: .eur),
+                LogStream.SpendSubtotal(amount: Decimal(string: "8.00")!, currency: .usd)
+            ],
+            pendingCount: 0)
+        #expect(group.total == expected)
+        // The divider over the same members cannot disagree with the header.
+        #expect(stream.sections[0].total == group.total,
+                "the divider must state the same breakdown as the group header")
+    }
 }
