@@ -228,6 +228,13 @@ is a good record only if the row actually says *Annual service*. One title funct
 row, the duplicate card, the excluded and flagged lists and Recently deleted, so no two screens can
 call the same entry different things.
 
+**[v1.x] Editing the work (PJ.23, 2026-09-10).** Opening a service in Edit entry shows its **line
+items** - title, category and cost - and writes them back, so the `.other` promotion promised above
+happens where the user can see the text [RV.187] titles the row from. The scope is **editing the
+items that exist**: add and delete stay on the capture screen's save gate, a larger surface than the
+promotion needs. `partNumber` and `lifetime` are not shown here but ride through untouched
+(PJ.22/PJ.26 own their editors) - dropping either on save would be data loss.
+
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables

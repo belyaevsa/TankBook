@@ -945,6 +945,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.23-service-items": {
+      "commit": "8033bb2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.23-service-items-ru": {
+      "commit": "8033bb2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.25-parts-shelf": {
       "commit": "8d6324e",
       "device": "iPhone 17",

@@ -258,8 +258,9 @@ struct PJ11WritePathGuardTests {
     /// STAMPS - the validator is consulted on this write:
     /// - ServiceEntryView.save  (upsertServiceRecord) - the typed/scanned service
     /// - ExpenseEntryView.save  (upsertExpense) - the expense entry
-    /// - EditEntryView.saveNonFill (upsertChargeSession / upsertServiceRecord /
-    ///   upsertExpense) - edits of the three non-fill types
+    /// - EditEntryView+NonFillSave.writeNonFill (upsertChargeSession /
+    ///   upsertServiceRecord / upsertExpense) - edits of the three non-fill
+    ///   types (PJ.23 split the write out of EditEntryView.swift)
     /// - EditEntryView.saveFill (upsertFillUp) - the fill edit, stamped inside
     ///   `buildUpdatedFill` (EditEntryFormState.swift)
     /// - ManualFillUpView.save (upsertFillUp) - the manual fill, stamped inside
@@ -303,9 +304,9 @@ struct PJ11WritePathGuardTests {
         let stamps: Set<String> = [
             "(ServiceEntryView, upsertServiceRecord)",
             "(ExpenseEntryView, upsertExpense)",
-            "(EditEntryView, upsertChargeSession)",
-            "(EditEntryView, upsertServiceRecord)",
-            "(EditEntryView, upsertExpense)",
+            "(EditEntryView+NonFillSave, upsertChargeSession)",
+            "(EditEntryView+NonFillSave, upsertServiceRecord)",
+            "(EditEntryView+NonFillSave, upsertExpense)",
             "(EditEntryView, upsertFillUp)",
             "(ManualFillUpView, upsertFillUp)",
             "(ImportFlowModel+Wizard, commitImport)",
@@ -320,15 +321,21 @@ struct PJ11WritePathGuardTests {
         #expect(found == pinned,
                 "a write path appeared that PJ.11 did not decide: \(found.sorted()) vs \(pinned.sorted())")
 
-        // Every stamped site consults the validator. The four app-local stamp
-        // sites hold a TimelineValidator.validate call in the same file; the
-        // import commit's stamp lives in core and is pinned separately below
-        // (its file carries confirmImport but not the validator call).
+        // Every stamped site consults the validator. The non-fill edit's stamp
+        // lives with its `TimelineValidator.validate` call in
+        // `EditEntryView+NonFillSave` (PJ.23 split the write out of
+        // EditEntryView.swift for the linter's file-length ceiling); the fill
+        // edit's verdict is derived in its `buildUpdatedFill` builder
+        // (EditEntryFormState.swift), and the import commit's stamp lives in
+        // core and is pinned separately below (its file carries confirmImport
+        // but not the validator call).
+        let validatorFile: [String: String] = ["EditEntryView": "EditEntryFormState"]
         for site in stamps {
             let file = String(site.split(separator: ",")[0].dropFirst())
             if file == "ImportFlowModel+Wizard" { continue }
-            #expect(try Self.appSource(named: file).contains("TimelineValidator.validate"),
-                    "\(file) must consult TimelineValidator.validate on its write (a stamped path)")
+            let source = validatorFile[file] ?? file
+            #expect(try Self.appSource(named: source).contains("TimelineValidator.validate"),
+                    "\(source) must consult TimelineValidator.validate on its write (a stamped path)")
         }
         let archive = try Self.coreSource("Backup/Repository+ArchiveImport.swift")
         #expect(archive.contains("stampingImportConflicts"),

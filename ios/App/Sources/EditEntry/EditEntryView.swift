@@ -314,51 +314,8 @@ struct EditEntryView: View {
     private func saveNonFill(_ entry: any Entry, vehicle: Vehicle) {
         do {
             let repository = try AppStore.repository()
-            var updated = entry
-            updated.updatedAt = Date()
-            updated.date = nonFillForm.date
-            updated.odometer = nonFillForm.odometerValue
-            updated.money = nonFillForm.editedMoney(original: entry.money,
-                                                    homeCurrency: vehicle.homeCurrency)
-            updated.note = nonFillForm.note.isEmpty ? nil : nonFillForm.note
-
-            // PJ.11: F9a is checked on every write, not just capture. An edit
-            // that moves an odometer or a date can break the timeline exactly
-            // as a new entry can, and the flag must land with the save - never
-            // left to a later read. The stamp never blocks the write (hard rule
-            // 13: the user decided; the amber badge surfaces it later).
-            let validations = TimelineValidator.validate(entries: otherEntries + [updated],
-                                                         vehicle: vehicle)
-            let validation = validations.first { $0.entryID == updated.id }
-            updated.conflict = validation?.conflict ?? .none
-            // RV.104: the validator's acceptance verdict (kept only while it
-            // suppresses a real flag) rides the typed copy, so editing a
-            // non-fact field cannot resurrect a flag an acceptance holds down.
-            updated.flagAcceptance = validation?.acceptance
-
-            switch updated {
-            case var charge as ChargeSession:
-                charge.provider = nonFillForm.provider.isEmpty ? nil : nonFillForm.provider
-                if let kWh = Double(nonFillForm.energyKWh) { charge.energyKWh = kWh }
-                charge.conflict = updated.conflict
-                charge.flagAcceptance = updated.flagAcceptance
-                try repository.upsertChargeSession(charge)
-            case var service as ServiceRecord:
-                service.vendor = nonFillForm.vendor.isEmpty ? nil : nonFillForm.vendor
-                service.conflict = updated.conflict
-                service.flagAcceptance = updated.flagAcceptance
-                try repository.upsertServiceRecord(service)
-            case var expense as Expense:
-                expense.title = nonFillForm.title
-                expense.category = nonFillForm.category
-                expense.conflict = updated.conflict
-                expense.flagAcceptance = updated.flagAcceptance
-                try repository.upsertExpense(expense)
-            default:
-                break
-            }
-            resolveEditedMoneyAtCommit(entryID: updated.id, vehicleID: vehicle.id,
-                                       repository: repository)
+            try Self.writeNonFill(entry, vehicle: vehicle, form: nonFillForm,
+                                  otherEntries: otherEntries, repository: repository)
             // A non-fill edit never moves consumption segments; there is no
             // delta to toast about - Home just reloads.
             toastCenter.noteEntryChanged()
@@ -366,25 +323,6 @@ struct EditEntryView: View {
         } catch {
             AppLog.error(operation: "editEntry.save", category: .ui, error: error)
         }
-    }
-
-    /// A non-fill edit resolves at commit when it can - the same claim an
-    /// import commit's drain has, served by the same SCOPED backfill over the
-    /// row just written (docs/SCHEMA.md -> Money, hard rule 3). A currency edit
-    /// equal to the car's home was already snapshotted at rate 1 by
-    /// `Money.edited` and needs no rate at all; a foreign edit resolves only
-    /// when the rate cache holds a row for the entry's OWN day - a miss stays
-    /// rate-pending and counted (F9), never an error, never a blocked save, and
-    /// never a conversion at today's rate. Cache-only: this makes no fetch, so
-    /// it never depends on connectivity (hard rule 1). The row is re-read first
-    /// - the backfill must receive the CURRENT row, or a field this save wrote
-    /// (the conflict stamp) could be clobbered.
-    private func resolveEditedMoneyAtCommit(entryID: UUID, vehicleID: UUID,
-                                            repository: TankbookRepository) {
-        guard let current = (try? repository.liveEntries(forVehicle: vehicleID))?
-            .first(where: { $0.id == entryID }) else { return }
-        _ = try? MoneyBackfillService(store: AppRates.store)
-            .backfill(repository, limitedTo: [current])
     }
 
     /// The recompute, both halves from the engine (docs/SCHEMA.md,

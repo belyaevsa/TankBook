@@ -108,6 +108,13 @@ struct EditEntryNonFillForm: Equatable {
     /// GUESSED from the source file's kind column - so it must be editable
     /// here, not only at creation (hard rule 13). Ignored for every other kind.
     var category: ExpenseCategory = .accessory
+    /// A service's line items (docs/SCHEMA.md, ServiceItem): the actual work,
+    /// its category and its cost. Loaded from the stored record so it is
+    /// editable "again afterwards" (hard rule 13) - an imported service gets
+    /// its items from the source file's kind column, which is a guess. Reuses
+    /// the create screen's `ServiceEntryItemDraft` so the two paths cannot
+    /// drift. Ignored for every other kind.
+    var items: [ServiceEntryItemDraft] = []
 
     var amountDecimal: Decimal? {
         let trimmed = amount.trimmingCharacters(in: .whitespaces)

@@ -519,6 +519,16 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.28-expense    en -seedEditEntryScannedExpense -presentScreen editEntry
 capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntry
 
+# PJ.23: a SERVICE opened in Edit entry showing its editable line items - the
+# work, its category and its cost, which the screen used to hide entirely
+# (only a Vendor field rendered) while RV.187 titled the Log row from the first
+# named item. The seed's second item carries a custom `.other(...)` category so
+# the frame shows both the chooser and the free-text field; the first carries a
+# partNumber/lifetime the screen does not edit but must not drop. RU is where a
+# category label beside a cost on one row is the overflow check.
+capture PJ.23-service-items    en -seedEditEntryService -presentScreen editEntry
+capture PJ.23-service-items-ru ru -seedEditEntryService -presentScreen editEntry
+
 # RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
 # Confirm, RV.149) - the message a fill-up save shows after its photo write
 # fails, rendered by the real toast host over Home. A pose: the exact line the

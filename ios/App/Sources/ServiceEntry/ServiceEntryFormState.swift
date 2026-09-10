@@ -3,22 +3,50 @@ import TankbookCore
 
 // MARK: - Line item draft
 
-/// One editable line item row on the ServiceEntry screen. `title` + `category`
+/// One editable line item row, shared by the ServiceEntry CREATE screen and the
+/// Edit-entry SERVICE screen so the two paths cannot drift. `title` + `category`
 /// + a typed `cost` string (parsed to `Decimal` on save - never `Double`,
-/// docs/SCHEMA.md -> Money). `lifetime` is carried through so the odometer rule
-/// (docs/SCHEMA.md) applies the moment a scan or a later task sets a km
-/// lifetime; nothing on this screen edits it yet (P3.4 owns the proposal).
+/// docs/SCHEMA.md -> Money). `partNumber` and `lifetime` are carried through
+/// untouched: nothing on either screen edits them yet (PJ.22/PJ.26 own the
+/// editors), but dropping one on save is data loss.
 struct ServiceEntryItemDraft: Identifiable, Equatable {
     var id: UUID = UUID()
     var title = ""
     var category: ServiceCategory = .other("")
     var cost = ""
+    var partNumber: String?
     var lifetime: ServiceItem.Lifetime?
     /// True when this row was pre-filled by the invoice scanner rather than
     /// typed. A scanned row renders dimmed until the user edits it (hard rule 13:
     /// a scanned value is a default input the user edits, never read-only). The
     /// typed path (P3.1a) never sets this.
     var scanned = false
+
+    /// Loads a stored line item as an editable default (hard rule 13: a stored
+    /// value is an input the user edits, never a read-only fact). The `id` is
+    /// fresh - equality ignores it so the discard baseline can compare two
+    /// loads of the same record (see `==`).
+    init(from item: ServiceItem) {
+        self.title = item.title
+        self.category = item.category
+        self.cost = item.cost.map {
+            ManualFillUpFormat.decimal($0.amount, fractionDigits: 2)
+        } ?? ""
+        self.partNumber = item.partNumber
+        self.lifetime = item.lifetime
+    }
+
+    init(id: UUID = UUID(), title: String = "", category: ServiceCategory = .other(""),
+         cost: String = "", partNumber: String? = nil,
+         lifetime: ServiceItem.Lifetime? = nil, scanned: Bool = false) {
+        self.id = id
+        self.title = title
+        self.category = category
+        self.cost = cost
+        self.partNumber = partNumber
+        self.lifetime = lifetime
+        self.scanned = scanned
+    }
 
     /// The typed cost parsed as an exact `Decimal`, or nil when blank. A blank
     /// cost is an honest absence, never a `0` (hard rule 13).
@@ -31,6 +59,42 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     /// True once the item has a title - the row the save gate counts.
     var hasTitle: Bool {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// The stored line item this draft represents. `homeCurrency` is used only
+    /// when a new cost is typed; `preserving` is the original item at this
+    /// position, whose `cost` pair is kept byte-identical when the amount is
+    /// untouched (hard rule 3 - a snapshot is immutable) and whose `partNumber`
+    /// and `lifetime` survive the screen never showing them. The create path
+    /// passes `preserving: nil`.
+    func serviceItem(homeCurrency: CurrencyCode,
+                     preserving original: ServiceItem? = nil) -> ServiceItem {
+        let money: Money?
+        if let amount = costDecimal {
+            if let originalCost = original?.cost, originalCost.amount == amount {
+                money = originalCost
+            } else if let originalCost = original?.cost {
+                money = originalCost.replacingAmount(amount)
+            } else {
+                money = Money(amount: amount, currency: homeCurrency, homeCurrency: homeCurrency)
+            }
+        } else {
+            money = nil
+        }
+        return ServiceItem(title: title, category: category, cost: money,
+                           partNumber: partNumber ?? original?.partNumber,
+                           lifetime: lifetime ?? original?.lifetime)
+    }
+
+    /// Every editable value, EXCLUDING the synthetic `id`. A stored record has
+    /// no per-item id, so `EditEntryView.pristineNonFillForm` mints a fresh one
+    /// on every load; if `id` counted, two loads of the same untouched record
+    /// would differ and the screen would open already dirty - a swipe-back
+    /// would ask to discard work nobody did (hard rule 8).
+    static func == (lhs: ServiceEntryItemDraft, rhs: ServiceEntryItemDraft) -> Bool {
+        lhs.title == rhs.title && lhs.category == rhs.category && lhs.cost == rhs.cost
+            && lhs.partNumber == rhs.partNumber && lhs.lifetime == rhs.lifetime
+            && lhs.scanned == rhs.scanned
     }
 }
 
@@ -120,16 +184,7 @@ struct ServiceEntryFormState: Equatable {
     func draft(vehicle: Vehicle) -> ServiceEntryDraft {
         ServiceEntryDraft(
             vendor: vendor,
-            items: items.map { item in
-                ServiceItem.make(
-                    title: item.title,
-                    category: item.category,
-                    cost: item.costDecimal.map {
-                        Money(amount: $0, currency: vehicle.homeCurrency,
-                              homeCurrency: vehicle.homeCurrency)
-                    },
-                    lifetime: item.lifetime)
-            },
+            items: items.map { $0.serviceItem(homeCurrency: vehicle.homeCurrency) },
             date: date,
             odometer: odometerValue,
             note: note,

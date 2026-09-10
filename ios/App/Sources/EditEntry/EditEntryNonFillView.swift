@@ -96,16 +96,21 @@ struct EditEntryNonFillView: View {
             }
             .formCard()
         case let service as ServiceRecord:
-            FocusableFieldRow("Vendor", $nonFillFocus, equals: .vendor,
-                              rowIdentifier: "editEntryVendorRow") {
-                TextField(service.vendor ?? L10n.localize("Vendor"), text: $form.vendor)
-                    .multilineTextAlignment(.trailing)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($nonFillFocus, equals: .vendor)
-                    .accessibilityIdentifier("editEntryVendorField")
+            VStack(spacing: 9) {
+                FocusableFieldRow("Vendor", $nonFillFocus, equals: .vendor,
+                                  rowIdentifier: "editEntryVendorRow") {
+                    TextField(service.vendor ?? L10n.localize("Vendor"), text: $form.vendor)
+                        .multilineTextAlignment(.trailing)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.ink)
+                        .focused($nonFillFocus, equals: .vendor)
+                        .accessibilityIdentifier("editEntryVendorField")
+                }
+                .formCard()
+                ForEach($form.items) { $item in
+                    EditEntryServiceItemRow(item: $item)
+                }
             }
-            .formCard()
         case let expense as Expense:
             VStack(spacing: 0) {
                 FocusableFieldRow("Title", $nonFillFocus, equals: .title,
@@ -229,5 +234,87 @@ struct EditEntryNonFillView: View {
             }
         }
         .formCard()
+    }
+}
+
+/// One stored service line item made editable: its title, its category and its
+/// cost (docs/SCHEMA.md, ServiceItem). It reuses `ServiceEntryItemDraft` with the
+/// create screen so the two paths cannot drift. `partNumber` and `lifetime` are
+/// not shown here (PJ.22/PJ.26 own their editors) but ride through the draft
+/// untouched - dropping either on save would be data loss.
+///
+/// Edit-only by design: this row edits the items the record already has and
+/// never adds or deletes one. The row's acceptance is that promoting a category
+/// loses nothing; add/delete would drag in the create screen's save gate and
+/// empty-item rules, a larger surface than the row asks for.
+struct EditEntryServiceItemRow: View {
+    @Binding var item: ServiceEntryItemDraft
+
+    var body: some View {
+        VStack(spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 11) {
+                TextField("Item name", text: $item.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .accessibilityIdentifier("editEntryServiceItemTitle")
+                TextField("", text: $item.cost)
+                    .keyboardType(.decimalPad)
+                    .multilineTextAlignment(.trailing)
+                    .font(.custom(AppFonts.dinAlternateBold, size: 15))
+                    .foregroundStyle(Theme.Palette.ink)
+                    .frame(maxWidth: 96)
+                    .accessibilityIdentifier("editEntryServiceItemCost")
+                    .numericInput($item.cost, kind: .decimal)
+            }
+            HStack {
+                categoryMenu
+                Spacer(minLength: 8)
+            }
+            if item.category.otherText != nil {
+                TextField("Category name", text: otherTextBinding)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.ink)
+                    .accessibilityIdentifier("editEntryServiceItemOtherCategory")
+            }
+        }
+        .padding(13)
+        .formCard()
+    }
+
+    private var categoryMenu: some View {
+        Menu {
+            ForEach(ServiceCategory.fixedCases, id: \.self) { category in
+                Button {
+                    item.category = category
+                } label: {
+                    ServiceCategoryLabel(category: category)
+                }
+            }
+            Button {
+                item.category = .other(item.category.otherText ?? "")
+            } label: {
+                Text("Other")
+            }
+        } label: {
+            HStack(spacing: 4) {
+                ServiceCategoryLabel(category: item.category)
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+        }
+        .accessibilityIdentifier("editEntryServiceItemCategory")
+    }
+
+    /// The `.other` free text, read and written through the category. For an
+    /// imported item this is the source file's kind text, so the user can see
+    /// and correct what the importer guessed (hard rule 13).
+    private var otherTextBinding: Binding<String> {
+        Binding(
+            get: { item.category.otherText ?? "" },
+            set: { item.category = .other($0) }
+        )
     }
 }

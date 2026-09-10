@@ -62,6 +62,7 @@ extension EditEntryView {
             form.provider = charge.provider ?? ""
         case let service as ServiceRecord:
             form.vendor = service.vendor ?? ""
+            form.items = service.items.map(ServiceEntryItemDraft.init(from:))
         case let expense as Expense:
             form.title = expense.title
             form.category = expense.category
