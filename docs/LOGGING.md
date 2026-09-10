@@ -248,6 +248,8 @@ The events that can only be written at the moment they happen, because after the
 ### Capture / OCR
 `capture.pipeline` – pipeline id (`vision+rules v3` / `fiscal-qr` / `cloud-fallback v1`), durationMs (the recognition time the pipeline measured, carried by the prefill), per-field **confidence values and field names, never the extracted values**, crossCheck outcome, and `userCorrected` – true when the user edited any proposed value before saving. The line is emitted **at the confirm commit**, because `userCorrected` is only knowable there, when the saved values are compared with the scan's proposal (OB.2); the typed path (no prefill) emits nothing. This is the feed for the L5 accuracy ratchet in `TESTING.md` – and it is aggregate-safe by construction.
 
+`expense.category.suggest` (RV.200) – one Expense-mode scan's category suggestion, emitted at the expense save: `suggested` is the inference's **category code** (`parking`, `toll`, `other:wash`, `none` when it named no kind) and `userCorrected` is true when the saved category differs from a non-nil suggestion. Shape only, on the same discipline as `capture.pipeline`: the receipt's text, its title and its merchant have no route into the line (hard rule 12), and the `.other` payload is the app's own machine token, never user copy. It exists to answer whether the suggestion is any good – did the scan infer a kind, and did the user keep it.
+
 ### Feedback (PJ.20)
 `feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the
 stable code), `textLength` (a count), `hasReplyTo` / `hasDeviceModel` (field *presence*, never the

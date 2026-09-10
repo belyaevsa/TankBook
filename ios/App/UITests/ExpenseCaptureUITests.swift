@@ -133,6 +133,39 @@ final class ExpenseCaptureUITests: XCTestCase {
                        "a currency the form cannot express is not an error")
     }
 
+    /// RV.200: an Expense-mode scan reads the KIND of expense and offers it as
+    /// a suggestion - preselected and editable (hard rule 13). The parking seed
+    /// carries a ticket's OCR lines, so the SHIPPED vocabulary produces the
+    /// category; the test asserts the form's category control reads "Parking"
+    /// and that the user can change it before saving.
+    func testExpenseModeScanPreselectsTheInferredCategoryAndStaysEditable() {
+        let app = captureExpense("-seedExpenseScanParking")
+        shootAndUse(app)
+
+        let category = app.buttons["expenseEntryCategory"]
+        XCTAssertTrue(category.waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        XCTAssertTrue(categoryShows(app, "Parking"),
+                      "a parking scan must preselect Parking; control label was '\(category.label)'")
+
+        // Editable at the moment it is offered (hard rule 13): choose another
+        // category and the control changes.
+        category.tap()
+        let toll = app.buttons["Toll"].exists ? app.buttons["Toll"] : app.staticTexts["Toll"]
+        XCTAssertTrue(toll.waitForExistence(timeout: 5),
+                      "the category menu must offer the other kinds")
+        toll.tap()
+        XCTAssertTrue(categoryShows(app, "Toll"),
+                      "the suggested category must stay editable; control label was '\(category.label)'")
+    }
+
+    /// The category control's value, however SwiftUI exposes it (the Menu's own
+    /// label or the text it renders).
+    private func categoryShows(_ app: XCUIApplication, _ label: String) -> Bool {
+        app.buttons["expenseEntryCategory"].label.contains(label)
+            || app.staticTexts[label].exists
+    }
+
     /// PJ.28 - the whole remaining row: a scanned expense KEEPS its receipt.
     /// The pre-fill half shipped in RV.62 (asserting it here is the row's named
     /// vacuous trap); this drives the real capture -> save -> entry path and

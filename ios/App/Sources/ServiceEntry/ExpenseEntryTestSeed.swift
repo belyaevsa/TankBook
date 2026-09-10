@@ -69,6 +69,9 @@ enum ExpenseEntryPrefillSeed {
 ///   be offered as if it were EUR.
 /// - `-seedExpenseScanEmpty` - an all-nil extraction: the expense form opens
 ///   empty with no error (hard rule 7).
+/// - `-seedExpenseScanParking` - a parking ticket's OCR lines (RV.200), so the
+///   real `ExpenseCategoryInference` runs and the form opens on `.parking`; the
+///   UI test then proves the suggestion is preselected AND editable.
 enum ExpenseScanTestSeed {
     static func extraction(from arguments: [String]) -> FuelExtraction? {
         if arguments.contains("-seedExpenseScan") {
@@ -79,10 +82,29 @@ enum ExpenseScanTestSeed {
         if arguments.contains("-seedExpenseScanForeign") {
             return FuelExtraction(total: 289.50, currency: .pln, date: "17.08.2026")
         }
+        if arguments.contains("-seedExpenseScanParking") {
+            return FuelExtraction(total: 250.00, currency: .eur, date: "17.08.2026")
+        }
         if arguments.contains("-seedExpenseScanEmpty") {
             return FuelExtraction()
         }
         return nil
+    }
+
+    /// The OCR lines that ride beside a seeded extraction. RV.200's seeded path
+    /// must run the SHIPPED inference, so the parking seed hands it the lines a
+    /// parking ticket prints rather than the category itself; an empty list
+    /// (every other seed) leaves the inference with nothing to read and the
+    /// form at its default.
+    static func ocrLines(from arguments: [String]) -> [OCRLine] {
+        if arguments.contains("-seedExpenseScanParking") {
+            return [
+                OCRLine(text: "ПАРКОВКА ГОРОДСКАЯ"),
+                OCRLine(text: "СТОЯНКА 2 ЧАСА"),
+                OCRLine(text: "ИТОГО 250.00")
+            ]
+        }
+        return []
     }
 }
 #endif

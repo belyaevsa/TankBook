@@ -1705,6 +1705,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.200-expense-category": {
+      "commit": "877c166",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.200-expense-category-ru": {
+      "commit": "877c166",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.202-service-receipt": {
       "commit": "408e076",
       "device": "iPhone 17",

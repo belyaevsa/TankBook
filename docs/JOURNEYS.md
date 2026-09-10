@@ -294,16 +294,19 @@ extraction, and generalising that merge over entry kind is [RV.201].
 
 **Fallbacks:** part logged without a receipt → plain manual expense, one field + price. User skips the shelf entirely and just types parts inside service records → works fine, the shelf is an optimization, never a gate. Tire mileage without logged swaps → unavailable, shown as "–", never estimated.
 
-**The Expense capture door (RV.62):** scanning a shop receipt in Expense mode runs the same
-recognition as a fill-up but pre-fills only **total, currency and date** into the expense form –
-a shop receipt has no liters or fuel kind, and those fields are dropped at the extraction →
-pre-fill boundary (`ExpensePrefill`, core), never offered. Merchant and category are not
-guessed: the user picks the category on the form, exactly as J7's "pre-fill what's confident,
-never fake precision" demands. A scan that reads nothing opens the EMPTY expense form with no
-error (hard rule 7), the same contract the fill-up path honours. The amount is offered only
-when the receipt's currency is nil or is the car's home currency – the expense form cannot
-express a foreign total, so one is never offered as if it were home money (hard rule 13: a wrong
-fact is worse than none).
+**The Expense capture door (RV.62, extended RV.200):** scanning a shop receipt in Expense mode
+runs the same recognition as a fill-up but pre-fills only **total, currency and date** into the
+expense form's VALUE fields – a shop receipt has no liters or fuel kind, and those fields are
+dropped at the extraction → pre-fill boundary (`ExpensePrefill`, core), never offered. The scan
+also reads the **kind** of expense when its words say so – a parking ticket, a toll, a car wash,
+an insurance invoice – and offers it as the category pre-selection, editable at the moment it is
+offered and afterwards (hard rule 13). Merchant is not guessed, and an unrecognised kind opens
+the form at its default and says nothing: a suggestion the user can always change, never a fact
+presented as one. A scan that reads nothing opens the EMPTY expense form with no error (hard
+rule 7), the same contract the fill-up path honours. The amount is offered only when the
+receipt's currency is nil or is the car's home currency – the expense form cannot express a
+foreign total, so one is never offered as if it were home money (hard rule 13: a wrong fact is
+worse than none).
 
 **Success metric:** shelf-suggested parts accepted ≥40%; tire-swap reminders acted on ≥70% in season.
 

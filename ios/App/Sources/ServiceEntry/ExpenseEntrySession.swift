@@ -32,14 +32,21 @@ struct ExpenseScanCapture {
 /// (`pendingCapture`) so a scanned expense saves with its receipt attached and
 /// a second open of the form never re-attaches a stale photo.
 ///
-/// Also carries the expense-category pre-selection from the ServiceEntry mode
-/// row into the ExpenseEntry sheet (P3.2). Tapping "Parts" presets `.parts`,
-/// tapping "Other" leaves the picker at its default - both are a default input
-/// the user edits, never a locked choice. `pendingPrefill` is written only by
-/// Capture; `pendingPreset` only by ServiceEntry; they never race.
+/// Also carries the expense-category pre-selection into the ExpenseEntry sheet
+/// (P3.2, extended RV.200). Two writers, one field: ServiceEntry's mode row
+/// presets the category it was tapped from (tapping "Parts" presets `.parts`,
+/// "Other" leaves the default), and an Expense-mode capture writes the kind its
+/// own scan suggested (`ExpenseCategoryInference`). Both are a default input
+/// the user edits, never a locked choice (hard rule 13). `pendingPrefill` is
+/// written only by Capture, which writes `pendingPreset` in the same turn; a
+/// plain ServiceEntry preset carries no prefill. The two values are consumed
+/// together on load, so the scan's category is applied before its amount.
 @MainActor
 @Observable
 final class ExpenseEntrySession {
+    /// The category the form opens on, when something suggested one: nil leaves
+    /// the form's own `.accessory` default, which is the "no kind recognised"
+    /// answer (RV.200) - never an error and never a guess.
     var pendingPreset: ExpenseCategory?
     /// The scan's pre-fill, when ExpenseEntry is opening from an Expense-mode
     /// capture. Consumed (cleared) on load, exactly as `pendingPreset` is.

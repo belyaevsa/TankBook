@@ -1148,6 +1148,14 @@ alias_shot P1.4-home-empty RV.61-home-typeit
 alias_shot P1.4-home-empty-ru RV.61-home-typeit-ru
 capture RV.62-expense-prefill                            en -seedExpenseEntryPrefill -presentScreen serviceEntry
 capture RV.62-expense-prefill-ru                         ru -seedExpenseEntryPrefill -presentScreen serviceEntry
+# RV.200: an Expense-mode scan of a parking ticket lands the expense form with
+# the inferred category PRESELECTED (Parking / Парковка) and editable, beside
+# the amount it also read. The recognition is seeded but the CATEGORY is not:
+# `-seedExpenseScanParking` hands the real inference the ticket's OCR lines, so
+# the frame shows the shipped vocabulary's answer. `-captureAutoUse` accepts the
+# RV.5 review without a tap (`simctl` cannot tap).
+capture RV.200-expense-category                          en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
+capture RV.200-expense-category-ru                       ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 capture RV.64-inbox-noticks                              en -seedInboxItem -inboxReset -presentScreen inbox
 capture RV.64-inbox-noticks-ru                           ru -seedInboxItem -inboxReset -presentScreen inbox
 capture RV.64-inbox-ticked                               en -seedInboxItem -inboxReset -presentScreen inbox -inboxScreenshotTick

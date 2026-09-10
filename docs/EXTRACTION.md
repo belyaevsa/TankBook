@@ -427,10 +427,31 @@ not a mistake that could slip through review, it is something the type refuses t
 Those fuel fields are still extracted by the shared parser on a fuel-looking receipt; they are
 dropped HERE, by construction, before anything app-side can read them.
 
-Two fields are **not** resolved, deliberately: merchant and category. Category is the user's
-pick on the form (`ExpenseCategory.entryCases`); guessing one from a shop receipt is a NEW
-extraction problem with its own corpus and its own failure modes, and it was not assumed into
-this change.
+**Category is inferred as a suggestion (RV.200).** A parking ticket, a toll, a car wash and an
+insurance invoice were indistinguishable to the form that received them, because the scan read
+the money and never the KIND. `ExpenseCategoryInference` (core, `Extraction/`, beside
+`FuelKindNormalizer` and `StationNameExtractor`) now reads the scan's own OCR lines - the
+extractor's INPUT, never a value another extractor already produced - for the separable kinds
+`ExpenseCategory.entryCases` names: `parking`, `toll`, `fine`, `insurance`, `tax`, `parts`,
+`accessory`, and `.other("wash")` (the escape hatch, not a forced standard case). The vocabulary
+is bilingual and the RU set is the load-bearing one, because the product owner's own receipts are
+Russian; both the text and every stem pass through `FuelKindNormalizer.canonicalKey`, so a
+Cyrillic letter Vision reads as its Latin twin cannot break a match.
+
+The result is a **default input, never a fact** (hard rule 13): it rides
+`ExpenseEntrySession.pendingPreset` - the same field the ServiceEntry mode row writes - into the
+form's editable category field, and an unrecognised kind leaves it nil so the form opens at its
+default and says nothing (hard rule 7). A vocabulary that always answers is a vocabulary that
+guesses. The save emits `expense.category.suggest` (docs/LOGGING.md §4): the category CODE and a
+`userCorrected` boolean, never the receipt's text, so a future run can measure whether the
+suggestion helps at all.
+
+**The corpus cannot yet measure this, and that is the recorded finding.** As of 2026-09-11 the 61
+receipt photographs and 84 pump displays are all fuel (or mixed fuel plus one non-fuel line); there
+is **no non-fuel receipt image** to score against, so the vocabulary's ground truth lives in
+hand-authored OCR-text fixtures under `Spike/ReceiptSpike/fixtures/expenses/` rather than in a
+photograph's filename. Merchant remains **not** resolved: guessing it from a shop receipt is a
+separate problem with its own corpus and was not assumed into this change.
 
 The contract that bounds the expense hand-off is the fill-up path's own:
 - An extraction that resolves nothing becomes an all-nil `ExpensePrefill` - the expense form

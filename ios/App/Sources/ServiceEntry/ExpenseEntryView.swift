@@ -83,6 +83,11 @@ struct ExpenseEntryView: View {
     /// pre-fills this form and, on save, completes the reminder with the
     /// entry's real id. Consumed at load; held locally for the save.
     @State private var pendingCompletion: ReminderCompletionSession.Pending?
+    /// RV.200: the category a scan suggested, held so the save can report
+    /// whether the user kept it (`expense.category.suggest`, shape only). Nil
+    /// when nothing suggested a kind - the typed path and an unrecognised scan
+    /// alike - so "no suggestion" is distinguishable from "suggestion kept".
+    @State private var suggestedCategory: ExpenseCategory?
 
     var body: some View {
         ScrollView {
@@ -226,6 +231,13 @@ struct ExpenseEntryView: View {
                                                          vehicle: vehicle)
             expense.conflict = validations.first { $0.entryID == expense.id }?.conflict ?? .none
             try repository.upsertExpense(expense)
+            // RV.200: only a scanned expense has a suggestion to report - the
+            // typed path proposed no category and emits nothing. Shape only:
+            // the category code and whether the user kept it (hard rule 12).
+            if scan != nil {
+                AppLog.shared.emit(ExpenseCategorySuggestion(suggested: suggestedCategory,
+                                                             saved: form.category))
+            }
             // The other half of the P3.5 chain: a reminder completion handed
             // off by the ReminderComplete sheet completes with THIS entry's id.
             if let pending = pendingCompletion {
@@ -316,10 +328,14 @@ struct ExpenseEntryView: View {
             let vehicles = try repository.liveVehicles()
             guard let vehicle = carSelection.selectedVehicle(vehicles) else { return }
             self.vehicle = vehicle
-            // The category pre-selection from the mode row ("Parts" -> .parts)
-            // is a default input the user edits (hard rule 13), never a lock.
+            // The category pre-selection is a default input the user edits
+            // (hard rule 13), never a lock. Two writers share it: the mode row
+            // ("Parts" -> .parts) and, since RV.200, an Expense-mode scan's own
+            // inference. Held locally so the save can report whether the user
+            // kept a suggestion (shape only - never the receipt's text).
             if let preset = expenseSession.pendingPreset {
                 form.category = preset
+                suggestedCategory = preset
                 expenseSession.pendingPreset = nil
             }
             // The ReminderComplete sheet's "Type amount" hand-off (P3.5): an
