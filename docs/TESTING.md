@@ -90,6 +90,7 @@ has actually caught - a gate that has never caught anything at its cost is not k
 | **Full unit suite** (`swift test`, ~52 s at 1522 tests) | ~1 min | **Always. Never subsetted** | It is a minute. Subsetting has never once been worth the reasoning about whether it was safe |
 | **Named UI suites** via `-only-testing:` | 5-30 min | The change touches `ios/App/Sources/**` - any view, navigation, or state a screen reads | Regressions in the flow that was touched. **Name them in the brief**; "run the UI tests" is not a check |
 | **Screenshots, EN *and* RU, opened by the orchestrator** | ~10 min | The change alters **anything on screen**: copy, layout, a new state, a new row | **The highest-yield gate in the project.** On 2026-09-06 alone it caught four defects no test could see: crushed titles in both languages (`RV.75`), a stale capture showing an affordance the code no longer rendered (`RV.76`), a doubled Russian period (`RV.77`), and an action line resting below the fold while staying tappable (`RV.80`) |
+| **Screenshot manifest** (`scripts/check-screenshot-manifest.sh`) | seconds | Any change to `design/screenshots/` or `scripts/capture-screenshots.sh` - and in CI on every push | An orphan committed PNG that no capture line produces (`RV.176`'s class: `RV.150-station`), and a deleted capture line whose PNG stays committed (the named RV.150 mutation) |
 | **Mutation of the load-bearing invariant** | 5-15 min | The change makes or modifies the claim the row exists for | Vacuous tests. Two of eight passed on 2026-09-06, and each meant the test grew: a scope released before the copy it was meant to frame (`RV.73`), and a carve-out whose removal left a state with nothing on screen (`RV.80`) |
 | **RELEASE build** | 2-4 min | The change touches a `#if DEBUG` seam: a seed, a test hook, a `-seed*` argument, a preview helper | `PR.11`/`OB.4` shipped an unguarded call to a DEBUG-only type. Debug compiled, every gate passed, `main` broke for Release, and `RV.78` found it two rows later |
 | **Backend** `dotnet build` + `format --verify-no-changes` + `test` | ~2 min | Any change under `backend/` | Its own tier's floor |
@@ -210,6 +211,31 @@ table cannot degrade into a skip list. The named mutation is wrapping a real pro
 exists", not graph reachability** - a door on an unreachable screen, or one behind a runtime
 condition that can never be true, still passes; full-journey tapping is `RV.165`'s layer, at a phase
 gate.
+
+### The screenshot-manifest gate (RV.176 + PR.28)
+
+`scripts/check-screenshot-manifest.sh` + `scripts/screenshot-manifest.py`: every committed
+`design/screenshots/*.png` must be produced by a `capture` or `alias_shot` line in
+`scripts/capture-screenshots.sh` **and** carry an entry in `design/screenshots/manifest.json`
+recording its `runtime`, `device` and `commit`; or be a reasoned `legacy` frame. It is the mirror of
+the duplicate-frame check the capture script already carries (`4bbb302`) - that one catches two
+names for one frame, this one catches a name no line produces.
+
+The manifest is written by `capture-screenshots.sh` on every run and merged, not rewritten, so a
+`FILTER`ed run updates its own frames and preserves the rest. It is read by nothing else: this check
+is what makes it load-bearing rather than a file that merely exists.
+
+Why the gate exists, in one measurement: on 2026-09-10 an audit found **193 committed frames with no
+producing line** - not the three found by hand, and accumulated over two weeks. Each was either given
+a line (reconstructed from its task's DEBUG seed) or recorded as legacy. An unreproducible screenshot
+is worse than no screenshot: it looks like evidence and ages invisibly when a shared change lands.
+
+The named mutation is deleting one capture line whose PNG stays committed - `RV.150`'s exact state:
+the check exits **1** and names the frame both as "no capture line produces this frame" and as a
+stale manifest entry. The mirror - the tree clean - exits **0**. Both directions, and the alias
+direction, are covered by `scripts/tests/check-screenshot-manifest.test.sh` (14 cases, synthetic
+trees, no simulator). **Legacy is a narrow exception, not a dumping ground**: every entry carries a
+reason and the check prints the whole list on each run, so growth is visible.
 
 ## When the FULL UI suite runs, and when it does not (standing rule, 2026-08-29)
 
@@ -389,4 +415,4 @@ Consequences, which apply to every L4 task until an iOS 18 runtime lands:
 
 ## CI gates (what blocks merge)
 
-**Build green and lint green on every touched tier** (the table above – this is the precondition for everything that follows) · All L1 green · L2 green (backend PRs) · L4 snapshots reviewed-or-green · L5 accuracy not below the recorded high-water mark (ratchet, never regress) · SwiftLint/dotnet-format · pseudo-localization build (no hardcoded strings) · the ERRORS.md 3-question audit for any new user-facing message (reviewed in PR description).
+**Build green and lint green on every touched tier** (the table above – this is the precondition for everything that follows) · All L1 green · L2 green (backend PRs) · L4 snapshots reviewed-or-green · L5 accuracy not below the recorded high-water mark (ratchet, never regress) · SwiftLint/dotnet-format · pseudo-localization build (no hardcoded strings) · screenshot manifest (`scripts/check-screenshot-manifest.sh` – every committed PNG has a producing line and a manifest entry, or is reasoned legacy) · the ERRORS.md 3-question audit for any new user-facing message (reviewed in PR description).

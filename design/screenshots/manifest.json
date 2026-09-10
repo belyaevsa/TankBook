@@ -1,0 +1,2346 @@
+{
+  "frames": {
+    "OB.3-settings-last-failure": {
+      "commit": "04053fd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.3-settings-last-failure-ru": {
+      "commit": "04053fd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.3-settings-restored": {
+      "commit": "04053fd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.3-settings-restored-ru": {
+      "commit": "04053fd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.4-about-diagnostics": {
+      "commit": "fe1592f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.4-about-diagnostics-ru": {
+      "commit": "fe1592f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.4-diagnostics-preview": {
+      "commit": "fe1592f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "OB.4-diagnostics-preview-ru": {
+      "commit": "fe1592f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.1-shell-dark": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.1-shell-light": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.10-trends": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.10-trends-first-estimate": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.10-trends-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.11-car-switcher": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.11-car-switcher-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.12-vehicle-detail": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.12-vehicle-detail-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.13-confirm-odometer": {
+      "commit": "6bff551",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.13-confirm-odometer-ru": {
+      "commit": "6bff551",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.13b-conflict-quote-ru": {
+      "commit": "5da134d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.2-add-vehicle": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.2-add-vehicle-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.3-confirm-manual": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.3-confirm-manual-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.4-home": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.4-home-empty": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.4-home-empty-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.4-home-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.5-log-stream": {
+      "commit": "4bbb302",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.5-log-stream-ru": {
+      "commit": "4bbb302",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.6-edit-entry": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.6-edit-entry-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.7-recently-deleted": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.7-recently-deleted-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.8-duplicate-card": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.8-duplicate-card-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.9-tank-level": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P1.9-tank-level-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.1-capture": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.1-capture-phev-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.1-capture-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3-confirm": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3-confirm-empty-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3-confirm-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3b-confirm-fuel-multi": {
+      "commit": "d7ec242",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3b-confirm-fuel-multi-ru": {
+      "commit": "d7ec242",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3b-confirm-fuel-single": {
+      "commit": "d7ec242",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.3b-confirm-fuel-single-ru": {
+      "commit": "d7ec242",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.4-confirm-mixed": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.4-confirm-mixed-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.5-confirm-foreign": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.5-confirm-foreign-pending": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.5-confirm-foreign-pending-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P2.5-confirm-foreign-ru": {
+      "commit": "dbecf03",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1a-service-entry": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1a-service-entry-lump-sum": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1a-service-entry-lump-sum-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1a-service-entry-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1b-service-scan": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1b-service-scan-lump-sum": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1b-service-scan-lump-sum-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.1b-service-scan-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.2-parts-shelf": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.2-parts-shelf-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.2-service-link": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.2-service-link-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.3-tire-mount": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.3-tire-mount-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.3-tire-sets": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.3-tire-sets-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminder-form": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminder-form-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminders": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminders-empty": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminders-empty-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.4-reminders-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.5-reminder-complete": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.5-reminder-complete-prefill": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.5-reminder-complete-prefill-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.5-reminder-complete-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.6-notifications-denied": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P3.6-notifications-denied-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.4-sign-in": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.4-sign-in-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.4-wrong-provider": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.4-wrong-provider-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.6-photo-syncing": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.6-photo-syncing-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restore-empty": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restore-empty-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restore-unreachable": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restore-unreachable-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restoring": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.7-restoring-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-flagged": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-flagged-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-guest": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-guest-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-pending": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-pending-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-quota": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-quota-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-revoked": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-revoked-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-synced": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P4.9b-settings-synced-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-confirm-manual-rate": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-confirm-manual-rate-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-confirm-pending-next-step": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-confirm-pending-next-step-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-home-pending-footnote": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-home-pending-footnote-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-trends-pending-footnote": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.2b-trends-pending-footnote-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-home-banner-en": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-home-banner-en-xl": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-home-banner-ru": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-home-banner-ru-xl": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-parts-link-en": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-parts-link-ru": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-parts-link-ru-xl": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-recently-deleted-en": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-recently-deleted-ru": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-signin-wrong-provider-en": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.3-signin-wrong-provider-ru": {
+      "commit": "ee223fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-export": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-export-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-preview": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-preview-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-review": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-review-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-review-ru-xl": {
+      "commit": "1179004",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-source": {
+      "commit": "67902a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P5.5b-import-source-ru": {
+      "commit": "67902a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.10-capture": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.10-capture-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.10-capture-ru-xl": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.11b-settings-ratelimited": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.11b-settings-ratelimited-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.11b-settings-upgrade": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.11b-settings-upgrade-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.13-home-xl": {
+      "commit": "71a0e34",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.13-home-xl-ru": {
+      "commit": "71a0e34",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.17-anomaly-dismiss": {
+      "commit": "8d93c87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.17-anomaly-dismiss-ru": {
+      "commit": "8d93c87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-card": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-card-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-dismiss": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-dismiss-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-evidence": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.1b-insight-evidence-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.3-gateway-late-answer": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.3-gateway-late-answer-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.3-gateway-timeout": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.3-gateway-timeout-ru": {
+      "commit": "3a2dcdc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.5-home-log": {
+      "commit": "4308f9f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.5-home-log-ru": {
+      "commit": "4308f9f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.5-recently-deleted": {
+      "commit": "4308f9f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "P6.5-recently-deleted-ru": {
+      "commit": "4308f9f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.1-capture": {
+      "commit": "520ea0c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.1-capture-ru": {
+      "commit": "520ea0c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.10-import-date-question": {
+      "commit": "ae97057",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.10-import-date-question-ru": {
+      "commit": "ae97057",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.11-import-flagged-row": {
+      "commit": "9fa5ea7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.11-import-flagged-row-ru": {
+      "commit": "9fa5ea7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.11-service-flagged": {
+      "commit": "9fa5ea7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.11-service-flagged-ru": {
+      "commit": "9fa5ea7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12-capture-ev": {
+      "commit": "4a3b3d4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12-capture-ev-ru": {
+      "commit": "4a3b3d4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12b-capture-ev": {
+      "commit": "79b451c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12b-capture-ev-ru": {
+      "commit": "79b451c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12b-capture-ice": {
+      "commit": "79b451c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.12b-capture-ice-ru": {
+      "commit": "79b451c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.13-settings-signed-in": {
+      "commit": "38005cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.13-settings-signed-in-ru": {
+      "commit": "38005cc",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.14-odometer-delta": {
+      "commit": "7a2b3a4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.14-odometer-delta-ru": {
+      "commit": "7a2b3a4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.14-odometer-warn": {
+      "commit": "7a2b3a4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.14-odometer-warn-ru": {
+      "commit": "7a2b3a4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.17b-empty-scan-caption": {
+      "commit": "8d4d01e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.17b-empty-scan-caption-ru": {
+      "commit": "8d4d01e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.19-nostation": {
+      "commit": "b6ea56d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.19-nostation-ru": {
+      "commit": "b6ea56d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.19-station": {
+      "commit": "b6ea56d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.19-station-ru": {
+      "commit": "b6ea56d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.2-edit-entry-receipt": {
+      "commit": "20eb3b6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.2-edit-entry-receipt-ru": {
+      "commit": "20eb3b6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.20-import-sendfile": {
+      "commit": "cb57067",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.20-import-sendfile-ru": {
+      "commit": "cb57067",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.25-parts-shelf": {
+      "commit": "8d6324e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.25-parts-shelf-empty": {
+      "commit": "8d6324e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.25-parts-shelf-empty-ru": {
+      "commit": "8d6324e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.25-parts-shelf-ru": {
+      "commit": "8d6324e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.28-expense": {
+      "commit": "8005181",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.28-expense-ru": {
+      "commit": "8005181",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.33-import-guide": {
+      "commit": "67902a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.33-import-guide-ru": {
+      "commit": "67902a5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.36-export-share": {
+      "commit": "266e7af",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.36-export-share-ru": {
+      "commit": "266e7af",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.38-car-export": {
+      "commit": "266e7af",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.38-car-export-ru": {
+      "commit": "266e7af",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.3b-welcome": {
+      "commit": "de0be4a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.3b-welcome-light": {
+      "commit": "de0be4a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.3b-welcome-light-ru": {
+      "commit": "de0be4a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.3b-welcome-ru": {
+      "commit": "de0be4a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.4-home-reminder": {
+      "commit": "057e7e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.4-home-reminder-ru": {
+      "commit": "057e7e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.4-reminders": {
+      "commit": "057e7e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.4-reminders-ru": {
+      "commit": "057e7e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.48-edit-add-receipt": {
+      "commit": "7586202",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.48-edit-add-receipt-ru": {
+      "commit": "7586202",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.48-edit-suggestion": {
+      "commit": "7586202",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.48-edit-suggestion-ru": {
+      "commit": "7586202",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.5-reminder-tap": {
+      "commit": "8ef79cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.5-reminder-tap-ru": {
+      "commit": "8ef79cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.5-summary-tap": {
+      "commit": "8ef79cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.5-summary-tap-ru": {
+      "commit": "8ef79cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.55-station-favourite": {
+      "commit": "c933a3b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.55-station-favourite-ru": {
+      "commit": "c933a3b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.56-home-mixed-group": {
+      "commit": "c87ca1b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.56-home-mixed-group-ru": {
+      "commit": "c87ca1b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.56-home-pending-group": {
+      "commit": "c87ca1b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.56-home-pending-group-ru": {
+      "commit": "c87ca1b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.57-home-excluded-link": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.57-home-excluded-link-ru": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.6-typeit-service": {
+      "commit": "8d9ee38",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.6-typeit-service-ru": {
+      "commit": "8d9ee38",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.7-delete-alert": {
+      "commit": "c71c71d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.7-delete-alert-ru": {
+      "commit": "c71c71d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.7-deleted-reminder": {
+      "commit": "c71c71d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.7-deleted-reminder-ru": {
+      "commit": "c71c71d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.9-import-nonfuel-row": {
+      "commit": "ae97057",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.9-import-nonfuel-row-ru": {
+      "commit": "ae97057",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.1-settings-auth-expired": {
+      "commit": "682f3d4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.1-settings-auth-expired-ru": {
+      "commit": "682f3d4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.13-settings-offline": {
+      "commit": "e55e225",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.13-settings-offline-ru": {
+      "commit": "e55e225",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.13-settings-server-down": {
+      "commit": "e55e225",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.13-settings-server-down-ru": {
+      "commit": "e55e225",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.14-changed-by-sync": {
+      "commit": "e460a26",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.14-changed-by-sync-ru": {
+      "commit": "e460a26",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.14-synced-toast": {
+      "commit": "e460a26",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.14-synced-toast-ru": {
+      "commit": "e460a26",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.6-restore-cancel": {
+      "commit": "df094f0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.6-restore-cancel-ru": {
+      "commit": "df094f0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.6b-import-cancel": {
+      "commit": "e8b8a1c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PR.6b-import-cancel-ru": {
+      "commit": "e8b8a1c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.10-date-picker-open": {
+      "commit": "3611237",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.10-date-picker-open-ru": {
+      "commit": "3611237",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.100-home-zero-car": {
+      "commit": "bfad97c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.100-home-zero-car-ru": {
+      "commit": "bfad97c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.103-log-more": {
+      "commit": "8a78fa9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.103-log-more-ru": {
+      "commit": "8a78fa9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.106-log-pending-month": {
+      "commit": "dc30050",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.106-log-pending-month-ru": {
+      "commit": "dc30050",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.111-home-rates": {
+      "commit": "1f5f48c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.111-home-rates-ru": {
+      "commit": "1f5f48c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.112-home": {
+      "commit": "2efb9e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.112-home-ru": {
+      "commit": "2efb9e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.112-trends": {
+      "commit": "2efb9e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.112-trends-ru": {
+      "commit": "2efb9e3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.116-import-unsupported-notice": {
+      "commit": "fe94b0f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.116-import-unsupported-notice-ru": {
+      "commit": "fe94b0f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.117b-flagged": {
+      "commit": "6d833a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.117b-flagged-ru": {
+      "commit": "6d833a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.117b-neighbourhood": {
+      "commit": "6d833a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.117b-neighbourhood-ru": {
+      "commit": "6d833a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.121-home-anomaly": {
+      "commit": "c160cf2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.121-home-anomaly-ru": {
+      "commit": "c160cf2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.126-confirm-conflict": {
+      "commit": "9458ad6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.126-confirm-conflict-ru": {
+      "commit": "9458ad6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.131-home-duplicate": {
+      "commit": "3d28a21",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.131-home-duplicate-ru": {
+      "commit": "3d28a21",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.137-vehicle-edit": {
+      "commit": "5e9675a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.137-vehicle-edit-chips": {
+      "commit": "5e9675a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.137-vehicle-edit-chips-ru": {
+      "commit": "5e9675a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.137-vehicle-edit-ru": {
+      "commit": "5e9675a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.140-log-original-amount": {
+      "commit": "b5bbde5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.140-log-original-amount-ru": {
+      "commit": "b5bbde5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-excluded-list": {
+      "commit": "85db32a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-excluded-list-ru": {
+      "commit": "85db32a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-home": {
+      "commit": "85db32a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-home-excluded": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-home-excluded-ru": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.141-home-ru": {
+      "commit": "85db32a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.144-edit-entry": {
+      "commit": "5471bac",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.144-edit-entry-ru": {
+      "commit": "5471bac",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.145-log": {
+      "commit": "628d000",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.145-log-ru": {
+      "commit": "628d000",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.145-trends": {
+      "commit": "628d000",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.145-trends-ru": {
+      "commit": "628d000",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.146-currency": {
+      "commit": "20034fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.146-currency-ru": {
+      "commit": "20034fe",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.147-trends": {
+      "commit": "62d0516",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.147-trends-ru": {
+      "commit": "62d0516",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.149-receipt-not-saved": {
+      "commit": "0044e04",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.149-receipt-not-saved-ru": {
+      "commit": "0044e04",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.150-station": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.150-station-ru": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.156-station-add": {
+      "commit": "2328757",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.156-station-add-ru": {
+      "commit": "2328757",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.156-station-created": {
+      "commit": "2328757",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.156-station-created-ru": {
+      "commit": "2328757",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.159-about-consents": {
+      "commit": "a4dac65",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.159-about-consents-ru": {
+      "commit": "a4dac65",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.160-about-feedback-offline": {
+      "commit": "16ab0cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.160-about-feedback-offline-ru": {
+      "commit": "16ab0cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.160-about-feedback-sent": {
+      "commit": "16ab0cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.160-about-feedback-sent-ru": {
+      "commit": "16ab0cb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.161-confirm-station": {
+      "commit": "17f6294",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.161-confirm-station-ru": {
+      "commit": "17f6294",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.166-home-partial-group": {
+      "commit": "378ee65",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.166-home-partial-group-ru": {
+      "commit": "378ee65",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.17-downloading": {
+      "commit": "9af58d7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.17-downloading-ru": {
+      "commit": "9af58d7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.17-recognised": {
+      "commit": "9af58d7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.17-recognised-ru": {
+      "commit": "9af58d7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.177-home-currency-change": {
+      "commit": "e4766fb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.177-home-currency-change-ru": {
+      "commit": "e4766fb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.183-184-attachment-capture-station": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.183-184-attachment-capture-station-ru": {
+      "commit": "e3fe547",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.185-import-cars-name": {
+      "commit": "9588b20",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.185-import-cars-name-ru": {
+      "commit": "9588b20",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.185-import-new-car-name": {
+      "commit": "9588b20",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.185-import-new-car-name-ru": {
+      "commit": "9588b20",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.188-neighbourhood": {
+      "commit": "d618e5f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.188-neighbourhood-ru": {
+      "commit": "d618e5f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-garage": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-garage-ru": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-log": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-log-ru": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-trends": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.21-trends-ru": {
+      "commit": "dc8ea81",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-authexpired": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-authexpired-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-flagged": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-flagged-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-quota": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-quota-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-revoked": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-revoked-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-signedout": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-signedout-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-synced": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-synced-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-syncing": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-syncing-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-waiting": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.22-chip-waiting-ru": {
+      "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.23-welcome": {
+      "commit": "d86fde9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.23-welcome-ru": {
+      "commit": "d86fde9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.24-language": {
+      "commit": "e3ea16c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.24-language-prompt": {
+      "commit": "e3ea16c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.24-language-prompt-ru": {
+      "commit": "e3ea16c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.24-language-ru": {
+      "commit": "e3ea16c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.28-fuel-chips": {
+      "commit": "0ba7e94",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.28-fuel-chips-ru": {
+      "commit": "0ba7e94",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.29-home-vitals": {
+      "commit": "1cfd0d3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.29-home-vitals-ru": {
+      "commit": "1cfd0d3",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.37-replace-ask": {
+      "commit": "4e7104f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.37-replace-ask-ru": {
+      "commit": "4e7104f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.38-bell": {
+      "commit": "175e320",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.38-bell-ru": {
+      "commit": "175e320",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.38-inbox-item": {
+      "commit": "175e320",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.38-inbox-item-ru": {
+      "commit": "175e320",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.40-settings-signout": {
+      "commit": "f30dc27",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.40-settings-signout-ru": {
+      "commit": "f30dc27",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.42-settings-pending": {
+      "commit": "72798bb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.42-settings-pending-ru": {
+      "commit": "72798bb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.45-comparison": {
+      "commit": "2e36049",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.45-comparison-ru": {
+      "commit": "2e36049",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.45-nothing-to-change": {
+      "commit": "2e36049",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.45-nothing-to-change-ru": {
+      "commit": "2e36049",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.48-attachment-recognised": {
+      "commit": "eb63b5a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.48-attachment-recognised-ru": {
+      "commit": "eb63b5a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.5-capture-review": {
+      "commit": "6d15b22",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.5-capture-review-ru": {
+      "commit": "6d15b22",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.54-account-devices": {
+      "commit": "b7f8c98",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.54-account-devices-ru": {
+      "commit": "b7f8c98",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.57-capture-prefill": {
+      "commit": "ee38b5e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.57-capture-prefill-ru": {
+      "commit": "ee38b5e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.58-settings-revoked": {
+      "commit": "cfd1d90",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.58-settings-revoked-ru": {
+      "commit": "cfd1d90",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.61-home-typeit": {
+      "commit": "19b0a33",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.61-home-typeit-ru": {
+      "commit": "19b0a33",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.62-expense-prefill": {
+      "commit": "c1f2278",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.62-expense-prefill-ru": {
+      "commit": "c1f2278",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.64-inbox-noticks": {
+      "commit": "a6bd344",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.64-inbox-noticks-ru": {
+      "commit": "a6bd344",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.64-inbox-ticked": {
+      "commit": "a6bd344",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.64-inbox-ticked-ru": {
+      "commit": "a6bd344",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.65-confirm-auth-notice": {
+      "commit": "cd31cd6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.65-confirm-auth-notice-ru": {
+      "commit": "cd31cd6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.66-chip-home": {
+      "commit": "0a5bae5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.66-chip-home-ru": {
+      "commit": "0a5bae5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.66-flagged-list": {
+      "commit": "0a5bae5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.66-flagged-list-ru": {
+      "commit": "0a5bae5",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.67-addcar-suggestions": {
+      "commit": "0c20ebf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.67-addcar-suggestions-ru": {
+      "commit": "0c20ebf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-contract": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-contract-ru": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-offline": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-offline-ru": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-servererror": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.68-import-servererror-ru": {
+      "commit": "6935d01",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.69-addcar-units": {
+      "commit": "34725e0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.69-addcar-units-ru": {
+      "commit": "34725e0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.70-quota-card": {
+      "commit": "5027708",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.70-quota-card-ru": {
+      "commit": "5027708",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.70-settings": {
+      "commit": "5027708",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.70-settings-ru": {
+      "commit": "5027708",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.71-confirm-fuel-mismatch": {
+      "commit": "09f0821",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.71-confirm-fuel-mismatch-ru": {
+      "commit": "09f0821",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.73-import-read-failed": {
+      "commit": "5c9a513",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.73-import-read-failed-ru": {
+      "commit": "5c9a513",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.74-reminders-deeplink": {
+      "commit": "453bf05",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.74-reminders-deeplink-ru": {
+      "commit": "453bf05",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.75-reminder-form-car-empty": {
+      "commit": "2da7e87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.75-reminder-form-car-empty-ru": {
+      "commit": "2da7e87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.75-reminders-all": {
+      "commit": "2da7e87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.75-reminders-all-ru": {
+      "commit": "2da7e87",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.76-reminders-empty": {
+      "commit": "8f0f277",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.76-reminders-empty-ru": {
+      "commit": "8f0f277",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.76-reminders-entry": {
+      "commit": "8f0f277",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.76-reminders-entry-ru": {
+      "commit": "8f0f277",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.77-service-reminder-offer": {
+      "commit": "1bb90c8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.77-service-reminder-offer-ru": {
+      "commit": "1bb90c8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.79-car-switcher-counts": {
+      "commit": "0163054",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.79-car-switcher-counts-ru": {
+      "commit": "0163054",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.79-garage-counts": {
+      "commit": "0163054",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.79-garage-counts-ru": {
+      "commit": "0163054",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.8-confirm-cloud-reading": {
+      "commit": "48e0eca",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.8-confirm-cloud-reading-ru": {
+      "commit": "48e0eca",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.80-import-not-supported": {
+      "commit": "b811d04",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.80-import-not-supported-ru": {
+      "commit": "b811d04",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.81-vehicle-detail-archived": {
+      "commit": "6a3170f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.81-vehicle-detail-archived-ru": {
+      "commit": "6a3170f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.83-garage-attention": {
+      "commit": "dac07a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.83-garage-attention-ru": {
+      "commit": "dac07a7",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.84-import-422": {
+      "commit": "62a59b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.84-import-422-ru": {
+      "commit": "62a59b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.84-import-not-supported": {
+      "commit": "62a59b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.84-import-not-supported-ru": {
+      "commit": "62a59b8",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.85-import-preview-resolved-dates": {
+      "commit": "c91634e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.85-import-preview-resolved-dates-ru": {
+      "commit": "c91634e",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.88-home-imported-usd-converted": {
+      "commit": "1d5227a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.88-home-imported-usd-converted-ru": {
+      "commit": "1d5227a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.88-home-imported-usd-pending": {
+      "commit": "1d5227a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.88-home-imported-usd-pending-ru": {
+      "commit": "1d5227a",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.89-log-multiyear": {
+      "commit": "5d0e8b4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.89-log-multiyear-ru": {
+      "commit": "5d0e8b4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.9-attachment-not-downloaded": {
+      "commit": "39586f2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.9-attachment-not-downloaded-ru": {
+      "commit": "39586f2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.9-attachment-viewer": {
+      "commit": "39586f2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.9-attachment-viewer-ru": {
+      "commit": "39586f2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.98-recently-deleted": {
+      "commit": "dbd93bd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.98-recently-deleted-ru": {
+      "commit": "dbd93bd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.99-vehicle-detail-delete-confirm": {
+      "commit": "1359736",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.99-vehicle-detail-delete-confirm-ru": {
+      "commit": "1359736",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV86-cars-ask": {
+      "commit": "0da9e8b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV86-cars-ask-ru": {
+      "commit": "0da9e8b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV86-cars-decided": {
+      "commit": "0da9e8b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV86-cars-decided-ru": {
+      "commit": "0da9e8b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "SH.4-sign-in-google-en": {
+      "commit": "bbf4899",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "SH.4-sign-in-google-ru": {
+      "commit": "bbf4899",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    }
+  },
+  "legacy": {
+    "P1.1-shell-dark-rejected-accent-tabbar": {
+      "reason": "The record of P1.1's hard-rule-5 accent-tinted tab bar. The code no longer produces this appearance, and SITE.md keeps it deliberately as the violation's evidence; the site excludes it from the published mount."
+    },
+    "P6.6-appicon-home-dark": {
+      "reason": "A home-screen capture of the app icon (P6.6), not an app screen; the capture script screenshots Tankbook, never the springboard."
+    },
+    "P6.6-appicon-home-light": {
+      "reason": "A home-screen capture of the app icon in light appearance (P6.6), not an app screen; the capture script screenshots Tankbook, never the springboard."
+    },
+    "RV.78-reminder-notification": {
+      "reason": "A reminder notification banner staged from the simulator's own presentation (RV.78). simctl cannot re-stage a system banner, so no capture line can reproduce it; kept as the only record of the notification's appearance."
+    },
+    "RV.78-reminder-notification-ru": {
+      "reason": "The Russian reminder notification banner staged from the simulator's own presentation (RV.78). simctl cannot re-stage a system banner, so no capture line can reproduce it."
+    }
+  }
+}

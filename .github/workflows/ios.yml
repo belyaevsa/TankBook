@@ -27,6 +27,15 @@ jobs:
       - name: Lint
         run: swiftlint lint
 
+      # RV.176 + PR.28: every committed screenshot must be reproducible by a
+      # `capture`/`alias_shot` line in scripts/capture-screenshots.sh and carry a
+      # manifest entry (runtime, device, commit), or be a reasoned legacy frame.
+      # A committed PNG no line produces is evidence nobody can regenerate - the
+      # mirror of the duplicate-frame check the capture script already carries.
+      # Pure file inspection: no simulator, no Xcode project, runs in seconds.
+      - name: Screenshot manifest
+        run: bash scripts/check-screenshot-manifest.sh
+
       - name: Generate Xcode project
         run: xcodegen generate
 

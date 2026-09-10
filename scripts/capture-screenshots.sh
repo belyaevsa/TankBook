@@ -99,6 +99,33 @@ xcrun simctl bootstatus "${DEVICE}" -b >/dev/null 2>&1
 xcrun simctl ui "${DEVICE}" appearance dark >/dev/null 2>&1
 xcrun simctl install "${DEVICE}" "${APP}" || exit 1
 
+# The manifest (RV.176 + PR.28): every frame this run produces is recorded with
+# the runtime, device and commit it came from, so a committed PNG is traceable
+# to the environment that proved it. The runtime matters: a baseline captured on
+# iOS 26.5 is not valid for iOS 18 (CLAUDE.md). Written per frame as it lands,
+# then merged into design/screenshots/manifest.json at the end - merge, not
+# rewrite, so a FILTERed run updates its own frames without discarding the rest.
+MANIFEST="${OUT}/manifest.json"
+MANIFEST_TSV="$(mktemp -t tankbook-manifest)"
+# The runtime key is `com.apple.CoreSimulator.SimRuntime.iOS-26-5`; the trailing
+# part is the value a human reads in the manifest.
+RUNTIME="$(xcrun simctl list devices -j 2>/dev/null | python3 -c '
+import json, sys
+name = sys.argv[1]
+data = json.load(sys.stdin)
+for runtime, devices in data.get("devices", {}).items():
+    for device in devices:
+        if device.get("name") == name:
+            print(runtime.split(".")[-1].replace("-", "."))
+            sys.exit(0)
+' "${DEVICE}")"
+COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+
+# record_manifest <frame-name> - one TSV line, merged at the end of the run.
+record_manifest() {
+    printf '%s\t%s\t%s\t%s\n' "$1" "${RUNTIME}" "${DEVICE}" "${COMMIT}" >> "${MANIFEST_TSV}"
+}
+
 # capture <output-name> <lang: en|ru> <launch args...>
 # FILTER="P1.4 P2.3" re-captures only the names that contain one of those words.
 # Without it every screenshot is taken, which is the default because a shared
@@ -124,6 +151,7 @@ capture() {
     sleep 6
     if xcrun simctl io "${DEVICE}" screenshot "${path}" >/dev/null 2>&1; then
         CAPTURED+=("${name}")
+        record_manifest "${name}"
         echo "  ok   ${path}"
     else
         echo "  FAIL ${path}" >&2
@@ -157,6 +185,7 @@ alias_shot() {
         if [ "${name}" = "${from}" ]; then
             for name in "$@"; do
                 cp "${OUT}/${from}.png" "${OUT}/${name}.png"
+                record_manifest "${name}"
                 echo "  ok   ${OUT}/${name}.png (copy of ${from})"
             done
             return 0
@@ -945,6 +974,216 @@ fi
 # line and pushes the actions down.
 capture RV.177-home-currency-change    en -seedHomeRV152 -presentScreen vehicleDetail -presentCurrencyChangePrompt
 capture RV.177-home-currency-change-ru ru -seedHomeRV152 -presentScreen vehicleDetail -presentCurrencyChangePrompt
+
+
+# RV.176: the audit's gap closure. Every frame below was committed with no
+# capture line - a screenshot nobody could regenerate. Each one now has a line,
+# reconstructed from its task's own DEBUG seed, so a shared change can be
+# re-shot instead of silently invalidating the record. `P1.1-shell-dark-
+# rejected-accent-tabbar` is the one deliberate exception: it is the record of a
+# hard-rule-5 violation the code no longer produces, and is a `legacy` manifest
+# entry rather than a line. The app-icon exports and the notification banner
+# frames were deleted: neither is a screen the capture script can produce.
+capture OB.3-settings-last-failure                       en -presentScreen settings -seedSettingsLastFailure
+capture OB.3-settings-last-failure-ru                    ru -presentScreen settings -seedSettingsLastFailure
+capture OB.3-settings-restored                           en -presentScreen settings -seedSettingsRestoredSync
+capture OB.3-settings-restored-ru                        ru -presentScreen settings -seedSettingsRestoredSync
+capture OB.4-about-diagnostics                           en -presentScreen about -seedDiagnosticsData
+capture OB.4-about-diagnostics-ru                        ru -presentScreen about -seedDiagnosticsData
+capture OB.4-diagnostics-preview                         en -presentScreen about -diagnosticsAutoOpenPreview -seedDiagnosticsData
+capture OB.4-diagnostics-preview-ru                      ru -presentScreen about -diagnosticsAutoOpenPreview -seedDiagnosticsData
+capture P1.13-confirm-odometer                           en -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 123600
+capture P1.13-confirm-odometer-ru                        ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 123600
+capture P1.13b-conflict-quote-ru                         ru -seedVehicleForUITests -presentScreen confirmManual -screenshotOdometer 121727
+alias_shot PJ.4-home-reminder P5.3-home-banner-en
+capture P5.3-home-banner-en-xl                           en -seedSettingsSignedIn -seedHomeReminderDue -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+alias_shot PJ.4-home-reminder-ru P5.3-home-banner-ru
+capture P5.3-home-banner-ru-xl                           ru -seedSettingsSignedIn -seedHomeReminderDue -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+alias_shot P3.2-service-link P5.3-parts-link-en
+alias_shot P3.2-service-link-ru P5.3-parts-link-ru
+capture P5.3-parts-link-ru-xl                            ru -seedServiceEntryLink -presentScreen serviceEntry -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+alias_shot P1.7-recently-deleted P5.3-recently-deleted-en
+alias_shot P1.7-recently-deleted-ru P5.3-recently-deleted-ru
+alias_shot P4.4-wrong-provider P5.3-signin-wrong-provider-en
+alias_shot P4.4-wrong-provider-ru P5.3-signin-wrong-provider-ru
+capture P5.5b-import-review-ru-xl                        ru -presentScreen importWizard -importStubParse review -seedImportReview -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+capture P6.13-home-xl                                    en -seedHomeFullHistory -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+capture P6.13-home-xl-ru                                 ru -seedHomeFullHistory -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
+alias_shot P6.1b-insight-dismiss P6.17-anomaly-dismiss
+alias_shot P6.1b-insight-dismiss-ru P6.17-anomaly-dismiss-ru
+alias_shot P1.4-home P6.5-home-log
+alias_shot P1.4-home-ru P6.5-home-log-ru
+alias_shot P1.7-recently-deleted P6.5-recently-deleted
+alias_shot P1.7-recently-deleted-ru P6.5-recently-deleted-ru
+alias_shot P2.1-capture PJ.1-capture
+alias_shot P2.1-capture-ru PJ.1-capture-ru
+alias_shot PJ.12-capture-ev PJ.12b-capture-ev
+alias_shot PJ.12-capture-ev-ru PJ.12b-capture-ev-ru
+capture PJ.12b-capture-ice                               en -presentScreen capture -cameraStatus authorized -powertrain ice
+capture PJ.12b-capture-ice-ru                            ru -presentScreen capture -cameraStatus authorized -powertrain ice
+capture PJ.17b-empty-scan-caption                        en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillEmpty
+alias_shot P2.3-confirm-empty-ru PJ.17b-empty-scan-caption-ru
+alias_shot P1.3-confirm-manual PJ.19-nostation
+alias_shot P1.3-confirm-manual-ru PJ.19-nostation-ru
+capture PJ.19-station                                    en -seedVehicleForUITests -presentScreen confirmManual -seedStationSuggestion
+capture PJ.19-station-ru                                 ru -seedVehicleForUITests -presentScreen confirmManual -seedStationSuggestion
+alias_shot RV.141-home-excluded PJ.57-home-excluded-link
+alias_shot RV.141-home-excluded-ru PJ.57-home-excluded-link-ru
+capture PR.1-settings-auth-expired                       en -presentScreen settings -seedSettingsAuthExpired
+capture PR.1-settings-auth-expired-ru                    ru -presentScreen settings -seedSettingsAuthExpired
+capture PR.13-settings-offline                           en -presentScreen settings -seedSettingsServerDown -importTransportOffline
+capture PR.13-settings-offline-ru                        ru -presentScreen settings -seedSettingsServerDown -importTransportOffline
+capture PR.13-settings-server-down                       en -presentScreen settings -seedSettingsServerDown
+capture PR.13-settings-server-down-ru                    ru -presentScreen settings -seedSettingsServerDown
+capture PR.14-changed-by-sync                            en -seedEditEntrySyncOverwritten -presentScreen editEntry
+capture PR.14-changed-by-sync-ru                         ru -seedEditEntrySyncOverwritten -presentScreen editEntry
+capture PR.14-synced-toast                               en -seedSettingsSynced -forceSyncToast
+capture PR.14-synced-toast-ru                            ru -seedSettingsSynced -forceSyncToast
+capture RV.100-home-zero-car                             en -seedHomeDeleteLastCar
+capture RV.100-home-zero-car-ru                          ru -seedHomeDeleteLastCar
+capture RV.103-log-more                                  en -seedHomeRV103LongLog -homeScrollLogReveal
+capture RV.103-log-more-ru                               ru -seedHomeRV103LongLog -homeScrollLogReveal
+capture RV.106-log-pending-month                         en -seedSettingsSignedIn -seedHomeRV106Pending
+capture RV.106-log-pending-month-ru                      ru -seedSettingsSignedIn -seedHomeRV106Pending
+capture RV.116-import-unsupported-notice                 en -presentScreen importWizard -importStubFormats unsupported -importStubParse unsupported -seedImportUnsupported
+capture RV.116-import-unsupported-notice-ru              ru -presentScreen importWizard -importStubFormats unsupported -importStubParse unsupported -seedImportUnsupported
+alias_shot RV.66-flagged-list RV.117b-flagged
+alias_shot RV.66-flagged-list-ru RV.117b-flagged-ru
+capture RV.117b-neighbourhood                            en -seedEditEntryConflictMiddle -presentScreen editEntry -scrollToNeighbourhood
+capture RV.117b-neighbourhood-ru                         ru -seedEditEntryConflictMiddle -presentScreen editEntry -scrollToNeighbourhood
+alias_shot P6.1b-insight-evidence RV.121-home-anomaly
+alias_shot P6.1b-insight-evidence-ru RV.121-home-anomaly-ru
+capture RV.126-confirm-conflict                          en -seedVehicleMiles -presentScreen confirmManual -screenshotOdometer 119486
+capture RV.126-confirm-conflict-ru                       ru -seedVehicleMiles -presentScreen confirmManual -screenshotOdometer 119486
+capture RV.137-vehicle-edit                              en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailModelSuggestions -vehicleDetailKeyboardUp
+capture RV.137-vehicle-edit-chips                        en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp
+capture RV.137-vehicle-edit-chips-ru                     ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp
+capture RV.137-vehicle-edit-ru                           ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailModelSuggestions -vehicleDetailKeyboardUp
+capture RV.141-excluded-list                             en -seedHomeExcludedMix -presentScreen excludedEntries
+capture RV.141-excluded-list-ru                          ru -seedHomeExcludedMix -presentScreen excludedEntries
+capture RV.141-home                                      en -seedHomeExcludedMix
+capture RV.141-home-ru                                   ru -seedHomeExcludedMix
+capture RV.145-log                                       en -seedSettingsSignedIn -seedHomeRV145Owner
+capture RV.145-log-ru                                    ru -seedSettingsSignedIn -seedHomeRV145Owner
+capture RV.145-trends                                    en -seedSettingsSignedIn -seedHomeRV145Owner -selectTrendsTab
+capture RV.145-trends-ru                                 ru -seedSettingsSignedIn -seedHomeRV145Owner -selectTrendsTab
+capture RV.146-currency                                  en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignLowConfidence
+capture RV.146-currency-ru                               ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmForeignLowConfidence
+capture RV.147-trends                                    en -seedSettingsSignedIn -seedHomeRV147Pending -selectTrendsTab
+capture RV.147-trends-ru                                 ru -seedSettingsSignedIn -seedHomeRV147Pending -selectTrendsTab
+alias_shot PJ.55-station-favourite RV.150-station
+alias_shot PJ.55-station-favourite-ru RV.150-station-ru
+alias_shot P1.3-confirm-manual RV.156-station-add
+alias_shot P1.3-confirm-manual-ru RV.156-station-add-ru
+capture RV.156-station-created                           en -seedVehicleForUITests -presentScreen confirmManual -seedStationRowSelected
+capture RV.156-station-created-ru                        ru -seedVehicleForUITests -presentScreen confirmManual -seedStationRowSelected
+capture RV.161-confirm-station                           en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillStation
+capture RV.161-confirm-station-ru                        ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillStation
+capture RV.17-downloading                                en -seedPhotoRemote -seedBlobFetchDelay 30 -presentScreen editEntry -openAttachmentViewer
+capture RV.17-downloading-ru                             ru -seedPhotoRemote -seedBlobFetchDelay 30 -presentScreen editEntry -openAttachmentViewer
+alias_shot RV.48-attachment-recognised RV.17-recognised
+alias_shot RV.48-attachment-recognised-ru RV.17-recognised-ru
+capture RV.21-garage                                     en -seedSettingsSignedIn -seedHomeFullHistory -selectGarageTab
+capture RV.21-garage-ru                                  ru -seedSettingsSignedIn -seedHomeFullHistory -selectGarageTab
+capture RV.21-log                                        en -seedSettingsSignedIn -seedHomeFullHistory
+capture RV.21-log-ru                                     ru -seedSettingsSignedIn -seedHomeFullHistory
+capture RV.21-trends                                     en -seedSettingsSignedIn -seedHomeFullHistory -selectTrendsTab
+capture RV.21-trends-ru                                  ru -seedSettingsSignedIn -seedHomeFullHistory -selectTrendsTab
+capture RV.28-fuel-chips                                 en -seedVehiclePetrolLPG -presentScreen confirmManual -screenshotPrefill
+capture RV.28-fuel-chips-ru                              ru -seedVehiclePetrolLPG -presentScreen confirmManual -screenshotPrefill
+capture RV.37-replace-ask                                en -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerReplaceAsk
+capture RV.37-replace-ask-ru                             ru -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer -openAttachmentViewerReplaceAsk
+alias_shot P4.9b-settings-synced RV.40-settings-signout
+alias_shot P4.9b-settings-synced-ru RV.40-settings-signout-ru
+capture RV.54-account-devices                            en -presentScreen settings -seedSettingsDeviceCount
+capture RV.54-account-devices-ru                         ru -presentScreen settings -seedSettingsDeviceCount
+capture RV.57-capture-prefill                            en -seedFillUpScan -presentScreen capture -cameraStatus authorized
+capture RV.57-capture-prefill-ru                         ru -seedFillUpScan -presentScreen capture -cameraStatus authorized
+capture RV.58-settings-revoked                           en -presentScreen settings -seedSettingsRevoked410
+capture RV.58-settings-revoked-ru                        ru -presentScreen settings -seedSettingsRevoked410
+alias_shot P1.4-home-empty RV.61-home-typeit
+alias_shot P1.4-home-empty-ru RV.61-home-typeit-ru
+capture RV.62-expense-prefill                            en -seedExpenseEntryPrefill -presentScreen serviceEntry
+capture RV.62-expense-prefill-ru                         ru -seedExpenseEntryPrefill -presentScreen serviceEntry
+capture RV.64-inbox-noticks                              en -seedInboxItem -inboxReset -presentScreen inbox
+capture RV.64-inbox-noticks-ru                           ru -seedInboxItem -inboxReset -presentScreen inbox
+capture RV.64-inbox-ticked                               en -seedInboxItem -inboxReset -presentScreen inbox -inboxScreenshotTick
+capture RV.64-inbox-ticked-ru                            ru -seedInboxItem -inboxReset -presentScreen inbox -inboxScreenshotTick
+capture RV.65-confirm-auth-notice                        en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillLocked -seedGatewayAuthExpired
+capture RV.65-confirm-auth-notice-ru                     ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillLocked -seedGatewayAuthExpired
+capture RV.66-chip-home                                  en -seedHomeRV66TwoCar -seedSyncFlaggedBatch
+capture RV.66-chip-home-ru                               ru -seedHomeRV66TwoCar -seedSyncFlaggedBatch
+capture RV.66-flagged-list                               en -seedSettingsSignedIn -seedSettingsFlaggedNeighbourhood -presentScreen inbox
+capture RV.66-flagged-list-ru                            ru -seedSettingsSignedIn -seedSettingsFlaggedNeighbourhood -presentScreen inbox
+capture RV.67-addcar-suggestions                         en -presentScreen addVehicle -addVehicleModelSuggestions
+capture RV.67-addcar-suggestions-ru                      ru -presentScreen addVehicle -addVehicleModelSuggestions
+capture RV.69-addcar-units                               en -presentScreen addVehicle -addVehicleModelSuggestions -seedVehicleMiles
+capture RV.69-addcar-units-ru                            ru -presentScreen addVehicle -addVehicleModelSuggestions -seedVehicleMiles
+alias_shot P4.9b-settings-quota RV.70-quota-card
+alias_shot P4.9b-settings-quota-ru RV.70-quota-card-ru
+alias_shot P4.9b-settings-guest RV.70-settings
+alias_shot P4.9b-settings-guest-ru RV.70-settings-ru
+capture RV.71-confirm-fuel-mismatch                      en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillFuelMismatch
+capture RV.71-confirm-fuel-mismatch-ru                   ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillFuelMismatch
+capture RV.73-import-read-failed                         en -presentScreen importWizard -importStubFormats shipped -seedImportReadFailed
+capture RV.73-import-read-failed-ru                      ru -presentScreen importWizard -importStubFormats shipped -seedImportReadFailed
+capture RV.74-reminders-deeplink                         en -seedRemindersDeepLink -presentScreen reminders
+capture RV.74-reminders-deeplink-ru                      ru -seedRemindersDeepLink -presentScreen reminders
+capture RV.75-reminder-form-car-empty                    en -seedReminderForm -presentScreen reminderForm
+capture RV.75-reminder-form-car-empty-ru                 ru -seedReminderForm -presentScreen reminderForm
+capture RV.75-reminders-all                              en -seedRemindersAll -presentScreen reminders
+capture RV.75-reminders-all-ru                           ru -seedRemindersAll -presentScreen reminders
+alias_shot P3.4-reminders-empty RV.76-reminders-empty
+alias_shot P3.4-reminders-empty-ru RV.76-reminders-empty-ru
+alias_shot P3.4-reminders RV.76-reminders-entry
+alias_shot P3.4-reminders-ru RV.76-reminders-entry-ru
+capture RV.77-service-reminder-offer                     en -seedServiceReminderOffer -presentScreen serviceEntry -presentServiceReminderOffer
+capture RV.77-service-reminder-offer-ru                  ru -seedServiceReminderOffer -presentScreen serviceEntry -presentServiceReminderOffer
+capture RV.79-car-switcher-counts                        en -seedHomeGarageCounts -presentScreen carSwitcher
+capture RV.79-car-switcher-counts-ru                     ru -seedHomeGarageCounts -presentScreen carSwitcher
+capture RV.79-garage-counts                              en -seedHomeGarageCounts -selectGarageTab
+capture RV.79-garage-counts-ru                           ru -seedHomeGarageCounts -selectGarageTab
+capture RV.8-confirm-cloud-reading                       en -seedVehicleForUITests -presentScreen confirmManual -seedGateway -seedGatewayConsistent
+capture RV.8-confirm-cloud-reading-ru                    ru -seedVehicleForUITests -presentScreen confirmManual -seedGateway -seedGatewayConsistent
+alias_shot P5.5b-import-source RV.80-import-not-supported
+alias_shot P5.5b-import-source-ru RV.80-import-not-supported-ru
+capture RV.81-vehicle-detail-archived                    en -presentArchivedVehicleDetail -presentScreen vehicleDetail
+capture RV.81-vehicle-detail-archived-ru                 ru -presentArchivedVehicleDetail -presentScreen vehicleDetail
+alias_shot RV.79-garage-counts RV.83-garage-attention
+alias_shot RV.79-garage-counts-ru RV.83-garage-attention-ru
+capture RV.84-import-422                                 en -presentScreen importWizard -importStubFormats shipped -importStubParse422 -seedImportParse422
+capture RV.84-import-422-ru                              ru -presentScreen importWizard -importStubFormats shipped -importStubParse422 -seedImportParse422
+alias_shot P5.5b-import-source RV.84-import-not-supported
+alias_shot P5.5b-import-source-ru RV.84-import-not-supported-ru
+capture RV.85-import-preview-resolved-dates              en -presentScreen importWizard -importStubParse mfm -seedImportResolvedDates
+capture RV.85-import-preview-resolved-dates-ru           ru -presentScreen importWizard -importStubParse mfm -seedImportResolvedDates
+capture RV.88-home-imported-usd-converted                en -seedSettingsSignedIn -seedHomeRV88USDConverted
+capture RV.88-home-imported-usd-converted-ru             ru -seedSettingsSignedIn -seedHomeRV88USDConverted
+capture RV.88-home-imported-usd-pending                  en -seedSettingsSignedIn -seedHomeRV88USDPending
+capture RV.88-home-imported-usd-pending-ru               ru -seedSettingsSignedIn -seedHomeRV88USDPending
+capture RV.89-log-multiyear                              en -seedSettingsSignedIn -seedHomeMultiYearLog
+capture RV.89-log-multiyear-ru                           ru -seedSettingsSignedIn -seedHomeMultiYearLog
+capture RV.9-attachment-not-downloaded                   en -seedPhotoRemote -presentScreen editEntry -openAttachmentViewer
+capture RV.9-attachment-not-downloaded-ru                ru -seedPhotoRemote -presentScreen editEntry -openAttachmentViewer
+capture RV.9-attachment-viewer                           en -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer
+capture RV.9-attachment-viewer-ru                        ru -seedPhotoLocal -presentScreen editEntry -openAttachmentViewer
+alias_shot P1.7-recently-deleted RV.98-recently-deleted
+alias_shot P1.7-recently-deleted-ru RV.98-recently-deleted-ru
+capture RV.99-vehicle-detail-delete-confirm              en -seedHome -presentScreen vehicleDetail -presentVehicleDeleteConfirm
+capture RV.99-vehicle-detail-delete-confirm-ru           ru -seedHome -presentScreen vehicleDetail -presentVehicleDeleteConfirm
+capture RV86-cars-ask                                    en -presentScreen importWizard -importStubFormats shipped -seedImportCars
+capture RV86-cars-ask-ru                                 ru -presentScreen importWizard -importStubFormats shipped -seedImportCars
+capture RV86-cars-decided                                en -presentScreen importWizard -importStubFormats shipped -seedImportCarsDecided
+capture RV86-cars-decided-ru                             ru -presentScreen importWizard -importStubFormats shipped -seedImportCarsDecided
+alias_shot P4.4-sign-in SH.4-sign-in-google-en
+alias_shot P4.4-sign-in-ru SH.4-sign-in-google-ru
+
+# Merge this run's frames into the manifest. `frames` is the script's record;
+# `legacy` (frames no line can reproduce) is hand-maintained and preserved.
+if [ "${#CAPTURED[@]}" -gt 0 ]; then
+    python3 scripts/screenshot-manifest.py merge "${MANIFEST}" "${MANIFEST_TSV}"
+fi
+rm -f "${MANIFEST_TSV}"
 
 echo
 echo "Done. NOW OPEN THEM - this script proves a file was written, not that it"
