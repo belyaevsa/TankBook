@@ -69,8 +69,7 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
-| **RV.198** `[!]` | **J7** | flash | 80286 | `bzqqqa6mk` (persistent) | `agents/briefs/RV.198.md` |
-| **REVIEW-SERVICE** *(read-only)* | **J7 / J7b / J7d / J7c** | pro | 92830 | `b2j4nvrb1` (persistent) | `agents/briefs/REVIEW-SERVICE-2026-09-10.md` |
+*(nothing in flight - `RV.198` shipped `8a4ba9d`, `REVIEW-SERVICE` reported and regrouped the loop in `14bfdfd`.)*
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
 no edits, no builds, no tests, so it cannot collide on files or on the simulator, and `CLAUDE.md`
@@ -115,15 +114,24 @@ to end and you find it in one run.**
 
 ### Briefed and ready, in order
 
-Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
+Shipped rows have left this table; `docs/TASKS-DONE.md` has them. **Order below follows
+`REVIEW-SERVICE`'s regrouping and the product owner's 2026-09-10 capture questions**, not filing
+order.
 
 | # | Task | Scenario | Brief | Note |
 |---|---|---|---|---|
-| 1 | **PJ.34** | **F9a** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
-| 2 | **PJ.26+PJ.27** | **J7b** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
-| 3 | **RV.173** | **J3** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
-| 4 | **RV.171** | *no-scenario: a guard over the receipt seam* | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
-| 5 | **RV.194** | *no-scenario: screenshot tooling* | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
+| 1 | **RV.199** | **J7** | *needs one* | **The walk calls this a PRECONDITION, not a follow-on**: `RV.198` shipped add/delete and *"adding a line does not move the total"*. Group A's other half - same card, same save path |
+| 2 | **RV.202** `[!]` | **J7 / J7b / J8b** | *needs one* | A service or expense with no attachment cannot be given one. **The affordance is missing, not the machinery** - `receiptCard` already takes `onAddReceipt`; the non-fill screen never passes it |
+| 3 | **RV.200** `[!]` | **J7b** | *needs one* | An Expense scan never infers WHICH KIND of expense it is, so every scan opens at `.accessory`. Sequenced before `RV.201`, which needs to know what an expense recognition produces |
+| 4 | **PJ.63** | *no-scenario: guard completeness* | *needs one* | **Before `PJ.26`.** `TireSet` has no `###` heading, so `RV.196` is green while three fields in this loop are dead. Fix the blind spot and the guard becomes what PROVES `PJ.26` fixed something |
+| 5 | **PJ.26+PJ.27** | **J7b** | `PJ.26+PJ.27.md` | PRIORITY since 2026-08-31. The tire loop. **After `PJ.63`** |
+| 6 | **PJ.62** `[!]` **then** **PJ.22** | **J7** | *needs one* | `PJ.22` as filed would mint a second reminder link - `sourceEntryId` already carries it. **Decide `PJ.62` before briefing `PJ.22`** |
+| 7 | **PJ.34** | **F9a** | `PJ.34.md` | PRIORITY since 2026-08-31, unblocked by `RV.192`. Bigger than the row says: no caller passes `attachments:`, and nothing renders `suggestions` at all |
+| 8 | **RV.173** | **J3** | *needs one* | A mixed receipt whose photo write fails leaves its expenses holding a dangling attachment id. `RV.149`'s fenced-out half |
+| 9 | **RV.171** | *no-scenario: a guard over the receipt seam* | *needs one* | After `RV.173`, same reason `RV.170` came after `RV.189` |
+| 10 | **RV.201** `[!]` | **J3 / J7 / J7b** | *needs one* | **Large.** Late-arriving recognition reaches a fill-up and nothing else - the Inbox's merge is built and every one of its fields is a fill-up field. Generalise it over entry kind; do not build a second one. After `RV.200` |
+| 11 | **RV.194** | *no-scenario: screenshot tooling* | `RV.194.md` | `RV.176`'s blind spot. Slow - a full 470-frame capture - and its final judgement is the orchestrator's |
+| 12 | **PJ.60** / **PJ.61** | **J7b / J7d** | *needs one* | Drop-or-write decisions the field guard surfaces once `PJ.63` lands |
 
 ### Filed 2026-09-10, no brief yet
 
