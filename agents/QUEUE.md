@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.186+RV.188** `[!]` | flash | 1581 | `bw8e4i9sm` (persistent) | `agents/briefs/RV.186+RV.188.md` |
+*(nothing in flight.)*
 
 *(`REVIEW-JOURNEYS-CD` finished; its report is `diagnostics/REVIEW-JOURNEYS-2026-09-10.md` and its
 findings are filed as `PJ.58`/`PJ.59` in `docs/TASKS.md`, commit `7676039`.)*
@@ -115,8 +115,21 @@ below the fold, the mapping gate's field was on the second lane). The pre-filled
 All fixed by the orchestrator before the commit. **The lesson is the standing one, again: read the
 exit code, and open every screenshot.**
 
-**IN FLIGHT - `RV.186+RV.188`. Then, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then
-`RV.170`), `RV.173` (then `RV.171`).**
+**`RV.186+RV.188` SHIPPED (`c911bcb`), both rows ticked.** The agent's work was sound and its
+mutation was the best one this session - restoring the old comparison for every kind turns 5 of 10
+red while the two-fills, two-charges and falling-odometer tests stay GREEN, which is the proof a fix
+**narrowed** a rule rather than removing it. **The orchestrator still found a defect no test could
+have**: the chart placed its labels by point INDEX, so two of three overprinted at one corner. Only
+opening the screenshot showed it; a UI test finds a label by identifier while it sits underneath
+another one.
+
+**`RV.190` SHIPPED (`67902a5`)** - the import picker called Drivvo unsupported while parsing Drivvo
+files, reported by the product owner. Also filed this pass: **`RV.191`** (RU dead-end card below the
+fold once the real format list is shown) and **`RV.192`** (the owner's SECOND same-day case, which
+RV.186 deliberately did not cover).
+
+**NEXT, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`), `RV.173` (then
+`RV.171`), `RV.191`, `RV.192`.**
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
