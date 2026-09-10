@@ -19,7 +19,12 @@ import Foundation
 /// reach the car's currency). A third shape, `rehome(_:vehicleID:to:)`, is not
 /// a rate fill at all: it follows a home-currency change in the Garage and
 /// re-homes only the vehicle's rate-pending entries - same-currency rows fill
-/// at rate 1 with no fetch, and snapshotted rows are never touched.
+/// at rate 1 with no fetch, and snapshotted rows are never touched. A fourth
+/// shape, `convertLog(_:vehicleID:to:)` (RV.152), is the user-requested
+/// counterpart: it re-derives EVERY entry from its immutable receipt at that
+/// entry's own date, restating the derived home figure the user asked to
+/// convert. `conversionPlan` reports what it would do so the prompt can state
+/// the pending count before the write.
 public struct MoneyBackfillService {
     /// The outcome of one pass: counts only, no domain values (hard rule 12).
     public struct Result: Equatable, Sendable {
@@ -245,6 +250,75 @@ public struct MoneyBackfillService {
             }
         }
         return Result(filledCount: filled, stillPendingCount: stillPending)
+    }
+
+    /// RV.152: the "Convert the log" answer to a home-currency change. Every
+    /// money-bearing entry is re-derived from its IMMUTABLE receipt
+    /// (`amount` + `currency`) into `newHome` and converted from the rate cache
+    /// at that entry's OWN date - never today (hard rule 3). Unlike
+    /// `rehome`, this pass DOES rewrite a written snapshot: the user asked for
+    /// the log to be restated, which is what distinguishes it from the silent
+    /// snapshot rewrite RV.140 forbade. The receipt is untouched - only the
+    /// derived home figure changes.
+    ///
+    /// A same-currency receipt is snapshotted at rate 1 by `Money.init` with no
+    /// lookup. A foreign receipt whose date the cache cannot serve stays
+    /// rate-pending and is counted (the ordinary F9 state) - a partial convert
+    /// is the expected case, never an error. `Result.filledCount` is how many
+    /// entries ended converted, `stillPendingCount` how many are still waiting.
+    /// Idempotent: a second pass over rows already in `newHome` writes nothing.
+    @discardableResult
+    public func convertLog(_ repository: TankbookRepository, vehicleID: UUID,
+                           to newHome: CurrencyCode) throws -> Result {
+        var converted = 0
+        var pending = 0
+        for entry in try repository.liveEntries(forVehicle: vehicleID) {
+            guard let pair = convertedPair(for: entry, to: newHome) else { continue }
+            if pair != entry.money {
+                try Self.persist(entry, with: pair, in: repository)
+            }
+            if pair.hasSnapshot {
+                converted += 1
+            } else {
+                pending += 1
+            }
+        }
+        return Result(filledCount: converted, stillPendingCount: pending)
+    }
+
+    /// RV.152: what `convertLog` WOULD do, without writing anything - the count
+    /// the prompt states before the user commits ("N entries have no rate for
+    /// their date and will show as pending"). It shares `convertedPair`, so the
+    /// count and the convert can never disagree about what a date's rate is.
+    /// Money-less entries are not counted; they have no derived half to restate.
+    public func conversionPlan(_ repository: TankbookRepository, vehicleID: UUID,
+                               to newHome: CurrencyCode) throws -> Result {
+        var converted = 0
+        var pending = 0
+        for entry in try repository.liveEntries(forVehicle: vehicleID) {
+            guard let pair = convertedPair(for: entry, to: newHome) else { continue }
+            if pair.hasSnapshot {
+                converted += 1
+            } else {
+                pending += 1
+            }
+        }
+        return Result(filledCount: converted, stillPendingCount: pending)
+    }
+
+    /// The pair a "Convert the log" answer writes for one entry: the immutable
+    /// receipt re-expressed in `newHome`, converted at the entry's OWN date
+    /// through the same `store.snapshot` the ordinary backfill uses. `nil` only
+    /// for an entry that carries no money at all.
+    private func convertedPair(for entry: any Entry, to newHome: CurrencyCode) -> Money? {
+        guard let money = entry.money else { return nil }
+        let rebased = Money(amount: money.amount, currency: money.currency,
+                            homeCurrency: newHome)
+        guard let snapshot = store.snapshot(original: rebased.currency,
+                                            home: newHome, on: entry.date) else {
+            return rebased
+        }
+        return rebased.converted(using: snapshot)
     }
 
     /// The per-entry fill decision, shared by the full pass and the scoped one

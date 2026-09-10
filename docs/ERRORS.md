@@ -361,6 +361,11 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 |---|---|---|
 | Free-tier car limit reached on "Add car" | Sheet explains the cap (never mid-capture): "Free keeps up to 3 cars. Archive one to add another." | Archive a car · cancel. **The "Pro" action was removed in v1 (RV.70)**: it pushed `Route.paywall`, which resolves to a blank screen, and a reachable placeholder is an App Review rejection while the store metadata declares no paid tier. Restore it together with a real paywall, not before. Existing cars are never locked (anti-CarScope rule) |
 
+### Vehicle detail
+| Condition | Shows | Next step |
+|---|---|---|
+| Home currency changed on a car WITH a log (RV.152) | The question is asked BEFORE the vehicle write, only when the currency actually changed and the car has entries. Title: "Change home currency to USD?". Message, complete sentences: what Convert does; the pending count **upfront** when the convert cannot resolve every date ("N entries have no rate for their date and will show as pending until one arrives." - real plural rules, EN + RU); what Keep means for the stats; and the fair warning that **the original receipt amounts are never changed, and this can't be undone**. Two answers, no cancel: **Convert the log** and **Keep the entries as they are** | **Convert the log** restates each entry's derived home figure from the amount as paid, at that entry's OWN date (hard rule 3, never today); rows whose date has no rate become rate-pending and counted (the ordinary F9 state) - a partial convert is expected, and the prompt says so before the user commits. **Keep the entries as they are** leaves existing entries in their home currency and gives new ones the new currency; totals then show per-currency subtotals (RV.145), because there is no honest way to add two currencies (hard rule 2). Either answer runs RV.140's pending-row re-home. An **empty log** and **re-picking the same currency** ask nothing |
+
 ### Settings
 | Condition | Shows | Next step |
 |---|---|---|

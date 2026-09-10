@@ -112,6 +112,18 @@ Money {
 //   differs stays rate-pending, now asking for a rate into the NEW home currency (S8 backfill). Old snapshots
 //   keep their home currency, so a history that mixes home currencies is legitimate and survives; stats mixing
 //   home currencies render per-currency subtotals (rare, surfaced honestly).
+//   Changing vehicle.homeCurrency is a QUESTION, not a silent re-home (RV.152). On a car with a log the save
+//   asks before the vehicle write, with two answers. KEEP THE ENTRIES AS THEY ARE is the rule above, unchanged:
+//   only rate-pending rows adopt the new home, snapshots stay byte-identical. CONVERT THE LOG (the user's
+//   explicit choice, so not the silent snapshot rewrite RV.140 forbade) re-derives EVERY money-bearing entry
+//   from its IMMUTABLE receipt (`amount` + `currency`) into the new home, at that entry's OWN date - the same
+//   `RateStore.snapshot` lookup the backfill uses, never today's rate (hard rule 3). A same-currency receipt
+//   snapshots at rate 1 with no lookup; a foreign receipt whose date the cache cannot serve becomes
+//   rate-pending and counted (F9) - a partial convert is the expected case. The receipt is never touched; only
+//   the derived home figure changes. The prompt states the pending count BEFORE the write, computed by
+//   `MoneyBackfillService.conversionPlan` from the same lookup `convertLog` will use, so the promise and the
+//   outcome can never disagree. There is no undo. Either answer still runs the pending-row re-home (a
+//   rate-pending entry has no snapshot to protect). An empty log and re-picking the same currency ask nothing.
 //   Editing `amount` or `currency` RE-HOMES the pair to the vehicle's CURRENT home currency, not the one the
 //   row was stamped with (`Money.edited`, the one shared rule both the fill-up and the non-fill edit paths call):
 //   an entry written while the car's home was EUR, edited after the Garage home moved to USD, must end asking

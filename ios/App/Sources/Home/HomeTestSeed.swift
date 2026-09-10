@@ -76,7 +76,8 @@ enum HomeTestSeed {
             ("-seedHomeRV147Pending", RV147HomeTestSeed.seedPending),
             ("-seedHomeRV166PartialGroup", RV166HomeTestSeed.seedPartialGroup),
             ("-seedHomePJ56PendingGroup", PJ56HomeTestSeed.seedPendingGroup),
-            ("-seedHomePJ56MixedGroup", PJ56HomeTestSeed.seedMixedGroup)
+            ("-seedHomePJ56MixedGroup", PJ56HomeTestSeed.seedMixedGroup),
+            ("-seedHomeRV152", RV152HomeTestSeed.seed)
         ]
         return actions.first { arguments.contains($0.argument) }?.seed
     }

@@ -44,6 +44,10 @@ struct VehicleDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var didLoad = false
     @State private var loadFailed = false
+    /// RV.152: the pending home-currency question. Non-nil while the prompt is
+    /// up, holding the edited vehicle and what "Convert the log" would do; the
+    /// write happens only after the user picks an answer.
+    @State private var currencyChange: CurrencyChangePrompt?
     @State var catalogEntries: [VehicleCatalogEntry] = []
     /// The exact text the last applied suggestion wrote into `form.makeModel`
     /// (the loaded make/model text at first). RV.67's gate input on this
@@ -132,6 +136,32 @@ struct VehicleDetailView: View {
                 saveBar
             }
         }
+        // RV.152: the home-currency question, asked BEFORE the vehicle write
+        // (hard rule 3 governs the answer, docs/ERRORS.md -> Vehicle detail).
+        // Two plain answers, no cancel: the write happens only once the user
+        // picks one. The message states the pending count upfront, that the
+        // receipt amounts are never touched, and that there is no undo.
+        .alert(currencyChangeTitle,
+               isPresented: currencyChangePresented,
+               presenting: currencyChange) { prompt in
+            Button("Convert the log") { commit(prompt.updated, answer: .convert) }
+            Button("Keep the entries as they are") { commit(prompt.updated, answer: .keep) }
+        } message: { prompt in
+            Text(L10n.homeCurrencyChangeMessage(pending: prompt.plan.stillPendingCount))
+        }
+    }
+
+    /// RV.152: whether the home-currency question must be asked - the currency
+    /// actually changed AND the car already has a log. An empty car needs no
+    /// question (nothing to restate) and re-picking the same currency needs
+    /// none either (nothing changed).
+    private var currencyChangePresented: Binding<Bool> {
+        Binding(get: { currencyChange != nil },
+                set: { if !$0 { currencyChange = nil } })
+    }
+
+    private var currencyChangeTitle: String {
+        L10n.homeCurrencyChangeTitle(currency: form.homeCurrency.rawValue)
     }
 
     private func section(_ title: LocalizedStringKey, @ViewBuilder content: () -> some View) -> some View {
@@ -281,6 +311,13 @@ struct VehicleDetailView: View {
         .background(Theme.Palette.midnight)
     }
 
+    /// RV.152 restructures the save: the home-currency question is asked BEFORE
+    /// the vehicle write, not reconciled after it. When the currency changed on
+    /// a car that has a log, `save` computes what a convert would do (the same
+    /// date-scoped lookup the convert itself uses) and presents the prompt; the
+    /// write and the answer's effect happen only in `commit`, once the user has
+    /// chosen. Everything else - an unchanged currency, an empty log - commits
+    /// straight away, with RV.140's pending-row re-home as before.
     func save() {
         guard let vehicle,
               !form.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -290,8 +327,36 @@ struct VehicleDetailView: View {
         form.saveAttempted = true
         do {
             let repository = try AppStore.repository()
+            let updated = form.applying(to: vehicle)
+            let currencyChanged = vehicle.homeCurrency != updated.homeCurrency
+            if currencyChanged,
+               !(try repository.liveEntries(forVehicle: vehicle.id)).isEmpty {
+                let plan = try MoneyBackfillService(store: AppRates.store)
+                    .conversionPlan(repository, vehicleID: vehicle.id, to: updated.homeCurrency)
+                currencyChange = CurrencyChangePrompt(updated: updated, plan: plan)
+                return
+            }
+            commit(updated, answer: currencyChanged ? .keep : nil)
+        } catch {
+            AppLog.error(operation: "vehicleDetail.save", category: .ui, error: error)
+        }
+    }
+
+    /// The write half of the save, run only after the currency question (if
+    /// any) is answered. `answer` is nil when the currency did not change.
+    ///
+    /// Either answer runs RV.140's re-home: a rate-pending entry carries no
+    /// snapshot, so adopting the new home restates nothing. A "Convert the log"
+    /// answer runs first and restates every entry's derived half from its
+    /// immutable receipt at its own date (hard rule 3); after it every pair
+    /// already carries the new home, so the re-home is a no-op. The original
+    /// receipt amounts are never touched.
+    private func commit(_ base: Vehicle, answer: CurrencyChangeAnswer?) {
+        guard let vehicle else { return }
+        do {
+            let repository = try AppStore.repository()
             let before = headline(repository: repository, vehicle: vehicle)
-            var updated = form.applying(to: vehicle)
+            var updated = base
             if let photo = form.photo {
                 if photo == form.originalPhotoData, let originalID = form.originalPhotoID {
                     updated.photo = originalID
@@ -311,20 +376,15 @@ struct VehicleDetailView: View {
                 updated.photo = nil
             }
             try repository.upsertVehicle(updated)
-            // A home-currency change must reach the entries that are still
-            // waiting on a rate: each entry's Money carries its own
-            // homeCurrency (docs/SCHEMA.md -> Money), so the vehicle row alone
-            // changes nothing. Same-currency rows convert at rate 1 with no
-            // fetch; snapshotted rows stay untouched (hard rule 3). A re-home
-            // failure is logged and never blocks the save - the vehicle change
-            // itself already landed.
             if vehicle.homeCurrency != updated.homeCurrency {
-                do {
-                    _ = try MoneyBackfillService(store: AppRates.store)
-                        .rehome(repository, vehicleID: updated.id, to: updated.homeCurrency)
-                } catch {
-                    AppLog.error(operation: "vehicleDetail.rehome", category: .ui, error: error)
+                let service = MoneyBackfillService(store: AppRates.store)
+                if answer == .convert {
+                    let result = try service.convertLog(repository, vehicleID: updated.id,
+                                                        to: updated.homeCurrency)
+                    AppLog.shared.emit(HomeCurrencyConverted(converted: result.filledCount,
+                                                             pending: result.stillPendingCount))
                 }
+                _ = try service.rehome(repository, vehicleID: updated.id, to: updated.homeCurrency)
             }
             let after = headline(repository: repository, vehicle: updated)
             notify(before: before, after: after, vehicle: updated)
@@ -457,6 +517,13 @@ struct VehicleDetailView: View {
             if ProcessInfo.processInfo.arguments.contains("-presentVehicleDeleteConfirm") {
                 showDeleteConfirm = true
             }
+            // RV.152: `-presentCurrencyChangePrompt` raises the home-currency
+            // prompt as if the user had changed the currency to USD and tapped
+            // Save, so simctl can capture it (simctl cannot tap). The seed
+            // supplies the log whose pending count the prompt states.
+            if ProcessInfo.processInfo.arguments.contains("-presentCurrencyChangePrompt") {
+                presentCurrencyChangeForScreenshot(to: .usd)
+            }
             #endif
         } catch {
             AppLog.error(operation: "vehicleDetail.load", category: .ui, error: error)
@@ -488,6 +555,25 @@ struct VehicleDetailView: View {
             .appendingPathComponent(attachment.file.relativePath)
         return try? Data(contentsOf: url)
     }
+}
+
+// MARK: - RV.152 home-currency change
+
+/// The pending home-currency question: the edited vehicle and what a "Convert
+/// the log" answer would do, both computed before the write so the prompt can
+/// state the pending count upfront (hard rule 3, docs/ERRORS.md -> Vehicle
+/// detail).
+private struct CurrencyChangePrompt: Identifiable {
+    let id = UUID()
+    let updated: Vehicle
+    let plan: MoneyBackfillService.Result
+}
+
+/// The two answers the RV.152 prompt offers. There is no third: the write
+/// happens only after the user picks one, and there is no undo.
+private enum CurrencyChangeAnswer: Equatable {
+    case convert
+    case keep
 }
 
 // MARK: - Presentation target (kept out of the struct body's lint budget)
@@ -542,6 +628,26 @@ struct VehicleDetailAccuracyCard: View {
         .formCard()
     }
 }
+
+// MARK: - RV.152 screenshot hook
+
+#if DEBUG
+extension VehicleDetailView {
+    /// Raises the RV.152 home-currency prompt as if the user had changed the
+    /// currency to `newHome` and tapped Save, so simctl can capture it (simctl
+    /// cannot tap). The seed supplies the log the prompt's count describes.
+    func presentCurrencyChangeForScreenshot(to newHome: CurrencyCode) {
+        guard let vehicle, let repository = try? AppStore.repository() else { return }
+        form.homeCurrency = newHome
+        var updated = vehicle
+        updated.homeCurrency = newHome
+        let plan = (try? MoneyBackfillService(store: AppRates.store)
+            .conversionPlan(repository, vehicleID: vehicle.id, to: newHome))
+            ?? MoneyBackfillService.Result(filledCount: 0, stillPendingCount: 0)
+        currencyChange = CurrencyChangePrompt(updated: updated, plan: plan)
+    }
+}
+#endif
 
 // MARK: - UI-test seeding
 

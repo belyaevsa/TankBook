@@ -194,6 +194,17 @@ dying before the transport. **Never a rate, an amount, a date or a currency
 pair** - the pack's contents have no route into the event by construction
 (hard rule 12).
 
+### Home-currency change (RV.152)
+`currency.convert` - `converted`, `pending`. One line per "Convert the log"
+answer to a Garage home-currency change, emitted after the pass runs. It
+answers the one question a partial convert raises on a support ticket - **how
+many entries were restated, and how many had no rate for their date and stayed
+rate-pending?** - because a convert that only partly succeeds looks completely
+correct on screen (every figure populated, nothing pending). **Counts only**:
+never an amount, a rate, a currency pair's values, a station or a date (hard
+rule 12). "Keep the entries as they are" writes no line - it changes nothing
+the log does not already record.
+
 ### The automatic foreground pass (RV.139b)
 `automatic.pass` – `step` (`started` / `config` / `summary` / `sync` / `rates` /
 `delivery` / `feedback` / `finished`). One line per mark, emitted by

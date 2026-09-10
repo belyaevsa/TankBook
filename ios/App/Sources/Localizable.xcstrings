@@ -5625,6 +5625,161 @@
         }
       }
     },
+    "Change home currency to %@?": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Change home currency to %@?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить домашнюю валюту на %@?"
+          }
+        }
+      }
+    },
+    "Convert the log": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convert the log"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересчитать журнал"
+          }
+        }
+      }
+    },
+    "Convert the log recalculates each entry from the amount you paid, at that day's rate.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Convert the log recalculates each entry from the amount you paid, at that day's rate."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пересчёт журнала заново рассчитает каждую запись из суммы, которую вы заплатили, по курсу на тот день."
+          }
+        }
+      }
+    },
+    "Keep the entries as they are": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep the entries as they are"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставить записи как есть"
+          }
+        }
+      }
+    },
+    "Keeping the entries as they are leaves them in their currency; totals then show per-currency subtotals, not one figure.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keeping the entries as they are leaves them in their currency; totals then show per-currency subtotals, not one figure."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Если оставить записи как есть, существующие записи сохранят свою валюту, а новые будут использовать новую. Итоги тогда покажут суммы по каждой валюте отдельно, а не одну цифру."
+          }
+        }
+      }
+    },
+    "The original receipt amounts are never changed, and this can't be undone.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The original receipt amounts are never changed, and this can't be undone."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Исходные суммы в чеке никогда не меняются, и отменить это нельзя."
+          }
+        }
+      }
+    },
+    "%lld entries have no rate for their date and will show as pending until one arrives.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entry has no rate for its date and will show as pending until one arrives."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld entries have no rate for their date and will show as pending until one arrives."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записи не имеют курса на свою дату и будут ждать курс."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей не имеют курса на свою дату и будут ждать курс."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld запись не имеет курса на свою дату и будет ждать курс."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%lld записей не имеют курса на свою дату и будут ждать курс."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "Home currency": {
       "extractionState": "manual",
       "localizations": {
