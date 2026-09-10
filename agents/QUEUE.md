@@ -98,6 +98,7 @@ failing case rather than a hypothetical:
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
+| **RV.185** `[!]` | `RV.185.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch after `RV.181`** - both are user-reported `[!]` |
 | ~~RV.181~~ **in flight** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
 
 **Ready to brief - cause pinned, no decision outstanding** (added 2026-09-10, all filed from this
