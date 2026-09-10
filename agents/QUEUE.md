@@ -108,6 +108,25 @@ can settle it.
 | 7 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
 | 8 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
 
+### The PRIORITY `PJ` block (product owner, 2026-08-31) - grouped 2026-09-10
+
+Eight rows, marked PRIORITY ten days ago and never briefed. **Two are already above** (`PJ.23`,
+`PJ.45`). The other six collapse to four dispatches, and two of them are BLOCKED on a row that has
+to land first - which is why briefing them all today would be writing against a seam that does not
+exist yet:
+
+| Dispatch | Rows | Why grouped, and when |
+|---|---|---|
+| **Tire loop** | `PJ.26` + `PJ.27` — `PJ.26+PJ.27.md` | **Briefed, ready now.** Both are J7b and both write through `TireSet`: one links the set to the expense that bought it, the other creates the swap reminder. **`TireSet.purchaseExpenseId` is a dead field** - a column, a comment protecting it, and `nil` at its only write site - so `PJ.26` is `PJ.55`'s shape again |
+| **Service lifetimes** | `PJ.22` | **After `PJ.23`.** It adds a lifetime editor to a service line item and writes `proposedReminderId` - **also always nil today**. `PJ.23` is what makes an item editable at all, so this needs the seam that row settles |
+| **F9a suggestions** | `PJ.34` | **After `RV.192`.** It makes the F9a sheet consume `validation.suggestions`; `RV.192` changes what the validator produces. Rendering suggestions computed by the rule being fixed is the wrong order |
+| **Reminder scan door** | `PJ.24` | **Ready to brief.** *"Scan invoice"* on ReminderComplete, which offers Type and Skip only today. Its own seam - reminders plus the document camera |
+| **Background prefetch** | `PJ.35` | **Ready to brief.** Photos download newest-first after a pull, gated by Low Power and constrained-network. `P6.20` already records `.blobPrefetch` as unwired. Sync/blobs - shares nothing with the rest |
+
+**Two of the six name a dead field** (`purchaseExpenseId`, `proposedReminderId`), which is
+`RV.196`'s subject: when that guard lands it should report both, and these rows are the writers it
+will be asking for.
+
 ### Filed 2026-09-10, no brief yet
 
 | Task | Why it is worth a brief |

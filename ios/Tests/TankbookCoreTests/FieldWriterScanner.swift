@@ -22,8 +22,9 @@ import Foundation
 /// a field no type declares cannot be written or read. The entity-level guard
 /// still fails on a heading whose type is gone.
 ///
-/// A field is written when, **in a production host** (not a seed, the import
-/// path, sync, `#if DEBUG`, or the repository's own write/decoder surface):
+/// A field is written when, **in a production host** (not a seed, sync,
+/// `#if DEBUG`, or the repository's own write/decoder surface; the import path
+/// IS a host - see `isProductionHost`):
 ///   - it is assigned outside its own declaration (`.field =`), or
 ///   - it is passed to its owner's init as an argument that is not a literal
 ///     default (`nil`, `false`, `[]`, `0`, or the value the declaration carries), or
@@ -204,17 +205,26 @@ enum FieldWriterScanner {
         return entityExceptions.keys.filter { !headings.contains($0) }.sorted()
     }
 
-    /// Whether a path may host a production field write. This is RV.163's host
-    /// rule, tightened at the repository boundary: the whole core
-    /// `Persistence/` directory is the write API and the decoder, so it defines
-    /// fields and restores them but never originates a value. The app-layer
-    /// `App/Sources/Persistence/` wrappers are hosts - they call the repository
-    /// write functions a user reaches.
+    /// Whether a path may host a production field write. Two deliberate
+    /// differences from RV.163's entity host rule:
+    ///
+    /// - **The import path IS a field host.** RV.163 excluded it because an
+    ///   entity only an import can create is still uncreatable by a hand-typing
+    ///   user; a field an import fills, however, is genuinely set by a
+    ///   production flow the user triggers, and `Station.name`/`createdAt` are
+    ///   constructed exactly there (`ImportStationResolver.station(for:)`). The
+    ///   import still cannot fake `Station.brand` or `Station.favorite`, because
+    ///   it passes them their nil/false defaults.
+    /// - **The decoder and the repository write API are not hosts.** The whole
+    ///   core `Persistence/` directory defines the write surface and restores
+    ///   stored rows; it never originates a value. The app-layer
+    ///   `App/Sources/Persistence/` wrappers ARE hosts - they call the
+    ///   repository functions a user reaches. Sync stays excluded: a field only
+    ///   another device set is not settable here.
     static func isProductionHost(path: String) -> Bool {
         let name = (path as NSString).lastPathComponent
         if path.contains("TestSeed") || path.contains("TestSupport") { return false }
         if path.contains("/Tests/") || path.contains("/UITests/") { return false }
-        if path.contains("/Import/") || name.hasPrefix("Import") { return false }
         if path.contains("/Sync/") || name.contains("Sync") { return false }
         if path.contains("TankbookCore/Persistence/") { return false }
         if name.hasPrefix("Repository") { return false }
@@ -470,7 +480,10 @@ enum FieldWriterScanner {
            after + 1 >= characters.count || characters[after + 1] != "=" {
             result.assignmentChains.insert(chain.joined(separator: "."))
         }
-        return max(cursor, dot + 1)
+        // Advance only past the dot: the member name itself must still be seen
+        // by the main loop so `repository.setStationFavorite(` registers as a
+        // call and `Station.Defaults(` as a construction.
+        return dot + 1
     }
 
     /// The labelled arguments of a call starting at `openParen`, as

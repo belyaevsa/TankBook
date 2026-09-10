@@ -198,6 +198,7 @@ struct SchemaFieldWriterGuardTests {
             schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
         #expect(unwritten == [
             "ChargeSession.chargeType",
+            "ChargeSession.createdAt",
             "ChargeSession.durationMin",
             "ChargeSession.socEndPct",
             "ChargeSession.socStartPct",

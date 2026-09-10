@@ -190,9 +190,33 @@ deliberately NOT synced, written by the /rates fetch -> persist path). An entity
 has no writer is a deliberate, reasoned entry in `documentedExceptions`; a bare entry fails the
 self-check, and a spec whose heading leaves the doc is stale and fails. The named mutation is
 deleting the `RV.156` station-creation door (or `#if DEBUG`-wrapping it): the guard then reports
-`Station` with no production writer. **A field that a ranking, filter or query reads and nothing
-writes is the same shape one level down** (`PJ.55`'s `Station.favorite`, open) and is NOT covered
-here - a field-level guard is its own row.
+`Station` with no production writer.
+
+### The field-writer guard (RV.196)
+
+`SchemaFieldWriterGuardTests` + `FieldWriterScanner`: the same question one level down. **A field a
+ranking, filter or query reads and nothing writes is `PJ.55`'s shape** - `Station` had a writer
+while `Station.favorite` had none, so rung one of the station ranking could never fire and three
+features shipped onto a flag no surface could set. The scanner binds the same SCHEMA `###` headings
+to the **Swift domain types** that carry their fields (SCHEMA.md names fields in prose and inline
+structs, which a reflow would break; the compiled declaration is what the memberwise init and the
+decoder agree on - the trade is that a field the docs promise but the type lacks is invisible here).
+A field is written when, **in a production host**, it is assigned outside its own declaration, or
+passed to its owner's init as a non-default argument (`nil`/`false`/`[]`/`0`, or the declaration's
+own default, are not writes), or a production call reaches a repository write function whose body
+assigns it (`setStationFavorite` writes `favorite`). The persistence decoder and the repository
+write API are **not** hosts: a decoder restores what was stored and cannot originate a value - the
+exact shape that hid `PJ.55`. The import path IS a field host (a user triggers it and it fills
+`Station.name`), which the entity-level guard excludes but a field guard must not.
+
+The calibration is a live pair: `Preferences.notifications.anomalies` (decoded at
+`Records+Extras.swift:247`, set nowhere) is reported, and `Station.favorite` (written by
+`StationSettingsView.swift:178`) is not - a guard that flags the field `PJ.55` fixed is tuned
+wrong. The named mutation deletes that production call: the guard then reports `Station.favorite`.
+Each exception carries a required reason, a bare entry fails the self-check, and a stale exception
+(a field that gained a writer or no longer exists) fails too, so the list cannot rot into a config
+file. Like RV.163 this is a test-target source scan: no runtime path differs, no screenshot, no
+Release build.
 
 ### The screen-reachability guard (RV.162)
 
