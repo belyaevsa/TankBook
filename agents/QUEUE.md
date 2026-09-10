@@ -94,6 +94,12 @@ failing case rather than a hypothetical:
 | ~~8~~ | **RV.116** | **Briefed and in flight.** The brief settles the split the row's wording blurs: the unsupported column NAMES are per-format reference data in `GET /import/formats`, but the COUNT of rows carrying a value is per-file and can only come from `POST /import/parse`. Backend + iOS |
 | ~~9~~ | **RV.161** **[v1.1]** | **Briefed and in flight.** The brief solves the row's hardest part - the ORACLE: ground truth for the new corpus column must not come from the extractor's own output. The fixture FILENAMES are human-written from the images and predate any station extractor, so they are the independent source; the OCR dump cross-checks them |
 
+**NEXT, ahead of everything - `RV.181`, briefed and ready.**
+
+| Task | Brief | Why it outranks the queue |
+|---|---|---|
+| **RV.181** `[!]` | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
+
 **Ready to brief - cause pinned, no decision outstanding** (added 2026-09-10, all filed from this
 session's own findings):
 
