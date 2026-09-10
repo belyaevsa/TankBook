@@ -95,49 +95,30 @@ in hand and misread. **Verification needs the product owner's physical iPhone 13
 can settle it.
 
 
-### The product owner's own open reports - these outrank everything
+### The product owner's own reports - all resolved
 
-Twelve defects were reported by using the app on 2026-09-09/10. **Ten shipped** (`RV.192` with `PJ.45`, then `RV.182`), `RV.181` is **skipped by the owner** (see
-*Not queued, and why*), and **`RV.189` is the last one left** - top of the queue, because a defect
-the owner hit is a defect a user hits.
+Twelve defects were reported by using the app on 2026-09-09/10. **Eleven shipped**; `RV.181` is
+**skipped by the owner** (see *Not queued, and why*) and is the only one left.
 
-| Task | | Where it stands |
-|---|---|---|
-| **RV.189** `[!]` | briefed | *"drivvo import has gas station names, but they are ignored."* An **INVESTIGATION** brief: the orchestrator's first diagnosis was wrong and the brief records it |
+**`RV.189` was the last, and it is the row that argues for the method.** Its evidence table named
+four links and every one of them held on inspection - the parser read the column, the wire carried
+it, the conversion stamped it, the commit materialised the row. The value was dropped **between**
+them, in a copy helper no link covered. **Audit each link and you find nothing; trace the value end
+to end and you find it in one run.**
 
 ### Briefed and ready, in order
 
+Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
+
 | # | Task | Brief | Note |
 |---|---|---|---|
-| 1 | **RV.196** | `RV.196.md` | `RV.163`'s field-level blind spot, with three live instances named. A source scanner: fast, no simulator |
-| 2 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
-| 3 | **RV.192+PJ.45** | `RV.192+PJ.45.md` | The pace bound: make it right, then make it the user's. `RV.192` is the owner's SECOND same-day report; `PJ.45` has been PRIORITY since 2026-08-31. Same seam, so one dispatch - shipping the fix without the tunable leaves the owner's case answerable only by an agent |
-| 4 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped today as `RV.195` without anyone noticing the row existed; the SERVICE half is what remains, and `RV.195` is its worked example one entry kind over |
-| ~~4~~ | ~~**RV.182**~~ **shipped `cf72d4a`** | `RV.182.md` | The owner's tank-volume report. Decision already made (blank-fields-only); the brief carries TWO mutations, because proving a pick fills an empty field is the easy half and proving it never touches a filled one is hard rule 13 |
-| 5 | **RV.189** `[!]` | `RV.189.md` | The last user-reported `[!]` still open: imported fills show `92`, not the station the file names. **An INVESTIGATION first** - the orchestrator's first diagnosis was wrong and the brief records it, so the agent does not repeat it |
-| 6 | **RV.170** | *needs one* | Sequenced AFTER `RV.189`, deliberately: the station-minting guard needs the seam that row settles |
-| 7 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses behind |
-| 8 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason as `RV.170` |
-| 9 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192` on 2026-09-10. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run in production, and **nothing renders `suggestions` at all** - it is computed on every validation, pinned by `TimelineValidationTests:239-282`, and consumed by nobody. `RV.129`'s shape, on an output rather than a field |
-
-### The PRIORITY `PJ` block (product owner, 2026-08-31) - grouped 2026-09-10
-
-Eight rows, marked PRIORITY ten days ago and never briefed. **Two are already above** (`PJ.23`,
-`PJ.45`). The other six collapse to four dispatches, and two of them are BLOCKED on a row that has
-to land first - which is why briefing them all today would be writing against a seam that does not
-exist yet:
-
-| Dispatch | Rows | Why grouped, and when |
-|---|---|---|
-| **Tire loop** | `PJ.26` + `PJ.27` — `PJ.26+PJ.27.md` | **Briefed, ready now.** Both are J7b and both write through `TireSet`: one links the set to the expense that bought it, the other creates the swap reminder. **`TireSet.purchaseExpenseId` is a dead field** - a column, a comment protecting it, and `nil` at its only write site - so `PJ.26` is `PJ.55`'s shape again |
-| **Service lifetimes** | `PJ.22` | **After `PJ.23`.** It adds a lifetime editor to a service line item and writes `proposedReminderId` - **also always nil today**. `PJ.23` is what makes an item editable at all, so this needs the seam that row settles |
-| **F9a suggestions** | `PJ.34` — `PJ.34.md` | **Briefed 2026-09-10**, unblocked by `RV.192` the same day |
-| **Reminder scan door** | `PJ.24` | **Ready to brief.** *"Scan invoice"* on ReminderComplete, which offers Type and Skip only today. Its own seam - reminders plus the document camera |
-| **Background prefetch** | `PJ.35` | **Ready to brief.** Photos download newest-first after a pull, gated by Low Power and constrained-network. `P6.20` already records `.blobPrefetch` as unwired. Sync/blobs - shares nothing with the rest |
-
-**Two of the six name a dead field** (`purchaseExpenseId`, `proposedReminderId`), which is
-`RV.196`'s subject: when that guard lands it should report both, and these rows are the writers it
-will be asking for.
+| 1 | **RV.170** | *needs one* | **Unblocked by `RV.189` tonight** - the station seam it guards is now settled, and RV.189 filed the exact hole for it: `ImportCandidate.init` DEFAULTS `station` to nil, so the next copy helper can drop it as silently as `remappingSourceRow` did. A guard with a live failing case, which is the only kind this queue dispatches |
+| 2 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
+| 3 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
+| 4 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
+| 5 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
+| 6 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
+| 7 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
 
 ### Filed 2026-09-10, no brief yet
 
