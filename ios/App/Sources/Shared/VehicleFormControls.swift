@@ -377,27 +377,39 @@ struct VehicleCapacityField: View {
     var idPrefix: String = "addVehicle"
 
     var body: some View {
-        // RV.47: whole row (label + gap) focuses the field.
-        FocusableFieldRow(isElectric ? "Battery capacity" : "Tank capacity",
-                          $focus, equals: .capacity,
-                          rowIdentifier: "\(idPrefix)TankCapacityRow") {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                TextField("", text: $capacity)
-                    .keyboardType(.decimalPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($focus, equals: .capacity)
-                    .accessibilityIdentifier("\(idPrefix)TankCapacityField")
-                    .numericInput($capacity, kind: .decimal)
-                Text(isElectric ? L10n.kWh : L10n.volumeUnit(volumeUnit))
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                if !isElectric, !capacity.isEmpty {
-                    Text("· enables partial-fill math")
+        VStack(alignment: .leading, spacing: 6) {
+            // RV.47: whole row (label + gap) focuses the field.
+            FocusableFieldRow(isElectric ? "Battery capacity" : "Tank capacity",
+                              $focus, equals: .capacity,
+                              rowIdentifier: "\(idPrefix)TankCapacityRow") {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    TextField("", text: $capacity)
+                        .keyboardType(.decimalPad)
+                        .multilineTextAlignment(.trailing)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                        .focused($focus, equals: .capacity)
+                        .accessibilityIdentifier("\(idPrefix)TankCapacityField")
+                        .numericInput($capacity, kind: .decimal)
+                    Text(isElectric ? L10n.kWh : L10n.volumeUnit(volumeUnit))
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                 }
+            }
+            // The hint spans the CARD, not the value column. Beside the value it
+            // is laid out inside whatever narrow space the number leaves, so RU
+            // hyphenates it down a five-word-tall stack and the row grows to fit
+            // - the same treatment the pace-limit caption already uses one card
+            // over.
+            if !isElectric, !capacity.isEmpty {
+                Text("Enables partial-fill math")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, Theme.Spacing.cardPadding)
+                    .padding(.bottom, 12)
+                    .accessibilityIdentifier("\(idPrefix)TankCapacityHint")
             }
         }
     }

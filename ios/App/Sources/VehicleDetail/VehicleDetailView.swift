@@ -72,6 +72,7 @@ struct VehicleDetailView: View {
         .task { loadCatalog() }
         #if DEBUG
         .task { await presentModelSuggestionsIfRequested() }
+        .task { await applyCatalogFillForScreenshot() }
         #endif
         .alert(deleteConfirmTitle,
                isPresented: $showDeleteConfirm) {
@@ -89,6 +90,7 @@ struct VehicleDetailView: View {
             ScrollView {
                 formContent(vehicle)
             }
+            .accessibilityIdentifier("vehicleDetailFormScroll")
             .scrollDismissesKeyboard(.immediately)
             // RV.137: the pinned Save bar must not float above the keyboard and
             // cover the fuel-chip row while a field is focused - a bar in a
@@ -127,6 +129,7 @@ struct VehicleDetailView: View {
             }
             #if DEBUG
             .task { scrollToPaceLimitIfRequested(proxy) }
+            .task { scrollToAccuracyIfRequested(proxy) }
             #endif
         }
     }
@@ -622,6 +625,10 @@ struct VehicleDetailAccuracyCard: View {
     @Binding var form: VehicleDetailFormState
     @FocusState.Binding var focus: AddVehicleFocus?
 
+    /// The ScrollViewReader id the card carries, so the `-scrollToAccuracy`
+    /// screenshot pose can bring the capacity field into view (RV.182).
+    static let scrollTarget = "vehicleDetailAccuracyScrollTarget"
+
     var body: some View {
         VStack(spacing: 0) {
             VehicleCapacityField(capacity: $form.capacity,
@@ -644,6 +651,7 @@ struct VehicleDetailAccuracyCard: View {
             VehiclePaceLimitRow(paceLimit: $form.paceLimit, focus: $focus)
         }
         .formCard()
+        .id(Self.scrollTarget)
     }
 }
 

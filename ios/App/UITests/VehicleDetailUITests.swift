@@ -19,7 +19,7 @@ final class VehicleDetailUITests: XCTestCase {
     /// The language is pinned EN by default - `-AppleLanguages` persists in the
     /// app's UserDefaults, so the RU overflow test below would otherwise leave
     /// the whole suite running in Russian (the HomeUITests P6.13 lesson).
-    private func launch(russian: Bool = false) -> XCUIApplication {
+    func launch(russian: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
         // A session is required: since PJ.3 a sessionless launch renders the
         // guest Home, which has no `carSwitcherButton` - the same reason
@@ -35,12 +35,15 @@ final class VehicleDetailUITests: XCTestCase {
         return app
     }
 
-    private func openDetail(_ app: XCUIApplication) {
+    func openDetail(_ app: XCUIApplication) {
         XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10))
         app.buttons["tabbar.garage"].tap()
         XCTAssertTrue(app.buttons["garageCarRow"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["garageCarRow"].firstMatch.tap()
-        XCTAssertTrue(app.navigationBars["Vehicle"].waitForExistence(timeout: 5))
+        // Wait on the form's own field, not the nav title: the title is
+        // localised ("Vehicle" / "Автомобиль"), the field id is not.
+        XCTAssertTrue(app.textFields["vehicleDetailNameField"].waitForExistence(timeout: 10),
+                      "the Vehicle detail form must present")
     }
 
     /// ScrollView content below the fold is queryable but not hittable; swipe
@@ -58,10 +61,14 @@ final class VehicleDetailUITests: XCTestCase {
     /// it comfortably above the save bar's top edge (~0.82 on this device)
     /// while staying reachable for forms whose content barely overflows the
     /// viewport (a 0.5 midpoint requirement would be unscrollable-to).
-    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 12) {
+    func scrollTo(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 12) {
+        // The form carries a stable identifier: the previous
+        // `allElementsBoundByIndex.max { frame }` re-resolved a stale snapshot
+        // and could fail with "No matches found for Element at index N" when a
+        // keyboard/menu interaction changed the tree mid-comparison.
         func formScrollView() -> XCUIElement {
-            app.scrollViews.allElementsBoundByIndex
-                .max { $0.frame.height < $1.frame.height } ?? app.scrollViews.firstMatch
+            let form = app.scrollViews["vehicleDetailFormScroll"]
+            return form.exists ? form : app.scrollViews.firstMatch
         }
         if app.keyboards.firstMatch.exists {
             formScrollView().swipeDown()
@@ -78,15 +85,27 @@ final class VehicleDetailUITests: XCTestCase {
 
     /// Replaces a field's whole value: long-press shows the edit menu, tap
     /// "Select All", then type. (The simulator's cmd+A select-all needs a
-    /// hardware keyboard, so it is deliberately not used here.)
-    private func replaceText(in field: XCUIElement, app: XCUIApplication, with text: String) {
+    /// hardware keyboard, so it is deliberately not used here.) The menu item
+    /// is localised, so both the EN and RU labels are tried - the RU suite
+    /// drives the same helper.
+    func replaceText(in field: XCUIElement, app: XCUIApplication, with text: String) {
         field.tap()
         field.press(forDuration: 1.2)
-        let selectAll = app.menuItems["Select All"]
-        if selectAll.waitForExistence(timeout: 2) {
-            selectAll.tap()
-        }
+        _ = selectAll(in: app)
         field.typeText(text)
+    }
+
+    /// Taps the localised "Select All" menu item; the RU label is tried because
+    /// `-AppleLanguages (ru)` localises it.
+    func selectAll(in app: XCUIApplication) -> Bool {
+        for label in ["Select All", "Выбрать все"] {
+            let item = app.menuItems[label]
+            if item.waitForExistence(timeout: 1.5) {
+                item.tap()
+                return true
+            }
+        }
+        return false
     }
 
     // MARK: - Every catalog-derived field is reachable and editable

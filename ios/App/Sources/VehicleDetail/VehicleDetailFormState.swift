@@ -72,17 +72,36 @@ struct VehicleDetailFormState {
             .joined(separator: " · ")
     }
 
-    /// A catalog pick on the edit screen (RV.137): fills make, model and year
-    /// exactly as typing the canonical text would, and records no catalogue
-    /// identifier or reference. Nothing else moves - powertrain, fuel kinds,
-    /// capacity and units are the user's own by now and a pick must not
-    /// overwrite them (the no-catalog-id decision, VehicleDetailView's header:
+    /// A catalog pick on the edit screen (RV.137, RV.182): fills make, model and
+    /// year exactly as typing the canonical text would, and records no catalogue
+    /// identifier or reference. Powertrain, fuel kinds and units are NOT shown
+    /// by the suggestion row, so the row promises nothing about them and they
+    /// never move (the no-catalog-id decision, VehicleDetailView's header:
     /// "nothing here stores a catalog id for a later pack to rewrite").
+    ///
+    /// The row DOES show a tank/battery volume, so the pick fills it - but only
+    /// when the capacity field is blank, the same blank-fields-only rule a
+    /// receipt attach applies (`ReceiptAttachMerge`, hard rule 13). A capacity
+    /// the user has typed is a fact and stays byte-identical. The capacity field
+    /// is a tank field on a combustion car and a battery field on an EV
+    /// (`VehicleCapacityField`), so only the figure whose kind matches that field
+    /// is fillable: a tank's litres in a kWh field (or the reverse) would be a
+    /// silently plausible wrong fact (RV.69), and the row's own kind is the one
+    /// it advertises. The tank figure is rendered in the form's volume unit
+    /// (RV.69).
     mutating func applyMakeModelSuggestion(_ prefill: CatalogPrefill) {
         makeModel = Self.makeModelText(make: prefill.make, model: prefill.model, year: prefill.year)
         make = prefill.make
         model = prefill.model
         year = prefill.year
+        guard BlankFieldsOnly.isBlank(capacity) else { return }
+        if isElectric {
+            if let battery = prefill.batteryCapacityKWh {
+                capacity = AddVehicleSupport.capacityText(battery)
+            }
+        } else if let tank = prefill.tankCapacityL {
+            capacity = AddVehicleSupport.tankCapacityText(litres: tank, unit: units.volume)
+        }
     }
 
     var odometerValue: Int? {

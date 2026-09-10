@@ -1063,6 +1063,10 @@ capture RV.137-vehicle-edit                              en -seedHomeCarSwitcher
 capture RV.137-vehicle-edit-chips                        en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp
 capture RV.137-vehicle-edit-chips-ru                     ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp
 capture RV.137-vehicle-edit-ru                           ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailModelSuggestions -vehicleDetailKeyboardUp
+capture RV.182-catalog-fill-tank                         en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailCatalogFillLitres -scrollToAccuracy
+capture RV.182-catalog-fill-tank-ru                      ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailCatalogFillLitres -scrollToAccuracy
+capture RV.182-catalog-fill-tank-gal                     en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailCatalogFillGallons -scrollToAccuracy
+capture RV.182-catalog-fill-tank-gal-ru                  ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailCatalogFillGallons -scrollToAccuracy
 capture RV.141-excluded-list                             en -seedHomeExcludedMix -presentScreen excludedEntries
 capture RV.141-excluded-list-ru                          ru -seedHomeExcludedMix -presentScreen excludedEntries
 capture RV.141-home                                      en -seedHomeExcludedMix

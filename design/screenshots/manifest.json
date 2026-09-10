@@ -1046,12 +1046,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.45-pace-limit": {
-      "commit": "eed307a",
+      "commit": "dff5366",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.45-pace-limit-ru": {
-      "commit": "eed307a",
+      "commit": "dff5366",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1602,6 +1602,26 @@
     },
     "RV.177-home-currency-change-ru": {
       "commit": "e4766fb",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.182-catalog-fill-tank": {
+      "commit": "dff5366",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.182-catalog-fill-tank-gal": {
+      "commit": "dff5366",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.182-catalog-fill-tank-gal-ru": {
+      "commit": "dff5366",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.182-catalog-fill-tank-ru": {
+      "commit": "dff5366",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

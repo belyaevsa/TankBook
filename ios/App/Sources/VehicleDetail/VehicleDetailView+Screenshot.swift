@@ -23,5 +23,22 @@ extension VehicleDetailView {
             }
         }
     }
+
+    /// RV.182 screenshot pose `-scrollToAccuracy`: the capacity card sits below
+    /// the fold, and the capture must show the filled tank/battery field.
+    /// Screenshot-only.
+    func scrollToAccuracyIfRequested(_ proxy: ScrollViewProxy) {
+        guard ProcessInfo.processInfo.arguments.contains("-scrollToAccuracy") else { return }
+        Task {
+            for _ in 0..<12 {
+                try? await Task.sleep(for: .milliseconds(300))
+                guard vehicle != nil else { continue }
+                withAnimation {
+                    proxy.scrollTo(VehicleDetailAccuracyCard.scrollTarget, anchor: .top)
+                }
+                return
+            }
+        }
+    }
 }
 #endif

@@ -14507,19 +14507,19 @@
         }
       }
     },
-    "· enables partial-fill math": {
+    "Enables partial-fill math": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "· enables partial-fill math"
+            "value": "Enables partial-fill math"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "· позволяет считать доли заправки"
+            "value": "Позволяет считать доли заправки"
           }
         }
       }

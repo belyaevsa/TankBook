@@ -27,17 +27,19 @@ public enum ReceiptAttachMerge {
     /// typed entry no matter what the OCR read.
     ///
     /// "Blank" on a `FillUp` is exactly the absence the schema can represent:
-    /// `money == nil` (the fill recorded no amount, so both total and currency
-    /// are blank) and `unitPrice == nil`. `volumeL`, `fuelKind` and `date` are
+    /// `money` absent (the fill recorded no amount, so both total and currency
+    /// are blank) and `unitPrice` absent. `volumeL`, `fuelKind` and `date` are
     /// non-optional - a typed entry always records them, so they are never
-    /// blank and never suggested.
+    /// blank and never suggested. The blank test itself is
+    /// `BlankFieldsOnly.isBlank`, shared with the catalogue pick on Vehicle
+    /// detail (RV.182).
     public static func suggestions(entry: FillUp, extraction: FuelExtraction) -> Set<FieldRef> {
         var result = Set<FieldRef>()
-        if entry.money == nil {
+        if BlankFieldsOnly.isBlank(entry.money) {
             if extraction.total != nil { result.insert(.total) }
             if extraction.currency != nil { result.insert(.currency) }
         }
-        if entry.unitPrice == nil, extraction.unitPrice != nil {
+        if BlankFieldsOnly.isBlank(entry.unitPrice), extraction.unitPrice != nil {
             result.insert(.unitPrice)
         }
         return result
