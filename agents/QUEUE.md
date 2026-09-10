@@ -63,7 +63,6 @@ entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.170** | flash | 10726 | `bb1q02lwf` (persistent) | `agents/briefs/RV.170.md` |
 | **RV.165** | flash | 47325 | `bapnem413` (persistent) | `agents/briefs/RV.165.md` |
 
 **The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
@@ -113,13 +112,13 @@ Shipped rows have left this table; `docs/TASKS-DONE.md` has them.
 
 | # | Task | Brief | Note |
 |---|---|---|---|
-| ~~1~~ | ~~**RV.170**~~ *in flight* | `RV.170.md` | **Unblocked by `RV.189` tonight** - the station seam it guards is now settled, and RV.189 filed the exact hole for it: `ImportCandidate.init` DEFAULTS `station` to nil, so the next copy helper can drop it as silently as `remappingSourceRow` did. A guard with a live failing case, which is the only kind this queue dispatches |
-| 2 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
-| 3 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
-| 4 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
-| 5 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
-| 6 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
-| 7 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
+ **Unblocked by `RV.189` tonight** - the station seam it guards is now settled, and RV.189 filed the exact hole for it: `ImportCandidate.init` DEFAULTS `station` to nil, so the next copy helper can drop it as silently as `remappingSourceRow` did. A guard with a live failing case, which is the only kind this queue dispatches |
+| 1 | **PJ.23** | `PJ.23.md` | **PRIORITY since 2026-08-31.** Its Expense half shipped as `RV.195` without anyone noticing the row existed; the SERVICE half remains, and `RV.195` is its worked example one entry kind over |
+| 2 | **PJ.34** | `PJ.34.md` | **PRIORITY since 2026-08-31**, unblocked by `RV.192`. Bigger than the row says: **no caller passes `attachments:`**, so the receipt-date ranking has never run, and **nothing renders `suggestions` at all** |
+| 3 | **PJ.26+PJ.27** | `PJ.26+PJ.27.md` | **PRIORITY since 2026-08-31.** The J7b tire loop. `TireSet.purchaseExpenseId` is `PJ.55`'s dead-field shape a third time |
+| 4 | **RV.173** | *needs one* | A mixed receipt whose photo write fails leaves its accepted expenses holding a dangling attachment id. `RV.149`'s deliberately fenced-out half |
+| 5 | **RV.171** | *needs one* | Sequenced after `RV.173`, same reason `RV.170` was sequenced after `RV.189` |
+| 6 | **RV.194** | `RV.194.md` | `RV.176`'s blind spot. **Slow** - a full 470-frame capture - and its final judgement is the orchestrator's, because an agent cannot see an image |
 
 ### Filed 2026-09-10, no brief yet
 
