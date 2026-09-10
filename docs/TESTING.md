@@ -95,6 +95,7 @@ has actually caught - a gate that has never caught anything at its cost is not k
 | **RELEASE build** | 2-4 min | The change touches a `#if DEBUG` seam: a seed, a test hook, a `-seed*` argument, a preview helper | `PR.11`/`OB.4` shipped an unguarded call to a DEBUG-only type. Debug compiled, every gate passed, `main` broke for Release, and `RV.78` found it two rows later |
 | **Backend** `dotnet build` + `format --verify-no-changes` + `test` | ~2 min | Any change under `backend/` | Its own tier's floor |
 | **FULL UI suite** (~28 min) | 28 min | **Phase completion, before a release build or a TestFlight upload, and after merging parallel work** - never per task | See the section below: five full runs in one day cost 2h15m and produced one genuine defect and two false reds |
+| **Cold-launch journey suite** (`-only-testing:TankbookUITests/ColdLaunchJourneyUITests`) | minutes, plus the full UI run it rides | **Phase completion**, with the full UI suite - never per task (it is slow, and it is the same "tap the real graph" class the full run covers) | The DEBUG-only route class at runtime: a screen reachable to a Debug UI test through `-presentScreen` and to no Release user. `RV.165`'s four walks; the guard beside it is `JourneyLaunchArgumentGuardTests` (L1, runs every task) |
 
 ### A green `dotnet test` is not evidence the suite ran (RV.107, 2026-09-07)
 
@@ -211,6 +212,45 @@ table cannot degrade into a skip list. The named mutation is wrapping a real pro
 exists", not graph reachability** - a door on an unreachable screen, or one behind a runtime
 condition that can never be true, still passes; full-journey tapping is `RV.165`'s layer, at a phase
 gate.
+
+### The cold-launch journey suite (RV.165)
+
+`ColdLaunchJourneyUITests` + the `JourneyLaunchArgumentGuardTests` source-scan guard over its own
+file(s). **This is a NEW suite beside the existing UI suites, not a migration of them**: those keep
+their seeds and `-presentScreen` navigation, and this one exists precisely because that shape cannot
+discover an unreachable screen. A test that starts inside Edit entry can never prove Edit entry is
+reachable; `PJ.4` shipped a Reminders screen whose only route was `#if DEBUG` while every UI test
+navigated through the debug door and the suite stayed green.
+
+**Four walks, each from a cold launch with the database reset, reaching its destination by tapping:**
+J1 -> J3b (add a car, log a typed fill-up, set its station), J3 -> J8b (scan, save, reopen the entry,
+see the receipt), J13 -> F10 (delete a car, find it in Recently deleted), and feedback (send it, see
+it confirmed, in RU). Each asserts the outcome the user came for - the station in the Stations list,
+the receipt on screen, the deleted car in Recently deleted, the confirmation visible without
+scrolling - never merely that a screen appeared.
+
+**The guard is half the row.** A journey test that passes a navigation argument must fail the build:
+the scanner masks comments, extracts string literals, and rejects `-presentScreen`, any other
+`-present*` except the fresh-install `-presentWelcome`, `-openFirst*`, `-select*Tab`, and any flag
+not on a small reasoned allowlist. A bare allowlist entry fails the self-check and an unused one is
+stale, the same discipline `RV.163`'s exception list uses. Without it the suite regresses to the
+shape it replaced the first time a journey is awkward to walk.
+
+**What the cold launch actually is** (measured, 2026-09-10): a launch with `-homeResetDatabase` alone
+opens on the **guest Home** (the gate reads `-homeResetDatabase` as the seed harness's tabbed-app
+flag and skips Welcome); `-presentWelcome` plus the reset runs the REAL onboarding gate and opens on
+**Welcome**. The journeys use `-presentWelcome` for J1/J13, so the first-run path is walked.
+
+**The DEBUG seams, stated rather than hidden.** The receipt walk needs the simulator's missing
+camera replaced (`-captureFixtureImage`, `-cameraStatus`) and a deterministic parse
+(`-seedFillUpScan`); the feedback walk needs a deterministic terminal outcome
+(`-feedbackTransportSuccess`); and the Log is rendered only in the signed-in layout, so the receipt
+round-trip cannot be walked by a no-account user at all - `-seedSettingsSignedIn` plants a session
+(no vehicle, no entry) and that gap is recorded as a finding. Because those seams are compiled out of
+Release, **the harness cannot run this suite against a Release build**; the class it covers is
+nonetheless a Release class, and the route mutation (wrapping a production door in `#if DEBUG`) is
+what proves the walks have teeth. This suite runs at a **phase gate, never per task**: a row that
+adds its minutes to every task's gate gets turned off.
 
 ### The screenshot-manifest gate (RV.176 + PR.28)
 
