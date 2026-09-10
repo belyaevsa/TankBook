@@ -218,6 +218,44 @@ Each exception carries a required reason, a bare entry fails the self-check, and
 file. Like RV.163 this is a test-target source scan: no runtime path differs, no screenshot, no
 Release build.
 
+### The station-minting guard (RV.170)
+
+`StationMintingGuardTests` + the `StationMintingScanner` pure function it is built on: every
+production `Station(...)` construction must sit inside the one canonical minting seam. **The seam
+is `ImportStationResolver.station(for:existing:now:)` in `ImportStation.swift`** - the investigation
+this row demanded found exactly one production construction site outside the decoder, and it is
+inside that function. `TankbookRepository.createStation` is a **caller** that routes through the
+resolver, and `ImportStationResolver.missingStations` (the import commit) calls it too; neither
+constructs a `Station`. The persistence decoder restores a stored row and is not a creation path -
+the same discrimination RV.196's field guard had to make, and the scanner's host rule excludes the
+`Persistence/` surface, seeds and sync so neither can satisfy it. A second construction path would
+mint a station the J4 suggestion ranking cannot rank - `RV.156`'s hole from the other side, after
+`RV.150` made a save stamp `lastUsedAt`/`defaults` on the row. The seam is a **function**, not a
+file: a second `Station(...)` in `ImportStation.swift` outside `station(for:)` is flagged too. A
+future legitimate site is a reasoned exception; a bare entry fails the self-check and a stale one
+fails the walk. The named mutation is moving a `Station(...)` construction outside the seam: the
+guard then reports its `file:line`. This is a test-target source scan: no runtime path differs, no
+screenshot, no Release build.
+
+### The import-candidate copy guard (RV.170)
+
+`ImportCandidateCopyGuardTests` + the `ImportCandidateCopyScanner`: every production
+`ImportCandidate(...)` copy helper must round-trip **every** field of the memberwise init. `RV.189`
+was the live case - the product owner's imported fills showed `92` instead of the station the file
+named, because `ImportBatchMerge.remappingSourceRow` rebuilt the candidate without `station`
+between the wire and the conversion; every documented link held and the value was dropped in
+between. A compiler cannot catch it because `ImportCandidate.init` **defaults `station` to nil**,
+so omitting it is legal; the four sibling helpers happened to pass it and the fifth did not. The
+scanner parses the init's own parameter list from `ImportModels.swift` and compares it against what
+each construction passes, so it is deliberately **not** keyed on `station` - the next field a helper
+drops is caught the same way. In production an `ImportCandidate` is only ever built by copying (the
+wire path decodes it with `Codable`), so every production construction is a copy helper; seeds,
+tests and the decoder are not hosts. The pre-RV.189 defect is proven against the real broken file,
+read from history with `git show e7a7a6c^`, not a synthetic fixture. A future deliberate omission is
+a reasoned exception; a bare entry fails the self-check and a stale one fails the walk. The named
+mutation is removing `station: station` from `remappingSourceRow`: the guard reports it. This is a
+test-target source scan: no runtime path differs, no screenshot, no Release build.
+
 ### The screen-reachability guard (RV.162)
 
 `ScreenRouteGuardTests` + the `ScreenRouteScanner` pure function it is built on: every screen in
