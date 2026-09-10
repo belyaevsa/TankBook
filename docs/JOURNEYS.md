@@ -38,10 +38,12 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 | Stage | Doing | Thinking / feeling | Notes |
 |---|---|---|---|
 | Export | Finds export in old app (Fuelio/Drivvo/Fuelly/Spritmonitor/CarScope/My Fuel Manager) | Anxious – "will it all come across?" | → In-app illustrated guide per source app, since their UIs hide export |
-| Import | Shares the file to Tankbook (share sheet / file picker) | Skeptical | → Declare the source app, never the format: "Which app is this from?" against the server-driven supported list (`GET /import/formats`). The app never sniffs the file – a format the picker cannot list is a format that does not exist, and a confident mis-mapping is worse than a question (hard rule 13; `ERRORS.md` → Import wizard) |
+| Import | Shares the file to Tankbook (share sheet / file picker) | Skeptical | → Declare the source app, never the format: "Which app is this from?" against the server-driven supported list (`GET /import/formats`). The app never sniffs the file – a format the picker cannot list is a format that does not exist, and a confident mis-mapping is worse than a question (hard rule 13; `ERRORS.md` → Import wizard). **RV.190 (2026-09-10):** the "Not yet" chips beside that list are **derived from the same response**, not written down. Drivvo sat in that row for the whole life of its own working parser, so a user with a Drivvo export was told the app could not read the file it was in fact reading - the picker above and the teaser below disagreed about the same product |
 | Map the cars (RV.86, 2026-09-06) | A file whose parse exposes several source cars gets one extra question: **which cars do you want, and into which garage car does each go** (leave out / a new car / an existing one) | "Oh – that export holds all three cars" | → The old apps export per account, not per car: the real MFM export holds **five** cars, and before RV.86 every row landed on one car – the Volvo card read the Audi's 426 220 km. The wizard lists each source car with its own rows/odometer/dates and asks, never guessing by name (hard rule 13). A one-car file never sees the step |
+| Name it (RV.185, 2026-09-10) | A lane the user sends to a **new** car offers that car's **name**, pre-filled and typed over, in the same card where the destination is chosen | "It's my Audi, not 'Drivvo'" | → Product owner, importing from Drivvo: *"I wasn't able to set the name of the car. I got default - drivvo."* The suggestion is the name the **file** gives the vehicle, else the neutral `Imported car`; the **format's display name is deliberately not in that chain** – a garage car called after the app you left is not a name, it is a leak of the tool. Editable at the moment it is offered and again in the Garage (hard rule 13), and the rename preserves the synthesized car's id, so fills already classified against that lane keep their destination |
 | Verify | Sees preview: N entries, date range, detected currency/units, per-field mapping | Checking their known numbers | → Show *their* lifetime average consumption next to the old app's; matching numbers = instant trust |
-| Commit | Confirms; garage now shows full history and trends from day one | Relief, sunk cost transferred | ⚠ Silent unit/currency misread poisons all trends → flag ambiguous rows for review instead of guessing |
+| Commit | Confirms; garage now shows full history and trends from day one | Relief, sunk cost transferred | ⚠ Silent unit/currency misread poisons all trends → flag ambiguous rows for review instead of guessing. **RV.185:** the currency the user declared becomes the new car's own home currency, so a KZT import does not land as a log of rate-pending rows against a EUR home nobody chose |
+| Read the log (RV.187, 2026-09-10) | Opens the Log and recognises the imported service and expense rows by name | "That's the timing belt, that's the insurance" | → Product owner, on their own import: a screen of rows reading only *Service* and *Expense* is a history you cannot navigate. A service now shows its vendor, else its first named line item (plus a count of the rest), else that item's category; an expense its title, else its category – the bare type name is the **last** resort, never the answer while better text exists. The other half was in the parser: the owner's real Drivvo export leaves the title and note columns empty on every expense and service row, so the **kind** column (`Вид расхода` / `Вид сервиса`) is the only text naming the thing and is now read as a name as well as a category. **One title function serves every surface** (the Log row, the duplicate card, the excluded and flagged lists, Recently deleted), so two screens cannot disagree about what an entry is called |
 
 **Success metric:** import completion rate ≥90% once a file is opened; zero support tickets about corrupted history.
 
@@ -217,6 +219,14 @@ captures" metric assumed QR was a capture path; it is not.)
 Scan invoice (document camera, multi-page) → the **deterministic parser** splits line items ("oil service", "brake pads front") into categorized records with attachments, with the opt-in cloud LLM (tier 3) as the only model-assisted path. *(The on-device model was the original plan here; tier 2 was **cut on 2026-08-25** because Foundation Models has no Russian - `docs/VISION.md` -> "Why tier 2 was cut". Invoices are messier than receipts, so this makes the manual split path load-bearing rather than a fallback.)* → app proposes the *next* reminder from item lifetimes ("Oil change in 15,000 km or 12 months?") → accept = the maintenance loop closes itself. ⚠ Invoices are far messier than fuel receipts – expectations set accordingly: pre-fill what's confident, never fake precision. P3 addition: insurance (ОСАГО) expiry as a first-class reminder type.
 
 **Fallbacks:** OCR can't split the invoice → the *same screen* holds one uncategorized item with the full total; the user renames/splits by hand or leaves it as "Annual service · 148 €" – a lump sum with the bill attached is a perfectly good record (never force itemization). No invoice at all (DIY) → manual line items, parts pulled from the shelf (J7b). Unknown category → `.other` with free text, promoted to a real category later without data loss. Odometer: pre-filled from the last known value (usually right, the car was just driven there) – one glance to confirm, editable; required only when an item sets a km lifetime or a tire set is mounted, since those anchor on it.
+
+**The record names itself (RV.187, 2026-09-10).** Whatever door it came through - scanned, typed or
+imported - a service in the Log shows its **vendor**, else its first named line item plus a count of
+the rest, else that item's category; the bare word *Service* is the last resort, never the answer
+while better text exists. This matters most for the lump-sum fallback above: "Annual service · 148 €"
+is a good record only if the row actually says *Annual service*. One title function serves the Log
+row, the duplicate card, the excluded and flagged lists and Recently deleted, so no two screens can
+call the same entry different things.
 
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
@@ -544,7 +554,7 @@ is a review list that failed to explain itself.
 **Metric:** permission-denied users still logging entries at D7 (they're future converts, not losses).
 
 ### F9a · Odometer contradicts the timeline
-**Trigger:** a new or edited entry breaks the invariant *sorted by date, odometer strictly increases* – a typo (119 486 → 11 948), an out-of-order backfill, or two drivers logging the same car.
+**Trigger:** a new or edited entry breaks the invariant – sorted by date, the reading never falls and strictly increases between the kinds that MEASURE travel (FillUp, ChargeSession), while a ServiceRecord or Expense may share a reading with the fill it annotates – a typo (119 486 → 11 948), an out-of-order backfill, or two drivers logging the same car.
 
 - Checks on every write (not just capture): order against date-neighbors, and implied pace (default flag above ~1 500 km/day, per-vehicle tunable).
 - The discrepancy is shown inline – amber underline on the offending field plus the conflicting entry quoted ("Aug 17 already recorded 119 486 km") – with ranked suggestions: fix odometer · fix date · move entry.
@@ -571,6 +581,43 @@ is a review list that failed to explain itself.
 - **Server down = non-event** (extends F3): a passive "Waiting to sync · N changes" row in Settings is the only surface; no screen in the app is sync-gated.
 
 **Metric:** conflicts auto-resolved without user action ≥95%; badge-resolution within 7 days ≥80%; zero modal interruptions attributable to sync.
+
+### F13 · The share that reached no destination (RV.181, OPEN)
+
+*(`F11` and `F12` are the v2 agent failures below; this v1 journey takes the next free id rather than renumbering them.)*
+
+**Trigger:** the user shares something – a receipt photo (J8b), a diagnostics bundle, an export
+(J13), the file behind a failed import (F6) – picks a destination, and nothing arrives.
+
+Product owner, 2026-09-10, on iOS 26 / iPhone 13: *"I can see the share proposal, select a
+destination, but in the end, nothing is dispatched to the destination source."* **This journey is
+written because it is NOT yet solved**, and a failure journey nobody has written is a failure
+nobody is designing for.
+
+- **Every share in the app is one seam** (`Shared/ActivityView.swift`): the diagnostics bundle, the
+  receipt photo or PDF, the whole-account and per-car exports, and "send us the file". So this is a
+  single failure with four faces, and **J13's promise depends on it** – *export always free* is a
+  launch commitment (`VISION.md`) and `DELETE /account` points the user at export as the way to keep
+  their data.
+- **The cause is unestablished.** The first diagnosis – that the activity controller had no
+  presenter – was withdrawn: UIKit forwards a presentation up the parent hierarchy, and *Save to
+  Files completes on both the old and the new shape*. What is known is that it does not reproduce on
+  the simulator, which carries almost no share extensions and whose working destination is
+  in-process; the reported failures are **out-of-process app extensions** on a real device.
+- **What the user sees today is nothing at all, and that is the design question.** The system reports
+  a cancelled share and a failed one identically, so the app cannot honestly say "that failed"
+  without also saying it every time somebody closes the sheet. The destination owns its own error
+  surface (Mail's composer, the Files browser), so Tankbook stays quiet – `docs/ERRORS.md` records
+  the decision.
+- **The half that shipped is the diagnosis, not the fix** (2026-09-10). The seam now records the
+  whole outcome – the activity type, whether it completed, and the error's domain and code, all
+  shape and never the shared content (hard rule 12) – and logs `failed` as an outcome distinct from
+  `cancelled`. **The next report of this is answerable from the user's own diagnostics bundle**,
+  which the one that opened this journey was not.
+
+**Metric:** a share that a user reports as never arriving can be explained from their diagnostics
+export without a new build. Resolution of the underlying defect is verified **on a physical device**,
+never on the simulator.
 
 ## Cross-journey principles
 

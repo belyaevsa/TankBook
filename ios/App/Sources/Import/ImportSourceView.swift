@@ -235,20 +235,28 @@ struct ImportSourceView: View {
 
     // MARK: - Not yet / not supported
 
+    /// The importers on the roadmap but not yet built. It is **derived**, never
+    /// listed: a name the server already offers is filtered out, because the
+    /// list above is the live `GET /import/formats` response and a static
+    /// "not yet" beside it goes stale the day a parser ships. Drivvo sat here
+    /// for the whole of its own working parser's life, telling a user the app
+    /// could not read the file it was reading. The block disappears when every
+    /// roadmap name has shipped.
     private var notYetBlock: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            SectionEyebrow("Not yet")
-            HStack(spacing: 7) {
-                chip("Fuelio")
-                chip("Drivvo")
-                chip("Fuelly")
-                chip("Spritmonitor")
-                chip("CarScope")
+        Group {
+            if !notYetNames.isEmpty {
+                VStack(alignment: .leading, spacing: 10) {
+                    SectionEyebrow("Not yet")
+                    HStack(spacing: 7) {
+                        ForEach(notYetNames, id: \.self) { chip(LocalizedStringKey($0)) }
+                    }
+                }
+                .padding(.top, 18)
+                .padding(.bottom, 10)
             }
         }
-        .padding(.top, 18)
-        .padding(.bottom, 10)
     }
+
 
     private func chip(_ name: LocalizedStringKey) -> some View {
         Text(name)

@@ -188,6 +188,12 @@ capture P1.5-log-stream            en -seedHomeRV103Reveal -homeScrollLogReveal
 capture P1.5-log-stream-ru         ru -seedHomeRV103Reveal -homeScrollLogReveal
 capture P1.6-edit-entry            en -seedEditEntry -presentScreen editEntry
 capture P1.6-edit-entry-ru         ru -seedEditEntry -presentScreen editEntry
+# RV.188: the neighbourhood panel's both-`.none` case with a NEXT entry - three
+# labelled chart points and one sentence per culprit. `-editEntryFlagged` opens
+# the middle flagged fill (a non-newest entry no real tap can reach, because
+# `-presentScreen editEntry` always opens the newest).
+capture RV.188-neighbourhood       en -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
+capture RV.188-neighbourhood-ru    ru -seedEditEntryConflictMiddle -editEntryFlagged -presentScreen editEntry -scrollToNeighbourhood
 # PJ.2's subject - the receipt card a scanned save now persists - sits at the
 # top of this very frame, so PJ.2's record is this picture under its own name.
 alias_shot P1.6-edit-entry    PJ.2-edit-entry-receipt
@@ -518,8 +524,14 @@ capture PJ.48-edit-suggestion-ru  ru -seedEditEntryTypedAttached -presentScreen 
 # stub transport's list; the preview/review install a stub parse (no file
 # picker, no server). RU is where the longest copy overflows - the review intro
 # is a two-count sentence and the duplicate warning is a paragraph.
-capture P5.5b-import-source     en -presentScreen importWizard -importStubFormats one
-capture P5.5b-import-source-ru  ru -presentScreen importWizard -importStubFormats one
+# `shipped` is the stub that mirrors what `ImportFormats.cs` actually registers
+# (RV.190). The canonical source shot used `one`, a single-format fixture from
+# before the Drivvo parser landed, so the visual record showed a picker offering
+# one importer AND a "Not yet" chip for Drivvo - a state the product has not been
+# in since that parser shipped. A screenshot of a fixture nobody ships is not a
+# record of the app.
+capture P5.5b-import-source     en -presentScreen importWizard -importStubFormats shipped
+capture P5.5b-import-source-ru  ru -presentScreen importWizard -importStubFormats shipped
 # PJ.33's "How to export" link rides the format row on this same screen.
 alias_shot P5.5b-import-source    PJ.33-import-guide
 alias_shot P5.5b-import-source-ru PJ.33-import-guide-ru

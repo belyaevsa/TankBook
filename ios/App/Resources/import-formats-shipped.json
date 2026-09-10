@@ -1,0 +1,4 @@
+[
+  { "id": "mfm", "displayName": "My Fuel Manager", "fileKinds": ["csv", "backup"], "helpUrl": "https://tankbook.live/import-guide/", "addedInPackVersion": 1 },
+  { "id": "drivvo", "displayName": "Drivvo", "fileKinds": ["csv"], "helpUrl": "https://tankbook.live/import-guide/", "addedInPackVersion": 1 }
+]
