@@ -108,7 +108,21 @@ struct EditEntryNonFillView: View {
                 }
                 .formCard()
                 ForEach($form.items) { $item in
-                    EditEntryServiceItemRow(item: $item)
+                    EditEntryServiceItemRow(item: $item) {
+                        // Deleting the LAST item is legal. A workshop invoice can
+                        // be vendor + a lump-sum Amount with no itemised lines,
+                        // and the record already round-trips an empty item list
+                        // (PJ.23's own L1 saves one unchanged). Forbidding the
+                        // last delete would strand that shape behind a row the
+                        // user cannot remove - the mirror of a blank row they
+                        // cannot remove. [RV.187]'s bare "Service" title is the
+                        // same last resort an empty record already reaches, not
+                        // a new state.
+                        form.removeServiceItem(id: item.id)
+                    }
+                }
+                ServiceEntryAddItemButton(identifier: "editEntryAddServiceItemButton") {
+                    form.addServiceItem()
                 }
             }
         case let expense as Expense:
@@ -238,17 +252,14 @@ struct EditEntryNonFillView: View {
 }
 
 /// One stored service line item made editable: its title, its category and its
-/// cost (docs/SCHEMA.md, ServiceItem). It reuses `ServiceEntryItemDraft` with the
-/// create screen so the two paths cannot drift. `partNumber` and `lifetime` are
-/// not shown here (PJ.22/PJ.26 own their editors) but ride through the draft
-/// untouched - dropping either on save would be data loss.
-///
-/// Edit-only by design: this row edits the items the record already has and
-/// never adds or deletes one. The row's acceptance is that promoting a category
-/// loses nothing; add/delete would drag in the create screen's save gate and
-/// empty-item rules, a larger surface than the row asks for.
+/// cost (docs/SCHEMA.md, ServiceItem), plus the trash affordance that removes
+/// it. It reuses `ServiceEntryItemDraft` with the create screen so the two paths
+/// cannot drift. `partNumber` and `lifetime` are not shown here (PJ.22/PJ.26 own
+/// their editors) but ride through the draft untouched - dropping either on save
+/// would be data loss, and a delete must not shift them onto a neighbour.
 struct EditEntryServiceItemRow: View {
     @Binding var item: ServiceEntryItemDraft
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(spacing: 8) {
@@ -269,6 +280,7 @@ struct EditEntryServiceItemRow: View {
             HStack {
                 categoryMenu
                 Spacer(minLength: 8)
+                deleteButton
             }
             if item.category.otherText != nil {
                 TextField("Category name", text: otherTextBinding)
@@ -279,6 +291,19 @@ struct EditEntryServiceItemRow: View {
         }
         .padding(13)
         .formCard()
+    }
+
+    /// Delete is an explicit affordance, never hidden behind a swipe - the same
+    /// treatment the create screen's row uses.
+    private var deleteButton: some View {
+        Button(action: onDelete) {
+            Image(systemName: "trash")
+                .font(.caption)
+                .foregroundStyle(Theme.Palette.inkSoft)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Delete line item")
+        .accessibilityIdentifier("editEntryServiceItemDelete")
     }
 
     private var categoryMenu: some View {

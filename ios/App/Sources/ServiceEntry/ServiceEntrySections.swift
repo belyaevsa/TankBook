@@ -447,6 +447,10 @@ struct ServiceEntryItemCard: View {
 /// The dashed "Add line item" affordance (artboard). Always reachable - the
 /// manual path is a peer of the scanned one, never a fallback (hard rule 15).
 struct ServiceEntryAddItemButton: View {
+    /// Overridable so the Edit-entry screen can offer the same affordance under
+    /// its own identifier (`editEntryAddServiceItemButton`) while the capture
+    /// screen keeps the original.
+    var identifier = "serviceEntryAddItemButton"
     let action: () -> Void
 
     var body: some View {
@@ -467,7 +471,7 @@ struct ServiceEntryAddItemButton: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityIdentifier("serviceEntryAddItemButton")
+        .accessibilityIdentifier(identifier)
     }
 }
 

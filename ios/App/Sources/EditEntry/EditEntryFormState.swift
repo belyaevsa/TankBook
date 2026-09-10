@@ -136,6 +136,22 @@ struct EditEntryNonFillForm: Equatable {
         Money.edited(original: original, amount: amountDecimal, currency: currency,
                      homeCurrency: homeCurrency)
     }
+
+    // MARK: - Line item collection
+
+    /// Appends a blank editable row - the screen's "Add line item". The row is
+    /// the user's to fill or delete; nothing is written until Save, so an
+    /// abandoned blank row is discarded with the form.
+    mutating func addServiceItem() {
+        items.append(ServiceEntryItemDraft())
+    }
+
+    /// Removes the row with `id`, preserving the order of the rest. Deleting
+    /// the LAST row is legal (see the delete affordance on `EditEntryNonFillView`
+    /// for why), so this never guards a minimum count.
+    mutating func removeServiceItem(id: UUID) {
+        items.removeAll { $0.id == id }
+    }
 }
 
 // MARK: - The delta toast copy

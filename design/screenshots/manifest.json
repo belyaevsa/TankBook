@@ -946,12 +946,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.23-service-items": {
-      "commit": "8033bb2",
+      "commit": "14bfdfd",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.23-service-items-ru": {
-      "commit": "8033bb2",
+      "commit": "14bfdfd",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1672,6 +1672,16 @@
     },
     "RV.188-neighbourhood-ru": {
       "commit": "d618e5f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.198-service-items": {
+      "commit": "14bfdfd",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.198-service-items-ru": {
+      "commit": "14bfdfd",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

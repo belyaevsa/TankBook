@@ -48,16 +48,15 @@ extension EditEntryView {
             try repository.upsertChargeSession(charge)
         case var service as ServiceRecord:
             service.vendor = form.vendor.isEmpty ? nil : form.vendor
-            // PJ.23: write the line items back - title, category and cost are
-            // the row's whole point, and a service opened in Edit used to show
+            // PJ.23/RV.198: write the line items back - title, category and cost
+            // are the row's whole point, and a service opened in Edit used to show
             // only its Vendor while [RV.187] titled its Log row from the first
-            // named item. `preserving:` keeps each item's `partNumber` and
-            // `lifetime`, which this screen does not edit but must not drop.
-            let originalItems = service.items
-            service.items = form.items.enumerated().map { index, item in
-                item.serviceItem(homeCurrency: vehicle.homeCurrency,
-                                 preserving: index < originalItems.count ? originalItems[index] : nil)
-            }
+            // named item. Each draft preserves from the item it was LOADED from
+            // (`draft.original`), never from the item at its array position: once
+            // a row can be deleted, position stops naming the same line, and a
+            // positional preserve would hand a surviving row a deleted
+            // neighbour's `partNumber`, `lifetime` or rate snapshot.
+            service.items = form.items.map { $0.serviceItem(homeCurrency: vehicle.homeCurrency) }
             service.conflict = updated.conflict
             service.flagAcceptance = updated.flagAcceptance
             try repository.upsertServiceRecord(service)

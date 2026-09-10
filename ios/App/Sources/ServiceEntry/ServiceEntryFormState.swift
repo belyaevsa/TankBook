@@ -21,6 +21,13 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     /// a scanned value is a default input the user edits, never read-only). The
     /// typed path (P3.1a) never sets this.
     var scanned = false
+    /// The stored item this row was loaded from, or nil for a row the user just
+    /// added. On save it is the item whose untouched `partNumber`, `lifetime`
+    /// and cost-rate snapshot this row keeps. It is the identity anchor that
+    /// makes a delete safe: preserving by array POSITION would hand a surviving
+    /// row the fields of whichever item preceded it, silently re-pointing a
+    /// part number or a rate snapshot at the wrong line.
+    var original: ServiceItem?
 
     /// Loads a stored line item as an editable default (hard rule 13: a stored
     /// value is an input the user edits, never a read-only fact). The `id` is
@@ -34,11 +41,13 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         } ?? ""
         self.partNumber = item.partNumber
         self.lifetime = item.lifetime
+        self.original = item
     }
 
     init(id: UUID = UUID(), title: String = "", category: ServiceCategory = .other(""),
          cost: String = "", partNumber: String? = nil,
-         lifetime: ServiceItem.Lifetime? = nil, scanned: Bool = false) {
+         lifetime: ServiceItem.Lifetime? = nil, scanned: Bool = false,
+         original: ServiceItem? = nil) {
         self.id = id
         self.title = title
         self.category = category
@@ -46,6 +55,7 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         self.partNumber = partNumber
         self.lifetime = lifetime
         self.scanned = scanned
+        self.original = original
     }
 
     /// The typed cost parsed as an exact `Decimal`, or nil when blank. A blank
@@ -62,13 +72,12 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     }
 
     /// The stored line item this draft represents. `homeCurrency` is used only
-    /// when a new cost is typed; `preserving` is the original item at this
-    /// position, whose `cost` pair is kept byte-identical when the amount is
-    /// untouched (hard rule 3 - a snapshot is immutable) and whose `partNumber`
-    /// and `lifetime` survive the screen never showing them. The create path
-    /// passes `preserving: nil`.
-    func serviceItem(homeCurrency: CurrencyCode,
-                     preserving original: ServiceItem? = nil) -> ServiceItem {
+    /// when a new cost is typed; `original` is the item this row loaded from,
+    /// whose `cost` pair is kept byte-identical when the amount is untouched
+    /// (hard rule 3 - a snapshot is immutable) and whose `partNumber` and
+    /// `lifetime` survive the screen never showing them. A row the user added
+    /// has `original == nil` and builds a fresh item.
+    func serviceItem(homeCurrency: CurrencyCode) -> ServiceItem {
         let money: Money?
         if let amount = costDecimal {
             if let originalCost = original?.cost, originalCost.amount == amount {
@@ -86,11 +95,13 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
                            lifetime: lifetime ?? original?.lifetime)
     }
 
-    /// Every editable value, EXCLUDING the synthetic `id`. A stored record has
-    /// no per-item id, so `EditEntryView.pristineNonFillForm` mints a fresh one
-    /// on every load; if `id` counted, two loads of the same untouched record
-    /// would differ and the screen would open already dirty - a swipe-back
-    /// would ask to discard work nobody did (hard rule 8).
+    /// Every editable value, EXCLUDING the synthetic `id` and the load-only
+    /// `original`. A stored record has no per-item id, so
+    /// `EditEntryView.pristineNonFillForm` mints a fresh one on every load; if
+    /// `id` counted, two loads of the same untouched record would differ and
+    /// the screen would open already dirty - a swipe-back would ask to discard
+    /// work nobody did (hard rule 8). `original` is a load artefact of the same
+    /// kind, not a value the user edits.
     static func == (lhs: ServiceEntryItemDraft, rhs: ServiceEntryItemDraft) -> Bool {
         lhs.title == rhs.title && lhs.category == rhs.category && lhs.cost == rhs.cost
             && lhs.partNumber == rhs.partNumber && lhs.lifetime == rhs.lifetime

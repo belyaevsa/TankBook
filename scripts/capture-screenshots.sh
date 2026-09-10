@@ -526,8 +526,15 @@ capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntr
 # the frame shows both the chooser and the free-text field; the first carries a
 # partNumber/lifetime the screen does not edit but must not drop. RU is where a
 # category label beside a cost on one row is the overflow check.
+#
+# RV.198 (2026-09-10): the same pose now carries the **Add line item** button
+# under the items and a trash affordance on each row, so the frame is captured
+# once and aliased - the two names are one picture, and shooting it twice would
+# let them drift. RU is where a delete affordance plus a cost on one row bites.
 capture PJ.23-service-items    en -seedEditEntryService -presentScreen editEntry
 capture PJ.23-service-items-ru ru -seedEditEntryService -presentScreen editEntry
+alias_shot PJ.23-service-items    RV.198-service-items
+alias_shot PJ.23-service-items-ru RV.198-service-items-ru
 
 # RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
 # Confirm, RV.149) - the message a fill-up save shows after its photo write
