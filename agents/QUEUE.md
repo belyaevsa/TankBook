@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.162** | flash | 21354 | `bnvuw43rl` (persistent) | `agents/briefs/RV.162.md` |
+| *(none)* | | | | |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -71,26 +71,20 @@ collide, and two Swift agents starting in the same second still hit `database is
 
 ### Waiting, in order
 
-**Every Tier 1 and Tier 2 row below is BRIEFED and ready to dispatch with no further input.**
-Each brief is at `agents/briefs/<id>.md`, assembled from `TEMPLATE.md`, with its cause pinned to a
-line, its sibling inventory done, its mutation named and its design questions closed. Dispatch them
-in this order; the only reason to stop between them is to verify and commit the one before.
+**Tiers 1 and 2 are EMPTY - every briefed row shipped 2026-09-09/10.** Ten rows: `RV.166`,
+`RV.167`, `RV.149`, `RV.160`, `RV.159`, `PJ.57`, `PJ.56`, `RV.163`, `PJ.55`, `RV.162`. The next
+dispatch needs a brief written first; tier 3 below is *decided design*, not briefed.
 
-**Tier 1 - live defects, causes pinned, small.**
+**The three shipped guards now cover each other's blind spots**, and each was built against a live
+failing case rather than a hypothetical:
 
-| # | Task | Brief | Why here |
-|---|---|---|---|
-| 1 | **PJ.55** | `PJ.55.md` | **Unblocked 2026-09-09**: the product owner chose *give `favorite` a writer, in the Garage*. The long-press variant and deleting the rung were both offered and not taken. Ten test seeds write this field, which is why the guard rows below matter |
+| Guard | Catches | Its stated blind spot |
+|---|---|---|
+| `RV.167` money aggregation | a `.reduce` over a `Money`'s home side outside the accumulator | the `.reduce` shape only; a `+=` loop walks past (`RV.172`) |
+| `RV.163` entity writers | an entity `SCHEMA.md` names that nothing can create | entity-level; `PJ.55` was the FIELD-level instance it cannot see |
+| `RV.162` screen routes | a screen whose only door is `#if DEBUG` (`PJ.4`'s shape) | proves a door NAMES the screen, does not walk the view graph (`RV.165`) |
 
-**Tier 2 - guards that stop the recurrence, cheapest first.**
-
-| # | Task | Brief | Why here |
-|---|---|---|---|
-| 2 | **RV.162** | `RV.162.md` | Screen reachability over `SCREENMAP.md`. **Its first deliverable is not the test**: the planned-not-drawn list is a prose paragraph at `SCREENMAP.md:477` mixing five rows of history, so the marker has to be made machine-readable before a guard is writable at all |
-
-Both follow `RV.167`'s shipped idiom (`MoneyHomeSideSumGuardTests`): a pure function over source
-text, a tree walk, and a reasoned allowlist with a stale-entry check. Both briefs say to read it
-first, so the third guard does not invent a third way.
+**Tier 3 - decided design, ready to brief.**
 
 **Tier 3 - decided design, ready to brief.**
 
