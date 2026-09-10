@@ -62,7 +62,6 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **RV.181** `[!]` | flash | 18970 | `byo52dcmu` (persistent) | `agents/briefs/RV.181.md` |
 | **REVIEW-JOURNEYS-CD** *(read-only)* | pro | 20102 | `b6n752mdp` (persistent) | `agents/briefs/REVIEW-JOURNEYS-2026-09-10.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
@@ -95,12 +94,22 @@ failing case rather than a hypothetical:
 | ~~8~~ | **RV.116** | **Briefed and in flight.** The brief settles the split the row's wording blurs: the unsupported column NAMES are per-format reference data in `GET /import/formats`, but the COUNT of rows carrying a value is per-file and can only come from `POST /import/parse`. Backend + iOS |
 | ~~9~~ | **RV.161** **[v1.1]** | **Briefed and in flight.** The brief solves the row's hardest part - the ORACLE: ground truth for the new corpus column must not come from the extractor's own output. The fixture FILENAMES are human-written from the images and predate any station extractor, so they are the independent source; the OCR dump cross-checks them |
 
-**NEXT, ahead of everything - `RV.181`, briefed and ready.**
+**`RV.181` is committed (`ae775cf`) and the row is STILL OPEN `[!]`.** What shipped is hardening
+and a diagnosis, not a fix: the seam now latches only after UIKit accepts the presentation, and it
+records the whole completion tuple so a share that FAILED is no longer logged as one the user
+cancelled. The cause of the owner's report is **not established** - the diagnosis this queue and
+`docs/TASKS.md` both carried ("hosted as a sheet root, so no presenter") is **withdrawn**: UIKit
+forwards a presentation up the parent hierarchy, and *Save to Files completes under both shapes*,
+which is counter-evidence that was in hand and misread. **Verification needs the product owner's
+physical iPhone 13**; no simulator test can settle it. Next device report is diagnosable from the
+diagnostics bundle, which it was not before.
+
+**NEXT, ahead of everything - `RV.185`, briefed and ready.**
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
-| **RV.185** `[!]` | `RV.185.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch after `RV.181`** - both are user-reported `[!]` |
-| ~~RV.181~~ **in flight** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
+| **RV.185** `[!]` | `RV.185.md` | **An imported car ignores the currency the user just declared, and cannot be named.** `TargetCar.newCar` hardcodes `homeCurrency: .eur`, so a declared KZT reaches the ENTRIES but never the car - and every imported row then needs a KZT->EUR rate for its own date, turning a clean import into a log of rate-pending rows. The name comes from the format's display name (`"Drivvo"`) with no field. **Briefed; dispatch NOW** - `RV.181` is off the bench and this is the next user-reported `[!]` |
+| ~~RV.181~~ **committed `ae775cf`, row still `[!]` OPEN** | `RV.181.md` | **No share in the app dispatches anything.** Reported by the product owner 2026-09-10: the sheet opens, a destination is chosen, nothing arrives. `UIActivityViewController` is hosted as the ROOT of a SwiftUI `.sheet` at all five call sites, so the chosen activity has no presenter for its own UI. *Export always free* is a launch commitment and `DELETE /account` points users at export to keep their data - today nothing leaves the app. One shared seam (`ActivityView`), so one row, not five. **`PJ.36`/`PJ.38` screenshot the sheet OPEN and their L4s assert it appears** - the half that already worked, which is how this shipped |
 
 ## Grouping: what ships together, and why (decided 2026-09-10)
 
