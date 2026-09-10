@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-*(nothing in flight - paused at the product owner's request, 2026-09-10.)*
+| **RV.186+RV.188** `[!]` | flash | 1581 | `bw8e4i9sm` (persistent) | `agents/briefs/RV.186+RV.188.md` |
 
 *(`REVIEW-JOURNEYS-CD` finished; its report is `diagnostics/REVIEW-JOURNEYS-2026-09-10.md` and its
 findings are filed as `PJ.58`/`PJ.59` in `docs/TASKS.md`, commit `7676039`.)*
@@ -115,8 +115,8 @@ below the fold, the mapping gate's field was on the second lane). The pre-filled
 All fixed by the orchestrator before the commit. **The lesson is the standing one, again: read the
 exit code, and open every screenshot.**
 
-**NEXT, in order - `RV.186+RV.188`, then `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then `RV.170`),
-`RV.173` (then `RV.171`). PAUSED at the product owner's request; nothing is dispatched.**
+**IN FLIGHT - `RV.186+RV.188`. Then, in order: `RV.183+RV.184`, `RV.176+PR.28`, `RV.189` (then
+`RV.170`), `RV.173` (then `RV.171`).**
 
 | Task | Brief | Why it outranks the queue |
 |---|---|---|
