@@ -99,16 +99,27 @@ struct ReceiptCardView: View {
             )
     }
 
-    /// The strip's caption line: "Scanned <timestamp>" when the photo carries an
-    /// extraction timestamp, "Added <date>" otherwise. Nil with no attachment -
-    /// the empty state's "Add receipt" affordance is the whole message there.
+    /// The strip's caption line: "Captured <instant>" for a scanned photo,
+    /// "Added <date>" for one attached without a recognition pass. Nil with no
+    /// attachment - the empty state's "Add receipt" affordance is the whole
+    /// message there.
+    ///
+    /// Both halves obey one rule (`docs/DESIGN.md` -> Typography): **format at
+    /// the precision the value has.** `createdAt` is a real instant, so it
+    /// carries a time; `entry.date` is a day, so it does not. The caption
+    /// deliberately does NOT read `extractedTimestamp` - that is the date
+    /// PRINTED ON the receipt, a date-only fact, and rendering it with a time
+    /// produced "Scanned 9 Sep at 00:00" on every scan. The receipt's own
+    /// printed date belongs in the recognised-fields list, where it is shown as
+    /// a date.
     static func scannedLine(attachments: [Attachment], entry: any Entry) -> String? {
         guard let first = attachments.first else { return nil }
-        guard let timestamp = first.extractedTimestamp else {
+        guard first.extractedTimestamp != nil else {
             return String(format: L10n.localize("Added %@"),
                           entry.date.formatted(.dateTime.month(.abbreviated).day()))
         }
-        let stamp = timestamp.formatted(.dateTime.month(.abbreviated).day().hour().minute())
-        return String(format: L10n.localize("Scanned %@"), stamp)
+        let stamp = first.createdAt.formatted(
+            .dateTime.month(.abbreviated).day().hour().minute())
+        return String(format: L10n.localize("Captured %@"), stamp)
     }
 }

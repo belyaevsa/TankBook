@@ -10299,23 +10299,6 @@
         }
       }
     },
-    "Scanned %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Scanned %@"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отсканировано %@"
-          }
-        }
-      }
-    },
     "Scanning needs the camera – enable in Settings.": {
       "extractionState": "manual",
       "localizations": {

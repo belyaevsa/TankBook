@@ -64,6 +64,7 @@ extension EditEntryView {
             form.vendor = service.vendor ?? ""
         case let expense as Expense:
             form.title = expense.title
+            form.category = expense.category
         default:
             break
         }

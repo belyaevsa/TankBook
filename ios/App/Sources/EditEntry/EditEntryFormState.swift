@@ -103,6 +103,11 @@ struct EditEntryNonFillForm: Equatable {
     var provider = ""
     var vendor = ""
     var title = ""
+    /// The expense's category (docs/SCHEMA.md, Expense). It is a stored fact
+    /// the user can set - and for an imported row it is what the importer
+    /// GUESSED from the source file's kind column - so it must be editable
+    /// here, not only at creation (hard rule 13). Ignored for every other kind.
+    var category: ExpenseCategory = .accessory
 
     var amountDecimal: Decimal? {
         let trimmed = amount.trimmingCharacters(in: .whitespaces)

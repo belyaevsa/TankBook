@@ -350,6 +350,7 @@ struct EditEntryView: View {
                 try repository.upsertServiceRecord(service)
             case var expense as Expense:
                 expense.title = nonFillForm.title
+                expense.category = nonFillForm.category
                 expense.conflict = updated.conflict
                 expense.flagAcceptance = updated.flagAcceptance
                 try repository.upsertExpense(expense)

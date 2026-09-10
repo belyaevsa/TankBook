@@ -48,7 +48,12 @@ struct EditEntryNonFillView: View {
                                                    replacedAt: syncOverwrite.replacedAt,
                                                    onRestore: onRestore)
                 }
-                EditEntryRows.footer
+                // No consumption footnote here. "Edits recalculate consumption
+                // for this and the next fill-up" is a FILL-UP's promise: a
+                // service, an expense or a charge moves no consumption segment
+                // (docs/SCHEMA.md - only FillUp changes trigger a recompute),
+                // and saying otherwise on an expense told the user their
+                // parking receipt would move their L/100km.
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
             .padding(.bottom, 24)
@@ -102,19 +107,70 @@ struct EditEntryNonFillView: View {
             }
             .formCard()
         case let expense as Expense:
-            FocusableFieldRow("Title", $nonFillFocus, equals: .title,
-                              rowIdentifier: "editEntryTitleRow") {
-                TextField(expense.title, text: $form.title)
-                    .multilineTextAlignment(.trailing)
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($nonFillFocus, equals: .title)
-                    .accessibilityIdentifier("editEntryTitleField")
+            VStack(spacing: 0) {
+                FocusableFieldRow("Title", $nonFillFocus, equals: .title,
+                                  rowIdentifier: "editEntryTitleRow") {
+                    TextField(expense.title, text: $form.title)
+                        .multilineTextAlignment(.trailing)
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.ink)
+                        .focused($nonFillFocus, equals: .title)
+                        .accessibilityIdentifier("editEntryTitleField")
+                }
+                CardDivider()
+                categoryRow(current: expense.category)
             }
             .formCard()
         default:
             EmptyView()
         }
+    }
+
+    /// What KIND of expense this is - insurance, parking, a fine. It is what
+    /// the Log row falls back to when the expense has no title, and for an
+    /// imported row it is the importer's GUESS from the source file's kind
+    /// column, so a screen that shows the title without it lets the user edit
+    /// the name of a thing whose type they cannot see or correct (hard rule 13).
+    ///
+    /// `current` is offered alongside the standard cases so an expense already
+    /// carrying a custom `.other("...")` keeps it in the list rather than being
+    /// silently re-typed by opening the menu.
+    private func categoryRow(current: ExpenseCategory) -> some View {
+        HStack(spacing: 8) {
+            Text("Category")
+                .font(.subheadline)
+                .foregroundStyle(Theme.Palette.inkSoft)
+            Spacer(minLength: 8)
+            Menu {
+                ForEach(Self.categoryOptions(including: current), id: \.self) { category in
+                    Button {
+                        form.category = category
+                    } label: {
+                        Text(L10n.expenseCategoryLabel(category))
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Text(L10n.expenseCategoryLabel(form.category))
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.ink)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Palette.inkSoft)
+                }
+            }
+            .accessibilityIdentifier("editEntryCategoryMenu")
+        }
+        .padding(.horizontal, Theme.Spacing.cardPadding)
+        .padding(.vertical, 12)
+    }
+
+    /// The offered categories: the entry flow's own list, plus the entry's
+    /// stored category when that is a custom one the list does not carry.
+    static func categoryOptions(including current: ExpenseCategory) -> [ExpenseCategory] {
+        let standard = ExpenseCategory.entryCases
+        guard !standard.contains(current) else { return standard }
+        return [current] + standard
     }
 
     private var moneyCard: some View {
