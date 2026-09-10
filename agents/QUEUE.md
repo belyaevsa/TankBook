@@ -62,7 +62,7 @@ no queue - it is the file a fresh session trusts to know what is already done.
 
 | Task | Model | PID | Monitor | Brief |
 |---|---|---|---|---|
-| **PJ.55** | flash | 85572 | `bllrwi36y` (persistent) | `agents/briefs/PJ.55.md` |
+| **RV.162** | flash | 21354 | `bnvuw43rl` (persistent) | `agents/briefs/RV.162.md` |
 
 **These two run in PARALLEL deliberately.** The journeys walk is read-only - no edits, no builds,
 no tests - so it cannot collide with a build agent on files or on the simulator, and `CLAUDE.md`
@@ -152,6 +152,7 @@ first, so the third guard does not invent a third way.
 | RV.151 | `9760bfe` | The rate lookup derives the cross rate through the pack's base - the owner's 381 pending rows |
 | RV.150 | `bc907c3` | A save writes the station fields the ranking reads; the location capture is the owner's decision, bounded |
 | RV.117b | `6d833a7` | The conflict neighbourhood, drawn - RV.117 is now complete |
+| PJ.55 | `c933a3b` | The station ranking's first rung can finally fire. **The strongest mutation of the session**: dropping only the persist call turned red on the RANKING, not the flag - the field had a column, a decoder, ten seeds and a reader for months and rung 1 still never fired |
 | RV.163 | `3a72037` | An entity nothing can create fails the build. The mutation removed both `createStation` doors while leaving the table, the decoder, the import writer and ten seeds in place - **RV.156 reconstructed exactly**. Entity-level; `PJ.55` is the field-level instance it cannot see |
 | PJ.56 | `c87ca1b` | A group header that withholds a figure says why. **The screenshot caught a pre-existing sibling** - the divider printed "0 entries pending rates" under a complete breakdown, invisible until this row rendered the app's first `.mixed` month |
 | PJ.57 | `170bf91` | The excluded-entries footnote carries RV.83's chevron; amber untouched. **The brief's premise was partly wrong and the agent said so** - nothing renders the footnote passively, so that assertion needed a DEBUG seam or it was vacuous |
