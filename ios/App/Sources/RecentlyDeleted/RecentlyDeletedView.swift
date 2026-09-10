@@ -247,7 +247,7 @@ struct RecentlyDeletedView: View {
     // MARK: - Row composition
 
     private func titleLine(_ entry: any Entry) -> String {
-        let title = Self.title(entry, stations: stations)
+        let title = EntryTitle.text(entry, stations: stations)
         let quantity = quantityText(entry)
         let amount = amountText(entry)
         return [title, quantity, amount].compactMap { $0 }.joined(separator: " · ")
@@ -286,25 +286,6 @@ struct RecentlyDeletedView: View {
         guard let money = entry.money, let homeAmount = money.homeAmount else { return nil }
         let symbol = AddVehicleSupport.moneySymbol(for: money.homeCurrency)
         return HomeFormat.entryAmount(homeAmount, symbol: symbol)
-    }
-
-    private static func title(_ entry: any Entry, stations: [Station]) -> String {
-        switch entry {
-        case let fill as FillUp:
-            if let stationID = fill.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
-            }
-            return fill.fuelKind.fuelKindLabel
-        case let charge as ChargeSession:
-            return charge.provider ?? L10n.localize("Charge")
-        case let service as ServiceRecord:
-            return service.vendor ?? L10n.localize("Service")
-        case let expense as Expense:
-            return expense.title.isEmpty ? L10n.localize("Expense") : expense.title
-        default:
-            return L10n.localize("Entry")
-        }
     }
 
     // MARK: - Actions

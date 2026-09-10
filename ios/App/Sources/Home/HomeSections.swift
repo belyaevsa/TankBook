@@ -490,7 +490,7 @@ struct HomeRecentEntries: View {
 
     private func titleLine(_ entry: LogStream.LogEntry) -> some View {
         HStack(spacing: 5) {
-            Text(title(entry))
+            Text(EntryTitle.text(entry, stations: stations))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .lineLimit(1)
@@ -558,23 +558,6 @@ struct HomeRecentEntries: View {
         case .date(let date):
             Text(HomeFormat.day(date))
                 .accessibilityIdentifier("logEntryDate")
-        }
-    }
-
-    private func title(_ entry: LogStream.LogEntry) -> String {
-        switch entry.kind {
-        case .fuel:
-            if let stationID = entry.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
-            }
-            return entry.fuelKind?.fuelKindLabel ?? L10n.localize("Fuel")
-        case .charge:
-            return entry.provider ?? L10n.localize("Charge")
-        case .service:
-            return entry.vendor ?? L10n.localize("Service")
-        case .expense:
-            return entry.entryTitle ?? L10n.localize("Expense")
         }
     }
 
@@ -647,7 +630,8 @@ struct HomeRecentEntries: View {
     }
 
     private func groupTitle(_ group: LogStream.LogGroup) -> String {
-        group.members.first.map(title) ?? L10n.localize("Purchase")
+        group.members.first.map { EntryTitle.text($0, stations: stations) }
+            ?? L10n.localize("Purchase")
     }
 
     /// A member row inside an expanded group. The fuel member shows its FUEL

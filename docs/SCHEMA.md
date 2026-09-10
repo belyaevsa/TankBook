@@ -978,7 +978,7 @@ The entry rows (Confirm sheet, Edit entry – fill-up and the other three types)
 |---|---|---|
 | My Fuel Manager | **CSV, `;`-delimited, header on line 2** (real export committed at `Spike/ImportFixtures/mfm/`, parse output at `Spike/ImportFixtures/mfm/parsed.json`) | Per-file upload. `fuel.csv` → `FillUp` (**no unit-price column - price/L is derived**); `costs.csv` → `ServiceRecord`/`Expense`; `vehicles.csv` → `Vehicle`; `incomes.csv` and `reminders.csv` are recognised but **unmapped in v1** (accepted, yield nothing - income is out of scope and there is no reminder mapping yet). `Tank status after fillup` (`F`/`P`) + `%` → `tankLevelAfterPct` and the full-tank flag; `Fuel` is a **numeric code, not a name**; dates are `M/D/YYYY` (**resolved from the WHOLE file, RV.85**: one export has one format, so a single `13/05` or `05/13` row settles every row; the `dateFormat` F6 question is asked only when no row settles it - every date has both components ≤ 12 - and a file proving both orders is refused as `import_inconsistent_dates`); `Currency` is `USD` on every row regardless of where fuel was bought, so it is a default the user corrects (hard rule 13) |
 | Fuelio *(deferred, P5.4b)* | CSV | fill-ups, costs, vehicles; units per file header |
-| Drivvo | **CSV, `,`-delimited, one file with three `##`-marked sections** (real export committed at `Spike/ImportFixtures/drivvo/`): `##Refuelling` (250 rows), `##Expense` (11 rows), `##Service` (54 rows) | Per-file upload, one car per file (no vehicle column, so no multi-car mapping). `##Refuelling` → `FillUp` (fuel is a **localised grade string**, e.g. «Бензин АИ92» → `petrol92`; `Полный бак` is **Да/Нет**; `Азс` / `Gas station` carries a free-text station name: trim it, resolve an exact existing name or create a `Station`, and write its id to `stationId`; blank stays `nil`; brand normalisation remains RV.115's reference-data job; the second/third fuel blocks and the EV columns are **not imported**); `##Expense` → `Expense` (kind `Вид расхода` → category); `##Service` → `ServiceRecord` (kind `Вид сервиса` → item category). Dates are `yyyy-MM-dd HH:mm:ss` (a space, not ISO-8601 `T`); decimals mix dot and comma inside one row; a `0.0`/`0` odometer maps to `null`, never a zero reading. **There is no currency column** - see the currency rule below. Headers are **localised** (RU measured, EN derived-but-unverified), so the header→field mapping is data, not code (RV.113) |
+| Drivvo | **CSV, `,`-delimited, one file with three `##`-marked sections** (real export committed at `Spike/ImportFixtures/drivvo/`): `##Refuelling` (250 rows), `##Expense` (11 rows), `##Service` (54 rows) | Per-file upload, one car per file (no vehicle column, so no multi-car mapping). `##Refuelling` → `FillUp` (fuel is a **localised grade string**, e.g. «Бензин АИ92» → `petrol92`; `Полный бак` is **Да/Нет**; `Азс` / `Gas station` carries a free-text station name: trim it, resolve an exact existing name or create a `Station`, and write its id to `stationId`; blank stays `nil`; brand normalisation remains RV.115's reference-data job; the second/third fuel blocks and the EV columns are **not imported**); `##Expense` → `Expense` (kind `Вид расхода` → category); `##Service` → `ServiceRecord` (kind `Вид сервиса` → item category). **The kind column is also a NAME (RV.187):** the real export leaves `Заголовок` and `Примечание` empty on every expense/service row, so the kind (`Техосмотр`, `Замена масла`) becomes the title when the title columns are empty - an explicit title/name/note still wins. Dates are `yyyy-MM-dd HH:mm:ss` (a space, not ISO-8601 `T`); decimals mix dot and comma inside one row; a `0.0`/`0` odometer maps to `null`, never a zero reading. **There is no currency column** - see the currency rule below. Headers are **localised** (RU measured, EN derived-but-unverified), so the header→field mapping is data, not code (RV.113) |
 | Fuelly / aCar | CSV/XML | service logs map to ServiceRecord with single item |
 | Spritmonitor | CSV | bi-fuel rows → separate FillUps by fuelKind |
 | CarScope | CSV | closest schema to ours |
@@ -1003,7 +1003,19 @@ currency and the wizard asks the question once per file, offering the **destinat
 currency as the default** (hard rule 13 - a default input, never a fact; hard rule 3 - money is a
 pair). The parse's `currency` ambiguity is returned with **empty `options`** - the signal that there
 is no answer on disk to declare, so the client must ask rather than read a guessed default off the
-wire.
+wire. **RV.185:** when the import creates a NEW car, the declared currency (or the user's answer)
+becomes that car's `homeCurrency`, so the rows land in the car's own currency instead of arriving
+rate-pending against a hardcoded EUR home. Importing into an EXISTING car never re-homes it - that
+is RV.152's decision.
+
+**RV.185, the car's NAME:** a car the import creates is named from the **file** - the first
+candidate that names a vehicle - else the neutral localized default (`Imported car`). The format's
+display name is deliberately **not** in that chain: `Drivvo` is the app the file was exported from,
+and a garage car called after the exporter is what the product owner reported. Either way the name
+is a **suggestion, not a fact** (hard rule 13): it is editable **where the car is offered** - the
+preview's "Imports into" card on the single-car path, and the chosen lane's card on the multi-car
+mapping gate - and again afterwards in the Garage. Editing it renames the synthesized car in place,
+preserving its id, so the fills already classified against that lane keep their destination.
 
 ### MFM mapping, written from the real export (P5.4)
 

@@ -637,8 +637,8 @@ final class HomeUITests: XCTestCase {
 
         app.buttons["serviceEntrySaveButton"].tap()
 
-        // The saved service renders in the log (vendor empty -> "Service").
-        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 10),
+        // RV.187: the first named line item names the row, not "Service".
+        XCTAssertTrue(app.staticTexts["Oil service"].waitForExistence(timeout: 10),
                       "the saved service must appear in the log")
     }
 

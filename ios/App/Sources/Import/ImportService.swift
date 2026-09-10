@@ -139,14 +139,19 @@ enum TargetCar: Equatable {
     /// format name).
     var newName: String { vehicleValue.name }
 
-    static func newCar(named name: String) -> TargetCar {
+    /// Builds the synthesized car a new-car destination lands in. `homeCurrency`
+    /// is REQUIRED: the import's answer (the file's declared currency, or the
+    /// user's choice for a file with none) is a value the user set, so a factory
+    /// that can silently default it to EUR is the RV.185 defect - the imported
+    /// rows then arrive rate-pending against a home the user never picked.
+    static func newCar(named name: String, homeCurrency: CurrencyCode) -> TargetCar {
         let now = Date()
         return .new(Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: name, make: nil, model: nil, year: nil, plate: nil,
             powertrain: .ice, fuelKinds: [.petrol95],
             tankCapacityL: nil, batteryCapacityKWh: nil,
-            homeCurrency: .eur,
+            homeCurrency: homeCurrency,
             units: Vehicle.Units(distance: .km, volume: .l,
                                  consumption: .lPer100, energy: .kWhPer100),
             photo: nil, archived: false, paceLimitKmPerDay: 1500,

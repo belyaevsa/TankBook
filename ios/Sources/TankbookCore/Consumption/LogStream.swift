@@ -210,6 +210,16 @@ public struct LogStream: Equatable, Sendable {
         public let provider: String?
         public let vendor: String?
         public let entryTitle: String?
+        /// A service's line-item titles, in order (RV.187). The first names the
+        /// row; the view appends a count when there are more. Empty for every
+        /// other kind.
+        public let serviceItemTitles: [String]
+        /// A service's first line-item category, the title fallback when no
+        /// item is named (RV.187). nil for every other kind.
+        public let serviceCategory: ServiceCategory?
+        /// An expense's category, the title fallback when its title is empty
+        /// (RV.187). nil for every other kind.
+        public let expenseCategory: ExpenseCategory?
         /// The quantity segment, when the entry has one.
         public let quantity: Quantity?
         /// The fuel kind (fill-ups only). `.nil` for charge/service/expense.
@@ -589,6 +599,9 @@ extension LogStream.LogEntry {
             self.provider = nil
             self.vendor = nil
             self.entryTitle = nil
+            self.serviceItemTitles = []
+            self.serviceCategory = nil
+            self.expenseCategory = nil
             self.quantity = .volumeL(fill.volumeL)
             self.fuelKind = fill.fuelKind
             // The title resolves to the STATION only when its id names one of
@@ -604,6 +617,9 @@ extension LogStream.LogEntry {
             self.provider = charge.provider
             self.vendor = nil
             self.entryTitle = nil
+            self.serviceItemTitles = []
+            self.serviceCategory = nil
+            self.expenseCategory = nil
             self.quantity = .energyKWh(charge.energyKWh)
             self.fuelKind = nil
             self.showsFuelKind = false
@@ -614,6 +630,9 @@ extension LogStream.LogEntry {
             self.provider = nil
             self.vendor = service.vendor
             self.entryTitle = nil
+            self.serviceItemTitles = service.items.map(\.title)
+            self.serviceCategory = service.items.first?.category
+            self.expenseCategory = nil
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false
@@ -624,6 +643,9 @@ extension LogStream.LogEntry {
             self.provider = nil
             self.vendor = nil
             self.entryTitle = expense.title
+            self.serviceItemTitles = []
+            self.serviceCategory = nil
+            self.expenseCategory = expense.category
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false
@@ -636,6 +658,9 @@ extension LogStream.LogEntry {
             self.provider = nil
             self.vendor = nil
             self.entryTitle = nil
+            self.serviceItemTitles = []
+            self.serviceCategory = nil
+            self.expenseCategory = nil
             self.quantity = nil
             self.fuelKind = nil
             self.showsFuelKind = false

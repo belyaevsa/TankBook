@@ -472,8 +472,12 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
   export can never become a state nothing can undo. A single-file pick keeps the pre-RV.93 flow
   exactly as it was.
 - **Everything shown is adjustable here** - currency, units, the target car, and the individual
-  rows that need a look (hard rule 13: editable at the moment it is offered). The F6 ambiguity
-  question is answered in this screen, once per file.
+  rows that need a look (hard rule 13: editable at the moment it is offered). **RV.185:** when the
+  import will create a new car, its name is an editable field pre-filled with the derived
+  suggestion, and the currency the user chooses becomes that new car's home currency - so the
+  entries land in the car's own currency instead of arriving rate-pending against a hardcoded EUR.
+  An existing destination car is never renamed or re-homed. The F6 ambiguity question is answered
+  in this screen, once per file.
 - ⚠ **The date-format question is asked here, never guessed** (PJ.10): when the server reports
   genuinely ambiguous dates (the real MFM export has them), the preview asks `M/D/YYYY` vs
   `D/M/YYYY` **once per file** and **disables confirm until it is answered**. The parser's guess

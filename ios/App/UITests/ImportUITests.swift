@@ -254,8 +254,8 @@ final class ImportUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
         app.buttons["importConfirmButton"].tap()
 
-        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 10),
-                      "the committed service entry renders in the Log")
+        XCTAssertTrue(app.staticTexts["Oil change"].waitForExistence(timeout: 10),
+                      "the committed service entry renders in the Log with its item's title")
     }
 
     func testNonFuelRowImportsAsAServiceAndShowsInTheLogInRussian() {
@@ -271,8 +271,8 @@ final class ImportUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10))
         app.buttons["importConfirmButton"].tap()
 
-        XCTAssertTrue(app.staticTexts["Сервис"].waitForExistence(timeout: 10),
-                      "the committed service entry renders in the Russian Log")
+        XCTAssertTrue(app.staticTexts["Oil change"].waitForExistence(timeout: 10),
+                      "the committed service entry renders in the Russian Log with its item's title")
     }
 
     // MARK: - The flagged-order row (PJ.11)

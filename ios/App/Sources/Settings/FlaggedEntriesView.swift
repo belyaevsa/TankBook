@@ -294,7 +294,7 @@ struct FlaggedEntriesView: View {
                 where entry.conflict != .none {
                     flagged.append(Row(id: entry.id,
                                        kind: LogStream.Kind(entry),
-                                       title: Self.title(entry, stations: stations),
+                                       title: EntryTitle.text(entry, stations: stations),
                                        subtitle: Self.subtitle(entry, vehicleName: vehicle.name),
                                        date: entry.date))
                 }
@@ -311,25 +311,6 @@ struct FlaggedEntriesView: View {
     /// the order.
     private static func subtitle(_ entry: any Entry, vehicleName: String) -> String {
         "\(vehicleName) · \(HomeFormat.day(entry.date))"
-    }
-
-    private static func title(_ entry: any Entry, stations: [Station]) -> String {
-        switch entry {
-        case let fill as FillUp:
-            if let stationID = fill.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
-            }
-            return fill.fuelKind.fuelKindLabel
-        case let charge as ChargeSession:
-            return charge.provider ?? L10n.localize("Charge")
-        case let service as ServiceRecord:
-            return service.vendor ?? L10n.localize("Service")
-        case let expense as Expense:
-            return expense.title.isEmpty ? L10n.localize("Expense") : expense.title
-        default:
-            return L10n.localize("Entry")
-        }
     }
 }
 

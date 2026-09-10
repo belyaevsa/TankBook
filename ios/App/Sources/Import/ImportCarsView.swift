@@ -123,6 +123,10 @@ struct ImportCarsView: View {
 /// New car and every existing garage car are offered, and the chosen one is
 /// marked (hard rule 13: the app suggests by listing, the user decides).
 private struct ImportCarMappingCard: View {
+    /// Drives the new-car name's underline (RV.185): visible at rest so the
+    /// value reads as typeable, accented while it is being typed.
+    @FocusState private var nameFocused: Bool
+
     let model: ImportFlowModel
     let index: Int
 
@@ -225,6 +229,18 @@ private struct ImportCarMappingCard: View {
                       selected: isNewCar,
                       identifier: "importCarNewCar-\(index)",
                       select: { model.importAsNewCar(at: index) })
+            if isNewCar {
+                // RV.185: the new car's name is editable where the car is
+                // offered, pre-filled with the derived suggestion (hard rule
+                // 13). Editing it renames the synthesized car in place.
+                TextField("Car name", text: newCarNameBinding)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.Palette.ink)
+                    .padding(.leading, 2)
+                    .focused($nameFocused)
+                    .editableValueUnderline(isFocused: nameFocused)
+                    .accessibilityIdentifier("importCarNewCarName-\(index)")
+            }
             ForEach(model.liveVehicles, id: \.id) { vehicle in
                 optionRow(label: Text(vehicle.name),
                           selected: row.destinationVehicleID == vehicle.id,
@@ -239,6 +255,19 @@ private struct ImportCarMappingCard: View {
     private var isNewCar: Bool {
         if case .new = row.destination { return true }
         return false
+    }
+
+    /// The lane's new-car name, bound to the editable field (RV.185). Reading it
+    /// while the destination is not a new car yields an empty string; the field
+    /// is only rendered when `isNewCar`, so that state is never shown.
+    private var newCarNameBinding: Binding<String> {
+        Binding(
+            get: {
+                if case .new(let vehicle) = row.destination { return vehicle.name }
+                return ""
+            },
+            set: { model.renameNewCar(at: index, to: $0) }
+        )
     }
 
     /// A destination option row: the label, a checkmark when chosen. Never

@@ -26,6 +26,7 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportService")
             || arguments.contains("-seedImportCars")
             || arguments.contains("-seedImportCarsDecided")
+            || arguments.contains("-seedImportCarsNewCar")
             || arguments.contains("-seedImportBatch")
             || arguments.contains("-seedImportBatchAnomaly")
             || arguments.contains("-seedImportCurrency")
@@ -40,7 +41,8 @@ enum ImportTestSeed {
         // the file's Volvo into it surfaces the duplicate count. Seeded for the
         // multi-car screenshots and the L4 mapping test alike; the odometer
         // continuity assertions read the MAX, which this pair never touches.
-        if (arguments.contains("-seedImportCars") || arguments.contains("-seedImportCarsDecided")),
+        if (arguments.contains("-seedImportCars") || arguments.contains("-seedImportCarsDecided")
+            || arguments.contains("-seedImportCarsNewCar")),
            let repository = try? AppStore.repository(),
            let existing = try? repository.liveVehicles().first {
             let duplicateFill = HomeTestSeed.makeFill(
@@ -66,6 +68,16 @@ enum ImportTestSeed {
         } else if arguments.contains("-seedImportCurrency") {
             model.installSeededCurrencyParse()
             model.showPreview()
+        } else if arguments.contains("-seedImportNewCar") {
+            // RV.185: no existing car (the Volvo seed is deliberately skipped for
+            // this flag), so the import targets a NEW car and the preview offers
+            // its editable name beside the currency question. This file names no
+            // vehicle, so the suggestion is the neutral default.
+            model.pickedFormat = ImportFormat(id: "drivvo", displayName: "Drivvo",
+                                              fileKinds: ["csv"], helpUrl: nil,
+                                              addedInPackVersion: 1)
+            model.installSeededCurrencyParse()
+            model.showPreview()
         } else if arguments.contains("-seedImportUnsupported") {
             // RV.116: the review gate carrying the "not imported" notice with
             // its per-column row counts (Driver 250), and Continue not blocked.
@@ -76,6 +88,16 @@ enum ImportTestSeed {
             // dates from the file itself, so no dateFormat question renders.
             model.installSeededResolvedDatesParse()
             model.showPreview()
+        } else if arguments.contains("-seedImportCarsNewCar") {
+            // RV.185 screenshot state: the FIRST lane maps to a new car, so its
+            // editable name field is in frame without scrolling. The mapping
+            // gate renders one card per source car and a lane's name field sits
+            // inside its own card, so which lane is new decides whether the
+            // field is photographable at all.
+            model.installSeededCarsParse(resourceName: "import-parse-mfm-cars",
+                                         fileName: "MyFuelManager_2026-08.csv",
+                                         rawFileResource: "import-mfm-cars")
+            model.importAsNewCar(at: 0)
         } else if arguments.contains("-seedImportCarsDecided") {
             // RV.86 screenshot state: the multi-car mapping gate with two cars
             // already decided (Volvo -> the existing Volvo V60, AUDI -> a new

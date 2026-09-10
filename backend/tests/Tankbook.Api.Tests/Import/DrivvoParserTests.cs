@@ -96,6 +96,58 @@ public class DrivvoParserTests
         Assert.Equal("19000", service["items"]![0]!["cost"]!["amount"]!.GetValue<string>());
     }
 
+    // ---- RV.187: the kind column is a name when the title columns are empty ---
+
+    /// <summary>
+    /// RV.187, the owner's real file: every expense row has an empty `Заголовок`
+    /// AND `Примечание`, while `Вид расхода` names the thing. The pinned rows are
+    /// lines 258, 259, 262 and 263; without the kind fallback their title is null
+    /// and the Log row renders with no title at all.
+    /// </summary>
+    [Fact]
+    public void RealFile_ExpenseWithoutTitle_UsesTheKindColumnAsTheTitle()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        AssertExpenseTitle(result, "2024-07-06T09:28:42Z", "Техосмотр");   // line 258
+        AssertExpenseTitle(result, "2024-06-11T16:59:50Z", "Страхование"); // line 259
+        AssertExpenseTitle(result, "2022-07-01T16:24:12Z", "Техосмотр");   // line 262
+        AssertExpenseTitle(result, "2022-06-10T19:00:03Z", "Страхование"); // line 263
+    }
+
+    /// <summary>
+    /// RV.187: a service whose `Название сервиса` is empty still names the work
+    /// through `Вид сервиса` - row 270's item title is `Замена масла`, not null.
+    /// </summary>
+    [Fact]
+    public void RealFile_ServiceWithoutName_UsesTheKindColumnAsTheItemTitle()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        var service = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "serviceRecord")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "19000");
+        Assert.Equal("Замена масла", service["items"]![0]!["title"]!.GetValue<string>());
+    }
+
+    /// <summary>
+    /// RV.187 decision: an explicit name/title/note outranks the kind. Row 298
+    /// has kind `Новые шины` but a note `Запаска` - the note is the label.
+    /// </summary>
+    [Fact]
+    public void RealFile_ServiceWithANote_UsesTheNoteNotTheKind()
+    {
+        using var stream = DrivvoFixture.Open(DrivvoFixture.ThreeSectionsCsv);
+        var result = DrivvoParser.Parse(stream, CancellationToken.None);
+
+        var service = result.Candidates
+            .Where(c => c["entityType"]!.GetValue<string>() == "serviceRecord")
+            .Single(c => c["money"]!["amount"]!.GetValue<string>() == "36150");
+        Assert.Equal("Запаска", service["items"]![0]!["title"]!.GetValue<string>());
+    }
+
     // ---- hazard 1 (the malformed header) is exercised by every parse above --
     // ---- hazard 2: the repeated "Цена / л" must not read the third block -----
 
@@ -289,6 +341,15 @@ public class DrivvoParserTests
 
     private static int Count(MfmParseResult result, string entityType)
         => result.Candidates.Count(c => c["entityType"]!.GetValue<string>() == entityType);
+
+    /// <summary>The expense candidate at the given UTC instant, and the title it carries.</summary>
+    private static void AssertExpenseTitle(MfmParseResult result, string date, string expected)
+    {
+        var expense = result.Candidates.Single(c =>
+            c["entityType"]!.GetValue<string>() == "expense" &&
+            c["date"]!.GetValue<string>() == date);
+        Assert.Equal(expected, expense["title"]!.GetValue<string>());
+    }
 
     private static JsonObject Parse(string header, string dataRow)
     {

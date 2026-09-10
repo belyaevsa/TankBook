@@ -60,7 +60,7 @@ struct HomeDuplicateCard: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.warn)
             Text(String(format: L10n.localize("Possible duplicate – %@, %@ logged twice"),
-                        titleText(group.counted), countedVolumeText))
+                        EntryTitle.text(group.counted, stations: stations), countedVolumeText))
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
             Spacer(minLength: 0)
@@ -117,7 +117,7 @@ struct HomeDuplicateCard: View {
 
     private func titleLine(_ member: LogStream.LogEntry) -> some View {
         HStack(spacing: 5) {
-            Text(titleText(member))
+            Text(EntryTitle.text(member, stations: stations))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .lineLimit(1)
@@ -160,25 +160,6 @@ struct HomeDuplicateCard: View {
     private var countedVolumeText: String {
         guard case .volumeL(let litres) = group.counted.quantity else { return "" }
         return "\(ManualFillUpFormat.decimal(litres, fractionDigits: 1)) \(L10n.volumeUnit(volumeUnit))"
-    }
-
-    /// The member's station or fuel kind - the same title the ordinary log row
-    /// the pair replaced would have carried.
-    private func titleText(_ entry: LogStream.LogEntry) -> String {
-        switch entry.kind {
-        case .fuel:
-            if let stationID = entry.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
-            }
-            return entry.fuelKind?.fuelKindLabel ?? L10n.localize("Fuel")
-        case .charge:
-            return entry.provider ?? L10n.localize("Charge")
-        case .service:
-            return entry.vendor ?? L10n.localize("Service")
-        case .expense:
-            return entry.entryTitle ?? L10n.localize("Expense")
-        }
     }
 
     private func amountText(_ entry: LogStream.LogEntry) -> String? {

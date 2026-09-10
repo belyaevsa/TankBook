@@ -54,7 +54,29 @@ extension ImportFlowModel {
     func answerCurrency(_ code: CurrencyCode) {
         guard hasCurrencyQuestion else { return }
         currencyAnswer = code
+        // RV.185: the answer is the new car's home currency too, not just the
+        // rows'. A new car is synthesized before the currency question is
+        // answered, so it is re-homed in place here - same id, so the classified
+        // fills keep their destination and the conversion now runs against the
+        // currency the user actually chose. An EXISTING destination car is never
+        // touched (RV.152 owns that decision).
+        applyHomeCurrencyToNewCars(code)
         rebuildClassification()
+    }
+
+    /// RV.185: stamps the answered currency onto every synthesized NEW car (the
+    /// single target and each decided lane). Existing cars are left alone - the
+    /// import must not re-home a car the user already owns.
+    private func applyHomeCurrencyToNewCars(_ code: CurrencyCode) {
+        if case .new(var vehicle) = targetCar {
+            vehicle.homeCurrency = code
+            targetCar = .new(vehicle)
+        }
+        for index in carPlan.indices {
+            guard case .new(var vehicle) = carPlan[index].destination else { continue }
+            vehicle.homeCurrency = code
+            carPlan[index].destination = .new(vehicle)
+        }
     }
 
     /// The candidates with the chosen date reading applied. The merged parse is

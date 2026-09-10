@@ -275,6 +275,59 @@
         }
       }
     },
+    "%@ and %lld more": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ and 1 more"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ and %lld more"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и ещё %lld"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и ещё %lld"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и ещё 1"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "%@ и ещё %lld"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%@ in %lld days": {
       "extractionState": "manual",
       "localizations": {
@@ -3088,6 +3141,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Замена шин"
+          }
+        }
+      }
+    },
+    "Car name": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Car name"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Название машины"
           }
         }
       }

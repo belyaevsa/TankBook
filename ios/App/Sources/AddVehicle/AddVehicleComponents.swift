@@ -201,6 +201,20 @@ struct CardDivider: View {
 /// (docs/ERRORS.md: "Warn amber underline"); `action` while focused
 /// (P6.7: the focus indicator is interactive, never an accent).
 extension View {
+    /// An underline that is visible AT REST, for an editable value that sits
+    /// among static text rather than inside a form card (RV.185's import car
+    /// name). `fieldUnderline` draws nothing unfocused, which is right in a form
+    /// - the row itself says "field" - and wrong here, where the only thing
+    /// distinguishing a typeable name from a label is this line.
+    func editableValueUnderline(isFocused: Bool) -> some View {
+        overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(isFocused ? Theme.Palette.action : Theme.Palette.inkSoft.opacity(0.45))
+                .frame(height: isFocused ? 2 : 1)
+                .padding(.top, 3)
+        }
+    }
+
     func fieldUnderline(isFocused: Bool, warn: Bool) -> some View {
         overlay(alignment: .bottom) {
             if warn {

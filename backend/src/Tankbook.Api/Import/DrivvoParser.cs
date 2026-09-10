@@ -317,8 +317,15 @@ public static class DrivvoParser
                 var totalCost = ParseDecimal(Field(fields, index, "totalCost"), MfmParser.ReasonInvalidNumber);
                 var odometer = ParseOdometer(Field(fields, index, "odometer"));
                 var kind = Field(fields, index, "expenseKind");
+                // RV.187: the kind column is a NAME as well as a category. The
+                // real export leaves `Заголовок` and `Примечание` empty on every
+                // expense row, so the kind (`Техосмотр`, `Страхование`) is the
+                // only text that names the thing; without it the row renders
+                // with no title at all. An explicit title or note still wins -
+                // the kind is a fallback, never an override.
                 var title = NullIfEmpty(Field(fields, index, "title"))
-                    ?? NullIfEmpty(Field(fields, index, "note"));
+                    ?? NullIfEmpty(Field(fields, index, "note"))
+                    ?? NullIfEmpty(kind);
                 var note = NullIfEmpty(Field(fields, index, "note"));
 
                 var category = language.ExpenseKinds.TryGetValue(kind, out var mapped) ? mapped : kind;
@@ -375,9 +382,14 @@ public static class DrivvoParser
                 var totalCost = ParseDecimal(Field(fields, index, "totalCost"), MfmParser.ReasonInvalidNumber);
                 var odometer = ParseOdometer(Field(fields, index, "odometer"));
                 var kind = Field(fields, index, "serviceKind");
+                // RV.187: the same fallback as the expense section - the kind
+                // column (`Вид сервиса`) names the work when the service name,
+                // title and note columns are all empty. An explicit name, title
+                // or note still wins.
                 var title = NullIfEmpty(Field(fields, index, "serviceName"))
                     ?? NullIfEmpty(Field(fields, index, "title"))
-                    ?? NullIfEmpty(Field(fields, index, "note"));
+                    ?? NullIfEmpty(Field(fields, index, "note"))
+                    ?? NullIfEmpty(kind);
 
                 var category = language.ServiceKinds.TryGetValue(kind, out var mapped) ? mapped : kind;
                 var money = new JsonObject

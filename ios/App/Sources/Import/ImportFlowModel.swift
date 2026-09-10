@@ -298,7 +298,7 @@ final class ImportFlowModel {
             ?? liveVehicles.first {
             targetCar = .existing(preferred)
         } else {
-            targetCar = .newCar(named: newCarName)
+            targetCar = .newCar(named: newCarName, homeCurrency: newCarHomeCurrency)
         }
     }
 
@@ -317,13 +317,45 @@ final class ImportFlowModel {
     }
 
     func selectNewCar() {
-        selectTarget(.newCar(named: newCarName))
+        selectTarget(.newCar(named: newCarName, homeCurrency: newCarHomeCurrency))
     }
 
+    /// The suggested name for a car the import creates: the name the FILE gives
+    /// the vehicle, else a neutral localized default. The format's display name
+    /// is deliberately NOT in this chain - "Drivvo" is the app the file came
+    /// from, and a garage car called after the exporter is the second half of
+    /// what RV.185 reported. It is a suggestion either way (hard rule 13): the
+    /// user types over it where the car is offered.
     var newCarName: String {
         parse?.candidates.first(where: { $0.vehicleName != nil })?.vehicleName
-            ?? pickedFormat?.displayName
             ?? L10n.importedCarName
     }
 
+    /// The home currency a new car is created with (RV.185): the file's declared
+    /// currency, the user's answer for a file with no currency column, or the
+    /// wizard's default when the file carries no money at all. Never a silent
+    /// EUR - hard rule 13: a value the user set is theirs.
+    var newCarHomeCurrency: CurrencyCode {
+        effectiveCurrency ?? defaultCurrency
+    }
+
+    /// The NEW car's name, editable where the car is offered (RV.185, hard rule
+    /// 13): the derived suggestion is pre-filled and the user can type over it.
+    /// Setting it renames the synthesized car in place, so its id - and every
+    /// fill classified against it - survives the edit.
+    var newCarNameDraft: String {
+        get { targetCar?.vehicleValue.name ?? newCarName }
+        set {
+            guard case .new(var vehicle) = targetCar else { return }
+            vehicle.name = newValue
+            targetCar = .new(vehicle)
+        }
+    }
+
+    /// Whether the single-car target is a car the import will create (so the
+    /// name is editable on the preview, RV.185).
+    var targetCarIsNew: Bool {
+        if case .new = targetCar { return true }
+        return false
+    }
 }

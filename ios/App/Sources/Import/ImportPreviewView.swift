@@ -10,7 +10,10 @@ import TankbookCore
 // through the SAME engine that computes it after commit (F6a) - the model's
 // `summary` is derived from the exact fills `confirmImport` writes.
 struct ImportPreviewView: View {
-    let model: ImportFlowModel
+    @Bindable var model: ImportFlowModel
+    /// Drives the new-car name's underline (RV.185): visible at rest so the
+    /// value reads as typeable, accented while it is being typed.
+    @FocusState private var nameFocused: Bool
     let onBack: () -> Void
     let onCancel: () -> Void
     let onChangeCar: () -> Void
@@ -24,29 +27,37 @@ struct ImportPreviewView: View {
                          trailingLabel: "Cancel",
                          onBack: onBack,
                          onTrailing: onCancel)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    intro
-                    headlineCard
-                    if model.hasDateFormatQuestion {
-                        dateFormatCard
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 10) {
+                        intro
+                        headlineCard
+                        if model.hasDateFormatQuestion {
+                            dateFormatCard
+                        }
+                        if model.hasCurrencyQuestion {
+                            currencyCard
+                        }
+                        if model.hasUnsupportedColumns {
+                            unsupportedNoticeCard
+                        }
+                        figuresCard
+                        targetCarCard
+                            .id(Self.targetCarAnchor)
+                        if let message = model.outOfScopeMessage {
+                            outOfScopeCard(message)
+                        }
+                        if reviewCount > 0 {
+                            reviewRow
+                        }
                     }
-                    if model.hasCurrencyQuestion {
-                        currencyCard
-                    }
-                    if model.hasUnsupportedColumns {
-                        unsupportedNoticeCard
-                    }
-                    figuresCard
-                    targetCarCard
-                    if let message = model.outOfScopeMessage {
-                        outOfScopeCard(message)
-                    }
-                    if reviewCount > 0 {
-                        reviewRow
-                    }
+                    .padding(.horizontal, Theme.Spacing.screenMargin)
                 }
-                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .onAppear {
+                    #if DEBUG
+                    scrollToTargetCarIfRequested(proxy)
+                    #endif
+                }
             }
             bottomBar
         }
@@ -165,10 +176,23 @@ struct ImportPreviewView: View {
             HStack(alignment: .center) {
                 VStack(alignment: .leading, spacing: 3) {
                     SectionEyebrow("Imports into")
-                    Text(targetCarName)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                        .accessibilityIdentifier("importTargetCarName")
+                    // RV.185: a new car's name is editable where the car is
+                    // offered, pre-filled with the derived suggestion (hard rule
+                    // 13). An existing car is not renamed here - the import must
+                    // not rewrite a car the user already owns.
+                    if model.targetCarIsNew {
+                        TextField("Car name", text: $model.newCarNameDraft)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.ink)
+                            .focused($nameFocused)
+                            .editableValueUnderline(isFocused: nameFocused)
+                            .accessibilityIdentifier("importNewCarNameField")
+                    } else {
+                        Text(targetCarName)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Theme.Palette.ink)
+                            .accessibilityIdentifier("importTargetCarName")
+                    }
                 }
                 Spacer(minLength: 8)
                 Button(action: onChangeCar) {
@@ -435,4 +459,28 @@ struct ImportPreviewView: View {
                 .padding(.bottom, 12)
         }
     }
+}
+
+/// The preview's screenshot seam, kept in an extension so the view's own body
+/// stays inside the type-length ceiling.
+extension ImportPreviewView {
+    /// The target-car card's scroll anchor. It sits below the figures table, so
+    /// on a phone frame it is off-screen at rest - which is why the RV.185 name
+    /// field needed a hook to be photographable at all.
+    static var targetCarAnchor: String { "importPreviewTargetCar" }
+
+    #if DEBUG
+    /// Screenshot hook (RV.185): `-importScrollToTargetCar` parks the preview on
+    /// the "Imports into" card, where a new car's editable name lives. Follows
+    /// `-homeScrollToExcludedFootnote`'s shape - screenshot-only, no test drives
+    /// it, because `simctl` cannot scroll.
+    func scrollToTargetCarIfRequested(_ proxy: ScrollViewProxy) {
+        guard ProcessInfo.processInfo.arguments.contains("-importScrollToTargetCar") else {
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            proxy.scrollTo(Self.targetCarAnchor, anchor: .center)
+        }
+    }
+    #endif
 }

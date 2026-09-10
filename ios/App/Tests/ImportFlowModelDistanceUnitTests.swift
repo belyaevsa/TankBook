@@ -11,7 +11,7 @@ final class ImportFlowModelDistanceUnitTests: XCTestCase {
     /// inventing a unit. Miles makes a hardcoded-kilometres fallback fail.
     func testUnsetDestinationUsesGlobalDistanceUnitFallback() throws {
         let repository = TankbookRepository(database: try TankbookDatabase.inMemory())
-        var vehicle = TargetCar.newCar(named: "Fallback car").vehicleValue
+        var vehicle = TargetCar.newCar(named: "Fallback car", homeCurrency: .eur).vehicleValue
         vehicle.units.distance = .mi
         try repository.upsertVehicle(vehicle)
 

@@ -187,8 +187,8 @@ final class ServiceEntryUITests: XCTestCase {
         // conflict (a save that wrote `.none` would render no badge at all).
         XCTAssertTrue(app.buttons["settingsButton"].waitForExistence(timeout: 10),
                       "save still succeeds - the sheet dismisses to Home")
-        XCTAssertTrue(app.staticTexts["Service"].waitForExistence(timeout: 5),
-                      "the saved service renders in the log")
+        XCTAssertTrue(app.staticTexts["Oil service"].waitForExistence(timeout: 5),
+                      "the saved service renders in the log with its item's title")
         XCTAssertTrue(app.buttons["conflictBadgeButton"].firstMatch.waitForExistence(timeout: 5),
                       "the saved service carries its amber conflict badge - the save stamped it")
     }

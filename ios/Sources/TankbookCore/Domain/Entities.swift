@@ -315,26 +315,6 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
     }
 }
 
-/// An invoice line item (docs/SCHEMA.md, ServiceItem).
-public struct ServiceItem: Codable, Sendable, Equatable {
-    public var title: String
-    public var category: ServiceCategory
-    public var cost: Money?
-    public var partNumber: String?
-    public var lifetime: Lifetime?
-
-    /// Optional service life that drives the next-reminder suggestion.
-    public struct Lifetime: Codable, Sendable, Equatable {
-        public var km: Int?
-        public var months: Int?
-
-        public init(km: Int?, months: Int?) {
-            self.km = km
-            self.months = months
-        }
-    }
-}
-
 /// Money NOT tied to work done on the car (docs/SCHEMA.md, Expense).
 public struct Expense: Entry, Codable, Sendable, Equatable {
     public var id: UUID

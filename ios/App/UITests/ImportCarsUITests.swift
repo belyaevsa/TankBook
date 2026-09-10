@@ -240,10 +240,11 @@ extension ImportUITests {
         continueButton.tap()
 
         // Both kinds land. The seeded existing car's log must show the imported
-        // Service row (the exact surface PJ.9's single-file test asserts); it is
-        // dated April, older than the imported August fills, so scroll the log
-        // down to it. Then the garage holds the new AUDI car beside the Volvo.
-        let service = app.staticTexts["Service"]
+        // Service row (the exact surface PJ.9's single-file test asserts); its
+        // title is the item's own (RV.187), not the bare type name. It is dated
+        // April, older than the imported August fills, so scroll the log down to
+        // it. Then the garage holds the new AUDI car beside the Volvo.
+        let service = app.staticTexts["Replacement parts"]
         let logDeadline = Date().addingTimeInterval(15)
         while !service.exists, Date() < logDeadline {
             app.swipeUp()

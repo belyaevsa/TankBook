@@ -70,13 +70,26 @@ extension ImportFlowModel {
     }
 
     /// "New car" - the source car becomes a brand-new garage car, named from the
-    /// file (the group's own name, editable later in the Garage - hard rule 13).
-    /// The vehicle is synthesized ONCE per pick, so every rebuild and the commit
-    /// share the same id.
+    /// file (the group's own name, editable where the car is offered - hard rule
+    /// 13). The vehicle is synthesized ONCE per pick, so every rebuild and the
+    /// commit share the same id. RV.185: the home currency is the import's
+    /// answer, never the factory's old hardcoded EUR.
     func importAsNewCar(at index: Int) {
         guard carPlan.indices.contains(index) else { return }
         let name = Self.newVehicleName(for: carPlan[index].group)
-        decide(.new(TargetCar.newCar(named: name).vehicleValue), forCarAt: index)
+        decide(.new(TargetCar.newCar(named: name,
+                                     homeCurrency: newCarHomeCurrency).vehicleValue),
+               forCarAt: index)
+    }
+
+    /// Renames a lane's synthesized new car in place (RV.185), preserving its id
+    /// so the lane's classified fills keep their destination. The name field is
+    /// pre-filled with the derived suggestion; this is what a typed value writes.
+    func renameNewCar(at index: Int, to name: String) {
+        guard carPlan.indices.contains(index),
+              case .new(var vehicle) = carPlan[index].destination else { return }
+        vehicle.name = name
+        carPlan[index].destination = .new(vehicle)
     }
 
     /// "Import into an existing garage car" - a merge, whose duplicate count the

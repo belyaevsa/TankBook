@@ -531,6 +531,18 @@ alias_shot P5.5b-import-preview-ru PJ.10-import-date-question-ru
 capture P5.5b-import-review     en -presentScreen importWizard -importStubParse review -seedImportReview
 capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse review -seedImportReview
 
+# RV.185: the import lets the user name a car it creates, pre-filled with the
+# derived suggestion (hard rule 13). **Both poses exist to put the FIELD in
+# frame**, which the obvious ones do not: on the single-car preview the
+# "Imports into" card sits below the figures table, so `-importScrollToTargetCar`
+# parks the scroll on it; on the multi-car gate a lane's field lives inside that
+# lane's own card, so `-seedImportCarsNewCar` makes the FIRST lane the new one
+# (`-seedImportCarsDecided` makes the second, whose card starts at the fold).
+capture RV.185-import-new-car-name    en -presentScreen importWizard -importStubFormats one -seedImportNewCar -importScrollToTargetCar
+capture RV.185-import-new-car-name-ru ru -presentScreen importWizard -importStubFormats one -seedImportNewCar -importScrollToTargetCar
+capture RV.185-import-cars-name       en -presentScreen importWizard -importStubFormats one -seedImportCarsNewCar
+capture RV.185-import-cars-name-ru    ru -presentScreen importWizard -importStubFormats one -seedImportCarsNewCar
+
 # PJ.36/PJ.38: the export lanes. `-presentExportShare` / `-presentCarExportShare`
 # are DEBUG hooks that drive the SAME build the row's tap runs, because simctl
 # cannot tap the share sheet open. The PJ.36 shot is Settings with the

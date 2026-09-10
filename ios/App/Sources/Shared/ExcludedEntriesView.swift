@@ -198,7 +198,8 @@ struct ExcludedEntriesView: View {
                 }
                 return Row(id: excludedEntry.id,
                            kind: entry.map(Self.kind) ?? .expense,
-                           title: Self.title(entry, stations: stations),
+                           title: entry.map { EntryTitle.text($0, stations: stations) }
+                               ?? L10n.localize("Entry"),
                            date: excludedEntry.date,
                            litresText: litresText,
                            odometerText: odometerText,
@@ -211,28 +212,6 @@ struct ExcludedEntriesView: View {
     }
 
     // MARK: - Row identity
-
-    /// The same title the Log row would carry: the station, provider, vendor or
-    /// expense title, with the fuel kind as the no-station fallback for a fill.
-    private static func title(_ entry: (any Entry)?, stations: [Station]) -> String {
-        guard let entry else { return L10n.localize("Entry") }
-        switch entry {
-        case let fill as FillUp:
-            if let stationID = fill.stationId,
-               let name = stations.first(where: { $0.id == stationID })?.name {
-                return name
-            }
-            return fill.fuelKind.fuelKindLabel
-        case let charge as ChargeSession:
-            return charge.provider ?? L10n.localize("Charge")
-        case let service as ServiceRecord:
-            return service.vendor ?? L10n.localize("Service")
-        case let expense as Expense:
-            return expense.title.isEmpty ? L10n.localize("Expense") : expense.title
-        default:
-            return L10n.localize("Entry")
-        }
-    }
 
     private static func kind(_ entry: any Entry) -> LogStream.Kind {
         switch entry {
