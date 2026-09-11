@@ -400,7 +400,13 @@ FieldRef: .total | .volume | .unitPrice | .date | .station | .fuelKind | .energy
 ```
 
 **On `Attachment.extractionMeta` (RV.48):** the attachment stores the *value-bearing subset*
-of the save's `ExtractionMeta` – every `FieldExtraction` whose `value` is non-nil. Two
+of the save's `ExtractionMeta` – every `FieldExtraction` whose `value` is non-nil. Two builders
+write it (RV.209): the save-side builder (`writeReceiptPhoto`) stores the save plan's subset with
+its provenance (crop rects, `userCorrected` against the saved values, a fiscal-QR-resolved total),
+while the out-of-save builder (`ReceiptAttachmentWriter.write` – the expense scan,
+the viewer replace) has only a `FuelExtraction` and stores the same values with default provenance. The
+readers consume only the values, so the account of what was read agrees for the same parse; a third
+receipt-row builder is guarded by `ReceiptBindingScanner` (`thirdReceiptBuilder`). Two
 invariants, both tested: a field the parse did not assign is **absent**, never an empty
 string or a zero; a parse that assigned nothing stores **no container at all** (the entry's
 `extraction` may still carry the empty provenance map for the accuracy feed, but the

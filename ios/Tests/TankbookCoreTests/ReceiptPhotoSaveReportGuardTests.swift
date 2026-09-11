@@ -77,4 +77,22 @@ struct ReceiptPhotoSaveReportGuardTests {
         #expect(view.contains("reportLostReceiptPhoto("),
                 "the non-fill save must report a lost photo, never a silent drop (RV.202)")
     }
+
+    /// RV.204: the fill-up edit save must degrade through the SAME seam the
+    /// non-fill save uses - the shared `attemptReceiptPhotoWrite` handler,
+    /// reported after the entry is on disk - and the old blocking warn row
+    /// (`attachFailedWarn`) must be gone. The behavioural parity is pinned by
+    /// `RV204ReceiptDegradeParityTests`; this scan fails if one path is rewired
+    /// to block again.
+    @Test("The Edit-entry fill-up save degrades through the shared handler (RV.204)")
+    func editEntryFillUpSaveDegrades() throws {
+        let receiptHalf = try Self.source(of: "EditEntry/EditEntryView+FillReceiptSave.swift")
+        #expect(receiptHalf.contains("attemptReceiptPhotoWrite("),
+                "the fill-up edit must write through the shared degrade seam, not a second one")
+        let view = try Self.source(of: "EditEntry/EditEntryView.swift")
+        #expect(view.contains("attachHeldReceiptToFill("),
+                "the fill-up save must route its receipt half through the shared helper")
+        #expect(!view.contains("attachFailed"),
+                "the blocking warn row must be gone - RV.204 decided degrade everywhere")
+    }
 }

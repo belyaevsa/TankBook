@@ -311,7 +311,9 @@ camera/Photos door the fill-up uses (hard rule 15 - typing and scanning are peer
 **local**: the photo is written to the shared pool when Save runs and nothing here touches the
 network (hard rule 1). A write that fails never blocks the save - the service still lands without
 the photo, and the shared "could not be kept" message says so **after** the entry is on disk (hard
-rule 8, docs/ERRORS.md -> Confirm, RV.149), the same contract an expense already had.
+rule 8, docs/ERRORS.md -> Confirm, RV.149), the same contract an expense already had. **The fill-up
+edit obeys the same contract (RV.204)**: every entry kind on this screen degrades, so the save the
+user asked for is never lost to a storage failure, and re-attach is the next step.
 
 **A late invoice reading reaches the same inbox (RV.201, 2026-09-11).** The per-field "yours vs the
 receipt" ask is no longer fuel-only: a service recognition that finishes after the record is saved

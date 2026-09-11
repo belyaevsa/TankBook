@@ -85,16 +85,17 @@ struct EditEntryView: View {
     /// enforces.
     @State private var stagedOfferForPromotion = false
 
-    // PJ.48: the "Add receipt" attach flow. The photo, its OCR lines and the
-    // extraction are held until Save writes them; a failed write flips
-    // `attachFailed` and leaves the entry completely unchanged (ERRORS.md ->
-    // Edit entry, the PJ.48 warn row). `attachImage` is internal (not private)
-    // for the RV.31 discard extension - a held photo is unsaved work too.
+    // PJ.48 + RV.204: the "Add receipt" attach flow. The photo, its OCR lines
+    // and the extraction are held until Save writes them. A failed write
+    // DEGRADES on every entry kind - the save the user asked for lands, the
+    // photo failure is reported after it, and re-attach is the next step
+    // (docs/ERRORS.md -> Edit entry, the RV.204 row). `attachImage` is internal
+    // (not private) for the RV.31 discard extension - a held photo is unsaved
+    // work too.
     @State var showAttachSource = false
     @State var attachImage: UIImage?
     @State private var attachOcrLines: [OCRLine] = []
     @State private var attachExtraction: FuelExtraction?
-    @State private var attachFailed = false
     @State var attachProcessing = false
 
     var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
@@ -313,36 +314,6 @@ struct EditEntryView: View {
         guard let derived = fillForm.derived(volumeUnit: vehicle.units.volume) else { return }
         do {
             let repository = try AppStore.repository()
-            // PJ.48: write the freshly-attached receipt FIRST. A failed write
-            // leaves the entry completely unchanged - the warn row names the
-            // next step and nothing is upserted (docs/ERRORS.md -> Edit entry).
-            var attachPlan: ScannedSavePlan?
-            if let attachImage {
-                // The photo is kept either way (docs/ERRORS.md -> Edit entry):
-                // if the OCR has not settled yet, the attach still writes the
-                // photo with an empty extraction rather than dropping it.
-                let extraction = attachExtraction ?? FuelExtraction()
-                let plan = ScannedSavePlanner.plan(
-                    extraction: extraction,
-                    cropRects: [:],
-                    qrAnchor: nil,
-                    declaredProvenance: .manual,
-                    hasPhoto: true,
-                    saved: ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
-                                             unitPrice: derived.unitPrice, currency: fillForm.currency,
-                                             fuelKind: fillForm.fuelKind, date: fillForm.date))
-                do {
-                    guard let id = plan.attachmentID else { return }
-                    let attachment = try ReceiptAttachmentWriter.write(id: id, image: attachImage,
-                                                                        ocrLines: attachOcrLines,
-                                                                        extraction: extraction)
-                    try repository.upsertAttachment(attachment)
-                    attachPlan = plan
-                } catch {
-                    attachFailed = true
-                    return
-                }
-            }
             let before = headline(repository: repository, vehicle: vehicle)
             var updated = fillForm.buildUpdatedFill(from: fill, vehicle: vehicle,
                                                     derived: derived,
@@ -359,17 +330,27 @@ struct EditEntryView: View {
             if let money = updated.money {
                 updated.money = fillForm.convertForSave(money, vehicle: vehicle, lowConfidence: false)
             }
-            // PJ.48: link the receipt the attach just wrote. `buildUpdatedFill`
-            // carries `provenance` over untouched, so a typed entry stays
-            // `.manual`; the extraction record is the attach's own OCR.
-            if let plan = attachPlan, let id = plan.attachmentID {
-                updated.attachments = [id]
-                updated.extraction = plan.extraction
+            // RV.204: the freshly-attached receipt goes through the SAME
+            // degrade seam the non-fill save uses. A failed write never blocks
+            // the save (hard rule 1); the entry lands without the photo and the
+            // report fires after it is on disk (hard rule 8). The landed photo
+            // is APPENDED to the entry's existing list, never a replace, so a
+            // reference the user has not removed - a dangling id from an
+            // earlier failed write (RV.208) - is not silently dropped.
+            let held = attachImage.map {
+                HeldReceiptPhoto(image: $0, ocrLines: attachOcrLines,
+                                 extraction: attachExtraction)
             }
+            let saved = ScannedSaveValues(total: derived.total, volumeL: derived.volumeL,
+                                          unitPrice: derived.unitPrice, currency: fillForm.currency,
+                                          fuelKind: fillForm.fuelKind, date: fillForm.date)
+            let (toSave, receiptWrite) = Self.attachHeldReceiptToFill(
+                updated, saved: saved, heldPhoto: held, repository: repository)
             try loggedWrite(AppLog.shared, op: .update, entityType: FillUp.entityType,
-                            entityId: updated.id, source: .manual) { try repository.upsertFillUp(updated) }
+                            entityId: toSave.id, source: .manual) { try repository.upsertFillUp(toSave) }
             let after = headline(repository: repository, vehicle: vehicle)
             notify(before: before, after: after, vehicle: vehicle)
+            reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
             dismiss()
         } catch {
             AppLog.error(operation: "editEntry.saveFillUp", category: .ui, error: error)
@@ -542,9 +523,6 @@ private extension EditEntryView {
             ScrollView {
                 VStack(spacing: 9) {
                     fillUpReceiptCard(fill)
-                    if attachFailed {
-                        attachFailedWarn
-                    }
                     ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
                     ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                              distanceUnit: distanceUnit,
@@ -629,11 +607,12 @@ extension EditEntryView {
     /// blank-fields-only merge is a FILL-UP concern - a service invoice or an
     /// expense receipt has no fuel fields to pre-fill - so a non-fill attach
     /// holds the photo without any value merge; widening recognition over entry
-    /// kind is RV.201's, not this path's. The photo itself is written on Save
-    /// (`saveNonFill`), reusing the shared `attemptReceiptPhotoWrite` seam.
+    /// kind is RV.201's, not this path's. The photo itself is written on Save by
+    /// both paths through the shared `attemptReceiptPhotoWrite` seam
+    /// (`attachHeldReceiptToFill` and `writeNonFillWithHeldReceipt`), which
+    /// degrades on failure (RV.204).
     func attachReceipt(_ image: UIImage) {
         guard let vehicle else { return }
-        attachFailed = false
         attachImage = image
         attachProcessing = true
         Task {
@@ -649,36 +628,5 @@ extension EditEntryView {
             }
             attachProcessing = false
         }
-    }
-
-    /// The failed-write warn row (docs/ERRORS.md -> Edit entry, the PJ.48 row):
-    /// the entry is unchanged and the next step is named - retry, or free up
-    /// space in Settings. Amber is attention (hard rule 5), never a block.
-    var attachFailedWarn: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Couldn't save the photo – the entry is unchanged.")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.warn)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: 12) {
-                Button("Try again") { save() }
-                    .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.action)
-                Button("Free up space") { openSettings() }
-                    .buttonStyle(.plain)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.action)
-            }
-        }
-        .padding(12)
-        .formCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("editAttachFailedWarn")
-    }
-
-    func openSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
     }
 }

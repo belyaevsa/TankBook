@@ -221,6 +221,19 @@ func attemptReceiptPhotoWrite(scanned: ScannedSavePlan,
 /// inline thumbnail in the payload (P4.6) and - RV.48 - the parse's per-field
 /// ASSIGNMENT (`extraction`), so the recognised page shows what the receipt
 /// said, not line soup.
+///
+/// RV.209 - this is the SAVE-side receipt-row builder and it deliberately
+/// differs from `ReceiptAttachmentWriter.write` in ONE input: it is handed the
+/// save plan's full `ExtractionMeta`, so the stored assignment is its
+/// value-bearing subset (`assignmentOnly`) and keeps the plan's provenance - the
+/// crop rects, the confidence and the `userCorrected` comparison against the
+/// values the user actually saved, plus a fiscal-QR-resolved total. The
+/// out-of-save builder has only a raw `FuelExtraction` and cannot know any of
+/// that, so it records the same values with default provenance. The reader
+/// (`AttachmentValueFormat.rows`) consumes only the values, so the account of
+/// what was read agrees for the same parse; the difference is the provenance the
+/// save alone has. A third receipt-row builder is guarded by
+/// `ReceiptBindingScanner` (`thirdReceiptBuilder`).
 func writeReceiptPhoto(id: AttachmentID,
                        source: ConfirmPrefill?,
                        extraction: ExtractionMeta?,

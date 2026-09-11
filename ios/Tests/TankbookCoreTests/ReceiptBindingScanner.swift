@@ -38,6 +38,16 @@ import Foundation
 ///   - `.secondBindingSite` - a `ScannedSavePlan(...)` construction with a scan
 ///     provenance outside the factory/rebind, or a read of the plan's
 ///     `sharedAttachmentIDs` outside the seam. A hand-rolled copy of the binding.
+///   - `.thirdReceiptBuilder` - a receipt `Attachment` row construction (an
+///     `Attachment(...)` that passes `extractionMeta:`) outside the two
+///     canonical builders RV.209 settled. RV.209 found the save builder
+///     (`writeReceiptPhoto`) and the out-of-save builder
+///     (`ReceiptAttachmentWriter.write`) building `extractionMeta` differently
+///     and decided the difference is deliberate (the save has a plan, the
+///     out-of-save path has only a `FuelExtraction`); this shape is what stops a
+///     third receipt-persistence path appearing silently. The discriminator is
+///     `extractionMeta:` - vehicle photos and invoice pages build `Attachment`
+///     rows without it, so they are not receipt rows.
 enum ReceiptBindingScanner {
 
     typealias SourceFile = EntityWriterScanner.SourceFile
@@ -46,6 +56,7 @@ enum ReceiptBindingScanner {
     enum Kind: String, Equatable {
         case unboundRowBuilder
         case secondBindingSite
+        case thirdReceiptBuilder
     }
 
     /// One binding site that bypasses the canonical seam, named by file, 1-based
@@ -75,6 +86,16 @@ enum ReceiptBindingScanner {
     static let bindingAccessor = "sharedAttachmentIDs"
     /// The only accessor that yields the id a photo write actually produced.
     static let effectiveIDAccessor = "sharedID"
+    /// RV.209: the two canonical receipt `Attachment` row builders. Both pass
+    /// `extractionMeta:` - the argument that distinguishes a receipt row from a
+    /// vehicle photo or an invoice page - so a third construction carrying it is
+    /// a second receipt-persistence path.
+    static let receiptRowType = "Attachment"
+    static let receiptMetaArgument = "extractionMeta"
+    static let canonicalReceiptRowBuilders: [(path: String, function: String)] = [
+        ("App/Sources/ConfirmManual/ManualFillUpReceiptSave.swift", "writeReceiptPhoto"),
+        ("App/Sources/ConfirmManual/ReceiptAttachSupport.swift", "write")
+    ]
 
     // MARK: - The scan
 
@@ -99,6 +120,29 @@ enum ReceiptBindingScanner {
                                   exceptions: exceptions)
             + scanProvenanceConstructions(in: file, chars: chars, exceptions: exceptions)
             + handRolledAccessorReads(in: file, chars: chars, exceptions: exceptions)
+            + thirdReceiptBuilders(in: file, chars: chars)
+    }
+
+    /// RV.209: an `Attachment(...)` row construction that carries
+    /// `extractionMeta:` outside the two canonical builders. The check is over
+    /// source text, so a new receipt-persistence path cannot appear without
+    /// either routing through one of the canonical builders or extending the
+    /// canonical list here with a reason.
+    private static func thirdReceiptBuilders(in file: SourceFile,
+                                             chars: [Character]) -> [Finding] {
+        typeConstructions(named: receiptRowType, in: chars).compactMap { paren in
+            guard argumentValues(in: chars, openParen: paren)[receiptMetaArgument] != nil else {
+                return nil
+            }
+            let function = enclosingFunctionName(before: paren, in: chars) ?? "?"
+            if canonicalReceiptRowBuilders.contains(where: {
+                $0.path == file.path && $0.function == function
+            }) {
+                return nil
+            }
+            return Finding(path: file.path, line: lineNumber(at: paren, in: chars),
+                           function: function, kind: .thirdReceiptBuilder)
+        }
     }
 
     private static func unboundRowBuilders(in file: SourceFile, chars: [Character],

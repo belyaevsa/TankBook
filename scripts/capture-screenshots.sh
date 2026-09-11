@@ -638,6 +638,15 @@ capture RV.230-service-conflict-ru ru -seedEditEntryServiceConflict -presentScre
 capture RV.149-receipt-not-saved    en -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
 capture RV.149-receipt-not-saved-ru ru -seedHomeFullHistory -screenshotReceiptNotSavedToast -freezeToasts
 
+# RV.204 (2026-09-11): the SAME failure toast now fires on Edit entry for EVERY
+# entry kind - the fill-up edit, a service and an expense alike degrade, so the
+# save the user asked for is never lost to a storage failure (the old fill-up
+# "entry is unchanged" warn row is gone). The visible failure state is the shared
+# toast RV.149 already draws, so this is aliased, not re-shot: one picture, one
+# sentence (the RV.198/RV.202 alias precedent).
+alias_shot RV.149-receipt-not-saved    RV.204-edit-receipt-not-saved
+alias_shot RV.149-receipt-not-saved-ru RV.204-edit-receipt-not-saved-ru
+
 # RV.10: the date row's picker OPEN on the Edit-entry screen - the flipped
 # (up) chevron and the whole-row collapse affordance above the calendar, the
 # two cues that make the no-change exit discoverable. `-openDatePicker` drives

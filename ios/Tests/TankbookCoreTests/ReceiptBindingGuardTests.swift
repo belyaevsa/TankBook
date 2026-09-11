@@ -241,6 +241,82 @@ struct ReceiptBindingGuardTests {
                 "a second scan binding site must be reported - got \(findings)")
     }
 
+    /// RV.209: a THIRD receipt `Attachment` row builder is reported. The two
+    /// canonical builders (`writeReceiptPhoto`, `ReceiptAttachmentWriter.write`)
+    /// pass `extractionMeta:` and are allowed; a new construction that does the
+    /// same is a second receipt-persistence path and must fail here. Oracle: the
+    /// fixture builds a receipt row in a function neither canonical builder
+    /// names.
+    @Test func aThirdReceiptRowBuilderIsReported() {
+        let fixture = """
+            func writeReceiptRow() {
+                let attachment = Attachment(
+                    id: id, createdAt: now, updatedAt: now, deletedAt: nil,
+                    kind: .photo, file: ref,
+                    extractionMeta: ScannedSavePlanner.assignment(from: extraction))
+                try repository.upsertAttachment(attachment)
+            }
+            """
+        let findings = ReceiptBindingScanner.findings(
+            in: [.init(path: "App/Sources/ConfirmManual/NewReceiptSave.swift",
+                       contents: fixture)])
+        #expect(findings.contains {
+            $0.kind == .thirdReceiptBuilder && $0.function == "writeReceiptRow"
+        }, "a third receipt row builder must be reported - got \(findings)")
+    }
+
+    /// The two canonical builders are allowed by name: the real tree's save
+    /// builder and out-of-save builder must not be reported, or every build
+    /// would fail. Oracle: the two functions RV.209 names.
+    @Test func theCanonicalReceiptRowBuildersAreNotReported() {
+        let saveFixture = """
+            func writeReceiptPhoto(id: AttachmentID, extraction: ExtractionMeta?) throws {
+                let attachment = Attachment(
+                    id: id, kind: .photo, file: ref,
+                    extractionMeta: extraction?.assignmentOnly)
+                try repository.upsertAttachment(attachment)
+            }
+            """
+        let saveFindings = ReceiptBindingScanner.findings(
+            in: [.init(path: "App/Sources/ConfirmManual/ManualFillUpReceiptSave.swift",
+                       contents: saveFixture)])
+        #expect(!saveFindings.contains { $0.kind == .thirdReceiptBuilder },
+                "the canonical save builder must not be reported - got \(saveFindings)")
+
+        let attachFixture = """
+            enum ReceiptAttachmentWriter {
+                static func write(id: AttachmentID, extraction: FuelExtraction) throws -> Attachment {
+                    return Attachment(id: id, kind: .photo, file: ref,
+                                      extractionMeta: ScannedSavePlanner.assignment(from: extraction))
+                }
+            }
+            """
+        let attachFindings = ReceiptBindingScanner.findings(
+            in: [.init(path: "App/Sources/ConfirmManual/ReceiptAttachSupport.swift",
+                       contents: attachFixture)])
+        #expect(!attachFindings.contains { $0.kind == .thirdReceiptBuilder },
+                "the canonical out-of-save builder must not be reported - got \(attachFindings)")
+    }
+
+    /// A non-receipt `Attachment` row - a vehicle photo, an invoice page - does
+    /// not carry `extractionMeta:` and is not a receipt-persistence path, so it
+    /// is not reported. Oracle: `VehicleDetailView`'s vehicle-photo row.
+    @Test func aVehiclePhotoRowIsNotAReceiptRow() {
+        let fixture = """
+            func saveVehiclePhoto() throws {
+                let attachment = Attachment(id: id, createdAt: now, updatedAt: now,
+                                            deletedAt: nil, kind: .photo, file: ref,
+                                            extractedTimestamp: nil, ocrText: nil)
+                try repository.upsertAttachment(attachment)
+            }
+            """
+        let findings = ReceiptBindingScanner.findings(
+            in: [.init(path: "App/Sources/VehicleDetail/VehicleDetailView.swift",
+                       contents: fixture)])
+        #expect(findings.isEmpty,
+                "a vehicle photo row is not a receipt row - got \(findings)")
+    }
+
     /// A typed attach binds `.manual` provenance and is not a scanned save, so
     /// its direct construction is not reported. Oracle: the shape in
     /// `EditEntryView+NonFillSave.swift:113`.

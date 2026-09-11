@@ -288,10 +288,13 @@ than a shared plan, so the dangling-id defect RV.173 fixed cannot arise there. T
 paths carry `.manual` provenance and are not scanned saves.
 
 The scanner masks comments, strings and `#if DEBUG` first; seeds, tests, sync and the persistence
-surface are not hosts. It reports two shapes: **`.unboundRowBuilder`** - a `.expenses(from:)` call
+surface are not hosts. It reports three shapes: **`.unboundRowBuilder`** - a `.expenses(from:)` call
 whose enclosing function never binds a plan to a `ReceiptWriteOutcome.sharedID` (RV.173's pre-fix
-wiring exactly), and **`.secondBindingSite`** - a `ScannedSavePlan(...)` with a scan provenance
-outside the factory/rebind, or a read of the plan's `sharedAttachmentIDs` outside the seam. It is
+wiring exactly), **`.secondBindingSite`** - a `ScannedSavePlan(...)` with a scan provenance
+outside the factory/rebind, or a read of the plan's `sharedAttachmentIDs` outside the seam, and
+**`.thirdReceiptBuilder`** (RV.209) - an `Attachment(...)` row construction carrying
+`extractionMeta:` outside the two canonical builders (`writeReceiptPhoto` and
+`ReceiptAttachmentWriter.write`), so a second receipt-persistence path cannot appear silently. It is
 deliberately not fooled by the mere presence of `.binding(`: binding the plan to its **own** id
 (`scanned.binding(scanned.attachmentID)`) is RV.173's defect restored and is reported too, because
 the argument must read the write outcome, not the plan. The calibration is a live pair - today's
@@ -303,7 +306,9 @@ never built a `ScannedSavePlan`, a runtime degrade decision rather than a bindin
 out of this seam's scope. A future deliberate binding is a reasoned exception; a bare entry fails
 the self-check and a stale one fails the walk. The named mutation is reverting the RV.173 call site
 in `ManualFillUpView.swift` to `scanned.expenses(from:)`: the guard reports
-`ManualFillUpView.swift:577 save binds a receipt outside the canonical seam`. This is a test-target
+`ManualFillUpView.swift:577 save binds a receipt outside the canonical seam`. RV.209's mutation is a
+third `Attachment(extractionMeta:)` builder in a receipt host: the guard reports it as
+`thirdReceiptBuilder` naming the function. This is a test-target
 source scan: no runtime path differs, no screenshot, no Release build.
 
 ### The screen-reachability guard (RV.162)

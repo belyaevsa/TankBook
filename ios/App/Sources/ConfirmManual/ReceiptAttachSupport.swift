@@ -14,6 +14,19 @@ import TankbookCore
 /// builds the `Attachment` row to upsert. Reuses `VehiclePhotoStore.save` (the
 /// exact seam `ManualFillUpView.writeReceiptAttachment` uses) so there is one
 /// photo-writing path, never two (docs/SYNC.md -> Attachments: one blob pool).
+///
+/// RV.209 - this is the OUT-OF-SAVE receipt-row builder (the expense scan and
+/// the viewer replace) and it deliberately differs from `writeReceiptPhoto` in
+/// ONE input: it has only a raw `FuelExtraction`, never the save plan's
+/// `ExtractionMeta`. It therefore records the values the parse assigned with
+/// default provenance (`ScannedSavePlanner.assignment`) - no crop rects, no
+/// `userCorrected` comparison against saved values, no fiscal-QR total, because
+/// none of those exist at this door. The save-side paths (the Confirm save, the
+/// Edit-entry fill-up attach, the non-fill attach) all route through
+/// `writeReceiptPhoto` instead. The value-bearing account the recognised page
+/// reads is the same as the save builder's for the same parse. A third
+/// receipt-row builder is guarded by `ReceiptBindingScanner`
+/// (`thirdReceiptBuilder`).
 enum ReceiptAttachmentWriter {
     static func write(id: AttachmentID, image: UIImage, ocrLines: [OCRLine],
                       extraction: FuelExtraction) throws -> Attachment {
@@ -129,6 +142,14 @@ extension View {
 /// never passes the argument.
 enum ReceiptAttachFixture {
     static func image() -> UIImage? {
+        // RV.204: force the attach-path photo write to fail so the degrade
+        // contract is reachable end to end (the Edit-entry attach, EN + RU).
+        // An empty image has no `CGImage`, so the capture pipeline treats it as
+        // a scan that resolved nothing and `jpegData` returns nil exactly as a
+        // disk-full or unencodable frame would on Save.
+        if ProcessInfo.processInfo.arguments.contains("-seedAttachReceiptWriteFails") {
+            return UIImage()
+        }
         guard let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-attachReceiptFixtureImage"),
               ProcessInfo.processInfo.arguments.indices.contains(index + 1) else { return nil }
         return UIImage(contentsOfFile: ProcessInfo.processInfo.arguments[index + 1])
