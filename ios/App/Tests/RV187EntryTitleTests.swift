@@ -23,7 +23,7 @@ final class RV187EntryTitleTests: XCTestCase {
             vehicleId: vehicle.id, date: Date(), odometer: nil, money: nil,
             note: nil, attachments: [], provenance: .import(source: "drivvo"),
             conflict: .none, purchaseGroupId: nil, vendor: vendor, items: items,
-            usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            usedParts: [], tireSetId: nil)
     }
 
     private func expense(_ title: String, category: ExpenseCategory) -> Expense {

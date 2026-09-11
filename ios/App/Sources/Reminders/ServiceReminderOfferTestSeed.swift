@@ -18,15 +18,43 @@ enum ServiceReminderOfferTestSeed {
     static func seedIfRequested() {
         let arguments = ProcessInfo.processInfo.arguments
         guard arguments.contains("-seedServiceReminderOffer")
-            || arguments.contains("-seedSwapReminderOffer") else { return }
+            || arguments.contains("-seedSwapReminderOffer")
+            || arguments.contains("-seedServiceLifetimeOffer") else { return }
         AppStore.resetForTestsOncePerLaunch()
         guard let repository = try? AppStore.repository() else { return }
 
         if arguments.contains("-seedSwapReminderOffer") {
             seedSwapReminder(repository)
+        } else if arguments.contains("-seedServiceLifetimeOffer") {
+            seedLifetimeService(repository)
         } else {
             seedOilService(repository)
         }
+    }
+
+    /// The PJ.22 pose: a just-saved service whose line item states its OWN
+    /// lifetime (brakes, 30 000 km / 24 months) - a category with no curated
+    /// interval. The offer sheet then shows an interval the user supplied, not
+    /// a category guess.
+    private static func seedLifetimeService(_ repository: TankbookRepository) {
+        let now = Date()
+        let recordDate = Calendar.current.date(byAdding: .day, value: -3, to: now) ?? now
+        let vehicle = makeVehicle(initialOdometer: 123_600)
+        try? repository.upsertVehicle(vehicle)
+
+        let service = ServiceRecord(
+            id: UUID.v7(), createdAt: recordDate, updatedAt: recordDate, deletedAt: nil,
+            vehicleId: vehicle.id, date: recordDate, odometer: 123_600,
+            money: Money(amount: Decimal(string: "210.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: "Bosch Service",
+            items: [ServiceItem(title: "Brake pads front", category: .brakes,
+                                cost: Money(amount: Decimal(string: "210.00")!,
+                                            currency: .eur, homeCurrency: .eur),
+                                partNumber: nil,
+                                lifetime: ServiceItem.Lifetime(km: 30_000, months: 24))],
+            usedParts: [], tireSetId: nil)
+        try? repository.upsertServiceRecord(service)
     }
 
     /// The RV.77 oil state: a car plus a just-saved oil service record (so the
@@ -50,7 +78,7 @@ enum ServiceReminderOfferTestSeed {
             items: [ServiceItem.make(title: "Oil change", category: .oil,
                                      cost: Money(amount: Decimal(string: "148.00")!,
                                                  currency: .eur, homeCurrency: .eur))],
-            usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            usedParts: [], tireSetId: nil)
         try? repository.upsertServiceRecord(service)
     }
 
@@ -72,7 +100,7 @@ enum ServiceReminderOfferTestSeed {
             vehicleId: vehicle.id, date: mountDate, odometer: 123_600,
             money: nil, note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: nil, items: [], usedParts: [],
-            tireSetId: set.id, proposedReminderId: nil)
+            tireSetId: set.id)
         try? repository.upsertServiceRecord(mount)
     }
 

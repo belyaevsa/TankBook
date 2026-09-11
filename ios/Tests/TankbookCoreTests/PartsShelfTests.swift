@@ -62,8 +62,7 @@ import Testing
             vehicleId: vehicleId, date: date, odometer: nil,
             money: total > 0 ? money(total) : nil, note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: nil,
-            vendor: "Garage", items: items, usedParts: [], tireSetId: nil,
-            proposedReminderId: nil)
+            vendor: "Garage", items: items, usedParts: [], tireSetId: nil)
     }
 
     // MARK: - The double-count property test (P3's exit gate)

@@ -107,8 +107,7 @@ struct LogStreamDividerRatePendingTests {
             vehicleId: UUID.v7(), date: date, odometer: 119_000,
             money: Self.homeMoney(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: nil,
-            vendor: "Bosch Service", items: [], usedParts: [], tireSetId: nil,
-            proposedReminderId: nil)
+            vendor: "Bosch Service", items: [], usedParts: [], tireSetId: nil)
     }
 
     // MARK: - The three fixtures the row's L1 demands

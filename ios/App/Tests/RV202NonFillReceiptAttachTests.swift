@@ -59,7 +59,7 @@ final class RV202NonFillReceiptAttachTests: XCTestCase {
                 ServiceItem(title: "Oil service", category: .oil,
                             cost: Money(amount: Decimal(string: "89.00")!,
                                         currency: .eur, homeCurrency: .eur))
-            ], usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            ], usedParts: [], tireSetId: nil)
     }
 
     private func expense(vehicle: Vehicle) -> Expense {

@@ -349,7 +349,6 @@ let serviceRecordProperties: [String: Any] = [
     "items": schemaArray(schemaRef("serviceItem")),
     "usedParts": schemaArray(schemaUUID),
     "tireSetId": schemaUUID,
-    "proposedReminderId": schemaUUID,
 ]
 
 let expenseProperties: [String: Any] = [

@@ -6,9 +6,11 @@ import TankbookCore
 /// One editable line item row, shared by the ServiceEntry CREATE screen and the
 /// Edit-entry SERVICE screen so the two paths cannot drift. `title` + `category`
 /// + a typed `cost` string (parsed to `Decimal` on save - never `Double`,
-/// docs/SCHEMA.md -> Money). `partNumber` and `lifetime` are carried through
-/// untouched: nothing on either screen edits them yet (PJ.22/PJ.26 own the
-/// editors), but dropping one on save is data loss.
+/// docs/SCHEMA.md -> Money) + an optional `lifetime` (PJ.22: the km/months pair
+/// the Edit-entry row edits, and the interval the next-reminder offer counts
+/// from). `partNumber` is still carried through untouched - nothing on either
+/// screen edits it yet (PJ.61 owns its editor), but dropping it on save is data
+/// loss.
 struct ServiceEntryItemDraft: Identifiable, Equatable {
     var id: UUID = UUID()
     var title = ""
@@ -74,9 +76,11 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
     /// The stored line item this draft represents. `homeCurrency` is used only
     /// when a new cost is typed; `original` is the item this row loaded from,
     /// whose `cost` pair is kept byte-identical when the amount is untouched
-    /// (hard rule 3 - a snapshot is immutable) and whose `partNumber` and
-    /// `lifetime` survive the screen never showing them. A row the user added
-    /// has `original == nil` and builds a fresh item.
+    /// (hard rule 3 - a snapshot is immutable) and whose `partNumber` survives
+    /// the screen never showing it. `lifetime` is the draft's own value, not a
+    /// fallback: the editor owns it, so clearing both halves clears the lifetime
+    /// instead of resurrecting the stored one. A row the user added has
+    /// `original == nil` and builds a fresh item.
     func serviceItem(homeCurrency: CurrencyCode) -> ServiceItem {
         let money: Money?
         if let amount = costDecimal {
@@ -92,7 +96,7 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         }
         return ServiceItem(title: title, category: category, cost: money,
                            partNumber: partNumber ?? original?.partNumber,
-                           lifetime: lifetime ?? original?.lifetime)
+                           lifetime: lifetime)
     }
 
     /// Every editable value, EXCLUDING the synthetic `id` and the load-only
@@ -285,6 +289,6 @@ extension ServiceEntryFormState {
             vehicleId: vehicle.id, date: date, odometer: odometerValue,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: tireSetId, proposedReminderId: nil)
+            usedParts: [], tireSetId: tireSetId)
     }
 }

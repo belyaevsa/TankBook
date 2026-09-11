@@ -35,7 +35,7 @@ private func kindService(date: Date, odometer: Int?, id: UUID = UUID.v7()) -> Se
         id: id, createdAt: date, updatedAt: date, deletedAt: nil, vehicleId: UUID.v7(),
         date: date, odometer: odometer, money: nil, note: nil, attachments: [],
         provenance: .manual, conflict: .none, purchaseGroupId: nil, vendor: nil,
-        items: [], usedParts: [], tireSetId: nil, proposedReminderId: nil)
+        items: [], usedParts: [], tireSetId: nil)
 }
 
 private func kindExpense(date: Date, odometer: Int?, id: UUID = UUID.v7()) -> Expense {

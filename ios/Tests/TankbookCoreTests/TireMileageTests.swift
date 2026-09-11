@@ -20,7 +20,7 @@ import Testing
             vehicleId: vehicle ?? UUID.v7(), date: date, odometer: odo,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: setID, proposedReminderId: nil)
+            usedParts: [], tireSetId: setID)
     }
 
     // MARK: - Closed spans sum (three swaps across two sets)
@@ -133,14 +133,14 @@ import Testing
             vehicleId: UUID.v7(), date: date, odometer: 30_000,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: Self.setA, proposedReminderId: nil)
+            usedParts: [], tireSetId: Self.setA)
         // A live record that is not a swap (no tireSetId) must not end a span.
         let plainService = ServiceRecord(
             id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,
             vehicleId: UUID.v7(), date: date.addingTimeInterval(86_400), odometer: 12_000,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            usedParts: [], tireSetId: nil)
 
         let records = [swap(Self.setA, odo: 10_000, day: 1), tombstoned, plainService]
         // The open span runs straight to the latest known odometer: neither the

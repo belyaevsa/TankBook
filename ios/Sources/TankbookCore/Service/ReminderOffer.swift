@@ -59,6 +59,17 @@ public enum ReminderOffer {
         }
     }
 
+    /// One titled line item that states an interval, with the interval it
+    /// carries and whether that interval came from the item's own `lifetime`
+    /// (explicit) or the curated category default (a fallback). The explicit
+    /// one drives the offer when a category has several rows.
+    private struct Driving {
+        let category: ReminderCategory
+        let interval: Reminder.Recurrence
+        let title: String
+        let explicit: Bool
+    }
+
     // MARK: - Curated default intervals (tier C, compiled)
 
     /// The curated per-category default interval (docs/PRACTICES.md -> section 6:
@@ -66,7 +77,9 @@ public enum ReminderOffer {
     /// -> Reminder records the table and why each number is what it is). A
     /// category ABSENT from this table has no sensible universal interval - the
     /// offer fires nothing for it, rather than guessing a cadence and dressing
-    /// it as a fact (hard rule 13).
+    /// it as a fact (hard rule 13). This is the FALLBACK: an item that carries
+    /// its own `lifetime` states the interval itself and overrides the table
+    /// (PJ.22 - the user's number, hard rule 13).
     ///
     /// Why these two and not the rest:
     /// - **oil** - 15,000 km / 12 months: the app's own documented oil-change
@@ -121,6 +134,28 @@ public enum ReminderOffer {
         }
     }
 
+    /// The reminder category a titled SERVICE item proposes. A fixed service
+    /// category maps to its twin; an `.other` free-text row maps to
+    /// `.other(text)` only when the row carries an explicit lifetime - the
+    /// lifetime is what makes a free-text row schedulable, and without one
+    /// there is no interval to offer.
+    private static func reminderCategory(for item: ServiceItem,
+                                         explicitLifetime: Bool) -> ReminderCategory? {
+        if let mapped = reminderCategory(for: item.category) { return mapped }
+        if case .other(let text) = item.category, explicitLifetime { return .other(text) }
+        return nil
+    }
+
+    /// The interval an item's own `lifetime` states, or nil when neither half is
+    /// a positive number. A zero (or a negative) is treated as unset - entering
+    /// "0" is a no-op, not a burst (the same rule as `ReminderDraft.recurrence`).
+    private static func recurrence(from lifetime: ServiceItem.Lifetime) -> Reminder.Recurrence? {
+        let km = lifetime.km.flatMap { $0 > 0 ? $0 : nil }
+        let months = lifetime.months.flatMap { $0 > 0 ? $0 : nil }
+        guard km != nil || months != nil else { return nil }
+        return Reminder.Recurrence(everyKm: km, everyMonths: months)
+    }
+
     /// The reminder-category twin of an Expense category. `.insurance` is the
     /// only recurring expense (docs/SCHEMA.md -> Expense.recurrence); `.parts`
     /// bought on the shelf is inventory, never a schedule, and the rest are
@@ -163,6 +198,14 @@ public enum ReminderOffer {
     /// inspection on one invoice) proposes nothing rather than silently
     /// choosing one for the user (hard rule 13); a record with an oil item plus
     /// uncategorized rows proposes oil.
+    ///
+    /// **An item's own lifetime wins over the category table** (PJ.22). The
+    /// lifetime editor on a line item lets the user state the exact cadence for
+    /// that part, so a `.brakes` row with a lifetime IS schedulable even though
+    /// `.brakes` has no universal default - the interval is no longer a guess.
+    /// When several rows of the one category carry intervals, the first with an
+    /// explicit lifetime drives the offer; the category default is the fallback
+    /// for rows that state none.
     public static func propose(afterService service: ServiceRecord,
                                tireSetName: String? = nil,
                                liveReminders: [Reminder]) -> Proposal? {
@@ -181,35 +224,35 @@ public enum ReminderOffer {
                             everyKm: nil,
                             everyMonths: seasonalSwapMonths)
         }
-        // The titled items' categories, reduced to those with a curated
-        // interval. Untitled rows are blanks, not a driving category.
-        let intervalCategories = service.items.compactMap { item -> ReminderCategory? in
-            guard !item.title.trimmingCharacters(in: .whitespaces).isEmpty,
-                  let reminderCategory = reminderCategory(for: item.category) else { return nil }
-            return defaultInterval(for: reminderCategory) != nil ? reminderCategory : nil
+        // The titled items that state an interval, each with the interval it
+        // carries. Untitled rows are blanks, not a driving category.
+        let driving = service.items.compactMap { item -> Driving? in
+            let title = item.title.trimmingCharacters(in: .whitespaces)
+            guard !title.isEmpty else { return nil }
+            let explicitInterval = item.lifetime.flatMap(recurrence(from:))
+            guard let category = reminderCategory(for: item,
+                                                  explicitLifetime: explicitInterval != nil),
+                  let interval = explicitInterval ?? defaultInterval(for: category)
+            else { return nil }
+            return Driving(category: category, interval: interval, title: title,
+                           explicit: explicitInterval != nil)
         }
-        let distinct = Array(Set(intervalCategories))
+        let distinct = Set(driving.map { $0.category })
         guard distinct.count == 1, let category = distinct.first,
               !isSuppressed(category: category,
                             vehicleId: service.vehicleId,
                             liveReminders: liveReminders),
-              let interval = defaultInterval(for: category) else { return nil }
-
-        // The driving title: the first titled item of the driving category -
-        // the user's own words, already localized.
-        let title = service.items.first(where: {
-            reminderCategory(for: $0.category) == category
-                && !$0.title.trimmingCharacters(in: .whitespaces).isEmpty
-        })?.title ?? ""
+              let chosen = driving.first(where: { $0.explicit }) ?? driving.first
+        else { return nil }
 
         return Proposal(vehicleId: service.vehicleId,
                         category: category,
-                        title: title,
+                        title: chosen.title,
                         sourceEntryId: service.id,
                         date: service.date,
                         odometer: service.odometer,
-                        everyKm: interval.everyKm,
-                        everyMonths: interval.everyMonths)
+                        everyKm: chosen.interval.everyKm,
+                        everyMonths: chosen.interval.everyMonths)
     }
 
     /// The proposal after an Expense saves, or nil. `.insurance` is the only

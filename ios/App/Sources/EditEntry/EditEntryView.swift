@@ -35,6 +35,10 @@ struct EditEntryView: View {
     // the linter's length limits, the EditEntryView+Discard precedent - can
     // read and write it.
     @Environment(AppCarSelection.self) var carSelection
+    // PJ.22: the post-save reminder offer. The edit screen stages a proposal
+    // when a service's line-item lifetime changed; the tab root presents it
+    // once this pushed screen has popped (see `stagedOfferForPromotion`).
+    @Environment(ReminderOfferSession.self) private var offerSession
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
@@ -67,6 +71,11 @@ struct EditEntryView: View {
     @State private var didLoad = false
     @State var loadFailed = false
     @State var pendingBlobIDs: Set<UUID> = []
+    /// PJ.22: a lifetime edit staged an offer that must be promoted only after
+    /// this pushed screen has fully popped - the same "never mid-save, never
+    /// over the screen that saved" rule the create door's sheet dismissal
+    /// enforces.
+    @State private var stagedOfferForPromotion = false
 
     // PJ.48: the "Add receipt" attach flow. The photo, its OCR lines and the
     // extraction are held until Save writes them; a failed write flips
@@ -137,6 +146,13 @@ struct EditEntryView: View {
         // re-tapped: a dirty entry makes the pop-to-root ask first (hard rule
         // 8), a clean one pops immediately. See `PushedFormDirtyPreference`.
         .preference(key: PushedFormDirtyPreference.self, value: entryHasUnsavedChanges)
+        // PJ.22: promote a staged lifetime-edit offer only once this screen has
+        // popped, so the sheet never lands over the form that saved it.
+        .onDisappear {
+            guard stagedOfferForPromotion else { return }
+            stagedOfferForPromotion = false
+            offerSession.promote()
+        }
     }
 
     private var currencySymbol: String {
@@ -364,10 +380,29 @@ struct EditEntryView: View {
             // delta to toast about - Home just reloads.
             toastCenter.noteEntryChanged()
             reportLostReceiptPhoto(receiptWrite, toastCenter: toastCenter)
+            // PJ.22: a service whose line-item lifetime was set or changed
+            // proposes the next reminder, through the SAME `ReminderOffer` seam
+            // the create door uses. Nothing is created here - the offer is
+            // staged and presented after this screen pops.
+            stageServiceReminderOfferIfLifetimeChanged(entry, vehicle: vehicle,
+                                                       repository: repository)
             dismiss()
         } catch {
             AppLog.error(operation: "editEntry.save", category: .ui, error: error)
         }
+    }
+
+    /// Stages the post-save service-reminder offer when this save set or changed
+    /// a line item's lifetime (PJ.22). The stored record is read back after the
+    /// write so the proposal sees the values that actually landed; the offer is
+    /// then promoted on `onDisappear`, once this pushed screen is gone.
+    private func stageServiceReminderOfferIfLifetimeChanged(
+        _ entry: any Entry, vehicle: Vehicle, repository: TankbookRepository) {
+        guard entry is ServiceRecord, nonFillForm.serviceLifetimeChanged,
+              let stored = (try? repository.liveServiceRecords(forVehicle: vehicle.id))?
+                  .first(where: { $0.id == entry.id }) else { return }
+        offerSession.stage(afterService: stored, repository: repository)
+        stagedOfferForPromotion = offerSession.pending != nil
     }
 
     /// The recompute, both halves from the engine (docs/SCHEMA.md,

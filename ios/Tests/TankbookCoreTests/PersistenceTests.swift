@@ -320,7 +320,7 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
                         cost: nil, partNumber: nil,
                         lifetime: ServiceItem.Lifetime(km: nil, months: nil)),
         ],
-        usedParts: [UUID.v7()], tireSetId: nil, proposedReminderId: UUID.v7())
+        usedParts: [UUID.v7()], tireSetId: nil)
     try repo.upsertServiceRecord(service)
     #expect(try repo.liveServiceRecords(forVehicle: vehicleId) == [service])
 }

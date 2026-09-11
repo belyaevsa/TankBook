@@ -248,15 +248,18 @@ is a good record only if the row actually says *Annual service*. One title funct
 row, the duplicate card, the excluded and flagged lists and Recently deleted, so no two screens can
 call the same entry different things.
 
-**[v1.x] Editing the work (PJ.23, 2026-09-10; add/delete RV.198, 2026-09-10).** Opening a service in
-Edit entry shows its **line items** - title, category and cost - and writes them back, so the `.other`
-promotion promised above happens where the user can see the text [RV.187] titles the row from. The
-user can also **add a line and delete one**, not only correct the rows that exist: a workshop invoice
-gains a line as often as it corrects one. An **empty item list is legal** - a vendor plus a lump-sum
-Amount with no itemised lines is the same lump-sum record the scan fallback produces, so deleting the
-last row leaves it rather than being forbidden. `partNumber` and `lifetime` are not shown here but ride
-through untouched, keyed to the row they were loaded from so a delete never shifts them onto a
-neighbour (PJ.22/PJ.26 own their editors) - dropping either on save would be data loss.
+**[v1.x] Editing the work (PJ.23, 2026-09-10; add/delete RV.198, 2026-09-10; lifetime PJ.22,
+2026-09-11).** Opening a service in Edit entry shows its **line items** - title, category, cost and
+**lifetime** - and writes them back, so the `.other` promotion promised above happens where the user
+can see the text [RV.187] titles the row from. The user can also **add a line and delete one**, not
+only correct the rows that exist: a workshop invoice gains a line as often as it corrects one. An
+**empty item list is legal** - a vendor plus a lump-sum Amount with no itemised lines is the same
+lump-sum record the scan fallback produces, so deleting the last row leaves it rather than being
+forbidden. The item's **lifetime** (km and months) is the one field that drives the next reminder:
+setting or changing it and saving raises the same "Remind you next time?" offer J7d describes,
+anchored at the record. `partNumber` is still not shown here but rides through untouched, keyed to
+the row it was loaded from so a delete never shifts it onto a neighbour (PJ.61 owns its editor) -
+dropping it on save would be data loss.
 
 **[v1.x] The total and the lines agree, or say why not (RV.199, 2026-09-11).** The record's
 **Amount stays independently editable**, because an invoice's grand total legitimately differs from
@@ -332,7 +335,7 @@ only trigger ended up at the bottom of a list four taps deep.
 | Action | What happens | Notes |
 |---|---|---|
 | **Plan it** | Home's permanent "Reminders · N due" row (present whether or not anything is due) → the merged list → "New reminder" → the form, with the **car as its first field**. From the merged list nothing is picked and Save waits for the choice; from a car's own list or Vehicle detail the car arrives filled in and still changeable | A silently defaulted car is a hard-rule-13 bug: on that screen the user may not have looked at a car at all. The count is what earns the row its tap; creation waits one hop behind it, because a "+" on the row could only guess. *(RV.75 built the merged list - every row naming its car, active cars only - and the form's car-first rule. **RV.76 built the permanent Home row this row starts from** - `HomeRemindersEntryRow`, under the banner on Home, with the count derived from the same live rows the merged list groups.)* |
-| **Just did it** | Saving a service or expense record whose category has an interval → after the save lands, "Remind you next time?", pre-filled from the record: its category, its date, its odometer, with the interval editable in the same breath | An offer, never an auto-create. Suppressed when a live reminder of that category already exists on that car - that is how a user ends up with three oil reminders. Anchored at the record, never at today, so a schedule cannot drift. Never mid-save; declining costs nothing. *(RV.77 built this door - `ReminderOffer` in core, the offer sheet over the surface the record saved from. The interval suggestion is a curated per-category default - oil 15,000 km/12 months, insurance 12 months - a compiled constant the user edits in the same breath, never a fact. A category with no curated interval (brakes, tires, battery, filters, inspection, repair, parts, wash, custom, other) offers nothing at all, rather than inventing a cadence.)* |
+| **Just did it** | Saving a service or expense record whose category has an interval → after the save lands, "Remind you next time?", pre-filled from the record: its category, its date, its odometer, with the interval editable in the same breath. A **service line item's own lifetime** (PJ.22, the km/months editor on Edit entry) states that interval directly, so "oil in 15,000 km or 12 months" is the user's number rather than a category guess | An offer, never an auto-create. Suppressed when a live reminder of that category already exists on that car - that is how a user ends up with three oil reminders. Anchored at the record, never at today, so a schedule cannot drift. Never mid-save; declining costs nothing. *(RV.77 built this door - `ReminderOffer` in core, the offer sheet over the surface the record saved from. The interval suggestion is the driving item's own `lifetime` when it has one, else a curated per-category default - oil 15,000 km/12 months, insurance 12 months - a compiled constant the user edits in the same breath, never a fact. A category with no curated interval (brakes, tires, battery, filters, inspection, repair, parts, wash, custom, other) offers nothing unless an item states a lifetime.)* |
 | **Discover it** | Zero reminders: the Home row still reads "Reminders", the empty list explains what a reminder is for, and its **one action is a filled button** - not the dashed card that means "add one more" at the end of a populated list | This is the path that did not exist, and **RV.76 built it**: the row is always present, count or no count, and a driver with no reminders at all reaches the empty state (`RemindersEmpty.dc.html`) whose filled "New reminder" is the discovery action. Before RV.76 the Home banner rendered only inside the attention window (`ReminderBanner.bannerReminder` filters to `.attention`), so a driver with nothing due had to already know the screen was there. J9's anomaly card is a fourth, incidental birth |
 | **Save** | The reminder lands in the list it was created from, **naming its car**, the notification arms, and it sits under Scheduled until its window opens - where J7c takes over | The round trip is what makes per-car creation from a merged list unconfusing: the user sees where the reminder went |
 

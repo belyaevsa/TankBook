@@ -268,12 +268,15 @@ struct ServiceReminderOfferSheet: View {
         do {
             let repository = try AppStore.repository()
             try repository.upsertReminder(reminder)
-            // A swap proposal's acceptance is its own signal: the reminder is
-            // now on disk, so "was a swap reminder proposed, and was it
-            // accepted?" has an answer in the field (hard rule 12 - outcome
-            // only).
+            // A proposal's acceptance is its own signal: the reminder is now on
+            // disk, so "was a reminder proposed, and was it accepted?" has an
+            // answer in the field (hard rule 12 - outcome only). The mount and
+            // the lifetime editor raise different events so the two offers stay
+            // countable apart.
             if proposal.category == .tires {
                 AppLog.shared.emit(SwapReminderProposal(outcome: .accepted))
+            } else {
+                AppLog.shared.emit(ServiceReminderProposal(outcome: .accepted))
             }
             let vehicleId = reminder.vehicleId
             Task {
@@ -287,12 +290,14 @@ struct ServiceReminderOfferSheet: View {
     }
 
     /// "Not this time": the record is already saved and nothing is written. A
-    /// swap proposal's decline is recorded for the same reason its acceptance
-    /// is - the two outcomes together say whether the seasonal loop is
-    /// reaching users at all (hard rule 12).
+    /// proposal's decline is recorded for the same reason its acceptance is -
+    /// the outcomes together say whether the loop is reaching users at all
+    /// (hard rule 12).
     private func decline() {
         if proposal.category == .tires {
             AppLog.shared.emit(SwapReminderProposal(outcome: .declined))
+        } else {
+            AppLog.shared.emit(ServiceReminderProposal(outcome: .declined))
         }
         dismiss()
     }

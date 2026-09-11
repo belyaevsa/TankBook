@@ -153,6 +153,17 @@ struct EditEntryNonFillForm: Equatable {
         items.removeAll { $0.id == id }
     }
 
+    /// Whether this save set or changed any line item's lifetime. The post-save
+    /// reminder offer responds to the user stating a maintenance interval
+    /// (PJ.22), not to every unrelated edit - the create door already offers for
+    /// a category interval, and re-offering on a note edit would be the "three
+    /// oil reminders" annoyance J7d warns about. Each draft's `original` is the
+    /// stored item it loaded from, so a newly added row with a lifetime also
+    /// counts (its `original` is nil).
+    var serviceLifetimeChanged: Bool {
+        items.contains { $0.lifetime != $0.original?.lifetime }
+    }
+
     // MARK: - Line sum vs Amount (RV.199)
 
     /// The service's line sum, classified by currency - the SAME rule the

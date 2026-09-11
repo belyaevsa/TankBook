@@ -126,7 +126,7 @@ struct TrendsLabelTests {
             money: Money(amount: Decimal(string: "148")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: "Garage", items: [], usedParts: [],
-            tireSetId: nil, proposedReminderId: nil)
+            tireSetId: nil)
 
         let withService = TrendsStats(vehicle: Self.vehicle(),
                                       entries: [f1, f2, service], asOf: Self.asOf).home.costPerKm

@@ -127,7 +127,7 @@ enum EditEntryServiceTestSeed {
             vehicleId: vehicle.id, date: now, odometer: 119_486,
             money: money, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: vendor,
-            items: items, usedParts: [], tireSetId: nil, proposedReminderId: nil))
+            items: items, usedParts: [], tireSetId: nil))
     }
 }
 #endif

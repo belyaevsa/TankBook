@@ -72,15 +72,18 @@ struct SchemaFieldWriterGuardNewEntityTests {
                 "the item editor writes title - it must not be reported. Got \(unwritten)")
     }
 
-    /// Oracle: `ServiceItem.Lifetime` is constructed only by the decoder and the
-    /// test seeds; no editor sets `km` or `months`, so both leaves report.
-    @Test func theServiceItemLifetimeLeavesAreReportedBeforeAnyException() throws {
+    /// PJ.22 built the lifetime editor, so both leaves now have a production
+    /// writer and the guard must stop reporting them. Oracle:
+    /// `EditEntryNonFillView.swift` constructs `ServiceItem.Lifetime(km:months:)`
+    /// from the row's editable fields. Before PJ.22 this same assertion failed -
+    /// the guard reported both, which is why the row existed.
+    @Test func theServiceItemLifetimeLeavesAreNoLongerReported() throws {
         let unwritten = FieldWriterScanner.unwrittenFields(
             schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
-        #expect(unwritten.contains("ServiceItem.lifetime.km"),
-                "the lifetime editor is unbuilt (PJ.22) - km must be reported. Got \(unwritten)")
-        #expect(unwritten.contains("ServiceItem.lifetime.months"),
-                "the lifetime editor is unbuilt (PJ.22) - months must be reported. Got \(unwritten)")
+        #expect(!unwritten.contains("ServiceItem.lifetime.km"),
+                "the editor writes km - it must not be reported. Got \(unwritten)")
+        #expect(!unwritten.contains("ServiceItem.lifetime.months"),
+                "the editor writes months - it must not be reported. Got \(unwritten)")
     }
 
     // MARK: - L1: the stale-exception check on the new entries

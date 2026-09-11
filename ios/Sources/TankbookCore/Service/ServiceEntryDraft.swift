@@ -119,7 +119,6 @@ public struct ServiceEntryDraft: Equatable, Sendable {
             money: money, note: note?.isEmpty == false ? note : nil,
             attachments: attachments, provenance: provenance, conflict: .none,
             purchaseGroupId: nil, vendor: vendor?.isEmpty == false ? vendor : nil,
-            items: items, usedParts: usedParts, tireSetId: tireSetId,
-            proposedReminderId: nil)
+            items: items, usedParts: usedParts, tireSetId: tireSetId)
     }
 }

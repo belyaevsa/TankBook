@@ -436,7 +436,7 @@ private func round2(_ value: Double) -> Double {
         vehicleId: UUID.v7(), date: asOf - 2 * day, odometer: 100_500, money: nil,
         note: nil, attachments: [], provenance: .manual, conflict: .none,
         purchaseGroupId: nil, vendor: "Garage", items: [], usedParts: [],
-        tireSetId: nil, proposedReminderId: nil
+        tireSetId: nil
     )
     let expense = Expense(
         id: UUID.v7(), createdAt: asOf, updatedAt: asOf, deletedAt: nil,

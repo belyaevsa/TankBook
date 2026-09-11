@@ -32,7 +32,7 @@ import Testing
             vehicleId: vehicleId, date: date, odometer: odometer,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil,
-            items: items, usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            items: items, usedParts: [], tireSetId: nil)
     }
 
     private func makeExpense(vehicleId: UUID, category: ExpenseCategory,

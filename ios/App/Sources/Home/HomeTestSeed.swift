@@ -520,8 +520,7 @@ enum HomeTestSeed {
                          currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil,
-            vendor: vendor, items: [], usedParts: [], tireSetId: nil,
-            proposedReminderId: nil)
+            vendor: vendor, items: [], usedParts: [], tireSetId: nil)
     }
 
     private static func makeExpense(vehicleID: UUID, date: Date, odometer: Int?,

@@ -221,12 +221,16 @@ ServiceRecord: EntryCommon {    // work DONE to the car: annual service, repairs
   items: [ServiceItem]          // invoice line items, OCR-split (J7); manual fallback = typed rows
   usedParts: [UUID]             // Expense(.parts) entries installed in this service – links, not costs
   tireSetId: UUID?              // which TireSet went ON, when this includes a tire swap
-  proposedReminderId: UUID?     // the reminder the app suggested and user accepted
+  // The accepted next-reminder proposal links through `Reminder.sourceEntryId` =
+  // this record's id – the SINGLE link, queryable in both directions (local
+  // query, hard rule 1). No reverse pointer is stored here (PJ.62/PJ.22): two
+  // pointers for one relationship would be two sources of truth.
 }
 ServiceItem {
   title: String; category: ServiceCategory; cost: Money?
   partNumber: String?           // "MANN W 712/75" – enables reorder and lifetime tracking
-  lifetime: { km: Int?, months: Int? }?   // set → the record proposes the next reminder itself
+  lifetime: { km: Int?, months: Int? }?   // set → the record proposes the next reminder itself;
+                                          // the item's own interval overrides the category default (J7)
 }
 ServiceCategory: .oil | .brakes | .tires | .battery | .filters | .inspection | .repair | .parts | .wash | .other(String)
 
@@ -314,9 +318,14 @@ Reminder {
 ServiceRecord or Expense saves, the app OFFERS the next reminder for the record's category - it never
 creates one. `ReminderOffer` in core (tier-C compiled, tests in `ReminderOfferTests`) decides:
 
-- the offer is keyed on the record's titled items reducing to exactly ONE distinct category that has
-  a curated interval (a mixed visit with two schedulable categories offers nothing rather than
-  silently choosing);
+- the offer is keyed on the record's titled items reducing to exactly ONE distinct schedulable
+  category (a mixed visit with two schedulable categories offers nothing rather than silently
+  choosing). An item is schedulable when **its own `lifetime` is set** (PJ.22 - the Edit-entry
+  lifetime editor, the user's stated interval, which overrides the table below) or, failing that,
+  when its category carries a curated interval;
+- the offer's interval is the driving item's own lifetime when it has one, else the curated category
+  default. A free-text `.other` row is schedulable only when it carries a lifetime, and maps to
+  `.other(text)`;
 - the offer is SUPPRESSED when a live reminder (`.scheduled`/`.attention`) of that category already
   exists on that car - the "three oil reminders" failure mode;
 - ACCEPTING builds the reminder anchored at the record's own date/odometer (never at today, the same
@@ -325,9 +334,9 @@ creates one. `ReminderOffer` in core (tier-C compiled, tests in `ReminderOfferTe
 - declining ("Not this time") writes nothing.
 
 **The curated per-category interval table.** A default interval is a SUGGESTION the user edits in
-the same breath (hard rule 13), never a fact. The table is compiled (`ReminderOffer.defaultInterval`,
-tier C - it defines the meaning of each category, so a change is a release + a review). Why each
-number, and why the rest are absent:
+the same breath (hard rule 13), never a fact. It is the FALLBACK an item's own `lifetime` overrides.
+The table is compiled (`ReminderOffer.defaultInterval`, tier C - it defines the meaning of each
+category, so a change is a release + a review). Why each number, and why the rest are absent:
 
 | Category | Interval | Why |
 |---|---|---|
@@ -337,7 +346,9 @@ number, and why the rest are absent:
 Everything else (`.brakes`, `.tires`, `.battery`, `.filters`, `.inspection`, `.repair`, `.parts`,
 `.wash`, `.custom`, `.other`) has no interval a service network would agree on: brakes and tires are
 wear/seasonal, filters vary by part, and inspection cadence is jurisdiction law, not a schedule.
-Offering a number there would invent a fact; the Reminders form remains the honest door for those.
+Offering a number there would invent a fact; the Reminders form remains the honest door for those,
+**unless the item states its own lifetime** - then the user has supplied the cadence and the offer
+carries it (PJ.22).
 
 **The mount is the exception, and it is not the category.** A record that actually mounts a tire
 set (`ServiceRecord.tireSetId != nil`) is the seasonal swap J7b describes, and it proposes a

@@ -58,7 +58,7 @@ private func makeService(vehicleId: UUID, date: Date, money: Money) -> ServiceRe
                   vehicleId: vehicleId, date: date, odometer: 3000, money: money,
                   note: nil, attachments: [], provenance: .manual, conflict: .none,
                   purchaseGroupId: nil, vendor: "Bosch", items: [], usedParts: [],
-                  tireSetId: nil, proposedReminderId: nil)
+                  tireSetId: nil)
 }
 
 private func makeExpense(vehicleId: UUID, date: Date, money: Money) -> Expense {

@@ -54,7 +54,7 @@ final class PJ23ServiceItemEditTests: XCTestCase {
             money: Money(amount: Decimal(string: "148.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: attachments, provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: nil, items: items, usedParts: usedParts,
-            tireSetId: nil, proposedReminderId: nil)
+            tireSetId: nil)
     }
 
     // MARK: - The form loads the stored items

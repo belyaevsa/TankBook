@@ -74,8 +74,7 @@ struct LogStreamTests {
             vehicleId: UUID.v7(), date: date, odometer: odometer,
             money: Self.money(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: nil,
-            vendor: "Bosch Service", items: [], usedParts: [], tireSetId: nil,
-            proposedReminderId: nil)
+            vendor: "Bosch Service", items: [], usedParts: [], tireSetId: nil)
     }
 
     private static func expense(_ date: Date, odometer: Int? = nil,

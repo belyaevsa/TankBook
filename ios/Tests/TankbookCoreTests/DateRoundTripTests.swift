@@ -96,7 +96,7 @@ import Testing
                             partNumber: "MANN W 712/75",
                             lifetime: ServiceItem.Lifetime(km: 15_000, months: 12))
             ],
-            usedParts: [UUID.v7()], tireSetId: nil, proposedReminderId: UUID.v7())
+            usedParts: [UUID.v7()], tireSetId: nil)
         try repo.upsertServiceRecord(service)
         #expect(try repo.liveServiceRecords(forVehicle: vehicleId) == [service])
     }

@@ -107,7 +107,7 @@ public enum ImportConverter {
             deletedAt: nil, vehicleId: vehicle.id, date: candidate.date,
             odometer: candidate.odometer, money: money, note: note, attachments: [],
             provenance: .import(source: source), conflict: .none, purchaseGroupId: nil,
-            vendor: nil, items: items, usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            vendor: nil, items: items, usedParts: [], tireSetId: nil)
     }
 
     /// Maps an `expense` candidate to an `Expense`, or nil when it cannot be

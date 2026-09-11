@@ -584,10 +584,6 @@
     "odometer" : {
       "type" : "integer"
     },
-    "proposedReminderId" : {
-      "format" : "uuid",
-      "type" : "string"
-    },
     "provenance" : {
       "$ref" : "#/$defs/provenance"
     },

@@ -6978,6 +6978,23 @@
         }
       }
     },
+    "Lifetime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lifetime"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Срок службы"
+          }
+        }
+      }
+    },
     "Liters": {
       "extractionState": "manual",
       "localizations": {

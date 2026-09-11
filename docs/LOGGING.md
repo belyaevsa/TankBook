@@ -195,6 +195,13 @@ accepted, so the three outcomes together answer *was a swap reminder proposed, a
 - `proposed` when the mount stages the offer, `accepted` when the user creates the reminder,
 `declined` on "Not this time". **Outcome only**: no date, no tire-set name, no car (hard rule 12).
 
+### Service reminders
+`service.reminder` – `outcome` (`proposed` / `accepted` / `declined`), the same three-stage shape as
+`tire.swapReminder` for the other post-save offer: a service record whose line-item lifetime was set
+or changed (docs/JOURNEYS.md J7/J7d, PJ.22). Same question - *was a service reminder proposed, and
+was it accepted?* - and the same bounds: **outcome only**, no date, no interval, no item title, no
+car (hard rule 12). A proposal that silently fails to schedule is thus countable, not invisible.
+
 ### Sync client
 `sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
 

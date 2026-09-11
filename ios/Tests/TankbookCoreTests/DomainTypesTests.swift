@@ -137,8 +137,7 @@ private func roundTrips<T: Codable & Equatable>(_ value: T) -> Bool {
             ),
         ],
         usedParts: [UUID.v7()],
-        tireSetId: nil,
-        proposedReminderId: UUID.v7()
+        tireSetId: nil
     )
     #expect(roundTrips(service))
 }

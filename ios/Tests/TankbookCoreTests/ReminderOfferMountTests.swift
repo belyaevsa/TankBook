@@ -30,7 +30,7 @@ import Testing
             vehicleId: vehicleId, date: date, odometer: odometer,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil,
-            items: [], usedParts: [], tireSetId: UUID.v7(), proposedReminderId: nil)
+            items: [], usedParts: [], tireSetId: UUID.v7())
     }
 
     private func liveReminder(vehicleId: UUID, category: ReminderCategory) -> Reminder {
@@ -93,7 +93,7 @@ import Testing
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil,
             items: [ServiceItem.make(title: "Tire rotation", category: .tires, cost: nil)],
-            usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            usedParts: [], tireSetId: nil)
         #expect(ReminderOffer.propose(afterService: service, liveReminders: []) == nil)
     }
 

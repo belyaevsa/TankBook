@@ -44,20 +44,6 @@ struct SchemaFieldWriterGuardTests {
               reason: "The About-screen diagnostics toggle the field documents was never built; the "
                   + "field is decoded (Records+Extras.swift:251) and synced but unwritable. "
                   + "Reported by RV.196."),
-        .init(field: "ServiceRecord.proposedReminderId",
-              reason: "The doc links it to the reminder the user accepted, but every production "
-                  + "construction passes nil (ServiceEntryDraft.swift:122, "
-                  + "ServiceEntryFormState.swift:205) and no update path sets it. Reported by RV.196."),
-        .init(field: "ServiceItem.lifetime.km",
-              reason: "The item's km lifetime is preserved on save "
-                  + "(ServiceEntryItemDraft.serviceItem, ServiceEntryFormState.swift) but no editor "
-                  + "can set it, so it is never a non-nil value. PJ.22 builds the lifetime editor "
-                  + "and the reminder proposal it drives; remove this exception in that same change."),
-        .init(field: "ServiceItem.lifetime.months",
-              reason: "The item's months lifetime is preserved on save "
-                  + "(ServiceEntryItemDraft.serviceItem, ServiceEntryFormState.swift) but no editor "
-                  + "can set it, so it is never a non-nil value. PJ.22 builds the lifetime editor "
-                  + "and the reminder proposal it drives; remove this exception in that same change."),
         .init(field: "Station.brand",
               reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
                   + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
@@ -222,9 +208,6 @@ struct SchemaFieldWriterGuardTests {
             "Preferences.notifications.anomalies",
             "Preferences.notifications.reminders",
             "Preferences.proFeedbackDiagnostics",
-            "ServiceItem.lifetime.km",
-            "ServiceItem.lifetime.months",
-            "ServiceRecord.proposedReminderId",
             "Station.brand"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
@@ -234,13 +217,21 @@ struct SchemaFieldWriterGuardTests {
     /// Every exception on the newly-visible fields names the row that will write
     /// it, so the exception is removable in that row's own change. The reported
     /// fields and their calibration live in `SchemaFieldWriterGuardNewEntityTests`.
-    @Test func theNewExceptionsNameTheWritingRow() {
-        let byField = Dictionary(
-            uniqueKeysWithValues: Self.documentedExceptions.map { ($0.field, $0.reason) })
-        #expect(byField["ServiceItem.lifetime.km"]?.contains("PJ.22") == true,
-                "the lifetime exception must name PJ.22, its writer")
-        #expect(byField["ServiceItem.lifetime.months"]?.contains("PJ.22") == true,
-                "the lifetime exception must name PJ.22, its writer")
+    /// PJ.22 gave `ServiceItem.lifetime` its editor, so the fields are no longer
+    /// reported and their exceptions are gone - the mechanism working, exactly
+    /// as PJ.45 and PJ.26 removed theirs. Oracle: the editor constructs
+    /// `ServiceItem.Lifetime(km:months:)` at `EditEntryNonFillView.swift`, a
+    /// production host.
+    @Test func theLifetimeFieldsAreWrittenAndHaveNoException() throws {
+        let exceptionFields = Set(Self.documentedExceptions.map(\.field))
+        #expect(!exceptionFields.contains("ServiceItem.lifetime.km"),
+                "the lifetime exception must be deleted now the editor writes it")
+        #expect(!exceptionFields.contains("ServiceItem.lifetime.months"),
+                "the lifetime exception must be deleted now the editor writes it")
+        let unwritten = FieldWriterScanner.unwrittenFields(
+            schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
+        #expect(!unwritten.contains("ServiceItem.lifetime.km"), "got \(unwritten)")
+        #expect(!unwritten.contains("ServiceItem.lifetime.months"), "got \(unwritten)")
     }
 
     // MARK: - L1: the exclusions

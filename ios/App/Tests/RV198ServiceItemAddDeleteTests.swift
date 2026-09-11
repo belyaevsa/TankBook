@@ -56,7 +56,7 @@ final class RV198ServiceItemAddDeleteTests: XCTestCase {
             money: Money(amount: Decimal(string: "148.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: nil, items: items, usedParts: usedParts,
-            tireSetId: tireSetId, proposedReminderId: nil)
+            tireSetId: tireSetId)
     }
 
     private func eur(_ amount: String) -> Money {

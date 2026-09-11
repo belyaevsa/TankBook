@@ -280,7 +280,6 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
     public var items: [ServiceItem]
     public var usedParts: [UUID]
     public var tireSetId: UUID?
-    public var proposedReminderId: UUID?
 
     /// Memberwise initializer, public so the app target can seed a
     /// `ServiceRecord` for UI tests (the same construction blocker that
@@ -291,7 +290,7 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
                 provenance: Provenance, conflict: ConflictState = .none,
                 purchaseGroupId: UUID? = nil, vendor: String? = nil,
                 items: [ServiceItem] = [], usedParts: [UUID] = [],
-                tireSetId: UUID? = nil, proposedReminderId: UUID? = nil,
+                tireSetId: UUID? = nil,
                 flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
         self.createdAt = createdAt
@@ -311,7 +310,6 @@ public struct ServiceRecord: Entry, Codable, Sendable, Equatable {
         self.items = items
         self.usedParts = usedParts
         self.tireSetId = tireSetId
-        self.proposedReminderId = proposedReminderId
     }
 }
 

@@ -207,7 +207,7 @@ enum ArchiveTest {
                 ServiceItem(title: "Cabin filter", category: .filters,
                             cost: nil, partNumber: nil, lifetime: nil)
             ],
-            usedParts: [], tireSetId: nil, proposedReminderId: nil))
+            usedParts: [], tireSetId: nil))
     }
 
     private static func seedVolvoExpenseAndReminder(into repo: TankbookRepository, seed: GarageSeed) throws {

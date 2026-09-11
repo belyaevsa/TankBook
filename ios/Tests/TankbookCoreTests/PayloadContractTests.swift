@@ -162,8 +162,7 @@ private func fullyPopulatedServiceRecord() -> ServiceRecord {
                         cost: nil, partNumber: nil, lifetime: nil),
         ],
         usedParts: [UUID(uuidString: "55555555-5555-7555-8555-555555555555")!],
-        tireSetId: UUID(uuidString: "99999999-9999-7999-8999-999999999999")!,
-        proposedReminderId: UUID(uuidString: "66666666-6666-7666-8666-666666666666")!
+        tireSetId: UUID(uuidString: "99999999-9999-7999-8999-999999999999")!
     )
 }
 

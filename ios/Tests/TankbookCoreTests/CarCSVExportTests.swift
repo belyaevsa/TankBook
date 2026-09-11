@@ -120,7 +120,7 @@ enum CSVFixtureSeed {
             money: Money(amount: Decimal(string: "148.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, vendor: "Bosch Service", items: [], usedParts: [],
-            tireSetId: nil, proposedReminderId: nil))
+            tireSetId: nil))
         try repo.upsertExpense(Expense(
             id: expense, createdAt: date("2026-08-03T07:00:00Z"),
             updatedAt: date("2026-08-03T07:00:00Z"), deletedAt: nil,

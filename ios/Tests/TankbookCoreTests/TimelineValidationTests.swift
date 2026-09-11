@@ -293,8 +293,7 @@ private func fill(date: Date, odometer: Int, volumeL: Double = 40,
         deletedAt: nil, vehicleId: UUID.v7(), date: epoch + 3 * day,
         odometer: 10_300, money: nil, note: nil, attachments: [],
         provenance: .manual, conflict: .none, purchaseGroupId: nil,
-        vendor: "Garage", items: [], usedParts: [], tireSetId: nil,
-        proposedReminderId: nil
+        vendor: "Garage", items: [], usedParts: [], tireSetId: nil
     )
     let expense = Expense(
         id: UUID.v7(), createdAt: epoch + 6 * day, updatedAt: epoch + 6 * day,

@@ -274,7 +274,6 @@ public enum TankbookMigrations {
         table.column("vendor", .text)
         table.column("usedParts", .text).notNull().defaults(to: "[]")    // JSON [UUID]
         table.column("tireSetId", .text)
-        table.column("proposedReminderId", .text)
     }
 
     private static func expenseColumns(on table: TableDefinition) {

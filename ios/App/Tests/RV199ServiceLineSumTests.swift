@@ -57,7 +57,7 @@ final class RV199ServiceLineSumTests: XCTestCase {
             vehicleId: vehicle.id, date: now, odometer: 119_486,
             money: money, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: items,
-            usedParts: [], tireSetId: nil, proposedReminderId: nil)
+            usedParts: [], tireSetId: nil)
     }
 
     /// A create-path draft: a fresh typed row (no stored original), whose cost

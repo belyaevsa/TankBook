@@ -439,6 +439,14 @@ capture PJ.26-tire-set-door-ru    ru -seedEditEntryScannedExpense -presentScreen
 capture PJ.27-swap-reminder       en -seedSwapReminderOffer -presentServiceReminderOffer
 capture PJ.27-swap-reminder-ru    ru -seedSwapReminderOffer -presentServiceReminderOffer
 
+# PJ.22: the line item's km / months lifetime editor on the Edit-entry service
+# screen, and the offer the lifetime it states raises (brakes, a category with no
+# curated interval). RU is where "15 000 км или 12 мес" on one row runs longest.
+capture PJ.22-service-lifetime       en -seedEditEntryService -presentScreen editEntry
+capture PJ.22-service-lifetime-ru    ru -seedEditEntryService -presentScreen editEntry
+capture PJ.22-service-lifetime-offer    en -seedServiceLifetimeOffer -presentServiceReminderOffer
+capture PJ.22-service-lifetime-offer-ru ru -seedServiceLifetimeOffer -presentServiceReminderOffer
+
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the

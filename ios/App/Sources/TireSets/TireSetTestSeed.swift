@@ -64,7 +64,7 @@ enum TireSetTestSeed {
             vehicleId: vehicle.id, date: mountDate, odometer: mountOdometer,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, vendor: nil, items: [],
-            usedParts: [], tireSetId: winter.id, proposedReminderId: nil)
+            usedParts: [], tireSetId: winter.id)
         try? repository.upsertServiceRecord(mount)
 
         let fillDate = now.addingTimeInterval(-10 * 86_400)

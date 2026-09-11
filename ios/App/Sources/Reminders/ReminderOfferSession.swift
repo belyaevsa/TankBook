@@ -45,9 +45,10 @@ final class ReminderOfferSession {
     ///
     /// A mount record's offer is titled with the mounted set's own name, so the
     /// set is looked up here - the pure `ReminderOffer` only sees the record.
-    /// When a swap reminder is proposed, a shape-only event records it: a
-    /// reminder that silently fails to schedule must not look like one nobody
-    /// accepted (docs/LOGGING.md, hard rule 12).
+    /// When a proposal is staged, a shape-only event records it: a reminder
+    /// that silently fails to schedule must not look like one nobody accepted
+    /// (docs/LOGGING.md, hard rule 12). A mount raises `tire.swapReminder`; a
+    /// line-item lifetime (PJ.22) raises `service.reminder`.
     func stage(afterService service: ServiceRecord,
                repository: TankbookRepository) {
         let live = (try? repository.liveReminders(forVehicle: service.vehicleId)) ?? []
@@ -59,8 +60,16 @@ final class ReminderOfferSession {
                                              tireSetName: tireSetName,
                                              liveReminders: live)
         pending = proposal
-        if proposal?.category == .tires {
-            AppLog.shared.emit(SwapReminderProposal(outcome: .proposed))
+        // A proposal that silently fails to schedule must not look like one
+        // nobody accepted, so the shape-only outcome is recorded at each stage
+        // (hard rule 12). The mount and the lifetime editor raise different
+        // events only so the two offers stay countable apart.
+        if let proposal {
+            if proposal.category == .tires {
+                AppLog.shared.emit(SwapReminderProposal(outcome: .proposed))
+            } else {
+                AppLog.shared.emit(ServiceReminderProposal(outcome: .proposed))
+            }
         }
     }
 
