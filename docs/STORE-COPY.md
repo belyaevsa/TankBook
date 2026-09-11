@@ -50,7 +50,7 @@ already stated word for word in the promotional text and the description.
 No account, no subscription, no ads. Your history lives on your phone; the export takes the receipt photos with it – so the next phone is not where five years go missing.
 ```
 
-### Description (2479 / 4000 characters)
+### Description (2424 / 4000 characters)
 
 ```
 Tankbook is a fuel and running-cost log built on one promise: the history you keep is yours, and you can take it out whole. English and Russian throughout.
@@ -77,36 +77,36 @@ What it tracks
 - Fuel-ups: litres, price, total, odometer, station and fuel type
 - Consumption in L/100 km or MPG, cost per kilometre, monthly spend
 - Service, repairs, parts, tyres, insurance and taxes, with photos attached
-- Petrol, diesel, hybrid and electric in one history
+- Petrol, diesel and hybrid in one history
 - Several cars, each with its own history and statistics
 - Reminders by date and by odometer
 - Back-dated entries, so old service records are easy to add
 
 Coming from another app
-Import from Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope and My Fuel Manager. You review what was read before anything is written to your log.
+Import from Drivvo and My Fuel Manager. You review what was read before anything is written to your log.
 
 Money in any currency
 Fill up abroad and the entry keeps both amounts: what you paid, and what it was worth in your car's currency at that day's rate, fixed when you save – so your history never shifts after the fact.
 ```
 
-### What's New – first release (337 characters, 5 lines)
+### What's New – first release (292 characters, 5 lines)
 
 ```
 This is the first release of Tankbook.
 - Your history lives on your phone: no account needed, every screen works offline
 - Snap a receipt or type the entry – both are first-class doors
 - Export is free and carries the receipt photos, not just the rows
-- Import from Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope and My Fuel Manager
+- Import from Drivvo and My Fuel Manager
 ```
 
-### Keywords (95 / 100 characters, comma-separated)
+### Keywords (97 / 100 characters, comma-separated)
 
 ```
-mpg,gas,mileage,odometer,receipt,scanner,vehicle,expenses,maintenance,offline,ev,diesel,economy
+mpg,gas,mileage,odometer,receipt,scanner,vehicle,expenses,maintenance,offline,diesel,economy,fuel
 ```
 
 The field splits between the plain search vocabulary of the category (mpg, gas, mileage,
-odometer, ev, diesel) and the qualifiers its reviewers are actively hunting for (offline,
+odometer, diesel, fuel) and the qualifiers its reviewers are actively hunting for (offline,
 maintenance, expenses, economy, receipt, scanner, vehicle). Words already indexed through the
 recommended name and subtitle – fuel, log, cost, yours – are left out on purpose, and "ai" and
 "automatic" are absent because they would index a promise the copy rule forbids. If you take
@@ -157,7 +157,7 @@ both words also searchable.
 Без аккаунта, без подписки, без рекламы. Журнал в телефоне и открывается офлайн, даже когда серверы недоступны. Экспорт забирает и фото чеков.
 ```
 
-### Description (2471 / 4000 characters)
+### Description (2411 / 4000 characters)
 
 ```
 Tankbook – журнал расхода топлива и трат на машину, который живёт в вашем телефоне. Приложение полностью на русском, можно переключить на английский.
@@ -184,26 +184,26 @@ Tankbook – журнал расхода топлива и трат на маш�
 - Заправки: литры, цена, сумма, пробег, АЗС
 - Расход в л/100 км или MPG, стоимость километра, траты за месяц
 - ТО, ремонты, запчасти, шины, страховка и налоги – с фотографиями
-- Бензин, дизель, гибрид и электромобиль в одной истории
+- Бензин, дизель и гибрид в одной истории
 - Несколько машин – у каждой свои записи и статистика
 - Напоминания по дате и по пробегу
 - Записи задним числом: старое ТО и прошлые заправки
 
 Переход из другого приложения
-Импорт из Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope и My Fuel Manager. Сначала показываем, что распозналось, и только потом записываем в журнал.
+Импорт из Drivvo и My Fuel Manager. Сначала показываем, что распозналось, и только потом записываем в журнал.
 
 Любая валюта
 Заправились за границей? Запись хранит обе суммы: сколько заплатили и сколько это в валюте машины по курсу того дня. Курс закрепляется в момент записи, и история задним числом не пересчитывается.
 ```
 
-### What's New – first release (306 characters, 5 lines)
+### What's New – first release (261 characters, 5 lines)
 
 ```
 Это первая версия Tankbook.
 - Журнал хранится в телефоне: аккаунт не нужен, всё работает офлайн
 - Сфотографируйте чек или введите запись вручную – как удобно
 - Экспорт бесплатный и полный: вместе с записями уходят фото чеков
-- Импорт из Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope и My Fuel Manager
+- Импорт из Drivvo и My Fuel Manager
 ```
 
 ### Keywords (96 / 100 characters, comma-separated)

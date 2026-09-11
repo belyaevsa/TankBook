@@ -166,12 +166,11 @@ WHAT IT TRACKS
 - Fuel-ups: litres, price, total, odometer, station
 - Consumption in L/100 km or MPG, cost per kilometre, monthly spend
 - Service, repairs, parts, tyres, insurance and taxes, with photos attached
-- Petrol, diesel, hybrid and electric in one history, per car
+- Petrol, diesel and hybrid in one history, per car
 - Several cars, free, on every tier
 
 COMING FROM ANOTHER APP
-Import from Fuelio, Drivvo, Fuelly/aCar, Spritmonitor, CarScope and My Fuel
-Manager. You see what was read before anything is written.
+Import from Drivvo and My Fuel Manager. You see what was read before anything is written.
 
 MONEY IN ANY CURRENCY
 Fill up abroad and the entry keeps both amounts - what you paid, and what it was
