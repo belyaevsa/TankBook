@@ -44,6 +44,12 @@ struct SchemaFieldWriterGuardTests {
               reason: "The About-screen diagnostics toggle the field documents was never built; the "
                   + "field is decoded (Records+Extras.swift:251) and synced but unwritable. "
                   + "Reported by RV.196."),
+        .init(field: "ServiceItem.partNumber",
+              reason: "PJ.61 (decided 2026-09-11: a partNumber field on the v1 item editor) owns "
+                  + "its writer. The draft only forwards it - `partNumber ?? original?.partNumber` "
+                  + "at ServiceEntryFormState.swift:98 - and nothing assigns the draft's own field, "
+                  + "so the expression always forwards the decoder-restored nil. Reported by RV.207; "
+                  + "delete this exception in PJ.61."),
         .init(field: "Station.brand",
               reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
                   + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
@@ -208,6 +214,7 @@ struct SchemaFieldWriterGuardTests {
             "Preferences.notifications.anomalies",
             "Preferences.notifications.reminders",
             "Preferences.proFeedbackDiagnostics",
+            "ServiceItem.partNumber",
             "Station.brand"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
@@ -232,6 +239,45 @@ struct SchemaFieldWriterGuardTests {
             schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
         #expect(!unwritten.contains("ServiceItem.lifetime.km"), "got \(unwritten)")
         #expect(!unwritten.contains("ServiceItem.lifetime.months"), "got \(unwritten)")
+    }
+
+    // MARK: - L1: the pass-through rule (RV.207)
+
+    /// A `??` whose left operand IS written is a real write, not a pass-through.
+    /// `Station.defaults.fuelKind`/`fuelGrade` are set from
+    /// `fuelKind ?? station.defaults.fuelKind` at `StationStamp.swift:38`, and
+    /// both identifiers have real production assignments
+    /// (`EditEntryFormState.swift:72`, `GatewayInboxPolicy.swift:293`). This is
+    /// the calibration that stops the rule widening to every `??` and reporting
+    /// these two live fields.
+    @Test func theNullCoalesceWithAWrittenLeftOperandIsStillAWrite() throws {
+        let unwritten = FieldWriterScanner.unwrittenFields(
+            schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
+        #expect(!unwritten.contains("Station.defaults.fuelKind"),
+                "fuelKind is assigned in production - the coalesce is a write. Got \(unwritten)")
+        #expect(!unwritten.contains("Station.defaults.fuelGrade"),
+                "fuelGrade is assigned in production - the coalesce is a write. Got \(unwritten)")
+    }
+
+    /// The rule's own unit: an argument that only forwards an unwritten
+    /// identifier is a pass-through; a `??` with a written left operand is not.
+    @Test func thePassThroughPredicateSeparatesForwardingFromWriting() {
+        let forwarded = FieldWriterScanner.Field(
+            typeName: "ServiceItem", ownerTypeName: "ServiceItem", path: ["partNumber"],
+            declaredType: "String?", declaredDefault: nil)
+        #expect(FieldWriterScanner.isPassThrough("partNumber ?? original?.partNumber",
+                                                 field: forwarded, writtenNames: []),
+                "an unwritten left operand forwards the stored value - not a write")
+        #expect(FieldWriterScanner.isPassThrough("original?.partNumber",
+                                                 field: forwarded, writtenNames: []),
+                "a bare re-read of the same field is a pass-through")
+
+        let written = FieldWriterScanner.Field(
+            typeName: "Defaults", ownerTypeName: "Defaults", path: ["fuelKind"],
+            declaredType: "FuelKind?", declaredDefault: nil)
+        #expect(!FieldWriterScanner.isPassThrough("fuelKind ?? station.defaults.fuelKind",
+                                                  field: written, writtenNames: ["fuelKind"]),
+                "a written left operand introduces a value - not a pass-through")
     }
 
     // MARK: - L1: the exclusions

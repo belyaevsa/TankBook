@@ -156,6 +156,7 @@ enum FieldWriterScanner {
         }
         let hosts = masked.filter { isProductionHost(path: $0.path) }
             .map { witness(in: $0.contents) }
+        let writtenNames = assignedNames(in: hosts)
         let repoWriters = FieldSourceParser.repositoryFieldWriters(sources: sources)
         var unwritten: [String] = []
         for heading in EntityWriterScanner.entityHeadings(in: schemaText) {
@@ -163,7 +164,8 @@ enum FieldWriterScanner {
             for typeName in typeNames(forHeading: heading) {
                 for field in FieldSourceParser.fields(forType: typeName, inMasked: masked) {
                     if exceptionNames.contains(field.qualifiedName) { continue }
-                    if !isWritten(field, in: hosts, repoWriters: repoWriters) {
+                    if !isWritten(field, in: hosts, repoWriters: repoWriters,
+                                  writtenNames: writtenNames) {
                         unwritten.append(field.qualifiedName)
                     }
                 }
@@ -400,11 +402,13 @@ enum FieldWriterScanner {
 
     static func isWritten(_ field: Field,
                           in hosts: [HostWitness],
-                          repoWriters: [String: Set<String>]) -> Bool {
+                          repoWriters: [String: Set<String>],
+                          writtenNames: Set<String>) -> Bool {
         for host in hosts {
             if host.assignmentChains.contains(field.path.joined(separator: ".")) { return true }
             if let args = host.initArguments[field.ownerTypeName],
-               let value = args[field.leafName], isNonDefault(value, field: field) {
+               let value = args[field.leafName], isNonDefault(value, field: field),
+               !isPassThrough(value, field: field, writtenNames: writtenNames) {
                 return true
             }
             if let functions = repoWriters[field.leafName],
@@ -413,6 +417,57 @@ enum FieldWriterScanner {
             }
         }
         return false
+    }
+
+    /// Every member name a production host assigns outside a declaration,
+    /// collected across hosts: `live.favorite = x` -> `favorite`,
+    /// `p.notifications.anomalies = x` -> `anomalies`. `self.x = ...` is the
+    /// type's own init and `recordAssignmentChain` already excludes it, so this
+    /// is exactly "assigned somewhere other than the field's own declaration".
+    static func assignedNames(in hosts: [HostWitness]) -> Set<String> {
+        var names: Set<String> = []
+        for host in hosts {
+            for chain in host.assignmentChains {
+                if let leaf = chain.split(separator: ".").last { names.insert(String(leaf)) }
+            }
+        }
+        return names
+    }
+
+    /// Whether an init argument can only forward a value that already exists
+    /// rather than introduce one. The shapes are `x ?? original?.x` and a bare
+    /// `original?.x`: the value being forwarded is an identifier no production
+    /// host assigns outside its own declaration, so the expression re-reads
+    /// what the decoder restored and the field is dead.
+    ///
+    /// `??` is NOT excluded by itself: `count ?? 0` with a written `count` is a
+    /// real write and stays one, because `count` is in `writtenNames`. A call,
+    /// literal or arithmetic expression is never a pass-through.
+    static func isPassThrough(_ value: String, field: Field, writtenNames: Set<String>) -> Bool {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let range = trimmed.range(of: "??") {
+            let left = String(trimmed[..<range.lowerBound])
+            guard let leaf = memberReadLeaf(left) else { return false }
+            return !writtenNames.contains(leaf)
+        }
+        guard trimmed.contains("."), let leaf = memberReadLeaf(trimmed),
+              leaf == field.leafName else { return false }
+        return !writtenNames.contains(leaf)
+    }
+
+    /// The leaf identifier of a pure member read (`original?.partNumber` ->
+    /// `partNumber`), or nil when the expression is anything else - a call,
+    /// arithmetic, a literal or a nested `??`.
+    private static func memberReadLeaf(_ expression: String) -> String? {
+        let trimmed = expression.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, !trimmed.contains("??") else { return nil }
+        let allowed = trimmed.allSatisfy {
+            $0.isLetter || $0.isNumber || $0 == "_" || $0 == "." || $0 == "?"
+        }
+        guard allowed, !trimmed.hasPrefix("."), !trimmed.hasSuffix(".") else { return nil }
+        let parts = trimmed.split(whereSeparator: { $0 == "." || $0 == "?" })
+        guard let leaf = parts.last, !leaf.isEmpty else { return nil }
+        return String(leaf)
     }
 
     private static func isNonDefault(_ value: String, field: Field) -> Bool {

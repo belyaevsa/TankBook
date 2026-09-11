@@ -86,6 +86,19 @@ struct SchemaFieldWriterGuardNewEntityTests {
                 "the editor writes months - it must not be reported. Got \(unwritten)")
     }
 
+    /// RV.207: `ServiceItem.partNumber` is dead - the draft only forwards it
+    /// (`partNumber ?? original?.partNumber`, `ServiceEntryFormState.swift:98`)
+    /// and nothing assigns the draft's own field - so the guard must report it.
+    /// Before RV.207 the coalesce counted as a non-default init argument and hid
+    /// the field; this assertion failed then. PJ.61 owns its writer and deletes
+    /// the reasoned exception in `SchemaFieldWriterGuardTests`.
+    @Test func theForwardedPartNumberIsReportedUntilPJ61WritesIt() throws {
+        let unwritten = FieldWriterScanner.unwrittenFields(
+            schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
+        #expect(unwritten.contains("ServiceItem.partNumber"),
+                "the draft forwards an unwritten value - partNumber must be reported. Got \(unwritten)")
+    }
+
     // MARK: - L1: the stale-exception check on the new entries
 
     /// Give `purchaseExpenseId` a production writer and its exception must be
