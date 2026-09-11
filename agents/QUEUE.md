@@ -78,9 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.243` | J3 / J7b | flash | (dispatching) | the photo survives a deferred read - the one row between J3 and its status line |
+| `RV.214` | J7 / J7b | flash | (dispatching) | what names a service well enough to save on; closes `PJ.50` against `RV.206` |
+| `REVIEW-J3-2`, `REVIEW-J8b-2` | J3, J8b | pro, read-only | 24258, 24262 | second walks after `RV.243` |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 and J8b walked: every promise met, gated on `RV.243` (in flight) and `RV.181`'s device step. Scenario 7: the create door shipped `403306d`; `RV.214` and `PJ.61` next, `PJ.60` awaits the owner.
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 and J8b: every build row shipped (`RV.243` `23ec0d8`), re-walking; `RV.181` `[~]` awaits the owner's device. Scenario 7: create door shipped; `RV.214` in flight; `PJ.61`, `RV.244` next; `PJ.60` awaits the owner.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
