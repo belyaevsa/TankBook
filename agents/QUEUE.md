@@ -86,15 +86,24 @@ the two-bundle rule in the standing checks - **`-only-testing` across two bundle
 the app-target suite and the UI suite are separate invocations, each with its count read (found
 2026-09-11 on `RV.201`, exit 0 with a suite that never ran).
 
-### 1. Scenario walks - read-only, first
+### 1. Scenario walks - DONE 2026-09-11, eight in parallel
 
-Six scenarios have every row closed and have never been reviewed: **`F2`, `F3`, `F5`, `F6b`, `F8`,
-`J5`**. Each is either the first `Status: implemented` line in `JOURNEYS.md` or a gap list. Then
-**`J7` / `J7b`**, which the product owner asked for by name - they are not closed (`RV.212`-`RV.215`
-are open under them), so the walk's job is to turn the journey text into seams for step 3, not to
-mark anything implemented.
+Eight read-only reviews ran beside nothing (`agents/briefs/REVIEW-SCENARIO-<id>-2026-09-11.md`,
+reports in `diagnostics/`). **One IMPLEMENTED - `F3`, the first status line in `JOURNEYS.md`.**
+Seven NOT IMPLEMENTED, every citation spot-checked by the orchestrator in the tree:
 
-Read-only; runs beside a build agent; on `pro`.
+| Scenario | Verdict | What the walk found | Filed as |
+|---|---|---|---|
+| **F3** | **IMPLEMENTED** | Location ranking is pure core, the reader touches no network; only the success metric is unmeasurable | `RV.225` (polish) |
+| **F2** | not | *"consumption outlier check on save"* is promised and has no code anywhere | `RV.218` |
+| **F5** + **J5** | not | Converged independently on one line: the QR date is parsed, tested, and never applied - `qrAnchor:` has no production caller | `RV.219` (one row, both scenarios) |
+| **F6b** | not | *Import as service* and *Leave out* call the same `toggleSkipped`; the station is rendered nowhere on the review row | `RV.220` (bug), `RV.221` |
+| **F8** | not | A grant in Settings returns to a blank preview (`camera.start()` has one call site); a camera fault is a silent no-op under a comment claiming a fallback | `RV.222`, `RV.223` |
+| **J7** | not, as expected | Every gap owned by an open row except one polish caption | `RV.224` |
+| **J7b** | not, as expected | No ticked row untrue; every gap already owned. **No new rows** - the right answer from a walk | - |
+
+**Zero ticked rows found untrue across all eight.** Every finding was an unowned promise in the
+journey text or a comment naming behaviour with no call site - the two shapes the review exists for.
 
 ### 2. Critical before launch - eight rows, briefed as they are
 
@@ -111,7 +120,7 @@ Read-only; runs beside a build agent; on `pro`.
 
 `RV.197` and `RV.208` first: they are on users' phones today.
 
-### 3. The J3 / J7 tail - eleven rows, three briefs
+### 3. The J3 / J7 tail and the walks' findings - seam briefs
 
 The rows filed this week by agents reporting what they correctly refused to build, plus the
 orchestrator's screenshot findings. Grouped by seam, each brief's L1 asserted from every kind:
@@ -119,8 +128,18 @@ orchestrator's screenshot findings. Grouped by seam, each brief's L1 asserted fr
 | # | Seam | Rows | One brief because |
 |---|---|---|---|
 | 1 | **The Inbox card** - copy, label table, RU column | `RV.216`, `RV.217`, `RV.204` | Same card, same `FieldLabel`, same narrow column. `RV.217` is the hint-column mistake the owner already rejected once on another screen |
-| 2 | **Lifetime across both doors** | `RV.212`, `RV.213` | Same `ServiceItemLifetimeFields` view, same km-needs-odometer rule, create and edit |
+| 2 | **The service create door** | `RV.212`, `RV.213`, `RV.224` | Same screen: lifetime on create, the km-needs-odometer rule on both doors, the invoice caption that outlives an edit |
 | 3 | **What names a row well enough to save on** | `RV.214`, `PJ.50` | The service gate is `RV.206`'s decision one entry kind over. `PJ.50`'s complaint is already answered by `RV.206`; close it against that row and keep only its merchant-line suggestion if wanted |
+
+Three more seams from the walks, each one brief:
+
+| # | Seam | Rows | One brief because |
+|---|---|---|---|
+| 4 | **The capture cover's recovery paths** | `RV.222`, `RV.223` | Same screen, same `capture()` nil path, same false comments |
+| 5 | **The import review row** | `RV.220`, `RV.221` | Same `ImportReviewView` row; `RV.220` is a hard rule 8 bug and goes first |
+| 6 | **The QR anchor** | `RV.219` | One line in the assembler, two scenarios (J5, F5) closed by it |
+
+`RV.218` (the outlier check) is standalone and touches `ConsumptionEngine`; it goes after `RV.219`.
 
 Standalone after those, in this order: **`RV.215`** (the producing side is synchronous - the deferral
 half `RV.201` filed with the seam named), **`RV.209`** (two `Attachment` builders disagree),

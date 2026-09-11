@@ -506,6 +506,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** corrected-field rate tracked per OCR version (rising = regression); zero support tickets about silently wrong totals.
 
 ### F3 · No internet at the pump
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F3-2026-09-11)
 **Trigger:** underground garage, roaming disabled abroad, rural dead zone. The most common "failure" of all – and by design, a non-event.
 
 - Capture, on-device OCR, parsing, cross-check, save: **all work identically offline.** The user should be unable to tell.
