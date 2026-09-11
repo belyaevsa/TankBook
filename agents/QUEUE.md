@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.216+RV.217` | J3 | flash | 78589 | `RV.216+RV.217.md` - the Inbox card's row number and RU column |
+| `RV.204+RV.209` | J3 / J7 / J7b | flash | 98382 | `RV.204+RV.209.md` - degrade everywhere (owner's call); the two Attachment builders; the append-vs-replace split |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3: `RV.197` `5bd6ad7`, `RV.208` `c241564` shipped; `RV.216+RV.217` in flight; then `RV.204+RV.209`, `RV.215`.
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3: `RV.197`, `RV.208`, `RV.216+RV.217` shipped; `RV.204+RV.209` in flight; then `RV.215`, then J3's walk.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
