@@ -146,8 +146,20 @@ private struct InboxItemCard: View {
                 Color.clear.frame(width: 24, height: 1)
             }
             ForEach(offers) { offer in
+                // The label gets its own full-width line above the values.
+                // Squeezed into the value columns, a single-word RU label is
+                // compressed until it breaks mid-word ("Мастер-ская"); here it
+                // has the card's whole width and cannot hyphenate. The label
+                // spans the value columns and the row below reuses the same
+                // grid, so the comparison stays column-aligned.
                 GridRow {
                     fieldCell(offer)
+                        .gridCellColumns(3)
+                        .gridColumnAlignment(.leading)
+                    Color.clear.frame(width: 24, height: 1)
+                }
+                GridRow {
+                    Color.clear.frame(width: 20, height: 1)
                     Text(InboxValueFormat.yours(offer.field, entry: entry))
                         .valueStyle(emphasis: .muted)
                         .gridColumnAlignment(.trailing)
@@ -165,11 +177,12 @@ private struct InboxItemCard: View {
             Text(InboxValueFormat.label(offer.field))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
+                .fixedSize(horizontal: false, vertical: true)
             Text(verb(for: offer))
                 .font(.caption2)
                 .foregroundStyle(offer.disposition == .differs ? Theme.Palette.warn : Theme.Palette.inkSoft)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .gridColumnAlignment(.leading)
     }
 
     private func tickButton(_ offer: GatewayInboxPolicy.FieldOffer) -> some View {

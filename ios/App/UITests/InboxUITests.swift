@@ -280,6 +280,10 @@ final class InboxUITests: XCTestCase {
                       "the invoice's first line must be tickable")
         XCTAssertTrue(app.buttons["inboxTick_total"].exists,
                       "the service total must be tickable")
+        XCTAssertTrue(app.staticTexts["Row 1"].waitForExistence(timeout: 5),
+                      "the first line is labelled from one, not zero (RV.216)")
+        XCTAssertFalse(app.staticTexts["Row 0"].exists,
+                       "a zero-based line label is the defect")
         XCTAssertFalse(app.buttons["inboxTick_volume"].exists,
                        "a service offer has no fuel fields")
         XCTAssertFalse(app.buttons["inboxTick_other"].exists,
@@ -302,6 +306,10 @@ final class InboxUITests: XCTestCase {
         XCTAssertTrue(app.buttons["inboxTick_vendor"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["inboxTick_lineItem_0"].exists)
         XCTAssertTrue(app.buttons["inboxTick_total"].exists)
+        XCTAssertTrue(app.staticTexts["Строка 1"].waitForExistence(timeout: 5),
+                      "the first line is labelled from one in RU too (RV.216)")
+        XCTAssertFalse(app.staticTexts["Строка 0"].exists,
+                       "a zero-based line label is the defect")
         app.buttons["inboxLeaveButton"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["inboxEmptyState"].waitForExistence(timeout: 5))
     }

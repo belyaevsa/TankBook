@@ -25,7 +25,12 @@ enum FieldLabel {
         case .vendor: return L10n.localize("Vendor")
         case .energy: return L10n.localize("Energy")
         case .category: return L10n.localize("Category")
-        case .lineItem(let n): return String(format: L10n.localize("Row %@"), String(n))
+        case .lineItem(let n):
+            // `FieldRef.lineItem` is an INDEX into the entry's `items` (the merge
+            // and the recognition both address it that way); the user counts from
+            // one, so only the LABEL is offset. Offsetting the ref itself would
+            // make the merge write the wrong line.
+            return String(format: L10n.localize("Row %@"), String(n + 1))
         }
     }
 }

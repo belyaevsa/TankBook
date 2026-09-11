@@ -1806,12 +1806,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.201-inbox-service": {
-      "commit": "c3aa29d",
+      "commit": "02ebfa8d",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.201-inbox-service-ru": {
-      "commit": "c3aa29d",
+      "commit": "02ebfa8d",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2096,12 +2096,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.45-comparison": {
-      "commit": "2e36049",
+      "commit": "02ebfa8d",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.45-comparison-ru": {
-      "commit": "2e36049",
+      "commit": "02ebfa8d",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

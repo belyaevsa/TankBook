@@ -128,4 +128,82 @@ final class RV201InboxEntryKindTests: XCTestCase {
         XCTAssertFalse(FieldLabel.text(.category).isEmpty)
         XCTAssertFalse(FieldLabel.text(.lineItem(0)).isEmpty)
     }
+
+    // MARK: - RV.216 the line-item label counts from one
+
+    /// `FieldRef.lineItem` is an INDEX into `items`; the user counts from one, so
+    /// only the label is offset. Both halves are asserted here - the displayed
+    /// number AND the ref still addressing `items[0]` - because offsetting the ref
+    /// itself would make the merge write the wrong line.
+    func testLineItemLabelCountsFromOneWhileTheRefStaysAnIndex() throws {
+        XCTAssertEqual(FieldLabel.text(.lineItem(0)),
+                       String(format: L10n.localize("Row %@"), "1"),
+                       "the first line is Row 1, not Row 0")
+        XCTAssertEqual(FieldLabel.text(.lineItem(1)),
+                       String(format: L10n.localize("Row %@"), "2"),
+                       "the second line is Row 2")
+
+        // The test runner loads one locale; read both catalog entries so the
+        // words are pinned in EN and RU, where the label runs longest.
+        let catalog = try Self.readCatalog()
+        let en = try Self.localizedValue(catalog, key: "Row %@", language: "en")
+        let ru = try Self.localizedValue(catalog, key: "Row %@", language: "ru")
+        XCTAssertEqual(String(format: en, "1"), "Row 1")
+        XCTAssertEqual(String(format: ru, "1"), "Строка 1")
+
+        // `.lineItem(0)` still addresses the first saved item through the merge.
+        let (repository, vehicle) = try makeVehicle()
+        let now = Date()
+        let service = ServiceRecord(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: 120_000,
+            money: Money(amount: Decimal(string: "200.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: "Old Garage",
+            items: [ServiceItem(title: "Oil change", category: .oil,
+                                cost: Money(amount: Decimal(string: "80.00")!,
+                                            currency: .eur, homeCurrency: .eur))],
+            usedParts: [], tireSetId: nil)
+        try repository.upsertServiceRecord(service)
+
+        let recognition = InboxRecognition.service(ServiceRecognition(
+            lineItems: [.init(title: "Brake pads", category: .brakes,
+                              cost: Money(amount: Decimal(string: "120.00")!,
+                                          currency: .eur, homeCurrency: .eur))]))
+        let merged = GatewayInboxPolicy.merged(entry: .service(service),
+                                               recognition: recognition,
+                                               taking: [.lineItem(0)])
+        guard case .service(let result) = merged else {
+            XCTFail("a service merge must stay a service")
+            return
+        }
+        XCTAssertEqual(result.items.first?.title, "Brake pads",
+                       "the ref addresses items[0]; the 1-based label must not move it")
+    }
+
+    // MARK: - Catalog reading (the ServerErrorCodeL10nTests pattern)
+
+    private static func readCatalog() throws -> [String: Any] {
+        let thisFile = URL(fileURLWithPath: #filePath).standardizedFileURL
+        var candidate = thisFile.deletingLastPathComponent() // ios/App/Tests
+        for _ in 0..<3 { candidate = candidate.deletingLastPathComponent() } // -> repo root
+        let catalogURL = candidate.appendingPathComponent("ios/App/Sources/Localizable.xcstrings")
+        let data = try Data(contentsOf: catalogURL)
+        return try XCTUnwrap(
+            try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            "cannot parse Localizable.xcstrings at \(catalogURL.path)")
+    }
+
+    private static func localizedValue(_ catalog: [String: Any],
+                                       key: String,
+                                       language: String) throws -> String {
+        let strings = try XCTUnwrap(catalog["strings"] as? [String: Any])
+        let entry = try XCTUnwrap(strings[key] as? [String: Any],
+                                  "missing catalog key: \(key)")
+        let localizations = entry["localizations"] as? [String: Any]
+        let languageEntry = localizations?[language] as? [String: Any]
+        let stringUnit = languageEntry?["stringUnit"] as? [String: Any]
+        return try XCTUnwrap(stringUnit?["value"] as? String,
+                             "missing \(language) value for \(key)")
+    }
 }

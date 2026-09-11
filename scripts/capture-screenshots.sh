@@ -929,8 +929,10 @@ capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToC
 # RV.201: the same inbox comparison card carrying a SERVICE offer - a differing
 # vendor, the invoice's first line item and the total. This is the frame that
 # proves the per-field ask reaches an entry kind that is not a fill-up. RU is
-# the real test: "Поставщик", "Позиция 0" and "Итого" in the two-column
-# yours-vs-receipt layout are exactly where Russian overflows.
+# the real test: "Мастерская", "Строка 1" and "Итого" in the two-column
+# yours-vs-receipt layout are exactly where Russian overflows. RV.216/217 use
+# the same pose: the line label counts from one, and the label sits above its
+# comparison row so no RU label hyphenates.
 capture RV.201-inbox-service    en -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
 capture RV.201-inbox-service-ru ru -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
 
