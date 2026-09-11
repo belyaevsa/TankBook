@@ -249,6 +249,9 @@ No open architecture questions remain – the decided list above plus GRDB (pers
   habit: five full runs in one day, ~2h15m, one genuine defect, two false reds from contention.
   A brief must NAME the suites it expects to run. Check the count is non-zero - a `--filter` matching
   nothing prints "0 tests ... passed". Full details and the trade-off: `docs/TESTING.md`.
+  **Two bundles, two invocations** (2026-09-11): `-only-testing` naming both the app-target bundle
+  and the UI bundle in one `xcodebuild` command ran only the UI bundle's 12 and exited 0 for a suite
+  that never executed. Run each bundle separately and read each count.
 - **Validation runs on a `deepseek-v4-pro` agent, not in the orchestrator's own session**
   (standing instruction, 2026-08-24). Dispatch `agents/briefs/VALIDATE.md` with the task id and
   path filled in. Two things do not change: **read the validator's captured exit codes, not its
