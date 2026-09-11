@@ -96,7 +96,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2`, `F1` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the

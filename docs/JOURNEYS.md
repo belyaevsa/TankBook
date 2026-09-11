@@ -483,6 +483,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 *The unhappy paths, mapped with the same care. Design stance: a failure is a fork in the journey, never a dead end – the user always leaves with their data logged and their photo kept. Copy follows DESIGN.md voice: say what happened, say the next step, never apologize, never modal-panic.*
 
 ### F1 · Scan recognized nothing (or almost nothing)
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F1-2026-09-11c)
 **Trigger:** faded thermal receipt, receipt in a language/layout we've never seen, shot too dark.
 
 | Stage | Experience | Design rule |
