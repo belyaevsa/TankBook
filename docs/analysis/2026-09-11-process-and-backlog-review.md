@@ -115,7 +115,7 @@ section even where unmarked.
 
 ### v1 open - 55 rows, in five groups
 
-**A. Critical - fix before launch (8).** Each is data loss, a hard-rule failure, or an App Review
+**A. Critical - fix before launch (8).** (`RV.148` was here on first reading; the queue records the owner deferred it on 2026-09-09, so it sits in group E. `RV.207` takes its place - the guard blind spot `PJ.61` waits on.) Each is data loss, a hard-rule failure, or an App Review
 risk:
 
 | Row | Why it is critical |
@@ -124,10 +124,10 @@ risk:
 | `RV.208` `[!]` | Entries already on users' phones may hold a dangling attachment id - a migration, not a fix |
 | `RV.155` | The pull cursor went backwards and re-fetched 274 records - sync correctness |
 | `RV.143` | A home-currency change arriving by sync re-homes nothing on the receiving device - hard rule 3 across devices |
-| `RV.148` | The monthly push sums a rate-pending month as complete - a wrong number sent to the user |
 | `PJ.58` `[!]` | A second hardcoded `.eur` on service line items - `RV.185`'s fix one entry kind short |
 | `PJ.51` | The store listing promises EV logging and six importers; one importer exists and EV is v2 - **App Review will read the listing** |
 | `RV.174` | The per-task gate can be green on code that does not compile into the app - the gate itself |
+| `RV.207` `[!]` | The field guard counts a pass-through as a write, so a dead field hides behind `??` - a blind spot in the thing that proves fields are live |
 
 **B. Important and groupable - 11 rows, three briefs** (the table under *Dispatch by seam*, plus
 `RV.209` two `Attachment` builders, `RV.211` F9a ranking, `RV.215` deferred recognition,
@@ -147,8 +147,8 @@ schema fields are live.
 **E. Decide or drop with the owner (7).** `PJ.60`, `PJ.61` (two dead fields the guard surfaced -
 give them a writer or delete them), `RV.115` (station brand list - a product decision), `RV.108`
 (`GET /v1/account` is normative in `API.md` and does not exist - fix the doc or build it),
-`RV.138`, `RV.158`, `RV.164` (each small, each a judgement), `RV.181` `[!]` (the owner skipped it;
-the row should say so or close).
+`RV.138`, `RV.158`, `RV.164` (each small, each a judgement), `RV.148` (deferred by the owner on
+2026-09-09), `RV.181` `[!]` (the owner skipped it; the row should say so or close).
 
 **F. Launch operations (3).** `SH.1`-`SH.3` are the owner's own TestFlight and store work; `SH.3`
 is explicitly *"out of scope, I will do it anyway"*.

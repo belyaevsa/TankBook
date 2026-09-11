@@ -56,219 +56,114 @@ Three rules that come from things that went wrong:
 
 **Every entry here names its parent scenario** (standing instruction, 2026-09-10) - the journey id
 from `docs/JOURNEYS.md`, or `no-scenario:` with a reason. `scripts/scenario-index.py` is the map, and
-`--check` fails an open `docs/TASKS.md` row that names none. Without the link a queue is a list of
-chores; with it you can see which story a dispatch advances and when that story is ready for its
-completion review.
+`--check` fails an open `docs/TASKS.md` row that names none.
 
 **Update this file at BOTH ends of a dispatch**: add the row to *In flight* when it launches, and
-REMOVE it when its commit lands. A queue that says a shipped row is still running is worse than no
-queue - it is the file a fresh session trusts to know what is left. Shipped rows leave this file
-entirely; `docs/TASKS-DONE.md` and `docs/TASKS-HISTORY.md` are where they go.
+REMOVE it when its commit lands. Shipped rows leave this file entirely; `docs/TASKS-DONE.md` and
+`docs/TASKS-HISTORY.md` are where they go.
+
+**Reordered 2026-09-11** against `docs/analysis/2026-09-11-process-and-backlog-review.md`. Two
+rules changed the order and the shape of what is queued:
+
+- **The seam is the unit of dispatch, not the row.** A brief covers every entry kind, door or
+  screen that shares the code it changes, and its L1 asserts the behaviour from each one in the same
+  test file (the `RV.201` shape). The agent is **authorised** to fix a sibling in the same run when
+  it is the same function or line, and **files** when it is a different decision. 37 of 214 RV rows
+  were siblings filed one at a time; that stops here.
+- **Walk the scenario before briefing its group.** `REVIEW-SCENARIO.md` runs first, its promise
+  list clusters into seams, each seam gets one brief. The after-the-fact review still runs and
+  should find nothing.
 
 ### In flight
 
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
-*(nothing in flight - `RV.198` shipped `8a4ba9d`, `REVIEW-SERVICE` reported and regrouped the loop in `14bfdfd`.)*
+*(nothing in flight - `RV.201` shipped `f3e6adc`; the loop paused on the product owner's instruction and resumes in the order below.)*
 
-**The only parallel pair this file sanctions is a build agent plus the read-only journeys walk** -
-no edits, no builds, no tests, so it cannot collide on files or on the simulator, and `CLAUDE.md`
-says so explicitly. Two build agents still collide, and two Swift agents starting in the same second
-still hit `database is locked`.
+**Before the next dispatch, the mechanisation lands first**: `agents/briefs/PREAMBLE.md` (the fences,
+once), `scripts/dispatch.sh <id>` (launch, log, 60-second byte check, one retry on a dead run), and
+the two-bundle rule in the standing checks - **`-only-testing` across two bundles runs ONE of them**;
+the app-target suite and the UI suite are separate invocations, each with its count read (found
+2026-09-11 on `RV.201`, exit 0 with a suite that never ran).
 
-### Waiting, in order
+### 1. Scenario walks - read-only, first
 
-**Nothing is briefed and unshipped except `RV.189`.** The queue is **brief-bound, not agent-bound**:
-every other dispatch below needs a brief written first.
+Six scenarios have every row closed and have never been reviewed: **`F2`, `F3`, `F5`, `F6b`, `F8`,
+`J5`**. Each is either the first `Status: implemented` line in `JOURNEYS.md` or a gap list. Then
+**`J7` / `J7b`**, which the product owner asked for by name - they are not closed (`RV.212`-`RV.215`
+are open under them), so the walk's job is to turn the journey text into seams for step 3, not to
+mark anything implemented.
 
-**The four shipped guards cover each other's blind spots**, and each was built against a live
-failing case rather than a hypothetical. Their blind spots are the argument for `RV.165` and
-`RV.172`:
+Read-only; runs beside a build agent; on `pro`.
 
-| Guard | Catches | Its stated blind spot | Closing it |
+### 2. Critical before launch - eight rows, briefed as they are
+
+| # | Row | Scenario | Why it cannot wait |
 |---|---|---|---|
-| `RV.167` money aggregation | a `.reduce` over a `Money`'s home side outside the accumulator | the `.reduce` shape only; a `+=` loop walks past | **`RV.172` CLOSED as a decision** - the grep finds no such site, and widening a guard against a hypothetical is the one thing the sequencing rule forbids |
-| `RV.163` entity writers | an entity `SCHEMA.md` names that nothing can create | entity-level; `PJ.55` was the FIELD-level instance it cannot see | **`RV.196`, briefed** - and its instances are LIVE: `Settings.anomalies` and `eagerMediaOnWiFi` are decoder-only |
-| `RV.162` screen routes | a screen whose only door is `#if DEBUG` (`PJ.4`'s shape) | proves a door NAMES the screen, does not walk the view graph | **`RV.165`, IN FLIGHT** - four journeys from a cold launch, plus a guard that fails a journey passing a navigation argument |
-| `RV.176` screenshot manifest | a committed PNG no capture line produces | proves a line EXISTS, not that it reproduces that frame | **`RV.194`, briefed** - narrow 470 frames to a suspect list by comparing below the status bar |
+| 1 | **RV.197** `[!]` | J8b | A guest logs a fill-up and never sees it. Hard rule 1 in its plainest form; 443 UI tests missed it because every one signs in first |
+| 2 | **RV.208** `[!]` | J3 / J8b | Entries already on users' phones may carry a dangling attachment id. A migration, not a fix, and it gets worse with every install |
+| 3 | **RV.155** | J11 | The pull cursor went backwards and re-fetched 274 records it already had |
+| 4 | **RV.143** | J10 | A home-currency change arriving by sync re-homes nothing on the receiving device. Decide the [RV.152] prompt first, then this is what is left |
+| 5 | **PJ.58** `[!]` | J2 | A second hardcoded `.eur`, on service line items - `RV.185`'s fix one entry kind short, invisible to `RV.167`'s guard |
+| 6 | **PJ.51** | J1 | The store listing promises EV logging and six importers. App Review reads the listing. Ship the paths or change the words |
+| 7 | **RV.174** | *no-scenario: the gate itself* | The per-task gate is green on code that does not compile into the app. Every dispatch after this one is safer for it |
+| 8 | **RV.207** `[!]` | *no-scenario: guard blind spot* | The field guard counts a pass-through as a write, so a dead field hides behind `??`. `PJ.61` cannot be briefed honestly until this lands |
 
-**One row is committed but deliberately NOT closed.** `RV.181` (`ae775cf`) shipped hardening and a
-diagnosis, not a fix: the share seam now records the whole completion tuple, so a share that FAILED
-is no longer logged as one the user cancelled. The cause is **not established** and the earlier
-"hosted as a sheet root, so no presenter" diagnosis is **withdrawn** - UIKit forwards a presentation
-up the parent hierarchy, and *Save to Files completes under both shapes*, which was counter-evidence
-in hand and misread. **Verification needs the product owner's physical iPhone 13**; no simulator test
-can settle it.
+`RV.197` and `RV.208` first: they are on users' phones today.
 
+### 3. The J3 / J7 tail - eleven rows, three briefs
 
-### The product owner's own reports - all resolved
+The rows filed this week by agents reporting what they correctly refused to build, plus the
+orchestrator's screenshot findings. Grouped by seam, each brief's L1 asserted from every kind:
 
-Twelve defects were reported by using the app on 2026-09-09/10. **Eleven shipped**; `RV.181` is
-**skipped by the owner** (see *Not queued, and why*) and is the only one left.
-
-**`RV.189` was the last, and it is the row that argues for the method.** Its evidence table named
-four links and every one of them held on inspection - the parser read the column, the wire carried
-it, the conversion stamped it, the commit materialised the row. The value was dropped **between**
-them, in a copy helper no link covered. **Audit each link and you find nothing; trace the value end
-to end and you find it in one run.**
-
-### STOP after these three (product owner, 2026-09-11)
-
-*"don't dispatch new jobs after these agents completed."* **`PJ.22`, `RV.206` and `RV.201` are the
-last dispatches.** Rows 4 and 5 below stay briefed-and-ready and are **not** to be dispatched; the
-unbriefed rows stay unbriefed. When `RV.201` lands and is verified, the dispatch loop is over.
-
-The **J7 / J7b walk-through** the product owner asked for still happens - it is the completion review
-`CLAUDE.md` requires before either journey may be marked implemented - but the orchestrator walks it
-in session rather than dispatching `REVIEW-SCENARIO.md`, so no new agent is started.
-
-### Briefed and ready, in order
-
-Shipped rows have left this table; `docs/TASKS-DONE.md` has them. **Order below follows
-`REVIEW-SERVICE`'s regrouping and the product owner's 2026-09-10 capture questions**, not filing
-order. Eleven of the original twelve rows have shipped; what remains is below.
-
-| # | Task | Scenario | Brief | Note |
-|---|---|---|---|---|
-| 1 | **PJ.22** | **J7** | `PJ.22.md` | **IN FLIGHT.** The lifetime editor. Deletes `proposedReminderId` per `PJ.62`'s decision, and deletes `RV.196`'s `ServiceItem.lifetime` exception - closing the guard loop a fourth time |
-| 2 | **RV.206** `[!]` | **J7b** | `RV.206.md` | A scan that read category, amount and date still cannot be saved: `canSave` is `hasTitle && amountDecimal != nil`, and `RV.187`/`RV.195` made the title redundant. **The brief requires the gate's ORIGINAL reason to be found first**, and asks whether `ServiceEntryView`'s `hasTitledItem` has the same defect |
-| 3 | **RV.201** `[!]` | **J3 / J7 / J7b** | `RV.201.md` | **Large, and the last of the original twelve.** Late recognition reaches a fill-up and nothing else. One merge over entry kind, not a second Inbox. May build the core half and defer the deferral half **if it says so plainly and files the rest** |
-| 4 | **RV.194** | *no-scenario: screenshot tooling* | `RV.194.md` | `RV.176`'s blind spot. Slow - a full 470-frame capture - and its final judgement is the orchestrator's |
-| 5 | **PJ.60** / **PJ.61** | **J7b / J7d** | *needs one* | Drop-or-write decisions the field guard surfaced. **`PJ.61` needs rewording against `RV.207`**: the guard cannot see `partNumber`, so there is no exception for that row to remove |
-
-### Open in the service loop, unbriefed
-
-| Task | Why it is not dispatched |
-|---|---|
-| **RV.204** | Needs a decision first, not a brief |
-| **RV.205** `[!]` | **Needs the product owner's photographs.** No agent can close it |
-| **RV.209** | Filed during the service loop; no brief yet |
-| **PJ.24** | Filed during the service loop; no brief yet |
-
-### Scenario completion reviews owed
-
-`scripts/scenario-index.py` lists six scenarios whose rows are all closed and which have **never been
-walked**: **F2, F3, F5, F6b, F8, J5**. Each needs `agents/briefs/REVIEW-SCENARIO.md` run against it
-before any `Status: implemented` line may be written (`CLAUDE.md`, 2026-09-10). **J7 and J7b join
-them once `PJ.22`, `RV.206` and `RV.201` land** - the product owner has asked for that walk-through
-explicitly.
-
-### Filed 2026-09-10, no brief yet
-
-| Task | Why it is worth a brief |
-|---|---|
-| **RV.194** | The 138 reconstructed capture lines were never run. A wrong line is worse than none - the check goes green on a line EXISTING, not on it reproducing the frame, which is the failure `RV.176` was filed against. Also: frames caught mid-transition, with a previous screen's header bleeding through |
-| **RV.191** | RU: the import picker's dead-end card falls below the fold at the real format count (hard rule 7's next step, found by re-shooting the screenshot honestly) |
-| **PJ.58** | A SECOND hardcoded `.eur`, on service line-item costs - outside `RV.185`'s fence and invisible to `RV.167`'s guard |
-| **PJ.59** | `RecentlyDeletedView`'s "Overwritten by sync" is still a fixture while `PR.14` is ticked |
-| ~~RV.195's leftover~~ | **It was `PJ.23` all along** - PRIORITY since 2026-08-31, briefed now. Filing it as a new finding is the duplication this queue keeps producing; see `RV.110`/`RV.165` |
-
-### Standing, unbriefed
-
-`RV.164` (an error names a next step that does not exist), `RV.165` (full-journey scenarios),
-`RV.168` (how briefs ask for proof), `RV.169`/`RV.170`/`RV.171`/`RV.172` (the four guards awaiting
-their seams), `RV.148`/`RV.155`/`RV.158` (sync and rates), `RV.174` (the baseline gate can be green
-on code that does not compile into the app), `RV.182` (the tank pre-fill, decision made, no brief).
-**Ten `PJ` rows are marked PRIORITY by the product owner (2026-08-31) and none has been briefed.**
-
-**The recurring journeys walk is due**: it runs every 10 shipped rows or at a phase gate. Eleven
-rows shipped since Groups C+D on 2026-09-10.
-
-## Scenarios READY FOR REVIEW, and nobody has looked
-
-`scripts/scenario-index.py` reports **six scenarios whose every row is closed and which have never
-been reviewed end to end**: `F2`, `F3`, `F5`, `F6b`, `F8`, `J5`. Under the 2026-09-10 rule each needs
-`agents/briefs/REVIEW-SCENARIO.md` before its journey may carry a `Status: implemented` line - and a
-first run is EXPECTED to come back NOT IMPLEMENTED, because ticked tasks were never evidence that a
-story is whole.
-
-**Run them on `pro`, read-only, beside whatever build agent is live.** They are the cheapest tool
-here and the only one that compares what the user was promised against what the code does.
-
-## The service loop, regrouped by its walk (2026-09-10)
-
-`REVIEW-SERVICE` walked J7 / J7b / J7d / J7c end to end
-(`diagnostics/REVIEW-SERVICE-2026-09-10.md`). Its verdict on the product owner's question - group or
-rebuild - was **neither**: *"the six rows are the right DECOMPOSITION, but the dispatch boundaries
-are wrong in two places, and one decision is missing."* **Three seams and one sweep, not six atoms
-and not one theme.**
-
-| Group | Rows | The seam | Order |
+| # | Seam | Rows | One brief because |
 |---|---|---|---|
-| **A - the item surface** | `RV.198` + `RV.199` | The item collection and its total on the EDIT screen - one card, one save path | `RV.198` is IN FLIGHT; `RV.199` follows immediately |
-| **B - a reminder is born** | `PJ.62` **then** `PJ.22` | `ReminderOffer`, plus the `lifetime` editor that rides the same item row Group A is finishing | after A, and **`PJ.62` must be DECIDED first** |
-| **C - the tire loop** | `PJ.26` + `PJ.27` | `.tires` mode, `TireSet`, `TireSetsUITests` | after `PJ.63`; independent of A and B |
-| **D - the dead-field sweep** | `PJ.63` **then** `PJ.60` + `PJ.61` | `SCHEMA.md` headings and `FieldWriterScanner.entityFieldSpecs` | `PJ.63` first, so the guard can SEE the fields |
+| 1 | **The Inbox card** - copy, label table, RU column | `RV.216`, `RV.217`, `RV.204` | Same card, same `FieldLabel`, same narrow column. `RV.217` is the hint-column mistake the owner already rejected once on another screen |
+| 2 | **Lifetime across both doors** | `RV.212`, `RV.213` | Same `ServiceItemLifetimeFields` view, same km-needs-odometer rule, create and edit |
+| 3 | **What names a row well enough to save on** | `RV.214`, `PJ.50` | The service gate is `RV.206`'s decision one entry kind over. `PJ.50`'s complaint is already answered by `RV.206`; close it against that row and keep only its merchant-line suggestion if wanted |
 
-**Three things the walk changed, and each is a decision I would have got wrong:**
+Standalone after those, in this order: **`RV.215`** (the producing side is synchronous - the deferral
+half `RV.201` filed with the seam named), **`RV.209`** (two `Attachment` builders disagree),
+**`RV.211`** (F9a ranking on service and expense), **`RV.134`** (units baked into five sentences),
+**`RV.191`** (RU import card below the fold).
 
-1. **`RV.199` is not a standalone row.** *"Shipping add/delete while the total stays stale IS the
-   RV.199 bug."* Adding a line must move the total, or the screen must say it will not. My `RV.198`
-   brief fenced `RV.199` OUT - so the dispatch now running will produce exactly that gap, and
-   `RV.199` goes out the moment it lands.
-2. **`PJ.22` as filed would mint a second reminder link.** Its row says *write `proposedReminderId`*
-   without noticing `Reminder.sourceEntryId` already carries that relationship and is already
-   written by the shipped `ReminderOffer` - **the exact second-path defect `RV.169`/`RV.170`/`RV.171`
-   exist to prevent.** `PJ.62` decides it before PJ.22 may be briefed.
-3. **`PJ.63` must precede `PJ.26`.** `TireSet` has no `###` heading, so `RV.196`'s guard is green
-   while three fields in this loop are dead. Fix the blind spot first and the guard becomes the
-   thing that PROVES `PJ.26` fixed something.
+### 4. Decide or drop - with the product owner, not an agent
 
-**Zero ticked-but-untrue rows.** `PJ.23`, `P3.1b`, `P3.2`, `P3.3` and `PJ.25` were all verified
-present and reachable in Release.
+| Row | The decision |
+|---|---|
+| **PJ.60** / **PJ.61** | `Expense.recurrence` and `ServiceItem.partNumber` are written `nil` and read nowhere. A writer, or delete the fields. `PJ.61` waits for `RV.207` |
+| **RV.115** | A station BRAND list, or every spelling of a chain stays a different station. Product call |
+| **RV.108** | `GET /v1/account` is normative in `API.md` and does not exist. Fix the doc or build it |
+| **RV.138**, **RV.158**, **RV.164** | Each small, each a judgement rather than a build |
+| **RV.181** `[!]` | **Skipped by the owner, 2026-09-10.** The hardening shipped (`ae775cf`); the cause needs one share attempt from the physical iPhone 13. The row should say *skipped* or close |
+| **RV.148** | **Deferred by the owner, 2026-09-09** (*"we will come to it later"*). Parked, not blocked |
 
-**One finding filed by nobody yet**: `ServiceRecord.usedParts` has a writer and **no reader** - the
-reverse of the dead-field shape. A saved service never shows which parts it installed. Left as a
-product call, likely `PJ.52`'s (v2 parts shelf).
+### 5. Needs photographs, not an agent
 
-## Grouping: what ships together, and why (decided 2026-09-10)
+`RV.114` (six Estonian pump photos, unscored), `RV.179` (the corpus cannot say whether station
+extraction is right), `RV.205` `[!]` (zero non-fuel receipt images). Nothing moves until the product
+owner's next receipts arrive.
 
-**A group is justified by a shared SEAM, never a shared theme** - if two rows would edit the same
-file, or one row is how you diagnose the other, they are one dispatch. Otherwise the mutation stops
-being a single named claim, which is the part that has been catching real defects. Four groupings
-shipped on 2026-09-10 and the rule held every time; two remain:
+### 6. Hardening and tooling - post-launch by their own markers
 
-| Dispatch | Rows | Why grouped |
-|---|---|---|
-| **Station seam** | `RV.189` - `RV.189.md` - **then** `RV.170` | `RV.189` is an INVESTIGATION (its cause is not established, and the brief records the orchestrator's own WRONG diagnosis so it is not repeated). `RV.170`'s guard needs the seam that row settles, so it cannot be written first |
-| **Receipt seam** | `RV.173` **then** `RV.171` | Same shape. `RV.171` already says *"do `RV.149` first, then see what seam it leaves"* - `RV.173` IS that leftover |
+`PR.19`, `PR.21`-`PR.26`, `PR.32`, `PR.33`, `PR.36` (all `[v1.0.x]`), `RV.109`, `RV.129`, `RV.130`,
+`RV.168`, `RV.169`, `RV.175`, `RV.194` (briefed - slow, and its final judgement is the
+orchestrator's), `RV.203`, `RV.210`, `T.3`. None blocks launch. `RV.194` goes when a simulator is
+idle for an hour.
 
-**Deliberately NOT grouped**: `RV.187`'s Log-row work with `RV.119`/`RV.134` (`RV.119` is a large
-`[v1.1]` redesign); `RV.181`, `RV.182` and `RV.174` stay standalone.
+### Not queued: deferred v1.1 / v1.x and the v2 agent
+
+Thirty-one rows carry `[v1.1]` or `[v1.x]` and most say *PRIORITY (product owner, 2026-08-31)* or
+*DEFERRED* in their own text - they are the point-release plan, not v1 debt. The seventeen `AG` rows,
+`PJ.18`, `PJ.46`, `PJ.49`, `PJ.52` and `RV.123` are the v2 agent and its paywall. `SH.1`-`SH.3` are
+the owner's own TestFlight and store work.
 
 **Check the backlog for the row before filing a finding as new.** Twice on 2026-09-10 a finding was
-filed that an existing row already carried: `RV.195`'s "leftover" was `PJ.23`, PRIORITY since
-2026-08-31, and `RV.165` duplicated `RV.110`. Both pairs were found by reading the list, not by the
-process. **A new row costs nothing to file and something real to discover twice.**
+filed that an existing row already carried (`PJ.23`, `RV.110`). **A new row costs nothing to file
+and something real to discover twice.**
 
 **The ordering that works, proven twice**: build a guard against a seam that has just been settled,
-never a hypothetical one. `RV.163` was dispatched after `PJ.55`'s seam for that reason and its
-mutation reconstructed `RV.156` exactly; `RV.170` and `RV.171` are sequenced the same way.
-
-
-### Not queued, and why
-
-- **RV.181** `[!]` - *"I select a destination, but nothing is dispatched."* **SKIPPED by the product
-  owner, 2026-09-10.** The row stays OPEN and unfixed; it is simply not being worked. `ae775cf`
-  shipped the hardening and, more usefully, the outcome record: a share that fails at its
-  destination is now logged as `failed` with its activity type and error code, where before it was
-  indistinguishable from a cancel. **So the next report of this is answerable from a diagnostics
-  bundle**, which is what makes skipping it cheap now and expensive-to-diagnose never. Nothing here
-  is agent work: it does not reproduce on the simulator, and the only remaining evidence is one
-  share attempt from a physical device.
-
-- **RV.148** - the monthly-summary push summing a partial month. **Deferred by the product owner,
-  2026-09-09** (*"with monthly results - we will come to it later"*). Not blocked on a decision that
-  is coming; parked deliberately. The row keeps its two candidate answers - suppress while partial,
-  or mark the figure in the body - for whenever it is picked up.
-
-- **RV.139** - the instrumentation shipped ([RV.139b], `e92d147`); the next step is ONE device log
-  from a build carrying the `rates.refresh` event. That is the product owner's, not an agent's, and
-  queueing it would invite a fifth speculative fix.
-- **RV.143** - a home-currency change arriving by sync re-homes nothing on the receiving device.
-  Overlaps [RV.152]'s territory; decide the prompt first, then see what is left.
-- **RV.153's leftovers** - `receipt-055`'s volume still reads 17.56 against a true 77.56. That needs
-  P2.9's decimal ladder and was deliberately out of RV.153's scope.
+never a hypothetical one (`RV.163` after `PJ.55`, `RV.170` after `RV.189`, `RV.171` after `RV.173`).
 
 ### Shipped rows are not in this file
 
