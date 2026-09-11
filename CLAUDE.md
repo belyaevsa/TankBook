@@ -31,6 +31,7 @@ Capture-first car cost log: iOS native (SwiftUI) + C#/ASP.NET Core backend with 
 | `docs/TASKS.md` | The **open** backlog and the index of every task id (generated - `scripts/tasks-index.py`, `--check` fails when stale) | Picking up any work item; one task = one PR = code + checks. **Start at the index**, then read only the row you need |
 | `docs/TASKS-DONE.md` | Every closed row - shipped `[x]` or cut - with the reasoning that closed it | Asking why something was built the way it is, or whether a row was already done. Not read when picking up work |
 | `docs/TASKS-HISTORY.md` | The dispatch ledger: which model did which task | Model-routing questions only |
+| `docs/DEVELOPMENT-TIMELINE.md` | The ledger of changes to the development APPROACH - each with commit, date, reason and evidence. **Every change to how we work is recorded here in the same change that makes it** (product owner, 2026-09-11) | Changing a standing instruction, a gate, a dispatch rule, a model, or the unit of work |
 | `Spike/ReceiptSpike/` | OCR validation harness + parser reference implementation; its README defines the accuracy gate workflow | OCR/parser work; extending vocabularies |
 
 ## Version scope (convention, 2026-08-29)
