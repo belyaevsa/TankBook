@@ -645,6 +645,7 @@ is a review list that failed to explain itself.
 **Metric:** restores resolving to full data ≥99.5%; empty-restore sessions that reach the recovery entry point: 100%.
 
 ### F8 · Permissions and hardware said no
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F8-2026-09-11b)
 **Trigger:** camera permission denied at first capture; or camera in use / hardware fault.
 
 - Denied: the capture tab doesn't become a dead button – it opens the manual form with a top card: "Scanning needs the camera – enable in Settings" (deep link). The core promise degrades but the app remains fully usable, permanently, for the paranoid.

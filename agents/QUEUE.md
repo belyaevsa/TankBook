@@ -79,9 +79,8 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
 | `RV.220+RV.221+RV.191` | F6b, F6 | flash | 63484 | `bfq…` (session) | `RV.220+RV.221+RV.191.md` - via `scripts/dispatch.sh`, healthy at 21 KB / 60 s |
-| `REVIEW-F8-2` | F8 | pro, read-only | 63468 | session | second walk after `RV.222+RV.223` (`bb7887a`) |
 
-**Scenarios 1 (J5 + F5) IMPLEMENTED; 2 (F8) built, re-walking; 3 (F6b + F6) in flight.**
+**Scenarios 1 (J5 + F5) and 2 (F8) IMPLEMENTED; 3 (F6b + F6) in flight.**
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -96,7 +95,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3`, `J5`, `F5` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented:** `F3`, `J5`, `F5`, `F8` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
@@ -105,7 +104,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | # | Scenario | v1 rows to close | Briefs (by seam) | Then |
 |---|---|---|---|---|
 | 1 | ~~**J5 + F5** the fiscal QR~~ | `RV.219` shipped `96d05ae` | - | **DONE 2026-09-11** - both re-walked IMPLEMENTED, two status lines from one line of code |
-| 2 | **F8** permissions and hardware said no | `RV.222`, `RV.223` shipped `bb7887a` | - | **built 2026-09-11**; re-walk running |
+| 2 | ~~**F8** permissions and hardware said no~~ | `RV.222`, `RV.223` shipped `bb7887a` | - | **DONE 2026-09-11** - re-walked IMPLEMENTED |
 | 3 | **F6b + F6** the import review row | `RV.220` (bug, first), `RV.221`, `RV.191` | one - `ImportReviewView`'s row, EN+RU | re-walk both |
 | 4 | **F2** scan recognized wrong data | `RV.218` | one - the outlier flag from the one `ConsumptionEngine` | re-walk |
 | 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
