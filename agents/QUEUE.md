@@ -79,7 +79,7 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `RV.134` | J3b | flash | 7676 | `RV.134.md` - via `scripts/dispatch.sh`, healthy at 49 KB / 60 s |
-| `REVIEW-F1`, `REVIEW-F9a` | F1, F9a | pro, read-only | 7660, 7664 | first walks after `RV.164+RV.211` (`9cac6db`) |
+| `REVIEW-F1` | F1 | pro, read-only | 7660 | first walks after `RV.164+RV.211` (`9cac6db`) |
 
 **Scenarios 1 (J5 + F5), 2 (F8), 3a (F6b), 4 (F2) IMPLEMENTED; 5: F1 + F9a built and walking, J3b in flight.**
 
