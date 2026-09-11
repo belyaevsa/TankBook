@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.214` | J7 / J7b | flash | (dispatching) | what names a service well enough to save on; closes `PJ.50` against `RV.206` |
+| `PJ.61` | J7b | flash | 76179 | the `partNumber` field on the item editor (owner's option 2); deletes `RV.207`'s exception |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 and J8b: every build row shipped (`RV.243` `23ec0d8`), re-walking; `RV.181` `[~]` awaits the owner's device. Scenario 7: create door shipped; `RV.214` in flight; `PJ.61`, `RV.244` next; `PJ.60` awaits the owner.
+**IMPLEMENTED (11): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3.** J8b reviewed IMPLEMENTED, line held for `RV.181`'s device step. Scenario 7: create door and `RV.214` shipped, `PJ.50` closed; `PJ.61` in flight; `RV.244` briefed next; `PJ.60` awaits the owner; then the four service walks.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
