@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.174` | *no-scenario: the gate itself* | flash | 42557 | `RV.174.md` - via `scripts/dispatch.sh`, healthy at 66 KB / 60 s |
+| `RV.197` | J8b / J3 | flash | (dispatching) | `RV.197.md` - the guest Home shows the Log; first of J3, alone |
 
-**IMPLEMENTED: J5, F5, F8, F6b, F2 (+F3).** Scenario 5: F1 waits on `RV.232` (deferred to v2 - re-walk owed), F9a walking, J3b's `RV.134` shipped (`RV.234` filed). Cross-cutting `RV.174` in flight, `RV.207` next; then J3.
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** One row from a status line: F7 (`RV.239`), J1 (`RV.241`), J9 (`RV.240` - owner's call), F6 + F6a (`RV.228`). Cross-cutting `RV.174` and `RV.207` shipped; the guard loop has a third blind spot filed (`RV.242`). **J3 is in progress.**
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -95,7 +95,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2`, `F1`, `J8`, `F9a`, `F4` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented (10):** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2`, `F1`, `J8`, `F9a`, `F4` (2026-09-11). **One row from it:** F7 (`RV.239`, briefed), J1 (`RV.241`, briefed), J9 (`RV.240`, owner's call), F6/F6a (`RV.228`, briefed). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
@@ -115,9 +115,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | 10 | **J4** pump display | `RV.115`, `RV.114`, `RV.179` | `RV.115` is a product call; the other two wait for photographs | walk when the corpus exists |
 | 11 | **J8, J13** | `RV.148` (owner-deferred), `RV.181` (owner-skipped) | none - both are the owner's calls | walk and mark N/A with the owner's reason |
 
-**Cross-cutting, before scenario 6**: `RV.174` (the gate can be green on code that does not
-compile into the app) and `RV.207` (the field guard's pass-through blind spot). Both are
-`no-scenario` and both make every later dispatch safer; `RV.207` gates `PJ.61`.
+**Cross-cutting - DONE 2026-09-11**: `RV.174` (`scripts/gate.sh`, `d56f293`) and `RV.207` (`cb4fc7c`). `PJ.61` is unblocked. `RV.242` (the guard's name-based assignment check) is the next blind spot and gates `PJ.60`'s loop the same way.
 
 **Cross-cutting, before the next dispatch at all**: the mechanisation - `agents/briefs/PREAMBLE.md`,
 `scripts/dispatch.sh` (launch, log, 60-second byte check, one retry), and the two-bundle rule.
