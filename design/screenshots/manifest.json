@@ -1915,6 +1915,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.223-capture-fault": {
+      "commit": "8f9ab752",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.223-capture-fault-ru": {
+      "commit": "8f9ab752",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.23-welcome": {
       "commit": "d86fde9",
       "device": "iPhone 17",

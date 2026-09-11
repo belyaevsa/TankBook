@@ -11903,6 +11903,23 @@
         }
       }
     },
+    "The camera didn't respond – type the entry instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera didn't respond – type the entry instead."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Камера не отвечает – введите запись вручную."
+          }
+        }
+      }
+    },
     "The entry this reading was about no longer exists.": {
       "extractionState": "manual",
       "localizations": {

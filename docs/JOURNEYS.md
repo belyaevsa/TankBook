@@ -648,6 +648,8 @@ is a review list that failed to explain itself.
 **Trigger:** camera permission denied at first capture; or camera in use / hardware fault.
 
 - Denied: the capture tab doesn't become a dead button – it opens the manual form with a top card: "Scanning needs the camera – enable in Settings" (deep link). The core promise degrades but the app remains fully usable, permanently, for the paranoid.
+- A grant in Settings resumes the camera on return, without a relaunch: the scenePhase handler restarts the session, so the deep link's payoff is real rather than a blank preview.
+- Camera in use / hardware fault: the live surface stays and a card names the manual door ("The camera didn't respond – type the entry instead"), with the shutter still there for a retry. It never points at Settings - a grant cannot fix a busy camera - and it is a transient presented state, not a permission state.
 - Photo-library-only users: "add from photos" is always present on the capture surface (also serves the screenshot journey J6).
 
 **Metric:** permission-denied users still logging entries at D7 (they're future converts, not losses).

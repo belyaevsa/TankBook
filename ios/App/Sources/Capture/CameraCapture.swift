@@ -1,4 +1,5 @@
 import AVFoundation
+import Foundation
 import UIKit
 
 /// The capture screen's camera session (PJ.1): one `AVCaptureSession` shared by
@@ -8,8 +9,9 @@ import UIKit
 ///
 /// On the simulator - or any device with no camera - `isReady` stays false, the
 /// preview layer stays nil (the `midnight` surface shows instead) and `capture()`
-/// returns nil immediately: a missing camera degrades to the manual door, never
-/// a crash and never a dead end (hard rules 15, 7).
+/// returns nil immediately. The caller decides what a nil means; `CaptureView`
+/// surfaces the camera-fault next step rather than a silent no-op (hard rules
+/// 15, 7).
 @MainActor
 @Observable
 final class CameraController: NSObject {
@@ -21,16 +23,40 @@ final class CameraController: NSObject {
     /// True once a camera is attached and running (false on the simulator).
     private(set) var isReady = false
 
+    #if DEBUG
+    /// The `-captureCameraTestFrame <path>` test double: a simulated camera.
+    /// The simulator has no camera, so without it `start()` leaves `isReady`
+    /// false and a UI test could not tell a started session from an unstarted
+    /// one. `-captureFixtureImage` cannot stand in here because it bypasses
+    /// `capture()` entirely. Production never passes the argument.
+    private var testFrame: UIImage? {
+        guard let path = ProcessInfo.processInfo.arguments.captureCameraTestFramePath else {
+            return nil
+        }
+        return UIImage(contentsOfFile: path)
+    }
+    #endif
+
     /// The running session, exposed so the preview layer can render it.
     var captureSession: AVCaptureSession? {
         isReady ? session : nil
     }
 
     /// Configures the session once: video input + photo output, and starts
-    /// running. Idempotent; a device without a camera leaves `isReady` false.
+    /// running. Idempotent, so the first permission resolve and the return from
+    /// Settings can both call it; a device without a camera leaves `isReady`
+    /// false. Under the DEBUG `-captureCameraTestFrame` double it reports ready
+    /// without touching the hardware, so a UI test can prove the session was
+    /// started.
     func start() {
         guard !didConfigure else { return }
         didConfigure = true
+        #if DEBUG
+        if testFrame != nil {
+            isReady = true
+            return
+        }
+        #endif
         guard let device = AVCaptureDevice.default(for: .video) else { return }
         do {
             let input = try AVCaptureDeviceInput(device: device)
@@ -59,9 +85,13 @@ final class CameraController: NSObject {
     }
 
     /// Captures one photo frame. Returns nil when no camera is available or the
-    /// capture fails - the caller then degrades to the ordinary manual form.
+    /// capture fails; a nil from this real-camera path is the caller's cue to
+    /// surface the camera-fault next step (`CaptureView.captureFrame`).
     func capture() async -> UIImage? {
         guard isReady, captureContinuation == nil else { return nil }
+        #if DEBUG
+        if let testFrame { return testFrame }
+        #endif
         // RV.49: the sensor delivers landscape pixels; the connection's rotation
         // must be told the interface orientation or the photo (and its EXIF)
         // arrive sideways and Vision reads them wrong. The app is portrait-only
@@ -123,3 +153,19 @@ extension CameraController: AVCapturePhotoCaptureDelegate {
         }
     }
 }
+
+#if DEBUG
+extension Array where Element == String {
+    /// The `-captureCameraTestFrame <path>` override, if present. It makes
+    /// `CameraController.start()` succeed with a simulated camera and
+    /// `capture()` hand back the file, so a UI test can prove the session was
+    /// started (the `-captureFixtureImage` double bypasses `capture()` and so
+    /// cannot). Production never passes the argument.
+    var captureCameraTestFramePath: String? {
+        guard let index = firstIndex(of: "-captureCameraTestFrame"), index + 1 < count else {
+            return nil
+        }
+        return self[index + 1]
+    }
+}
+#endif

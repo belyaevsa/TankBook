@@ -26,6 +26,11 @@ struct CaptureView: View {
     @Environment(ExpenseEntrySession.self) var expenseSession
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
+    /// RV.223: a real camera that returned no frame (in use, or a hardware
+    /// fault). Transient, and separate from `cameraStatus` because permission
+    /// can be `.authorized` while the hardware refuses; the fault card offers
+    /// the manual door, never Settings.
+    @State var cameraFault = false
     @State private var mode: CaptureMode = .fillUpAuto
     @State var activeSheet: CaptureSheet?
     /// RV.5: the captured frame awaiting the user's verdict. Non-nil means the
@@ -77,7 +82,7 @@ struct CaptureView: View {
     var body: some View {
         ZStack {
             cameraBackground
-            if cameraStatus == .denied {
+            if surface == .denied {
                 deniedLayout
             } else {
                 liveLayout
@@ -86,15 +91,20 @@ struct CaptureView: View {
         .task { await resolvePermission() }
         .onAppear {
             loadPowertrain(); loadAlphaNotice()
-            presentTypeItIfRequested(); presentReviewIfRequested()
+            presentTypeItIfRequested(); presentReviewIfRequested(); presentFaultIfRequested()
         }
         .onChange(of: scenePhase) { _, phase in
+            #if DEBUG
+            if phase == .background {
+                SystemCameraAuthorizer.noteDidEnterBackground()
+            }
+            #endif
             // Coming back from Settings after a denial: re-read the status so
             // a grant in Settings resumes the camera surface without a relaunch.
             guard phase == .active else { return }
             let current = authorizer.status()
             if current != .notDetermined {
-                cameraStatus = current
+                setCameraStatus(current)
             }
         }
         .sheet(item: $activeSheet) { sheet in
@@ -136,18 +146,41 @@ struct CaptureView: View {
 
     // MARK: - Permission
 
+    /// The one place a permission status is applied: stores it and starts the
+    /// session when authorised. `CameraController.start()` is idempotent, so
+    /// the first resolve and the return from Settings can both go through here
+    /// and a grant in Settings resumes the camera without a relaunch (F8).
+    private func setCameraStatus(_ status: CaptureCameraStatus) {
+        cameraStatus = status
+        if status == .authorized {
+            camera.start()
+        }
+    }
+
     private func resolvePermission() async {
         guard !resolved else { return }
         resolved = true
         let initial = authorizer.status()
         if initial == .notDetermined {
-            cameraStatus = await authorizer.request()
+            setCameraStatus(await authorizer.request())
         } else {
-            cameraStatus = initial
+            setCameraStatus(initial)
         }
-        if cameraStatus == .authorized {
-            camera.start()
-        }
+    }
+
+    /// What the capture surface presents right now: the denied fallback, the
+    /// transient fault card, or the live camera. The mapping (denied wins over
+    /// a fault) is pure and pinned at L1 (`CaptureSurfaceState`).
+    private var surface: CaptureSurfaceState {
+        CaptureSurfaceState.resolve(status: cameraStatus, cameraFault: cameraFault)
+    }
+
+    /// The manual door for the current mode - the same call the shutter's peer
+    /// affordance makes (hard rule 15). Clears a transient camera fault because
+    /// the user has left the camera for the typed door.
+    func openManualEntry() {
+        cameraFault = false
+        activeSheet = .manualForm(mode.manualEntryForm)
     }
 
     /// Reads the selected car's powertrain so the mode row offers only what
@@ -213,6 +246,21 @@ struct CaptureView: View {
             } else {
                 processScanned(image)
             }
+        }
+        #endif
+    }
+
+    /// DEBUG/test-only: `-captureAutoFault` shows the RV.223 camera-fault card
+    /// a beat after the surface appears, so `simctl` - which cannot tap a
+    /// shutter - can screenshot the state the fault path would reach.
+    /// Production never passes the argument; the state is the same one
+    /// `captureFrame` sets on a real nil.
+    private func presentFaultIfRequested() {
+        #if DEBUG
+        guard ProcessInfo.processInfo.arguments.contains("-captureAutoFault") else { return }
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))
+            cameraFault = true
         }
         #endif
     }
@@ -335,14 +383,25 @@ struct CaptureView: View {
         isProcessing = true
         Task {
             defer { isProcessing = false }
-            let image: UIImage?
-            if let fixture = fixtureImage() {
-                image = fixture
+            let fixture = fixtureImage()
+            let cameraImage: UIImage?
+            if fixture == nil {
+                cameraImage = await camera.capture()
             } else {
-                image = await camera.capture()
+                cameraImage = nil
             }
-            guard let image else { return }
-            processScanned(image)
+            switch CaptureShutterOutcome.resolve(usedFixture: fixture != nil,
+                                                 cameraImage: cameraImage != nil) {
+            case .review:
+                if let image = fixture ?? cameraImage {
+                    cameraFault = false
+                    processScanned(image)
+                }
+            case .cameraFault:
+                // A real camera that returned nothing (in use, hardware fault):
+                // surface the manual door, never silence (hard rule 7).
+                cameraFault = true
+            }
         }
     }
 
@@ -379,66 +438,10 @@ struct CaptureView: View {
         }
     }
 
-    private var permissionCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "camera.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.taillight)
-                Text("Scanning needs the camera – enable in Settings.")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.ink)
-            }
-            HStack(spacing: 8) {
-                permissionAction("Settings",
-                                 identifier: "capturePermissionSettingsButton",
-                                 action: openSettings)
-                permissionAction("Type it",
-                                 identifier: "capturePermissionTypeItButton") {
-                    activeSheet = .manualForm(mode.manualEntryForm)
-                }
-                permissionAction("Photos",
-                                 identifier: "capturePermissionPhotosButton") {
-                    openPhotos()
-                }
-            }
-        }
-        .padding(Theme.Spacing.cardPadding)
-        .background(Theme.Palette.dash)
-        .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.card))
-        .overlay(
-            RoundedRectangle(cornerRadius: Theme.Radius.card)
-                .stroke(Theme.Palette.hairline, lineWidth: 1)
-        )
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("capturePermissionCard")
-    }
-
-    private func permissionAction(_ label: LocalizedStringKey,
-                                  identifier: String,
-                                  action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(label)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(Capsule().fill(Theme.Palette.midnight))
-                .overlay(Capsule().stroke(Theme.Palette.ink.opacity(0.15), lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(identifier)
-    }
-
-    private func openSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
-    }
-
     /// The Photos door, shared by the permission card and the granted layout:
     /// under the fixture double the image is injected directly; otherwise the
     /// system picker opens and its result feeds the same pipeline.
-    private func openPhotos() {
+    func openPhotos() {
         if let fixture = fixtureImage() {
             processScanned(fixture)
         } else {
@@ -462,6 +465,11 @@ struct CaptureView: View {
                 .padding(.bottom, 14)
             if alphaNoticeVisible {
                 CaptureAlphaNotice(dismiss: dismissAlphaNotice)
+            }
+            if surface == .fault {
+                cameraFaultCard
+                    .padding(.horizontal, Theme.Spacing.screenMargin)
+                    .padding(.bottom, 10)
             }
             bottomActions
         }
@@ -578,7 +586,7 @@ struct CaptureView: View {
 
     private var typeItButton: some View {
         Button {
-            activeSheet = .manualForm(mode.manualEntryForm)
+            openManualEntry()
         } label: {
             Image(systemName: "square.and.pencil")
                 .font(.system(size: 17, weight: .regular))

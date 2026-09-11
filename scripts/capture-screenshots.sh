@@ -256,6 +256,12 @@ capture P2.1-capture-ru            ru -presentScreen capture -cameraStatus autho
 # Charge, and Russian is where four chips stop fitting. Committed so the mode
 # row's degradation is on the record, not assumed.
 capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus authorized -powertrain phev
+# RV.223: the camera-fault card - the live surface stays, and the card names
+# the manual door (never Settings: a grant cannot fix a busy camera).
+# `-captureAutoFault` shows it a beat after the surface appears, because simctl
+# cannot tap a shutter. RU is the wrap check for the longer fault copy.
+capture RV.223-capture-fault       en -presentScreen capture -cameraStatus authorized -captureAutoFault
+capture RV.223-capture-fault-ru    ru -presentScreen capture -cameraStatus authorized -captureAutoFault
 
 # P6.10: the alpha-testing disclosure on the capture surface (docs/ERRORS.md ->
 # Capture). A fresh database is the point: with zero captures the notice is

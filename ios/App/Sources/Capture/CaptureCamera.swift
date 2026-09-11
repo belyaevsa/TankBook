@@ -2,14 +2,6 @@ import AVFoundation
 import Foundation
 import TankbookCore
 
-/// The camera permission states the capture screen can be in
-/// (docs/ERRORS.md -> Capture; F8 in docs/JOURNEYS.md).
-enum CaptureCameraStatus: Sendable, Equatable {
-    case authorized
-    case denied
-    case notDetermined
-}
-
 /// Injected permission source so UI tests can drive every state without
 /// touching the real system (docs/TESTING.md). `SystemCameraAuthorizer` is the
 /// production implementation; the DEBUG `-cameraStatus` override is read inside
@@ -22,9 +14,42 @@ protocol CameraAuthorizing: Sendable {
 /// Production authorizer backed by `AVCaptureDevice`. The DEBUG/test-only
 /// override `-cameraStatus denied|authorized|notDetermined` forces the result
 /// so the F8 fallback and the camera layout are reachable deterministically on
-/// a simulator that has no camera at all.
+/// a simulator that has no camera at all. `-cameraStatusSequence a,b` is the
+/// mid-run variant: each `status()` read advances through the list and repeats
+/// the last, so a UI test can model the Settings round-trip - launch denied,
+/// background/foreground the app, then read authorized - without a real
+/// Settings visit.
 struct SystemCameraAuthorizer: CameraAuthorizing {
+    #if DEBUG
+    /// The current index into `-cameraStatusSequence`. `unsafe` because it is
+    /// read only from the main-actor capture view and never concurrently; it
+    /// exists solely so a UI test can flip a status mid-run.
+    nonisolated(unsafe) private static var sequenceIndex = 0
+    /// True once the app has left the foreground. The sequence advances only
+    /// after a real background/foreground round-trip, so the launch-time
+    /// `.active` transition cannot consume the next value.
+    nonisolated(unsafe) private static var didEnterBackground = false
+    #endif
+
+    #if DEBUG
+    /// Called from the capture view when the scene backgrounds. It arms the
+    /// next `status()` read to advance `-cameraStatusSequence`, modelling the
+    /// Settings round-trip without a real Settings visit.
+    static func noteDidEnterBackground() {
+        didEnterBackground = true
+    }
+    #endif
+
     func status() -> CaptureCameraStatus {
+        #if DEBUG
+        if let sequence = ProcessInfo.processInfo.arguments.cameraStatusSequence {
+            if Self.didEnterBackground {
+                Self.sequenceIndex = min(Self.sequenceIndex + 1, sequence.count - 1)
+                Self.didEnterBackground = false
+            }
+            return sequence[min(Self.sequenceIndex, sequence.count - 1)]
+        }
+        #endif
         if let forced = ProcessInfo.processInfo.arguments.cameraStatusOverride {
             return forced
         }
@@ -68,10 +93,31 @@ private extension Array where Element == String {
     /// The DEBUG `-cameraStatus <value>` override, if present.
     var cameraStatusOverride: CaptureCameraStatus? {
         guard let index = firstIndex(of: "-cameraStatus"), index + 1 < count else { return nil }
-        switch self[index + 1] {
-        case "authorized": return .authorized
-        case "denied": return .denied
-        case "notDetermined": return .notDetermined
+        return CaptureCameraStatus(argumentValue: self[index + 1])
+    }
+
+    /// The DEBUG `-cameraStatusSequence <a,b>` override, if present. Each
+    /// `status()` read returns the next value and repeats the last, so a UI
+    /// test can flip the status mid-run (see `SystemCameraAuthorizer`).
+    var cameraStatusSequence: [CaptureCameraStatus]? {
+        guard let index = firstIndex(of: "-cameraStatusSequence"), index + 1 < count else {
+            return nil
+        }
+        let values = self[index + 1].split(separator: ",").compactMap {
+            CaptureCameraStatus(argumentValue: String($0))
+        }
+        return values.isEmpty ? nil : values
+    }
+}
+
+extension CaptureCameraStatus {
+    /// Parses the `-cameraStatus` argument vocabulary. Shared so the single
+    /// override and the sequence cannot drift apart.
+    init?(argumentValue: String) {
+        switch argumentValue {
+        case "authorized": self = .authorized
+        case "denied": self = .denied
+        case "notDetermined": self = .notDetermined
         default: return nil
         }
     }
