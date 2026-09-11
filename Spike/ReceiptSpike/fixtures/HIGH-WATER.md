@@ -69,6 +69,27 @@ free signal here and is the same heuristic the `screenshots` re-baseline above e
 out; `receipt-036`/`receipt-037` already show the same till printing the operands in both orders
 one minute apart. What closes it is step 3 of the ladder - the user's own price history.
 
+## A fuel kind read from boilerplate
+
+`receipt-062` and `receipt-063` (2026-09-11) are the corpus's cleanest **OCR-not-parser** pair: one
+RN-Tver till, one slip layout, two minutes apart. `063` sweeps 5/5. On `062` Vision reads the
+product line as `МИ95ФИРМ` at confidence **1.00** (`АИ` -> `МИ`), the `95` marker is gone, and the
+parser then commits **`fuelKind = lpg`** from `/СУГ` in the footnote `1 ед.=1 литр для
+нефтепродуктов/СУГ` - a line **every** RN-Tver slip prints, `063` included. The receipt says АИ95
+and its paired pump (`pump-085`) was dispensing it, so this is a confident-wrong kind read from
+boilerplate, not a ground-truth question. It is the receipt-side twin of the pump rule ("a visible
+grade is evidence the station sells it, never that this fill used it"): a kind word in a footnote
+that lists what the till can sell is not the kind of this fill. The fix belongs in the fuel-kind
+vocabulary (where a marker is allowed to come from), not in the ratchet; do not raise the number
+by teaching the parser `МИ95`.
+
+The same batch's eleven pump displays sharpen the other standing asymmetry: both Circle K Gilbarco
+reads (`pump-094`/`095`, `€` / `L` / `€/L` beside the digits) sweep 3/3 and the nine Cyrillic-
+labelled displays behind glass (two Tokheim, seven Scheidt & Bachmann) commit nothing - so the
+same `30.00 x 71.30` fill is resolved from the paper (`receipt-063`) and not from the pump
+(`pump-086`). Precision moved 0.940 -> 0.946 and coverage 0.216 -> 0.212; the mode stays off on
+both.
+
 ## Known trap
 
 `swift run ReceiptSpike fixtures/receipts` - the CLI a human runs when adding a fixture by

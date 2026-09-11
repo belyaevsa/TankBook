@@ -8,16 +8,18 @@ stays off.
 ```
 fixtures/
   receipts/   receipt photos + expected.csv      -> Vision OCR (L5 accuracy gate)
-              61 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
+              64 files, RU + EE + KZ, 6 years. Live score in high-water.json - see its README
               receipt-036 is the first NON-FISCAL terminal slip: no QR, no VAT, no fiscal ids
               receipt-047/048 are matched pairs with pump-065/066 (see high-water.json):
               048 sweeps 5/5, 047 abstains on both operands - they bracket the RUB band
   pump/       pump-display photos + expected.csv -> Vision OCR (L5, >=95% or the mode stays off)
-              84 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
+              95 displays, 6 makes, EE/RU/KZ. Live score in high-water.json.
               pump-016/017 are idle - negative fixtures
               pump-021/022/023 are sun-glared; their values came from the photographer, not the photo
               pump-002 is the SAME fill as receipt-007: independent ground truth
   fiscal/     OFD documents + expected.csv       -> text layer where there is one, OCR where there is not (P2.6)
+  expenses/   expense-KIND fixtures + expected.csv -> the RV.200 category vocabulary (L1, text in)
+              10 hand-authored OCR dumps + 1 photograph with its Vision dump. See its README
   screenshots/ e-receipt screenshots + expected.csv -> Vision OCR, rendered text
               8 screens, RU + Circle K EE/LV/LT. See its README on discounts vs the cross-check
 ```
@@ -126,9 +128,10 @@ hard rule 4 exists for.
 ## Known gaps in the current corpus
 
 - **Breadth is still the limit, not count.** Every accuracy figure below a few
-  dozen images per class is anecdote, not measurement. As of 2026-09-10 the
-  corpus holds 60 receipts, 83 pump displays, 8 screenshots and 2 fiscal
-  documents.
+  dozen images per class is anecdote, not measurement. As of 2026-09-11 the
+  corpus holds 64 receipts, 95 pump displays, 8 screenshots, 2 fiscal
+  documents and 1 non-fuel receipt photograph (a car-park ticket, under
+  `expenses/`).
 - `receipt-001.heic` (Circle K, Tallinn, Estonian): the parser reads liters,
   unit price and total exactly, and the cross-check locks
   (67.00 × 1.869 = 125.22). It reports fuel kind **98**, which is wrong - the

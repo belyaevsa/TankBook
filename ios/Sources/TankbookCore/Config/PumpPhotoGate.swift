@@ -36,7 +36,7 @@ public enum PumpPhotoGate {
     /// (liters, unitPrice, total - blanks skipped). `fuelKind` is never scored for a
     /// pump (the spec forbids inferring it) and `currency` is reported
     /// separately, never in the gate.
-    public static let measuredCommittedCorrect: Int = 47
+    public static let measuredCommittedCorrect: Int = 53
 
     /// Numeric cells the parser committed to at build time (the coverage
     /// numerator). A cell it abstained on - a correct refusal or an honest
@@ -45,11 +45,11 @@ public enum PumpPhotoGate {
     /// Committed exceeds `measuredCommittedCorrect`: three committed values in
     /// the corpus are WRONG, so precision is no longer 100%. That is the corpus
     /// doing its job - the mode is off on coverage and on precision too.
-    public static let measuredCommitted: Int = 50
+    public static let measuredCommitted: Int = 56
 
     /// Numeric cells the parser resolved correctly at build time (recall, kept
     /// for legibility - the gate no longer runs on it).
-    public static let measuredNumericHits: Int = 47
+    public static let measuredNumericHits: Int = 53
 
     /// The numeric cells the pump corpus scores (B1). Not one per fixture x 3: blank
     /// numeric cells stay skipped (glare on a total, the two idle pumps have no
@@ -61,7 +61,7 @@ public enum PumpPhotoGate {
     /// does; the ratchet test asserts they match it. They describe the measured
     /// corpus, not a target - the ship decision is `violation(flagEnabled:)`
     /// against the precision threshold and coverage floor below.
-    public static let measuredNumericTotal: Int = 231
+    public static let measuredNumericTotal: Int = 264
 
     /// The precision threshold (B1): committed-value precision at or above this
     /// ships. ~99% is the analyses' convergence - a mode that pre-fills a wrong

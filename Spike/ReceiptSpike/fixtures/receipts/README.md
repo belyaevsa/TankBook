@@ -878,3 +878,33 @@ Gazpromneft fuel-card slip **paired with a pump photo of the same fill**.
 
 All three read clean: `swift run ReceiptSpike fixtures/receipts` commits every asserted cell on
 each of them (litres, unit price, total, and currency where claimed).
+
+## Added 2026-09-11 (owner's own fills)
+
+- `receipt-062-rn-tver-chkalovskaya-95firm-3000l-nonfiscal-terminal-slip-pair-ru.jpeg` - АО
+  "РН-Тверь", АЗК Чкаловская TN250 (the `receipt-044` station), PetrolPlus fuel card, terminal
+  90001685, чек 3194/6768, 11/09/26 07:32. `АИ95Фирм 30.00 2139.00`, `Цена за ед. 71.30`.
+  Non-fiscal: no QR, no VAT, no fiscal ids. **The same fill as
+  `../pump/pump-085-tokheim-rn-tver-chkalovskaya-3000l-pair-ru.jpeg`.** Held flat on a blue-and-white
+  painted surface, the top edge curled under a thumb. **Routed through Telegram** (960 px).
+- `receipt-063-rn-tver-chkalovskaya-95firm-1000l-nonfiscal-terminal-slip-pair-ru.jpeg` - the
+  same station, two minutes later on the same terminal family (КАССА-5, terminal 90014882, чек
+  358/7506, 07:34): `АИ95Фирм 10.00 713.00`, `Цена за ед. 71.30`. **The same fill as
+  `../pump/pump-086-tokheim-rn-tver-chkalovskaya-1000l-pair-ru.jpeg`.** Lying on printed paperwork,
+  lit evenly. **Routed through Telegram** (960 px).
+- `receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg` - Circle K Peetri teenindusjaam, Pump 5,
+  10/09/2026 15:00, terminal T05, kviitung 0388. `D B0 miles  23,07L  44,85`, `Hind 1,944 EUR/L`,
+  KM 24%. **The same fill as `../pump/pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee.jpg`.**
+  Held in the hand over paving; the lower third is under the thumb, which covers nothing the
+  parser reads. Converted from HEIC to full-resolution JPEG, EXIF and ICC stripped.
+
+**062 and 063 are the corpus's cleanest OCR-not-parser pair.** One till, one layout, two minutes
+apart: `receipt-063` sweeps 5/5, `receipt-062` resolves 3. Vision reads 062's product line as
+`МИ95ФИРМ` at confidence **1.00** (`АИ` -> `МИ`), so the 95 marker is gone, and the parser then
+finds `/СУГ` in the footnote `1 ед.=1 литр для нефтепродуктов/СУГ` - boilerplate that **every**
+RN-Tver slip prints, 063 included - and commits **fuelKind = lpg**. The unit price is lost the same
+way: `ЦЕна За Вд.` (`ед` -> `Вд`) misses the anchor. A confident-wrong kind read from a footnote is
+worse than the abstention 062's OCR deserved, and it is a finding for the fuel-kind vocabulary, not
+for the ground truth: the slip says АИ95 and the paired pump was dispensing it. `receipt-064` misses
+only fuelKind, exactly as `receipt-001` does - `D BO` and `miles` land on two lines and the diesel
+marker goes unread.

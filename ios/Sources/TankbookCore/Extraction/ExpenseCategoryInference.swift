@@ -16,9 +16,10 @@ import Foundation
 // L1-testable with plain `[OCRLine]` on macOS - the same tier rule
 // `FuelKindNormalizer` obeys.
 //
-// Bilingual by construction: the separable kinds are identified by the words
-// that actually print on the receipt, and the Russian set is the one the
-// product owner's own receipts carry. Every stem is matched through
+// Bilingual by construction, with the Estonian words the corpus has actually
+// met: the separable kinds are identified by the words that print on the
+// receipt, and the Russian set is the one the product owner's own receipts
+// carry. Every stem is matched through
 // `FuelKindNormalizer.canonicalKey`, so a Cyrillic letter Vision reads as its
 // Latin twin (docs/EXTRACTION.md -> homoglyph canonicalisation) cannot make a
 // word stop matching.
@@ -69,7 +70,8 @@ public enum ExpenseCategoryInference {
             "МОЙК", "МОЕЧН", "АВТОМОЙК", "ХИМЧИСТК", "WASH", "CARWASH", "CAR WASH"
         ])),
         Rule(category: .parking, stems: keys([
-            "ПАРКОВК", "ПАРКОВОЧН", "СТОЯНК", "PARKING", "PARKHAUS", "PARKPLATZ"
+            "ПАРКОВК", "ПАРКОВОЧН", "СТОЯНК", "PARKING", "PARKHAUS", "PARKPLATZ",
+            "PARKIMI", "PARKLA"
         ])),
         Rule(category: .toll, stems: keys([
             "ПЛАТН", "ТОЛЛ", "ВЗИМАН", "TOLL", "TOLLWAY",

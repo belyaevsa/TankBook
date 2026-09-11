@@ -806,3 +806,50 @@ different transaction - a reminder that a pump number is not a join key.
 The parser commits nothing on any of the six (`swift run ReceiptSpike fixtures/pump`), which is the
 mode behaving as designed rather than a new regression - pump display recognition is off on both
 coverage and precision.
+
+## Added 2026-09-11 (owner's own capture session)
+
+Eleven displays: two Tokheim LCDs paired with `receipt-062`/`063`, seven Scheidt & Bachmann facias
+at one Rosneft-branded site (the glass reflects the Pulsar pylon and the forecourt), and two Circle K
+Gilbarco Veeder-Root reads, one of them the display half of `receipt-064`.
+
+- `pump-085-tokheim-rn-tver-chkalovskaya-3000l-pair-ru.jpeg` - `Стоимость 2139,0 рублей /
+  Количество 30,00 литров / Цена за 1 литр 71,3 рублей`. **The same fill as
+  `../receipts/receipt-062-...-pair-ru.jpeg`.** Ground truth records `71.30` and `2139.00` - the
+  display drops the trailing zero the paper prints; the values agree exactly.
+- `pump-086-tokheim-rn-tver-chkalovskaya-1000l-pair-ru.jpeg` - `713,0 / 10,00 / 71,3`, the Tokheim
+  logo in frame. **The same fill as `../receipts/receipt-063-...-pair-ru.jpeg`.**
+- `pump-087`, `pump-088`, `pump-090` (`scheidt-bachmann-rn-3000l-6830-reflection-a/b/c-ru.jpeg`) -
+  **one fill, three shots**: `Итого 2049.0 Рублей / Количество 30.00 Литров / Цена за Л 68.30`. The
+  three differ only in what the glass reflects - a lorry, the photographer, the sky - which makes
+  them a controlled test of reflection alone.
+- `pump-089-scheidt-bachmann-rn-1500l-6830-ru.jpeg` - `1024.5 / 15.00 / 68.30`.
+- `pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru.jpeg` - `1427.0 / 20.00 / 71.35`. Shot
+  close: the row labels are cut at the left frame edge (`Итого` -> `того`, `Количество` -> `ество`,
+  `Цена за Л` -> `а за Л`), so a label-anchored reader has only the unit words on the right.
+- `pump-092-scheidt-bachmann-rn-3000l-6385-ru.jpeg` - `1915.5 / 30.00 / 63.85`, a cheaper grade at
+  the same site.
+- `pump-093-scheidt-bachmann-rn-2000l-6385-faded-ru.jpeg` - `1277.0 / 20.00 / 63.85`. The litre and
+  money segments are **faded against the sky** behind the glass; the leading `1` of the total is the
+  faintest digit in the corpus, and the product `20.00 x 63.85` is what confirms it.
+- `pump-094-gilbarco-circlek-ee-4325l-1944.jpg` - Gilbarco Veeder-Root, `0084,08 €`, `0043,25 L`,
+  `1,944 €/L`. Shot in the same session as `pump-095` at the same price; no receipt.
+- `pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee.jpg` - `0044,85 €`, `0023,07 L`,
+  `1,944 €/L`. **The same fill as `../receipts/receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg`**,
+  and the two agree to the cent.
+
+`fuelKind` stays empty on all eleven, including the two whose paper half names АИ95 - the rule
+above (a visible grade is evidence the station sells it, never that this fill used it) does not
+bend for a pair; the receipt carries the kind.
+
+The nine Telegram photos (`085`..`093`) are 1280 px, recompressed, EXIF already absent, committed
+byte-for-byte. `094`/`095` were converted from HEIC to full-resolution JPEG with EXIF and ICC
+stripped.
+
+**What the batch scored.** The parser commits to six numeric cells and all six are correct - both
+Gilbarco reads sweep 3/3 - and it commits **nothing** on any of the nine Russian displays, Tokheim or
+Scheidt & Bachmann, glare or none. That is the corpus's sharpest statement of the asymmetry so far:
+a Latin-script display with `€` / `L` / `€/L` beside its digits is read; a Cyrillic-labelled one
+behind glass is not, and the same `30.00 x 71.30` fill is resolved from the paper (`receipt-063`)
+and not from the pump (`pump-086`). Precision 0.940 -> 0.946, coverage 0.216 -> 0.212; the mode
+stays off on both.

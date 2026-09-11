@@ -446,11 +446,14 @@ guesses. The save emits `expense.category.suggest` (docs/LOGGING.md §4): the ca
 `userCorrected` boolean, never the receipt's text, so a future run can measure whether the
 suggestion helps at all.
 
-**The corpus cannot yet measure this, and that is the recorded finding.** As of 2026-09-11 the 61
-receipt photographs and 84 pump displays are all fuel (or mixed fuel plus one non-fuel line); there
-is **no non-fuel receipt image** to score against, so the vocabulary's ground truth lives in
-hand-authored OCR-text fixtures under `Spike/ReceiptSpike/fixtures/expenses/` rather than in a
-photograph's filename. Merchant remains **not** resolved: guessing it from a shop receipt is a
+**The corpus could not measure this when RV.200 was filed, and that was the recorded finding.**
+Every receipt photograph and pump display was fuel (or mixed fuel plus one non-fuel line), so the
+vocabulary's ground truth lives in hand-authored OCR-text fixtures under
+`Spike/ReceiptSpike/fixtures/expenses/` rather than in a photograph's filename. The **first non-fuel
+photograph** landed there on 2026-09-11 - a Tallinn Airport car-park ticket whose Vision dump is the
+`.txt` the sweep reads - and it named its kind only in Estonian (`PARKIMISTEENUS`, `parkla`), which
+the RU/EN vocabulary abstained on until the Estonian parking stems were added. That is the shape
+every next photograph should take: the `.jpg` beside its OCR dump, the category from the file name. Merchant remains **not** resolved: guessing it from a shop receipt is a
 separate problem with its own corpus and was not assumed into this change.
 
 The contract that bounds the expense hand-off is the fill-up path's own:

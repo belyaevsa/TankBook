@@ -8,10 +8,11 @@ import Testing
 // fixture's own name plus `expected.csv` - hand-written, never the extractor's
 // output (the oracle rule in Spike/ReceiptSpike/fixtures/README.md).
 //
-// The corpus holds no non-fuel receipt PHOTOGRAPHS yet (the finding RV.200
-// records), so these fixtures are hand-authored text rather than images. The
-// oracle is still independent of the code under test: the vocabulary never
-// writes a fixture, and the fixture never runs the vocabulary.
+// Nine fixtures are hand-authored text (the corpus held no non-fuel receipt
+// photograph when RV.200 was filed); `parking-tallinn-airport-et.txt` is the
+// Vision dump of the one photograph the folder now holds. The oracle is still
+// independent of the code under test: the vocabulary never writes a fixture,
+// and the fixture never runs the vocabulary.
 
 @Suite("RV.200 expense-category inference")
 struct RV200ExpenseCategoryInferenceTests {
@@ -77,7 +78,7 @@ struct RV200ExpenseCategoryInferenceTests {
     @Test("every expense fixture infers the category its filename oracle names")
     func everyFixtureMatchesItsFilenameOracle() throws {
         let rows = try Self.expectedRows()
-        #expect(rows.count == 10, "the expense fixture set changed size: \(rows.count)")
+        #expect(rows.count == 11, "the expense fixture set changed size: \(rows.count)")
         for row in rows {
             let inferred = try Self.infer(row.filename)
             let oracle = String(describing: row.expected)
@@ -92,6 +93,15 @@ struct RV200ExpenseCategoryInferenceTests {
     @Test("a parking receipt yields .parking")
     func parkingReceiptYieldsParking() throws {
         #expect(try Self.infer("parking-ru.txt") == .parking)
+    }
+
+    /// The corpus's first non-fuel PHOTOGRAPH, read through Vision: a Tallinn
+    /// Airport car-park ticket that names its kind only in Estonian
+    /// (`PARKIMISTEENUS`, `Lennujaam parkla`). Oracle: the `.txt` beside the
+    /// `.jpg` is the OCR dump, and the category is the file name's.
+    @Test("an Estonian parking ticket yields .parking")
+    func estonianParkingTicketYieldsParking() throws {
+        #expect(try Self.infer("parking-tallinn-airport-et.txt") == .parking)
     }
 
     /// The escape hatch, not a forced standard case: `ExpenseCategory` has no

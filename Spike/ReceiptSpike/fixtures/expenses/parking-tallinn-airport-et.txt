@@ -1,0 +1,40 @@
+Tallinna
+Lennujaam AS
+Tartu mnt 101
+10112 Tallinn
+Reg.nr 10349560
+KMKNR: EE100343007
+MAKSEJAAM
+39
+Arue Nr:
+207998
+TEENINDAJA:
+TEHING:
+(1338
+SNR :
+01 135 2307974
+SISSE
+10.09.26 15:41
+MAKSE
+10.09.26 16:01
+PARKIMISTEENUS
+TASU:
+2.00 EUR
+MAKSTUD:
+2.00 EUR
+NETO:
+1.61 EUR
+KM 24%
+0.39 EUR
+Urae va 0:20
+KAARDIMAKSE KUIITUNG
+Terminal
+Lennujaam parkla
+Tartu mnt 101,10112
+Tallinn EST
+Reg: 10349560 Kassa:071
+Terminal : IUN20048
+Maksekaart
+•Mastercard' Contactless
+MasterCard
+AL: MASTERCARD

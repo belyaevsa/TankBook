@@ -384,6 +384,13 @@ enum PostSweepCorpusAdditions {
             // unmarked and whose operands both sit inside the RUB price band,
             // so the parser abstains on volume and price. Declared, not swept.
             "receipt-061-gazpromneft-okulovka-azs1010-gdrive95-fuelcard-pair-ru.jpeg",
+            // 2026-09-11: two RN-Tver Chkalovskaya non-fiscal fuel-card slips
+            // (the paper halves of pump-085/086, one till, two minutes apart)
+            // and the Circle K Peetri slip that pairs with pump-095. Declared,
+            // not swept.
+            "receipt-062-rn-tver-chkalovskaya-95firm-3000l-nonfiscal-terminal-slip-pair-ru.jpeg",
+            "receipt-063-rn-tver-chkalovskaya-95firm-1000l-nonfiscal-terminal-slip-pair-ru.jpeg",
+            "receipt-064-circlek-peetri-db0-pump5-2307l-pair-ee.jpg",
         ],
         "pump": [
             // 2026-09-09: the owner's own fills, three of them the matched
@@ -504,6 +511,22 @@ enum PostSweepCorpusAdditions {
             // Gazpromneft pair in the corpus whose display agrees with the
             // paper to the cent. Declared, not swept.
             "pump-084-dresser-wayne-gpn-okulovka-exact-total-pair-ru.jpeg",
+            // 2026-09-11: two Tokheim displays paired with receipt-062/063,
+            // seven Scheidt & Bachmann displays shot through glass with the
+            // forecourt reflected in it (three of them one fill, three shots),
+            // and two Circle K Gilbarco reads, one the display half of
+            // receipt-064. Declared, not swept.
+            "pump-085-tokheim-rn-tver-chkalovskaya-3000l-pair-ru.jpeg",
+            "pump-086-tokheim-rn-tver-chkalovskaya-1000l-pair-ru.jpeg",
+            "pump-087-scheidt-bachmann-rn-3000l-6830-reflection-a-ru.jpeg",
+            "pump-088-scheidt-bachmann-rn-3000l-6830-reflection-b-ru.jpeg",
+            "pump-089-scheidt-bachmann-rn-1500l-6830-ru.jpeg",
+            "pump-090-scheidt-bachmann-rn-3000l-6830-reflection-c-ru.jpeg",
+            "pump-091-scheidt-bachmann-rn-2000l-7135-labels-cropped-ru.jpeg",
+            "pump-092-scheidt-bachmann-rn-3000l-6385-ru.jpeg",
+            "pump-093-scheidt-bachmann-rn-2000l-6385-faded-ru.jpeg",
+            "pump-094-gilbarco-circlek-ee-4325l-1944.jpg",
+            "pump-095-gilbarco-circlek-peetri-pump5-2307l-pair-ee.jpg",
         ],
     ]
 
