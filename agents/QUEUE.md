@@ -112,6 +112,16 @@ it, the conversion stamped it, the commit materialised the row. The value was dr
 them, in a copy helper no link covered. **Audit each link and you find nothing; trace the value end
 to end and you find it in one run.**
 
+### STOP after these three (product owner, 2026-09-11)
+
+*"don't dispatch new jobs after these agents completed."* **`PJ.22`, `RV.206` and `RV.201` are the
+last dispatches.** Rows 4 and 5 below stay briefed-and-ready and are **not** to be dispatched; the
+unbriefed rows stay unbriefed. When `RV.201` lands and is verified, the dispatch loop is over.
+
+The **J7 / J7b walk-through** the product owner asked for still happens - it is the completion review
+`CLAUDE.md` requires before either journey may be marked implemented - but the orchestrator walks it
+in session rather than dispatching `REVIEW-SCENARIO.md`, so no new agent is started.
+
 ### Briefed and ready, in order
 
 Shipped rows have left this table; `docs/TASKS-DONE.md` has them. **Order below follows
