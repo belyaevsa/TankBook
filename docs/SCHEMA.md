@@ -247,15 +247,20 @@ Expense: EntryCommon {          // money NOT tied to work: insurance, tax, parki
                                 // instead of re-pricing it – no double counting in cost/km.
 }
 
-TireSet {                       // v1.x – seasonal sets with their own mileage
+### TireSet
+
+```swift
+TireSet: Entity {
   id, createdAt, updatedAt, deletedAt
   vehicleId: UUID
   name: String                  // "Winter Nokian", "Summer Michelin"
-  purchaseExpenseId: UUID?      // the Expense(.parts) that bought them
+  purchaseExpenseId: UUID?      // the Expense(.parts) that bought them; no production path writes it yet (PJ.26)
   // km on this set is DERIVED: sum of odometer spans between ServiceRecords that mounted/unmounted it
   // (tireSetId marks mounting; the next tire-swap record ends the span). Never stored – same rule as segments.
 }
 ```
+
+A set is its own persisted row, not a field of a service record: the Garage's tire-sets screen creates and renames it (`TireSetFormView` -> `upsertTireSet`), and a `ServiceRecord` mounts it by id through `tireSetId`. Its mileage is derived, never stored (`TireMileage`).
 
 ### Reminder
 

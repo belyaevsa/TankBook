@@ -84,8 +84,15 @@ enum FieldWriterScanner {
         EntityFields(heading: "ChargeSession", typeNames: ["ChargeSession"],
                      note: "ChargeSession's fields belong to the EV entry path [v1.x]; the heading "
                          + "is recorded as an entity-level field exception rather than re-reported."),
-        EntityFields(heading: "ServiceRecord & Expense", typeNames: ["ServiceRecord", "Expense"],
-                     note: "One heading, two persisted rows; each type's fields are checked."),
+        EntityFields(heading: "ServiceRecord & Expense",
+                     typeNames: ["ServiceRecord", "Expense", "ServiceItem"],
+                     note: "One heading, two persisted rows; each type's fields are checked. "
+                         + "ServiceItem is the line-item child row a ServiceRecord carries - it is "
+                         + "persisted only with its parent, so it rides this heading rather than "
+                         + "owning an entity heading the entity guard would demand a writer for."),
+        EntityFields(heading: "TireSet", typeNames: ["TireSet"],
+                     note: "TireSet is its own persisted row with its own create/rename path; its "
+                         + "fields are checked here, not as fields of ServiceRecord."),
         EntityFields(heading: "Reminder", typeNames: ["Reminder"],
                      note: "Reminder's fields; Recurrence is a nested value type."),
         EntityFields(heading: "Attachment & extraction provenance", typeNames: ["Attachment"],

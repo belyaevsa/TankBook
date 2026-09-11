@@ -143,6 +143,7 @@ struct SchemaEntityWriterGuardTests {
             "FillUp",
             "ChargeSession",
             "ServiceRecord & Expense",
+            "TireSet",
             "Reminder",
             "Attachment & extraction provenance",
             "Preferences (app-level settings)",

@@ -218,6 +218,14 @@ Each exception carries a required reason, a bare entry fails the self-check, and
 file. Like RV.163 this is a test-target source scan: no runtime path differs, no screenshot, no
 Release build.
 
+**Coverage is the spec table, and the table can be incomplete (PJ.63).** The scan reads a heading's
+`typeNames` from `FieldWriterScanner.entityFieldSpecs`, so a persisted type the table does not bind
+is invisible even when the doc names it in prose. `ServiceItem` - the line-item child row - now
+rides `ServiceRecord & Expense`, and `TireSet` has its own `###` heading; both were outside the
+scan before. Two persisted types remain outside both guards: `Tariff` (documented inline under
+`ChargeSession`) and `DuplicateResolution` (not in `SCHEMA.md` at all). Adding a heading or a spec
+binding is what makes a type visible; a test-target scan cannot see a type the spec does not name.
+
 ### The station-minting guard (RV.170)
 
 `StationMintingGuardTests` + the `StationMintingScanner` pure function it is built on: every
