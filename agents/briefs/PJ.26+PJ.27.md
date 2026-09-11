@@ -147,6 +147,22 @@ As left, `main` is **1887 tests / 226 suites**, **831** localization keys at 100
 
 Verify by **exit code** (`echo $?`).
 
+## Updates since this brief was written (2026-09-11)
+
+- **[PJ.63] shipped and it changes your acceptance.** `TireSet` now has a `###` section in
+  `docs/SCHEMA.md` and a `FieldWriterScanner` entry, so [RV.196]'s field guard **reports
+  `TireSet.purchaseExpenseId` as unwritten today**, behind a reasoned exception whose text names
+  **this row** as its writer. **When you give the field a writer you must DELETE that exception** -
+  the guard's stale-exception check will fail until you do, and that is the mechanism working, not a
+  problem to route around. `PJ.45` did exactly this hours earlier.
+- So your `PJ.26` L1 has a second half: **the guard stops reporting `TireSet.purchaseExpenseId`, and
+  its exception is gone from the list.** That is stronger evidence than any assertion you could
+  write by hand, because it was failing before you started.
+- Baseline is now **1956 tests / 236 suites**, **838** localization keys at 100% RU.
+- Also pre-existing and **not yours**: four `ReminderNotificationActionTests` failures, and
+  `SyncWriteTriggerTests` ([RV.203]) which fails under machine load and passes alone - re-run it
+  alone before reporting it.
+
 ## Report back
 
 **What a "mount record" turned out to be** - that is the finding even if PJ.27 ships whole; whether
