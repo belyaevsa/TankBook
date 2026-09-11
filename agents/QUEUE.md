@@ -104,7 +104,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | # | Scenario | v1 rows to close | Briefs (by seam) | Then |
 |---|---|---|---|---|
 | 1 | ~~**J5 + F5** the fiscal QR~~ | `RV.219` shipped `96d05ae` | - | **DONE 2026-09-11** - both re-walked IMPLEMENTED, two status lines from one line of code |
-| 2 | ~~**F8** permissions and hardware said no~~ | `RV.222`, `RV.223` shipped `bb7887a` | - | **DONE 2026-09-11** - re-walked IMPLEMENTED |
+| 2 | ~~**F8** permissions and hardware said no~~ | `RV.222`, `RV.223` shipped `bb7887a`; **`RV.226`** filed from the second walk (`.restricted` told to use a Settings toggle that does not exist) | one small brief, same seam | **re-walked IMPLEMENTED 2026-09-11**; `RV.226` reopens the index row until it ships - slot it after scenario 5 |
 | 3 | **F6b + F6** the import review row | `RV.220` (bug, first), `RV.221`, `RV.191` | one - `ImportReviewView`'s row, EN+RU | re-walk both |
 | 4 | **F2** scan recognized wrong data | `RV.218` | one - the outlier flag from the one `ConsumptionEngine` | re-walk |
 | 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
