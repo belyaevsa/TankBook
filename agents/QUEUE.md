@@ -78,13 +78,14 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
-*(nothing in flight - `RV.201` shipped `f3e6adc`; the loop paused on the product owner's instruction and resumes in the order below.)*
+| `RV.222+RV.223` | F8 | flash | 18881 | `bz5qevivw` | `RV.222+RV.223.md` - via `scripts/dispatch.sh`, healthy at 76 KB / 60 s |
+| `REVIEW-J5-2`, `REVIEW-F5-2` | J5, F5 | pro, read-only | 18865, 18869 | `bzabzutvx` | second walks after `RV.219` shipped (`96d05ae`) |
 
-**Before the next dispatch, the mechanisation lands first**: `agents/briefs/PREAMBLE.md` (the fences,
-once), `scripts/dispatch.sh <id>` (launch, log, 60-second byte check, one retry on a dead run), and
-the two-bundle rule in the standing checks - **`-only-testing` across two bundles runs ONE of them**;
-the app-target suite and the UI suite are separate invocations, each with its count read (found
-2026-09-11 on `RV.201`, exit 0 with a suite that never ran).
+**Scenario 1 (J5 + F5) is built** - `RV.219` shipped; its re-walk is running. Scenario 2 (F8) is in flight.
+
+**The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
+`scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
+rule is in `CLAUDE.md`. **Every brief in the queue is written** (`f262cb0`).
 
 ### The goal is a scenario, one at a time (product owner, 2026-09-11)
 
