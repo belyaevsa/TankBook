@@ -520,6 +520,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** offline captures complete at the same rate as online ones (instrumented locally, reported in aggregate).
 
 ### F4 · Cloud LLM fallback unavailable (offline, backend down, or quota spent)
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F4-2026-09-11c)
 **Trigger:** hard image (crumpled receipt, odd charging-app screenshot) where on-device gave low confidence and the user's Pro fallback can't be reached.
 
 - The app **never waits on the gateway to show the card**: on-device results (however partial) render immediately; the fallback was always an *enhancement* pass.

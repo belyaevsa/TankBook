@@ -104,8 +104,11 @@ def main() -> int:
 
     # A scenario whose every open row is deferred is not a v1 story to review;
     # it is listed apart so the READY list is only what a v1 walk can close.
-    ready_v1 = [r for r in ready if not (r[3] and len(r[3]) == len([i for i in r[1] if i[1] in " !"]) and r[3])]
-    all_deferred = [r for r in ready if r not in ready_v1]
+    # "Deferred as a whole" means no v1 row ever named it - closed or open. A
+    # story with shipped v1 rows and one deferred leftover is a v1 story to walk.
+    all_deferred = [r for r in ready
+                    if re.search(r"\[v(1\.[0-9x]+|2)\]", defined.get(r[0], ""))]
+    ready_v1 = [r for r in ready if r not in all_deferred]
     print("READY FOR THE SCENARIO REVIEW - every v1 row naming these is closed.")
     print("Dispatch agents/briefs/REVIEW-SCENARIO.md before marking the story implemented.\n")
     for scenario, items, _, deferred in ready_v1:
