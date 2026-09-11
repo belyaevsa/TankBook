@@ -78,9 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
-| `RV.222+RV.223` | F8 | flash | 18881 | `bz5qevivw` | `RV.222+RV.223.md` - via `scripts/dispatch.sh`, healthy at 76 KB / 60 s |
+| `RV.220+RV.221+RV.191` | F6b, F6 | flash | 63484 | `bfq…` (session) | `RV.220+RV.221+RV.191.md` - via `scripts/dispatch.sh`, healthy at 21 KB / 60 s |
+| `REVIEW-F8-2` | F8 | pro, read-only | 63468 | session | second walk after `RV.222+RV.223` (`bb7887a`) |
 
-**Scenario 1 (J5 + F5) is IMPLEMENTED.** Scenario 2 (F8) is in flight.
+**Scenarios 1 (J5 + F5) IMPLEMENTED; 2 (F8) built, re-walking; 3 (F6b + F6) in flight.**
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -104,7 +105,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | # | Scenario | v1 rows to close | Briefs (by seam) | Then |
 |---|---|---|---|---|
 | 1 | ~~**J5 + F5** the fiscal QR~~ | `RV.219` shipped `96d05ae` | - | **DONE 2026-09-11** - both re-walked IMPLEMENTED, two status lines from one line of code |
-| 2 | **F8** permissions and hardware said no | `RV.222`, `RV.223` | one - the capture cover's recovery paths | re-walk |
+| 2 | **F8** permissions and hardware said no | `RV.222`, `RV.223` shipped `bb7887a` | - | **built 2026-09-11**; re-walk running |
 | 3 | **F6b + F6** the import review row | `RV.220` (bug, first), `RV.221`, `RV.191` | one - `ImportReviewView`'s row, EN+RU | re-walk both |
 | 4 | **F2** scan recognized wrong data | `RV.218` | one - the outlier flag from the one `ConsumptionEngine` | re-walk |
 | 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
