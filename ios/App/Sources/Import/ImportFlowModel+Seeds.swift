@@ -252,6 +252,41 @@ extension ImportFlowModel {
         rebuildClassification()
     }
 
+    /// RV.221: a fill that names its station AND needs a look (its odometer is
+    /// missing), so the review row must render the station name beside the
+    /// parsed fields. The name is deliberately long (43 characters) - a station
+    /// is free text, and RU is where a cell that truncates hides a wrong
+    /// mapping until the Log.
+    func installSeededStationReviewParse() {
+        if var vehicle = (try? repository.liveVehicles())?.first {
+            vehicle.fuelKinds = [.petrol92]
+            try? repository.upsertVehicle(vehicle)
+            liveVehicles = [vehicle]
+            targetCar = .existing(vehicle)
+        }
+        let candidate = ImportCandidate(
+            entityType: "fillUp",
+            date: Date(timeIntervalSince1970: 1_786_924_800),  // 2026-08-17
+            odometer: nil, volumeL: 40, unitPrice: "220",
+            money: ImportMoney(amount: "8800", currency: "EUR"),
+            fuelKind: "petrol92", isFull: true, tankLevelAfterPct: nil, note: nil,
+            vehicleName: "Volvo", provenance: ImportProvenance(tag: "import", source: "drivvo"),
+            sourceRow: 1, station: "Газпромнефть на Ленинградском проспекте, 63")
+        let response = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000221", format: "drivvo",
+            scope: "vehicle", candidates: [candidate], unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        currencyAnswer = nil
+        let raw = "##Refuelling\n"
+            + "\"Odometer (km)\",\"Date\",\"Fuel\",\"Price / l\",\"Total cost\","
+            + "\"Volume\",\"Full tank\",\"Азс\"\n"
+            + "\"\",\"2025-08-24 17:37:33\",\"Бензин АИ92\",\"220\",\"8800\",\"40\","
+            + "\"Да\",\"Газпромнефть на Ленинградском проспекте, 63\"\n"
+        adoptSingleFile(fileName: "Drivvo_export.csv", rawData: Data(raw.utf8), parse: response)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
     func installSeededCurrencyParse() {
         func fill(_ row: Int, _ date: Date, _ odo: Int, _ amount: String) -> ImportCandidate {
             ImportCandidate(

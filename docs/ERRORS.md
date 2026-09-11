@@ -526,10 +526,15 @@ card (the tallest, ~150pt with its help link) shrink the ScrollView's budget unt
 13-30pt and clipped the last scroll child at the fold. The card now **leads the scroll content under
 the title**: its full message and its "How to export" link are on screen without scrolling in both
 locales, and the scroll owns any overflow. A locale-tall card must never live in a `safeAreaInset`
-(general shape: an actionable card whose height follows the text must not occupy fixed chrome). While
-a parse-error card is showing, the dead-end "Send us the file" card is **ordered directly under the
-format list, above the "Not yet" teaser** - the error moment's actionable card stays above the fold
-in RU (hard rule 7); nothing is dropped, the order yields.
+(general shape: an actionable card whose height follows the text must not occupy fixed chrome).
+
+**The dead-end "Send us the file" card is pinned above the primary bar** (RV.191). As the last scroll
+child it dropped below the fold once the real format count reached two rows (RV.190) - each with its
+"How to export" link - because RU's longer format subtitles and body copy run 20-30% wider. It now
+lives in the bottom `safeAreaInset`, directly above the "Choose file" bar, so the action is on screen
+at rest in both locales (hard rule 7) and the format list scrolls under it. This supersedes RV.84's
+error-moment ordering (the card is no longer a scroll child at all); the parse-error card still leads
+the scroll, and the two never overlap.
 
 | **Update required (`.required`, docs/CONFIG.md)** | The non-dismissible update notice replaces the source picker: "This version of Tankbook is out of date – sync, cloud reading and import are paused. Update the app to use them again." The parse (the one server read import needs) is withheld client-side | Update the app (App Store button only when a listing exists). Everything else about import - the review list, the edits, the commit - stays local |
 

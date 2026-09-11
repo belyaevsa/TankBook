@@ -154,24 +154,25 @@ extension ImportFlowModel {
 
     // MARK: - Review list
 
-    /// "Leave out" / "Import" toggle for a review row. A row with no record to
-    /// commit (an unparsed row, a non-fill row that could not be mapped) is
-    /// always left out; a `.noFuel` row toggles its "Import as service /
-    /// expense" choice (PJ.9).
-    func toggleSkipped(sourceRow: Int) {
-        if skippedSourceRows.contains(sourceRow) {
-            skippedSourceRows.remove(sourceRow)
-        } else {
-            skippedSourceRows.insert(sourceRow)
-        }
+    /// The keep action - "Import as-is", "Import as service", "Import as
+    /// expense". Idempotent: a row that is already kept stays kept, so the
+    /// deciding action can never drop the record the user meant to keep (hard
+    /// rule 8). This is deliberately NOT the inverse of `leaveOut`; the two
+    /// intents never share a flip-flop.
+    func keep(sourceRow: Int) {
+        skippedSourceRows.remove(sourceRow)
+    }
+
+    /// "Leave out" - the only action that skips a review row.
+    func leaveOut(sourceRow: Int) {
+        skippedSourceRows.insert(sourceRow)
     }
 
     func isSkipped(sourceRow: Int) -> Bool {
         if let row = reviewRows.first(where: { $0.sourceRow == sourceRow }) {
             // A row with nothing to commit is always left out: an unparsed row
-            // has no record at all, and a `.noFuel` row stays out until the
-            // user chooses to import it as a service/expense (PJ.9) - the
-            // non-fuel action, never a silent commit.
+            // has no record at all, and an unmappable non-fuel row has no
+            // ServiceRecord/Expense to write.
             if row.fill == nil && row.nonFuel == nil { return true }
         }
         return skippedSourceRows.contains(sourceRow)

@@ -50,23 +50,7 @@ struct ImportSourceView: View {
                         }
                         formatList
                         batchFailureCards
-                        if showsParseErrorCard {
-                            // RV.84 (defect B): the parse-error card above has
-                            // already made RU's content the tallest on this
-                            // screen; if the dead-end card stays the rearmost
-                            // child under the "Not yet" teaser it drops below
-                            // the fold, and RU loses "Send us the file" (the
-                            // error's own next step - hard rule 7). In the
-                            // error moment the actionable card belongs directly
-                            // under the list, and the coming-soon teaser is the
-                            // rearmost content: same blocks, order yields,
-                            // nothing is dropped.
-                            notSupportedCard
-                            notYetBlock
-                        } else {
-                            notYetBlock
-                            notSupportedCard
-                        }
+                        notYetBlock
                     }
                     .padding(.horizontal, Theme.Spacing.screenMargin)
                 }
@@ -81,9 +65,21 @@ struct ImportSourceView: View {
         // affordance existed for the test and not for the user (hard rule 7).
         // `safeAreaInset(edge: .bottom)` reserves the space instead of growing
         // into it - the anchoring ConfirmManual's save bar has always used.
+        //
+        // RV.191: the dead-end card is PINNED here, above the primary bar, not
+        // left as the last scroll child. At the real format count (two rows,
+        // each with its "How to export" link) RU's longer format subtitles push
+        // a trailing scroll card's action line ("Send us the file" - the dead
+        // end's own next step, hard rule 7) below the fold, where it is
+        // reachable only by a scroll nothing hints at. Pinned, the next step is
+        // on screen at rest in both locales; the format list scrolls under it.
         .safeAreaInset(edge: .bottom) {
             if !model.serverBackedPaused {
-                bottomBar
+                VStack(spacing: 0) {
+                    notSupportedCard
+                        .padding(.horizontal, Theme.Spacing.screenMargin)
+                    bottomBar
+                }
             }
         }
     }
@@ -271,6 +267,8 @@ struct ImportSourceView: View {
 
     /// Hard rule 7: the dead end gets a next step. This is where the corpus
     /// grows - the same ask as the capture notice, with explicit consent.
+    /// RV.191: it lives in the bottom inset (see `body`), so the action line is
+    /// on screen at rest at the real format count in RU.
     private var notSupportedCard: some View {
         Button(action: onNotSupported) {
             VStack(alignment: .leading, spacing: 4) {

@@ -47,9 +47,7 @@ struct ImportReviewView: View {
 
     private func skipAll() {
         for row in model.reviewRows where row.fill != nil || row.nonFuel != nil {
-            if !model.isSkipped(sourceRow: row.sourceRow) {
-                model.toggleSkipped(sourceRow: row.sourceRow)
-            }
+            model.leaveOut(sourceRow: row.sourceRow)
         }
     }
 
@@ -246,31 +244,36 @@ private struct ImportReviewRowView: View {
 
     @ViewBuilder
     private func fieldGrid(_ fill: FillUp) -> some View {
-        HStack(spacing: 8) {
-            if let volume = fill.volumeL as Double? {
-                ImportFieldCell(label: "Litres",
-                                value: ImportFormatting.decimal(Decimal(volume), fractionDigits: 2),
-                                marked: volumeMarked)
+        VStack(alignment: .leading, spacing: 8) {
+            if let station = row.stationName, !station.isEmpty {
+                ImportStationCell(name: station)
             }
-            if let price = fill.unitPrice {
-                ImportFieldCell(label: "Price/L",
-                                value: ImportFormatting.decimal(price, fractionDigits: 3),
-                                marked: priceMarked)
-            }
-            if let amount = fill.money?.amount {
-                ImportFieldCell(label: "Total",
-                                value: ImportFormatting.decimal(amount, fractionDigits: 2),
-                                marked: false)
-            } else if case .crossCheckMismatch = row.kind, showingTotalEditor {
-                ImportTotalEditorCell(text: $totalText, onSubmit: commitTotal)
-            }
-            ImportOdometerCell(fill: fill, sourceRow: row.sourceRow,
-                               distanceUnit: model.distanceUnit(for: row),
-                               isEditing: showingOdometerEditor,
-                               text: $odometerText, onSubmit: commitOdometer,
-                               marked: odometerMarked)
-            if row.kind == .noFuel, let note = fill.note, !note.isEmpty {
-                ImportFieldCell(label: "Note", value: note, marked: false)
+            HStack(spacing: 8) {
+                if let volume = fill.volumeL as Double? {
+                    ImportFieldCell(label: "Litres",
+                                    value: ImportFormatting.decimal(Decimal(volume), fractionDigits: 2),
+                                    marked: volumeMarked)
+                }
+                if let price = fill.unitPrice {
+                    ImportFieldCell(label: "Price/L",
+                                    value: ImportFormatting.decimal(price, fractionDigits: 3),
+                                    marked: priceMarked)
+                }
+                if let amount = fill.money?.amount {
+                    ImportFieldCell(label: "Total",
+                                    value: ImportFormatting.decimal(amount, fractionDigits: 2),
+                                    marked: false)
+                } else if case .crossCheckMismatch = row.kind, showingTotalEditor {
+                    ImportTotalEditorCell(text: $totalText, onSubmit: commitTotal)
+                }
+                ImportOdometerCell(fill: fill, sourceRow: row.sourceRow,
+                                   distanceUnit: model.distanceUnit(for: row),
+                                   isEditing: showingOdometerEditor,
+                                   text: $odometerText, onSubmit: commitOdometer,
+                                   marked: odometerMarked)
+                if row.kind == .noFuel, let note = fill.note, !note.isEmpty {
+                    ImportFieldCell(label: "Note", value: note, marked: false)
+                }
             }
         }
     }
@@ -317,11 +320,9 @@ private struct ImportReviewRowView: View {
     // MARK: - Actions
 
     /// The row's two next steps (hard rule 7) plus the "Original row" reveal.
-    /// `ViewThatFits` keeps the compact one-line row where it fits (EN, short RU)
-    /// and stacks the actions when they do not - RU's 20-30% expansion breaks
-    /// «Исправить / Импортировать как есть / Пропустить» into mid-word
-    /// hyphenation on one line (P6.15b), and a stacked action is still a named
-    /// next step where a clipped one is not.
+    /// `ViewThatFits` stacks the actions when RU's 20-30% expansion would
+    /// hyphenate «Исправить / Импортировать как есть / Пропустить» mid-word on
+    /// one line (P6.15b); a stacked action is still a named next step.
     private var actions: some View {
         HStack(alignment: .firstTextBaseline, spacing: 16) {
             toggleActions
@@ -336,8 +337,7 @@ private struct ImportReviewRowView: View {
 
     /// The deciding actions (primary + "Import as-is" + "Leave out"): one line
     /// when it fits, stacked when it does not. The compact candidate measures at
-    /// its ideal width (`.fixedSize`) so a too-wide row is genuinely rejected
-    /// instead of being compressed into hyphenation.
+    /// its ideal width (`.fixedSize`) so a too-wide row is rejected, not squeezed.
     @ViewBuilder
     private var toggleActions: some View {
         ViewThatFits(in: .horizontal) {
@@ -359,9 +359,9 @@ private struct ImportReviewRowView: View {
         }
     }
 
-    /// "Import as-is" applies where the row is committable as-is - a
-    /// cross-check mismatch or a PJ.11 timeline conflict the user decides to
-    /// keep (hard rule 13). A missing-odometer row has no "as-is".
+    /// "Import as-is" applies where the row is committable as-is - a cross-check
+    /// mismatch or a PJ.11 timeline conflict (hard rule 13); a missing odometer
+    /// has no "as-is".
     private var showsImportAsIs: Bool {
         if case .crossCheckMismatch = row.kind { return true }
         if case .timelineConflict = row.kind { return true }
@@ -372,14 +372,14 @@ private struct ImportReviewRowView: View {
         Text("Import as-is")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(Theme.Palette.inkSoft)
-            .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+            .onTapGesture { model.keep(sourceRow: row.sourceRow) }
     }
 
     private var leaveOut: some View {
         Text("Leave out")
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(isSkipped ? Theme.Palette.action : Theme.Palette.inkSoft)
-            .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+            .onTapGesture { model.leaveOut(sourceRow: row.sourceRow) }
     }
 
     @ViewBuilder
@@ -420,7 +420,7 @@ private struct ImportReviewRowView: View {
                 Text(nonFuelActionLabel)
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(isSkipped ? Theme.Palette.inkSoft : Theme.Palette.action)
-                    .onTapGesture { model.toggleSkipped(sourceRow: row.sourceRow) }
+                    .onTapGesture { model.keep(sourceRow: row.sourceRow) }
             }
         case .unmappable, .unparsed:
             EmptyView()
@@ -435,8 +435,8 @@ private struct ImportReviewRowView: View {
     }
 
     /// "Import as service" / "Import as expense" - the `.noFuel` row's deciding
-    /// action (PJ.9): the record commits as what it is, never silently dropped
-    /// (hard rule 8). "Leave out" sits beside it.
+    /// action (PJ.9). It KEEPS the row (idempotent), and only "Leave out" skips
+    /// it, so the record is never dropped by the action that names keeping it.
     private var nonFuelActionLabel: String {
         switch row.nonFuel {
         case .service: return L10n.importAsService

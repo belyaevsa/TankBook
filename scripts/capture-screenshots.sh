@@ -639,6 +639,10 @@ capture P5.5b-import-source-ru  ru -presentScreen importWizard -importStubFormat
 # PJ.33's "How to export" link rides the format row on this same screen.
 alias_shot P5.5b-import-source    PJ.33-import-guide
 alias_shot P5.5b-import-source-ru PJ.33-import-guide-ru
+# RV.191: the dead-end card is pinned above the primary bar, so "Send us the
+# file" is on screen at rest at the two-format count in RU. Same frame.
+alias_shot P5.5b-import-source    RV.191-import-source
+alias_shot P5.5b-import-source-ru RV.191-import-source-ru
 capture P5.5b-import-preview    en -presentScreen importWizard -importStubParse mfm -seedImportPreview
 capture P5.5b-import-preview-ru ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
 # PJ.10's once-per-file date question is the gate ON this preview - same frame.
@@ -676,6 +680,12 @@ capture PJ.38-car-export-ru      ru -seedHomeCarSwitcher -presentScreen vehicleD
 # disabled until answered - is the P5.5b preview frame above, aliased there.)
 capture PJ.9-import-nonfuel-row        en -presentScreen importWizard -importStubFormats one -seedImportService
 capture PJ.9-import-nonfuel-row-ru     ru -presentScreen importWizard -importStubFormats one -seedImportService
+
+# RV.221: a station-named fill that needs a look, so the review row renders the
+# station name before the commit. The name is 43 characters - RU is where a
+# truncating cell would hide the mapping.
+capture RV.221-import-station-review    en -presentScreen importWizard -importStubFormats one -seedImportStationReview
+capture RV.221-import-station-review-ru ru -presentScreen importWizard -importStubFormats one -seedImportStationReview
 
 # PJ.11: the import review list showing a flagged-order row - the real MFM-style
 # `9` odometer badged "Breaks the timeline" with its Fix and "Import as-is",

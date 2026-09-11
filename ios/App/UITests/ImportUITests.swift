@@ -243,7 +243,8 @@ final class ImportUITests: XCTestCase {
     /// A parsed service row gets its own action and commits as a ServiceRecord,
     /// which then shows in the Log (hard rule 8: shown, not silently dropped).
     func testNonFuelRowImportsAsAServiceAndShowsInTheLog() {
-        let app = launch(["-presentScreen", "importWizard",
+        // Signed in: the guest Home has no Log, and the assertion is the Log row.
+        let app = launch(["-seedSettingsSignedIn", "-presentScreen", "importWizard",
                           "-importStubFormats", "one", "-seedImportService"])
         XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
 
@@ -259,8 +260,9 @@ final class ImportUITests: XCTestCase {
     }
 
     func testNonFuelRowImportsAsAServiceAndShowsInTheLogInRussian() {
+        // Signed in: the guest Home has no Log, and the assertion is the Log row.
         let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
-                          "-presentScreen", "importWizard",
+                          "-seedSettingsSignedIn", "-presentScreen", "importWizard",
                           "-importStubFormats", "one", "-seedImportService"])
         XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
 

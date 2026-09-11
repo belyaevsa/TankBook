@@ -56,11 +56,15 @@ struct ImportTimelineDetail: View {
 }
 
 /// A generic labelled field cell ("Litres", "Price/L", "Total", "Note").
+/// `valueLineLimit` lets a free-text value - a station name - wrap to a second
+/// line instead of shrinking into illegibility, where a numeric cell stays one
+/// line (RV.221).
 struct ImportFieldCell: View {
     let label: LocalizedStringKey
     let value: String
     var marked = false
     var valueColor: Color = Theme.Palette.ink
+    var valueLineLimit = 1
 
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
@@ -73,7 +77,7 @@ struct ImportFieldCell: View {
                 .font(.system(size: 15, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(valueColor)
-                .lineLimit(1)
+                .lineLimit(valueLineLimit)
                 .minimumScaleFactor(0.7)
         }
         .padding(9)
@@ -84,6 +88,18 @@ struct ImportFieldCell: View {
             RoundedRectangle(cornerRadius: 9)
                 .stroke(marked ? Theme.Palette.warn.opacity(0.7) : Color.clear, lineWidth: 1)
         )
+    }
+}
+
+/// The file's station name on a fill review row (RV.221): full width above the
+/// numeric cells, up to two lines because a station is free text. Rendering the
+/// NAME (never the id) is the point - a wrong mapping must be visible before the
+/// commit, not only in the Log afterwards.
+struct ImportStationCell: View {
+    let name: String
+
+    var body: some View {
+        ImportFieldCell(label: "Station", value: name, marked: false, valueLineLimit: 2)
     }
 }
 

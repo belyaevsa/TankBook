@@ -31,6 +31,7 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportBatchAnomaly")
             || arguments.contains("-seedImportCurrency")
             || arguments.contains("-seedImportStation")
+            || arguments.contains("-seedImportStationReview")
             || arguments.contains("-seedImportUnsupported") else { return }
         if let repository = try? AppStore.repository(),
            (try? repository.liveVehicles())?.isEmpty != false {
@@ -74,6 +75,11 @@ enum ImportTestSeed {
             // title itself with the station, never the fuel kind ("92").
             model.installSeededStationParse()
             model.showPreview()
+        } else if arguments.contains("-seedImportStationReview") {
+            // RV.221: a station-named fill that needs a look, so the review row
+            // must render the station name before the commit.
+            model.installSeededStationReviewParse()
+            model.showReview()
         } else if arguments.contains("-seedImportNewCar") {
             // RV.185: no existing car (the Volvo seed is deliberately skipped for
             // this flag), so the import targets a NEW car and the preview offers

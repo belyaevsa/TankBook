@@ -205,6 +205,12 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
     public let nonFuel: NonFuel?
     /// The original line in the file, shown behind "Original row".
     public let rawLine: String?
+    /// The file's station name for a fill row, when it named one. Carried here
+    /// (not only as `fill.stationId`) so the review list can render the name the
+    /// row will resolve to - a wrong mapping is visible BEFORE the commit, not
+    /// only in the Log afterwards (F6b, RV.221). nil for a row that named no
+    /// station and for non-fill rows.
+    public let stationName: String?
     /// The PJ.11 timeline flag's context when the row broke the order/pace
     /// invariant: the kind plus the previous neighbour (odometer and date) the
     /// order check quoted, so the review list can render "Aug 17 already
@@ -263,7 +269,7 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
 
     public init(id: UUID = UUID.v7(), sourceRow: Int, kind: Kind,
                 fill: FillUp?, nonFuel: NonFuel? = nil, rawLine: String?,
-                timeline: TimelineFlag? = nil) {
+                timeline: TimelineFlag? = nil, stationName: String? = nil) {
         self.id = id
         self.sourceRow = sourceRow
         self.kind = kind
@@ -271,7 +277,17 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
         self.nonFuel = nonFuel
         self.rawLine = rawLine
         self.timeline = timeline
+        self.stationName = stationName
     }
+}
+
+/// One converted fill awaiting the merged timeline pass. The file's station
+/// name rides along so a review row can render it (RV.221) without the
+/// classifier needing the repository.
+private struct ConvertedFill {
+    let fill: FillUp
+    let sourceRow: Int
+    let stationName: String?
 }
 
 /// Classifies a parse into the fills that are ready to commit and the rows that
@@ -298,7 +314,7 @@ public enum ImportReviewClassifier {
         var ready: [FillUp] = []
         var review: [ImportReviewRow] = []
         // Every converted fill, in file order, awaiting the merged timeline pass.
-        var convertedFills: [(fill: FillUp, sourceRow: Int)] = []
+        var convertedFills: [ConvertedFill] = []
 
         for candidate in candidates {
             if candidate.entityType != "fillUp" {
@@ -338,7 +354,8 @@ public enum ImportReviewClassifier {
                     rawLine: rawLinesByRow[candidate.sourceRow]))
                 continue
             }
-            convertedFills.append((fill, candidate.sourceRow))
+            convertedFills.append(ConvertedFill(fill: fill, sourceRow: candidate.sourceRow,
+                                                stationName: candidate.trimmedStation))
         }
 
         // The merged timeline pass (PJ.11): validate the whole incoming set
@@ -368,7 +385,7 @@ public enum ImportReviewClassifier {
     /// The merged-timeline half of `partition` (PJ.11): validate the converted
     /// fills against the car's existing entries at once and stamp `conflict`.
     private static func timelineRows(
-        _ convertedFills: [(fill: FillUp, sourceRow: Int)],
+        _ convertedFills: [ConvertedFill],
         existingEntries: [any Entry], vehicle: Vehicle,
         rawLinesByRow: [Int: String]) -> (ready: [FillUp], review: [ImportReviewRow]) {
         var ready: [FillUp] = []
@@ -376,14 +393,16 @@ public enum ImportReviewClassifier {
         let validations = TimelineValidator.validate(
             entries: existingEntries + convertedFills.map(\.fill), vehicle: vehicle)
         let byID = Dictionary(uniqueKeysWithValues: validations.map { ($0.entryID, $0) })
-        for (fill, sourceRow) in convertedFills {
-            var stamped = fill
+        for converted in convertedFills {
+            let sourceRow = converted.sourceRow
+            let stationName = converted.stationName
+            var stamped = converted.fill
             let validation = byID[stamped.id]
             stamped.conflict = validation?.conflict ?? .none
             if let valueKind = stillNeedsLook(stamped) {
                 review.append(ImportReviewRow(
                     sourceRow: sourceRow, kind: valueKind, fill: stamped,
-                    rawLine: rawLinesByRow[sourceRow]))
+                    rawLine: rawLinesByRow[sourceRow], stationName: stationName))
             } else if case .flagged(let kind, _) = stamped.conflict {
                 // The order flag's previous neighbour feeds the quote the
                 // review list renders ("Aug 17 already recorded ... km.").
@@ -399,7 +418,8 @@ public enum ImportReviewClassifier {
                     fill: stamped, rawLine: rawLinesByRow[sourceRow],
                     timeline: ImportReviewRow.TimelineFlag(kind: kind,
                                                            previousOdometer: previousOdometer,
-                                                           previousDate: previousDate)))
+                                                           previousDate: previousDate),
+                    stationName: stationName))
             } else {
                 ready.append(stamped)
             }

@@ -661,12 +661,12 @@
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-source": {
-      "commit": "67902a5",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-source-ru": {
-      "commit": "67902a5",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1026,12 +1026,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.33-import-guide": {
-      "commit": "67902a5",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.33-import-guide-ru": {
-      "commit": "67902a5",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1735,6 +1735,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.191-import-source": {
+      "commit": "65a96044",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.191-import-source-ru": {
+      "commit": "65a96044",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.198-service-items": {
       "commit": "1791c80",
       "device": "iPhone 17",
@@ -1912,6 +1922,16 @@
     },
     "RV.22-chip-waiting-ru": {
       "commit": "f2cdacf",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.221-import-station-review": {
+      "commit": "65a96044",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.221-import-station-review-ru": {
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2346,12 +2366,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.80-import-not-supported": {
-      "commit": "b811d04",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.80-import-not-supported-ru": {
-      "commit": "b811d04",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2386,12 +2406,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.84-import-not-supported": {
-      "commit": "62a59b8",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.84-import-not-supported-ru": {
-      "commit": "62a59b8",
+      "commit": "65a96044",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
