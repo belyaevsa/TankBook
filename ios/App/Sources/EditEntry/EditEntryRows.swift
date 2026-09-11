@@ -60,6 +60,50 @@ enum EditEntryRows {
         .accessibilityIdentifier(processing ? "editAttachProcessing" : "editAttachReady")
     }
 
+    /// The receipt strip for an entry that references an attachment id no live
+    /// `Attachment` row resolves to (RV.208). This is RV.173's dangling id - or a
+    /// record this device has not pulled yet, which is NOT locally
+    /// distinguishable from it (docs/SYNC.md -> Attachments), so the reference
+    /// is left in place and the state is surfaced here instead of swept. It is
+    /// deliberately NOT the empty state: "Add receipt" alone would imply the
+    /// entry never had one and say nothing about the lost photo (hard rule 7).
+    /// The next step is the re-attach door, the same `onAddReceipt` path the
+    /// empty card offers.
+    static func missingReceiptCard(onAddReceipt: @escaping () -> Void) -> some View {
+        HStack(spacing: 12) {
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Theme.Palette.dash)
+                .frame(width: 44, height: 56)
+                .overlay(
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.warn)
+                )
+            VStack(alignment: .leading, spacing: 2) {
+                Text("The photo for this entry was never saved")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.warn)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text("Add the receipt again to keep it with this entry.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: 0)
+            Button(action: onAddReceipt) {
+                Text("Add receipt")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.action)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("editAddReceiptButton")
+        }
+        .padding(12)
+        .formCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("editMissingReceiptCard")
+    }
+
     static func noteRow(text: Binding<String>, identifier: String) -> some View {
         EditNoteRow(text: text, identifier: identifier)
             .formCard()

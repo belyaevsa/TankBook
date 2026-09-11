@@ -16381,7 +16381,42 @@
           }
         }
       }
+    },
+    "The photo for this entry was never saved" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The photo for this entry was never saved"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Фото для этой записи так и не сохранилось"
+          }
+        }
+      }
+    },
+    "Add the receipt again to keep it with this entry." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add the receipt again to keep it with this entry."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Добавьте чек заново, чтобы он сохранился вместе с записью."
+          }
+        }
+      }
     }
+
   },
   "version": "1.0"
 }

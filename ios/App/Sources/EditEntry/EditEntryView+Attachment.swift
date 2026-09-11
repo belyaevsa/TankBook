@@ -34,7 +34,9 @@ extension EditEntryView {
             let all = try repository.liveEntries(forVehicle: vehicle.id)
             guard let target = all.first(where: { $0.id == currentEntry?.id }) else { return }
             let ids = target.attachments
-            attachments = try repository.liveAttachments().filter { ids.contains($0.id) }
+            let live = try repository.liveAttachments()
+            attachments = AttachmentReference.resolved(ids, liveAttachments: live)
+            missingAttachmentIDs = AttachmentReference.unresolved(ids, liveAttachments: live)
             pendingBlobIDs = Set(attachments.filter { !BlobService.isBlobAvailable($0) }.map(\.id))
             updateInMemoryAttachments(ids)
         } catch {
@@ -55,6 +57,41 @@ extension EditEntryView {
         } else if var expenseCopy = expense {
             expenseCopy.attachments = ids
             expense = expenseCopy
+        }
+    }
+
+    /// The fill-up receipt strip's four-way branch, split out of
+    /// `EditEntryView.swift` to keep that file under the linter's length
+    /// ceiling. An entry with a receipt shows it; a photo just picked shows the
+    /// pending card; an entry whose references resolve to no live `Attachment`
+    /// row shows the missing-photo card (RV.208 - the reference stays, the
+    /// re-attach door is the next step); otherwise the empty card with the
+    /// camera/Photos chooser. The chooser hangs off the CARD, not the screen
+    /// (RV.11: iOS 26 anchors a `confirmationDialog` popover to the view it is
+    /// attached to, so a screen-level attachment pointed at the middle of the
+    /// form).
+    @ViewBuilder
+    func fillUpReceiptCard(_ fill: FillUp) -> some View {
+        if !attachments.isEmpty {
+            EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                      pendingBlobIDs: pendingBlobIDs,
+                                      onAttachmentChanged: handleAttachmentChanged)
+        } else if attachImage != nil {
+            EditEntryRows.pendingReceiptCard(processing: attachProcessing)
+        } else if !missingAttachmentIDs.isEmpty {
+            EditEntryRows.missingReceiptCard { showAttachSource = true }
+                .receiptAttachSource(isPresented: $showAttachSource,
+                                     title: "Add receipt") { image in
+                    attachReceipt(image)
+                }
+        } else {
+            EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                      pendingBlobIDs: pendingBlobIDs,
+                                      onAddReceipt: { showAttachSource = true })
+                .receiptAttachSource(isPresented: $showAttachSource,
+                                     title: "Add receipt") { image in
+                    attachReceipt(image)
+                }
         }
     }
 }

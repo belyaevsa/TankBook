@@ -74,6 +74,11 @@ struct EditEntryView: View {
     @State private var didLoad = false
     @State var loadFailed = false
     @State var pendingBlobIDs: Set<UUID> = []
+    /// RV.208: the entry's attachment ids that resolve to no live `Attachment`
+    /// row. Left in place (never swept - the states are not locally
+    /// distinguishable, docs/SYNC.md -> Attachments); the receipt strip surfaces
+    /// them with a re-attach next step.
+    @State var missingAttachmentIDs: [AttachmentID] = []
     /// PJ.22: a lifetime edit staged an offer that must be promoted only after
     /// this pushed screen has fully popped - the same "never mid-save, never
     /// over the screen that saved" rule the create door's sheet dismissal
@@ -85,12 +90,12 @@ struct EditEntryView: View {
     // `attachFailed` and leaves the entry completely unchanged (ERRORS.md ->
     // Edit entry, the PJ.48 warn row). `attachImage` is internal (not private)
     // for the RV.31 discard extension - a held photo is unsaved work too.
-    @State private var showAttachSource = false
+    @State var showAttachSource = false
     @State var attachImage: UIImage?
     @State private var attachOcrLines: [OCRLine] = []
     @State private var attachExtraction: FuelExtraction?
     @State private var attachFailed = false
-    @State private var attachProcessing = false
+    @State var attachProcessing = false
 
     var currentEntry: (any Entry)? { fillUp ?? charge ?? service ?? expense }
     private var volumeUnit: VolumeUnit { vehicle?.units.volume ?? .l }
@@ -230,6 +235,7 @@ struct EditEntryView: View {
                              syncOverwrite: syncOverwrite,
                              onRestore: restoreSyncOverwrite,
                              pendingBlobIDs: pendingBlobIDs,
+                             missingAttachmentIDs: missingAttachmentIDs,
                              onAttachmentChanged: handleAttachmentChanged,
                              attachImage: attachImage,
                              attachProcessing: attachProcessing,
@@ -535,26 +541,7 @@ private extension EditEntryView {
         ScrollViewReader { proxy in
             ScrollView {
                 VStack(spacing: 9) {
-                    if !attachments.isEmpty {
-                        EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                                  pendingBlobIDs: pendingBlobIDs,
-                                                  onAttachmentChanged: handleAttachmentChanged)
-                    } else if attachImage != nil {
-                        EditEntryRows.pendingReceiptCard(processing: attachProcessing)
-                    } else {
-                        // RV.11: the chooser hangs off the CARD that carries the
-                        // "Add receipt" button, not off the screen. iOS 26 renders
-                        // a confirmationDialog as a popover anchored to the view it
-                        // is attached to, so a screen-level attachment pointed its
-                        // arrow at the middle of the form.
-                        EditEntryRows.receiptCard(attachments: attachments, entry: fill,
-                                                  pendingBlobIDs: pendingBlobIDs,
-                                                  onAddReceipt: { showAttachSource = true })
-                            .receiptAttachSource(isPresented: $showAttachSource,
-                                                 title: "Add receipt") { image in
-                                attachReceipt(image)
-                            }
-                    }
+                    fillUpReceiptCard(fill)
                     if attachFailed {
                         attachFailedWarn
                     }

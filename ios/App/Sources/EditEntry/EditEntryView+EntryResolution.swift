@@ -101,8 +101,13 @@ extension EditEntryView {
     private func bind(_ target: any Entry, vehicle: Vehicle,
                       repository: TankbookRepository) throws {
         stations = try repository.liveStations()
-        attachments = try repository.liveAttachments()
-            .filter { target.attachments.contains($0.id) }
+        let liveAttachments = try repository.liveAttachments()
+        attachments = AttachmentReference.resolved(target.attachments, liveAttachments: liveAttachments)
+        // RV.208: the references no live row resolves to are surfaced, never
+        // swept - a row this device has not pulled yet is indistinguishable from
+        // one that was never written (docs/SYNC.md -> Attachments).
+        missingAttachmentIDs = AttachmentReference.unresolved(target.attachments,
+                                                              liveAttachments: liveAttachments)
         pendingBlobIDs = Set(attachments
             .filter { !BlobService.isBlobAvailable($0) }
             .map(\.id))

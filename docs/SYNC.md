@@ -266,6 +266,21 @@ the server still never reads what a field means (hard rule 9). The per-account s
 defaults to 5 GB, is configurable, is enforced at `begin`, and is metered from the blob index
 (`SUM(size_bytes)`), never from a stored counter that could drift.
 
+**A dangling `attachmentID` on an entry is left in place, never swept (RV.208).** An entry's
+`attachments` is a list of ids, not a foreign key, so a phone can carry a reference whose
+`Attachment` row was never written - the shape `RV.173`'s grouped save left behind. The obvious fix,
+a one-time migration clearing every id that resolves to no live row, is **unsafe**: on this device
+"no live row" is not decidable between *never written* and *not pulled yet*. The entry pushes
+text-first with its blob pending (the attachment record is deferred behind the blob gate, upload
+step 5 above), so it reaches the server at a lower SCN than its attachment; a device mid-restore
+pulls the entry before the attachment and would have a valid link deleted under it. The server
+never validates references (hard rule 9) and exposes no query for an attachment id, and the
+dangling id carries no `sha256` to check against `GET /blobs/{sha256}`. So the reference stays and
+**Edit entry surfaces the missing photo with a re-attach next step** (`docs/ERRORS.md` -> Edit
+entry); the count is a presentation, never a write. The alternative – clearing only the ids a
+locally-created entry owns – was rejected too: a record that merged down from another device is
+re-dirtied and indistinguishable from one authored here, so the sweep would still race a restore.
+
 ## Reference data: server-curated packs (vehicle catalog, rates)
 
 The vehicle catalog is **curated on the server**, and the server is the **master copy**. The app ships a

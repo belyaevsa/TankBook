@@ -37,6 +37,11 @@ struct EditEntryNonFillView: View {
     let syncOverwrite: SyncOverwrite?
     let onRestore: () -> Void
     let pendingBlobIDs: Set<UUID>
+    /// RV.208: the entry's attachment ids that resolve to no live `Attachment`
+    /// row. Left in place (never swept - the states are not locally
+    /// distinguishable, docs/SYNC.md -> Attachments); the strip surfaces them
+    /// with a re-attach next step.
+    let missingAttachmentIDs: [AttachmentID]
     let onAttachmentChanged: (FuelExtraction?) -> Void
     /// RV.202: the receipt a non-fill entry is being given. `attachImage` drives
     /// the pending card; `showAttachSource` is the camera/Photos chooser's
@@ -132,6 +137,15 @@ struct EditEntryNonFillView: View {
                                       onAttachmentChanged: onAttachmentChanged)
         } else if attachImage != nil {
             EditEntryRows.pendingReceiptCard(processing: attachProcessing)
+        } else if !missingAttachmentIDs.isEmpty {
+            // RV.208: the entry references an id no live Attachment resolves to.
+            // The reference stays; the strip names the missing photo and offers
+            // the same re-attach door.
+            EditEntryRows.missingReceiptCard(onAddReceipt: onAddReceipt)
+                .receiptAttachSource(isPresented: $showAttachSource,
+                                     title: "Add receipt") { image in
+                    onAttachImage(image)
+                }
         } else {
             EditEntryRows.receiptCard(attachments: attachments, entry: entry,
                                       pendingBlobIDs: pendingBlobIDs,

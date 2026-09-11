@@ -569,6 +569,15 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.28-expense    en -seedEditEntryScannedExpense -presentScreen editEntry
 capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntry
 
+# RV.208: an entry whose receipt photo was never saved - a dangling attachment id
+# (RV.173's shape) that the fix leaves in place. Edit entry shows the
+# missing-photo card and the re-attach next step instead of the ordinary empty
+# strip, because a device mid-restore cannot tell a never-written row from one it
+# has not pulled yet. RU is where the headline and the next-step sentence run
+# longest.
+capture RV.208-missing-receipt    en -seedEditEntryDanglingReceipt -presentScreen editEntry
+capture RV.208-missing-receipt-ru ru -seedEditEntryDanglingReceipt -presentScreen editEntry
+
 # PJ.23: a SERVICE opened in Edit entry showing its editable line items - the
 # work, its category and its cost, which the screen used to hide entirely
 # (only a Vendor field rendered) while RV.187 titled the Log row from the first

@@ -19,30 +19,7 @@ enum EditEntryTestSeed {
         // The three service poses live in their own file, so this enum stays
         // under the linter's body-length ceiling.
         if EditEntryServiceTestSeed.seedIfRequested(arguments: arguments) { return }
-        if arguments.contains("-seedEditEntryScannedExpense") {
-            seedScannedExpense()
-            return
-        }
-        if arguments.contains("-seedEditEntryManualRate") {
-            seedManualRate()
-            return
-        }
-        if arguments.contains("-seedEditEntryConflict") {
-            seedConflict(pace: false)
-            return
-        }
-        if arguments.contains("-seedEditEntryConflictPace") {
-            seedConflict(pace: true)
-            return
-        }
-        if arguments.contains("-seedEditEntryConflictMiddle") {
-            seedMiddleConflict()
-            return
-        }
-        if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
-            seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
-            return
-        }
+        if seedVariantIfRequested(arguments) { return }
         let standard = arguments.contains("-seedEditEntry")
             || arguments.contains("-seedEditEntrySyncOverwritten")
             || arguments.contains("-seedEditEntrySyncOverwrittenExpense")
@@ -53,6 +30,42 @@ enum EditEntryTestSeed {
         } else if arguments.contains("-seedEditEntrySyncOverwrittenExpense") {
             seedSyncOverwrittenExpense()
         }
+    }
+
+    /// The single-flag poses that reset and return. Split out of
+    /// `seedIfRequested` to keep that function inside the linter's cyclomatic
+    /// budget as the pose list grew.
+    @MainActor
+    private static func seedVariantIfRequested(_ arguments: [String]) -> Bool {
+        if arguments.contains("-seedEditEntryScannedExpense") {
+            seedScannedExpense()
+            return true
+        }
+        if arguments.contains("-seedEditEntryDanglingReceipt") {
+            seedDanglingReceipt()
+            return true
+        }
+        if arguments.contains("-seedEditEntryManualRate") {
+            seedManualRate()
+            return true
+        }
+        if arguments.contains("-seedEditEntryConflict") {
+            seedConflict(pace: false)
+            return true
+        }
+        if arguments.contains("-seedEditEntryConflictPace") {
+            seedConflict(pace: true)
+            return true
+        }
+        if arguments.contains("-seedEditEntryConflictMiddle") {
+            seedMiddleConflict()
+            return true
+        }
+        if arguments.contains("-seedEditEntryTyped") || arguments.contains("-seedEditEntryTypedAttached") {
+            seedTyped(attachReceipt: arguments.contains("-seedEditEntryTypedAttached"))
+            return true
+        }
+        return false
     }
 
     /// RV.117b: the F9a neighbourhood seeds (an order conflict and a pace
@@ -142,6 +155,44 @@ enum EditEntryTestSeed {
             vehicleId: vehicle.id, date: now, odometer: nil,
             money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [id], provenance: .receiptScan, conflict: .none,
+            purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
+            recurrence: nil, installedInServiceId: nil))
+    }
+
+    /// RV.208: an entry whose receipt photo was never saved - it references an
+    /// attachment id that no `Attachment` row resolves to (RV.173's dangling id,
+    /// the shape a user's phone can still carry from a grouped save whose photo
+    /// write failed). `-presentScreen editEntry` opens the newest entry, so this
+    /// expense is the only row. Reset under `-homeResetDatabase` like the other
+    /// resetting seeds, so an EN-then-RU capture pair starts from one state.
+    @MainActor
+    private static func seedDanglingReceipt() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
+                                  energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 118_579)
+        try? repository.upsertVehicle(vehicle)
+
+        // The dangling id: the receipt the failed write never wrote. No
+        // `Attachment` row is created for it, exactly as RV.173 leaves it.
+        try? repository.upsertExpense(Expense(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: nil,
+            money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [UUID.v7()], provenance: .receiptScan, conflict: .none,
             purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
             recurrence: nil, installedInServiceId: nil))
     }

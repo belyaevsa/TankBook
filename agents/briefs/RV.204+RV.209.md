@@ -18,6 +18,14 @@ gives every kind that door). Make the fill-up edit path obey it - it blocks toda
 paths call the same handler. Write the reason in `ERRORS.md` as ONE row and delete the other. **L1 from both entry kinds asserting the SAME outcome**, whichever it
 is. **L4** in both, EN + RU, of the failure state.
 
+## Also, from RV.208's walk of the same seam
+
+Re-attach APPENDS on the non-fill save (`entry.attachments + sharedIDs`, keeping an unresolved id)
+and REPLACES on the fill-up save (`updated.attachments = [id]`, dropping it). One gesture, two
+behaviours by entry kind - `RV.204`'s shape. Decide it with `RV.204` (the honest answer is probably
+*append, and let the missing-photo card from RV.208 keep pointing at the lost one until the user
+removes it*) and make both kinds obey it.
+
 ## RV.209 - two `Attachment` builders disagree about what a scan concluded
 
 `writeReceiptPhoto` (`ManualFillUpReceiptSave.swift:208`, the Confirm fill-up) and

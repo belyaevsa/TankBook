@@ -1825,6 +1825,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.208-missing-receipt": {
+      "commit": "4aac1d0d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.208-missing-receipt-ru": {
+      "commit": "4aac1d0d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.21-garage": {
       "commit": "dc8ea81",
       "device": "iPhone 17",
