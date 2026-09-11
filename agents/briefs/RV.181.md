@@ -1,197 +1,77 @@
-# RV.181 - nothing is ever dispatched to a share destination
+# RV.181 - nothing is ever dispatched to a share destination, on the device
 
-You are working in `/Users/sbelyaev/repos/fuel-counter-ios`. **Write only inside that repo.**
-Write code first, explore second. Do not commit; the orchestrator commits after verifying.
-**Never move, rename or delete a file you did not create** - assume you are not alone in this
-checkout. **Agents never tick `docs/TASKS.md` and never commit.** An agent ticked its own row on
-2026-09-10 and the orchestrator reverted it.
+**Scenarios: J13 · selling the car (export), J8b · look at the receipt again (share a photo).**
+Reported again by the product owner on 2026-09-11 from the latest release build: *"still can't
+share photo or export data"*. The row was skipped on 2026-09-10 pending device evidence; the
+evidence path - the diagnostics export - goes through the same share sheet, so it cannot arrive.
+**This brief changes the presentation shape to the one known to work, and makes the outcome
+readable on screen without a share.**
 
-## The defect
+## What the tree does today, and the hypothesis
 
-Product owner, 2026-09-10: *"Sharing doesn't work. If I want to share a diagnostic log, photo
-attached, I can see the share proposal, select a destination, but in the end, nothing is dispatched
-to the destination source."*
+Every share is `ActivityView` (`Shared/ActivityView.swift`): a `UIViewControllerRepresentable`
+whose host controller `present`s a `UIActivityViewController` once it is in a window. Every call
+site puts that inside a SwiftUI `.sheet(item:)`. The receipt photo is the deepest case:
+`ReceiptCardView` `.sheet` -> `AttachmentViewerView` `.sheet(item: $shareable)` -> `ActivityView`
+host -> `present(activity)`. **Three modal levels.** The export (`ExportFlow.swift:32`) and the
+diagnostics bundle (`DiagnosticsPreviewView.swift:38`) are two levels.
 
-**Every share in the app is affected.** `UIActivityViewController` is hosted as the **root of a
-SwiftUI `.sheet`** through `ActivityView: UIViewControllerRepresentable`
-(`ios/App/Sources/Shared/ActivityView.swift:16-22`):
+`Coordinator.finish` runs `completion` and then **`dismissSheet()`**. For *Save to Files* and
+*Copy*, the whole activity completes inside the activity controller, so dismissing the host after
+is harmless - which is exactly why *Save to Files worked under both shapes* on the simulator. For
+Messages, Mail, AirDrop-with-compose and every third-party share extension, the activity controller
+dismisses ITSELF first and the destination's UI is presented **from the presenting controller** -
+the SwiftUI-hosted `ShareHostController`. If the host sheet is torn down at that moment (SwiftUI
+re-evaluating `.sheet(item:)`, or `finish` firing on an intermediate callback), the destination UI
+is dismissed with it and nothing is dispatched. **This is a hypothesis.** The orchestrator's earlier
+"no presenter" diagnosis was withdrawn; do not treat this one as proven either. It is, however,
+the well-known failure shape for `UIActivityViewController` inside nested SwiftUI sheets, and the
+fix below removes the shape whether or not the mechanism is exactly this.
 
-```swift
-func makeUIViewController(context: Context) -> UIActivityViewController {
-    let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
-    controller.completionWithItemsHandler = { _, completed, _, _ in completion?(completed) }
-    return controller                     // ← returned AS the sheet's root
-}
-```
+## Build
 
-An activity controller must be **presented BY** a view controller. Hosted as a sheet root it is
-presented by SwiftUI's hosting controller, so when the user picks a destination the chosen activity
-has **no presenter for its own UI** - Mail's compose window, Messages, the Files browser - and the
-hand-off dies silently. The sheet simply closes and nothing arrives.
+1. **Present from the top-most presented controller of the key window, not from a sheet host.**
+   Replace `ActivityView`'s sheet-hosted presentation with a `SharePresenter` (a small
+   `@MainActor` helper) that finds the key window's root, walks `presentedViewController` to the
+   top, and calls `present(activity)` there. Call sites stop wrapping it in `.sheet`; they call
+   `SharePresenter.present(items:completion:)` from their button action. No SwiftUI sheet is
+   involved in the share at all, so nothing SwiftUI does can tear the destination down. Keep
+   `ShareOutcome` and the shape-only logging exactly as they are.
+2. **Single-item photo and PDF shares use `ShareLink`** (`AttachmentViewerView` only) - the
+   SwiftUI-native path with no presentation of ours. The export keeps UIKit because it shares a
+   directory plus separate CSV files, which `ShareLink` cannot carry. Say in code why the two
+   differ (one reason, at `ActivityView`).
+3. **Make the outcome readable without a share.** The diagnostics preview (`DiagnosticsPreviewView`)
+   is on-screen text with `.textSelection(.enabled)`; ensure the last `share` outcome lines - the
+   operation, `outcome`, `activity=`, `error=` - are in that preview text, so the owner can
+   screenshot them after a failed share. If the preview already includes recent log lines, say
+   so; if not, add the last N `ui` lines to it (shape only, hard rule 12).
+4. `docs/ERRORS.md` -> the share rows, and the `ActivityView` doc comment: replace the "deliberate
+   choice, not a proven fix" paragraph with what the code does now and the reason.
 
-The five call sites, all through that one seam:
+## Tests
 
-| Surface | Site | Payload |
-|---|---|---|
-| Diagnostics bundle | `Settings/DiagnosticsPreviewView.swift:38` | a `String` |
-| Receipt photo / PDF | `EditEntry/AttachmentViewerView.swift:135` | `UIImage`, or a temp-file `URL` |
-| Account + per-car export | `Export/ExportFlow.swift:42` | a directory `URL` + CSV `URL`s |
-| "Send us the file" (PJ.20) | `Import/ImportWizardView.swift:542` | a file `URL` + a message |
+- **L1**: `SharePresenter.topMost(from:)` walks a presented chain to the top (a UIKit unit test
+  with stacked controllers).
+- **L4 `ExportUITests` / `EditEntryUITests`**: the share sheet appears from each door and *Copy*
+  completes with a `completed` outcome logged - the simulator cannot prove a destination
+  dispatch, **say so plainly**; what it can prove is that the sheet is presented from the top-most
+  controller and the outcome is logged.
+- **L4**: the diagnostics preview contains a `share` line after a share.
+- No screenshots unless a screen changed.
 
-**`ExportFlow.swift:43` compounds it** with `.presentationDetents([.medium, .large])` applied to the
-activity controller itself.
+## Mutation - named
 
-## Why nothing caught this, and what it means for your tests
+Present from the sheet host again on one door; the top-most L1 goes red, and the L4 asserting the
+presenter is the window's top-most controller goes red. Byte-identical restore; verbatim.
 
-`PJ.36` and `PJ.38` ship **committed screenshots of the share sheet open**, and their L4s assert it
-appears. **The sheet appearing is the half that already works.** The orchestrator opened those
-screenshots during this session and read them as evidence; they are not.
+## The device step, for the owner - write it into the report
 
-**So an assertion that the sheet is presented passes on today's broken code.** Your acceptance is
-that an artefact **arrives**.
+After this ships: one share attempt of a receipt photo to Messages on the iPhone 13, then Settings
+-> About -> the diagnostics preview, screenshot of the `share` line. That is the evidence that
+either closes the row or names the destination error.
 
-## This brief's reading is a hypothesis - confirm it before you change anything
+## Vacuous traps
 
-The cause above is the orchestrator's diagnosis from reading the code, **not a runtime observation**.
-Four of the orchestrator's diagnoses were wrong in one session and an agent caught every one.
-
-**Reproduce it first**: run the app, open a share, choose *Save to Files*, and confirm nothing lands.
-If sharing works for some payload types and not others - a `String` behaving differently from a
-`URL`, say - **that changes the fix and you must report it**. If it works everywhere and the defect
-is elsewhere, say so and stop.
-
-## Why this row outranks the queue
-
-*Export always free* is a launch commitment (`docs/VISION.md`), and `DELETE /account`'s copy points
-the user at export as the way to keep their data (`site/delete-account.md`). Today **nothing leaves
-the app**: not the diagnostics bundle the support flow depends on, not a receipt photo, not the CSV.
-It is hard rule 8's promise failing in the export direction.
-
-## What to build
-
-**Present the controller instead of hosting it**, in the **one shared seam**. `ActivityView` is
-already the single door - which is why this is one row and not five - so fix it there and let every
-call site inherit the fix.
-
-The shape: the representable owns a plain host `UIViewController` and presents the
-`UIActivityViewController` from it, **guarded so it presents exactly once** (SwiftUI calls
-`updateUIViewController` repeatedly; presenting twice throws, and re-presenting on every update is
-its own defect). `ShareLink` is an acceptable alternative **only** where the payload is a single
-item - it cannot carry the export's directory-plus-files - so if you use it anywhere, say where and
-why the seam still exists for the rest.
-
-**Drop `ExportFlow`'s `.presentationDetents`** - it applies a sheet's sizing to a controller that
-now presents itself.
-
-**Keep `completionWithItemsHandler` firing exactly once**, with `completed` true only when an
-activity actually ran. `AttachmentViewerView.swift:138` and `:416` log shape-only outcomes off it
-(`RV.17`); those log lines must keep meaning what they say.
-
-## Explicitly out of scope
-
-- What each surface *puts* in the share - the payloads are settled. Do not change what is shared.
-- `PJ.20`'s consent step, `PJ.36`/`PJ.38`'s export building, `OB.4`'s diagnostics bundle contents.
-- The import file picker.
-
-## Docs to read before writing (in order)
-
-1. `docs/ERRORS.md` -> the export and diagnostics rows - what each surface promises the user.
-2. `docs/LOGGING.md` §5 - the diagnostics bundle and its shape-only rule; hard rule 12 means a share
-   outcome logs **whether** and **what kind**, never the content or a destination app's identity.
-3. `docs/VISION.md` -> export always free, and `docs/SECURITY.md` if a temp file's protection class
-   matters to your fix.
-4. `CLAUDE.md` hard rules 7, 8, 12.
-
-Extend `docs/ERRORS.md` if the failure now surfaces to the user at all - **decide whether a share
-that fails should say so**, and record the decision either way.
-
-## Environment axes this crosses
-
-**Device vs simulator matters here** - some activities exist only on a device, but *Save to Files*
-and *Copy* work on the simulator and are enough to prove the hand-off. **Say which you used.**
-**Locale**: no new copy expected; if you add a failure message it is EN + RU. **Screenshots**: only
-if a user-visible surface changes - a working share looks identical to a broken one, so **a
-screenshot is NOT evidence for this row**; say so rather than shipping one that proves nothing.
-
-## If this adds a failure path, what makes it visible in production?
-
-The current failure is **completely silent**, which is why it survived to a user report. Whatever
-you build, make sure one device log can answer *"did a share reach an activity?"* - the existing
-`completionWithItemsHandler` outcome is the natural place. Shape only: whether an activity ran, and
-the payload **kind** (photo / pdf / csv / text). **Never** the destination app, the filename, or the
-content (hard rule 12).
-
-## Tests you must add
-
-- **L4, and it FAILS TODAY**: a share **reaches a destination and the artefact exists afterwards**.
-  *Save to Files* into a known directory, then assert the file is there. **Assert the RESULT, never
-  that the sheet appeared** - the sheet appears on the broken code, which is exactly how this
-  shipped.
-- **L1**: `completionWithItemsHandler` fires **exactly once** per share, and `completed` is true only
-  when an activity ran. Present twice in a row and assert one callback each - the guard against the
-  present-on-every-update defect.
-- **L4**: every surface goes through the fixed seam - diagnostics, photo, PDF, account export,
-  per-car export, send-file. **Oracle**: `ActivityView` is the only construction site of
-  `UIActivityViewController` in the app; a source-scan asserting that is cheap and stops the next
-  call site forking its own.
-
-Name each suite and report its observed, **non-zero** count. **Run app-target suites separately and
-check the COUNT** - on 2026-09-10 a filter matched nothing three times and printed `TEST SUCCEEDED`
-with exit 0 on **zero tests**; one suite was an `extension` in a differently-named file, so filter by
-the **suite** name, not the file's.
-
-## The mutation you must run - I am naming it, do not choose your own
-
-**Restore the old shape: return the `UIActivityViewController` as the representable's root.** The
-arrival test **must go red** - no file lands - while any "the sheet is presented" assertion stays
-**green**. Then restore and re-run. Report both outputs verbatim.
-
-That split is the whole point of the row: it demonstrates that the test which existed could never
-have caught this, and the one you added can.
-
-## Vacuous traps, named
-
-- **Asserting the sheet is presented** - today's behaviour, and the reason this reached a user.
-- Trusting `PJ.36`/`PJ.38`'s committed screenshots as evidence; they show the half that worked.
-- Fixing one call site instead of the shared seam - or the seam while leaving
-  `presentationDetents`.
-- Presenting on every `updateUIViewController`, which throws or re-presents.
-- Testing the hand-off in a unit test - `UIActivityViewController` cannot exercise it there.
-- Shipping a screenshot as proof: a working share and a broken one look identical.
-
-## Never stash, move or `git checkout` to get a "clean baseline"
-
-Write the test, run it against the unmodified code, then make the change. **Do not** `git stash`,
-`git checkout`, or move files out of the tree: an agent did that on 2026-09-08 and a bad `mv` loop
-destroyed three of its own new files.
-
-## Never `pgrep -f` for a build process
-
-Your brief is part of your command line, so `pgrep -f "xcodebuild.*test"` matches **this agent**.
-Use `pgrep -x xcodebuild`. **Never `pkill -f`.**
-
-## Standing checks
-
-Re-measure the baseline yourself and report what you observe. As left, `main` is **1863 tests / 221
-suites**, **829** localization keys at 100% RU.
-
-1. `cd ios && swift build` - exit 0.
-2. `swiftlint lint` from the **repo ROOT** - exit 0. From the root, **not** `ios/`: the `excluded:`
-   paths are root-relative and from `ios/` it exits 2 with ~5000 phantom errors.
-3. `cd ios && swift test` - full, never subsetted; report the count.
-4. **`xcodebuild ... build` for the app target** - `swift build` compiles only the SwiftPM package,
-   and `ActivityView` lives in `ios/App/Sources`, invisible to it ([RV.174]).
-5. `xcodegen generate`, then every UI suite you touched **by suite name**, with observed **non-zero**
-   counts.
-6. Localization gate - exit 0; report keys and RU percentage.
-7. Release build if you touch a `#if DEBUG` seam. Say which applies.
-
-Verify by **exit code** (`echo $?`), and report the codes you observed.
-
-## Report back
-
-Every check with the **exit code you observed** and the observed counts; whether each test was **run
-or only written**; **the named mutation's red-then-green output, verbatim**; **how you reproduced the
-defect before fixing it, and on device or simulator**; whether any payload type behaved differently
-from the others; whether a failed share now tells the user anything and what you decided; and
-**anything you found and did not fix**.
+- Asserting the sheet appears. It always appeared; the dispatch is what fails.
+- Keeping a `.sheet` around the new presenter "for dismissal" - that is the shape being removed.
