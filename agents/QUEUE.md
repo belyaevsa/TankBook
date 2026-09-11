@@ -78,9 +78,11 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.181` | J13 / J8b | flash | (dispatching) | `RV.181.md` - present the share from the top-most controller; the owner's release-build bug, ahead of `RV.215` |
+| `RV.215` | J3 / J7 / J7b | flash | (dispatching) | `RV.215.md` - the deferred producer; last of J3 |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3: `RV.197`, `RV.208`, `RV.216+RV.217` (second pass after the owner rejected the stacked layout), `RV.204+RV.209` shipped; `RV.215` after `RV.181`; then J3's walk.
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3: `RV.197`, `RV.208`, `RV.216+RV.217`, `RV.204+RV.209` shipped; `RV.181` shipped `[~]` awaiting the owner's device step; `RV.215` in flight; then J3's walk.
+
+**The concurrent corpus agent (pid 83907, running since 2026-09-10 19:57) is polluting full runs**: uncommitted fixtures under `Spike/ReceiptSpike/fixtures/`, `expected.csv` rows, and an untracked `ios/Tests/TankbookCoreTests/ZZTempCorpusDumpTests.swift` that fails lint. Until it finishes or is stopped, `swift test` fails in the corpus and `RV.157` suites and `swiftlint` exits 2 on its temp file - verify rows by their own suites and say so in the outcome cell, as `RV.181` does.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
