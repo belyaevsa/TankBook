@@ -274,6 +274,48 @@ final class RemindersUITests: XCTestCase {
                        "the alert must not claim the delete is permanent; was: \(message)")
     }
 
+    // MARK: - PJ.27 the seasonal swap reminder
+
+    /// A mounted set's accepted swap reminder reaches the list carrying the
+    /// seasonal recurrence. The list-side half of the loop J7b promises: the
+    /// mount proposes, the user accepts, and the reminder is live with a
+    /// six-month cadence it will self-schedule from (docs/SCHEMA.md, Reminder).
+    func testAcceptedSwapReminderIsListedWithItsSeasonalRecurrence() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedTireSetsNoOdometer",
+                               "-presentScreen", "serviceEntry"]
+        app.launch()
+
+        app.buttons["serviceEntryModeTires"].tap()
+        let picker = app.buttons["serviceEntryTireSetPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        picker.tap()
+        let winter = app.buttons["Winter Nokian"]
+        XCTAssertTrue(winter.waitForExistence(timeout: 5))
+        winter.tap()
+
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        odometer.tap()
+        odometer.typeText("120000")
+        app.buttons["serviceEntrySaveButton"].tap()
+
+        XCTAssertTrue(app.buttons["serviceReminderOfferCreateButton"]
+            .waitForExistence(timeout: 10),
+            "the mount must propose the swap reminder")
+        app.buttons["serviceReminderOfferCreateButton"].tap()
+
+        app.terminate()
+        app.launchArguments = ["-presentScreen", "remindersAll"]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Winter Nokian"].waitForExistence(timeout: 10),
+                      "the accepted swap reminder must be on the reminders list")
+        let recurrence = app.staticTexts.containing(
+            NSPredicate(format: "label CONTAINS %@", "every 6 mo")).firstMatch
+        XCTAssertTrue(recurrence.waitForExistence(timeout: 5),
+                      "the swap reminder must carry its seasonal recurrence")
+    }
+
     // MARK: - P3.6 notification permission
 
     /// The one-time denied card (docs/ERRORS.md -> Reminders) renders when

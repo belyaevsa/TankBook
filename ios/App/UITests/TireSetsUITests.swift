@@ -121,4 +121,67 @@ final class TireSetsUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["serviceEntryModeTires"].waitForNonExistence(timeout: 10),
                       "saving the swap closes the sheet")
     }
+
+    // MARK: - PJ.26 the purchase link
+
+    /// A `.parts` expense offers "Make this a tire set"; tapping it writes the
+    /// link, and the set form then shows the purchase it came from. The door is
+    /// not the deliverable - the link is - so the assertion walks to the set and
+    /// reads its purchase, not just the button.
+    func testMakeTireSetFromPartsExpenseLinksTheSet() {
+        let app = launch(["-seedEditEntryScannedExpense", "-presentScreen", "editEntry"])
+
+        let make = app.buttons["makeTireSetButton"]
+        XCTAssertTrue(make.waitForExistence(timeout: 10),
+                      "the parts expense must offer the tire-set door")
+        make.tap()
+
+        let link = app.buttons["tireSetPurchaseLink"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5),
+                      "making the set must show the link on the expense")
+        link.tap()
+
+        XCTAssertTrue(app.textFields["tireSetNameField"].waitForExistence(timeout: 5),
+                      "the link must open the set it names")
+        XCTAssertTrue(app.staticTexts["Winter wiper blades"].waitForExistence(timeout: 5),
+                      "the set form must show the purchase it came from")
+    }
+
+    // MARK: - PJ.27 the seasonal swap reminder
+
+    /// Mounting a set proposes the next swap: a `.tires` reminder anchored at
+    /// the mount, recurring by months. Accepting it puts it on the reminders
+    /// list, which is the loop J7b promises.
+    func testMountingASetOffersASwapReminder() {
+        let app = launch(["-seedTireSetsNoOdometer", "-presentScreen", "serviceEntry"])
+
+        app.buttons["serviceEntryModeTires"].tap()
+        let picker = app.buttons["serviceEntryTireSetPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 10))
+        picker.tap()
+        let winter = app.buttons["Winter Nokian"]
+        XCTAssertTrue(winter.waitForExistence(timeout: 5))
+        winter.tap()
+
+        let odometer = app.textFields["serviceEntryOdometerField"]
+        odometer.tap()
+        odometer.typeText("120000")
+        app.buttons["serviceEntrySaveButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["serviceReminderOfferHeadline"].waitForExistence(timeout: 10),
+                      "a mount must propose the next swap, never mount in silence")
+        let months = app.textFields["serviceReminderOfferMonthsField"]
+        XCTAssertTrue(months.exists, "the seasonal cadence is a months interval")
+        XCTAssertEqual(months.value as? String, "6",
+                       "the seasonal swap suggestion is six months")
+
+        app.buttons["serviceReminderOfferCreateButton"].tap()
+
+        app.terminate()
+        app.launchArguments = ["-presentScreen", "remindersAll"]
+        app.launch()
+        XCTAssertTrue(app.staticTexts["remindersScheduledHeader"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["Winter Nokian"].waitForExistence(timeout: 5),
+                      "the accepted swap reminder must appear in the reminders list")
+    }
 }

@@ -292,6 +292,14 @@ extraction, and generalising that merge over entry kind is [RV.201].
 | Install | Creating a service record, app offers shelf parts: "Install oil filter from Mar 3?" → link, don't re-price | Cost counted once (at purchase); the service shows the part via link. No double counting in cost/km – the F-series equivalent sin here is a part priced twice |
 | Tires | A tire purchase becomes a TireSet; each seasonal swap (a small ServiceRecord) marks which set went on | Set mileage derives from odometer spans between swaps – "Winter Nokian: 18 400 km" answers the real question (are these tires done?) plus the swap reminder each season |
 
+**The swap reminder is born from the mount.** A tire mount (a `ServiceRecord` carrying
+`tireSetId`) proposes a `.tires` reminder anchored at the mount date, recurring by
+`ReminderOffer.seasonalSwapMonths` (6 months) - the same post-save offer J7d describes, never an
+auto-create (hard rule 13). It is the one `.tires` offer there is: a tire line item has no universal
+cadence, and a live `.tires` reminder on the car suppresses a second. The user stops the season the
+way any reminder stops - **Dismiss** (keeps the row with a reason, feeds the anomaly logic) or
+**Delete** (a tombstone with the 30-day undo) from the row's own menu.
+
 **Fallbacks:** part logged without a receipt → plain manual expense, one field + price. User skips the shelf entirely and just types parts inside service records → works fine, the shelf is an optimization, never a gate. Tire mileage without logged swaps → unavailable, shown as "–", never estimated.
 
 **The Expense capture door (RV.62, extended RV.200):** scanning a shop receipt in Expense mode

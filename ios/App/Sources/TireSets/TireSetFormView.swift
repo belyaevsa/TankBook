@@ -19,6 +19,9 @@ struct TireSetFormView: View {
     @State private var vehicle: Vehicle?
     @State private var didLoad = false
     @State private var existing: TireSet?
+    /// The `.parts` expense that bought this set, when the link is present. A
+    /// rename keeps the link; this only reads the expense's own words back.
+    @State private var purchaseExpense: Expense?
     @FocusState private var nameFocused: Bool
 
     private var isEditing: Bool { tireSetID != nil }
@@ -30,6 +33,9 @@ struct TireSetFormView: View {
                     noVehicleCard
                 } else {
                     TireSetNameCard(name: $form.name, focused: $nameFocused)
+                    if let purchaseExpense {
+                        TireSetPurchaseInfoCard(expense: purchaseExpense)
+                    }
                 }
             }
             .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -113,6 +119,10 @@ struct TireSetFormView: View {
                     .first { $0.id == tireSetID }
                 if let existing {
                     form = TireSetFormState.from(tireSet: existing)
+                    if let expenseID = existing.purchaseExpenseId,
+                       let entry = try repository.liveEntry(id: expenseID) {
+                        purchaseExpense = entry as? Expense
+                    }
                 }
             }
         } catch {

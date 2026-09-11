@@ -58,11 +58,6 @@ struct SchemaFieldWriterGuardTests {
                   + "(ServiceEntryItemDraft.serviceItem, ServiceEntryFormState.swift) but no editor "
                   + "can set it, so it is never a non-nil value. PJ.22 builds the lifetime editor "
                   + "and the reminder proposal it drives; remove this exception in that same change."),
-        .init(field: "TireSet.purchaseExpenseId",
-              reason: "The purchase link is only ever written nil (TireSetDraft.build, "
-                  + "TireSetDraft.swift:35) and read nowhere. PJ.26 adds the 'make this a tire set' "
-                  + "door from a .parts Expense that writes it; remove this exception in that same "
-                  + "change."),
         .init(field: "Station.brand",
               reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
                   + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
@@ -230,8 +225,7 @@ struct SchemaFieldWriterGuardTests {
             "ServiceItem.lifetime.km",
             "ServiceItem.lifetime.months",
             "ServiceRecord.proposedReminderId",
-            "Station.brand",
-            "TireSet.purchaseExpenseId"
+            "Station.brand"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
 
@@ -243,8 +237,6 @@ struct SchemaFieldWriterGuardTests {
     @Test func theNewExceptionsNameTheWritingRow() {
         let byField = Dictionary(
             uniqueKeysWithValues: Self.documentedExceptions.map { ($0.field, $0.reason) })
-        #expect(byField["TireSet.purchaseExpenseId"]?.contains("PJ.26") == true,
-                "the purchase-link exception must name PJ.26, its writer")
         #expect(byField["ServiceItem.lifetime.km"]?.contains("PJ.22") == true,
                 "the lifetime exception must name PJ.22, its writer")
         #expect(byField["ServiceItem.lifetime.months"]?.contains("PJ.22") == true,

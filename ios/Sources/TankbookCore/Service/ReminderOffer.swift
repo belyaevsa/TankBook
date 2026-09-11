@@ -91,6 +91,17 @@ public enum ReminderOffer {
         }
     }
 
+    /// The seasonal swap cadence a tire MOUNT anchors (docs/JOURNEYS.md J7b
+    /// "the swap reminder each season", docs/NOTIFICATIONS.md -> "tire season").
+    /// A set goes on for a season and comes off about half a year later, so the
+    /// next swap is six months after the mount. This is deliberately NOT in the
+    /// per-category table above: a `.tires` line item (a rotation, an
+    /// alignment) still has no universal cadence, and only a record that
+    /// actually mounts a set (`ServiceRecord.tireSetId`) carries this one. The
+    /// number is a suggestion the user edits in the same breath (hard rule 13),
+    /// never a fact.
+    public static let seasonalSwapMonths = 6
+
     /// The reminder-category twin of a service line-item category
     /// (docs/SCHEMA.md -> ServiceItem.category vs Reminder.category share the
     /// fixed vocabulary). `.other(String)` free text maps to `.other` - and has
@@ -137,14 +148,39 @@ public enum ReminderOffer {
     }
 
     /// The proposal after a ServiceRecord saves, or nil when there is nothing
-    /// to offer. Category selection is deliberately strict: the offer needs a
-    /// SINGLE driving category, so only records whose titled line items reduce
-    /// to exactly one interval-bearing category propose. A record that mixes
-    /// two schedulable categories (oil AND inspection on one invoice) proposes
-    /// nothing rather than silently choosing one for the user (hard rule 13);
-    /// a record with an oil item plus uncategorized rows proposes oil.
+    /// to offer.
+    ///
+    /// A record that MOUNTS a tire set (`tireSetId != nil`) is the seasonal
+    /// swap: it proposes a `.tires` reminder anchored at the mount date,
+    /// recurring by `seasonalSwapMonths`. This branch wins over the line-item
+    /// rule because the mount is the event; `tireSetName` is the set's own name
+    /// (the user's words, already localized) and the offer carries nothing when
+    /// the set cannot be named.
+    ///
+    /// Otherwise the offer needs a SINGLE driving category, so only records
+    /// whose titled line items reduce to exactly one interval-bearing category
+    /// propose. A record that mixes two schedulable categories (oil AND
+    /// inspection on one invoice) proposes nothing rather than silently
+    /// choosing one for the user (hard rule 13); a record with an oil item plus
+    /// uncategorized rows proposes oil.
     public static func propose(afterService service: ServiceRecord,
+                               tireSetName: String? = nil,
                                liveReminders: [Reminder]) -> Proposal? {
+        if service.tireSetId != nil {
+            let name = tireSetName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !name.isEmpty,
+                  !isSuppressed(category: .tires,
+                                vehicleId: service.vehicleId,
+                                liveReminders: liveReminders) else { return nil }
+            return Proposal(vehicleId: service.vehicleId,
+                            category: .tires,
+                            title: name,
+                            sourceEntryId: service.id,
+                            date: service.date,
+                            odometer: service.odometer,
+                            everyKm: nil,
+                            everyMonths: seasonalSwapMonths)
+        }
         // The titled items' categories, reduced to those with a curated
         // interval. Untitled rows are blanks, not a driving category.
         let intervalCategories = service.items.compactMap { item -> ReminderCategory? in

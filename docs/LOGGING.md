@@ -187,6 +187,14 @@ The warning's `reason` is Safe-class throughout: an Apple activity identifier an
 and code are system codes, never the shared content (hard rule 12). The items being shared - a
 diagnostics text, a receipt image, an export - never reach the log at any level.
 
+### Tire swap reminders
+`tire.swapReminder` – `outcome` (`proposed` / `accepted` / `declined`), one line per stage of the
+seasonal swap-reminder offer a tire mount raises (docs/JOURNEYS.md J7b, docs/NOTIFICATIONS.md ->
+"tire season"). A reminder that silently fails to schedule is indistinguishable from one nobody
+accepted, so the three outcomes together answer *was a swap reminder proposed, and was it accepted?*
+- `proposed` when the mount stages the offer, `accepted` when the user creates the reminder,
+`declined` on "Not this time". **Outcome only**: no date, no tire-set name, no car (hard rule 12).
+
 ### Sync client
 `sync.cycle.begin/end` (syncSessionId, durationMs, recordsPulled/Pushed, trigger). The client today distinguishes **two doors only** – `userInitiated` (a sync the user asked for: Settings "Sync now", sign-in first push, restore) and `background` (every app-scheduled cycle: launch, foreground, timer, Low Power drain, backoff retry). The finer doc vocabulary `foreground`/`write`/`nudge` names automatic doors the app cannot tell apart yet, so a `background` cycle may have come through any of them – the individual doors are wired as the triggers that distinguish them arrive (OB.2). `sync.merge` (one aggregate line per non-empty cycle: records applied = remote records received, conflicts by **scenario** – `S1`/`S4` for a local edit a merge overwrote into the undo log, `S6` for a transport conflict the push resolved – which makes conflict behaviour directly observable in the field), `sync.queue` (dirty count, oldest dirty age – the number behind Settings' "Waiting to sync · N changes").
 

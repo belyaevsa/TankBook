@@ -186,7 +186,7 @@ struct ServiceReminderOfferSheet: View {
             }
 
             Button {
-                dismiss()
+                decline()
             } label: {
                 Text("Not this time")
                     .font(.subheadline.weight(.semibold))
@@ -268,6 +268,13 @@ struct ServiceReminderOfferSheet: View {
         do {
             let repository = try AppStore.repository()
             try repository.upsertReminder(reminder)
+            // A swap proposal's acceptance is its own signal: the reminder is
+            // now on disk, so "was a swap reminder proposed, and was it
+            // accepted?" has an answer in the field (hard rule 12 - outcome
+            // only).
+            if proposal.category == .tires {
+                AppLog.shared.emit(SwapReminderProposal(outcome: .accepted))
+            }
             let vehicleId = reminder.vehicleId
             Task {
                 await notificationCoordinator.requestPermissionIfFirstReminder(vehicleId: vehicleId)
@@ -277,6 +284,17 @@ struct ServiceReminderOfferSheet: View {
         } catch {
             AppLog.error(operation: "serviceReminderOffer.create", category: .notifications, error: error)
         }
+    }
+
+    /// "Not this time": the record is already saved and nothing is written. A
+    /// swap proposal's decline is recorded for the same reason its acceptance
+    /// is - the two outcomes together say whether the seasonal loop is
+    /// reaching users at all (hard rule 12).
+    private func decline() {
+        if proposal.category == .tires {
+            AppLog.shared.emit(SwapReminderProposal(outcome: .declined))
+        }
+        dismiss()
     }
 }
 

@@ -36,6 +36,11 @@ struct EditEntryNonFillView: View {
     @Binding var showAttachSource: Bool
     let onAddReceipt: () -> Void
     let onAttachImage: (UIImage) -> Void
+    /// The tire set this `.parts` expense bought, when the link exists. Nil for
+    /// every other entry kind and for an unlinked parts purchase.
+    let linkedTireSet: TireSet?
+    /// Creates (or opens) the set this `.parts` expense becomes.
+    let onMakeTireSet: () -> Void
 
     @FocusState private var nonFillFocus: EditEntryNonFillFocus?
 
@@ -46,6 +51,9 @@ struct EditEntryNonFillView: View {
             VStack(spacing: 9) {
                 receiptCard
                 typeCard
+                if let expense = entry as? Expense, expense.category == .parts {
+                    TireSetPurchaseCard(linkedSet: linkedTireSet, onMake: onMakeTireSet)
+                }
                 moneyCard
                 ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
                 odometerRow

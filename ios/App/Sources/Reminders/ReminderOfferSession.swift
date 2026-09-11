@@ -42,10 +42,26 @@ final class ReminderOfferSession {
     /// Stages the offer a just-saved ServiceRecord warrants (RV.77). Called
     /// once the record is on disk and NOT as part of completing an existing
     /// reminder (that flow schedules its own next cycle).
+    ///
+    /// A mount record's offer is titled with the mounted set's own name, so the
+    /// set is looked up here - the pure `ReminderOffer` only sees the record.
+    /// When a swap reminder is proposed, a shape-only event records it: a
+    /// reminder that silently fails to schedule must not look like one nobody
+    /// accepted (docs/LOGGING.md, hard rule 12).
     func stage(afterService service: ServiceRecord,
                repository: TankbookRepository) {
         let live = (try? repository.liveReminders(forVehicle: service.vehicleId)) ?? []
-        pending = ReminderOffer.propose(afterService: service, liveReminders: live)
+        let tireSetName = service.tireSetId.flatMap { id in
+            (try? repository.liveTireSets(forVehicle: service.vehicleId))?
+                .first { $0.id == id }?.name
+        }
+        let proposal = ReminderOffer.propose(afterService: service,
+                                             tireSetName: tireSetName,
+                                             liveReminders: live)
+        pending = proposal
+        if proposal?.category == .tires {
+            AppLog.shared.emit(SwapReminderProposal(outcome: .proposed))
+        }
     }
 
     /// Stages the offer a just-saved Expense warrants (RV.77). Insurance is the

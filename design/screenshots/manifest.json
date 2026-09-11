@@ -975,6 +975,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.26-tire-set-door": {
+      "commit": "2a48f37",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.26-tire-set-door-ru": {
+      "commit": "2a48f37",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.27-swap-reminder": {
+      "commit": "2a48f37",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.27-swap-reminder-ru": {
+      "commit": "2a48f37",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.28-expense": {
       "commit": "09b9e50",
       "device": "iPhone 17",

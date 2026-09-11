@@ -50,6 +50,9 @@ struct EditEntryView: View {
     @State var charge: ChargeSession?
     @State var service: ServiceRecord?
     @State var expense: Expense?
+    /// The tire set a `.parts` expense bought, when the link exists. Loaded with
+    /// the entry; written by `makeTireSet`.
+    @State var linkedTireSet: TireSet?
     @State var otherEntries: [any Entry] = []
     @State var stations: [Station] = []
     @State var attachments: [Attachment] = []
@@ -205,8 +208,32 @@ struct EditEntryView: View {
                              attachProcessing: attachProcessing,
                              showAttachSource: $showAttachSource,
                              onAddReceipt: { showAttachSource = true },
-                             onAttachImage: { image in attachReceipt(image) })
+                             onAttachImage: { image in attachReceipt(image) },
+                             linkedTireSet: linkedTireSet,
+                             onMakeTireSet: makeTireSet)
             .safeAreaInset(edge: .bottom) { saveBar }
+    }
+
+    /// "Make this a tire set" from a `.parts` expense (docs/JOURNEYS.md J7b).
+    /// The link is written once: an expense that already has a live set opens it
+    /// instead of minting a second. The set's default name is the expense's own
+    /// title, editable on the set form afterwards (hard rule 13).
+    private func makeTireSet() {
+        guard let expense, let vehicle else { return }
+        do {
+            let repository = try AppStore.repository()
+            let sets = try repository.liveTireSets(forVehicle: vehicle.id)
+            if let existing = TireSetPurchase.linkedSet(forExpense: expense.id, in: sets) {
+                linkedTireSet = existing
+                return
+            }
+            guard let set = TireSetPurchase.makeSet(for: expense, existing: sets) else { return }
+            try repository.upsertTireSet(set)
+            linkedTireSet = set
+            toastCenter.noteEntryChanged()
+        } catch {
+            AppLog.error(operation: "editEntry.makeTireSet", category: .ui, error: error)
+        }
     }
 
     // MARK: - Loading

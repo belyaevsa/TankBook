@@ -254,7 +254,9 @@ TireSet: Entity {
   id, createdAt, updatedAt, deletedAt
   vehicleId: UUID
   name: String                  // "Winter Nokian", "Summer Michelin"
-  purchaseExpenseId: UUID?      // the Expense(.parts) that bought them; no production path writes it yet (PJ.26)
+  purchaseExpenseId: UUID?      // the Expense(.parts) that bought them. Written once by
+                                // "Make this a tire set" on a .parts expense (`TireSetPurchase.makeSet`);
+                                // the set shows its purchase, and a rename keeps the link.
   // km on this set is DERIVED: sum of odometer spans between ServiceRecords that mounted/unmounted it
   // (tireSetId marks mounting; the next tire-swap record ends the span). Never stored – same rule as segments.
 }
@@ -336,6 +338,14 @@ Everything else (`.brakes`, `.tires`, `.battery`, `.filters`, `.inspection`, `.r
 `.wash`, `.custom`, `.other`) has no interval a service network would agree on: brakes and tires are
 wear/seasonal, filters vary by part, and inspection cadence is jurisdiction law, not a schedule.
 Offering a number there would invent a fact; the Reminders form remains the honest door for those.
+
+**The mount is the exception, and it is not the category.** A record that actually mounts a tire
+set (`ServiceRecord.tireSetId != nil`) is the seasonal swap J7b describes, and it proposes a
+`.tires` reminder anchored at the mount date, recurring by `ReminderOffer.seasonalSwapMonths` (6 -
+half a year between putting a set on and swapping it back). A `.tires` line item (a rotation, an
+alignment) still offers nothing, because the cadence belongs to the mount, not the category. Like
+every offer, it is a suggestion the user accepts, edits or declines in the same breath (hard rule
+13), and a live `.tires` reminder on that car suppresses a second one.
 
 ### Attachment & extraction provenance
 

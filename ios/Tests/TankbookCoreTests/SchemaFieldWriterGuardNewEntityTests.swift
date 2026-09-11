@@ -48,15 +48,16 @@ struct SchemaFieldWriterGuardNewEntityTests {
 
     // MARK: - L1: the fields the headings exposed
 
-    /// PJ.63's deliverable: once `TireSet` has a heading and a field-spec
-    /// binding, the guard reports its dead field. Oracle: `purchaseExpenseId` is
-    /// written `nil` only at `TireSetDraft.build` (`TireSetDraft.swift:35`) and
-    /// read nowhere.
-    @Test func theTireSetPurchaseLinkIsReportedBeforeAnyException() throws {
+    /// PJ.26 gave `purchaseExpenseId` a production writer
+    /// (`TireSetPurchase.makeSet`, `TireSetPurchase.swift`), so the guard must
+    /// stop reporting it. Oracle: the `.parts` expense path constructs a
+    /// `TireSet` with `purchaseExpenseId: expense.id`. Before PJ.26 this same
+    /// assertion failed - the guard reported the field.
+    @Test func theTireSetPurchaseLinkIsNoLongerReported() throws {
         let unwritten = FieldWriterScanner.unwrittenFields(
             schemaText: try Self.schemaDoc(), sources: try Self.productionSources())
-        #expect(unwritten.contains("TireSet.purchaseExpenseId"),
-                "the purchase link has no production writer - it must be reported. Got \(unwritten)")
+        #expect(!unwritten.contains("TireSet.purchaseExpenseId"),
+                "the purchase link now has a production writer - it must not be reported. Got \(unwritten)")
     }
 
     /// Oracle: `TireSetDraft.build` passes `name`, and the item editor /

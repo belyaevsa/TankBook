@@ -120,6 +120,12 @@ extension EditEntryView {
         } else {
             loadNonFill(target)
         }
+        // The `.parts` expense's purchase link, so the card can show the set it
+        // already bought (docs/JOURNEYS.md J7b). Every other entry kind has none.
+        if let expense = target as? Expense {
+            linkedTireSet = try repository.liveTireSets(forVehicle: vehicle.id)
+                .first { $0.deletedAt == nil && $0.purchaseExpenseId == expense.id }
+        }
     }
 
     private func loadNonFill(_ entry: any Entry) {

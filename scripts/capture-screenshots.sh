@@ -417,6 +417,17 @@ capture P3.3-tire-sets-ru         ru -seedTireSets -presentScreen tireSets
 capture P3.3-tire-mount           en -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
 capture P3.3-tire-mount-ru        ru -seedTireSets -presentScreen serviceEntry -seedServiceEntryTires
 
+# PJ.26: the `.parts` expense's "Make this a tire set" door on the Edit entry
+# screen. RU is where the label runs longest against the dashed card.
+capture PJ.26-tire-set-door       en -seedEditEntryScannedExpense -presentScreen editEntry
+capture PJ.26-tire-set-door-ru    ru -seedEditEntryScannedExpense -presentScreen editEntry
+
+# PJ.27: the seasonal swap offer a tire mount proposes, over the seeded mount.
+# It is the same offer sheet as RV.77, with the six-month cadence and the set's
+# own name; the RU shot is where the title and the interval caption run longest.
+capture PJ.27-swap-reminder       en -seedSwapReminderOffer -presentServiceReminderOffer
+capture PJ.27-swap-reminder-ru    ru -seedSwapReminderOffer -presentServiceReminderOffer
+
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the
