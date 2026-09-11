@@ -23,34 +23,19 @@ stopped.
 
 ## Filed against closed, commit by commit
 
-```
-     A = cumulative RV rows FILED     c = cumulative RV rows CLOSED     # = both
+![RV backlog: filed against closed, commit by commit](../../design/analysis/rv-backlog.png)
 
- 214 |                                      A
- 204 |                                    AA 
- 194 |                                 AAA   
- 183 |                                A      
- 173 |                              AA     cc
- 163 |                             A     cc  
- 153 |                           AA    cc    
- 143 |                        AAA   ccc      
- 132 |                       A   ccc         
- 122 |                     AA ccc            
- 112 |                    A  c               
- 102 |                 AAAccc                
-  92 |                Accc                   
-  82 |              A#c                      
-  71 |            A#c                        
-  61 |          ##c                          
-  51 |       AA#                             
-  41 |    AA#cc                              
-  31 |  AA c                                 
-  20 | A  c                                  
-  10 |Accc                                   
-   0 |c                                      
-     +|     |    |  |   |    |  |    |     | 
-      03    04   05 06  07   08 09   10    11   (September 2026)
+Built by `scripts/rv-backlog-chart.py`, which re-derives every point from git rather than from a
+running tally - re-run it any time and it recomputes from the files as they stood at each commit:
+
 ```
+python3 scripts/rv-backlog-chart.py            # -> design/analysis/rv-backlog.png + .json
+```
+
+Three panels: the cumulative lines with the open backlog shaded between them; rows filed and closed
+per day; and the median hours a row waited between being written and being ticked. The dotted
+verticals are the process changes described further down, placed at the commit that recorded each -
+they are there so the backlog's behaviour on either side of a change can be read off directly.
 
 The two lines run close together and never diverge for long. That is the whole shape of this
 period: **work was filed and closed at nearly the same rate**, so the open count stayed between 6
