@@ -102,12 +102,21 @@ def main() -> int:
         deferred = [r for r, s, d in items if s in " !" and d]
         (active if open_rows else ready).append((scenario, items, open_rows, deferred))
 
-    print("READY FOR THE SCENARIO REVIEW - every row naming these is closed.")
+    # A scenario whose every open row is deferred is not a v1 story to review;
+    # it is listed apart so the READY list is only what a v1 walk can close.
+    ready_v1 = [r for r in ready if not (r[3] and len(r[3]) == len([i for i in r[1] if i[1] in " !"]) and r[3])]
+    all_deferred = [r for r in ready if r not in ready_v1]
+    print("READY FOR THE SCENARIO REVIEW - every v1 row naming these is closed.")
     print("Dispatch agents/briefs/REVIEW-SCENARIO.md before marking the story implemented.\n")
-    for scenario, items, _, deferred in ready:
+    for scenario, items, _, deferred in ready_v1:
         note = f"  (deferred, not blocking: {', '.join(deferred)})" if deferred else ""
         print(f"  {scenario:5s} {defined.get(scenario, '(not in JOURNEYS.md)')[:56]:58s} "
               f"{len(items)} row(s){note}")
+    if all_deferred:
+        print("\nDEFERRED AS A WHOLE - every open row is v1.1/v1.x/v2; no v1 verdict applies.\n")
+        for scenario, items, _, deferred in all_deferred:
+            print(f"  {scenario:5s} {defined.get(scenario, '(not in JOURNEYS.md)')[:56]:58s} "
+                  f"open: {', '.join(deferred)}")
 
     print("\nSTILL OPEN\n")
     for scenario, items, open_rows, deferred in active:
