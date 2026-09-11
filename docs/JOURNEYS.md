@@ -661,6 +661,7 @@ is a review list that failed to explain itself.
 **Metric:** permission-denied users still logging entries at D7 (they're future converts, not losses).
 
 ### F9a · Odometer contradicts the timeline
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F9a-2026-09-11c)
 **Trigger:** a new or edited entry breaks the invariant – sorted by date, the reading never falls and strictly increases between the kinds that MEASURE travel (FillUp, ChargeSession), while a ServiceRecord or Expense may share a reading with the fill it annotates – a typo (119 486 → 11 948), an out-of-order backfill, or two drivers logging the same car.
 
 - Checks on every write (not just capture): order against date-neighbors, and implied pace (default flag above ~1 500 km/day, per-vehicle tunable).
