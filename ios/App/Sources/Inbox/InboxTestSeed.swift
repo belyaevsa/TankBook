@@ -2,9 +2,9 @@
 import Foundation
 import TankbookCore
 
-/// UI-test and screenshot seeding for the inbox (RV.38, RV.45).
+/// UI-test and screenshot seeding for the inbox (RV.38, RV.45, RV.201).
 ///
-/// Three seeds, each idempotent (once a vehicle exists it no-ops) under the same
+/// Four seeds, each idempotent (once a vehicle exists it no-ops) under the same
 /// `-homeResetDatabase` gate:
 ///
 /// - `-seedInboxItem` (RV.38): one fill-up with a BLANK price plus a pending item
@@ -18,6 +18,9 @@ import TankbookCore
 /// - `-seedInboxNothingToChange` (RV.45 honesty rule 2): an item whose reading
 ///   AGREES with the saved entry - the no-op card must say so and offer no
 ///   update action.
+/// - `-seedInboxService` (RV.201): a saved service invoice plus a late service
+///   recognition that differs on vendor, line item and total - the shape that
+///   proves the per-field ask reaches an entry kind that is not a fill-up.
 enum InboxTestSeed {
     @MainActor
     static func seedIfRequested() {
@@ -30,6 +33,9 @@ enum InboxTestSeed {
         }
         if arguments.contains("-seedInboxNothingToChange") {
             seedNothingToChangeItem()
+        }
+        if arguments.contains("-seedInboxService") {
+            seedServiceItem()
         }
     }
 
@@ -185,6 +191,61 @@ enum InboxTestSeed {
             pipeline: "seed")
         let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
                                     createdAt: now, extraction: extraction)
+        if let data = try? JSONEncoder().encode([item]) {
+            UserDefaults.standard.set(data, forKey: AppInbox.storageKey)
+        }
+    }
+
+    // MARK: - RV.201 the service offer (a differing vendor, line and total)
+
+    /// A saved service invoice plus a late service recognition that DIFFERS on
+    /// vendor, line item and total. The card must offer those three per field
+    /// (`inboxTick_vendor`, `inboxTick_lineItem_0`, `inboxTick_total`) and the
+    /// user must be able to decline it. This is the seed the RV.201 L4 suite and
+    /// the EN/RU screenshots use.
+    @MainActor
+    private static func seedServiceItem() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l,
+                                 consumption: .lPer100, energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 119_486)
+        try? repository.upsertVehicle(vehicle)
+
+        let entryID = UUID.v7()
+        let service = ServiceRecord(
+            id: entryID, createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: 120_000,
+            money: Money(amount: Decimal(string: "200.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: "Old Garage",
+            items: [ServiceItem(title: "Oil change", category: .oil,
+                                cost: Money(amount: Decimal(string: "80.00")!, currency: .eur,
+                                            homeCurrency: .eur))],
+            usedParts: [], tireSetId: nil)
+        try? repository.upsertServiceRecord(service)
+
+        let recognition = InboxRecognition.service(ServiceRecognition(
+            vendor: .init(value: "New Garage", confidence: 0.9),
+            total: .init(value: Decimal(string: "250.00")!, confidence: 0.9),
+            currency: .init(value: .eur, confidence: 0.9),
+            lineItems: [.init(title: "Brake pads", category: .brakes,
+                              cost: Money(amount: Decimal(string: "120.00")!, currency: .eur,
+                                          homeCurrency: .eur))]))
+        let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
+                                    createdAt: now, recognition: recognition)
         if let data = try? JSONEncoder().encode([item]) {
             UserDefaults.standard.set(data, forKey: AppInbox.storageKey)
         }

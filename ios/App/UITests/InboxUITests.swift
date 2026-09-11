@@ -29,12 +29,13 @@ final class InboxUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(_ arguments: [String] = []) -> XCUIApplication {
+    private func launch(_ arguments: [String] = [], language: String = "en") -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
             "-homeResetDatabase", "-skipWelcome", "-inboxReset",
             "-seedSettingsSignedIn",
-            "-AppleLanguages", "(en)", "-AppleLocale", "en_US"
+            "-AppleLanguages", "(\(language))",
+            "-AppleLocale", language == "ru" ? "ru_RU" : "en_US"
         ] + arguments
         app.launch()
         return app
@@ -261,6 +262,48 @@ final class InboxUITests: XCTestCase {
         app.navigationBars.buttons.element(boundBy: 0).tap()
         XCTAssertEqual(app.buttons["inboxBellButton"].label, "Inbox",
                        "the bell count must clear once the item is resolved")
+    }
+
+    // MARK: - RV.201 a service recognition is offered per field, and declinable
+
+    /// The row's L4 proof: a late SERVICE recognition reaches the same inbox a
+    /// fill-up does, offers the service's own fields per tick, and can be
+    /// declined. The tick ids are the distinct ones RV.201 gave each field - the
+    /// old shared `inboxTick_other` could not tell vendor from category.
+    func testAServiceRecognitionIsOfferedPerFieldAndIsDeclinable() {
+        let app = launch(["-seedInboxService"])
+        app.buttons["inboxBellButton"].tap()
+
+        XCTAssertTrue(app.buttons["inboxTick_vendor"].waitForExistence(timeout: 5),
+                      "a service vendor offer must be tickable")
+        XCTAssertTrue(app.buttons["inboxTick_lineItem_0"].exists,
+                      "the invoice's first line must be tickable")
+        XCTAssertTrue(app.buttons["inboxTick_total"].exists,
+                      "the service total must be tickable")
+        XCTAssertFalse(app.buttons["inboxTick_volume"].exists,
+                       "a service offer has no fuel fields")
+        XCTAssertFalse(app.buttons["inboxTick_other"].exists,
+                       "the shared fallback tick id must be gone")
+
+        XCTAssertTrue(app.buttons["inboxLeaveButton"].exists,
+                      "a service item must be declinable (hard rule 13)")
+        app.buttons["inboxLeaveButton"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["inboxEmptyState"].waitForExistence(timeout: 5),
+                      "declining a service offer clears the item")
+    }
+
+    /// The same offer in Russian: the accessibility ids are language-independent,
+    /// but the two-column comparison is where RU's longer strings overflow, so
+    /// the offer must still be reachable and declinable under `ru`.
+    func testAServiceRecognitionIsOfferedAndDeclinableInRussian() {
+        let app = launch(["-seedInboxService"], language: "ru")
+        app.buttons["inboxBellButton"].tap()
+
+        XCTAssertTrue(app.buttons["inboxTick_vendor"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["inboxTick_lineItem_0"].exists)
+        XCTAssertTrue(app.buttons["inboxTick_total"].exists)
+        app.buttons["inboxLeaveButton"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["inboxEmptyState"].waitForExistence(timeout: 5))
     }
 
     // MARK: - The REAL flow: an answer that lands after save reaches the inbox

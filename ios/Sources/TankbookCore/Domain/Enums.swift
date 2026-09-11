@@ -224,6 +224,12 @@ public enum FieldRef: Codable, Sendable, Equatable, Hashable {
     case energy
     case currency
     case vendor
+    /// The expense CATEGORY a shop receipt was recognised as (RV.201, the
+    /// expense field set [RV.200] settled). Never written into a synced
+    /// `ExtractionMeta` - the recognition is device-local until PJ.29 - but it
+    /// shares the one field vocabulary so the inbox and the attach path cannot
+    /// drift into two.
+    case category
     case lineItem(Int)
 }
 

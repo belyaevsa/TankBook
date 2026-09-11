@@ -278,11 +278,13 @@ struct PJ11WritePathGuardTests {
     ///   winner's date and odometer (`DuplicateMerge.merge`); both halves were
     ///   already validated rows of this timeline (Home/** is outside PJ.11's
     ///   scope)
-    /// - AppInbox.resolve (upsertFillUp) - RV.38's blank-fields-only merge fills
-    ///   a nil `unitPrice` and recomputes the cross-check; it never touches
-    ///   `date` or `odometer`, so the timeline verdict is unchanged and the
-    ///   stored `conflict` is carried through (the inbox is outside PJ.11's
-    ///   edit scope)
+    /// - AppInbox.resolve (upsertFillUp / upsertServiceRecord / upsertExpense) -
+    ///   RV.38/RV.201's inbox merge writes back only the fields the USER ticked
+    ///   on the comparison card, and carries the entry's stored `conflict` and
+    ///   `flagAcceptance` through untouched; it is a user decision, not a
+    ///   silent derivation, and the inbox is outside PJ.11's edit scope. The
+    ///   fuel path is RV.38's, the service and expense paths are RV.201's
+    ///   (the same one merge over entry kind).
     ///
     /// EXCLUDED - every `*TestSeed.swift` file and the `TankLevelTestSeed`
     /// block in TankLevelView.swift construct deterministic fixtures, not
@@ -315,6 +317,8 @@ struct PJ11WritePathGuardTests {
             "(ManualFillUpView, upsertExpense)",
             "(HomeView, upsertFillUp)",
             "(AppInbox, upsertFillUp)",
+            "(AppInbox, upsertServiceRecord)",
+            "(AppInbox, upsertExpense)",
         ]
 
         let pinned = stamps.union(exemptions)

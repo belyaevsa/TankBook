@@ -92,8 +92,8 @@ private struct InboxItemCard: View {
         VStack(alignment: .leading, spacing: 12) {
             header
 
-            if let entry = inbox.fillUp(for: item) {
-                let offers = GatewayInboxPolicy.offers(extraction: item.extraction, entry: entry)
+            if let entry = inbox.entry(for: item) {
+                let offers = GatewayInboxPolicy.offers(recognition: item.recognition, entry: entry)
                 if offers.isEmpty {
                     nothingToChange
                     leaveAsIsAction
@@ -133,7 +133,7 @@ private struct InboxItemCard: View {
 
     // MARK: The comparison table (yours vs the receipt)
 
-    private func comparisonTable(entry: FillUp, offers: [GatewayInboxPolicy.FieldOffer]) -> some View {
+    private func comparisonTable(entry: InboxEntry, offers: [GatewayInboxPolicy.FieldOffer]) -> some View {
         Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
             GridRow {
                 Color.clear.frame(width: 20, height: 1)
@@ -151,7 +151,7 @@ private struct InboxItemCard: View {
                     Text(InboxValueFormat.yours(offer.field, entry: entry))
                         .valueStyle(emphasis: .muted)
                         .gridColumnAlignment(.trailing)
-                    Text(InboxValueFormat.receipt(offer.field, entry: entry, extraction: item.extraction))
+                    Text(InboxValueFormat.receipt(offer.field, entry: entry, recognition: item.recognition))
                         .valueStyle(emphasis: offer.disposition == .differs ? .attention : .normal)
                         .gridColumnAlignment(.trailing)
                     tickButton(offer)
@@ -195,16 +195,10 @@ private struct InboxItemCard: View {
         }
     }
 
+    /// The tick ids live with the value rendering (`InboxValueFormat.tickID`) so
+    /// the app-target test can assert every field is distinct (RV.201).
     static func tickID(_ field: FieldRef) -> String {
-        switch field {
-        case .date: return "inboxTick_date"
-        case .fuelKind: return "inboxTick_fuelKind"
-        case .volume: return "inboxTick_volume"
-        case .unitPrice: return "inboxTick_unitPrice"
-        case .total: return "inboxTick_total"
-        case .currency: return "inboxTick_currency"
-        default: return "inboxTick_other"
-        }
+        InboxValueFormat.tickID(field)
     }
 
     // MARK: States with nothing to decide

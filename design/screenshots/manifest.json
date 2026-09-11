@@ -1775,6 +1775,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.201-inbox-service": {
+      "commit": "c3aa29d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.201-inbox-service-ru": {
+      "commit": "c3aa29d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.202-service-receipt": {
       "commit": "1791c80",
       "device": "iPhone 17",

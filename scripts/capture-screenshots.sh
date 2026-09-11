@@ -876,6 +876,14 @@ capture RV.45-comparison-ru     ru -seedSettingsSignedIn -seedInboxComparison -i
 capture RV.45-nothing-to-change    en -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToChange -inboxReset -presentScreen inbox
 
+# RV.201: the same inbox comparison card carrying a SERVICE offer - a differing
+# vendor, the invoice's first line item and the total. This is the frame that
+# proves the per-field ask reaches an entry kind that is not a fill-up. RU is
+# the real test: "Поставщик", "Позиция 0" and "Итого" in the two-column
+# yours-vs-receipt layout are exactly where Russian overflows.
+capture RV.201-inbox-service    en -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
+capture RV.201-inbox-service-ru ru -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
+
 # RV.48: the attachment viewer's recognised page showing the parse's ASSIGNED
 # fields (total/litres/price/fuel/currency) as the headline, the raw OCR lines
 # demoted behind a disclosure. `-openAttachmentViewerRecognised` opens the pager

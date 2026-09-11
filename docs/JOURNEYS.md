@@ -89,6 +89,14 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 **AdBlue variant (2026-08-30):** the diesel receipt also lists 10 L of AdBlue. The Pump Card shows the diesel fill as usual; "Also on this receipt" lists the AdBlue line as a **second fill-up**, pre-kinded `.adBlue`, one tap to add - it joins the purchase group and the Log shows one grouped moment with two fills. It never touches L/100 km; Trends shows the car's AdBlue rate (L / 1000 km) once two such fills exist. A standalone AdBlue top-up (a can from the shop) is just a fill-up whose fuel chip reads AdBlue - same door, same sheet (hard rule 15). `SCHEMA.md` → AdBlue.
 
+**The receipt catches up with you (RV.38, generalised by RV.201).** A recognition that finishes
+after the fill-up is saved – the cloud reading that outran the 3-second budget, or a reading that
+only arrived on the next launch – does not die and does not silently rewrite the entry: it lands in
+the **inbox** as a suggestion, "yours vs the receipt", with every field the receipt read that
+differs from or fills a blank offered **per tick** and "leave it as it is" the default (hard rule
+13). RV.201 made the same inbox serve a **service invoice** (J7) and a **shop receipt** (J7b), so
+the catch-up flow is one flow, not three.
+
 **Success metric:** median capture-to-save < 15s; ≥80% of fill-ups logged via capture (not manual form); D30 retention of users with ≥3 captures; mixed receipts with correctly isolated fuel totals ≥95% (wrong grand-total attribution is a stats-poisoning bug). The review step (RV.5) adds one tap to this journey and is worth it: an unreadable frame caught here costs a second, and caught on the Confirm sheet costs a re-shoot after a wasted OCR - so the metric to watch is the **re-take rate**, which should be non-zero (the step is catching real blurs) without exceeding the share of captures that used to arrive at Confirm with nothing resolved.
 
 ### J4 · No receipt – pump display photo
@@ -279,9 +287,20 @@ camera/Photos door the fill-up uses (hard rule 15 - typing and scanning are peer
 **local**: the photo is written to the shared pool when Save runs and nothing here touches the
 network (hard rule 1). A write that fails never blocks the save - the service still lands without
 the photo, and the shared "could not be kept" message says so **after** the entry is on disk (hard
-rule 8, docs/ERRORS.md -> Confirm, RV.149), the same contract an expense already had. Recognition
-on a non-fill attach does **not** yet pre-fill fields: a service invoice's reading is not a fuel
-extraction, and generalising that merge over entry kind is [RV.201].
+rule 8, docs/ERRORS.md -> Confirm, RV.149), the same contract an expense already had.
+
+**A late invoice reading reaches the same inbox (RV.201, 2026-09-11).** The per-field "yours vs the
+receipt" ask is no longer fuel-only: a service recognition that finishes after the record is saved
+lands in the **inbox** with the service's own fields – its **vendor**, each **line item** and its
+**total** – offered per tick, "leave it as it is" the default (hard rule 13). The merge is ONE
+function over the entry kind (`GatewayInboxPolicy.merged`), so a fill-up, a service and an expense
+cannot drift into three implementations. The attach-path merge (PJ.48, blank-fields-only) is
+unchanged and separate: it fills blanks silently at attach time, while a DIFFERING value from a
+late reading is offered and never applied. **The producing side is not yet deferrable** – a service
+scan still awaits its OCR inline, so today the item is produced by the in-process late-answer path
+and the delivery outbox remains fuel-shaped; making the service/expense recognition deferrable
+through the outbox is filed as **[RV.215]**, whose seam is `GatewayInboxPolicy.item(recognition:entry:)`
+(the SAME entry point the outbox drain already uses).
 
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
@@ -321,6 +340,13 @@ worse than none). The form saves on the **amount alone** (RV.206): the category 
 value, and the Log row is named from it when the title is empty (RV.187), so a scan that read the
 kind and the total is a complete entry. A title stays available and is still a peer way to name
 the row - it is simply never demanded (hard rule 15).
+
+**A late shop-receipt reading reaches the inbox (RV.201, 2026-09-11).** When an expense
+recognition finishes after the expense is saved, the inbox offers what RV.200's recognition
+produces – the **amount** and the **category** – as per-field ticks against what the user saved,
+"leave it as it is" the default (hard rule 13). A differing amount or category is offered, never
+applied on its own; the same merge function serves the service and fill-up kinds, so the three
+cannot drift.
 
 **Success metric:** shelf-suggested parts accepted ≥40%; tire-swap reminders acted on ≥70% in season.
 
@@ -492,7 +518,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Trigger:** hard image (crumpled receipt, odd charging-app screenshot) where on-device gave low confidence and the user's Pro fallback can't be reached.
 
 - The app **never waits on the gateway to show the card**: on-device results (however partial) render immediately; the fallback was always an *enhancement* pass.
-- **The wait has a 3-second budget** (`API.md` -> "The device's side of `/extract`"). At 3 s the UI stops presenting the call as something to wait for and says so, naming the next step: carry on with what was read locally. The request may still finish in the background - the budget bounds the **user's** wait, not the work - and its late answer is **never applied to the open editor**: **RV.57 (product owner, 2026-09-04)** *"if a user keeps the edit entry open (they fill up odometer) and recognition has arrived - there is no need to async update"*. It lands in the **inbox** instead, never as a value that moves under the user's cursor (hard rule 13). A **within-budget** answer still applies directly, filling blank untouched fields only. **RV.38 (2026-09-03) amended "After save it arrives nowhere":** once the entry is saved a late answer no longer dies - it lands in the **inbox** (the bell on the tab-root header), and the app *asks*. The ask is what makes the reversal legitimate, and it has a required shape: **"leave it as it is" is the default** (the entry is untouched unless the user taps "update from the receipt"). **RV.45 (2026-09-04) made the accepted update per-field:** the card lists every field the receipt read that differs from or fills what the user saved as "yours vs the receipt", and the user **ticks per field** what to take - filling a blank and replacing a typed value are different acts and read differently, and a field that merely agrees is not a choice. This is the user deciding, so it is compatible with hard rule 13 (the app never overwrites a value on its own). A reading that would change nothing says so and offers no update. A late answer that agrees with what was saved creates no item at all. The decision lives in core (`GatewayInboxPolicy`); the store is device-local and **best-effort** - the extraction lives on the device (rule 9: the gateway holds no conversation), so an app killed mid-request loses the answer, and the inbox never promises one that can vanish. A *durable* re-read (from RV.33's ledger on next launch) would need a read endpoint over the ledger, which RV.33's own amendment forbids ("written by the gateway and read by no endpoint") - a second rule-9 reversal that is the product owner's to make, never an agent's.
+- **The wait has a 3-second budget** (`API.md` -> "The device's side of `/extract`"). At 3 s the UI stops presenting the call as something to wait for and says so, naming the next step: carry on with what was read locally. The request may still finish in the background - the budget bounds the **user's** wait, not the work - and its late answer is **never applied to the open editor**: **RV.57 (product owner, 2026-09-04)** *"if a user keeps the edit entry open (they fill up odometer) and recognition has arrived - there is no need to async update"*. It lands in the **inbox** instead, never as a value that moves under the user's cursor (hard rule 13). A **within-budget** answer still applies directly, filling blank untouched fields only. **RV.38 (2026-09-03) amended "After save it arrives nowhere":** once the entry is saved a late answer no longer dies - it lands in the **inbox** (the bell on the tab-root header), and the app *asks*. The ask is what makes the reversal legitimate, and it has a required shape: **"leave it as it is" is the default** (the entry is untouched unless the user taps "update from the receipt"). **RV.45 (2026-09-04) made the accepted update per-field:** the card lists every field the receipt read that differs from or fills what the user saved as "yours vs the receipt", and the user **ticks per field** what to take - filling a blank and replacing a typed value are different acts and read differently, and a field that merely agrees is not a choice. This is the user deciding, so it is compatible with hard rule 13 (the app never overwrites a value on its own). A reading that would change nothing says so and offers no update. A late answer that agrees with what was saved creates no item at all. The decision lives in core (`GatewayInboxPolicy`); the store is device-local and **best-effort** - the extraction lives on the device (rule 9: the gateway holds no conversation), so an app killed mid-request loses the answer, and the inbox never promises one that can vanish. A *durable* re-read (from RV.33's ledger on next launch) would need a read endpoint over the ledger, which RV.33's own amendment forbids ("written by the gateway and read by no endpoint") - a second rule-9 reversal that is the product owner's to make, never an agent's. **RV.201 (2026-09-11)** generalised that same inbox over the entry kind: a late **service** recognition lands here offering its vendor, line items and total per tick, and a late **expense** recognition offers its amount and category - all through the one `GatewayInboxPolicy.merged`, so the kinds cannot drift. Making those readings deferrable through the delivery outbox is [RV.215].
 - **The upload is compressed on device** before any of this, because on a forecourt signal the upload is the slowest step in the flow. How hard it may be compressed is settled by the corpus, not by taste: if compression costs extraction hits, it is too aggressive.
 - If fallback is unreachable: low-confidence fields stay dimmed with "check these – enhanced reading unavailable right now." User confirms or fixes by hand, saves. A retry never re-asks the user – if the photo later re-processes successfully in background, we *don't* silently change a saved entry; corrections post-save are the user's alone. *(PJ.18: this unreachable hint is still open ([v2]) – today only the timeout branch of F4 renders.)*
 - **A signed-in session that merely went stale no longer loses the cloud reading (RV.26).** The gateway is armed only when the session can actually authenticate: a guest has no session and correctly gets no gateway (on-device OCR still runs), and a session whose refresh has already been rejected is marked `authExpired` and never re-arms. On a 401 the gateway refreshes once and retries, exactly as sync does – so an expired access token recovers instead of being refused silently. Only when the refresh itself is rejected is the session marked `authExpired`, and that mark surfaces where the account lives (Settings, the sync state chip) with its next step, "sign in again" – never blocking capture: the on-device result still stands.

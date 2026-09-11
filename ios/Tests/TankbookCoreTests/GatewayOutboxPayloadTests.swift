@@ -93,14 +93,18 @@ struct GatewayOutboxPayloadTests {
         let inline = GatewayInboxPolicy.item(extraction: payload.extraction, entry: entry)
 
         // One policy, one shape: the item routes to the entry the answer is
-        // about, and its extraction is byte-identical to the decoded payload.
+        // about, and its recognition is the decoded payload's fuel reading.
         let produced = try #require(item)
         #expect(produced.entryId == entry.id)
-        #expect(produced.extraction == payload.extraction)
-        #expect(inline?.extraction == produced.extraction)
+        #expect(produced.recognition == .fuel(payload.extraction))
+        #expect(inline?.recognition == produced.recognition)
 
         // A differing total is worth an item even though nothing is blank.
-        #expect(produced.extraction.total?.value == Decimal(string: "99.99"))
+        guard case .fuel(let extraction) = produced.recognition else {
+            Issue.record("the outbox payload is fuel-shaped")
+            return
+        }
+        #expect(extraction.total?.value == Decimal(string: "99.99"))
     }
 
     @Test("an outbox answer that merely agrees with the entry produces no item, both paths")

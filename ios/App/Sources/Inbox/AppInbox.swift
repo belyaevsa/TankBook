@@ -28,8 +28,9 @@ final class AppInbox {
     private let noteEntryChanged: () -> Void
 
     /// Internal (not private) so `InboxTestSeed` writes the seeded item through
-    /// the same key the store reads.
-    static let storageKey = "inbox.items"
+    /// the same key the store reads. `nonisolated` so the app-target tests can
+    /// clear it from a non-isolated `setUp`.
+    nonisolated static let storageKey = "inbox.items"
 
     init(noteEntryChanged: @escaping () -> Void) {
         self.noteEntryChanged = noteEntryChanged
@@ -52,10 +53,18 @@ final class AppInbox {
 
     /// The saved entry an item is about, looked up fresh so the card renders
     /// "yours" as the entry stands NOW, not as it stood when the answer arrived.
-    /// `nil` when the entry no longer exists (docs/ERRORS.md -> Inbox).
-    func fillUp(for item: GatewayInboxItem) -> FillUp? {
+    /// The item's recognition kind names which entity to fetch (RV.201). `nil`
+    /// when the entry no longer exists (docs/ERRORS.md -> Inbox).
+    func entry(for item: GatewayInboxItem) -> InboxEntry? {
         guard let repository = try? AppStore.repository() else { return nil }
-        return try? repository.fillUp(id: item.entryId)
+        switch item.recognition {
+        case .fuel:
+            return (try? repository.fillUp(id: item.entryId)).map(InboxEntry.fillUp)
+        case .service:
+            return (try? repository.serviceRecord(id: item.entryId)).map(InboxEntry.service)
+        case .expense:
+            return (try? repository.expense(id: item.entryId)).map(InboxEntry.expense)
+        }
     }
 
     // MARK: - Recording
@@ -101,9 +110,19 @@ final class AppInbox {
     private func ingestOutboxEntry(_ entry: GatewayOutboxEntry) {
         guard !items.contains(where: { $0.id == entry.id }),
               let repository = try? AppStore.repository(),
-              let entryID = entry.payload.captureId,
-              let fillUp = try? repository.fillUp(id: entryID),
-              var item = GatewayInboxPolicy.item(extraction: entry.payload.extraction, entry: fillUp) else {
+              let entryID = entry.payload.captureId else {
+            return
+        }
+        guard let fillUp = try? repository.fillUp(id: entryID) else {
+            // An outbox answer whose entry is gone: nothing to offer, and the
+            // row is still acked by the caller so it cannot accumulate. Logged
+            // by SHAPE only - the kind, never the entry's values (hard rule 12).
+            AppLog.info(operation: "inbox.drain", category: .ui,
+                        outcome: "entryGone", kind: "fuel")
+            return
+        }
+        guard var item = GatewayInboxPolicy.item(extraction: entry.payload.extraction,
+                                                 entry: fillUp) else {
             return
         }
         item.id = entry.id
@@ -145,15 +164,62 @@ final class AppInbox {
 
     /// Resolves an item: the item clears and does not return, and an accepted
     /// update applies the per-field merge to the entry the item routed to
-    /// (never silently - the user just tapped it).
+    /// (never silently - the user just tapped it). The recognition kind names
+    /// the entity the merge writes back (RV.201): a service offer writes a
+    /// `ServiceRecord`, an expense offer an `Expense`, a fuel offer a `FillUp`.
+    /// An entry that no longer exists is a no-op, never a crash - the card has
+    /// already told the user the entry is gone (docs/ERRORS.md -> Inbox).
     func resolve(_ item: GatewayInboxItem, as resolution: Resolution) {
         defer { remove(item) }
         guard case let .update(fields) = resolution else { return }
-        guard let repository = try? AppStore.repository(),
-              let entry = try? repository.fillUp(id: item.entryId) else { return }
-        let merged = GatewayInboxPolicy.merged(entry: entry, extraction: item.extraction, taking: fields)
-        try? repository.upsertFillUp(merged)
+        guard let repository = try? AppStore.repository() else { return }
+
+        switch item.recognition {
+        case .fuel:
+            guard let entry = try? repository.fillUp(id: item.entryId) else {
+                logEntryGone(item, operation: "inbox.resolve")
+                return
+            }
+            let merged = GatewayInboxPolicy.merged(entry: .fillUp(entry),
+                                                   recognition: item.recognition,
+                                                   taking: fields)
+            guard case .fillUp(let result) = merged, result != entry else { return }
+            try? repository.upsertFillUp(result)
+        case .service:
+            guard let entry = try? repository.serviceRecord(id: item.entryId) else {
+                logEntryGone(item, operation: "inbox.resolve")
+                return
+            }
+            let merged = GatewayInboxPolicy.merged(entry: .service(entry),
+                                                   recognition: item.recognition,
+                                                   taking: fields)
+            guard case .service(let result) = merged, result != entry else { return }
+            try? repository.upsertServiceRecord(result)
+        case .expense:
+            guard let entry = try? repository.expense(id: item.entryId) else {
+                logEntryGone(item, operation: "inbox.resolve")
+                return
+            }
+            let merged = GatewayInboxPolicy.merged(entry: .expense(entry),
+                                                   recognition: item.recognition,
+                                                   taking: fields)
+            guard case .expense(let result) = merged, result != entry else { return }
+            try? repository.upsertExpense(result)
+        }
         noteEntryChanged()
+    }
+
+    /// A late answer whose entry no longer exists. The item still clears (the
+    /// card said the entry is gone), and the event records only the KIND and the
+    /// operation - never a vendor, a category or an amount (hard rule 12).
+    private func logEntryGone(_ item: GatewayInboxItem, operation: String) {
+        let kind: String
+        switch item.recognition {
+        case .fuel: kind = "fuel"
+        case .service: kind = "service"
+        case .expense: kind = "expense"
+        }
+        AppLog.info(operation: operation, category: .ui, outcome: "entryGone", kind: kind)
     }
 
     private func remove(_ item: GatewayInboxItem) {

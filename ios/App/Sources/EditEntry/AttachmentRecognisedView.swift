@@ -203,18 +203,7 @@ enum AttachmentValueFormat {
     }
 
     private static func label(_ ref: FieldRef) -> String {
-        switch ref {
-        case .date: return L10n.localize("Date")
-        case .fuelKind: return L10n.localize("Fuel")
-        case .volume: return L10n.localize("Litres")
-        case .unitPrice: return L10n.localize("Price/L")
-        case .total: return L10n.localize("Total")
-        case .currency: return L10n.localize("Currency")
-        case .station: return L10n.localize("Station")
-        case .vendor: return L10n.localize("Vendor")
-        case .energy: return L10n.localize("Energy")
-        case .lineItem(let n): return "\(L10n.localize("Row %@")) \(n)"
-        }
+        FieldLabel.text(ref)
     }
 
     private static func value(_ ref: FieldRef, _ value: FieldValue?, currency: CurrencyCode?) -> Value {

@@ -267,6 +267,8 @@ The events that can only be written at the moment they happen, because after the
 
 `receipt.group.photoLost` (RV.173) – a grouped save whose one shared receipt-photo write failed, so the fill-up and every accepted expense were written with **no attachment at all** (all-or-nothing; no row points at an `Attachment` the write never made). Carries `expenseCount` – a count, the whole shape – and is emitted **once per degraded group**, beside the single user report (RV.149). It answers what the `app.error` line cannot: *did a GROUPED save drop its binding, and how many rows did that affect?* Never a filename, an amount or a station (hard rule 12).
 
+`inbox.answer` (RV.201) – a late recognition whose entry no longer exists, emitted when the user resolves such an item or when a drained delivery-outbox row cannot be matched. `operation` is the stable code (`inbox.resolve` / `inbox.drain`), `outcome` is `entryGone`, and `kind` is the recognition kind (`fuel` / `service` / `expense`). Shape only: no vendor, no category, no amount, no entry id (hard rule 12). It exists to make the "answer arrived for an entry that is gone" case countable – the item clears either way (hard rule 8), so without this line the case is invisible in production.
+
 ### Feedback (PJ.20)
 `feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the
 stable code), `textLength` (a count), `hasReplyTo` / `hasDeviceModel` (field *presence*, never the

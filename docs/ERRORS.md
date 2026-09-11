@@ -413,7 +413,7 @@ csv / text / file) - never a filename, a destination app's content, or the share
 that never arrived can now be answered from their diagnostics bundle**; before this row they could
 not.
 
-### Inbox (RV.38, RV.45, RV.64)
+### Inbox (RV.38, RV.45, RV.64, RV.201)
 
 The bell's screen: work that finished after the user moved on. The first case is a cloud
 reading that landed **after** the entry was saved (`docs/JOURNEYS.md` F4, amended). It is a
@@ -424,6 +424,17 @@ receipt**, and the user ticks per field what to take. A field that matches is no
 (it is shown as agreement, or not at all), and a card with nothing to change says so and
 offers no update action (hard rule 7 - an action must name what it does, and one that does
 nothing is not offered).
+
+**RV.201 (2026-09-11) generalised the ask over the entry KIND.** A late reading is no longer
+fuel-only: a **service** recognition offers its own fields - the **vendor**, each **line item**
+and the **total** - and an **expense** recognition offers its **amount** and its **category**
+(RV.200's field set). Every offered field keeps a distinct, stable accessibility id (the old
+shared `inboxTick_other` is gone), and the same `GatewayInboxPolicy.merged` writes whichever
+entity the item's kind names - a `FillUp`, a `ServiceRecord` or an `Expense` - so the three
+cannot drift. The per-field rule is unchanged: a blank fills, a DIFFERING value is offered and
+never applied without a tick. **The producing side is not yet deferrable**: a service or expense
+scan still awaits its reading inline, so the item is produced by the in-process late-answer path;
+the outbox stays fuel-shaped until [RV.215].
 
 **RV.64 (2026-09-05) made the button WEIGHT follow the state, never the position.** The two
 acts keep their ORDER; only which one is loud changes. While NOTHING is ticked, "leave it as
@@ -439,6 +450,8 @@ confirmation and no undo is "lost silently"). The decision lives in core
 |---|---|---|
 | Nothing pending (the normal case) | Reassuring empty state: "Nothing needs your attention" (the Recently-deleted sibling - the screen existing at all is the reassurance) | Nothing to do |
 | A cloud reading landed after save, and it differs or fills a blank | An item: "Receipt reading ready · Finished after you saved." with a **per-field comparison** - every field the receipt read that differs or fills a blank renders "you entered X · receipt Y", marked, with a tick. The two acts read differently: a blank field carries **"Fills the empty field"**, a differing one **"Replaces what you entered"**. The entry keeps its own badge (hard rule 8). | Tick the fields to take · **Update from the receipt** (takes the ticked fields only, disabled until one is ticked; the prominent filled action once a field is ticked - RV.64) · **Leave it as it is** (nothing changes; the prominent filled action only while nothing is ticked - RV.64) · **Use a different receipt** (routes to Edit entry, where the receipt lives; deliberately not "replace" - that verb belongs to the FIELDS, RV.64) |
+| A late **service** reading landed after save (RV.201) | The same card, offering the service's own fields: the **Vendor**, each **Row N** (the invoice line's title and cost) and the **Total**, each tickable and each with its own stable id (`inboxTick_vendor`, `inboxTick_lineItem_0`, `inboxTick_total`). A differing field reads **"Replaces what you entered"**; an invoice line the record does not yet hold reads **"Fills the empty field"**. | Tick the fields to take · **Update from the receipt** (writes the ticked fields back to the `ServiceRecord`) · **Leave it as it is** (nothing changes) |
+| A late **expense** reading landed after save (RV.201) | The same card, offering the **Total** and the **Category** it was read as (RV.200) - a differing amount or category is offered, never applied on its own. | Tick the fields to take · **Update from the receipt** (writes the `Expense`) · **Leave it as it is** (nothing changes) |
 | A reading that would change nothing | The card says "Nothing to change – the receipt matches what you saved." and offers **no update action** - an item whose entry has since come to agree with the reading (the user edited it, or sync brought it in line) | **Leave it as it is** (clears the item) · **Use a different receipt** |
 | The reading agrees with what was saved (at creation) | **Nothing.** An answer that adds no blank and disagrees with nothing is noise, not work - no item is created | Nothing to do; the answer is silently absorbed |
 | The entry the item is about no longer exists | "The entry this reading was about no longer exists." The item routes to the entry; a deleted entry has nothing to update | Leave it as it is - the item clears and nothing is written |

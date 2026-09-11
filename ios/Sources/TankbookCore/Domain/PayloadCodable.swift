@@ -331,6 +331,7 @@ extension FieldRef {
         case .energy: return "energy"
         case .currency: return "currency"
         case .vendor: return "vendor"
+        case .category: return "category"
         case .lineItem(let n): return "lineItem(\(n))"
         }
     }
@@ -346,6 +347,7 @@ extension FieldRef {
         case "energy": self = .energy
         case "currency": self = .currency
         case "vendor": self = .vendor
+        case "category": self = .category
         default:
             if string.hasPrefix("lineItem("), string.hasSuffix(")"),
                let n = Int(string.dropFirst("lineItem(".count).dropLast()) {
