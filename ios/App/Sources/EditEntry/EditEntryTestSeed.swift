@@ -41,6 +41,10 @@ enum EditEntryTestSeed {
             seedScannedExpense()
             return true
         }
+        if arguments.contains("-seedEditEntryDeferredReceipt") {
+            EditEntryDeferredReceiptSeed.seedIfRequested(arguments: arguments)
+            return true
+        }
         if arguments.contains("-seedEditEntryDanglingReceipt") {
             seedDanglingReceipt()
             return true

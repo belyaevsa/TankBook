@@ -238,6 +238,22 @@ struct ServiceEntryFormState: Equatable {
             usedParts: linkedPartIds)
     }
 
+    /// Applies a pre-fill as default input the user edits (hard rule 13). The
+    /// view renders the page strip from the same pre-fill; the persisted half
+    /// (fields + attachment ids + provenance) is this method, so the L1 tests
+    /// drive the exact apply the load and a late read both use.
+    mutating func apply(_ prefill: ServiceEntryPrefill) {
+        vendor = prefill.vendor
+        items = prefill.items
+        if !prefill.odometer.isEmpty {
+            odometer = prefill.odometer
+        }
+        date = prefill.date
+        attachments = prefill.pages.map(\.attachment.id)
+        provenance = prefill.provenance
+        dateFromInvoice = prefill.dateFromInvoice
+    }
+
     // MARK: Discard guard
 
     /// The user changed the date through the picker. The date is theirs from now

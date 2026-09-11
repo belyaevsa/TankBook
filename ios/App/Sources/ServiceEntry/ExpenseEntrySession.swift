@@ -61,10 +61,14 @@ final class ExpenseEntrySession {
     /// The scan's pre-fill, when ExpenseEntry is opening from an Expense-mode
     /// capture. Consumed (cleared) on load, exactly as `pendingPreset` is.
     var pendingPrefill: ExpensePrefill?
-    /// The scan's photograph, when ExpenseEntry is opening from an Expense-mode
-    /// capture. Written next to `pendingPrefill` and consumed with it on load,
-    /// so the photo is attached to the save that follows this open - and to no
-    /// later one (the row's vacuous trap: a second open must not re-attach it).
+    /// The scan's photograph and whatever recognition has resolved for it, when
+    /// ExpenseEntry is opening from an Expense-mode capture. Staged the instant
+    /// the scan starts (`stageScan`) so the photograph survives a save that
+    /// beats the read (RV.243, hard rule 8); the read then replaces it with the
+    /// same image plus the extraction it resolved (`start`'s `onAnswer`).
+    /// Consumed on load, so the photo is attached to the save that follows this
+    /// open - and to no later one (the row's vacuous trap: a second open must
+    /// not re-attach it).
     var pendingCapture: ExpenseScanCapture?
     /// Bumped whenever a deferred read fills the open form after `load()`, so the
     /// view can apply a scan that arrived late (the capture is not `Equatable`,
@@ -91,6 +95,18 @@ final class ExpenseEntrySession {
         }
     }
 
+    /// RV.243: starts the read with the photograph already in hand. The capture
+    /// is staged BEFORE the read runs, so a save that beats the read keeps the
+    /// receipt (hard rule 8); the read enriches the same capture when it lands.
+    /// A caller with no image (the L1 session tests) uses `start(work:...)`.
+    func start(image: UIImage,
+               work: @escaping @MainActor () async -> ExpenseScanOutcome,
+               onAnswer: @escaping @MainActor (ExpenseScanOutcome) -> Void,
+               onSavedAnswer: @escaping @MainActor (ExpenseScanOutcome, UUID) -> Void) {
+        stageScan(image)
+        start(work: work, onAnswer: onAnswer, onSavedAnswer: onSavedAnswer)
+    }
+
     /// The entry was saved. A read still in flight is late and routes to the
     /// inbox; one that already answered keeps the form it filled.
     func markSaved(entryID: UUID) {
@@ -103,5 +119,15 @@ final class ExpenseEntrySession {
     func consumePendingCapture() -> ExpenseScanCapture? {
         defer { pendingCapture = nil }
         return pendingCapture
+    }
+
+    /// RV.243: stages the photograph the moment the scan starts, before the read
+    /// has resolved anything, so the save that follows keeps the receipt even
+    /// when the read is still in flight (hard rule 8). The read replaces this
+    /// with the same image plus its extraction through `start`'s `onAnswer`; the
+    /// values are the read's delivery, the photograph is the capture's.
+    func stageScan(_ image: UIImage) {
+        pendingCapture = ExpenseScanCapture(image: image, extraction: FuelExtraction(),
+                                            ocrLines: [])
     }
 }

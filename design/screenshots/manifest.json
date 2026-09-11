@@ -2055,6 +2055,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.243-deferred-receipt": {
+      "commit": "36cda323",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.243-deferred-receipt-ru": {
+      "commit": "36cda323",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

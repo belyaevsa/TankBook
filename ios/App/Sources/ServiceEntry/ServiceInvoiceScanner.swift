@@ -19,15 +19,16 @@ import TankbookCore
 enum ServiceInvoiceScanner {
     static let languages = ["en-US", "de-DE", "ru-RU"]
 
-    static func process(images: [UIImage], homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
+    static func process(images: [UIImage], stagedPages: [InvoicePage],
+                        homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
         guard let repository = try? AppStore.repository(), !images.isEmpty else {
             return ServiceScanOutcome(prefill: ServiceEntryPrefill(),
                                       recognition: ServiceRecognition())
         }
         let linesByPage = images.map(ocrLines)
         let split = InvoiceSplitter().split(lines: linesByPage.flatMap { $0 })
-        let pages = persistPages(repository: repository, images: images,
-                                 linesByPage: linesByPage, extractedTimestamp: split.date)
+        let pages = enrichPages(stagedPages, linesByPage: linesByPage,
+                                extractedTimestamp: split.date, repository: repository)
 
         let items = split.items.map { item in
             ServiceEntryItemDraft(
@@ -50,6 +51,18 @@ enum ServiceInvoiceScanner {
         // record, so it is produced here, not re-derived by a second reader.
         return ServiceScanOutcome(prefill: prefill,
                                   recognition: recognition(from: split, homeCurrency: homeCurrency))
+    }
+
+    /// RV.243: persists the captured pages the instant the scan starts, before
+    /// the read has OCR'd or split anything. A save that beats the read still
+    /// keeps the invoice (hard rule 8); `process` enriches these SAME pages
+    /// (`updatePage`) instead of persisting a second set, so the late read only
+    /// offers values and never writes a duplicate page.
+    static func stagePages(images: [UIImage]) -> [InvoicePage] {
+        guard let repository = try? AppStore.repository(), !images.isEmpty else { return [] }
+        return persistPages(repository: repository, images: images,
+                            linesByPage: images.map { _ in [] },
+                            extractedTimestamp: nil)
     }
 
     /// The late-answer shape of the same split: the vendor, the invoice total,
@@ -104,5 +117,23 @@ enum ServiceInvoiceScanner {
             pages.append(InvoicePage(attachment: attachment, image: image))
         }
         return pages
+    }
+
+    /// RV.243: fills in the pages staged at scan start with the read's OCR text
+    /// and the invoice's printed date. The file and row already exist; this
+    /// updates them in place, so a deferred read never leaves a second page.
+    private static func enrichPages(_ pages: [InvoicePage], linesByPage: [[OCRLine]],
+                                    extractedTimestamp: Date?,
+                                    repository: TankbookRepository) -> [InvoicePage] {
+        let store = InvoicePageStore(repository: repository, files: InvoiceAttachmentFiles())
+        return pages.enumerated().map { index, page in
+            let lines = index < linesByPage.count ? linesByPage[index] : []
+            let ocrText = lines.isEmpty ? nil : lines.map(\.text).joined(separator: "\n")
+            guard let updated = try? store.updatePage(page.attachment, ocrText: ocrText,
+                                                      extractedTimestamp: extractedTimestamp) else {
+                return page
+            }
+            return InvoicePage(attachment: updated, image: page.image)
+        }
     }
 }

@@ -305,7 +305,7 @@ struct PJ11WritePathGuardTests {
 
         let stamps: Set<String> = [
             "(ServiceEntryView, upsertServiceRecord)",
-            "(ExpenseEntryView, upsertExpense)",
+            "(ExpenseEntrySave, upsertExpense)",
             "(EditEntryView+NonFillSave, upsertChargeSession)",
             "(EditEntryView+NonFillSave, upsertServiceRecord)",
             "(EditEntryView+NonFillSave, upsertExpense)",

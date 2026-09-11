@@ -328,7 +328,10 @@ background and the form opens on whatever is available, so a read that finishes 
 fills the open form and one that finishes after it becomes the inbox item above, through the SAME
 `GatewayInboxPolicy.item(recognition:entry:)` the fuel path uses (one policy, never a second
 producer). The **cloud** half - carrying a service or expense reading through the delivery outbox -
-stays fuel-shaped and is **[PJ.29]**'s; the device-local half is this row.
+stays fuel-shaped and is **[PJ.29]**'s; the device-local half is this row. **The captured pages are
+persisted when the scan starts (RV.243, 2026-09-12):** a record saved before the read finishes still
+keeps its invoice, and the late read only offers values - deferring a reading never costs the user
+the pages the shutter already captured (hard rule 8).
 
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
@@ -377,7 +380,9 @@ applied on its own; the same merge function serves the service and fill-up kinds
 cannot drift. **The producing side is deferrable (RV.215, 2026-09-11):** an Expense-mode scan runs
 its read in the background, so the form opens before the recognition lands - a read that finishes
 before the save fills the open form, and one that finishes after it reaches this inbox through the
-one policy.
+one policy. **The photograph is persisted at save whether or not the read has finished (RV.243,
+2026-09-12):** the late read only offers values, and losing the receipt a scan already captured is
+never a trade the deferral makes (hard rule 8).
 
 **Success metric:** shelf-suggested parts accepted ≥40%; tire-swap reminders acted on ≥70% in season.
 

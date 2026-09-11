@@ -34,10 +34,15 @@ extension CaptureView {
     /// a read that finishes before the save fills it, and one that finishes
     /// after `markSaved` becomes an inbox item through the ONE policy
     /// (`AppInbox.recordLateGatewayAnswer`), never a second producer.
+    ///
+    /// RV.243: the photograph is staged NOW, before the read, so the save keeps
+    /// the receipt even when the read is still in flight (hard rule 8). The read
+    /// only enriches the same capture with the values it resolves.
     func acceptExpenseScan(_ image: UIImage) async {
         let session = expenseSession
         let inbox = self.inbox
         session.start(
+            image: image,
             work: { await self.expenseScanOutcome(from: image) },
             onAnswer: { outcome in
                 session.pendingPrefill = outcome.prefill

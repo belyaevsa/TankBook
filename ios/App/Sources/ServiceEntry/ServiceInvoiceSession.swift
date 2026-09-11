@@ -53,9 +53,31 @@ final class ServiceInvoiceSession {
         }
     }
 
+    /// RV.243: starts the read with the pages already persisted. They are staged
+    /// BEFORE the read runs, so a save that beats the read keeps the invoice
+    /// (hard rule 8); the read enriches the same pages and only offers values.
+    /// A caller with no pages (the L1 session tests) uses `start(work:...)`.
+    func start(stagedPages: [InvoicePage],
+               work: @escaping @MainActor () async -> ServiceScanOutcome,
+               onAnswer: @escaping @MainActor (ServiceScanOutcome) -> Void,
+               onSavedAnswer: @escaping @MainActor (ServiceScanOutcome, UUID) -> Void) {
+        stagePages(stagedPages)
+        start(work: work, onAnswer: onAnswer, onSavedAnswer: onSavedAnswer)
+    }
+
     /// The entry was saved. A read still in flight is late and routes to the
     /// inbox; one that already answered keeps the form it filled.
     func markSaved(entryID: UUID) {
         deferred.markSaved(entryID: entryID)
+    }
+
+    /// RV.243: stages the pages persisted at scan start, before the read has
+    /// produced any values, so the open form carries the invoice even when the
+    /// read is still in flight at save (hard rule 8). The read replaces this
+    /// with the same pages plus the values it resolved (`start`'s `onAnswer`);
+    /// the values are the read's delivery, the pages are the capture's.
+    func stagePages(_ pages: [InvoicePage]) {
+        guard !pages.isEmpty else { return }
+        pendingPrefill = ServiceEntryPrefill(pages: pages, provenance: .receiptScan)
     }
 }

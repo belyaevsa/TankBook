@@ -575,6 +575,14 @@ capture P4.6-photo-syncing-ru     ru -seedPhotoSyncing -presentScreen editEntry
 capture PJ.28-expense    en -seedEditEntryScannedExpense -presentScreen editEntry
 capture PJ.28-expense-ru ru -seedEditEntryScannedExpense -presentScreen editEntry
 
+# RV.243: the entry a DEFERRED expense save writes - the save beat the read, so
+# the receipt was persisted from the photograph staged at scan start and the
+# read only reached the inbox. The frame is the receipt still on the entry
+# (hard rule 8); `-seedEditEntryDeferredReceipt` runs the real save seam with a
+# staged capture. RU is where the receipt card copy runs longest.
+capture RV.243-deferred-receipt    en -seedEditEntryDeferredReceipt -presentScreen editEntry
+capture RV.243-deferred-receipt-ru ru -seedEditEntryDeferredReceipt -presentScreen editEntry
+
 # RV.208: an entry whose receipt photo was never saved - a dangling attachment id
 # (RV.173's shape) that the fix leaves in place. Edit entry shows the
 # missing-photo card and the re-attach next step instead of the ordinary empty

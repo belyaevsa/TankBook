@@ -206,6 +206,7 @@ struct SchemaFieldWriterGuardTests {
             "ChargeSession.chargeType",
             "ChargeSession.createdAt",
             "ChargeSession.durationMin",
+            "ChargeSession.provenance",
             "ChargeSession.socEndPct",
             "ChargeSession.socStartPct",
             "ChargeSession.tariffId",

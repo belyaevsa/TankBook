@@ -632,8 +632,14 @@ private extension CaptureView {
         let homeCurrency = (try? currentVehicle())?.homeCurrency ?? .eur
         let session = invoiceSession
         let inbox = self.inbox
+        // RV.243: persist the pages NOW, before the read. A save that beats the
+        // read must still keep the invoice (hard rule 8); the read enriches
+        // these same pages and only offers its values.
+        let staged = ServiceInvoiceScanner.stagePages(images: images)
         session.start(
-            work: { await ServiceInvoiceScanner.process(images: images, homeCurrency: homeCurrency) },
+            stagedPages: staged,
+            work: { await ServiceInvoiceScanner.process(images: images, stagedPages: staged,
+                                                        homeCurrency: homeCurrency) },
             onAnswer: { outcome in session.pendingPrefill = outcome.prefill },
             onSavedAnswer: { outcome, entryID in
                 inbox.recordLateGatewayAnswer(.service(outcome.recognition), entryID: entryID)

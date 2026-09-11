@@ -31,7 +31,7 @@ final class ExpenseCaptureUITests: XCTestCase {
             .path
     }
 
-    private func captureExpense(_ seed: String) -> XCUIApplication {
+    private func captureExpense(_ seeds: String...) -> XCUIApplication {
         XCTAssertTrue(FileManager.default.fileExists(atPath: fixture),
                       "the corpus fixture is missing: \(fixture)")
         let app = XCUIApplication()
@@ -42,8 +42,8 @@ final class ExpenseCaptureUITests: XCTestCase {
         // gone because the guest layout now has the Log.
         app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle",
                                "-presentScreen", "capture", "-cameraStatus", "authorized",
-                               "-captureMode", "expense", "-captureFixtureImage", fixture,
-                               seed]
+                               "-captureMode", "expense", "-captureFixtureImage", fixture]
+            + seeds
         app.launch()
         XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
                       "the capture cover must be present")
@@ -206,6 +206,43 @@ final class ExpenseCaptureUITests: XCTestCase {
         chip.tap()
 
         // And it opens full-size, exactly as a fill-up's receipt does.
+        let image = app.descendants(matching: .any)["attachmentViewerImage"]
+        XCTAssertTrue(image.waitForExistence(timeout: 10),
+                      "tapping the receipt must open the attachment viewer")
+        XCTAssertTrue(image.isHittable,
+                      "the full-size photo must be visible, not merely present")
+    }
+
+    /// RV.243 - the receipt survives a DEFERRED read. The read is delayed past
+    /// the save (`-seedExpenseScanDelay`), so the form opens empty and the user
+    /// saves before it lands; the completed read becomes an inbox item. The
+    /// photograph captured at the shutter must still be on the saved entry, so
+    /// opening the Log row shows the receipt card and the card opens the photo.
+    /// Asserting the inbox item alone would pass while the photo is gone - the
+    /// row's named vacuous trap.
+    func testAScanSavedBeforeItsDeferredReadFinishesKeepsItsReceiptOpenable() {
+        let app = captureExpense("-seedExpenseScan", "-seedExpenseScanDelay", "20")
+        shootAndUse(app)
+
+        let amount = app.textFields["expenseEntryAmountField"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 15),
+                      "the delayed read must still open the expense form")
+        amount.tap()
+        amount.typeText("50.00")
+        XCTAssertEqual((amount.value as? String) ?? "", "50.00",
+                       "the typed amount must be in the field before save")
+        app.buttons["expenseEntrySaveButton"].tap()
+
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15),
+                      "the saved expense must appear in the log")
+        row.tap()
+
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15),
+                      "the receipt must survive a save that beats the read (RV.243)")
+        chip.tap()
+
         let image = app.descendants(matching: .any)["attachmentViewerImage"]
         XCTAssertTrue(image.waitForExistence(timeout: 10),
                       "tapping the receipt must open the attachment viewer")

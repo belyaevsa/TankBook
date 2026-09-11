@@ -120,6 +120,12 @@ struct ExpenseEntryView: View {
         // 13); a read that finishes after the save routes to the inbox instead
         // (`markSaved`), never here.
         .onChange(of: expenseSession.scanRevision) { _, _ in
+            // RV.243: the photograph the read carries is the SAME one staged at
+            // scan start, so it is always consumed - a user edit suppresses the
+            // read's VALUES, never its photo (hard rule 8).
+            if let capture = expenseSession.consumePendingCapture() {
+                scan = capture
+            }
             guard !form.hasEdits() else { return }
             if let prefill = expenseSession.pendingPrefill {
                 apply(prefill)
@@ -129,9 +135,6 @@ struct ExpenseEntryView: View {
                 form.category = preset
                 suggestedCategory = preset
                 expenseSession.pendingPreset = nil
-            }
-            if let capture = expenseSession.consumePendingCapture() {
-                scan = capture
             }
             form.initialCategory = form.category
             form.initialTitle = form.title
@@ -235,42 +238,17 @@ struct ExpenseEntryView: View {
         guard let vehicle, saveEnabled, let amount = form.amountDecimal else { return }
         do {
             let repository = try AppStore.repository()
-            let now = Date()
-            // PJ.28: a scanned expense persists the receipt its photograph was
-            // read from. The write is attempted first and its failure degrades
-            // to no photo - the expense below still saves, and the user is told
+            // RV.243: the receipt half is the shared save seam
+            // (`writeExpense`), which writes the photo from the capture staged
+            // at scan start regardless of whether the read has finished. The
+            // write is attempted first and its failure degrades to no photo -
+            // the expense below still saves, and the user is told
             // (docs/ERRORS.md -> Service & expenses) - never a silent drop
             // (hard rule 8) and never a blocked save (hard rule 15: the photo
             // is a head start, never a requirement).
-            var attachmentIDs: [AttachmentID] = []
-            var photoWriteFailed = false
-            if let scan {
-                do {
-                    attachmentIDs = [try ExpenseReceiptWrite.write(scan: scan,
-                                                                  repository: repository)]
-                } catch {
-                    AppLog.error(operation: "expenseEntry.receiptPhotoSave",
-                                 category: .ui, error: error)
-                    photoWriteFailed = true
-                }
-            }
-            // A scan is never a `.manual` arrival once the photo path exists
-            // (docs/SCHEMA.md: provenance is never `.manual` when a pre-fill
-            // was applied); the typed door stays `.manual`.
-            var expense = Self.storedExpense(
-                form: form, vehicle: vehicle, amount: amount,
-                attachments: attachmentIDs,
-                provenance: scan != nil ? .receiptScan : .manual, now: now)
-            // PJ.11: F9a is checked on every write, not just capture. This
-            // screen never collects an odometer, so the verdict is trivially
-            // `.none` - but the stamp is the uniform shape of every write path
-            // (the Edit entry screen can give an Expense an odometer, and that
-            // path must flag exactly like this one does).
-            let existing = try repository.liveEntries(forVehicle: vehicle.id)
-            let validations = TimelineValidator.validate(entries: existing + [expense],
-                                                         vehicle: vehicle)
-            expense.conflict = validations.first { $0.entryID == expense.id }?.conflict ?? .none
-            try repository.upsertExpense(expense)
+            let (expense, photoWriteFailed) = try Self.writeExpense(
+                form: form, vehicle: vehicle, amount: amount, scan: scan,
+                repository: repository)
             // RV.200: only a scanned expense has a suggestion to report - the
             // typed path proposed no category and emits nothing. Shape only:
             // the category code and whether the user kept it (hard rule 12).
@@ -401,11 +379,6 @@ struct ExpenseEntryView: View {
                 // second open of the form never re-applies a stale scan.
                 apply(prefill)
                 expenseSession.pendingPrefill = nil
-                // PJ.28: the scan's photograph is consumed with the values it
-                // was read from and held for THIS save - a second open of the
-                // form never re-attaches a stale photo (the same one-shot
-                // discipline the pre-fill values follow).
-                scan = expenseSession.consumePendingCapture()
             } else {
                 #if DEBUG
                 if let prefill = ExpenseEntryPrefillSeed.from(
@@ -413,6 +386,14 @@ struct ExpenseEntryView: View {
                     apply(prefill)
                 }
                 #endif
+            }
+            // RV.243: the scan's photograph is consumed whether or not the read
+            // produced a pre-fill. A deferred read leaves `pendingPrefill` nil
+            // at load, so consuming it inside that branch would drop the photo;
+            // it is held for THIS save and no later one (PJ.28's one-shot
+            // discipline).
+            if let capture = expenseSession.consumePendingCapture() {
+                scan = capture
             }
             // Snapshots taken AFTER the category pre-selection and the scan
             // pre-fill - neither counts as an edit.

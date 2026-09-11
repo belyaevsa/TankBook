@@ -359,16 +359,8 @@ struct ServiceEntryView: View {
     /// user edits. Whatever it produces stays editable at the moment it is
     /// offered and afterwards (hard rule 13).
     private func apply(_ prefill: ServiceEntryPrefill) {
-        form.vendor = prefill.vendor
-        form.items = prefill.items
-        if !prefill.odometer.isEmpty {
-            form.odometer = prefill.odometer
-        }
-        form.date = prefill.date
+        form.apply(prefill)
         pages = prefill.pages
-        form.attachments = prefill.pages.map(\.attachment.id)
-        form.provenance = prefill.provenance
-        form.dateFromInvoice = prefill.dateFromInvoice
         selectedPageIndex = 0
     }
 

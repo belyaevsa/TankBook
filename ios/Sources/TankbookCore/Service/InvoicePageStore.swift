@@ -52,4 +52,19 @@ public struct InvoicePageStore {
         try repository.softDeleteAttachment(id: attachment.id)
         try files.remove(attachment.file)
     }
+
+    /// RV.243: fills in a page staged before the read ran. The page was
+    /// persisted at scan start (so a save that beats the read still keeps the
+    /// invoice); the read then supplies the OCR text and the printed date
+    /// without writing a second file or a second row.
+    @discardableResult
+    public func updatePage(_ attachment: Attachment, ocrText: String?,
+                           extractedTimestamp: Date?) throws -> Attachment {
+        var updated = attachment
+        updated.ocrText = ocrText
+        updated.extractedTimestamp = extractedTimestamp
+        updated.updatedAt = Date()
+        try repository.upsertAttachment(updated)
+        return updated
+    }
 }
