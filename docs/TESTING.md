@@ -264,6 +264,47 @@ a reasoned exception; a bare entry fails the self-check and a stale one fails th
 mutation is removing `station: station` from `remappingSourceRow`: the guard reports it. This is a
 test-target source scan: no runtime path differs, no screenshot, no Release build.
 
+### The receipt-binding guard (RV.171)
+
+`ReceiptBindingGuardTests` + the `ReceiptBindingScanner` pure function it is built on: every
+production path that persists a scanned entry binds its attachment id, provenance and
+`purchaseGroupId` through the one canonical receipt seam, or the build fails naming the site. It
+is the guard for the project's most expensive shape - a scanned save threw its photograph away on
+one surface while another kept it, because the binding was a convention rather than a seam. `PJ.28`
+fixed the expense scan, its fence stopped there, `RV.149` had to be filed for the fill-up, and
+`RV.149` fenced out the grouped case, so `RV.173` had to be filed for the expense siblings. Three
+correct fixes, each leaving the next copy unprotected.
+
+**The canonical seam, decided by the investigation the row demanded, is
+`ScannedSavePlan.binding(_:)` composed with `ScannedSavePlan.expenses(from:)`.** `binding(_:)`
+rebinds the plan to the id the photo write actually produced (`ReceiptWriteOutcome.sharedID`);
+`expenses(from:)` is the one place that stamps attachment + provenance + `purchaseGroupId` onto the
+group's rows. The investigation found exactly **one** production `.expenses(from:)` call site
+(`ManualFillUpView.swift` -> `save()`), and it is bound. The single-expense scan
+(`ExpenseEntryView.save` -> `ExpenseReceiptWrite.write`) is a **distinct, non-group shape, not a
+second canonical seam**: one row, one write, and the id comes from the write's return value rather
+than a shared plan, so the dangling-id defect RV.173 fixed cannot arise there. The typed-attach
+paths carry `.manual` provenance and are not scanned saves.
+
+The scanner masks comments, strings and `#if DEBUG` first; seeds, tests, sync and the persistence
+surface are not hosts. It reports two shapes: **`.unboundRowBuilder`** - a `.expenses(from:)` call
+whose enclosing function never binds a plan to a `ReceiptWriteOutcome.sharedID` (RV.173's pre-fix
+wiring exactly), and **`.secondBindingSite`** - a `ScannedSavePlan(...)` with a scan provenance
+outside the factory/rebind, or a read of the plan's `sharedAttachmentIDs` outside the seam. It is
+deliberately not fooled by the mere presence of `.binding(`: binding the plan to its **own** id
+(`scanned.binding(scanned.attachmentID)`) is RV.173's defect restored and is reported too, because
+the argument must read the write outcome, not the plan. The calibration is a live pair - today's
+bound `ManualFillUpView.swift` is not reported, while the pre-fix trees are: the guard reads
+`git show c6df797^` (RV.173's broken grouped save) and `git show 0044e04^` (the same unbound builder
+when RV.149 shipped) and reports `save()` as an unbound row builder. The pre-PJ.28 expense scan is
+recorded as a **coverage limit**, not a pass: that defect was `attachments: []` on a path that
+never built a `ScannedSavePlan`, a runtime degrade decision rather than a binding site, and it is
+out of this seam's scope. A future deliberate binding is a reasoned exception; a bare entry fails
+the self-check and a stale one fails the walk. The named mutation is reverting the RV.173 call site
+in `ManualFillUpView.swift` to `scanned.expenses(from:)`: the guard reports
+`ManualFillUpView.swift:577 save binds a receipt outside the canonical seam`. This is a test-target
+source scan: no runtime path differs, no screenshot, no Release build.
+
 ### The screen-reachability guard (RV.162)
 
 `ScreenRouteGuardTests` + the `ScreenRouteScanner` pure function it is built on: every screen in
