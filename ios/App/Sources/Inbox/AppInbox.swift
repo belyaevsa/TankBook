@@ -69,13 +69,34 @@ final class AppInbox {
 
     // MARK: - Recording
 
-    /// A late gateway answer for a saved entry. The policy decides whether it is
-    /// worth an item; an answer that agrees with what the user saved is noise,
-    /// not work.
-    func recordLateGatewayAnswer(_ extraction: GatewayExtraction, entryID: UUID) {
-        guard let repository = try? AppStore.repository(),
-              let entry = try? repository.fillUp(id: entryID),
-              let item = GatewayInboxPolicy.item(extraction: extraction, entry: entry) else { return }
+    /// A late recognition for a saved entry. The recognition's kind names the
+    /// entity to fetch (RV.201), and the ONE policy decides whether it is worth
+    /// an item; a reading that agrees with what the user saved is noise, not
+    /// work. Both the fuel in-process answer and the service/expense deferred
+    /// reads (RV.215) enter here - there is no second producer that re-derives
+    /// the boundary.
+    ///
+    /// An entry that no longer exists OR was tombstoned while the read ran is
+    /// absorbed, never offered: a late answer must not resurrect a suggestion
+    /// for an entry the user deleted (the RV.201 "entry gone" behaviour, now
+    /// reachable from a real producer).
+    func recordLateGatewayAnswer(_ recognition: InboxRecognition, entryID: UUID) {
+        guard let repository = try? AppStore.repository() else { return }
+        let entry: InboxEntry
+        switch recognition {
+        case .fuel:
+            guard let fillUp = try? repository.fillUp(id: entryID), fillUp.deletedAt == nil else { return }
+            entry = .fillUp(fillUp)
+        case .service:
+            guard let service = try? repository.serviceRecord(id: entryID),
+                  service.deletedAt == nil else { return }
+            entry = .service(service)
+        case .expense:
+            guard let expense = try? repository.expense(id: entryID),
+                  expense.deletedAt == nil else { return }
+            entry = .expense(expense)
+        }
+        guard let item = GatewayInboxPolicy.item(recognition: recognition, entry: entry) else { return }
         insert(item)
     }
 

@@ -460,7 +460,7 @@ struct ManualFillUpView: View {
             // RV.38 (F4 amended): the answer arrived after the entry was saved.
             // It is a suggestion, never a rewrite - the inbox records it and the
             // user decides (hard rule 13).
-            self.inbox.recordLateGatewayAnswer(extraction, entryID: entryID)
+            self.inbox.recordLateGatewayAnswer(.fuel(extraction), entryID: entryID)
         }
     }
 

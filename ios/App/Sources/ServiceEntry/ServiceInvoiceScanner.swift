@@ -19,9 +19,10 @@ import TankbookCore
 enum ServiceInvoiceScanner {
     static let languages = ["en-US", "de-DE", "ru-RU"]
 
-    static func process(images: [UIImage]) async -> ServiceEntryPrefill {
+    static func process(images: [UIImage], homeCurrency: CurrencyCode) async -> ServiceScanOutcome {
         guard let repository = try? AppStore.repository(), !images.isEmpty else {
-            return ServiceEntryPrefill()
+            return ServiceScanOutcome(prefill: ServiceEntryPrefill(),
+                                      recognition: ServiceRecognition())
         }
         let linesByPage = images.map(ocrLines)
         let split = InvoiceSplitter().split(lines: linesByPage.flatMap { $0 })
@@ -36,7 +37,7 @@ enum ServiceInvoiceScanner {
                 scanned: true)
         }
 
-        return ServiceEntryPrefill(
+        let prefill = ServiceEntryPrefill(
             vendor: split.vendor ?? "",
             items: items,
             odometer: "",
@@ -45,6 +46,30 @@ enum ServiceInvoiceScanner {
             pages: pages,
             provenance: .receiptScan,
             extraction: split.extraction)
+        // RV.215: the same split is what a late read would offer the saved
+        // record, so it is produced here, not re-derived by a second reader.
+        return ServiceScanOutcome(prefill: prefill,
+                                  recognition: recognition(from: split, homeCurrency: homeCurrency))
+    }
+
+    /// The late-answer shape of the same split: the vendor, the invoice total,
+    /// the currency it is priced in and each line (with its own money pair, so
+    /// taking a line brings its cost rather than guessing one). Every value is a
+    /// suggestion - `GatewayInboxPolicy` decides what is a decision.
+    static func recognition(from split: InvoiceSplitResult,
+                            homeCurrency: CurrencyCode) -> ServiceRecognition {
+        let lineItems = split.items.map { item in
+            ServiceRecognition.LineItem(
+                title: item.title,
+                category: item.category,
+                cost: Money(amount: item.amount, currency: homeCurrency,
+                            homeCurrency: homeCurrency))
+        }
+        return ServiceRecognition(
+            vendor: split.vendor.map { GatewayFieldValue(value: $0, confidence: 0.9) },
+            total: split.total.map { GatewayFieldValue(value: $0, confidence: 0.9) },
+            currency: GatewayFieldValue(value: homeCurrency, confidence: 0.9),
+            lineItems: lineItems)
     }
 
     static func appendPages(images: [UIImage]) async -> [InvoicePage] {

@@ -945,6 +945,13 @@ capture RV.45-nothing-to-change-ru ru -seedSettingsSignedIn -seedInboxNothingToC
 capture RV.201-inbox-service    en -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
 capture RV.201-inbox-service-ru ru -seedSettingsSignedIn -seedInboxService -inboxReset -presentScreen inbox
 
+# RV.215: the deferred expense read reaches the SAME inbox. A saved expense and a
+# late expense recognition that differs on amount and category, so the card
+# offers `inboxTick_total` and `inboxTick_category`. RU is where "Категория" and
+# the amount run longest in the label column.
+capture RV.215-inbox-expense    en -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
+capture RV.215-inbox-expense-ru ru -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
+
 # RV.48: the attachment viewer's recognised page showing the parse's ASSIGNED
 # fields (total/litres/price/fuel/currency) as the headline, the raw OCR lines
 # demoted behind a disclosure. `-openAttachmentViewerRecognised` opens the pager

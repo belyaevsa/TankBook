@@ -106,5 +106,16 @@ enum ExpenseScanTestSeed {
         }
         return []
     }
+
+    /// RV.215: `-seedExpenseScanDelay <seconds>` makes the canned read finish
+    /// after the user can save, so a UI test can drive the real deferred path -
+    /// scan, save, and the completed read arrives late. It delays the READ, not
+    /// the form: the sheet opens immediately on the (empty) pre-fill.
+    static func delay(from arguments: [String]) -> Duration? {
+        guard let index = arguments.firstIndex(of: "-seedExpenseScanDelay"),
+              arguments.indices.contains(index + 1),
+              let seconds = Double(arguments[index + 1]) else { return nil }
+        return .seconds(seconds)
+    }
 }
 #endif

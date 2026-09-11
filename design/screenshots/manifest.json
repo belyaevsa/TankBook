@@ -1875,6 +1875,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.215-inbox-expense": {
+      "commit": "4ad38dc6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.215-inbox-expense-ru": {
+      "commit": "4ad38dc6",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.218-consumption-outlier": {
       "commit": "0c307b7f",
       "device": "iPhone 17",

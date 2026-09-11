@@ -472,9 +472,11 @@ and the **total** - and an **expense** recognition offers its **amount** and its
 shared `inboxTick_other` is gone), and the same `GatewayInboxPolicy.merged` writes whichever
 entity the item's kind names - a `FillUp`, a `ServiceRecord` or an `Expense` - so the three
 cannot drift. The per-field rule is unchanged: a blank fills, a DIFFERING value is offered and
-never applied without a tick. **The producing side is not yet deferrable**: a service or expense
-scan still awaits its reading inline, so the item is produced by the in-process late-answer path;
-the outbox stays fuel-shaped until [RV.215].
+never applied without a tick. **The producing side is deferrable on the device (RV.215,
+2026-09-11):** a service or expense scan runs its reading in the background, so the form opens
+before the recognition lands - one that finishes before the save fills the open form, and one that
+finishes after it becomes an item here through the same one policy. The **cloud** half (the
+delivery outbox) stays fuel-shaped until [PJ.29].
 
 **RV.64 (2026-09-05) made the button WEIGHT follow the state, never the position.** The two
 acts keep their ORDER; only which one is loud changes. While NOTHING is ticked, "leave it as

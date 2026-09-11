@@ -37,6 +37,9 @@ enum InboxTestSeed {
         if arguments.contains("-seedInboxService") {
             seedServiceItem()
         }
+        if arguments.contains("-seedInboxExpense") {
+            seedExpenseItem()
+        }
     }
 
     // MARK: - RV.38 the rich item (blank price + five differing fields)
@@ -250,5 +253,53 @@ enum InboxTestSeed {
             UserDefaults.standard.set(data, forKey: AppInbox.storageKey)
         }
     }
+
+    // MARK: - RV.215 the expense offer (a differing amount and category)
+
+    /// A saved expense plus a late expense recognition that DIFFERS on amount
+    /// and category. The card must offer `inboxTick_total` and
+    /// `inboxTick_category` and the user must be able to decline it. This is the
+    /// seed the RV.215 EN/RU screenshots use; the L4 test drives the REAL
+    /// deferred producer instead.
+    @MainActor
+    private static func seedExpenseItem() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let now = Date()
+        let vehicle = Vehicle(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            name: "Test Volvo", make: "Volvo", model: "V60", year: 2015,
+            plate: nil, powertrain: .ice, fuelKinds: [.petrol95],
+            tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
+            units: Vehicle.Units(distance: .km, volume: .l,
+                                 consumption: .lPer100, energy: .kWhPer100),
+            photo: nil, archived: false, paceLimitKmPerDay: 1500,
+            initialOdometer: 119_486)
+        try? repository.upsertVehicle(vehicle)
+
+        let entryID = UUID.v7()
+        let expense = Expense(
+            id: entryID, createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: nil,
+            money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, category: .accessory, title: "Shop")
+        try? repository.upsertExpense(expense)
+
+        let recognition = InboxRecognition.expense(ExpenseRecognition(
+            total: .init(value: Decimal(string: "20.00")!, confidence: 0.9),
+            category: .init(value: .parking, confidence: 0.8)))
+        let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
+                                    createdAt: now, recognition: recognition)
+        if let data = try? JSONEncoder().encode([item]) {
+            UserDefaults.standard.set(data, forKey: AppInbox.storageKey)
+        }
+    }
 }
+
 #endif

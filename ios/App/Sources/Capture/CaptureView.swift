@@ -24,6 +24,9 @@ struct CaptureView: View {
     // Internal, not private: the expense scan path lives in
     // `CaptureExpenseScan.swift` (this file is at its length limit).
     @Environment(ExpenseEntrySession.self) var expenseSession
+    /// RV.215: a late service or expense read becomes an inbox item through the
+    /// same store the fuel path records into.
+    @Environment(AppInbox.self) var inbox
 
     @State private var cameraStatus: CaptureCameraStatus = .notDetermined
     /// RV.223: a real camera that returned no frame (in use, or a hardware
@@ -620,10 +623,23 @@ private extension CaptureView {
     /// persist the pages, hand the pre-fill to ServiceEntry and leave Capture.
     /// The pre-fill is default input the user edits (hard rule 13) - a failed
     /// split is the lump sum, never an error.
+    ///
+    /// RV.215: the read is deferred. The form opens now (after the cover beat);
+    /// a read that finishes first fills it, and one that finishes after the
+    /// entry is saved becomes an inbox item through the ONE policy
+    /// (`AppInbox.recordLateGatewayAnswer`), never a second producer.
     func scanServiceInvoice(_ images: [UIImage]) {
+        let homeCurrency = (try? currentVehicle())?.homeCurrency ?? .eur
+        let session = invoiceSession
+        let inbox = self.inbox
+        session.start(
+            work: { await ServiceInvoiceScanner.process(images: images, homeCurrency: homeCurrency) },
+            onAnswer: { outcome in session.pendingPrefill = outcome.prefill },
+            onSavedAnswer: { outcome, entryID in
+                inbox.recordLateGatewayAnswer(.service(outcome.recognition), entryID: entryID)
+            })
         Task {
-            let prefill = await ServiceInvoiceScanner.process(images: images)
-            invoiceSession.pendingPrefill = prefill
+            try? await Task.sleep(for: Self.coverDismissBeat)
             onServiceEntry()
         }
     }

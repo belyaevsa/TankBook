@@ -144,6 +144,17 @@ struct ServiceEntryView: View {
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
+        // RV.215: a deferred read that finishes before the save fills the open
+        // form. It never overwrites a value the user already changed (hard rule
+        // 13); a read that finishes after the save routes to the inbox instead
+        // (`markSaved`), never here.
+        .onChange(of: invoiceSession.prefillRevision) { _, _ in
+            guard let prefill = invoiceSession.pendingPrefill,
+                  !form.hasEdits() else { return }
+            apply(prefill)
+            invoiceSession.pendingPrefill = nil
+            snapshotBaseline()
+        }
     }
 
     // MARK: - Derived
@@ -306,17 +317,23 @@ struct ServiceEntryView: View {
             }
             // Snapshots are taken AFTER the convenience pre-fills (odometer,
             // date, seed) - none of them count as an edit.
-            form.initialVendor = form.vendor
-            form.initialItems = form.items
-            form.initialOdometer = form.odometer
-            form.initialDate = form.date
-            form.initialNote = form.note
-            form.initialMode = form.mode
-            form.initialTireSetId = form.tireSetId
+            snapshotBaseline()
             scheduleAutoAddPageIfRequested()
         } catch {
             AppLog.error(operation: "serviceEntry.load", category: .ui, error: error)
         }
+    }
+
+    /// The discard-guard baseline: whatever the form holds after the
+    /// convenience and scan pre-fills is not an edit.
+    private func snapshotBaseline() {
+        form.initialVendor = form.vendor
+        form.initialItems = form.items
+        form.initialOdometer = form.odometer
+        form.initialDate = form.date
+        form.initialNote = form.note
+        form.initialMode = form.mode
+        form.initialTireSetId = form.tireSetId
     }
 
     /// DEBUG/test-only: `-autoAddServiceEntryPage` appends a page through the
@@ -433,6 +450,10 @@ struct ServiceEntryView: View {
             // PJ.11-flagged service would save without its amber badge ever
             // surfacing.
             toastCenter.noteEntryChanged()
+            // RV.215: a saved record is corrected by its owner alone - a read
+            // still in flight becomes an inbox suggestion keyed to this record,
+            // never a silent rewrite (hard rule 13).
+            invoiceSession.markSaved(entryID: service.id)
             dismiss()
             onSaved()
         } catch {

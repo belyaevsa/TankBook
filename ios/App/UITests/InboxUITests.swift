@@ -343,4 +343,106 @@ final class InboxUITests: XCTestCase {
         expectation(for: counted, evaluatedWith: bell)
         waitForExpectations(timeout: 20)
     }
+
+    // MARK: - RV.215 the DEFERRED expense read reaches the same inbox
+
+    /// A corpus receipt, so the review step shows a photo before "Use this"
+    /// (the delayed read replaces OCR, never the review).
+    private var expenseFixture: String {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // InboxUITests.swift
+            .deletingLastPathComponent()  // UITests
+            .deletingLastPathComponent()  // App
+            .deletingLastPathComponent()  // ios
+            .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts")
+            .appendingPathComponent("receipt-011-samara-diesel-ru.png")
+            .path
+    }
+
+    /// The real Expense-mode capture with the READ delayed past the save
+    /// (`-seedExpenseScanDelay`, added by RV.215). The producer is the shipped
+    /// deferred one - only the seeded read's timing changes - so this is not a
+    /// seeded inbox item.
+    private func launchDelayedExpenseScan(language: String) -> XCUIApplication {
+        XCTAssertTrue(FileManager.default.fileExists(atPath: expenseFixture),
+                      "the corpus fixture is missing: \(expenseFixture)")
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-homeResetDatabase", "-skipWelcome", "-inboxReset",
+            "-seedHomeEmptyVehicle",
+            "-presentScreen", "capture", "-cameraStatus", "authorized",
+            "-captureMode", "expense", "-captureFixtureImage", expenseFixture,
+            "-seedExpenseScan", "-seedExpenseScanDelay", "20",
+            "-AppleLanguages", "(\(language))",
+            "-AppleLocale", language == "ru" ? "ru_RU" : "en_US"
+        ]
+        app.launch()
+        XCTAssertTrue(app.buttons["captureCloseButton"].waitForExistence(timeout: 10),
+                      "the capture cover must be present")
+        return app
+    }
+
+    private func shootAndUse(_ app: XCUIApplication) {
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10), "captureShutterButton never appeared")
+        shutter.tap()
+        let useThis = app.buttons["captureReviewUseButton"]
+        XCTAssertTrue(useThis.waitForExistence(timeout: 15),
+                      "the RV.5 review must appear after the shutter")
+        useThis.tap()
+    }
+
+    /// The row's L4 proof: a real expense scan whose read is still in flight when
+    /// the user saves. The form opens on the empty pre-fill, the user types and
+    /// saves, and the completed read - arriving after the save - becomes an inbox
+    /// item through the ONE policy. Declining it leaves the saved entry exactly
+    /// as typed.
+    private func delayedExpenseReadReachesTheInbox(language: String) {
+        let app = launchDelayedExpenseScan(language: language)
+        shootAndUse(app)
+
+        let amount = app.textFields["expenseEntryAmountField"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 15),
+                      "the delayed read must still open the expense form")
+        // The read has not landed yet, so the amount is blank: type what the user
+        // means to save, then save BEFORE the read completes.
+        amount.tap()
+        amount.typeText("50.00")
+        XCTAssertEqual((amount.value as? String) ?? "", "50.00",
+                       "the typed amount must be in the field before save")
+        app.buttons["expenseEntrySaveButton"].tap()
+
+        // Back on Home: the delayed read lands after the save and must offer an
+        // item (the seeded read is 71.02, which differs from the typed 50.00).
+        // Open the inbox and wait for the card - the identifiers are
+        // locale-independent, unlike the bell's accessible label.
+        let bell = app.buttons["inboxBellButton"]
+        XCTAssertTrue(bell.waitForExistence(timeout: 10), "the bell must be on the header")
+        bell.tap()
+        let leave = app.buttons["inboxLeaveButton"]
+        XCTAssertTrue(leave.waitForExistence(timeout: 40),
+                      "the late expense read must reach the inbox")
+
+        // Decline: the item clears and the saved entry is untouched.
+        leave.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["inboxEmptyState"].waitForExistence(timeout: 5),
+                      "declining clears the item")
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10), "the saved expense must be in the log")
+        row.tap()
+        let editAmount = app.textFields["editEntryAmountField"]
+        XCTAssertTrue(editAmount.waitForExistence(timeout: 10))
+        XCTAssertEqual((editAmount.value as? String) ?? "", "50.00",
+                       "declining the late read must leave the saved expense byte-identical")
+    }
+
+    func testDelayedExpenseReadReachesTheInboxAndDecliningLeavesTheEntry() {
+        delayedExpenseReadReachesTheInbox(language: "en")
+    }
+
+    func testDelayedExpenseReadReachesTheInboxAndDecliningLeavesTheEntryInRussian() {
+        delayedExpenseReadReachesTheInbox(language: "ru")
+    }
 }

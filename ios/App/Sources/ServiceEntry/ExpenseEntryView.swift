@@ -115,6 +115,29 @@ struct ExpenseEntryView: View {
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
+        // RV.215: a deferred read that finishes before the save fills the open
+        // form. It never overwrites a value the user already changed (hard rule
+        // 13); a read that finishes after the save routes to the inbox instead
+        // (`markSaved`), never here.
+        .onChange(of: expenseSession.scanRevision) { _, _ in
+            guard !form.hasEdits() else { return }
+            if let prefill = expenseSession.pendingPrefill {
+                apply(prefill)
+                expenseSession.pendingPrefill = nil
+            }
+            if let preset = expenseSession.pendingPreset {
+                form.category = preset
+                suggestedCategory = preset
+                expenseSession.pendingPreset = nil
+            }
+            if let capture = expenseSession.consumePendingCapture() {
+                scan = capture
+            }
+            form.initialCategory = form.category
+            form.initialTitle = form.title
+            form.initialAmount = form.amount
+            form.initialDate = form.date
+        }
     }
 
     // MARK: - Cards
@@ -280,6 +303,10 @@ struct ExpenseEntryView: View {
                 // gone from this save, but the entry it documented is not.
                 toastCenter.show(L10n.receiptNotSavedMessage)
             }
+            // RV.215: a saved expense is corrected by its owner alone - a read
+            // still in flight becomes an inbox suggestion keyed to this entry,
+            // never a silent rewrite (hard rule 13).
+            expenseSession.markSaved(entryID: expense.id)
             dismiss()
             onSaved()
         } catch {

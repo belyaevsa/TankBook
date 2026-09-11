@@ -21,6 +21,16 @@ struct ExpenseScanCapture {
     let ocrLines: [OCRLine]
 }
 
+/// What one Expense-mode scan produces: the pre-fill the open form consumes and
+/// the recognition a late read offers the saved entry. The same pipeline
+/// resolves both, so they travel together (RV.215).
+struct ExpenseScanOutcome {
+    let prefill: ExpensePrefill
+    let preset: ExpenseCategory?
+    let capture: ExpenseScanCapture
+    let recognition: ExpenseRecognition
+}
+
 /// Carries the just-scanned expense pre-fill from the Capture flow into the
 /// ExpenseEntry sheet (RV.62). Capture processes the frame and writes the
 /// recognised total/currency/date here; ExpenseEntry reads it on load - the
@@ -56,6 +66,36 @@ final class ExpenseEntrySession {
     /// so the photo is attached to the save that follows this open - and to no
     /// later one (the row's vacuous trap: a second open must not re-attach it).
     var pendingCapture: ExpenseScanCapture?
+    /// Bumped whenever a deferred read fills the open form after `load()`, so the
+    /// view can apply a scan that arrived late (the capture is not `Equatable`,
+    /// so the outcome itself cannot be an `onChange` trigger).
+    private(set) var scanRevision = 0
+
+    @ObservationIgnored private let deferred = DeferredRecognition()
+
+    /// Starts one deferred read (RV.215). The session decides by the save
+    /// boundary whether the outcome fills the open form (`onAnswer`) or becomes
+    /// an inbox item (`onSavedAnswer`), so no caller re-derives it.
+    func start(work: @escaping @MainActor () async -> ExpenseScanOutcome,
+               onAnswer: @escaping @MainActor (ExpenseScanOutcome) -> Void,
+               onSavedAnswer: @escaping @MainActor (ExpenseScanOutcome, UUID) -> Void) {
+        deferred.start { [weak self] token in
+            let outcome = await work()
+            guard let self, self.deferred.generation == token else { return }
+            if let entryID = self.deferred.savedEntryID {
+                onSavedAnswer(outcome, entryID)
+            } else {
+                onAnswer(outcome)
+                self.scanRevision += 1
+            }
+        }
+    }
+
+    /// The entry was saved. A read still in flight is late and routes to the
+    /// inbox; one that already answered keeps the form it filled.
+    func markSaved(entryID: UUID) {
+        deferred.markSaved(entryID: entryID)
+    }
 
     /// PJ.28: consumes (clears) the staged capture. `nil` when no scan is open
     /// or the capture was already consumed - the one-shot discipline the value
