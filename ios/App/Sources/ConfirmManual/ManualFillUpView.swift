@@ -569,16 +569,14 @@ private extension ManualFillUpView {
                                      provenance: scanned.provenance,
                                      extraction: scanned.extraction)
             if let plan {
-                // Grouped save (P2.4): the FillUp and every accepted Expense
-                // share one purchaseGroupId AND the same receipt photo
-                // (PJ.2: one photograph of one receipt, never a copy per row).
-                // PJ.2b: the Expense rows are built by the core plan, which
-                // stamps each one with the SAME shared attachment id - the app
-                // applies what the plan decided, it does not decide the id.
+                // Grouped save (P2.4): one purchaseGroupId and one receipt
+                // photo (PJ.2). RV.173: the rows are built from the plan bound
+                // to the write's effective id - all unattached or all attached.
                 toSave.purchaseGroupId = plan.purchaseGroupId
                 let now = Date()
-                let rows = scanned.expenses(from: plan, vehicleId: vehicle.id,
-                                            date: form.date, createdAt: now) { amount in
+                let bound = scanned.binding(receiptWrite.sharedID)
+                let rows = bound.expenses(from: plan, vehicleId: vehicle.id,
+                                          date: form.date, createdAt: now) { amount in
                     convertForSave(Money(amount: amount, currency: form.currency,
                                          homeCurrency: vehicle.homeCurrency))
                 }
@@ -586,6 +584,10 @@ private extension ManualFillUpView {
                     // OB.2: per-row mutation pair - ids only, never a value.
                     try loggedWrite(AppLog.shared, op: .create, entityType: Expense.entityType,
                                     entityId: row.id, source: source) { try repository.upsertExpense(row) }
+                }
+                // RV.173: shape-only, whether a GROUPED save dropped the binding.
+                if receiptWrite.lostPhoto {
+                    AppLog.shared.emit(GroupedSaveReceiptLost(expenseCount: rows.count))
                 }
             }
             try loggedWrite(AppLog.shared, op: .create, entityType: FillUp.entityType,

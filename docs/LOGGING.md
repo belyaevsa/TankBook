@@ -250,6 +250,8 @@ The events that can only be written at the moment they happen, because after the
 
 `expense.category.suggest` (RV.200) – one Expense-mode scan's category suggestion, emitted at the expense save: `suggested` is the inference's **category code** (`parking`, `toll`, `other:wash`, `none` when it named no kind) and `userCorrected` is true when the saved category differs from a non-nil suggestion. Shape only, on the same discipline as `capture.pipeline`: the receipt's text, its title and its merchant have no route into the line (hard rule 12), and the `.other` payload is the app's own machine token, never user copy. It exists to answer whether the suggestion is any good – did the scan infer a kind, and did the user keep it.
 
+`receipt.group.photoLost` (RV.173) – a grouped save whose one shared receipt-photo write failed, so the fill-up and every accepted expense were written with **no attachment at all** (all-or-nothing; no row points at an `Attachment` the write never made). Carries `expenseCount` – a count, the whole shape – and is emitted **once per degraded group**, beside the single user report (RV.149). It answers what the `app.error` line cannot: *did a GROUPED save drop its binding, and how many rows did that affect?* Never a filename, an amount or a station (hard rule 12).
+
 ### Feedback (PJ.20)
 `feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the
 stable code), `textLength` (a count), `hasReplyTo` / `hasDeviceModel` (field *presence*, never the

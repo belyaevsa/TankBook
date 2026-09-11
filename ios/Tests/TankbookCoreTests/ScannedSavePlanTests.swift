@@ -415,4 +415,34 @@ struct ScannedSaveExpenseRowsTests {
         #expect(rows.allSatisfy { $0.provenance == scanned.provenance })
         #expect(rows.allSatisfy { $0.purchaseGroupId == group.purchaseGroupId })
     }
+
+    @Test("a lost photo leaves the whole group unattached - never a dangling id")
+    func lostPhotoLeavesEveryExpenseUnattached() {
+        let scanned = ScannedSavePlanner.plan(
+            extraction: FuelExtraction(liters: 42.30, unitPrice: decimal("1.679"),
+                                       total: decimal("71.02"), currency: .eur, fuelKind: .petrol95),
+            hasPhoto: true,
+            saved: ScannedSaveValues(total: decimal("71.02"), volumeL: 42.30,
+                                     unitPrice: decimal("1.679"), currency: .eur,
+                                     fuelKind: .petrol95))
+        #expect(scanned.attachmentID != nil, "the plan still intends a photo")
+        guard let group = groupPlan() else {
+            Issue.record("a mixed-receipt group plan must build")
+            return
+        }
+
+        // The write threw: bind the plan to the empty effective id. Every
+        // expense must follow the fill-up's empty list, not the plan's intended
+        // id (RV.173).
+        let rows = scanned.binding(nil).expenses(from: group, vehicleId: UUID.v7(),
+                                                 date: Date(), createdAt: Date()) { amount in
+            Money(amount: amount, currency: .eur, homeCurrency: .eur)
+        }
+
+        #expect(rows.count == 2)
+        #expect(rows.allSatisfy { $0.attachments.isEmpty },
+                "a lost photo must leave no expense pointing at an unreachable id")
+        // The group identity survives the lost photo - only the binding is gone.
+        #expect(rows.allSatisfy { $0.purchaseGroupId == group.purchaseGroupId })
+    }
 }

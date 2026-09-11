@@ -292,6 +292,18 @@ public enum ScannedSavePlanner {
 // MARK: - The Expense rows the grouped save writes (PJ.2b)
 
 extension ScannedSavePlan {
+    /// The plan as the save actually binds it (RV.173): `attachmentID` is the
+    /// effective shared photo id the write produced - nil when the write was
+    /// lost - so the rows this plan builds reference the SAME binding the
+    /// fill-up got. Provenance and extraction are unchanged; only the binding
+    /// moves. Build a group's expenses from this, never from the plan's intended
+    /// id: a lost write must not leave an expense pointing at an `Attachment`
+    /// that does not exist.
+    public func binding(_ attachmentID: AttachmentID?) -> ScannedSavePlan {
+        ScannedSavePlan(attachmentID: attachmentID, provenance: provenance,
+                        extraction: extraction)
+    }
+
     /// Builds the `Expense` rows a grouped save writes, one per accepted
     /// mixed-receipt line, each referencing THIS plan's single shared attachment
     /// id and provenance. This is the construction that used to live in the
@@ -301,9 +313,10 @@ extension ScannedSavePlan {
     /// L1 and L4. Moved into core (the P3.7 lesson): the app writes what the
     /// plan decided, it does not decide the shared id itself.
     ///
-    /// The fill-up's own attachment list is `sharedAttachmentIDs`; every expense
-    /// produced here carries that SAME list, so the receipt photo is written
-    /// once and referenced by the fill-up and by every accepted expense alike.
+    /// The list every row carries is `sharedAttachmentIDs`; when the caller
+    /// binds the plan to the write's outcome first (`binding(_:)`), a lost photo
+    /// leaves every row - the fill-up and its accepted expenses alike - with no
+    /// attachment. The group is all-or-nothing by construction (RV.173).
     ///
     /// - Parameters:
     ///   - group: the grouped-save plan (`ReceiptGroupPlanner.plan`); its

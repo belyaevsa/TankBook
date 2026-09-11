@@ -48,10 +48,14 @@ struct ReceiptPhotoSaveReportGuardTests {
                 "the fill-up report must use the SHARED message symbol, not a second string: \(reportLines)")
 
         // The report is wired into the save's success path, after the entry is
-        // on disk (never a "saved" claim for a save that failed).
+        // on disk (never a "saved" claim for a save that failed). RV.173: it
+        // fires ONCE per save, from the ONE write outcome - a call inside the
+        // grouped save's per-expense loop would shout once per row, so the
+        // count is part of the contract.
         let view = try Self.source(of: "ConfirmManual/ManualFillUpView.swift")
-        #expect(view.contains("reportLostReceiptPhoto("),
-                "the fill-up save must call the report on its success path")
+        let reportCalls = view.components(separatedBy: "reportLostReceiptPhoto(").count - 1
+        #expect(reportCalls == 1,
+                "the fill-up save must call the report exactly once, not per row: \(reportCalls)")
     }
 
     @Test("The expense save reports through the same shared symbol")

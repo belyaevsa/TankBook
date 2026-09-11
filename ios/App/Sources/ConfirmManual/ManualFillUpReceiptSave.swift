@@ -164,6 +164,14 @@ enum ReceiptWriteOutcome: Equatable {
         return []
     }
 
+    /// The one shared id when the photo landed, nil otherwise. The grouped
+    /// save binds its plan to this (`ScannedSavePlan.binding(_:)`) so the
+    /// fill-up and every expense reference the SAME effective photo (RV.173).
+    var sharedID: AttachmentID? {
+        if case .wrote(let id) = self { return id }
+        return nil
+    }
+
     /// Whether the photo was lost and the user must be told.
     var lostPhoto: Bool {
         if case .lost = self { return true }
