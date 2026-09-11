@@ -1,0 +1,11 @@
+filename,category
+parking-ru.txt,parking
+parking-en.txt,parking
+wash-ru.txt,other:wash
+toll-ru.txt,toll
+fine-ru.txt,fine
+insurance-ru.txt,insurance
+tax-ru.txt,tax
+parts-ru.txt,parts
+accessory-ru.txt,accessory
+ambiguous-fuel-ru.txt,none
