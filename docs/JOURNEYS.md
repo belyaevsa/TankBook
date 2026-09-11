@@ -414,6 +414,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Success metric:** completed reminders that create an entry ≥50%; recurring reminders auto-rescheduled 100%.
 
 ### J8 · The monthly glance
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J8-2026-09-11c)
 **Trigger:** idle curiosity, end of month, or the "August: €212 on the Volvo" notification (opt-in).
 **Journey:** open Trends → hero consumption metric with trend arrow → monthly spend bars → price-per-liter line per station brand ("Shell costs you 4% more than Neste"). Feeling sought: *control*, not accounting homework. → Every chart answers a sentence-shaped question; no chart junk. Exit within 60 seconds, satisfied.
 
