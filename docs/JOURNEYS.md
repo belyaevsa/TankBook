@@ -495,6 +495,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** save-completion rate after failed scans ≥85% (users finish manually instead of quitting).
 
 ### F2 · Scan recognized *wrong* data – the most dangerous failure
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F2-2026-09-11b)
 **Trigger:** OCR misreads 42.30 as 12.30; a VAT line mistaken for the total. Unlike F1, the user may not notice.
 
 | Stage | Experience | Design rule |

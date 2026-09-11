@@ -79,9 +79,8 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `RV.164+RV.211` | F1, F9a | flash | 78893 | `RV.164+RV.211.md` - via `scripts/dispatch.sh`, healthy at 74 KB / 60 s |
-| `REVIEW-F2-2` | F2 | pro, read-only | 78881 | second walk after `RV.218` (`c503d60`) |
 
-**Scenarios 1 (J5 + F5), 2 (F8), 3a (F6b) IMPLEMENTED; 4 (F2) built, walking; 5 (F1 + F9a, then J3b) in flight.**
+**Scenarios 1 (J5 + F5), 2 (F8), 3a (F6b), 4 (F2) IMPLEMENTED; 5 (F1 + F9a, then J3b) in flight.**
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -96,7 +95,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
@@ -107,7 +106,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | 1 | ~~**J5 + F5** the fiscal QR~~ | `RV.219` shipped `96d05ae` | - | **DONE 2026-09-11** - both re-walked IMPLEMENTED, two status lines from one line of code |
 | 2 | ~~**F8** permissions and hardware said no~~ | `RV.222`, `RV.223` shipped `bb7887a`; **`RV.226`** filed from the second walk (`.restricted` told to use a Settings toggle that does not exist) | one small brief, same seam | **re-walked IMPLEMENTED 2026-09-11**; `RV.226` reopens the index row until it ships - slot it after scenario 5 |
 | 3 | **F6b** ~~+ F6~~ the import review row | `RV.220`, `RV.221`, `RV.191` shipped `7d4e1fc`. **F6b IMPLEMENTED.** F6's first walk: NOT IMPLEMENTED - one unowned promise, **`RV.228`** (the `units` ambiguity exists nowhere), plus `RV.227` polish | `RV.228` + `RV.227` one small brief each, same screen family | slot after scenario 5 with `RV.226`; re-walk F6 then |
-| 4 | **F2** scan recognized wrong data | `RV.218` shipped `c503d60`; `RV.229` filed (import mislabels the flag) | - | **built 2026-09-11**; walk running |
+| 4 | ~~**F2** scan recognized wrong data~~ | `RV.218` shipped `c503d60`; `RV.229` filed under F6b (the walk ruled it does not block F2 - an import label, not the scan path) | - | **DONE 2026-09-11** - re-walked IMPLEMENTED |
 | 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
 | 6 | **J3** the five-second fill-up - the core journey | `RV.197`! (guest never sees the fill), `RV.208`! (dangling ids on phones), `RV.204`, `RV.209`, `RV.215`, `RV.216`, `RV.217` | **`RV.197` and `RV.208` first, alone** - they are on users' phones. Then the Inbox card (`RV.216`+`RV.217`), the receipt-persistence decisions (`RV.204`+`RV.209`), the deferred producer (`RV.215`). All five briefed | re-walk `J3` and `J8b` (`RV.181` stays skipped by the owner - the review marks it as such) |
 | 7 | **J7 + J7b + J7c + J7d** the service loop | `RV.212`, `RV.213`, `RV.224`, `RV.214`, `PJ.60`, `PJ.61` (+ `RV.205` needs photographs) | the service create door (`RV.212`+`213`+`224`), the save gate (`RV.214`, closing `PJ.50` against `RV.206`), then **decide** `PJ.60`/`PJ.61` with the owner - `PJ.61` after `RV.207` | re-walk all four; `RV.205` is N/A until a non-fuel receipt exists |
