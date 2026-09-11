@@ -317,7 +317,10 @@ presented as one. A scan that reads nothing opens the EMPTY expense form with no
 rule 7), the same contract the fill-up path honours. The amount is offered only when the
 receipt's currency is nil or is the car's home currency – the expense form cannot express a
 foreign total, so one is never offered as if it were home money (hard rule 13: a wrong fact is
-worse than none).
+worse than none). The form saves on the **amount alone** (RV.206): the category always has a
+value, and the Log row is named from it when the title is empty (RV.187), so a scan that read the
+kind and the total is a complete entry. A title stays available and is still a peer way to name
+the row - it is simply never demanded (hard rule 15).
 
 **Success metric:** shelf-suggested parts accepted ≥40%; tire-swap reminders acted on ≥70% in season.
 

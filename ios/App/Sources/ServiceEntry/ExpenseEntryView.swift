@@ -39,8 +39,12 @@ struct ExpenseEntryFormState: Equatable {
         !title.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    /// Save gate: a title and a non-blank amount. Category always has a value.
-    var canSave: Bool { hasTitle && amountDecimal != nil }
+    /// Save gate: a non-blank amount. The category always has a value, and the
+    /// Log row names the expense from it when the title is empty (RV.187), so a
+    /// title is never required to save. Even the bare `.other("")` renders the
+    /// localized "Other" - a real category label the user can edit afterwards
+    /// (RV.195), never an unnamed row.
+    var canSave: Bool { amountDecimal != nil }
 
     func hasEdits() -> Bool {
         if category != initialCategory { return true }
@@ -185,6 +189,25 @@ struct ExpenseEntryView: View {
         vehicle != nil && form.canSave
     }
 
+    /// The stored row `save()` writes, as a value. Extracted so the save gate
+    /// and the persisted shape are reachable from L1 without driving the view's
+    /// private `save()` (the RV.202 seam). The title is written exactly as
+    /// typed - empty when the user left it blank, because the category names
+    /// the row (RV.187) and the gate no longer demands one (RV.206).
+    static func storedExpense(form: ExpenseEntryFormState, vehicle: Vehicle,
+                              amount: Decimal, attachments: [AttachmentID],
+                              provenance: Provenance, id: UUID = UUID.v7(),
+                              now: Date = Date()) -> Expense {
+        Expense(
+            id: id, createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: form.date, odometer: nil,
+            money: Money(amount: amount, currency: vehicle.homeCurrency,
+                         homeCurrency: vehicle.homeCurrency),
+            note: nil, attachments: attachments, provenance: provenance,
+            conflict: .none, purchaseGroupId: nil, category: form.category,
+            title: form.title, recurrence: nil, installedInServiceId: nil)
+    }
+
     private func save() {
         guard let vehicle, saveEnabled, let amount = form.amountDecimal else { return }
         do {
@@ -211,16 +234,10 @@ struct ExpenseEntryView: View {
             // A scan is never a `.manual` arrival once the photo path exists
             // (docs/SCHEMA.md: provenance is never `.manual` when a pre-fill
             // was applied); the typed door stays `.manual`.
-            var expense = Expense(
-                id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
-                vehicleId: vehicle.id, date: form.date, odometer: nil,
-                money: Money(amount: amount, currency: vehicle.homeCurrency,
-                             homeCurrency: vehicle.homeCurrency),
-                note: nil, attachments: attachmentIDs,
-                provenance: scan != nil ? .receiptScan : .manual,
-                conflict: .none,
-                purchaseGroupId: nil, category: form.category, title: form.title,
-                recurrence: nil, installedInServiceId: nil)
+            var expense = Self.storedExpense(
+                form: form, vehicle: vehicle, amount: amount,
+                attachments: attachmentIDs,
+                provenance: scan != nil ? .receiptScan : .manual, now: now)
             // PJ.11: F9a is checked on every write, not just capture. This
             // screen never collects an odometer, so the verdict is trivially
             // `.none` - but the stamp is the uniform shape of every write path

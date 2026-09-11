@@ -35,7 +35,12 @@ final class ExpenseCaptureUITests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: fixture),
                       "the corpus fixture is missing: \(fixture)")
         let app = XCUIApplication()
+        // `-seedSettingsSignedIn` makes the Home the full layout that renders
+        // the Log. Without a session the Home is the guest layout, which has no
+        // Log at all - these tests assert a saved row, so they must run signed
+        // in rather than relying on a Keychain session another run left behind.
         app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle",
+                               "-seedSettingsSignedIn",
                                "-presentScreen", "capture", "-cameraStatus", "authorized",
                                "-captureMode", "expense", "-captureFixtureImage", fixture,
                                seed]
@@ -176,8 +181,8 @@ final class ExpenseCaptureUITests: XCTestCase {
         let app = captureExpense("-seedExpenseScan")
         shootAndUse(app)
 
-        // A scanned expense still needs its title - typing is never replaced,
-        // only reduced (hard rule 15, PJ.50's seam).
+        // A title is one peer path, not a requirement (RV.206): the scan is
+        // saved with a typed title here to prove the receipt rides the save.
         let title = app.textFields["expenseEntryTitleField"]
         XCTAssertTrue(title.waitForExistence(timeout: 15),
                       "an Expense-mode scan must land on the expense entry form")
@@ -206,5 +211,35 @@ final class ExpenseCaptureUITests: XCTestCase {
                       "tapping the receipt must open the attachment viewer")
         XCTAssertTrue(image.isHittable,
                       "the full-size photo must be visible, not merely present")
+    }
+
+    /// RV.206 - a scan that read the category and the amount must be saveable
+    /// WITHOUT typing. This drives the real capture -> save -> Log path and
+    /// asserts the entry is in the Log and its row is named from the category
+    /// (RV.187). Asserting the button is enabled alone would pass while the
+    /// save still demanded a title - the vacuous trap this row names.
+    func testAScanThatReadCategoryAndAmountSavesWithoutTypingAndAppearsInTheLog() {
+        let app = captureExpense("-seedExpenseScanParking")
+        shootAndUse(app)
+
+        let category = app.buttons["expenseEntryCategory"]
+        XCTAssertTrue(category.waitForExistence(timeout: 15),
+                      "an Expense-mode scan must land on the expense entry form")
+        XCTAssertTrue(categoryShows(app, "Parking"),
+                      "the parking scan must preselect Parking; control was '\(category.label)'")
+        XCTAssertFalse(isFieldBlank(app, "expenseEntryAmountField"),
+                       "the parking scan must pre-fill the amount it read")
+
+        // No title is typed: the category names the row, so Save is reachable.
+        let save = app.buttons["expenseEntrySaveButton"]
+        XCTAssertTrue(save.isEnabled,
+                      "a scan that read a category and an amount must be saveable")
+        save.tap()
+
+        let row = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 15),
+                      "the scanned expense must appear in the log without a title")
+        XCTAssertTrue(row.label.contains("Parking"),
+                      "the Log row must be named from the category (RV.187); was '\(row.label)'")
     }
 }
