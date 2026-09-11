@@ -12,10 +12,10 @@ DEGRADES and toasts (the entry saves without the photo - `RV.149`'s contract). B
 rule 8 holds - but same screen, same gesture, same failure, two behaviours by entry kind.
 `docs/ERRORS.md` -> Edit entry documents BOTH rows, which is the tell that this is undecided.
 
-**Decide which contract is right and make both obey it.** Block keeps entry and receipt atomic;
-degrade keeps a save the user asked for from being lost to a storage failure. Read `ERRORS.md`'s
-3-question rule and hard rule 8, decide, write the reason in `ERRORS.md` as ONE row, and make both
-paths call the same handler. **L1 from both entry kinds asserting the SAME outcome**, whichever it
+**DECIDED by the product owner, 2026-09-11: DEGRADE everywhere.** The save the user asked for lands;
+the photo failure is reported after it (`RV.149`'s message); re-attach is the next step (`RV.202`
+gives every kind that door). Make the fill-up edit path obey it - it blocks today - and make both
+paths call the same handler. Write the reason in `ERRORS.md` as ONE row and delete the other. **L1 from both entry kinds asserting the SAME outcome**, whichever it
 is. **L4** in both, EN + RU, of the failure state.
 
 ## RV.209 - two `Attachment` builders disagree about what a scan concluded
