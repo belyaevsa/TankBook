@@ -84,6 +84,7 @@ once an entry exists the capture card drops its "first" wording.
 ## Core loop
 
 ### J3 · The 5-second fill-up (receipt)
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J3-2026-09-12b)
 **Trigger:** standing at the pump or walking back to the car, receipt in hand. Cold, dark, engine of the queue behind.
 **Goal:** logged before the seatbelt clicks.
 

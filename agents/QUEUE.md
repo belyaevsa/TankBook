@@ -79,7 +79,6 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `RV.214` | J7 / J7b | flash | (dispatching) | what names a service well enough to save on; closes `PJ.50` against `RV.206` |
-| `REVIEW-J3-2`, `REVIEW-J8b-2` | J3, J8b | pro, read-only | 24258, 24262 | second walks after `RV.243` |
 
 **IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 and J8b: every build row shipped (`RV.243` `23ec0d8`), re-walking; `RV.181` `[~]` awaits the owner's device. Scenario 7: create door shipped; `RV.214` in flight; `PJ.61`, `RV.244` next; `PJ.60` awaits the owner.
 
@@ -96,7 +95,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented (10):** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2`, `F1`, `J8`, `F9a`, `F4` (2026-09-11). **One row from it:** F7 (`RV.239`, briefed), J1 (`RV.241`, briefed), J9 (`RV.240`, owner's call), F6/F6a (`RV.228`, briefed). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented (11):** `F3`, `J5`, `F5`, `F8`, `F6b`, `F2`, `F1`, `J8`, `F9a`, `F4` (2026-09-11), **`J3`** (2026-09-12 - the core journey). **J8b's line is HELD** by the orchestrator: the reviewer ruled `RV.181` `[~]` does not block, but the owner reported the share broken on a release build twice and the fix is unproven on a device; the line is written the day the device step says the share arrives. **One row from it:** F7 (`RV.239`, briefed), J1 (`RV.241`, briefed), J9 (`RV.240`, owner's call), F6/F6a (`RV.228`, briefed). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
