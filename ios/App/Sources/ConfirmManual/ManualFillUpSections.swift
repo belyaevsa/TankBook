@@ -494,17 +494,7 @@ struct ManualFillUpOdometerCard: View {
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
                     .accessibilityIdentifier("manualFillUpOdometerWarning")
-                HStack(spacing: 14) {
-                    Button("Fix") { focus = .odometer }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("manualFillUpOdometerFixButton")
-                    Button("Fix date") { onFixDate() }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(Theme.Palette.action)
-                        .accessibilityIdentifier("manualFillUpOdometerFixDateButton")
-                }
-                .font(.caption.weight(.semibold))
+                F9aFixRow(conflict: conflict, focus: $focus, onFixDate: onFixDate)
             }
             Spacer(minLength: 0)
         }

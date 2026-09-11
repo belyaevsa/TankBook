@@ -286,6 +286,7 @@ struct ManualFillUpView: View {
         guard let vehicle else { return nil }
         return form.odometerConflict(vehicle: vehicle,
                                      existingEntries: existingEntries,
+                                     attachments: receiptEvidence,
                                      distanceUnit: distanceUnit)
     }
 

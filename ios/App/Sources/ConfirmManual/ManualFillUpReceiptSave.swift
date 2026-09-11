@@ -122,6 +122,22 @@ extension ManualFillUpView {
         attachedPrefill ?? prefill
     }
 
+    /// The receipt evidence the live F9a ranking reads (PJ.34): a transient
+    /// `Attachment` carrying the scan's printed date (the same source
+    /// `writeReceiptPhoto` stores on save). Empty on the typed path and on a
+    /// scan that read no date, so the ranking stays the typed order. Never
+    /// persisted - the save writes the real row.
+    var receiptEvidence: [Attachment] {
+        let timestamp = (receiptSource?.extraction?.date).flatMap { ConfirmDate.parse($0) }
+            ?? receiptSource?.qrAnchor?.date
+        guard let timestamp else { return [] }
+        let now = Date()
+        return [Attachment(id: UUID.v7(), createdAt: now, updatedAt: now,
+                           kind: .photo,
+                           file: LocalFileRef(sha256: "", relativePath: ""),
+                           extractedTimestamp: timestamp)]
+    }
+
     /// The prefill's per-field crop evidence becomes the extraction record's
     /// crop rects (`FieldExtraction.cropRect`, image pixel space).
     func cropRects(from crops: [ManualFillUpMath.Field: CropEvidence]) -> [FieldRef: CGRect] {

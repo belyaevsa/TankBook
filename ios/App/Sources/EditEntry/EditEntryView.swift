@@ -189,6 +189,7 @@ struct EditEntryView: View {
         guard let vehicle else { return nil }
         return fillForm.odometerConflict(vehicle: vehicle,
                                          existingEntries: otherEntries,
+                                         attachments: attachments,
                                          distanceUnit: distanceUnit)
     }
 

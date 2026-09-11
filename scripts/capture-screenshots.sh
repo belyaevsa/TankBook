@@ -383,6 +383,17 @@ capture PJ.25-parts-shelf-empty-ru ru -seedHomeCarSwitcher -presentScreen partsS
 capture PJ.11-service-flagged    en -seedVehicleForUITests -seedServiceEntryConflict -presentScreen serviceEntry
 capture PJ.11-service-flagged-ru ru -seedVehicleForUITests -seedServiceEntryConflict -presentScreen serviceEntry
 
+# PJ.34: the F9a ranked fixes on the Confirm sheet. The scanned prefill carries
+# a printed date (17.08.2026), so the validator ranks "Fix odometer" first and
+# preselects it; the second pair shows the override confirmation naming the
+# receipt's date. `-screenshotOdometer 120000` puts the reading ABOVE the seeded
+# prior fill - the scanned date is earlier, so only a higher reading breaks the
+# order check and flags.
+capture PJ.34-f9a-ranked-fixes       en -seedVehicleForUITests -seedConfirmPrefill -presentScreen confirmManual -screenshotOdometer 120000
+capture PJ.34-f9a-ranked-fixes-ru    ru -seedVehicleForUITests -seedConfirmPrefill -presentScreen confirmManual -screenshotOdometer 120000
+capture PJ.34-f9a-date-confirmation    en -seedVehicleForUITests -seedConfirmPrefill -presentScreen confirmManual -screenshotOdometer 120000 -screenshotDateConfirmation
+capture PJ.34-f9a-date-confirmation-ru ru -seedVehicleForUITests -seedConfirmPrefill -presentScreen confirmManual -screenshotOdometer 120000 -screenshotDateConfirmation
+
 # P3.4: the Reminders list (attention + scheduled groups), the empty state,
 # and the reminder form. RU is where the trailing chip ("12 дней") and the
 # section labels ("ТРЕБУЕТ ВНИМАНИЯ") are tightest.

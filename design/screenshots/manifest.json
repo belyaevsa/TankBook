@@ -1015,6 +1015,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.34-f9a-date-confirmation": {
+      "commit": "c62263d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.34-f9a-date-confirmation-ru": {
+      "commit": "c62263d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.34-f9a-ranked-fixes": {
+      "commit": "c62263d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.34-f9a-ranked-fixes-ru": {
+      "commit": "c62263d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.36-export-share": {
       "commit": "266e7af",
       "device": "iPhone 17",

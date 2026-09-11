@@ -237,6 +237,24 @@ enum ManualFillUpFormat {
 struct OdometerConflict: Equatable {
     let quote: String?
     let flagKind: ConflictState.ConflictKind
+    /// The validator's ORDERED resolution list (docs/JOURNEYS.md F9a). The view
+    /// renders these in order and never re-ranks them; empty only for a caller
+    /// that does not consume the ranking (the service warn renders its own
+    /// single fix).
+    let suggestions: [TimelineValidator.ResolutionSuggestion]
+    /// The receipt/QR printed date the ranking trusts, when an attachment
+    /// carries one. The "fix date" confirmation names it, so a user overriding
+    /// a printed receipt is told what they are overriding (hard rule 7).
+    let receiptDate: Date?
+
+    init(quote: String?, flagKind: ConflictState.ConflictKind,
+         suggestions: [TimelineValidator.ResolutionSuggestion] = [],
+         receiptDate: Date? = nil) {
+        self.quote = quote
+        self.flagKind = flagKind
+        self.suggestions = suggestions
+        self.receiptDate = receiptDate
+    }
 
     /// The order-conflict quote ("Aug 17 already recorded 119 486 km.") in the
     /// vehicle's OWN distance unit. One full localised sentence per unit, never
@@ -253,24 +271,48 @@ struct OdometerConflict: Equatable {
                           day, OdometerFormat.grouped(odometer))
         }
     }
+
+    /// The explicit-confirmation sentence for "fix date" when the ranking
+    /// treats a printed receipt date as ground truth. One full localised
+    /// phrase per language with the receipt's own date as its value - never a
+    /// shared stem with a date spliced on (hard rule 10). Falls back to the
+    /// date-free sentence when no printed date is known, so the confirmation is
+    /// never blank (hard rule 7).
+    func dateConfirmationMessage() -> String {
+        guard let receiptDate else {
+            return L10n.localize("Change the date anyway?")
+        }
+        let day = receiptDate.formatted(.dateTime.month(.abbreviated).day())
+        return String(format: L10n.localize("The receipt says %@ – change the date anyway?"), day)
+    }
 }
 
 extension ManualFillUpFormState {
     /// Runs the candidate entry through `TimelineValidator` against the
     /// vehicle's existing timeline. Returns the conflicting-entry quote when the
-    /// candidate breaks the order invariant (the documented F9a state); a plain
-    /// timeline-flag marker otherwise.
+    /// candidate breaks the order invariant (the documented F9a state), plus the
+    /// validator's ranked resolution list and the receipt date it trusts.
+    ///
+    /// `attachments` is the evidence the ranking reads: an attachment carrying
+    /// an `extractedTimestamp` makes the printed date ground truth, so
+    /// "fix odometer" ranks first and a date change needs explicit
+    /// confirmation (docs/SCHEMA.md, PRIORITY). A caller with no attachments
+    /// passes none and gets the typed order.
     func odometerConflict(vehicle: Vehicle,
                           existingEntries: [any Entry],
+                          attachments: [Attachment] = [],
                           distanceUnit: DistanceUnit) -> OdometerConflict? {
         guard let odo = odometerValue else { return nil }
-        let candidate = candidate(vehicle: vehicle)
+        let candidate = candidate(vehicle: vehicle, attachmentIDs: attachments.map(\.id))
         let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
-                                                     vehicle: vehicle)
+                                                     vehicle: vehicle,
+                                                     attachments: attachments)
         guard let validation = validations.first(where: { $0.entryID == candidate.id }),
               let flag = validation.flags.first else {
             return nil
         }
+        let receiptDate = attachments.first { $0.extractedTimestamp != nil }?.extractedTimestamp
+        let suggestions = validation.suggestions
         switch flag.detail {
         case .order(_, let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
@@ -278,18 +320,23 @@ extension ManualFillUpFormState {
                 let quote = OdometerConflict.quote(day: day,
                                                     odometer: previousOdometer,
                                                     distanceUnit: distanceUnit)
-                return OdometerConflict(quote: quote, flagKind: flag.kind)
+                return OdometerConflict(quote: quote, flagKind: flag.kind,
+                                        suggestions: suggestions, receiptDate: receiptDate)
             }
-            return OdometerConflict(quote: nil, flagKind: flag.kind)
+            return OdometerConflict(quote: nil, flagKind: flag.kind,
+                                    suggestions: suggestions, receiptDate: receiptDate)
         case .pace:
-            return OdometerConflict(quote: nil, flagKind: flag.kind)
+            return OdometerConflict(quote: nil, flagKind: flag.kind,
+                                    suggestions: suggestions, receiptDate: receiptDate)
         }
     }
 
     /// A best-effort candidate `FillUp` used ONLY to run the timeline check; the
     /// entry actually saved is built by the save path with the derived third
-    /// value and the engine's verdict.
-    func candidate(vehicle: Vehicle) -> FillUp {
+    /// value and the engine's verdict. `attachmentIDs` are the entry's own
+    /// attachments: the validator reads them to decide whether a printed receipt
+    /// date outranks a typed one (docs/SCHEMA.md, PRIORITY).
+    func candidate(vehicle: Vehicle, attachmentIDs: [AttachmentID] = []) -> FillUp {
         let now = Date()
         let derived = derived(volumeUnit: vehicle.units.volume)
         let money = Money(amount: derived?.total ?? 0, currency: currency,
@@ -297,7 +344,7 @@ extension ManualFillUpFormState {
         return FillUp(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             vehicleId: vehicle.id, date: date, odometer: odometerValue,
-            money: money, note: nil, attachments: [], provenance: .manual,
+            money: money, note: nil, attachments: attachmentIDs, provenance: .manual,
             conflict: .none, purchaseGroupId: nil,
             volumeL: derived?.volumeL ?? 0,
             unitPrice: derived?.unitPrice,
