@@ -27,18 +27,19 @@ A fix that stops one entry kind, one door or one screen short of the code it sha
 codebase produces its most common defect (`docs/DEFECT-PATTERNS.md`). If you file, name the seam.
 
 **Standing checks - verify by exit code (`echo $?`), report every count.**
-1. `cd ios && swift build` - 0.
-2. `swiftlint lint` from the **repo ROOT** - 0 (from `ios/` it exits 2 with thousands of phantom errors).
-3. `cd ios && swift test` - full, alone; report the count.
-4. `xcodebuild ... build` for the app target (`RV.174`: `swift build` compiles the package only).
-   **Release too** if you touched a `#if DEBUG` seam.
-5. `xcodegen generate`, then **each suite by name, in its own invocation**: `-only-testing` across
-   the app-target bundle and the UI bundle in one command runs ONE of them and exits 0 (found
-   2026-09-11). Report a non-zero count per suite - a filter matching nothing prints SUCCEEDED.
-6. Localization gate - 0; report keys and RU percentage. **EN + RU screenshots** for any UI change,
+1. `scripts/gate.sh` - the baseline gate (`RV.174`): `swift build`, `swiftlint lint` from the repo
+   ROOT (from `ios/` it exits 2 with thousands of phantom errors), `xcodegen generate`, the
+   app-target `xcodebuild` Debug build, then `swift test`. It stops at the first non-zero and prints
+   one line per step; report the exit code and the test count. **`swift build`/`swift test` compile
+   the package only, so package-green is not app-green** - that is why the app-target build is in
+   there. **`RELEASE=1 scripts/gate.sh`** if you touched a `#if DEBUG` seam.
+2. **Each UI suite by name, in its own invocation**: `-only-testing` across the app-target bundle
+   and the UI bundle in one command runs ONE of them and exits 0 (found 2026-09-11). Report a
+   non-zero count per suite - a filter matching nothing prints SUCCEEDED.
+3. Localization gate - 0; report keys and RU percentage. **EN + RU screenshots** for any UI change,
    dark theme, with capture lines added to `scripts/capture-screenshots.sh` (`RV.176` fails CI on a
    frame no line produces).
-7. `bash scripts/check-screenshot-manifest.sh` - 0.
+4. `bash scripts/check-screenshot-manifest.sh` - 0.
 
 **Report back**: every check with its observed exit code and count; the named mutation's
 red-then-green output **verbatim**; what you captured; **anything you found and did not fix**, with

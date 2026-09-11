@@ -86,7 +86,8 @@ has actually caught - a gate that has never caught anything at its cost is not k
 
 | Gate | Cost | Run it when | What it has caught |
 |---|---|---|---|
-| **Baseline**: `swift build` + `swiftlint` + the localization gate, both **from the repo ROOT** | seconds | **Always. Every task, no exceptions, including doc-only changes** | Doc changes alter generated output more often than anyone expects; this is the floor that makes every other gate trustworthy. The localization gate itself has caught, since P0.3, a hardcoded string, a missing-RU key, an `L10n.localize` call with no catalogue entry, a literal in a `String`-typed expression (P5.3), and - since RV.102 - a literal routed through a `String` parameter or local into `Label`/`Text`/`Button`, the shape that shipped two English rows on a Russian device with 0 violations because both keys existed. Its current catch-set and its written-down blind spots: `docs/LOCALIZATION.md` |
+| **Baseline**: `scripts/gate.sh` – `swift build` + `swiftlint lint` + the app-target `xcodebuild` Debug build + `swift test` – plus the localization gate, all **from the repo ROOT** | seconds (package) to a minute (app build, warm DerivedData) | **Always. Every task, no exceptions, including doc-only changes** | Doc changes alter generated output more often than anyone expects; this is the floor that makes every other gate trustworthy. The localization gate itself has caught, since P0.3, a hardcoded string, a missing-RU key, an `L10n.localize` call with no catalogue entry, a literal in a `String`-typed expression (P5.3), and - since RV.102 - a literal routed through a `String` parameter or local into `Label`/`Text`/`Button`, the shape that shipped two English rows on a Russian device with 0 violations because both keys existed. Its current catch-set and its written-down blind spots: `docs/LOCALIZATION.md` |
+| **App-target Debug build** (`xcodebuild ... build`, run by `scripts/gate.sh`) | seconds once DerivedData is warm | **Always. Every task, no exceptions** | `RV.174` (2026-09-10): `swift build` 0, `swiftlint` 0 and all 1826 package tests green while `xcodebuild` failed at `FeedbackComposerView.swift:50`. `swift build`/`swift test` compile the SwiftPM package only (`ios/Sources/TankbookCore`); every screen lives in the app target (`ios/App/Sources`), which only `xcodebuild` compiles - package-green is not app-green |
 | **Full unit suite** (`swift test`, ~52 s at 1522 tests) | ~1 min | **Always. Never subsetted** | It is a minute. Subsetting has never once been worth the reasoning about whether it was safe |
 | **Named UI suites** via `-only-testing:` | 5-30 min | The change touches `ios/App/Sources/**` - any view, navigation, or state a screen reads | Regressions in the flow that was touched. **Name them in the brief**; "run the UI tests" is not a check |
 | **Screenshots, EN *and* RU, opened by the orchestrator** | ~10 min | The change alters **anything on screen**: copy, layout, a new state, a new row | **The highest-yield gate in the project.** On 2026-09-06 alone it caught four defects no test could see: crushed titles in both languages (`RV.75`), a stale capture showing an affordance the code no longer rendered (`RV.76`), a doubled Russian period (`RV.77`), and an action line resting below the fold while staying tappable (`RV.80`) |
@@ -512,13 +513,13 @@ the recognizer is no longer driven from the cooperative pool.
 
 ## The baseline gate: it builds and it lints (every task, no exceptions)
 
-**Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects.
+**Before any other check is even meaningful, every task must leave the repo compiling and the linter clean.** This is not a style preference – it is the floor that makes every other gate below trustworthy, and it applies to documentation-only changes too, because those change generated output more often than anyone expects. **On iOS the whole chain is one command, `scripts/gate.sh`**, and it deliberately does not stop at the package.
 
 A task is not done until, for each tier it touched:
 
 | Tier | Build | Lint |
 |---|---|---|
-| iOS | `cd ios && swift build` – no errors | `swiftlint lint` **from the repo root** – exit code 0 |
+| iOS | `scripts/gate.sh` – `swift build`, then the app-target `xcodebuild` Debug build, then `swift test`; all exit 0 | `swiftlint lint` **from the repo root** – exit code 0 (also run inside the script) |
 | Backend | `cd backend && dotnet build` – no errors | `dotnet format --verify-no-changes` |
 | Spike | `cd Spike/ReceiptSpike && swift build` | covered by the root `swiftlint lint` |
 
@@ -530,11 +531,11 @@ Rules that make this stick:
 4. **Never silence a violation by loosening the rule.** Fix the code, or exclude genuinely generated output (`**/.build`). Widening a threshold to fit new code is how a lint stops meaning anything. If a rule is genuinely wrong for this project, change it deliberately and say why in the same change.
 5. **A refactor for lint must not change behaviour.** Where output is generated or ordered – schema `required` arrays, canonical bytes, error ordering – re-run the generator and diff, and say in the report that you did.
 6. **Warnings do not block, but do not add them casually.** New code should not introduce warnings a reviewer has to learn to skip past.
-7. **A task that touches a `#if DEBUG` seam also builds RELEASE** (added 2026-09-06, after it cost a shipped break):
+7. **A task that touches a `#if DEBUG` seam also builds RELEASE** (added 2026-09-06, after it cost a shipped break): run **`RELEASE=1 scripts/gate.sh`**, which adds this build to the baseline chain.
 
    ```
    xcodebuild -project Tankbook.xcodeproj -scheme Tankbook \
-     -configuration Release -destination 'platform=iOS Simulator,name=iPhone 17' build
+     -configuration Release -destination 'generic/platform=iOS Simulator' build
    ```
 
    `swift build` and the ordinary `xcodebuild` gate compile **Debug**, where every `#if DEBUG` type
@@ -544,6 +545,16 @@ Rules that make this stick:
    orchestrator, reached `main`, and was found two rows later by `RV.78` - which would have surfaced
    at `SH.2` or a TestFlight upload instead. **Seeds, test hooks, `-seed*` launch arguments and
    preview helpers are all DEBUG seams**; if a row adds or calls one, build Release before ticking it.
+8. **`swift build` and `swift test` are not the app build** (added 2026-09-10, `RV.174`). They compile
+   the SwiftPM package (`ios/Sources/TankbookCore`) only; every screen lives in the app target
+   (`ios/App/Sources`), which only `xcodebuild` compiles. `scripts/gate.sh` therefore runs the
+   app-target Debug build as a baseline step and stops at it - **package-green is not app-green**.
+   The escape is measured, not theoretical: a change passed `swift build` 0, `swiftlint` 0 and all
+   1826 package tests green, and `xcodebuild` then failed at `FeedbackComposerView.swift:50`. A
+   `scripts/gate.sh` that omits the `xcodebuild` step, or ignores its exit code, is the defect this
+   rule exists for. The gate's own teeth are pinned by `scripts/tests/gate.test.sh` (synthetic
+   tools, no simulator): each step's failure exits with its code and stops the ones after it, the
+   step order is package -> lint -> app -> tests, and `RELEASE=1` adds the Release build.
 
 ## Snapshot baselines are runtime-specific (temporary, until iOS 18 is installed)
 

@@ -17,6 +17,13 @@ both `API.md` lines say `units` is **reserved and not emitted by any v1 parser**
 it from the wire contract (that is a breaking-change review for nothing). If you instead find an
 importer that CAN be ambiguous today, stop and report - that is option (a) and a bigger row.
 
+## Also F6a's text and the preview hint (from F6a's walk)
+
+F6a's bullets 1 and 4 promise *detected units* and *units adjustable here*; mark both **N/A for v1**
+the same way, and fix the preview hint *"check the units below"* (`ImportPreviewView.swift:99`),
+which points at a units row that is not adjustable - reword it to what the preview actually lets
+the user change (date format, currency when asked). Same change, same test binding the texts.
+
 ## Tests
 
 - **L1**: the three texts agree - a test that reads the `ImportModels` doc comment, the `API.md`

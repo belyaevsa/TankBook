@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-11 · The baseline gate is one script, and it compiles the app
+
+| | |
+|---|---|
+| **Commits** | `RV.174` (this entry's commit) |
+| **Reason** | `swift build` + `swift test` exercise the SwiftPM package only; every screen lives in the app target, which only `xcodebuild` compiles. A task could pass every per-task gate and not compile into the shipping app. |
+| **Evidence** | 2026-09-10, finishing `RV.159` by hand: build 0, lint 0, 1826 package tests green, and `xcodebuild` failed at `FeedbackComposerView.swift:50`. The same escape hard rule 14 already named for Debug-vs-Release, through the package-vs-app door. |
+| **What changed** | `scripts/gate.sh` runs package build, lint, xcodegen, the app-target Debug build and the tests in that order and stops at the first non-zero; `RELEASE=1` adds Release. `PREAMBLE.md` calls it; `TESTING.md` and hard rule 14 name it. Its teeth were proven with a scratch compile error before it was accepted: exit 65 at the app step, tests never run. |
+
 ## 2026-09-11 · The unit of work becomes a scenario
 
 | | |
