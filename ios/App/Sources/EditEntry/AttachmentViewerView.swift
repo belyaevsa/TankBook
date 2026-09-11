@@ -53,7 +53,6 @@ struct AttachmentViewerView: View {
     @Environment(\.dismiss) var dismiss
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var state: ViewerState = .loading
-    @State private var shareable: AttachmentShareable?
     @State private var page = 0
 
     // RV.37: the attachment the entry links RIGHT NOW. It starts at the one the
@@ -131,16 +130,6 @@ struct AttachmentViewerView: View {
                 showReplaceAsk = true
             }
             #endif
-        }
-        .sheet(item: $shareable) { item in
-            ActivityView(items: item.items) { outcome in
-                // Shape only: that the share ended, how, and the payload class
-                // (photo or pdf) - never what was shared, its hash, its size or
-                // a destination app (hard rule 12).
-                AppLog.share(operation: "attachmentViewer.share",
-                             kind: attachment.kind == .pdf ? "pdf" : "photo",
-                             outcome: outcome)
-            }
         }
         .alert("Delete this receipt?", isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { performDelete() }
@@ -413,11 +402,20 @@ struct AttachmentViewerView: View {
     /// Hands the full rendition to the system share sheet. The share itself is
     /// the user's deliberate act (docs/SECURITY.md's signed-off line: sharing
     /// exports a domain value by choice, which is fine) - the log records only
-    /// that it happened and its outcome, never what was shared.
+    /// that it happened and its outcome, never what was shared. Presented from
+    /// the top-most controller (`SharePresenter`), never a nested `.sheet`, so
+    /// the viewer stays alive while a destination's own UI is up (RV.181).
     private func presentShare() {
         guard let data = fullData else { return }
         AppLog.info(operation: "attachmentViewer.share", category: .ui, outcome: "presented")
-        shareable = AttachmentShareable(items: shareItems(from: data))
+        SharePresenter.present(items: shareItems(from: data)) { outcome in
+            // Shape only: that the share ended, how, and the payload class
+            // (photo or pdf) - never what was shared, its hash, its size or a
+            // destination app (hard rule 12).
+            AppLog.share(operation: "attachmentViewer.share",
+                         kind: attachment.kind == .pdf ? "pdf" : "photo",
+                         outcome: outcome)
+        }
     }
 
     /// The share-sheet payload. A photo shares the `UIImage` (so "Save Image"
@@ -474,11 +472,4 @@ enum AttachmentUnavailableReason: Equatable {
     case failed
     /// The bytes are here but are not a photo / not a readable PDF.
     case unreadable
-}
-
-/// The share-sheet payload, wrapped so the `.sheet(item:)` that presents it has
-/// a stable identity (the items themselves are not Identifiable). RV.17.
-private struct AttachmentShareable: Identifiable {
-    let id = UUID()
-    let items: [Any]
 }

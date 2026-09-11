@@ -299,6 +299,27 @@ final class AttachmentViewerUITests: XCTestCase {
                        "share must not be offered while the full rendition is missing")
     }
 
+    /// RV.181: the receipt-photo share must open the system sheet from the
+    /// viewer, which is itself a sheet over Edit entry. The old shape nested the
+    /// activity a third modal level deep; the fixed shape presents it from the
+    /// top-most controller. The simulator cannot prove the destination received
+    /// the photo - that is the owner's device step - only that the sheet opens
+    /// from this deepest door.
+    func testShareOpensTheSystemSheetFromTheViewer() {
+        let app = launch("-seedPhotoLocal")
+        let chip = app.buttons["attachmentPhotoChip"]
+        XCTAssertTrue(chip.waitForExistence(timeout: 15))
+        chip.tap()
+
+        let share = app.buttons["attachmentViewerShareButton"]
+        XCTAssertTrue(share.waitForExistence(timeout: 10),
+                      "share must be offered once the full rendition is local")
+        share.tap()
+
+        XCTAssertTrue(app.otherElements["ActivityListView"].waitForExistence(timeout: 20),
+                      "the receipt photo share must open the system share sheet")
+    }
+
     /// The wait looks like work: with a slow seeded transport the progress
     /// indication is on screen for the whole fetch and the share affordance
     /// stays withheld until the full rendition lands. If the fetch were instant

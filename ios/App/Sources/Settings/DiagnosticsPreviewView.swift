@@ -10,10 +10,16 @@ import TankbookCore
 /// Reached from About -> the diagnostics consent card's "Preview what will be
 /// shared" (only reachable once the opt-in is on). Back path: Close / swipe-down
 /// returns to About (docs/SCREENMAP.md).
+///
+/// The preview text is the bundle's `rendered()` output, which already carries
+/// the in-memory breadcrumb ring (docs/LOGGING.md §4-§5) - so the last share's
+/// `app.event operation=… outcome=…` line and, when a destination failed, its
+/// `app.warning … reason=activity=… error=…` line are on screen here. That is
+/// the device evidence path: a failed share can be screenshotted without the
+/// share sheet itself having to arrive (RV.181).
 struct DiagnosticsPreviewView: View {
     @Bindable var model: DiagnosticsModel
     @Environment(\.dismiss) private var dismiss
-    @State private var shareable: DiagnosticsShareable?
 
     var body: some View {
         NavigationStack {
@@ -32,16 +38,6 @@ struct DiagnosticsPreviewView: View {
                             .disabled(model.previewText == nil)
                             .opacity(model.previewText == nil ? 0.5 : 1)
                             .accessibilityIdentifier("diagnosticsShareButton")
-                    }
-                }
-                .sheet(item: $shareable) { item in
-                    ActivityView(items: [item.text]) { outcome in
-                        // Shape only (docs/LOGGING.md §4): that the share ended,
-                        // how, and that the payload was text - never the text,
-                        // its length, its hash or a destination app (hard rule
-                        // 12).
-                        AppLog.share(operation: "diagnostics.share", kind: "text",
-                                     outcome: outcome)
                     }
                 }
                 .task { await model.buildPreviewText() }
@@ -82,12 +78,11 @@ struct DiagnosticsPreviewView: View {
 
     private func presentShare() {
         guard let text = model.previewText else { return }
-        shareable = DiagnosticsShareable(text: text)
+        // Shape only (docs/LOGGING.md §4): that the share ended, how, and that
+        // the payload was text - never the text, its length, its hash or a
+        // destination app (hard rule 12).
+        SharePresenter.present(items: [text]) { outcome in
+            AppLog.share(operation: "diagnostics.share", kind: "text", outcome: outcome)
+        }
     }
-}
-
-/// The share-sheet payload: the exact preview text. Identifiable for `.sheet(item:)`.
-private struct DiagnosticsShareable: Identifiable {
-    let text: String
-    var id: String { text }
 }

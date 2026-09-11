@@ -32,8 +32,10 @@ final class RV181ShareSeamSourceTests: XCTestCase {
 
     /// The surfaces the seam serves: diagnostics text, the receipt photo/PDF,
     /// the account and per-car exports (both via `ExportFlow`), and "send us the
-    /// file". Each must reference `ActivityView(`.
-    func testEveryShareSurfaceReferencesTheSeam() throws {
+    /// file". Each must call `SharePresenter.present(` - the top-most-controller
+    /// presentation. A surface that goes back to hosting the activity in a
+    /// `.sheet` drops the token and fails here (RV.181).
+    func testEveryShareSurfaceGoesThroughTheSharePresenter() throws {
         let sources = try Self.sourcesDirectory()
         let expected = [
             "Settings/DiagnosticsPreviewView.swift",
@@ -44,8 +46,8 @@ final class RV181ShareSeamSourceTests: XCTestCase {
         for relative in expected {
             let url = sources.appendingPathComponent(relative)
             let text = try String(contentsOf: url, encoding: .utf8)
-            XCTAssertTrue(text.contains("ActivityView("),
-                          "\(relative) must share through ActivityView, not its own sheet")
+            XCTAssertTrue(text.contains("SharePresenter.present("),
+                          "\(relative) must share through SharePresenter, not its own sheet")
         }
     }
 

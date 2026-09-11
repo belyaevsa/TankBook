@@ -170,7 +170,9 @@ The pair is emitted around **user-initiated writes only** (capture, manual, impo
 ### Shares (RV.181)
 Every share in the app goes through one seam (`Shared/ActivityView.swift`) and logs through one
 helper, `AppLog.share`. The event is `<surface>.share` - `diagnostics.share`, `export.share`,
-`attachmentViewer.share`, `import.sendFile.share`.
+`attachmentViewer.share`, `import.sendFile.share`. The seam presents the system sheet from the key
+window's top-most controller (never a nested SwiftUI `.sheet`), so the outcome below is the
+record of a share that actually reached its hand-off.
 
 | Event | Fields |
 |---|---|

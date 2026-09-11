@@ -101,6 +101,66 @@ final class RV181ShareHandoffUITests: XCTestCase {
                       "the export must open the system share sheet")
     }
 
+    /// The outcome half, without a destination dispatch: Copy runs in-process,
+    /// so it can prove the activity settled AND that the share seam logged a
+    /// `completed` outcome. **It does not prove a destination received
+    /// anything** - that needs the owner's iPhone 13 (see the header). What it
+    /// proves is that the presentation is the fixed one and that the diagnostics
+    /// preview now carries the share line, which is the device evidence path.
+    func testExportCopyCompletesAndTheDiagnosticsPreviewCarriesTheShareLine() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-homeResetDatabase", "-seedSettingsPending",
+                               "-presentScreen", "settings", "-diagnosticsConsentOn"]
+        app.launch()
+        openExportShare(app)
+
+        let sheet = app.otherElements["ActivityListView"]
+        XCTAssertTrue(sheet.waitForExistence(timeout: 20),
+                      "the export must open the system share sheet")
+        let copy = app.cells["Copy"]
+        XCTAssertTrue(copy.waitForExistence(timeout: 10),
+                      "the share sheet must offer Copy")
+        copy.tap()
+
+        XCTAssertTrue(sheet.waitForNonExistence(timeout: 10),
+                      "the share sheet must close once Copy completes")
+        XCTAssertTrue(app.buttons["settingsExportRow"].waitForExistence(timeout: 10),
+                      "the export must return to Settings")
+
+        // The device evidence path: the diagnostics bundle already carries the
+        // in-memory breadcrumb ring, so the share's `app.event` line is on
+        // screen without a share of its own.
+        let about = app.buttons["settingsAboutRow"]
+        XCTAssertTrue(about.waitForExistence(timeout: 10), "About is reachable from Settings")
+        scrollUntilHittable(about, in: app)
+        about.tap()
+
+        let previewButton = app.buttons["diagnosticsPreviewButton"]
+        XCTAssertTrue(previewButton.waitForExistence(timeout: 15),
+                      "the diagnostics opt-in must reveal the preview affordance")
+        scrollUntilHittable(previewButton, in: app)
+        previewButton.tap()
+
+        let preview = app.staticTexts["diagnosticsPreviewText"]
+        XCTAssertTrue(preview.waitForExistence(timeout: 15),
+                      "the diagnostics preview must open")
+        let text = preview.label
+        XCTAssertTrue(text.contains("operation=export.share"),
+                      "the preview must carry the export share's outcome line")
+        XCTAssertTrue(text.contains("outcome=completed"),
+                      "the Copy share must be recorded as completed")
+    }
+
+    /// A tap below this line can be swallowed by the owned tab bar (~760 pt on
+    /// this device); scroll until the control is safely above it.
+    private func scrollUntilHittable(_ element: XCUIElement, in app: XCUIApplication) {
+        var attempts = 0
+        while element.frame.midY > 700 || !element.isHittable, attempts < 12 {
+            app.swipeUp()
+            attempts += 1
+        }
+    }
+
     // MARK: - Files "On My iPhone" storage
 
     /// The simulator's device data root, resolved from the test runner's own

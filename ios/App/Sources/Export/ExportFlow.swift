@@ -3,29 +3,39 @@ import TankbookCore
 
 // The shared export-flow plumbing (PJ.36 whole-account on Settings, PJ.38
 // per-car on Vehicle detail). The two export rows build different archives and
-// different labels, but they share the same three surfaces: the system share
-// sheet, the disk-full alert (docs/ERRORS.md -> Settings, "Export fails (disk)"
-// - a real state that names its next step, never a crash, hard rule 7) and the
-// in-flight spinner. `ExportFlowModifier` owns those three; the row owns the
-// build.
+// different labels, but they share the same surfaces: the system share sheet,
+// the disk-full alert (docs/ERRORS.md -> Settings, "Export fails (disk)" - a
+// real state that names its next step, never a crash, hard rule 7) and the
+// in-flight spinner. `ExportFlowModifier` owns the alert; the row owns the
+// build and hands the result to `ExportShareable.present()`.
 
-/// The share-sheet payload an export row hands off. `URL` is not Identifiable,
-/// so the sheet needs this wrapper; `items` are what `UIActivityViewController`
-/// receives (the archive directory, plus the per-car CSV files as their own
-/// share items - PJ.38).
-struct ExportShareable: Identifiable {
-    let id = UUID()
+/// The share payload an export row hands off: the archive directory, plus the
+/// per-car CSV files as their own share items (PJ.38). It is not `Identifiable`
+/// and no `.sheet` presents it - the row calls `present()`, which goes through
+/// the one share seam (`SharePresenter`) from the button action, so no SwiftUI
+/// sheet owns the activity's lifetime (RV.181).
+struct ExportShareable {
     let items: [Any]
 }
 
-/// The `.sheet(item:)` + disk-full `.alert` pair every export row attaches.
-/// The disk-full classification comes from `ExportFailure.map` in core - the
-/// same pure function the L1 test pins - so the surfaced state can never
-/// silently become a thrown crash. "Try again" is the alert's next step (hard
-/// rule 7): it re-runs the row's build, which is what the user is doing when
-/// they have freed space.
+extension ExportShareable {
+    /// Presents the export through the one share seam, logging shape-only: that
+    /// the share ended, how, and that the payload was the CSV/archive export -
+    /// never a filename, a row or a destination app (hard rule 12).
+    @MainActor
+    func present() {
+        SharePresenter.present(items: items) { outcome in
+            AppLog.share(operation: "export.share", kind: "csv", outcome: outcome)
+        }
+    }
+}
+
+/// The disk-full `.alert` every export row attaches. The disk-full
+/// classification comes from `ExportFailure.map` in core - the same pure
+/// function the L1 test pins - so the surfaced state can never silently become a
+/// thrown crash. "Try again" is the alert's next step (hard rule 7): it re-runs
+/// the row's build, which is what the user is doing when they have freed space.
 struct ExportFlowModifier: ViewModifier {
-    @Binding var shareable: ExportShareable?
     @Binding var failure: ExportFailure?
     let retry: () -> Void
 
@@ -38,19 +48,6 @@ struct ExportFlowModifier: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .sheet(item: $shareable) { item in
-                // No `.presentationDetents`: the activity controller is no
-                // longer this sheet's root (ActivityView presents it from a
-                // host), so sizing this sheet would size the empty host, not
-                // the share sheet.
-                ActivityView(items: item.items) { outcome in
-                    // Shape only: that the share ended, how, and that the
-                    // payload was the CSV/archive export - never a filename, a
-                    // row or a destination app (hard rule 12).
-                    AppLog.share(operation: "export.share", kind: "csv",
-                                 outcome: outcome)
-                }
-            }
             .alert("Couldn't build the export", isPresented: showsError) {
                 Button("Try again") { retry() }
                 Button("OK", role: .cancel) {}
@@ -72,10 +69,11 @@ struct ExportFlowModifier: ViewModifier {
 }
 
 extension View {
-    /// The share sheet + disk-full alert pair the two export rows both use.
-    func exportFlow(shareable: Binding<ExportShareable?>,
-                    failure: Binding<ExportFailure?>,
+    /// The disk-full alert the two export rows both use. The share itself is
+    /// presented by `ExportShareable.present()` from the row's button action,
+    /// not by a sheet here.
+    func exportFlow(failure: Binding<ExportFailure?>,
                     retry: @escaping () -> Void) -> some View {
-        modifier(ExportFlowModifier(shareable: shareable, failure: failure, retry: retry))
+        modifier(ExportFlowModifier(failure: failure, retry: retry))
     }
 }

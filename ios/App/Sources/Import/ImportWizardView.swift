@@ -488,7 +488,6 @@ struct SendFileConsentSheet: View {
     let fileURL: URL?
     var dispose: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
-    @State private var showingShare = false
     /// Whether the share sheet was offered. Guards `onDisappear` against the
     /// SwiftUI gotcha where presenting a sheet on top fires the presenter's
     /// `onDisappear`: once sharing has begun, only the share sheet's own
@@ -519,7 +518,7 @@ struct SendFileConsentSheet: View {
                 .formCard()
             }
             Spacer()
-            ImportPrimaryBar(action: { didShare = true; showingShare = true },
+            ImportPrimaryBar(action: presentShare,
                              label: { Text(L10n.sendFileShare) })
                 .accessibilityIdentifier("sendFileShareButton")
             Button("Cancel") {
@@ -536,26 +535,29 @@ struct SendFileConsentSheet: View {
         .padding(.top, 24)
         .padding(.bottom, 24)
         .presentationDetents([.medium])
-        .sheet(isPresented: $showingShare) {
-            // PJ.20: the actual file rides the share sheet, with the consent
-            // sentence alongside it - never the sentence alone. No detents: the
-            // activity controller presents itself (ActivityView), so sizing
-            // this sheet would size the empty host, not the share sheet.
-            ActivityView(items: [fileURL as Any, L10n.sendFileMessage]) { outcome in
-                // Shape only: that the share ended, how, and that the payload
-                // was the staged file - never its name, its bytes or a
-                // destination app (hard rule 12).
-                AppLog.share(operation: "import.sendFile.share", kind: "file",
-                             outcome: outcome)
-                // The share sheet has read the file (or the user dismissed it);
-                // the staged copy has served its purpose either way.
-                dispose?()
-            }
-        }
         .onDisappear {
             // Cancelled or swiped away without sharing - dispose only when the
             // share sheet was never offered (its completion handles that path).
             if !didShare { dispose?() }
+        }
+    }
+
+    /// PJ.20: the actual file rides the share sheet, with the consent sentence
+    /// alongside it - never the sentence alone. Presented from the top-most
+    /// controller (RV.181), so the consent sheet underneath stays alive while
+    /// the destination's UI is up.
+    private func presentShare() {
+        guard let fileURL else { return }
+        didShare = true
+        SharePresenter.present(items: [fileURL as Any, L10n.sendFileMessage]) { outcome in
+            // Shape only: that the share ended, how, and that the payload was
+            // the staged file - never its name, its bytes or a destination app
+            // (hard rule 12).
+            AppLog.share(operation: "import.sendFile.share", kind: "file",
+                         outcome: outcome)
+            // The share sheet has read the file (or the user dismissed it);
+            // the staged copy has served its purpose either way.
+            dispose?()
         }
     }
 }

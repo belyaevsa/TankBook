@@ -2,101 +2,94 @@ import UIKit
 import XCTest
 @testable import Tankbook
 
-/// RV.181 L1: the share seam's presentation latch and its outcome record.
+/// RV.181 L1: the share seam's presentation and its outcome record.
 ///
-/// Two contracts are pinned here, and the second is the one the device report
-/// argues for. **The latch**: SwiftUI calls `updateUIViewController` repeatedly
-/// and presenting twice throws, so the activity is presented once - but only a
-/// presentation UIKit ACCEPTED counts, or a dropped attempt leaves a permanent
-/// blank host sheet with no retry. **The outcome**: a share that failed at its
-/// destination must be distinguishable from one the user cancelled; carrying
-/// only `completed` collapses them, which is why "nothing arrived" could not be
-/// diagnosed from a device.
+/// The device report ("I picked a destination and nothing arrived", iOS 26,
+/// iPhone 13) does not reproduce here, and these tests do not claim to. Two
+/// contracts are pinned, and both are the ones the fix turns on. **The
+/// presenter**: the activity must be presented by the key window's top-most
+/// controller, never a host buried in the view tree that SwiftUI can tear down
+/// while a destination's own UI is coming up. **The outcome**: a share that
+/// failed at its destination must be distinguishable from one the user
+/// cancelled; carrying only `completed` collapses them, which is why "nothing
+/// arrived" could not be diagnosed from a device.
 ///
-/// `UIActivityViewController` cannot exercise the hand-off in a unit test, so
-/// these pin the guards and the forwarding at the seam.
+/// `UIActivityViewController` cannot exercise a real hand-off in a unit test,
+/// so these pin the walk and the forwarding at the seam.
 @MainActor
 final class RV181ActivityViewTests: XCTestCase {
 
-    /// A host that models UIKit's two answers to `present`: accepted (the
-    /// completion runs, and a presented controller is now in place) or dropped
-    /// mid-transition (no completion, nothing presented). A spy that only
-    /// counts calls cannot express the second, which is the case the latch is
-    /// about.
-    private final class SpyHost: UIViewController {
-        private(set) var presentCount = 0
-        var acceptsPresentation = true
-        private var stubPresented: UIViewController?
+    /// A controller whose `presentedViewController` is stubbed, so a chain can
+    /// be built without UIKit's real presentation machinery.
+    private final class ChainController: UIViewController {
+        var stubPresented: UIViewController?
+        override var presentedViewController: UIViewController? { stubPresented }
+    }
 
+    /// A controller that records what was presented on it. The chain is built
+    /// the same way as `ChainController`, so a test can assert WHICH controller
+    /// in the stack received the activity.
+    private final class PresenterSpy: UIViewController {
+        var stubPresented: UIViewController?
+        private(set) var presented: [UIViewController] = []
         override var presentedViewController: UIViewController? { stubPresented }
 
         override func present(_ viewControllerToPresent: UIViewController,
                               animated flag: Bool,
                               completion: (() -> Void)? = nil) {
-            presentCount += 1
-            guard acceptsPresentation else { return }
+            presented.append(viewControllerToPresent)
             stubPresented = viewControllerToPresent
             completion?()
         }
     }
 
-    private func makeHostInWindow() -> (SpyHost, UIWindow) {
-        let host = SpyHost()
-        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 320, height: 480))
-        window.rootViewController = host
-        // `view.window` is only set once the window is on screen; the presenter
-        // guard under test keys off exactly that.
-        window.makeKeyAndVisible()
-        window.layoutIfNeeded()
-        return (host, window)
+    /// The required L1: `topMost` walks a presented chain to its top.
+    func testTopMostWalksThePresentedChainToTheTop() {
+        let root = ChainController()
+        let first = ChainController()
+        let second = ChainController()
+        let top = ChainController()
+        root.stubPresented = first
+        first.stubPresented = second
+        second.stubPresented = top
+
+        XCTAssertTrue(SharePresenter.topMost(from: root) === top)
     }
 
-    /// `updateUIViewController` calls this repeatedly; the second call must not
-    /// present again.
-    func testPresentingTwicePresentsExactlyOnce() {
-        let (host, window) = makeHostInWindow()
-        defer { window.isHidden = true }
-        let coordinator = ActivityView(items: ["x"]).makeCoordinator()
-
-        coordinator.presentIfNeeded(from: host)
-        coordinator.presentIfNeeded(from: host)
-
-        XCTAssertTrue(coordinator.hasPresented)
-        XCTAssertEqual(host.presentCount, 1, "the activity must be presented exactly once")
+    /// A root that presents nothing is its own top-most controller.
+    func testTopMostOfAnUnpresentedRootIsTheRoot() {
+        let root = ChainController()
+        XCTAssertTrue(SharePresenter.topMost(from: root) === root)
     }
 
-    /// The latch belongs AFTER the presentation, not before it: a presentation
-    /// UIKit dropped must be retried by the next `updateUIViewController`, or
-    /// the user is left holding an empty host sheet forever.
-    func testADroppedPresentationIsRetried() {
-        let (host, window) = makeHostInWindow()
-        defer { window.isHidden = true }
-        host.acceptsPresentation = false
-        let coordinator = ActivityView(items: ["x"]).makeCoordinator()
+    /// The fix's core: the activity is presented on the TOP of the stack, not
+    /// the root - the shape that keeps the destination's UI alive.
+    func testPresentPresentsFromTheTopMostController() {
+        let root = PresenterSpy()
+        let middle = PresenterSpy()
+        let top = PresenterSpy()
+        root.stubPresented = middle
+        middle.stubPresented = top
 
-        coordinator.presentIfNeeded(from: host)
-        XCTAssertFalse(coordinator.hasPresented,
-                       "a presentation UIKit did not accept must not latch")
+        let activity = SharePresenter.present(items: ["x"], from: root) { _ in }
 
-        host.acceptsPresentation = true
-        coordinator.presentIfNeeded(from: host)
-
-        XCTAssertTrue(coordinator.hasPresented)
-        XCTAssertEqual(host.presentCount, 2, "the dropped attempt must be retried, once")
+        XCTAssertNotNil(activity)
+        XCTAssertTrue(root.presented.isEmpty, "the root must not present over its own sheet")
+        XCTAssertTrue(middle.presented.isEmpty, "the middle controller must not present over its own sheet")
+        XCTAssertEqual(top.presented.count, 1, "the top-most controller is the presenter")
+        XCTAssertTrue(top.presented.first === activity)
     }
 
-    /// The retry is safe because it also checks what the host is already
-    /// presenting: a latch that had not yet been written must never produce a
-    /// second `present` over a live one, which throws.
-    func testNoSecondPresentWhileTheHostAlreadyPresents() {
-        let (host, window) = makeHostInWindow()
-        defer { window.isHidden = true }
-        let coordinator = ActivityView(items: ["x"]).makeCoordinator()
+    /// Presenting on a controller that is already showing the activity would
+    /// throw; the seam returns nil instead.
+    func testPresentDoesNothingWhenTheTopMostAlreadyPresentsTheActivity() {
+        let root = PresenterSpy()
+        let first = SharePresenter.present(items: ["x"], from: root) { _ in }
+        XCTAssertNotNil(first)
 
-        coordinator.presentIfNeeded(from: host)
-        coordinator.presentIfNeeded(from: host)
-
-        XCTAssertEqual(host.presentCount, 1)
+        let second = SharePresenter.present(items: ["y"], from: root) { _ in }
+        XCTAssertNil(second, "a second presentation over the live activity must be refused")
+        XCTAssertEqual(root.presented.count, 1)
     }
 
     /// A share that ran and then failed is reported as a FAILURE, carrying the
@@ -104,12 +97,10 @@ final class RV181ActivityViewTests: XCTestCase {
     /// needed and did not have.
     func testAFailedShareIsDistinguishableFromACancel() {
         var outcomes: [ShareOutcome] = []
-        let failed = ActivityView(items: ["a"]) { outcomes.append($0) }.makeCoordinator()
-        failed.activity.completionWithItemsHandler?(
-            .mail, false, nil,
-            NSError(domain: "TestDomain", code: 42))
-        let cancelled = ActivityView(items: ["b"]) { outcomes.append($0) }.makeCoordinator()
-        cancelled.activity.completionWithItemsHandler?(nil, false, nil, nil)
+        let failed = SharePresenter.makeActivity(items: ["a"]) { outcomes.append($0) }
+        failed.completionWithItemsHandler?(.mail, false, nil, NSError(domain: "TestDomain", code: 42))
+        let cancelled = SharePresenter.makeActivity(items: ["b"]) { outcomes.append($0) }
+        cancelled.completionWithItemsHandler?(nil, false, nil, nil)
 
         XCTAssertEqual(outcomes.map(\.logOutcome), ["failed", "cancelled"],
                        "a failed share must not be logged as a cancel")
@@ -124,10 +115,10 @@ final class RV181ActivityViewTests: XCTestCase {
     /// and an error domain and code, never anything that was shared.
     func testTheFailureReasonCarriesOnlyShape() {
         var outcomes: [ShareOutcome] = []
-        let coordinator = ActivityView(items: ["a receipt for 42 litres"]) {
+        let activity = SharePresenter.makeActivity(items: ["a receipt for 42 litres"]) {
             outcomes.append($0)
-        }.makeCoordinator()
-        coordinator.activity.completionWithItemsHandler?(
+        }
+        activity.completionWithItemsHandler?(
             .airDrop, false, nil, NSError(domain: "TestDomain", code: 7))
 
         let reason = try? XCTUnwrap(outcomes.first).failureReason
@@ -140,44 +131,22 @@ final class RV181ActivityViewTests: XCTestCase {
     /// A completed share carries `completed` and no error.
     func testACompletedShareIsReportedCompleted() {
         var outcomes: [ShareOutcome] = []
-        let coordinator = ActivityView(items: ["x"]) { outcomes.append($0) }.makeCoordinator()
-        coordinator.activity.completionWithItemsHandler?(.copyToPasteboard, true, nil, nil)
+        let activity = SharePresenter.makeActivity(items: ["x"]) { outcomes.append($0) }
+        activity.completionWithItemsHandler?(.copyToPasteboard, true, nil, nil)
 
         XCTAssertEqual(outcomes.map(\.logOutcome), ["completed"])
         XCTAssertNil(outcomes[0].errorDomain)
     }
 
-    /// Two shares in a row each yield exactly one callback - the guard against
-    /// re-presenting (and re-completing) on every SwiftUI update.
-    func testTwoSharesInARowEachYieldOneCallback() {
-        var outcomes: [ShareOutcome] = []
-        for _ in 0..<2 {
-            let (host, window) = makeHostInWindow()
-            defer { window.isHidden = true }
-            let coordinator = ActivityView(items: ["x"]) { outcomes.append($0) }.makeCoordinator()
-
-            coordinator.presentIfNeeded(from: host)
-            coordinator.presentIfNeeded(from: host)
-            XCTAssertEqual(host.presentCount, 1)
-
-            coordinator.activity.completionWithItemsHandler?(nil, true, nil, nil)
-            // A late second callback from the system must not double-fire.
-            coordinator.activity.completionWithItemsHandler?(nil, true, nil, nil)
-        }
-        XCTAssertEqual(outcomes.map(\.completed), [true, true],
-                       "each share must yield exactly one callback")
-    }
-
-    /// The callback fires at most once even if the system somehow reports twice;
-    /// the sheet dismissal rides the same guard.
+    /// The callback fires at most once even if UIKit somehow reports twice - a
+    /// late second call must not double-log a share.
     func testCompletionFiresAtMostOncePerShare() {
         var count = 0
-        let coordinator = ActivityView(items: ["x"]) { _ in count += 1 }.makeCoordinator()
-        coordinator.activity.completionWithItemsHandler?(nil, true, nil, nil)
-        coordinator.activity.completionWithItemsHandler?(nil, false, nil, nil)
-        coordinator.activity.completionWithItemsHandler?(nil, true, nil, nil)
+        let activity = SharePresenter.makeActivity(items: ["x"]) { _ in count += 1 }
+        activity.completionWithItemsHandler?(nil, true, nil, nil)
+        activity.completionWithItemsHandler?(nil, false, nil, nil)
+        activity.completionWithItemsHandler?(nil, true, nil, nil)
 
-        XCTAssertTrue(coordinator.hasFinished)
         XCTAssertEqual(count, 1)
     }
 }

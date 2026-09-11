@@ -5,110 +5,102 @@ import UIKit
 /// share in the app goes through: the diagnostics bundle, the receipt photo or
 /// PDF, the whole-account and per-car exports, and "send us the file".
 ///
-/// The activity controller is **presented by** a plain host controller rather
-/// than returned as the representable's root. That is a deliberate choice, NOT
-/// a proven fix: a share reported as never reaching its destination (iOS 26,
-/// iPhone 13) does not reproduce on the simulator, and *Save to Files completes
-/// under BOTH shapes* - which is evidence AGAINST the "the old shape had no
-/// presenter" theory, since UIKit forwards a presentation up the parent
-/// hierarchy. The cause is open (RV.181); what this file guarantees is a
-/// visible presenter and, more usefully, an outcome record detailed enough to
-/// diagnose the next device report.
+/// The activity controller is presented by the key window's **top-most**
+/// controller (`SharePresenter.present`), never hosted as a SwiftUI `.sheet`'s
+/// root. The sheet-root shape put the activity two or three modal levels deep
+/// and left the chosen destination's own UI - Mail's composer, the Files
+/// browser, a third-party extension - to be presented from a host that SwiftUI
+/// could tear down as it re-evaluated the `.sheet`; a device report of "I picked
+/// a destination and nothing arrived" (iOS 26, iPhone 13) is the failure shape
+/// this removes. Presenting from the top-most controller means no view in the
+/// tree owns the activity's lifetime.
 ///
-/// UIKit is used rather than `ShareLink` because an export shares a directory
-/// plus its CSV files as separate items, which `ShareLink` cannot carry.
-struct ActivityView: UIViewControllerRepresentable {
-    let items: [Any]
-    /// The share's outcome, called at most once when the sheet settles. It
-    /// carries the WHOLE completion tuple, not just `completed`: a share that
-    /// fails at its destination is otherwise indistinguishable from one the
-    /// user cancelled, which is precisely why the device report could not be
-    /// diagnosed. Callers log it shape-only (docs/LOGGING.md, hard rule 12) -
-    /// an activity type and an error domain/code are shape, the shared content
-    /// never is.
-    var completion: ((ShareOutcome) -> Void)?
+/// Every share, single-item photo/PDF included, uses this seam rather than
+/// SwiftUI's `ShareLink`. The reason is the outcome record below: a share that
+/// ran and then failed at its destination must be distinguishable from one the
+/// user cancelled, and that record (`ShareOutcome`, logged by `AppLog.share`)
+/// is the evidence the RV.181 device report needs. `ShareLink` presents natively
+/// but reports nothing, so a `ShareLink` photo share could never name its
+/// destination error in the diagnostics preview. One seam, one record.
+///
+/// UIKit is also what the export needs regardless: it shares a directory plus
+/// its CSV files as separate items, which `ShareLink` cannot carry.
+@MainActor
+enum SharePresenter {
 
-    @Environment(\.dismiss) private var dismiss
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(items: items, completion: completion, dismissSheet: { dismiss() })
+    /// The production entry point: the key window's top-most controller. A
+    /// share is a button action, so this runs while a SwiftUI sheet may still
+    /// be on screen; walking to the top is what keeps the destination's UI
+    /// alive for as long as UIKit needs it.
+    @discardableResult
+    static func present(items: [Any],
+                        completion: ((ShareOutcome) -> Void)? = nil) -> UIActivityViewController? {
+        present(items: items, from: keyWindow()?.rootViewController, completion: completion)
     }
 
-    func makeUIViewController(context: Context) -> ShareHostController {
-        let host = ShareHostController()
-        host.onFirstAppear = { [weak host] in
-            guard let host else { return }
-            context.coordinator.presentIfNeeded(from: host)
-        }
-        return host
+    /// Presents from an explicit root. Split out so a unit test can drive a
+    /// stacked controller chain without a live key window.
+    @discardableResult
+    static func present(items: [Any],
+                        from root: UIViewController?,
+                        completion: ((ShareOutcome) -> Void)? = nil) -> UIActivityViewController? {
+        guard let presenter = topMost(from: root),
+              !(presenter is UIActivityViewController) else { return nil }
+        let activity = makeActivity(items: items, completion: completion)
+        presenter.present(activity, animated: true)
+        return activity
     }
 
-    func updateUIViewController(_ host: ShareHostController, context: Context) {
-        context.coordinator.presentIfNeeded(from: host)
+    /// Builds the activity controller and its one-shot outcome handler. The
+    /// gate exists because `completionWithItemsHandler` is UIKit's to call and a
+    /// late second call must not double-log a share.
+    static func makeActivity(items: [Any],
+                             completion: ((ShareOutcome) -> Void)?) -> UIActivityViewController {
+        let activity = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let gate = ShareCompletionGate(completion: completion)
+        activity.completionWithItemsHandler = { type, completed, _, error in
+            gate.finish(ShareOutcome(activityType: type?.rawValue,
+                                     completed: completed,
+                                     errorDomain: (error as NSError?)?.domain,
+                                     errorCode: (error as NSError?)?.code))
+        }
+        return activity
     }
 
-    /// Owns the activity controller and its one-shot presentation and outcome.
-    /// SwiftUI calls `updateUIViewController` repeatedly, so both the
-    /// presentation and the outcome are guarded to fire exactly once.
-    @MainActor
-    final class Coordinator {
-        let activity: UIActivityViewController
-        private let completion: ((ShareOutcome) -> Void)?
-        private let dismissSheet: () -> Void
-        private(set) var hasPresented = false
-        private(set) var hasFinished = false
-
-        init(items: [Any], completion: ((ShareOutcome) -> Void)?,
-             dismissSheet: @escaping () -> Void) {
-            self.completion = completion
-            self.dismissSheet = dismissSheet
-            self.activity = UIActivityViewController(activityItems: items,
-                                                     applicationActivities: nil)
-            activity.completionWithItemsHandler = { [weak self] type, completed, _, error in
-                self?.finish(ShareOutcome(activityType: type?.rawValue,
-                                          completed: completed,
-                                          errorDomain: (error as NSError?)?.domain,
-                                          errorCode: (error as NSError?)?.code))
-            }
+    /// Walks `presentedViewController` from `root` to the controller nothing is
+    /// presented on. That controller is the only safe presenter: presenting on a
+    /// controller that already presents something throws.
+    static func topMost(from root: UIViewController?) -> UIViewController? {
+        var top = root
+        while let presented = top?.presentedViewController {
+            top = presented
         }
+        return top
+    }
 
-        /// Presents the activity controller from `host` once the host is in a
-        /// window and is not already presenting. **The latch is set only AFTER
-        /// UIKit accepts the presentation**: setting it first turns a
-        /// presentation UIKit drops mid-transition into a permanent blank
-        /// sheet, because `viewDidAppear` can then never retry. `presentedViewController`
-        /// is the check that makes a retry safe - presenting twice throws.
-        func presentIfNeeded(from host: UIViewController) {
-            guard !hasPresented,
-                  host.view.window != nil,
-                  host.presentedViewController == nil else { return }
-            host.present(activity, animated: true) { [weak self] in
-                self?.hasPresented = true
-            }
-        }
-
-        /// The single outcome path: forward the result and close the sheet so
-        /// the empty host does not linger behind the dismissed activity.
-        func finish(_ outcome: ShareOutcome) {
-            guard !hasFinished else { return }
-            hasFinished = true
-            completion?(outcome)
-            dismissSheet()
-        }
+    private static func keyWindow() -> UIWindow? {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)
     }
 }
 
-/// The plain host the activity controller is presented from. Its view is empty;
-/// it exists only to be a presenter and to signal its first appearance.
-final class ShareHostController: UIViewController {
-    var onFirstAppear: (() -> Void)?
-    private var hasAppeared = false
+/// Holds the one-shot guard for a share's outcome. It is retained by the
+/// activity controller's handler, so it lives exactly as long as the activity.
+@MainActor
+private final class ShareCompletionGate {
+    private var hasFinished = false
+    private let completion: ((ShareOutcome) -> Void)?
 
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        guard !hasAppeared else { return }
-        hasAppeared = true
-        onFirstAppear?()
+    init(completion: ((ShareOutcome) -> Void)?) {
+        self.completion = completion
+    }
+
+    func finish(_ outcome: ShareOutcome) {
+        guard !hasFinished else { return }
+        hasFinished = true
+        completion?(outcome)
     }
 }
 

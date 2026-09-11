@@ -733,6 +733,14 @@ nobody is designing for.
   single failure with four faces, and **J13's promise depends on it** – *export always free* is a
   launch commitment (`VISION.md`) and `DELETE /account` points the user at export as the way to keep
   their data.
+- **The presentation shape changed on 2026-09-11.** `SharePresenter` now presents the system sheet
+  from the key window's **top-most** controller, never as the root of a nested SwiftUI `.sheet`; the
+  old shape buried the activity two or three modal levels deep and left the chosen destination's UI
+  to be presented from a host SwiftUI could tear down. SwiftUI's `ShareLink` is deliberately not
+  used: it presents natively but reports nothing, so a `ShareLink` share could never name its
+  destination error in the diagnostics bundle. The device step that closes or re-opens this journey
+  is unchanged: one share attempt on the owner's iPhone 13, then the diagnostics preview's `share`
+  line (`activity=`/`error=`), which is now on screen without the share sheet having to arrive.
 - **The cause is unestablished.** The first diagnosis – that the activity controller had no
   presenter – was withdrawn: UIKit forwards a presentation up the parent hierarchy, and *Save to
   Files completes on both the old and the new shape*. What is known is that it does not reproduce on
@@ -743,11 +751,11 @@ nobody is designing for.
   without also saying it every time somebody closes the sheet. The destination owns its own error
   surface (Mail's composer, the Files browser), so Tankbook stays quiet – `docs/ERRORS.md` records
   the decision.
-- **The half that shipped is the diagnosis, not the fix** (2026-09-10). The seam now records the
-  whole outcome – the activity type, whether it completed, and the error's domain and code, all
-  shape and never the shared content (hard rule 12) – and logs `failed` as an outcome distinct from
-  `cancelled`. **The next report of this is answerable from the user's own diagnostics bundle**,
-  which the one that opened this journey was not.
+- **The outcome record is the diagnosis.** The seam records the whole outcome – the activity type,
+  whether it completed, and the error's domain and code, all shape and never the shared content
+  (hard rule 12) – and logs `failed` as an outcome distinct from `cancelled`. **A report of this is
+  answerable from the user's own diagnostics bundle**, which the one that opened this journey was
+  not.
 
 **Metric:** a share that a user reports as never arriving can be explained from their diagnostics
 export without a new build. Resolution of the underlying defect is verified **on a physical device**,

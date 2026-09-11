@@ -345,7 +345,7 @@ evidence this path never gathers is a default the app cannot justify.
 | Receipt chip tapped, the full rendition has not downloaded and there is no account on this device (RV.9) | The inline thumbnail from the payload (so the viewer is never blank) under "The full photo is not on this device yet" | "Sign in from Settings to download the original. This preview came with the entry." – the entry stays open and editable throughout (hard rule 1) |
 | Receipt chip tapped, the fetch failed – offline, or the bytes did not verify (RV.9) | The same thumbnail and headline, with the failure named rather than a spinner that never ends | "Check your connection and tap Try again." plus the **Try again** control on the card |
 | The attachment's bytes are not readable – not a photo, or a PDF that will not open (RV.9) | "This file could not be opened" over the placeholder, never a silent blank frame | "Attach the receipt again from the entry to replace it." |
-| Share tapped, the full rendition is local (RV.17) | The system share sheet over the **full** rendition – Save Image / Save to Files / share to apps. The 44 pt thumbnail is never what gets handed over | Choose an activity, or cancel – either way the entry underneath is untouched and still editable |
+| Share tapped, the full rendition is local (RV.17, RV.181) | The system share sheet over the **full** rendition – Save Image / Save to Files / share to apps. The 44 pt thumbnail is never what gets handed over. Presented from the window's top-most controller, never a nested `.sheet`, so a destination's own UI survives the hand-off | Choose an activity, or cancel – either way the entry underneath is untouched and still editable |
 | Share cancelled – the sheet is dismissed without choosing an activity (RV.17) | Nothing: the sheet closes and the viewer is exactly as it was | None needed. Sharing is a deliberate act; a cancel changes nothing and is logged shape-only (hard rule 12), never what was about to be shared |
 | The full rendition needed to share could not be downloaded – offline, or the bytes did not verify (RV.17) | The share affordance is **withheld** (never a dead button); the "The full photo is not on this device yet" state with its Try again | "Check your connection and tap Try again." – the share affordance appears only once the rendition lands |
 
@@ -418,21 +418,40 @@ evidence this path never gathers is a default the app cannot justify.
 | **Language changed (RV.24, RV.42)** | On the Settings Language row itself: "Language changes the next time you open Tankbook". RV.42 moved it there because the picker-only caption died with the sheet, leaving a setting that visibly took effect against an app that visibly did not change (a broken switch, not a pending one). The prompt renders exactly while the stored choice differs from the language actually running - **derived, never stored** - and self-clears on the next launch; it also still shows below the list while the picker is open | Close and reopen the app. **Never a programmatic restart** - an app that exits itself to apply a setting reads as a crash and risks App Store rejection. The prompt is the next step; the row value updates immediately |
 
 **A failed share shows the user nothing, and is recorded in full (RV.181, decided
-2026-09-10).** The destination owns its own error surface - Mail's composer, the Files browser -
-and a second alert from Tankbook on top of it would fire on the cancel path too, which is the
-common one; that teaches the user to dismiss it. So no user-facing message.
+2026-09-10; presentation fixed 2026-09-11).** The destination owns its own error
+surface - Mail's composer, the Files browser - and a second alert from Tankbook on
+top of it would fire on the cancel path too, which is the common one; that teaches
+the user to dismiss it. So no user-facing message.
 
-**The log is the other half of that decision, and it was the missing half.** The seam used to keep
-only `completed`, which the system reports as `false` for a cancel and for a share whose activity
-failed alike - so a report of "I picked a destination and nothing arrived" looked in the log
-exactly like closing the sheet. Each surface now logs `outcome` as one of `completed` /
-`cancelled` / **`failed`** (`diagnostics.share`, `attachmentViewer.share`, `export.share`,
-`import.sendFile.share`), and a `failed` share adds a Warning carrying the activity type and the
-error's domain and code. All of it is shape - system codes and the payload class (photo / pdf /
-csv / text / file) - never a filename, a destination app's content, or the shared item itself
-(hard rule 12). `docs/LOGGING.md` -> Shares carries the field list. **A user who reports a share
-that never arrived can now be answered from their diagnostics bundle**; before this row they could
-not.
+**How a share is presented (RV.181, 2026-09-11).** Every share, the receipt
+photo/PDF and the exports alike, is presented by `SharePresenter` from the key
+window's **top-most** controller (`Shared/ActivityView.swift`), never hosted as
+the root of a SwiftUI `.sheet`. The sheet-root shape put the activity two or
+three modal levels deep and left the chosen destination's own UI to be presented
+from a host SwiftUI could tear down; a device report of "I picked a destination
+and nothing arrived" (iOS 26, iPhone 13) is the failure shape this removes.
+SwiftUI's `ShareLink` is deliberately not used: it presents natively but reports
+nothing, so a `ShareLink` share could never name its destination error in the
+bundle below. The simulator cannot prove a destination dispatch - the failing
+destinations are out-of-process extensions - so the acceptance remains one share
+attempt on a physical device.
+
+**The log is the other half of that decision, and it was the missing half.** The
+seam used to keep only `completed`, which the system reports as `false` for a
+cancel and for a share whose activity failed alike - so a report of "I picked a
+destination and nothing arrived" looked in the log exactly like closing the
+sheet. Each surface now logs `outcome` as one of `completed` / `cancelled` /
+**`failed`** (`diagnostics.share`, `attachmentViewer.share`, `export.share`,
+`import.sendFile.share`), and a `failed` share adds a Warning carrying the
+activity type and the error's domain and code. All of it is shape - system codes
+and the payload class (photo / pdf / csv / text / file) - never a filename, a
+destination app's content, or the shared item itself (hard rule 12).
+`docs/LOGGING.md` -> Shares carries the field list. **A user who reports a share
+that never arrived can now be answered from their diagnostics bundle**; before
+this row they could not. The diagnostics preview renders the breadcrumb ring
+verbatim, so the last share's `outcome` line and, on a failure, its
+`activity=`/`error=` line are on screen to screenshot without the share sheet
+having to arrive (`DiagnosticsPreviewView`).
 
 ### Inbox (RV.38, RV.45, RV.64, RV.201)
 
@@ -582,7 +601,7 @@ separate consent from the feedback one, because it sends log data where the feed
 none. While it is off the preview is unreachable; turning it on reveals **"Preview what will be
 shared"**, which opens the Diagnostics preview sheet showing the exact text that would be sent -
 not a summary (docs/LOGGING.md §5: the user reads the bytes). Sharing goes through the system share
-sheet (`ActivityView`); the bundle is never posted automatically.
+sheet (`SharePresenter`); the bundle is never posted automatically.
 
 **A send acknowledges itself where the user is looking (RV.160, decided 2026-09-10).** The complaint
 was "after feedback sent, there is no confirmation that the feedback was sent". A confirmation

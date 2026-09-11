@@ -14,7 +14,6 @@ struct VehicleExportRow: View {
     let vehicle: Vehicle
 
     @State private var isExporting = false
-    @State private var shareable: ExportShareable?
     @State private var failure: ExportFailure?
 
     var body: some View {
@@ -49,7 +48,7 @@ struct VehicleExportRow: View {
         .disabled(isExporting)
         .accessibilityIdentifier("vehicleExportRow")
         .onAppear { presentCarExportIfRequested() }
-        .exportFlow(shareable: $shareable, failure: $failure, retry: buildExport)
+        .exportFlow(failure: $failure, retry: buildExport)
     }
 
     private func buildExport() {
@@ -57,7 +56,7 @@ struct VehicleExportRow: View {
         isExporting = true
         Task {
             do {
-                shareable = try ExportBuilder.buildCarExport(vehicleID: vehicle.id)
+                try ExportBuilder.buildCarExport(vehicleID: vehicle.id).present()
             } catch {
                 failure = ExportFailure.map(error)
             }

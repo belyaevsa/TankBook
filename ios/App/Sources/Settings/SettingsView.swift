@@ -22,7 +22,6 @@ struct SettingsView: View {
     @State private var showsSignIn = false
     @State private var didSeed = false
     @State private var isExporting = false
-    @State private var shareable: ExportShareable?
     @State private var exportFailure: ExportFailure?
     @State private var showsLanguagePicker = false
     @State private var languageStore = LanguagePreferenceStore()
@@ -84,7 +83,7 @@ struct SettingsView: View {
                                       promptOnOpen: ProcessInfo.processInfo.arguments
                                           .contains("-languagePickerShowPrompt"))
                })
-        .exportFlow(shareable: $shareable, failure: $exportFailure,
+        .exportFlow(failure: $exportFailure,
                     retry: buildAccountExport)
     }
 
@@ -378,7 +377,8 @@ struct SettingsView: View {
         isExporting = true
         Task {
             do {
-                shareable = ExportShareable(items: [try ExportBuilder.buildAccountArchive()])
+                let directory = try ExportBuilder.buildAccountArchive()
+                ExportShareable(items: [directory]).present()
             } catch {
                 exportFailure = ExportFailure.map(error)
             }
