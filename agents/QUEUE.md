@@ -78,9 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.164+RV.211` | F1, F9a | flash | 78893 | `RV.164+RV.211.md` - via `scripts/dispatch.sh`, healthy at 74 KB / 60 s |
+| `RV.134` | J3b | flash | 7676 | `RV.134.md` - via `scripts/dispatch.sh`, healthy at 49 KB / 60 s |
+| `REVIEW-F1`, `REVIEW-F9a` | F1, F9a | pro, read-only | 7660, 7664 | first walks after `RV.164+RV.211` (`9cac6db`) |
 
-**Scenarios 1 (J5 + F5), 2 (F8), 3a (F6b), 4 (F2) IMPLEMENTED; 5 (F1 + F9a, then J3b) in flight.**
+**Scenarios 1 (J5 + F5), 2 (F8), 3a (F6b), 4 (F2) IMPLEMENTED; 5: F1 + F9a built and walking, J3b in flight.**
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -107,7 +108,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | 2 | ~~**F8** permissions and hardware said no~~ | `RV.222`, `RV.223` shipped `bb7887a`; **`RV.226`** filed from the second walk (`.restricted` told to use a Settings toggle that does not exist) | one small brief, same seam | **re-walked IMPLEMENTED 2026-09-11**; `RV.226` reopens the index row until it ships - slot it after scenario 5 |
 | 3 | **F6b** ~~+ F6~~ the import review row | `RV.220`, `RV.221`, `RV.191` shipped `7d4e1fc`. **F6b IMPLEMENTED.** F6's first walk: NOT IMPLEMENTED - one unowned promise, **`RV.228`** (the `units` ambiguity exists nowhere), plus `RV.227` polish | `RV.228` + `RV.227` one small brief each, same screen family | slot after scenario 5 with `RV.226`; re-walk F6 then |
 | 4 | ~~**F2** scan recognized wrong data~~ | `RV.218` shipped `c503d60`; `RV.229` filed under F6b (the walk ruled it does not block F2 - an import label, not the scan path) | - | **DONE 2026-09-11** - re-walked IMPLEMENTED |
-| 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
+| 5 | **F1, F9a, J3b** - one row each | `RV.164`+`RV.211` shipped `9cac6db` (one brief); `RV.134` in flight; `RV.230` filed (non-fill edit never surfaces its flag) | - | F1, F9a walking; J3b after `RV.134` |
 | 6 | **J3** the five-second fill-up - the core journey | `RV.197`! (guest never sees the fill), `RV.208`! (dangling ids on phones), `RV.204`, `RV.209`, `RV.215`, `RV.216`, `RV.217` | **`RV.197` and `RV.208` first, alone** - they are on users' phones. Then the Inbox card (`RV.216`+`RV.217`), the receipt-persistence decisions (`RV.204`+`RV.209`), the deferred producer (`RV.215`). All five briefed | re-walk `J3` and `J8b` (`RV.181` stays skipped by the owner - the review marks it as such) |
 | 7 | **J7 + J7b + J7c + J7d** the service loop | `RV.212`, `RV.213`, `RV.224`, `RV.214`, `PJ.60`, `PJ.61` (+ `RV.205` needs photographs) | the service create door (`RV.212`+`213`+`224`), the save gate (`RV.214`, closing `PJ.50` against `RV.206`), then **decide** `PJ.60`/`PJ.61` with the owner - `PJ.61` after `RV.207` | re-walk all four; `RV.205` is N/A until a non-fuel receipt exists |
 | 8 | **J11, J11a, J10, J2, F9, F10** - launch blockers on finished stories | `RV.155`, `RV.108`, `RV.143`, `PJ.58`!, `RV.158`+`RV.138`, `PJ.59` | one brief each except `F9`'s pair | re-walk each |
