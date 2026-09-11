@@ -126,12 +126,27 @@ struct EditEntryNonFillForm: Equatable {
         return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
-    /// The save rule, through the SAME core function the create door calls
-    /// (RV.212). The edit door never mounts a tire set, so the only rule left is
-    /// "ready": a km lifetime with a blank odometer saves and the offer names
-    /// the missing odometer.
+    /// The save rule for a non-fill entry, through the SAME core function the
+    /// create door calls (RV.212). The edit door never mounts a tire set, so the
+    /// only rule left is "ready": a km lifetime with a blank odometer saves and
+    /// the offer names the missing odometer. Expense and charge edits use this;
+    /// a service edit uses `serviceSaveReadiness` below.
     var saveReadiness: ServiceEntryDraft.SaveReadiness {
         ServiceEntryDraft.saveReadiness(odometer: odometerValue, tireSetId: nil)
+    }
+
+    /// The service save rule, through the SAME core function the create door
+    /// calls (RV.214). A vendor or a line item makes the record (the Log row
+    /// names it, RV.187); a wholly blank service is refused on both doors. The
+    /// edit door never mounts a tire set.
+    var serviceSaveReadiness: ServiceEntryDraft.SaveReadiness {
+        ServiceEntryDraft.serviceSaveReadiness(
+            vendor: vendor,
+            items: items.map { item in
+                ServiceItem.make(title: item.title, category: item.category,
+                                 lifetime: item.lifetime)
+            },
+            odometer: odometerValue, tireSetId: nil)
     }
 
     /// The money pair, edited through the shared edit rule (`Money.edited`,

@@ -1885,6 +1885,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.214-service-save-hint": {
+      "commit": "3dd1bb80",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.214-service-save-hint-ru": {
+      "commit": "3dd1bb80",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.214-service-untitled-lump-sum": {
+      "commit": "3dd1bb80",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.214-service-untitled-lump-sum-ru": {
+      "commit": "3dd1bb80",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.215-inbox-expense": {
       "commit": "4ad38dc6",
       "device": "iPhone 17",

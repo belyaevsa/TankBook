@@ -63,12 +63,16 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     }
 
     /// Whether a service entry can save, as a decision the CREATE screen and the
-    /// EDIT-entry service screen share (RV.212).
+    /// EDIT-entry service screen share (RV.212, RV.214).
     public enum SaveReadiness: Equatable, Sendable {
         case ready
         /// A mounted tire set needs the odometer and the field is blank: refuse
         /// to save and name the next step.
         case odometerRequired
+        /// A service with no vendor and no line item: nothing names it and there
+        /// is nothing to save. Refused so the gate is not simply deleted
+        /// (RV.214) - a wholly blank `ServiceRecord` never reaches the database.
+        case empty
     }
 
     /// Whether something on the record ANCHORS on the odometer: an item's km
@@ -92,6 +96,23 @@ public struct ServiceEntryDraft: Equatable, Sendable {
     public static func saveReadiness(odometer: Int?, tireSetId: UUID?) -> SaveReadiness {
         guard odometer == nil, tireSetId != nil else { return .ready }
         return .odometerRequired
+    }
+
+    /// The ONE save rule the service CREATE door and the EDIT-entry service door
+    /// both call (RV.214), through the same core seam the odometer half uses
+    /// (RV.212). A service is a record when something names it and it is not
+    /// blank: a vendor, or a line item. The Log row names it from the vendor,
+    /// else the first named line, else that line's category (RV.187), so a
+    /// vendor-less untitled lump sum - the invoice splitter's honest fallback -
+    /// saves and reads as its category. A service with neither a vendor nor a
+    /// line item is `.empty` and stays refused; a mounted tire set with a blank
+    /// odometer still refuses first.
+    public static func serviceSaveReadiness(vendor: String?, items: [ServiceItem],
+                                            odometer: Int?, tireSetId: UUID?) -> SaveReadiness {
+        if odometer == nil, tireSetId != nil { return .odometerRequired }
+        let hasVendor = !(vendor ?? "").trimmingCharacters(in: .whitespaces).isEmpty
+        guard hasVendor || !items.isEmpty else { return .empty }
+        return .ready
     }
 
     public var readiness: SaveReadiness {

@@ -2212,6 +2212,23 @@
         }
       }
     },
+    "Add a vendor or a line item to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add a vendor or a line item to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте поставщика или позицию, чтобы сохранить"
+          }
+        }
+      }
+    },
     "Add a name to save": {
       "extractionState": "manual",
       "localizations": {
@@ -5117,6 +5134,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "Английский"
+          }
+        }
+      }
+    },
+    "Enter the odometer to save": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Enter the odometer to save"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Введите пробег, чтобы сохранить"
           }
         }
       }

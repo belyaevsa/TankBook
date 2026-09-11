@@ -379,6 +379,14 @@ capture P3.1b-service-scan-ru         ru -seedServiceEntryScan -presentScreen se
 capture P3.1b-service-scan-lump-sum   en -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 capture P3.1b-service-scan-lump-sum-ru ru -seedServiceEntryScanLumpSum -presentScreen serviceEntry
 
+# RV.214: the create gate accepts a vendor-less untitled lump sum (the invoice
+# splitter's honest fallback, named by its category) and names what is missing
+# on a wholly blank form.
+capture RV.214-service-untitled-lump-sum    en -seedServiceEntryUntitledLumpSum -presentScreen serviceEntry
+capture RV.214-service-untitled-lump-sum-ru ru -seedServiceEntryUntitledLumpSum -presentScreen serviceEntry
+capture RV.214-service-save-hint            en -seedVehicleForUITests -presentScreen serviceEntry
+capture RV.214-service-save-hint-ru         ru -seedVehicleForUITests -presentScreen serviceEntry
+
 # P3.2: the parts shelf (its visible "on shelf" state) and the ServiceEntry Link
 # row offering a matching shelf part.
 capture P3.2-parts-shelf       en -seedPartsShelf -presentScreen partsShelf

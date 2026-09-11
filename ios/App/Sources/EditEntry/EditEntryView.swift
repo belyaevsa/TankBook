@@ -298,9 +298,25 @@ struct EditEntryView: View {
     private var saveEnabled: Bool {
         guard let vehicle else { return false }
         if fillUp != nil { return fillForm.canSave(volumeUnit: vehicle.units.volume) }
+        // RV.214: a service edit calls the SAME save rule the create door calls,
+        // so a wholly blank service is refused on both doors and a vendor or a
+        // line item saves on both.
+        if service != nil { return nonFillForm.serviceSaveReadiness == .ready }
         // RV.212: the non-fill save goes through the SAME core rule the create
         // door calls, so the two doors cannot drift on what is a valid entry.
         return nonFillForm.saveReadiness == .ready
+    }
+
+    /// The disabled-save hint's next step (hard rule 7), per entry kind. A
+    /// fill-up names its two numbers; a service that the shared rule (RV.214)
+    /// refuses names what is missing. Expense and charge edits are never
+    /// refused, so they show no hint.
+    private var saveHint: String? {
+        if fillUp != nil { return L10n.localize("Enter total and liters to save") }
+        if service != nil, nonFillForm.serviceSaveReadiness == .empty {
+            return L10n.localize("Add a vendor or a line item to save")
+        }
+        return nil
     }
 
     private func save() {
@@ -449,8 +465,8 @@ struct EditEntryView: View {
             .disabled(!saveEnabled)
             .accessibilityIdentifier("editEntrySaveButton")
 
-            if !saveEnabled {
-                Text("Enter total and liters to save")
+            if !saveEnabled, let saveHint {
+                Text(saveHint)
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
             }

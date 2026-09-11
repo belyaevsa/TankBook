@@ -219,15 +219,12 @@ struct ServiceEntryView: View {
 
     private var saveEnabled: Bool {
         guard vehicle != nil else { return false }
-        switch form.mode {
-        case .service:
-            guard form.hasTitledItem else { return false }
-        case .tires:
-            guard form.tireSetId != nil else { return false }
-        }
-        // RV.212: the save gate is the one core rule the edit door also calls.
-        // A km lifetime with a blank odometer saves; only a mounted tire set
-        // refuses (its mileage span anchors on the odometer).
+        if form.mode == .tires, form.tireSetId == nil { return false }
+        // RV.212 + RV.214: the save gate is the one core rule the edit door also
+        // calls. A service needs a vendor or a line item (a wholly blank one is
+        // refused); a km lifetime with a blank odometer saves; only a mounted
+        // tire set with a blank odometer refuses (its mileage span anchors on
+        // the odometer).
         return form.saveReadiness == .ready
     }
 
@@ -497,15 +494,8 @@ struct ServiceEntryView: View {
     }
 
     private var saveHint: String {
-        if vehicle == nil { return "" }
-        switch form.mode {
-        case .service where !form.hasTitledItem:
-            return L10n.localize("Add a line item to save")
-        case .tires where form.tireSetId == nil:
-            return L10n.localize("Select a tire set to save")
-        default:
-            return ""
-        }
+        guard vehicle != nil else { return "" }
+        return form.saveHint ?? ""
     }
 }
 

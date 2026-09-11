@@ -281,6 +281,15 @@ is a good record only if the row actually says *Annual service*. One title funct
 row, the duplicate card, the excluded and flagged lists and Recently deleted, so no two screens can
 call the same entry different things.
 
+**The create gate accepts what the Log can name (RV.214, 2026-09-12).** The create screen used to
+demand a **titled** line item, which refused a record the Log could already name: a vendor-only
+service, and the invoice splitter's honest fallback - one untitled line carrying the whole total,
+named by its category. The rule is now **one function both doors call**: a vendor, or a single line
+item (titled or categorised), makes the record; a wholly blank service is refused and the disabled
+Save names the missing step. So the scan fallback above is a first-class record on the door that
+produces it, not only after a save-and-reopen, and the create and edit doors cannot disagree about
+what a service is.
+
 **[v1.x] Editing the work (PJ.23, 2026-09-10; add/delete RV.198, 2026-09-10; lifetime PJ.22,
 2026-09-11).** Opening a service in Edit entry shows its **line items** - title, category, cost and
 **lifetime** - and writes them back, so the `.other` promotion promised above happens where the user

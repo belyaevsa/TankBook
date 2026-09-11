@@ -68,11 +68,6 @@ struct ServiceEntryItemDraft: Identifiable, Equatable {
         return Decimal(string: trimmed)
     }
 
-    /// True once the item has a title - the row the save gate counts.
-    var hasTitle: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
     /// The stored line item this draft represents. `homeCurrency` is used only
     /// when a new cost is typed; `original` is the item this row loaded from,
     /// whose `cost` pair is kept byte-identical when the amount is untouched
@@ -195,12 +190,6 @@ struct ServiceEntryFormState: Equatable {
         items.lineSum(homeCurrency: homeCurrency)
     }
 
-    /// At least one item carries a title - the baseline save gate. A lump sum
-    /// (one titled item) satisfies it; nothing forces a second item (J7).
-    var hasTitledItem: Bool {
-        items.contains(where: \.hasTitle)
-    }
-
     /// Odometer is required when any item sets a km lifetime, or a tire set is
     /// mounted (P3.3) - both anchor on it (docs/SCHEMA.md). Delegates to the
     /// core rule so the card's warning and the L1 tests cannot disagree. This is
@@ -216,10 +205,39 @@ struct ServiceEntryFormState: Equatable {
     }
 
     /// The save rule, through the SAME core function the edit door calls
-    /// (RV.212). A km lifetime with a blank odometer saves; only a mounted tire
-    /// set still refuses.
+    /// (RV.212, RV.214). In `.service` mode a vendor or a line item makes the
+    /// record (RV.187 names it); a wholly blank service is refused. In `.tires`
+    /// mode the record is the swap, so only the mounted-set odometer rule
+    /// applies. A km lifetime with a blank odometer saves.
     var saveReadiness: ServiceEntryDraft.SaveReadiness {
-        ServiceEntryDraft.saveReadiness(odometer: odometerValue, tireSetId: tireSetId)
+        if mode == .tires {
+            return ServiceEntryDraft.saveReadiness(odometer: odometerValue,
+                                                   tireSetId: tireSetId)
+        }
+        return ServiceEntryDraft.serviceSaveReadiness(
+            vendor: vendor,
+            items: items.map { item in
+                ServiceItem.make(title: item.title, category: item.category,
+                                 lifetime: item.lifetime)
+            },
+            odometer: odometerValue, tireSetId: nil)
+    }
+
+    /// The disabled-save hint's next step (hard rule 7): names what the shared
+    /// rule is still missing, or nil when Save is enabled. It is derived from
+    /// the same `saveReadiness` the gate uses, so the hint can never describe a
+    /// different rule than the gate it sits under.
+    var saveHint: String? {
+        switch mode {
+        case .tires where tireSetId == nil:
+            return L10n.localize("Select a tire set to save")
+        case .tires where saveReadiness == .odometerRequired:
+            return L10n.localize("Enter the odometer to save")
+        case .service where saveReadiness == .empty:
+            return L10n.localize("Add a vendor or a line item to save")
+        default:
+            return nil
+        }
     }
 
     /// The parsed, save-ready shape. This is the conversion the L1 tests drive

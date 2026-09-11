@@ -35,6 +35,9 @@ enum ServiceEntryPrefillSeed {
     /// - `-seedServiceEntryScanLumpSum` - the honest failed-split outcome: one
     ///   uncategorized item carrying the whole total, the page strip still
     ///   present, no error anywhere.
+    /// - `-seedServiceEntryUntitledLumpSum` - RV.214's vendor-less untitled
+    ///   lump sum: one line with no title, `.other("")` and the whole total -
+    ///   the create gate accepts it and the Log names it "Other".
     /// - `-seedServiceEntryLink` - the P3.2 install-link state: the same oil
     ///   service, with an on-shelf part (seeded by `PartsShelfTestSeed`) offered
     ///   by the Link row.
@@ -131,6 +134,23 @@ enum ServiceEntryPrefillSeed {
                 pages: seedPages(),
                 provenance: .receiptScan)
         }
+        if arguments.contains("-seedServiceEntryUntitledLumpSum") {
+            // RV.214: the invoice splitter's honest fallback when the vendor did
+            // not read - one UNTITLED line carrying the whole total, its
+            // `.other("")` category naming it "Other". The create gate must
+            // accept it (the Log row has a name), so it is the L4 lump-sum save.
+            return ServiceEntryPrefill(
+                vendor: "",
+                items: [
+                    ServiceEntryItemDraft(title: "", category: .other(""),
+                                          cost: "148.00", scanned: true)
+                ],
+                odometer: OdometerFormat.grouped(118_930),
+                date: ConfirmDate.parse("09.08.2026") ?? Date(),
+                dateFromInvoice: true,
+                pages: seedPages(),
+                provenance: .receiptScan)
+        }
         return nil
     }
 
@@ -183,6 +203,7 @@ enum ServiceEntryTestSeed {
             || arguments.contains("-seedServiceEntryLumpSum")
             || arguments.contains("-seedServiceEntryScan")
             || arguments.contains("-seedServiceEntryScanLumpSum")
+            || arguments.contains("-seedServiceEntryUntitledLumpSum")
             || arguments.contains("-seedServiceEntryLink")
             || arguments.contains("-seedReminderCompletionPrefill") else { return }
         guard let repository = try? AppStore.repository() else { return }
