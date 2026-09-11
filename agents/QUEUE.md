@@ -78,11 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.215` | J3 / J7 / J7b | flash | (dispatching) | `RV.215.md` - the deferred producer; last of J3 |
+| `RV.212+RV.213+RV.224` | J7 / J7d | flash | 12582 | the service create door - lifetime on create, the odometer rule on both doors, the invoice caption |
+| `REVIEW-J3`, `REVIEW-J8b` | J3, J8b | pro, read-only | 12561, 12564 | first walks; J3 cannot end IMPLEMENTED while `RV.243` stands |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3: `RV.197`, `RV.208`, `RV.216+RV.217`, `RV.204+RV.209` shipped; `RV.181` shipped `[~]` awaiting the owner's device step; `RV.215` in flight; then J3's walk.
-
-**The concurrent corpus agent (pid 83907, running since 2026-09-10 19:57) is polluting full runs**: uncommitted fixtures under `Spike/ReceiptSpike/fixtures/`, `expected.csv` rows, and an untracked `ios/Tests/TankbookCoreTests/ZZTempCorpusDumpTests.swift` that fails lint. Until it finishes or is stopped, `swift test` fails in the corpus and `RV.157` suites and `swiftlint` exits 2 on its temp file - verify rows by their own suites and say so in the outcome cell, as `RV.181` does.
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 built (`RV.197`, `RV.208`, `RV.216+RV.217`, `RV.204+RV.209`, `RV.215`; `RV.181` `[~]`), walking; **`RV.243`** `[!]` filed from `RV.215` - the photo lost on a deferred save - is briefed and goes right after the create door. Scenario 7 (service loop) in flight.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
