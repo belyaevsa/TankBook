@@ -205,6 +205,12 @@ capture P1.4-home                  en -seedHomeFullHistory
 capture P1.4-home-ru               ru -seedHomeFullHistory
 capture P1.4-home-empty            en -seedHomeEmptyVehicle
 capture P1.4-home-empty-ru         ru -seedHomeEmptyVehicle
+# RV.197: the guest Home with one entry - the log stream a no-account user must
+# see after saving. `-clearSessionAtLaunch` makes the launch guest (the Keychain
+# outlives `-homeResetDatabase`); `-seedHomeSingleFill` is the car plus the one
+# entry, so the frame is the fixed state, not a synthetic one.
+capture RV.197-guest-home-one-entry    en -seedHomeSingleFill -clearSessionAtLaunch
+capture RV.197-guest-home-one-entry-ru ru -seedHomeSingleFill -clearSessionAtLaunch
 # P1.1's dark shell IS the Home frame - the same seed, the same appearance. It
 # is kept as a name because docs/SITE.md, site/hugo.toml and two briefs cite it,
 # and because P1.1-shell-light is only legible next to a dark counterpart.

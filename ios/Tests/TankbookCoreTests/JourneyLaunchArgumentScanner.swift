@@ -61,11 +61,6 @@ enum JourneyLaunchArgumentScanner {
                     reason: "the fresh-install precondition: runs the REAL onboarding gate even "
                         + "under the seed harness, seeds no data and navigates nowhere",
                     isDataVolume: false),
-        AllowedFlag(flag: "-seedSettingsSignedIn",
-                    reason: "a session only, no vehicle and no entry: the Log and its entries are "
-                        + "rendered only in the signed-in layout, so the receipt round-trip cannot "
-                        + "be walked by a no-account user (a recorded finding, not navigation)",
-                    isDataVolume: false),
         AllowedFlag(flag: "-cameraStatus",
                     reason: "environment: the simulator has no camera, so the permission status "
                         + "is forced to reach the capture surface",

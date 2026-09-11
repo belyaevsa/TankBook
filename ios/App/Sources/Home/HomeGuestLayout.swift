@@ -9,11 +9,28 @@ import UIKit
 /// sync is not required for anything (hard rule 1). The card's action is the
 /// "Type it" peer door (hard rule 15); the tab bar's centre capture button is
 /// the other, always one thumb-tap away.
-struct HomeGuestLayout: View {
+///
+/// RV.197: once the user has an entry, the guest Home also renders the SAME log
+/// stream the signed-in Home shows (`HomeView.logStream`), passed in as
+/// `logStream`. The decision is `HomeLayout.logArea(for:)` in core, so it is a
+/// function of the entry count and never of the session. The stream is the
+/// shared `HomeRecentEntries`; the guest gets no second list.
+struct HomeGuestLayout<LogContent: View>: View {
     let vehicle: Vehicle?
     let stats: HomeStats?
     let photoData: Data?
     let onTypeIt: () -> Void
+    let logStream: LogContent
+
+    init(vehicle: Vehicle?, stats: HomeStats?, photoData: Data?,
+         onTypeIt: @escaping () -> Void,
+         @ViewBuilder logStream: () -> LogContent) {
+        self.vehicle = vehicle
+        self.stats = stats
+        self.photoData = photoData
+        self.onTypeIt = onTypeIt
+        self.logStream = logStream()
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -22,6 +39,7 @@ struct HomeGuestLayout: View {
             } else {
                 noCarCard
             }
+            logStream
             captureCard
             importCard
             privacyLine
@@ -182,9 +200,17 @@ struct HomeGuestLayout: View {
                     .font(.system(size: 22))
                     .foregroundStyle(Theme.Palette.taillight)
             }
-            Text("Scan your first fill-up")
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Theme.Palette.ink)
+            // "First" is only true before the first entry; once the log is on
+            // screen the card is the capture door, not the onboarding promise.
+            if stats?.hasEntries == true {
+                Text("Scan a fill-up")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.ink)
+            } else {
+                Text("Scan your first fill-up")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.ink)
+            }
             Text("Point the camera at a receipt – even an old one from the glovebox. Your consumption appears after the second full tank.")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)

@@ -35,12 +35,12 @@ final class ExpenseCaptureUITests: XCTestCase {
         XCTAssertTrue(FileManager.default.fileExists(atPath: fixture),
                       "the corpus fixture is missing: \(fixture)")
         let app = XCUIApplication()
-        // `-seedSettingsSignedIn` makes the Home the full layout that renders
-        // the Log. Without a session the Home is the guest layout, which has no
-        // Log at all - these tests assert a saved row, so they must run signed
-        // in rather than relying on a Keychain session another run left behind.
+        // No session: RV.197 made the guest Home render the same log stream the
+        // signed-in Home does, so these tests assert their saved rows as a
+        // guest. Before that fix they needed `-seedSettingsSignedIn` (or they
+        // passed on a Keychain session another run left behind); the seed is
+        // gone because the guest layout now has the Log.
         app.launchArguments = ["-homeResetDatabase", "-seedHomeEmptyVehicle",
-                               "-seedSettingsSignedIn",
                                "-presentScreen", "capture", "-cameraStatus", "authorized",
                                "-captureMode", "expense", "-captureFixtureImage", fixture,
                                seed]

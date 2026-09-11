@@ -8,6 +8,12 @@
 today. Both artboards carry the lines (`design/screens/Welcome.dc.html:25,32`,
 `LightWelcome.dc.html:25,32`).
 
+## Also the guest Home's import card (seen in RV.197's frame)
+
+`HomeGuestLayout`'s import card reads *"Coming from Fuelio, Drivvo or My Fuel Manager? Bring your
+history along."* - Fuelio is not an importer the server registers (`RV.190`: Drivvo and My Fuel
+Manager). Same rule, same change, EN + RU: name the two.
+
 ## Build
 
 Drop *charging* from the tagline and *pump displays* from the feature row - **EN and RU**, in

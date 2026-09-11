@@ -10539,6 +10539,23 @@
         }
       }
     },
+    "Scan a fill-up": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scan a fill-up"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отсканируйте заправку"
+          }
+        }
+      }
+    },
     "Scan your first fill-up": {
       "extractionState": "manual",
       "localizations": {

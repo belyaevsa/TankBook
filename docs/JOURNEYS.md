@@ -51,6 +51,16 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 
 **Success metric:** ≥70% of installs log a first entry in session 1; time-to-first-entry < 3 min.
 
+**RV.197 (2026-09-11): the first entry is visible without an account.** J1's payoff was unreachable
+for a guest - the no-account Home rendered no log at all, so the entry the user had just typed or
+scanned saved and then vanished. That is hard rule 1 in its plainest form (*no screen is ever
+sync-gated*) and it contradicted the launch commitment that the app is useful before you have an
+account. The guest Home now renders the **same** `HomeRecentEntries` stream the signed-in Home
+shows, chosen by `HomeLayout.logArea(for:)` from the entry count alone. The Log tab IS Home, so
+"on Home" and "in the Log" are one surface, reachable as a guest; only whether data syncs differs.
+The empty state is unchanged (the garage card, capture card, import card and privacy line), and
+once an entry exists the capture card drops its "first" wording.
+
 ### J2 · Switching from another app
 **Trigger:** frustration with incumbent (ads, paywalled export, dead sync) + years of history they refuse to lose.
 **Goal:** full history alive in Tankbook in one sitting.
@@ -98,6 +108,12 @@ differs from or fills a blank offered **per tick** and "leave it as it is" the d
 the catch-up flow is one flow, not three.
 
 **Success metric:** median capture-to-save < 15s; ≥80% of fill-ups logged via capture (not manual form); D30 retention of users with ≥3 captures; mixed receipts with correctly isolated fuel totals ≥95% (wrong grand-total attribution is a stats-poisoning bug). The review step (RV.5) adds one tap to this journey and is worth it: an unreadable frame caught here costs a second, and caught on the Confirm sheet costs a re-shoot after a wasted OCR - so the metric to watch is the **re-take rate**, which should be non-zero (the step is catching real blurs) without exceeding the share of captures that used to arrive at Confirm with nothing resolved.
+
+**RV.197 (2026-09-11): the saved fill-up is on Home even with no account.** J3's Done row promises
+the save lands "with the new entry visible"; for a guest that was false - the guest Home rendered no
+log, so the entry saved and was never shown again (the J1 note above carries the fix). A scan or a
+typed save by a no-account user now lands on the same `HomeRecentEntries` stream a signed-in user
+sees, and the entry opens its editor from there.
 
 ### J4 · No receipt – pump display photo
 **Trigger:** station prints no receipt / receipt skipped; the pump still shows liters, price, total.

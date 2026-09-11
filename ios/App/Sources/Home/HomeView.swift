@@ -188,8 +188,18 @@ struct HomeView: View {
     @ViewBuilder
     private var content: some View {
         if isGuest {
+            // RV.197: the guest Home renders the SAME log stream the signed-in
+            // Home does once an entry exists - the log is gated on the data,
+            // never on the session (hard rule 1). `HomeLayout` owns that choice
+            // for both layouts, so the guest branch cannot drift back to
+            // omitting the stream.
             HomeGuestLayout(vehicle: vehicle, stats: stats, photoData: photoData,
-                            onTypeIt: { presentSheet(.confirmManual) })
+                            onTypeIt: { presentSheet(.confirmManual) },
+                            logStream: {
+                                if let stats, HomeLayout.logArea(for: stats) == .stream {
+                                    logStream(stats)
+                                }
+                            })
         } else if vehicle == nil {
             HomeNoCarLayout(presentSheet: presentSheet)
         } else if let stats {
@@ -260,33 +270,42 @@ struct HomeView: View {
                                onAct: { actOnAnomaly(anomaly) },
                                onDismiss: { dismissal in recordAnomalyDismissal(dismissal) })
         }
-        if stats.hasEntries {
-            HomeRecentEntries(entries: entries, stations: stations,
-                              vehicle: stats.vehicle,
-                              excludedEntryCount: stats.excludedEntryCount,
-                              excludedEntryIDs: stats.excludedEntryIDs,
-                              pendingRateCount: stats.pendingRateCount,
-                              duplicateResolutions: resolvedDuplicateKeys,
-                              pendingInboxEntryIDs: inbox.pendingEntryIDs,
-                              onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
-                              onMerge: { group in mergeDuplicate(group) },
-                              onCheckRates: {
-                // RV.106: the footnote's "Check for rates". RV.111: it is now a
-                // DEMAND drain over the pending rows' own dates - the rolling
-                // refresh the launch pass runs covers the last 400 days only,
-                // so a pending row dated years back needs its explicit dates
-                // asked for. A fill (or a dead end that leaves the rows
-                // pending) bumps the revision silently (AppRates.onBackfilled),
-                // so Home re-reads and the divider + footnote follow. RV.132:
-                // the drain itself posts the outcome toast (filled / nothing
-                // pending) through AppRates.onDemandToast, so this closure only
-                // runs the drain - the footnote holds the immediate
-                // acknowledgement while it is on the wire.
-                await AppRates.drainPendingRows()
-            })
-        } else {
+        switch HomeLayout.logArea(for: stats) {
+        case .stream:
+            logStream(stats)
+        case .empty:
             HomeEmptyEntriesCard(onTypeIt: { presentSheet(.confirmManual) })
         }
+    }
+
+    /// The log stream itself - ONE construction, shared by the signed-in
+    /// `fullLayout` and the guest Home (RV.197). A second list for guests was
+    /// the row's named trap; both layouts render this exact view.
+    @ViewBuilder
+    private func logStream(_ stats: HomeStats) -> some View {
+        HomeRecentEntries(entries: entries, stations: stations,
+                          vehicle: stats.vehicle,
+                          excludedEntryCount: stats.excludedEntryCount,
+                          excludedEntryIDs: stats.excludedEntryIDs,
+                          pendingRateCount: stats.pendingRateCount,
+                          duplicateResolutions: resolvedDuplicateKeys,
+                          pendingInboxEntryIDs: inbox.pendingEntryIDs,
+                          onKeepBoth: { group in resolveDuplicate(group, as: .keepBoth) },
+                          onMerge: { group in mergeDuplicate(group) },
+                          onCheckRates: {
+            // RV.106: the footnote's "Check for rates". RV.111: it is now a
+            // DEMAND drain over the pending rows' own dates - the rolling
+            // refresh the launch pass runs covers the last 400 days only,
+            // so a pending row dated years back needs its explicit dates
+            // asked for. A fill (or a dead end that leaves the rows
+            // pending) bumps the revision silently (AppRates.onBackfilled),
+            // so Home re-reads and the divider + footnote follow. RV.132:
+            // the drain itself posts the outcome toast (filled / nothing
+            // pending) through AppRates.onDemandToast, so this closure only
+            // runs the drain - the footnote holds the immediate
+            // acknowledgement while it is on the wire.
+            await AppRates.drainPendingRows()
+        })
     }
 
     // MARK: - J9 anomaly actions (docs/JOURNEYS.md J9, hard rule 7)

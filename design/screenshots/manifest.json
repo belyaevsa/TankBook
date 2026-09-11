@@ -1755,6 +1755,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.197-guest-home-one-entry": {
+      "commit": "80184c84",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.197-guest-home-one-entry-ru": {
+      "commit": "80184c84",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.198-service-items": {
       "commit": "1791c80",
       "device": "iPhone 17",

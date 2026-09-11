@@ -18,11 +18,10 @@ final class EditEntryNonFillConflictUITests: XCTestCase {
 
     private func launch(ru: Bool = false) -> XCUIApplication {
         let app = XCUIApplication()
-        // `-seedSettingsSignedIn`: the save-and-reopen step reads the Log on
-        // Home, and a guest Home renders no Log (RV.197). Without the seed the
-        // test passes only on a Keychain session another run left behind.
+        // Runs as a guest on purpose: the save-and-reopen step reads the Log on
+        // Home, and the guest Home shows it - a session must never be needed.
         app.launchArguments = ["-homeResetDatabase", "-seedEditEntryServiceConflict",
-                               "-seedSettingsSignedIn", "-presentScreen", "editEntry"]
+                               "-presentScreen", "editEntry"]
         if ru {
             app.launchArguments += ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
         }

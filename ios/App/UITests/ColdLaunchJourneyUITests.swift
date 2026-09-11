@@ -18,10 +18,6 @@ import XCTest
 ///   - `-presentWelcome` - the fresh-install precondition. It does not navigate
 ///     and seeds nothing; it runs the REAL onboarding gate even under the seed
 ///     harness's tabbed-app shortcut, so a clean launch opens on Welcome.
-///   - `-seedSettingsSignedIn` - a session only, no vehicle and no entry. The
-///     Log and its entries are rendered only in the signed-in layout, so the
-///     receipt round-trip (J8b) cannot be walked by a no-account user at all.
-///     That is a FINDING recorded here, not a navigation seed.
 ///   - `-cameraStatus authorized` - the simulator has no camera.
 ///   - `-captureFixtureImage <path>` - the untestable camera frame; the real
 ///     OCR pipeline still runs over the fixture.
@@ -189,10 +185,67 @@ final class ColdLaunchJourneyUITests: XCTestCase {
                       "the list must show the created station, got '\(row.label)'")
     }
 
+    // MARK: - J1 -> J3: a guest logs a fill-up and finds it
+
+    /// RV.197: a user with NO account logs a fill-up and then finds it on Home
+    /// and in the Log. This is the exact walk that found the defect - before the
+    /// fix the guest Home rendered no log at all, so the entry the guest saved
+    /// was never shown again. The launch deliberately carries NO
+    /// `-seedSettingsSignedIn`: a session is the thing the defect hid behind,
+    /// and seeding one would make the test pass on the broken build.
+    ///
+    /// Home IS the Log tab (`AppTab` `.log`), so "on Home" and "in the Log" are
+    /// the same surface; the Log tab is re-tapped to prove it stays reachable
+    /// as a guest, then the entry is opened to prove it is a real, editable row.
+    func testGuestColdLaunchLogsAFillUpAndFindsItOnHomeAndInTheLog() {
+        let app = launch(["-presentWelcome"])
+        addCarFromWelcome(app, named: "Volvo")
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10),
+                      "adding a car must end onboarding and land on the guest Home")
+
+        // The guest's one-tap typed door (hard rule 15).
+        let typeIt = app.buttons["homeGuestCaptureButton"]
+        XCTAssertTrue(typeIt.waitForExistence(timeout: 10),
+                      "the guest Home must offer the typed door")
+        typeIt.tap()
+        XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
+                      "the typed door must open the manual fill-up form")
+
+        focusField(app, "manualFillUpTotalField").typeText("71.02")
+        focusField(app, "manualFillUpLitersField").typeText("42.30")
+        let save = app.buttons["manualFillUpSaveButton"]
+        XCTAssertTrue(save.isEnabled, "two typed values must enable Save")
+        save.tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10),
+                      "saving must leave the manual form")
+
+        // The outcome: the guest's saved entry is on Home, in the same log
+        // stream the signed-in Home shows (RV.197 - the defect was its absence).
+        let entry = app.buttons["logEntryButton"].firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 10),
+                      "a guest's saved fill-up must appear on Home, not vanish (RV.197)")
+        XCTAssertTrue(app.staticTexts["homeEntryAmount"].firstMatch.exists,
+                      "the guest's log row must carry its amount")
+
+        // The Log tab is reachable as a guest and shows the same entry.
+        let logTab = app.buttons["tabbar.log"]
+        XCTAssertTrue(logTab.waitForExistence(timeout: 5), "the Log tab must be present for a guest")
+        logTab.tap()
+        XCTAssertTrue(app.buttons["logEntryButton"].firstMatch.waitForExistence(timeout: 5),
+                      "the Log tab must still show the entry")
+
+        // The entry is a real row, not decoration: it opens its editor.
+        app.buttons["logEntryButton"].firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Edit entry"].waitForExistence(timeout: 10),
+                      "the guest must be able to open the saved entry's editor")
+    }
+
     // MARK: - J3 -> J8b: scan, save, reopen the entry, see the receipt
 
     /// J3 -> J8b (docs/JOURNEYS.md): a receipt scan is saved with its photo, and
-    /// the photo is openable again from the saved entry.
+    /// the photo is openable again from the saved entry - walked by a user with
+    /// NO account (RV.197). Until that row the guest Home rendered no log, so
+    /// this journey could only be walked signed in.
     ///
     /// The assertion is the user's outcome - the receipt is on screen - not
     /// that the attachment row exists. `-captureFixtureImage` stands in for the
@@ -202,19 +255,12 @@ final class ColdLaunchJourneyUITests: XCTestCase {
         let fixture = repoRoot
             .appendingPathComponent("Spike/ReceiptSpike/fixtures/receipts/receipt-011-samara-diesel-ru.png")
             .path
-        let app = launch(["-seedSettingsSignedIn", "-cameraStatus", "authorized",
+        let app = launch(["-presentWelcome", "-cameraStatus", "authorized",
                           "-captureFixtureImage", fixture, "-seedFillUpScan"])
 
-        // A signed-in account with no car: add one by tapping, never seeding.
-        let addFirst = app.buttons["homeAddFirstCarButton"]
-        XCTAssertTrue(addFirst.waitForExistence(timeout: 15))
-        addFirst.tap()
-        XCTAssertTrue(app.navigationBars["Add car"].waitForExistence(timeout: 5))
-        let name = app.textFields["addVehicleNameField"]
-        XCTAssertTrue(name.waitForExistence(timeout: 5))
-        name.tap()
-        name.typeText("Volvo")
-        app.buttons["addVehicleSaveButton"].tap()
+        // A guest with no car: add one through the real Welcome door, never
+        // seeding (RV.197: no session is needed to see the saved entry).
+        addCarFromWelcome(app, named: "Volvo")
         XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
 
         // J3: the capture button, the shutter, the review's "Use this".
@@ -304,8 +350,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
     /// confirmation is on screen without scrolling, in the language whose copy
     /// runs longest.
     func testFeedbackSendShowsTheConfirmationInRussian() {
-        let app = launch(["-seedSettingsSignedIn", "-feedbackQueueReset",
-                          "-feedbackTransportSuccess",
+        let app = launch(["-feedbackQueueReset", "-feedbackTransportSuccess",
                           "-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"])
 
         let settings = app.buttons["settingsButton"]
