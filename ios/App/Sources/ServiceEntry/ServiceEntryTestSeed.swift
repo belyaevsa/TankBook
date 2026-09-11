@@ -24,6 +24,9 @@ struct ServiceEntryPrefill {
 enum ServiceEntryPrefillSeed {
     /// - `-seedServiceEntry` - the artboard state: Bosch Service, two line
     ///   items (oil 89.00 + brake pads 59.00), odometer 118 930.
+    /// - `-seedServiceEntryLifetime` - the same two items, the oil one carrying
+    ///   a stated km/months lifetime (RV.213): the create card's lifetime fields
+    ///   render populated and the first save raises the offer.
     /// - `-seedServiceEntryLumpSum` - the J7 lump sum: one uncategorized item
     ///   ("Annual service") carrying the whole 148.00 total, DIY (no vendor).
     /// - `-seedServiceEntryScan` - the P3.1b scanned invoice: the same two
@@ -68,6 +71,21 @@ enum ServiceEntryPrefillSeed {
                 items: [
                     ServiceEntryItemDraft(title: "Oil service incl. filter",
                                           category: .oil, cost: "89.00"),
+                    ServiceEntryItemDraft(title: "Brake pads front",
+                                          category: .brakes, cost: "59.00")
+                ],
+                odometer: OdometerFormat.grouped(118_930))
+        }
+        if arguments.contains("-seedServiceEntryLifetime") {
+            // RV.213: the create card WITH a stated lifetime - the state the
+            // first-save offer responds to, and the screenshot of the new fields.
+            return ServiceEntryPrefill(
+                vendor: "Bosch Service",
+                items: [
+                    ServiceEntryItemDraft(title: "Oil service incl. filter",
+                                          category: .oil, cost: "89.00",
+                                          lifetime: ServiceItem.Lifetime(km: 15_000,
+                                                                         months: 12)),
                     ServiceEntryItemDraft(title: "Brake pads front",
                                           category: .brakes, cost: "59.00")
                 ],
@@ -161,6 +179,7 @@ enum ServiceEntryTestSeed {
             return
         }
         guard arguments.contains("-seedServiceEntry")
+            || arguments.contains("-seedServiceEntryLifetime")
             || arguments.contains("-seedServiceEntryLumpSum")
             || arguments.contains("-seedServiceEntryScan")
             || arguments.contains("-seedServiceEntryScanLumpSum")

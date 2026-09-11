@@ -215,8 +215,9 @@ Tariff {
 ServiceRecord: EntryCommon {    // work DONE to the car: annual service, repairs, tire swap, filters
   // date + odometer come from the envelope and are both stored on every service entry:
   // date defaults to today (or the invoice's extractedTimestamp), odometer pre-fills from the
-  // vehicle's last known value and is REQUIRED whenever any item carries a km lifetime or the
-  // record mounts a tire set – km-based reminders and tire mileage anchor on it (J7c).
+  // vehicle's last known value. It anchors a km lifetime and a tire set's mileage (J7c): a
+  // mounted tire set must carry it to save (the span anchors on it), while a km lifetime with a
+  // blank odometer still saves - the reminder offer names the missing odometer (RV.212).
   vendor: String?               // "Bosch Service"; nil = DIY
   items: [ServiceItem]          // invoice line items, OCR-split (J7); manual fallback = typed rows
   usedParts: [UUID]             // Expense(.parts) entries installed in this service – links, not costs

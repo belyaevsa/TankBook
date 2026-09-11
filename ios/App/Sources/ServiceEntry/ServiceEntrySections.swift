@@ -245,6 +245,7 @@ struct ServiceEntryDateOdometerCard: View {
                             .font(.caption2)
                             .foregroundStyle(Theme.Palette.inkSoft)
                             .lineLimit(1)
+                            .accessibilityIdentifier("serviceEntryDateProvenanceCaption")
                     }
                 }
             }
@@ -379,12 +380,17 @@ struct ServiceEntryItemCard: View {
                     .foregroundStyle(Theme.Palette.ink)
                     .accessibilityIdentifier("serviceEntryItemOtherCategory")
             }
+            // RV.213: the SAME lifetime editor the edit door's item row uses.
+            // One view, two doors - a stated interval reaches the saved item and
+            // the post-save offer at the first save, not only after a reopen.
+            ServiceItemLifetimeFields(lifetime: $item.lifetime)
         }
         .padding(13)
         .formCard()
         .onChange(of: item.title) { _, _ in confirm() }
         .onChange(of: item.cost) { _, _ in confirm() }
         .onChange(of: item.category) { _, _ in confirm() }
+        .onChange(of: item.lifetime) { _, _ in confirm() }
     }
 
     /// Editing a scanned row is its confirmation: the dim lifts and the value

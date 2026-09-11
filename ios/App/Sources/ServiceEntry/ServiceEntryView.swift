@@ -37,9 +37,6 @@ struct ServiceEntryView: View {
     @State private var lastKnownOdometer: Int?
     /// The scanned invoice's pages (P3.1b). Empty on the typed path.
     @State private var pages: [InvoicePage] = []
-    /// True when the date row's provenance is the invoice's printed date, which
-    /// renders the "· invoice" caption (design/screens/ServiceEntry.dc.html).
-    @State private var dateFromInvoice = false
     @State private var selectedPageIndex = 0
     @State private var showDocumentCamera = false
     /// The parts on the shelf and the parts linked into this service (P3.2).
@@ -98,7 +95,7 @@ struct ServiceEntryView: View {
                         onFillOdometer: fillOdometer,
                         provenanceCaption: dateProvenanceCaption)
                     if showDatePicker {
-                        DatePicker("", selection: $form.date, in: ...Date(),
+                        DatePicker("", selection: dateBinding, in: ...Date(),
                                    displayedComponents: .date)
                             .datePickerStyle(.graphical)
                             .labelsHidden()
@@ -185,10 +182,6 @@ struct ServiceEntryView: View {
         AddVehicleSupport.moneySymbol(for: vehicle?.homeCurrency ?? .eur)
     }
 
-    private var odometerMissing: Bool {
-        form.requiresOdometer && form.odometerValue == nil
-    }
-
     /// The live F9a verdict for the current form (PJ.11): amber on the odometer
     /// card as the user types, with the conflicting entry quoted when the order
     /// check has a neighbour to name. The save STAMPS the same verdict; the
@@ -211,7 +204,17 @@ struct ServiceEntryView: View {
     /// from the invoice's printed date. A `LocalizedStringKey` so the literal
     /// resolves through the String Catalog (the gate scans this computed body).
     private var dateProvenanceCaption: LocalizedStringKey? {
-        dateFromInvoice ? "invoice" : nil
+        form.dateFromInvoice ? "invoice" : nil
+    }
+
+    /// The date picker's binding. Every user change goes through the form's own
+    /// rule so a manual edit clears the invoice caption (RV.224); the pre-fill
+    /// assigns `form.date` directly and keeps its provenance.
+    private var dateBinding: Binding<Date> {
+        Binding(
+            get: { form.date },
+            set: { form.userChangedDate(to: $0) }
+        )
     }
 
     private var saveEnabled: Bool {
@@ -222,7 +225,10 @@ struct ServiceEntryView: View {
         case .tires:
             guard form.tireSetId != nil else { return false }
         }
-        return !odometerMissing
+        // RV.212: the save gate is the one core rule the edit door also calls.
+        // A km lifetime with a blank odometer saves; only a mounted tire set
+        // refuses (its mileage span anchors on the odometer).
+        return form.saveReadiness == .ready
     }
 
     // MARK: - Actions
@@ -362,7 +368,7 @@ struct ServiceEntryView: View {
         pages = prefill.pages
         form.attachments = prefill.pages.map(\.attachment.id)
         form.provenance = prefill.provenance
-        dateFromInvoice = prefill.dateFromInvoice
+        form.dateFromInvoice = prefill.dateFromInvoice
         selectedPageIndex = 0
     }
 
@@ -437,7 +443,12 @@ struct ServiceEntryView: View {
                     coordinator: notificationCoordinator)
                 pendingCompletion = nil
             } else {
-                // RV.77: after the record is on disk, propose the next reminder.
+                // RV.77 + RV.213: after the record is on disk, propose the next
+                // reminder. The one decision is `ReminderOffer.propose`, which
+                // fires for a line item that STATES a lifetime (the create card
+                // now carries the same editor the edit door uses) and for a
+                // category with a curated interval - never for every service
+                // save. The edit door's twin gate is `serviceLifetimeChanged`.
                 offerSession.stage(afterService: service, repository: repository)
             }
             hasUnsavedChanges = false

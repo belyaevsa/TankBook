@@ -147,6 +147,10 @@ struct ServiceEntryFormState: Equatable {
     var items: [ServiceEntryItemDraft] = []
     var odometer = ""
     var date = Date()
+    /// True while the date is still the invoice's own, so the date row can say
+    /// "· invoice" (P3.1b). The user changing the date makes it theirs and
+    /// clears the caption for good (hard rule 13, RV.224).
+    var dateFromInvoice = false
     var note = ""
     /// Which entry this sheet captures. `.service` (line items) or `.tires`
     /// (a seasonal swap mounting one set).
@@ -199,8 +203,9 @@ struct ServiceEntryFormState: Equatable {
 
     /// Odometer is required when any item sets a km lifetime, or a tire set is
     /// mounted (P3.3) - both anchor on it (docs/SCHEMA.md). Delegates to the
-    /// core rule so the save gate, the warning and the L1 test can never
-    /// disagree.
+    /// core rule so the card's warning and the L1 tests cannot disagree. This is
+    /// the ADVISORY, not the save gate (`saveReadiness`): a km lifetime with no
+    /// odometer still saves (RV.212).
     var requiresOdometer: Bool {
         ServiceEntryDraft.requiresOdometer(
             items: items.map { item in
@@ -208,6 +213,13 @@ struct ServiceEntryFormState: Equatable {
                                  lifetime: item.lifetime)
             },
             tireSetId: tireSetId)
+    }
+
+    /// The save rule, through the SAME core function the edit door calls
+    /// (RV.212). A km lifetime with a blank odometer saves; only a mounted tire
+    /// set still refuses.
+    var saveReadiness: ServiceEntryDraft.SaveReadiness {
+        ServiceEntryDraft.saveReadiness(odometer: odometerValue, tireSetId: tireSetId)
     }
 
     /// The parsed, save-ready shape. This is the conversion the L1 tests drive
@@ -227,6 +239,16 @@ struct ServiceEntryFormState: Equatable {
     }
 
     // MARK: Discard guard
+
+    /// The user changed the date through the picker. The date is theirs from now
+    /// on, so the invoice provenance caption clears and never returns (hard rule
+    /// 13, RV.224). A same-value set - the graphical picker re-applies its own
+    /// value on appear - is not a change and leaves the caption alone.
+    mutating func userChangedDate(to newValue: Date) {
+        guard newValue != date else { return }
+        date = newValue
+        dateFromInvoice = false
+    }
 
     /// Real edits only: a typed vendor/note, an item added or changed, an
     /// odometer moved from its pre-fill, a date moved. Opening the sheet and

@@ -62,17 +62,18 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         self.usedParts = usedParts
     }
 
-    /// Whether the form can save, as a decision the view and its tests share.
+    /// Whether a service entry can save, as a decision the CREATE screen and the
+    /// EDIT-entry service screen share (RV.212).
     public enum SaveReadiness: Equatable, Sendable {
         case ready
-        /// A line item carries a km lifetime (or a tire set is mounted) and the
-        /// odometer is blank: refuse to save and name the next step.
+        /// A mounted tire set needs the odometer and the field is blank: refuse
+        /// to save and name the next step.
         case odometerRequired
     }
 
-    /// The odometer rule, both directions: false when nothing anchors on the
-    /// odometer (a blank odometer saves), true when an item's km lifetime or a
-    /// mounted tire set does.
+    /// Whether something on the record ANCHORS on the odometer: an item's km
+    /// lifetime, or a mounted tire set. This is the advisory the odometer card
+    /// renders; it is deliberately NOT the save gate (see `saveReadiness`).
     public static func requiresOdometer(items: [ServiceItem], tireSetId: UUID?) -> Bool {
         tireSetId != nil || items.contains { $0.lifetime?.km != nil }
     }
@@ -81,9 +82,20 @@ public struct ServiceEntryDraft: Equatable, Sendable {
         Self.requiresOdometer(items: items, tireSetId: tireSetId)
     }
 
+    /// The one save rule both service doors call (RV.212). A km lifetime with a
+    /// blank odometer does NOT refuse: the lifetime is a fact the user states
+    /// and the app cannot use until an odometer exists, so the entry saves and
+    /// the post-save offer names the missing odometer
+    /// (docs/ERRORS.md -> Service & expenses). A mounted tire set is different -
+    /// its mileage span anchors on the odometer and no later point can supply it
+    /// - so a blank one refuses.
+    public static func saveReadiness(odometer: Int?, tireSetId: UUID?) -> SaveReadiness {
+        guard odometer == nil, tireSetId != nil else { return .ready }
+        return .odometerRequired
+    }
+
     public var readiness: SaveReadiness {
-        guard odometer == nil else { return .ready }
-        return requiresOdometer ? .odometerRequired : .ready
+        Self.saveReadiness(odometer: odometer, tireSetId: tireSetId)
     }
 
     /// The header total when the items share one currency, or zero when they

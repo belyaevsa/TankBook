@@ -126,6 +126,14 @@ struct EditEntryNonFillForm: Equatable {
         return trimmed.isEmpty ? nil : Int(OdometerFormat.ungrouped(trimmed))
     }
 
+    /// The save rule, through the SAME core function the create door calls
+    /// (RV.212). The edit door never mounts a tire set, so the only rule left is
+    /// "ready": a km lifetime with a blank odometer saves and the offer names
+    /// the missing odometer.
+    var saveReadiness: ServiceEntryDraft.SaveReadiness {
+        ServiceEntryDraft.saveReadiness(odometer: odometerValue, tireSetId: nil)
+    }
+
     /// The money pair, edited through the shared edit rule (`Money.edited`,
     /// docs/SCHEMA.md -> Money): a money-fact change clears the snapshot for
     /// re-conversion (hard rule 3) and re-homes the pair to the vehicle's

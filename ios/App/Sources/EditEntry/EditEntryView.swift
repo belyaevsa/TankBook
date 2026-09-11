@@ -298,7 +298,9 @@ struct EditEntryView: View {
     private var saveEnabled: Bool {
         guard let vehicle else { return false }
         if fillUp != nil { return fillForm.canSave(volumeUnit: vehicle.units.volume) }
-        return true
+        // RV.212: the non-fill save goes through the SAME core rule the create
+        // door calls, so the two doors cannot drift on what is a valid entry.
+        return nonFillForm.saveReadiness == .ready
     }
 
     private func save() {

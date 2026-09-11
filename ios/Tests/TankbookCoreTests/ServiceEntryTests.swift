@@ -35,10 +35,10 @@ import Testing
     }
 
     private func draft(items: [ServiceItem], odometer: Int? = nil,
-                       vendor: String? = nil) -> ServiceEntryDraft {
+                       tireSetId: UUID? = nil, vendor: String? = nil) -> ServiceEntryDraft {
         ServiceEntryDraft(vendor: vendor, items: items,
                           date: Date(timeIntervalSince1970: 1_752_000_000),
-                          odometer: odometer)
+                          odometer: odometer, tireSetId: tireSetId)
     }
 
     // MARK: - The odometer rule, both directions (docs/SCHEMA.md)
@@ -63,18 +63,24 @@ import Testing
         #expect(ServiceEntryDraft.requiresOdometer(items: [noLifetime], tireSetId: UUID.v7()))
     }
 
-    @Test func readinessBlocksOnlyABlankOdometerWithAKmLifetime() {
+    @Test func readinessRefusesOnlyAMountedTireSetWithABlankOdometer() {
         let kmLifetime = ServiceItem.make(title: "Oil service", category: .oil,
                                           cost: money("89.00"),
                                           lifetime: ServiceItem.Lifetime(km: 15_000, months: 12))
         let plain = ServiceItem.make(title: "Brake pads", category: .brakes, cost: money("59.00"))
+        let tireSet = UUID.v7()
 
-        // A record with no km lifetime saves with a blank odometer.
-        #expect(draft(items: [plain], odometer: nil).readiness == .ready)
-        // A record with a km lifetime and a blank odometer refuses to save.
-        #expect(draft(items: [kmLifetime], odometer: nil).readiness == .odometerRequired)
-        // The same record with the odometer filled is ready.
+        // RV.212: a km lifetime with no odometer does NOT refuse the save - the
+        // lifetime is a fact the user states and the app cannot use yet, so the
+        // entry saves and the offer names the missing odometer.
+        #expect(draft(items: [kmLifetime], odometer: nil).readiness == .ready)
+        // A mounted tire set still refuses: its mileage span anchors on the
+        // odometer and no later point can supply it.
+        #expect(draft(items: [plain], odometer: nil, tireSetId: tireSet).readiness
+                == .odometerRequired)
+        // With an odometer, both are ready.
         #expect(draft(items: [kmLifetime], odometer: 118_930).readiness == .ready)
+        #expect(draft(items: [plain], odometer: 118_930, tireSetId: tireSet).readiness == .ready)
     }
 
     // MARK: - The lump sum is a first-class record (J7)

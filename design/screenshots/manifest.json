@@ -1875,6 +1875,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.213-service-lifetime-create": {
+      "commit": "5fe1982b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.213-service-lifetime-create-ru": {
+      "commit": "5fe1982b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.215-inbox-expense": {
       "commit": "4ad38dc6",
       "device": "iPhone 17",

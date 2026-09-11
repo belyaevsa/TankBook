@@ -467,6 +467,12 @@ capture PJ.22-service-lifetime-ru    ru -seedEditEntryService -presentScreen edi
 capture PJ.22-service-lifetime-offer    en -seedServiceLifetimeOffer -presentServiceReminderOffer
 capture PJ.22-service-lifetime-offer-ru ru -seedServiceLifetimeOffer -presentServiceReminderOffer
 
+# RV.213: the SAME lifetime editor on the CREATE card (the edit door got it from
+# PJ.22). RU is where "СРОК СЛУЖБЫ · км · мес" runs longest on the narrower
+# create card.
+capture RV.213-service-lifetime-create    en -seedServiceEntryLifetime -presentScreen serviceEntry
+capture RV.213-service-lifetime-create-ru ru -seedServiceEntryLifetime -presentScreen serviceEntry
+
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the
