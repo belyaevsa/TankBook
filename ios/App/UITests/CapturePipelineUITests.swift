@@ -231,4 +231,57 @@ final class CapturePipelineUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Enter total and liters to save"].waitForExistence(timeout: 5),
                       "a nothing-resolved scan must render as the ordinary empty form")
     }
+
+    // MARK: - RV.219 the fiscal-QR date reaches the Confirm form
+
+    /// RV.219: a receipt whose QR decodes but whose printed date OCR never read
+    /// (receipt-010). The QR's `t` is the authoritative date (docs/SCHEMA.md ->
+    /// FISCAL QR, docs/JOURNEYS.md J5/F5), so the Confirm form's date row must
+    /// show 25 Nov 2024, not the form default. The fixture's OCR resolves the
+    /// total and volume but reads no printed date, so the assertion is
+    /// specifically the date the printed text did not carry.
+    func testQrDateFillsTheConfirmFormWhenThePrintedDateIsUnreadable() {
+        let app = launchQrDateFixture(russian: false)
+        assertQrDateLanded(app, day: "25", month: "Nov")
+    }
+
+    /// The same frame under a Russian UI: the date row's formatted date and its
+    /// "Date" eyebrow are exactly where the 20-30% expansion lands.
+    func testQrDateFillsTheConfirmFormWhenThePrintedDateIsUnreadableInRussian() {
+        let app = launchQrDateFixture(russian: true)
+        assertQrDateLanded(app, day: "25", month: "нояб")
+    }
+
+    /// Shutter -> review -> Confirm, exactly as `testShutterOpensConfirm...`,
+    /// on the QR-bearing fixture whose printed date OCR did not read.
+    private func launchQrDateFixture(russian: Bool) -> XCUIApplication {
+        let fixture = fixturesRoot + "/receipts/receipt-010-gazpromneft-diesel-bonus-ru.jpeg"
+        var args = ["-homeResetDatabase", "-seedVehicleForUITests",
+                    "-presentScreen", "capture", "-cameraStatus", "authorized",
+                    "-captureFixtureImage", fixture]
+        if russian {
+            args += ["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU"]
+        }
+        let app = launch(args: args)
+        openCapture(app)
+        let shutter = app.buttons["captureShutterButton"]
+        XCTAssertTrue(shutter.waitForExistence(timeout: 10))
+        shutter.tap()
+        let useThis = app.buttons["captureReviewUseButton"]
+        XCTAssertTrue(useThis.waitForExistence(timeout: 15),
+                      "the shutter must open the RV.5 review step")
+        useThis.tap()
+        return app
+    }
+
+    private func assertQrDateLanded(_ app: XCUIApplication, day: String, month: String) {
+        let dateButton = app.buttons["entryDateButton"]
+        XCTAssertTrue(dateButton.waitForExistence(timeout: 15),
+                      "the QR scan must open the Confirm sheet with its date row")
+        let label = dateButton.label
+        XCTAssertTrue(label.contains("2024"),
+                      "the QR's year must fill the date row, got '\(label)'")
+        XCTAssertTrue(label.contains(day) && label.contains(month),
+                      "the QR's \(day) \(month) must show, got '\(label)'")
+    }
 }

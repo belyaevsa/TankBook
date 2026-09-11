@@ -14,7 +14,13 @@ extension FuelExtractor {
     /// sheet does (`ConfirmQRTotal.resolve`): the QR total is authoritative on
     /// a disagreement, the fuel line stands on a mixed receipt (hard rule 4 -
     /// the QR carries the GRAND total, never the fuel amount), and the QR date
-    /// overrides an absent or garbled OCR date.
+    /// overrides an absent, garbled or differing OCR date.
+    ///
+    /// This is the one place the QR total and date are written into the
+    /// extraction. The confirm sheet's `ConfirmQRTotal.resolve` still runs over
+    /// the composed extraction, but it is idempotent from here: the extraction
+    /// already carries the resolved total, so that call agrees and is a
+    /// confirm-step guard, not a second writer.
     static func composeQR(_ anchor: FiscalQRAnchor?, into result: inout FuelExtraction) {
         guard let anchor else { return }
         switch ConfirmQRTotal.resolve(extraction: result, qrAnchor: anchor) {
@@ -25,9 +31,25 @@ extension FuelExtractor {
         case .fuelLineStands(let total):
             result.total = total
         }
-        if let qrDate = qrDateString(from: anchor.date) {
+        // The QR timestamp is authoritative (docs/SCHEMA.md -> FISCAL QR): it
+        // overrides an absent or garbled OCR date, and a confident OCR date that
+        // names a different day. When the OCR date parses to the QR's own day
+        // the two agree, so the OCR's own string is kept - the QR adds no fact,
+        // and the field stays what the receipt printed.
+        if let qrDate = qrDateString(from: anchor.date),
+           !ocrDate(result.date, agreesWith: anchor.date) {
             result.date = qrDate
         }
+    }
+
+    /// Whether the OCR date string names the same calendar day as the QR
+    /// timestamp. An absent or unparseable string never agrees, so the QR date
+    /// wins those - the "garbled" half of the precedence rule.
+    private static func ocrDate(_ ocrDate: String?, agreesWith qrDate: Date) -> Bool {
+        guard let ocrDate, let parsed = ConfirmDate.parse(ocrDate) else { return false }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar.isDate(parsed, inSameDayAs: qrDate)
     }
 
     /// Formats a fiscal-QR date as the day-first string `ConfirmDate.parse`

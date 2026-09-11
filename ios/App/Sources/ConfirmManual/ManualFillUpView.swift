@@ -374,6 +374,7 @@ struct ManualFillUpView: View {
         // answer never refills one of them. Recorded before the pre-fill is
         // applied below, because it is about the extraction, not the form.
         gatewayOnDeviceResolved = Self.onDeviceResolvedFields(extraction)
+        // Guard only: the assembler already composed the QR-resolved total.
         switch ConfirmQRTotal.resolve(extraction: extraction, qrAnchor: prefill.qrAnchor) {
         case .noAnchor(let ocrTotal):
             applyTotal(ocrTotal)

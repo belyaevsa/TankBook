@@ -1194,6 +1194,17 @@ capture RV.62-expense-prefill-ru                         ru -seedExpenseEntryPre
 # RV.5 review without a tap (`simctl` cannot tap).
 capture RV.200-expense-category                          en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
 capture RV.200-expense-category-ru                       ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureMode expense -captureFixtureImage "${RV5_FIXTURE}" -seedExpenseScanParking -captureAutoUse
+
+# RV.219: the fiscal QR's timestamp is the authoritative date (docs/SCHEMA.md ->
+# FISCAL QR, docs/JOURNEYS.md J5/F5). receipt-010's QR decodes but OCR reads no
+# printed date, so the Confirm form's date row is the frame that proves the QR
+# date landed - it must read 25 Nov 2024, not the form default. `-captureAutoUse`
+# accepts the RV.5 review without a tap (`simctl` cannot tap). RU is the real
+# test: the date row's month abbreviation and its "Date"/"Дата" eyebrow are where
+# the 20-30% expansion lands.
+RV219_FIXTURE="$PWD/Spike/ReceiptSpike/fixtures/receipts/receipt-010-gazpromneft-diesel-bonus-ru.jpeg"
+capture RV.219-qr-date                                   en -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV219_FIXTURE}" -captureAutoUse
+capture RV.219-qr-date-ru                                ru -seedVehicleForUITests -presentScreen capture -cameraStatus authorized -captureFixtureImage "${RV219_FIXTURE}" -captureAutoUse
 capture RV.64-inbox-noticks                              en -seedInboxItem -inboxReset -presentScreen inbox
 capture RV.64-inbox-noticks-ru                           ru -seedInboxItem -inboxReset -presentScreen inbox
 capture RV.64-inbox-ticked                               en -seedInboxItem -inboxReset -presentScreen inbox -inboxScreenshotTick

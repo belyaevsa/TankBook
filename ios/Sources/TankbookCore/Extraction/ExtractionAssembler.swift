@@ -51,11 +51,17 @@ public enum ExtractionAssembler {
         timeZone: TimeZone = .current,
         bandProvider: (any FuelPriceBandProvider)? = nil
     ) -> CaptureAssembly {
-        let extraction = FuelExtractor(bandProvider: bandProvider)
-            .extract(lines: lines, source: source)
+        // The anchor is decoded BEFORE the extraction so the extractor's own
+        // fiscal-QR composition (`composeQR`) runs on the same pass: the QR's
+        // total and date are authoritative (docs/SCHEMA.md -> FISCAL QR), so the
+        // extraction the app carries is the one the corpus scores. Composing it
+        // downstream in `ManualFillUpView.apply` as well would be a second
+        // writer of the same field; that call stays a confirm-step guard.
         let qrAnchor = qrPayload.flatMap { raw in
             (try? FiscalQRParser.parse(raw, timeZone: timeZone))?.anchor
         }
+        let extraction = FuelExtractor(bandProvider: bandProvider)
+            .extract(lines: lines, source: source, qrAnchor: qrAnchor)
         return CaptureAssembly(extraction: extraction,
                                qrAnchor: qrAnchor,
                                cropRects: cropRects(for: extraction, lines: lines))
