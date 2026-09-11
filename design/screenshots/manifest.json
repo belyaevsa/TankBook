@@ -1566,12 +1566,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.149-receipt-not-saved": {
-      "commit": "0044e04",
+      "commit": "b7ee5ca2",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.149-receipt-not-saved-ru": {
-      "commit": "0044e04",
+      "commit": "b7ee5ca2",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1806,12 +1806,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.201-inbox-service": {
-      "commit": "02ebfa8d",
+      "commit": "e9bca90a",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.201-inbox-service-ru": {
-      "commit": "02ebfa8d",
+      "commit": "e9bca90a",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1822,6 +1822,16 @@
     },
     "RV.202-service-receipt-ru": {
       "commit": "1791c80",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.204-edit-receipt-not-saved": {
+      "commit": "b7ee5ca2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.204-edit-receipt-not-saved-ru": {
+      "commit": "b7ee5ca2",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2096,12 +2106,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.45-comparison": {
-      "commit": "02ebfa8d",
+      "commit": "e9bca90a",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.45-comparison-ru": {
-      "commit": "02ebfa8d",
+      "commit": "e9bca90a",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
