@@ -490,7 +490,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 | Capture | Shutter fires, brief processing shimmer (<2s) | Never a spinner longer than 2s – commit to an answer |
 | Verdict | Pump Card opens **empty but alive**: photo attached at top, fields blank, keyboard already up on Total | ⚠ The failure state IS the manual form – same screen, zero navigation, no "recognition failed" error banner. A quiet caption: "Couldn't read this one – type it, the photo stays attached." |
 | Recovery | User types 3 numbers (total, liters, odometer), price/unit auto-derives, saves | Typing 3 fields ≈ 20s – degraded, not broken. The receipt photo remains as evidence. *(PJ.2: the photo survives the save – a scanned save persists the receipt as an `Attachment` with scan provenance, whatever the OCR resolved.)* |
-| Aftermath | Photo + OCR text silently queued as an (opt-in) improvement sample | → Opt-in "help improve scanning" set once during onboarding |
+| Aftermath | **[v2]** Photo + OCR text silently queued as an (opt-in) improvement sample - deferred with the cloud-OCR consent surface (product owner, 2026-09-11: v1 cloud OCR has no opt-in/opt-out; it is on by default). **v1**: the manual path - About & feedback → the composer, consent default off (`PJ.20`) | → **[v2]** Opt-in "help improve scanning" set once during onboarding |
 
 **Metric:** save-completion rate after failed scans ≥85% (users finish manually instead of quitting).
 

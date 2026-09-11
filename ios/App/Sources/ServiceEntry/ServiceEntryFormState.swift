@@ -271,8 +271,10 @@ extension ServiceEntryFormState {
         case .order(_, let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
                 let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-                let quote = String(format: L10n.localize("%@ already recorded %@ km."),
-                                   day, OdometerFormat.grouped(previousOdometer))
+                // RV.134: the quote is the vehicle's OWN distance unit, exactly
+                // as the Confirm sheet renders it - never a hardcoded km.
+                let quote = OdometerConflict.quote(day: day, odometer: previousOdometer,
+                                                   distanceUnit: distanceUnit)
                 return OdometerConflict(quote: quote, flagKind: flag.kind, suggestions: fixes)
             }
             return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)

@@ -1751,6 +1751,59 @@
         }
       }
     },
+    "+%lld mi since last": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld mi since last"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld mi since last"
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld мили с прошлой заправки"
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld миль с прошлой заправки"
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld миля с прошлой заправки"
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "+%lld миль с прошлой заправки"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "0": {
       "extractionState": "manual",
       "localizations": {
@@ -9120,6 +9173,23 @@
         }
       }
     },
+    "Price / gal": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Price / gal"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цена / гал"
+          }
+        }
+      }
+    },
     "Price/L": {
       "extractionState": "manual",
       "localizations": {
@@ -13849,6 +13919,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "каждые %1$lld мес"
+          }
+        }
+      }
+    },
+    "fills in from total ÷ gallons": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "fills in from total ÷ gallons"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "считается из суммы ÷ галлонов"
           }
         }
       }

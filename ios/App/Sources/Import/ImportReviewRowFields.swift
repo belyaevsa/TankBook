@@ -11,6 +11,9 @@ import TankbookCore
 /// committable (hard rule 13: the user decides, the flag is the warning).
 struct ImportTimelineDetail: View {
     let row: ImportReviewRow
+    /// The destination car's distance unit, so the quote names the vehicle's
+    /// OWN unit (RV.134) - the import lane already knows it per row.
+    let distanceUnit: DistanceUnit
 
     var body: some View {
         HStack(alignment: .top, spacing: 6) {
@@ -50,8 +53,8 @@ struct ImportTimelineDetail: View {
             return nil
         }
         let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-        return String(format: L10n.localize("%@ already recorded %@ km."),
-                      day, OdometerFormat.grouped(previousOdometer))
+        return OdometerConflict.quote(day: day, odometer: previousOdometer,
+                                      distanceUnit: distanceUnit)
     }
 }
 

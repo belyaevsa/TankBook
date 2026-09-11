@@ -1156,6 +1156,14 @@ alias_shot P6.1b-insight-evidence RV.121-home-anomaly
 alias_shot P6.1b-insight-evidence-ru RV.121-home-anomaly-ru
 capture RV.126-confirm-conflict                          en -seedVehicleMiles -presentScreen confirmManual -screenshotOdometer 119486
 capture RV.126-confirm-conflict-ru                       ru -seedVehicleMiles -presentScreen confirmManual -screenshotOdometer 119486
+# RV.134: the same imperial car, showing the whole numbers card - the price row
+# must read "Price / gal" (RU "Цена / гал") and the empty-price caption
+# "fills in from total ÷ gallons" (RU "считается из суммы ÷ галлонов"), never
+# the litre wording the screen used to hardcode beside a volume field already
+# labelled "gal". The parent `-seedVehicleForUITests` flag is required: the
+# `-seedVehicleMiles` modifier does nothing without it.
+capture RV.134-confirm-imperial                          en -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual
+capture RV.134-confirm-imperial-ru                       ru -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual
 capture RV.137-vehicle-edit                              en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailModelSuggestions -vehicleDetailKeyboardUp
 capture RV.137-vehicle-edit-chips                        en -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp
 capture RV.137-vehicle-edit-chips-ru                     ru -seedHomeCarSwitcher -presentScreen vehicleDetail -vehicleDetailKeyboardUp

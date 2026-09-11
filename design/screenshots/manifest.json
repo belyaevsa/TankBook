@@ -1445,6 +1445,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.134-confirm-imperial": {
+      "commit": "18902ae0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.134-confirm-imperial-ru": {
+      "commit": "18902ae0",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.137-vehicle-edit": {
       "commit": "5e9675a",
       "device": "iPhone 17",

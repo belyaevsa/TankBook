@@ -114,7 +114,7 @@ struct CurrencyChipRow: View {
 
 // MARK: - The three-number card
 
-/// The pump-card stack (artboard): TOTAL / LITERS / PRICE PER L in DIN, with
+/// The pump-card stack (artboard): TOTAL / LITERS / PRICE PER UNIT in DIN, with
 /// live third-value derivation and the cross-check line. Two typed numbers
 /// derive the third and read `.notApplicable`; three typed run the cross-check
 /// (verified locks, mismatch goes amber and refuses to lock).
@@ -173,21 +173,22 @@ struct ManualFillUpNumbersCard: View {
     }
 
     private var totalRow: some View {
-        figureRow(label: "Total", field: .total, unit: currencySymbol,
-                  isSuspect: isSuspect(.total), identifier: "manualFillUpTotalField")
+        figureRow(label: L10n.localize("Total"), field: .total, unit: currencySymbol,
+                  isSuspect: isSuspect(.total))
     }
 
     private var litersRow: some View {
-        figureRow(label: "Liters", field: .volume, unit: L10n.volumeUnit(volumeUnit),
-                  isSuspect: isSuspect(.volume), identifier: "manualFillUpLitersField")
+        figureRow(label: L10n.localize("Liters"), field: .volume, unit: L10n.volumeUnit(volumeUnit),
+                  isSuspect: isSuspect(.volume))
     }
 
     private var priceRow: some View {
         VStack(spacing: 0) {
-            figureRow(label: "Price / L", field: .unitPrice, unit: currencySymbol,
-                      isSuspect: isSuspect(.unitPrice), identifier: "manualFillUpPricePerLField")
+            figureRow(label: ManualFillUpUnitCopy.priceLabel(for: volumeUnit),
+                      field: .unitPrice, unit: currencySymbol,
+                      isSuspect: isSuspect(.unitPrice))
             if form.pricePerL.isEmpty, derived == nil {
-                Text("fills in from total ÷ liters")
+                Text(ManualFillUpUnitCopy.fillsFromTotal(for: volumeUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity, alignment: .trailing)
@@ -197,8 +198,19 @@ struct ManualFillUpNumbersCard: View {
         }
     }
 
-    private func figureRow(label: LocalizedStringKey, field: ManualFillUpMath.Field,
-                           unit: String, isSuspect: Bool, identifier: String) -> some View {
+    /// The three-number card's field identifiers, derived from the field so the
+    /// call sites carry no accessibility string literal (the P0.3 gate treats a
+    /// literal in a `figureRow` argument list as copy).
+    private func fieldIdentifier(_ field: ManualFillUpMath.Field) -> String {
+        switch field {
+        case .total: "manualFillUpTotalField"
+        case .volume: "manualFillUpLitersField"
+        case .unitPrice: "manualFillUpPricePerLField"
+        }
+    }
+
+    private func figureRow(label: String, field: ManualFillUpMath.Field,
+                           unit: String, isSuspect: Bool) -> some View {
         let dimmed = ConfirmConfidenceGate.confidence(
             resolved: form.resolvedByExtraction.contains(field),
             crossCheck: derived?.crossCheck ?? .notApplicable,
@@ -217,7 +229,7 @@ struct ManualFillUpNumbersCard: View {
                 .foregroundStyle(fieldIsTyped(field) ? Theme.Palette.ink : Theme.Palette.inkSoft)
                 .focused($focus, equals: focusTarget(field))
                 .fieldUnderline(isFocused: focus == focusTarget(field), warn: isSuspect)
-                .accessibilityIdentifier(identifier)
+                .accessibilityIdentifier(fieldIdentifier(field))
                 // The P2.3 dim: 60% opacity until the field is confirmed. The
                 // field keeps every editing affordance - it is a default input
                 // that stays fully editable and focusable, and VoiceOver still
@@ -419,14 +431,15 @@ struct ManualFillUpOdometerCard: View {
                                paceLimitKmPerDay: paceLimitKmPerDay)
     }
 
-    /// The localized caption per state. The forward case is an interpolated
-    /// literal (`Text(_: LocalizedStringKey)`) so the catalogue's plural
-    /// variations render; the warn/equal cases are plain literals. The `Text`
-    /// wrapper is deliberate - a bare `LocalizedStringKey` return would hide the
-    /// literals from the P0.3 localization gate.
+    /// The localized caption per state. The forward case is one full localised
+    /// sentence per distance unit (`ManualFillUpUnitCopy.deltaSinceLast`), so
+    /// the catalogue's plural variations render for the vehicle's own unit; the
+    /// warn/equal cases are plain literals. The `Text` wrapper is deliberate - a
+    /// bare `LocalizedStringKey` return would hide the literals from the P0.3
+    /// localization gate.
     private func captionText(_ delta: OdometerDelta) -> Text {
         switch delta.state {
-        case .forward: return Text("+\(delta.km) km since last")
+        case .forward: return Text(ManualFillUpUnitCopy.deltaSinceLast(distanceUnit, km: delta.km))
         case .equal: return Text("Same as last")
         case .backwards: return Text("Odometer went backwards – check it.")
         case .pace: return Text("Daily pace over the limit – check it.")

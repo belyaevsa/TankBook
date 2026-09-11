@@ -81,7 +81,7 @@ private struct ImportReviewRowView: View {
                 detailLine
             }
             if case .timelineConflict = row.kind {
-                ImportTimelineDetail(row: row)
+                ImportTimelineDetail(row: row, distanceUnit: model.distanceUnit(for: row))
             }
             actions
             if showingRawLine, row.rawLine != nil {
