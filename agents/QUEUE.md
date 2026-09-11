@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.197` | J8b / J3 | flash | (dispatching) | `RV.197.md` - the guest Home shows the Log; first of J3, alone |
+| `RV.208` | J3 / J8b | flash | 40602 | `RV.208.md` - dangling attachment ids on users' phones; a decision with a migration behind it |
 
-**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** One row from a status line: F7 (`RV.239`), J1 (`RV.241`), J9 (`RV.240` - owner's call), F6 + F6a (`RV.228`). Cross-cutting `RV.174` and `RV.207` shipped; the guard loop has a third blind spot filed (`RV.242`). **J3 is in progress.**
+**IMPLEMENTED (10): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4.** J3 in progress: `RV.197` shipped `5bd6ad7`; `RV.208` in flight; then `RV.216+RV.217`, `RV.204+RV.209`, `RV.215`.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
