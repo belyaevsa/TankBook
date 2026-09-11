@@ -608,6 +608,8 @@ traced to a figure the preview showed correctly.
 
 ### F6b · A flagged import row is fields, not a line of CSV
 
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F6b-2026-09-11b)
+
 **Trigger:** a row reached the review list, so something about it needs a person.
 
 **It renders as parsed, labelled fields - date, station, litres, price, total, odometer, note -

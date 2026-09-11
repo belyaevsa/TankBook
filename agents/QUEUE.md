@@ -79,7 +79,7 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `RV.218` | F2 | flash | 20421 | `RV.218.md` - via `scripts/dispatch.sh`, healthy at 53 KB / 60 s |
-| `REVIEW-F6b-2`, `REVIEW-F6-2` | F6b, F6 | pro, read-only | 20404, 20408 | walks after `RV.220+RV.221+RV.191` (`7d4e1fc`) |
+| `REVIEW-F6-2` | F6 | pro, read-only | 20408 | walks after `RV.220+RV.221+RV.191` (`7d4e1fc`) |
 
 **Scenarios 1 (J5 + F5) and 2 (F8) IMPLEMENTED; 3 (F6b + F6) built, walking; 4 (F2) in flight.**
 
@@ -96,7 +96,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3`, `J5`, `F5`, `F8` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented:** `F3`, `J5`, `F5`, `F8`, `F6b` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
