@@ -264,17 +264,20 @@ extension ServiceEntryFormState {
                                                      vehicle: vehicle)
         guard let validation = validations.first(where: { $0.entryID == candidate.id }),
               let flag = validation.flags.first else { return nil }
+        // RV.211: a service presents the ONE odometer fix, not the fill-up's
+        // ranked list - the rule and its reason live in `F9aFixPresentation`.
+        let fixes = F9aFixPresentation.fixes(validation.suggestions, for: .service)
         switch flag.detail {
         case .order(_, let previousOdometer, let previousDate, _, _):
             if let previousOdometer, let previousDate, odo <= previousOdometer {
                 let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
                 let quote = String(format: L10n.localize("%@ already recorded %@ km."),
                                    day, OdometerFormat.grouped(previousOdometer))
-                return OdometerConflict(quote: quote, flagKind: flag.kind)
+                return OdometerConflict(quote: quote, flagKind: flag.kind, suggestions: fixes)
             }
-            return OdometerConflict(quote: nil, flagKind: flag.kind)
+            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
         case .pace:
-            return OdometerConflict(quote: nil, flagKind: flag.kind)
+            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
         case .consumption:
             // A service record closes no fuel segment, so CHECK 5 never fires on
             // the candidate this card renders.

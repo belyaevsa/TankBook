@@ -55,8 +55,13 @@ For each stage, each fallback and each "→" note in the journey's own text:
    between them.
 4. **Can a user REACH every step?** A screen whose only door is `#if DEBUG` passes every test
    (`PJ.4`). `RV.162`'s guard proves a door names a screen; it does not walk the graph.
-5. **Does the story hand off cleanly?** A journey that ends by promising another one - "then archive
-   the car", "then the reminder fires" - is not finished until that handoff exists.
+5. **Does the story hand off cleanly, and does every next step it names EXIST?** A journey that ends
+   by promising another one - "then archive the car", "then the reminder fires" - is not finished
+   until that handoff exists. This is also where `RV.164`'s fourth audit question lands: `RV.162`'s
+   guard and `ErrorRouteGuardTests` prove a screen/route EXISTS, never that the behaviour the copy
+   promises does. For every next step a journey or error names, open the code it points at and say
+   whether the behaviour is there - `RV.98`'s *"moves to Recently deleted"* named a real screen whose
+   car row did not exist, and no route scan could see it.
 
 ## Dead ends to hunt while you are here
 

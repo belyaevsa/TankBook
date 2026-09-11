@@ -308,12 +308,27 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Invoice OCR can't split lines (J7 fallback) | One lump-sum item with full total, editable | Keep as lump sum (legitimate) · split by hand |
 | Multi-page scan interrupted | "Page 2 didn't save – rescan it or continue with 1 page." | Rescan page · continue |
 | Odometer required but empty (km lifetime set) | Warn on odometer card: "Needed to schedule 'next in 15 000 km'." | Fill (pre-filled value one tap away) · remove the km lifetime |
-| Odometer breaks timeline (F9a, PJ.11) | Amber on the odometer card as the user types, the conflicting entry quoted ("Aug 17 already recorded 119 486 km.") - the same F9a mechanics as Confirm. **The check is on every write, not just capture**: a service odometer typo must flag, never silently skew spans and cost/km | Fix (focuses the odometer) · save anyway (the record saves `.flagged`; its segment is excluded until resolved) |
+| Odometer breaks timeline (F9a, PJ.11) | Amber on the odometer card as the user types, the conflicting entry quoted ("Aug 17 already recorded 119 486 km.") - the same F9a mechanics as Confirm. **The check is on every write, not just capture**: a service odometer typo must flag, never silently skew spans and cost/km | Fix (focuses the odometer) · save anyway (the record saves `.flagged`; its segment is excluded until resolved). **One fix, not the fill-up's ranked list (RV.211)** - see the note below the table |
 | A service's Amount differs from its line items (RV.199) | The edit money card states the **line sum** beneath the independently-editable Amount, in amber (`warn`), with the sentence "Differs from the amount above" - or "Different currencies – no single total" when the lines span currencies, in which case the card shows the per-currency breakdown and never a summed cross-currency figure (hard rule 3). **Attention, not an error**: nothing is wrong and Save is never blocked. An invoice's grand total legitimately differs from its lines (tax, a discount, an un-itemised line - the truth hard rule 4 encodes for fuel) and a total the user set is theirs (hard rule 13), so the Amount is never silently derived or rewritten. Amber is attention, never action (hard rule 5). The sum comes from the SAME function the create screen's header uses (`[ServiceItem].costSum()`), so the two doors cannot state different totals | Edit the Amount, or edit the lines - either is fine; the entry saves either way. Typing the Amount to match the sum clears the sentence |
 | Shelf part suggested but wrong | – (suggestion, not warning) | Dismiss chip; never auto-links |
 | Expense-mode scan read nothing (RV.62) | The ordinary EMPTY expense form – no caption, no warning (the expense form is not the fill-up Confirm, so the F1 caption does not apply) | Type the expense; the empty form IS the contract (hard rule 7) |
 | Expense-mode scan priced in a currency the home-only expense form cannot express (RV.62) | The amount stays BLANK – the recognised total is never offered as if it were home currency (a wrong fact is worse than none, hard rule 13); the date still pre-fills | Type the amount; currency mismatches are not an error, just an honest absence |
 | A scanned Expense's receipt photo could not be kept – the image would not encode, or there was no space (PJ.28) | The expense SAVES anyway (never a blocked save, hard rule 15 – the photo is a head start, never a requirement) and a toast reports it after the sheet closes: "No space to keep the receipt photo – the entry was saved without it. Free up space and re-scan it." – the SAME sentence the fill-up save shows for the identical situation (RV.149), generalised from "the expense" so one message serves both entry kinds (see the note under Confirm). Nothing is lost silently (hard rule 8): the failure is named, and the row keeps its data | Free up space and re-scan the receipt (the photo is gone from this save only; the entry stands) |
+
+**A service or an expense gets ONE fix, not the fill-up's ranked list (RV.211, decided 2026-09-11).**
+The Confirm sheet's ranked, evidence-named list (`PJ.34`) exists to arbitrate a fill-up's printed
+receipt date against a typed odometer: with a receipt the odometer is preselected, without one the
+date is. A service's F9a conflict is not that question - its odometer is the field on the card and
+the field this warning's sentence names - and the fill-up's no-receipt order would preselect "fix
+date" for a typed service, which is the wrong field. So the service and expense paths present the
+single odometer fix, and they get it from ONE function (`F9aFixPresentation.fixes(_:for:)`) so the
+two kinds cannot drift. The date stays editable on the card and "save anyway" stays available, so
+the one fix is never a dead end (hard rules 7 and 13). **The expense's entry form collects no
+odometer**, so an expense reaches F9a through Edit entry, where the save stamps the same `.flagged`
+conflict; the create-screen warning is the service's. Rendering the fill-up ranking here would be
+the "copying a ranking onto a screen with nothing to rank" trap: there is no receipt-date evidence
+to order, and a list whose preselection flips on evidence this path never gathers is a default the
+app cannot justify.
 
 ### Edit entry
 | Condition | Shows | Next step |
@@ -631,4 +646,24 @@ catalog-vs-garage conflict to surface.
 
 ## The audit rule (for CI-of-design and future screens)
 
-Every new error/warning must answer three questions before it ships: (1) what happened, in the user's words; (2) what is the **preselected** next step; (3) what happens if they ignore it (and it must be survivable). If any answer is missing, the design isn't done. Monetization never appears in an error surface except the explicit car-limit sheet.
+Every new error/warning must answer **four** questions before it ships:
+
+1. **What happened**, in the user's words?
+2. **What is the preselected next step?**
+3. **What happens if they ignore it** (and it must be survivable)?
+4. **Does that next step EXIST?** (RV.164, added 2026-09-11)
+
+If any answer is missing, the design isn't done. Monetization never appears in an error surface except the explicit car-limit sheet.
+
+**Question 4 is mechanised where it can be, and the limit is stated rather than implied (RV.164).** A **route** named in error copy - written after the `→` the catalog already uses (`View → Reminders`), or after the navigation verbs (`moves to`, `opens`, `routes to`) - is checked against the screens `docs/SCREENMAP.md` carries. `ErrorRouteScanner` extracts the routes and `ErrorRouteGuardTests` fails the guard when one names a screen the map does not carry (`docs/ERRORS.md`'s own copy is the scanned document; the one non-screen phrase, "Log filtered to flagged entries", is a reasoned non-route, not a silent skip). **This reads the code through `RV.162`'s guard**: that guard proves every SCREENMAP screen has a non-DEBUG production door, so a route the copy names and the map carries is a door the app really has. That is the whole automated slice. It proves the destination **exists**; it does **not** prove the destination **does what the copy promises**.
+
+**The residue, and why it is a manual check.** `RV.98` is the canonical case: its delete alert promised a deleted car *"moves to Recently deleted"* and the screen existed, so the route scan passes it - the missing half was the car row inside the screen, which no route scan can see. A promised **behaviour** is bound the only other way that fails: name the test that proves it. When no such test is worth writing, the promise is the journey walk's manual check (`agents/briefs/REVIEW-SCENARIO.md`, question 5), which reads the copy against the code. The four instances that motivated the rule, and the half that catches each class:
+
+| Instance | What did not exist | The half that catches this class |
+|---|---|---|
+| `RV.98` - the delete alert | the car row inside a screen that did exist (behaviour) | behaviour: journey walk |
+| `PJ.36` - "Export everything" | the affordance (dead row) | affordance/behaviour: journey walk |
+| `RV.146` - "Recent first" | the history lookup the copy promised (behaviour) | behaviour: journey walk |
+| `ERRORS.md`'s own "Storage full" sheet | the sheet (documented, unbuilt) | affordance/behaviour: journey walk |
+
+

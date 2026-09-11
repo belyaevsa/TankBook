@@ -30,12 +30,12 @@ decisions.
 | **Evidence** | `RV.201` died at 42 KB of log on 2026-09-11 and was relaunched by hand; the two-bundle trap was hit live verifying `RV.201` (12 tests executed, app-target suite never ran, exit 0). |
 | **What changed** | `agents/briefs/PREAMBLE.md` carries the fences once; `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once; the two-bundle rule is in `CLAUDE.md`. |
 
-## 2026-09-11 · Orchestrator model switched from Opus to Fable
+## 2026-09-11 · Orchestrator model switched from Claude Opus to Claude Fable 5.1
 
 | | |
 |---|---|
 | **Commits** | Last Opus-attributed: `fd1b84c` 15:23. First Fable-attributed: `8f63c86` 15:29. (`fe782b7`, 2026-08-29, is an earlier isolated Fable session.) |
-| **Reason** | Product owner's `/model` switch, made at the moment the process review was requested. Not a response to a defect in the orchestration; recorded because a model change is an approach change and its effects should be readable against the commits either side of it. |
+| **Reason** | Product owner's `/model` switch to **Fable 5.1**, made at the moment the process review was requested. Not a response to a defect in the orchestration; recorded because a model change is an approach change and its effects should be readable against the commits either side of it. |
 | **Evidence** | The attribution line on every commit from `8f63c86` onward. |
 | **Note for readers** | Everything from the process review onward - the queue rewrite, eight scenario walks, scenarios 1-4, the TASKS sweep - is post-switch. Compare the verification record either side (`docs/TASKS-DONE.md` outcome paragraphs) before attributing any difference to the model; the process also changed at the same moment. |
 
@@ -47,6 +47,14 @@ decisions.
 | **Reason** | *"analyze how fast the tasks were added and closed ... a chart that shows both lines from commit to commit"* (product owner). |
 | **Evidence** | `docs/analysis/2026-09-11-rv-backlog-and-process.md`, `scripts/rv-backlog-chart.py`, `design/analysis/rv-backlog.png`. Recomputed from 498 commits to the task files; corrected mid-analysis when the first parse missed rows whose id carries a version marker. |
 | **What changed** | The backlog's rate is a re-runnable artefact rather than a feeling. |
+
+## 2026-09-10 · Agent model upgraded from DeepSeek v4 flash to v4.1 (provider-side)
+
+| | |
+|---|---|
+| **Commits** | none - the model id in every dispatch is unchanged (`deepseek/deepseek-v4-flash`); the upgrade happened on the provider's side under the same alias. Product owner's statement, 2026-09-11: *"yesterday there was an upgrade from flash-v4 to v4-1."* |
+| **Evidence** | `opencode models` on 2026-09-11 lists no `v4.1` id (`agents/QUEUE.md` -> Models available here), so the version served behind `deepseek-v4-flash` is the only place the change exists. Dispatches from 2026-09-10 onward ran on 4.1: `RV.170`, `RV.171`, `PJ.22`, `RV.206`, `RV.201`, and every scenario row on 2026-09-11. |
+| **Note for readers** | This overlaps the orchestrator switch below by one day and the scenario-first process by two. Three variables moved in 48 hours; do not attribute a change in agent report quality to any one of them without checking the verification record in `docs/TASKS-DONE.md` either side. |
 
 ## 2026-09-10 · Every task belongs to a scenario, and a scenario is not done until it is reviewed
 

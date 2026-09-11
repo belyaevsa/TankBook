@@ -238,8 +238,9 @@ needs the simulator and is **not** a free parallel slot.
 `deepseek/deepseek-v4-flash` (the default for a pinned-cause row), `deepseek/deepseek-v4-pro` (the
 journeys walk and validation), `deepseek/deepseek-v4-flash-vision-exp`, and the
 `alibaba-token-plan/*` mirrors including `deepseek-v4-flash-0731` and `deepseek-v4-pro-0813`.
-**There is no `v4.1` in this install** - re-check `opencode models` before assuming one, because
-flash-at-pro-quality would change the routing rule.
+**There is no `v4.1` id in this install** (re-checked 2026-09-11) - but the product owner reports the
+provider upgraded `deepseek-v4-flash` to **4.1 on 2026-09-10** under the same alias. Recorded in
+`docs/DEVELOPMENT-TIMELINE.md`; the routing rule is unchanged until the verification record says otherwise.
 
 **`-vision-exp` is NOT worth using, and the reason is the one that matters** (product owner, 2026-09-10). The orchestrator can already open a screenshot, so vision buys the agent nothing the process lacks - and giving the agent eyes would let it **grade its own work**. That is exactly the circularity that produced `RV.161`'s fake **46/46**: ground truth written from the thing under test. The value of the orchestrator opening a capture is not that *someone* can see it, it is that a **different party** sees it - one that did not write the code. That independence caught `RV.149`'s toast over an unreachable screen, `PJ.56`'s `0 entries pending rates`, and the orchestrator's own re-capture of a mutated binary. **Keep the screenshot check with the orchestrator; it is a separation of duties, not a capability gap.**
 

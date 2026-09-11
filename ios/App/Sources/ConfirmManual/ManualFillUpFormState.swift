@@ -238,10 +238,10 @@ enum ManualFillUpFormat {
 struct OdometerConflict: Equatable {
     let quote: String?
     let flagKind: ConflictState.ConflictKind
-    /// The validator's ORDERED resolution list (docs/JOURNEYS.md F9a). The view
-    /// renders these in order and never re-ranks them; empty only for a caller
-    /// that does not consume the ranking (the service warn renders its own
-    /// single fix).
+    /// The fixes the conflict's surface presents, in order. A fill-up carries
+    /// the validator's ranked list; a service carries the single odometer fix
+    /// (`F9aFixPresentation`, RV.211). Empty only when the validator flagged
+    /// nothing or the caller does not consume a fix list.
     let suggestions: [TimelineValidator.ResolutionSuggestion]
     /// The receipt/QR printed date the ranking trusts, when an attachment
     /// carries one. The "fix date" confirmation names it, so a user overriding
