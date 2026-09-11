@@ -210,6 +210,7 @@ manual save time under 20 s; and no growth in abandoned captures - a user who ba
 scan should land on a filled-in manual form, not an empty one.
 
 ### J5 · The RU/KZ receipt (P3) – the fiscal QR as an anchor, never a feature
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J5-2026-09-11b)
 **Trigger:** a fill-up receipt in Russia or Kazakhstan; the FNS/ОФД QR printed on it is decoded as part of the same receipt scan. The user never "scans a QR" and the app never says it does (`VISION.md`, decided 2026-08-30).
 
 | Stage | Doing | Thinking / feeling | Notes |
@@ -529,6 +530,8 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** capture abandonment when fallback is down: no different from baseline.
 
 ### F5 · The receipt's QR decodes, and nothing more is fetched (P3)
+**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F5-2026-09-11b)
+
 **Trigger:** the QR on the receipt decodes. No fiscal-service lookup is attempted – enrichment is permanently deferred (J5 above) – so this is the normal path, not a failure.
 
 - Parse locally what the QR string itself carries (total, date-time, fiscal IDs) → card pre-fills total and date instantly; liters/price are the user's, from OCR and editable as always (hard rule 13) – the anchor never pretends to know the volume.

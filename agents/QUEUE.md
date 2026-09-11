@@ -79,9 +79,8 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Monitor | Brief |
 |---|---|---|---|---|---|
 | `RV.222+RV.223` | F8 | flash | 18881 | `bz5qevivw` | `RV.222+RV.223.md` - via `scripts/dispatch.sh`, healthy at 76 KB / 60 s |
-| `REVIEW-J5-2`, `REVIEW-F5-2` | J5, F5 | pro, read-only | 18865, 18869 | `bzabzutvx` | second walks after `RV.219` shipped (`96d05ae`) |
 
-**Scenario 1 (J5 + F5) is built** - `RV.219` shipped; its re-walk is running. Scenario 2 (F8) is in flight.
+**Scenario 1 (J5 + F5) is IMPLEMENTED.** Scenario 2 (F8) is in flight.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -96,7 +95,7 @@ line under its heading. **Nothing from the next scenario is dispatched until the
 its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
 `[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-**Already implemented:** `F3` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+**Already implemented:** `F3`, `J5`, `F5` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
 `F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
 The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
@@ -104,7 +103,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 
 | # | Scenario | v1 rows to close | Briefs (by seam) | Then |
 |---|---|---|---|---|
-| 1 | **J5 + F5** the fiscal QR | `RV.219` | one - the assembler passes the anchor | re-walk both; two status lines from one line of code |
+| 1 | ~~**J5 + F5** the fiscal QR~~ | `RV.219` shipped `96d05ae` | - | **DONE 2026-09-11** - both re-walked IMPLEMENTED, two status lines from one line of code |
 | 2 | **F8** permissions and hardware said no | `RV.222`, `RV.223` | one - the capture cover's recovery paths | re-walk |
 | 3 | **F6b + F6** the import review row | `RV.220` (bug, first), `RV.221`, `RV.191` | one - `ImportReviewView`'s row, EN+RU | re-walk both |
 | 4 | **F2** scan recognized wrong data | `RV.218` | one - the outlier flag from the one `ConsumptionEngine` | re-walk |
