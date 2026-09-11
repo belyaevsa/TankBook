@@ -315,27 +315,29 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Expense-mode scan priced in a currency the home-only expense form cannot express (RV.62) | The amount stays BLANK – the recognised total is never offered as if it were home currency (a wrong fact is worse than none, hard rule 13); the date still pre-fills | Type the amount; currency mismatches are not an error, just an honest absence |
 | A scanned Expense's receipt photo could not be kept – the image would not encode, or there was no space (PJ.28) | The expense SAVES anyway (never a blocked save, hard rule 15 – the photo is a head start, never a requirement) and a toast reports it after the sheet closes: "No space to keep the receipt photo – the entry was saved without it. Free up space and re-scan it." – the SAME sentence the fill-up save shows for the identical situation (RV.149), generalised from "the expense" so one message serves both entry kinds (see the note under Confirm). Nothing is lost silently (hard rule 8): the failure is named, and the row keeps its data | Free up space and re-scan the receipt (the photo is gone from this save only; the entry stands) |
 
-**A service or an expense gets ONE fix, not the fill-up's ranked list (RV.211, decided 2026-09-11).**
+**A service, an expense or a charge gets ONE fix, not the fill-up's ranked list (RV.211, decided 2026-09-11; extended to the charge by RV.230).**
 The Confirm sheet's ranked, evidence-named list (`PJ.34`) exists to arbitrate a fill-up's printed
 receipt date against a typed odometer: with a receipt the odometer is preselected, without one the
-date is. A service's F9a conflict is not that question - its odometer is the field on the card and
-the field this warning's sentence names - and the fill-up's no-receipt order would preselect "fix
-date" for a typed service, which is the wrong field. So the service and expense paths present the
+date is. A non-fill conflict is not that question - its odometer is the field on the card and the
+field this warning's sentence names - and the fill-up's no-receipt order would preselect "fix date"
+for a typed service, which is the wrong field. So the service, expense and charge paths present the
 single odometer fix, and they get it from ONE function (`F9aFixPresentation.fixes(_:for:)`) so the
-two kinds cannot drift. The date stays editable on the card and "save anyway" stays available, so
-the one fix is never a dead end (hard rules 7 and 13). **The expense's entry form collects no
+kinds cannot drift. The date stays editable on the card and "save anyway" stays available, so the
+one fix is never a dead end (hard rules 7 and 13). **The expense's entry form collects no
 odometer**, so an expense reaches F9a through Edit entry, where the save stamps the same `.flagged`
-conflict; the create-screen warning is the service's. Rendering the fill-up ranking here would be
-the "copying a ranking onto a screen with nothing to rank" trap: there is no receipt-date evidence
-to order, and a list whose preselection flips on evidence this path never gathers is a default the
-app cannot justify.
+conflict; the create-screen warning is the service's. **RV.230: the edit screen renders that flag**
+- all three non-fill kinds share `writeNonFill`, and they render the same warn row and Fix the
+fill-up edit uses, so the expense's only F9a surface is no longer a flag with nowhere to show it.
+Rendering the fill-up ranking here would be the "copying a ranking onto a screen with nothing to
+rank" trap: there is no receipt-date evidence to order, and a list whose preselection flips on
+evidence this path never gathers is a default the app cannot justify.
 
 ### Edit entry
 | Condition | Shows | Next step |
 |---|---|---|
 | Foreign-currency entry | The conversion card, resolved honestly from the rate store (P5.2): converted from the feed (with "Edit rate"), converted from a manual rate (shown as Manual, editable - hard rule 13's "and again afterwards"), or rate-pending (with the manual-rate entry offered on the card) | Enter/change the rate on the card · leave it (saves as-is, pending converts later) |
 | A currency/amount edit resolves at commit (RV.144) | The edited money RE-HOMES to the car's CURRENT home currency (docs/SCHEMA.md -> Money) and converts on Save, not on the next automatic pass: an edit to the car's home needs no rate at all (rate 1, no network); a foreign edit converts at the entry's own day's rate when the cache holds one | None - it happened on Save. A rate the cache lacks is a silent non-event: the row stays rate-pending and is counted (F9), converting later (S8) or by the card's manual rate |
-| Edit re-breaks cross-check or timeline | Same amber mechanics as Confirm | Same fixes; save-anyway keeps flag |
+| Edit re-breaks cross-check or timeline | Same amber mechanics as Confirm. The non-fill kinds (service, expense, charge) render the SAME `F9aWarningRow`/`F9aFixRow` the fill-up edit does, through `F9aFixPresentation`'s single odometer fix (RV.230) - before that row the flag was stamped by the save and never shown | Same fixes; save-anyway keeps flag |
 | Entry was changed by sync (S1) | Quiet row: "Changed by sync · iPad, Aug 21" | Restore my version · keep |
 | Delete tapped | System confirmation (the one place red lives) | Delete (→ Recently deleted, 30 days) · cancel |
 | Edit shifts stats | Toast on save: "Consumption updated: 6.9 → 6.8 L/100km" | Informational; tap → Trends |

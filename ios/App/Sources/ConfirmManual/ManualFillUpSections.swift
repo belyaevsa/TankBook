@@ -395,7 +395,11 @@ struct ManualFillUpOdometerCard: View {
         VStack(spacing: 0) {
             odometerRow
             if let conflict {
-                warningRow(conflict)
+                F9aWarningRow(conflict: conflict,
+                              warningIdentifier: conflict.warningIdentifier,
+                              onFixOdometer: { focus = .odometer },
+                              onFixLiters: { focus = .liters },
+                              onFixDate: onFixDate)
             }
             caption
         }
@@ -476,43 +480,6 @@ struct ManualFillUpOdometerCard: View {
                     .foregroundStyle(Theme.Palette.inkSoft)
             }
         }
-    }
-
-    /// The validator's own wording when it has one (already localised at its
-    /// source), else the catalogue literal - reached through the
-    /// `LocalizedStringKey` overload, which a coalesced `String?` cannot be.
-    @ViewBuilder
-    private func conflictText(_ conflict: OdometerConflict) -> some View {
-        if let quote = conflict.quote {
-            Text(quote)
-        } else {
-            Text("Odometer breaks the timeline – check it.")
-        }
-    }
-
-    private func warningRow(_ conflict: OdometerConflict) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.warn)
-            VStack(alignment: .leading, spacing: 8) {
-                // Split rather than `quote ?? "literal"`: the coalesced
-                // expression is a String, so `Text` takes the non-localising
-                // StringProtocol overload and the fallback renders its ENGLISH
-                // key in Russian - even though the catalogue holds
-                // "Пробег нарушает хронологию – проверьте его.". Same defect as
-                // "checks as you type" (P2.1) and the third of its kind; the
-                // localization gate cannot see it, because the key IS present.
-                conflictText(conflict)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.warn)
-                    .accessibilityIdentifier(conflict.warningIdentifier)
-                F9aFixRow(conflict: conflict, focus: $focus, onFixDate: onFixDate)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, Theme.Spacing.cardPadding)
-        .padding(.bottom, 10)
     }
 }
 

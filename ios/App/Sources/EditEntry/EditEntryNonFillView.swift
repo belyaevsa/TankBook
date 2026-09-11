@@ -17,6 +17,18 @@ struct EditEntryNonFillView: View {
     @Binding var form: EditEntryNonFillForm
     let entry: any Entry
     let vehicle: Vehicle
+    /// The form's focus, held by the parent (`EditEntryView`) so the shared
+    /// `F9aWarningRow`'s Fix can focus the odometer through a binding.
+    @FocusState.Binding var focus: EditEntryNonFillFocus?
+    /// RV.230: the F9a conflict this edit currently carries, derived from the
+    /// form exactly as the save stamps it. Nil when nothing flags. Rendered as
+    /// the shared `F9aWarningRow`, so the non-fill edit and the fill-up edit
+    /// cannot drift.
+    let odometerConflict: OdometerConflict?
+    /// RV.230: the timeline neighbourhood behind the same conflict - the
+    /// evidence for the quote the warn row prints. Nil when there is no order or
+    /// pace flag (or no odometer), which renders no panel and no empty box.
+    let neighbourhood: TimelineNeighbourhood?
     /// The complete, ordered currency offer for the edited entry's car
     /// (docs/SCHEMA.md -> Currency offer).
     let offer: [CurrencyCode]
@@ -42,39 +54,68 @@ struct EditEntryNonFillView: View {
     /// Creates (or opens) the set this `.parts` expense becomes.
     let onMakeTireSet: () -> Void
 
-    @FocusState private var nonFillFocus: EditEntryNonFillFocus?
+    var distanceUnit: DistanceUnit { vehicle.units.distance }
 
-    private var distanceUnit: DistanceUnit { vehicle.units.distance }
+    /// The `ScrollViewReader` id the odometer card carries, so the
+    /// `-scrollToNonFillOdometer` screenshot pose can bring the F9a warn row
+    /// (which sits under the field) into view - `simctl` cannot scroll.
+    static let odometerScrollTarget = "editEntryNonFillOdometerScrollTarget"
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 9) {
-                receiptCard
-                typeCard
-                if let expense = entry as? Expense, expense.category == .parts {
-                    TireSetPurchaseCard(linkedSet: linkedTireSet, onMake: onMakeTireSet)
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(spacing: 9) {
+                    receiptCard
+                    typeCard
+                    if let expense = entry as? Expense, expense.category == .parts {
+                        TireSetPurchaseCard(linkedSet: linkedTireSet, onMake: onMakeTireSet)
+                    }
+                    moneyCard
+                    ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
+                    odometerCard
+                        .id(Self.odometerScrollTarget)
+                    if let neighbourhood {
+                        TimelineNeighbourhoodCard(model: neighbourhood,
+                                                  distanceUnit: distanceUnit)
+                    }
+                    EditEntryRows.noteRow(text: $form.note, identifier: "editEntryNonFillNoteField")
+                    if let syncOverwrite {
+                        EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
+                                                       replacedAt: syncOverwrite.replacedAt,
+                                                       onRestore: onRestore)
+                    }
+                    // No consumption footnote here. "Edits recalculate consumption
+                    // for this and the next fill-up" is a FILL-UP's promise: a
+                    // service, an expense or a charge moves no consumption segment
+                    // (docs/SCHEMA.md - only FillUp changes trigger a recompute),
+                    // and saying otherwise on an expense told the user their
+                    // parking receipt would move their L/100km.
                 }
-                moneyCard
-                ManualFillUpDateRow(date: $form.date, showDatePicker: $showDatePicker)
-                odometerRow
-                EditEntryRows.noteRow(text: $form.note, identifier: "editEntryNonFillNoteField")
-                if let syncOverwrite {
-                    EditEntryRows.changedBySyncRow(deviceName: syncOverwrite.deviceName,
-                                                   replacedAt: syncOverwrite.replacedAt,
-                                                   onRestore: onRestore)
-                }
-                // No consumption footnote here. "Edits recalculate consumption
-                // for this and the next fill-up" is a FILL-UP's promise: a
-                // service, an expense or a charge moves no consumption segment
-                // (docs/SCHEMA.md - only FillUp changes trigger a recompute),
-                // and saying otherwise on an expense told the user their
-                // parking receipt would move their L/100km.
+                .padding(.horizontal, Theme.Spacing.screenMargin)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, Theme.Spacing.screenMargin)
-            .padding(.bottom, 24)
+            .scrollDismissesKeyboard(.immediately)
+            #if DEBUG
+            .onAppear { scrollToOdometerIfRequested(proxy) }
+            #endif
         }
-        .scrollDismissesKeyboard(.immediately)
     }
+
+    /// Screenshot-only pose (like every `-open*` seam): scroll the odometer
+    /// card to the top of the viewport once it exists, so a capture shows the
+    /// F9a warn row rather than the form's top. `simctl` cannot scroll.
+    #if DEBUG
+    private func scrollToOdometerIfRequested(_ proxy: ScrollViewProxy) {
+        guard ProcessInfo.processInfo.arguments.contains("-scrollToNonFillOdometer") else { return }
+        Task {
+            for _ in 0..<12 {
+                try? await Task.sleep(for: .milliseconds(300))
+                withAnimation { proxy.scrollTo(Self.odometerScrollTarget, anchor: .top) }
+                return
+            }
+        }
+    }
+    #endif
 
     /// RV.202: the same three-way receipt branch the fill-up form uses. An
     /// entry that already carries a receipt shows it (view/replace/delete live
@@ -108,7 +149,7 @@ struct EditEntryNonFillView: View {
         case let charge as ChargeSession:
             VStack(spacing: 0) {
                 // RV.47: whole row (label + gap) focuses the field.
-                FocusableFieldRow("Energy", $nonFillFocus, equals: .energy,
+                FocusableFieldRow("Energy", $focus, equals: .energy,
                                   rowIdentifier: "editEntryEnergyRow") {
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         TextField("0", text: $form.energyKWh)
@@ -116,7 +157,7 @@ struct EditEntryNonFillView: View {
                             .multilineTextAlignment(.trailing)
                             .font(.custom(AppFonts.dinAlternateBold, size: 24))
                             .foregroundStyle(Theme.Palette.ink)
-                            .focused($nonFillFocus, equals: .energy)
+                            .focused($focus, equals: .energy)
                             .accessibilityIdentifier("editEntryEnergyField")
                             .numericInput($form.energyKWh, kind: .decimal)
                         Text(L10n.kWh)
@@ -125,26 +166,26 @@ struct EditEntryNonFillView: View {
                     }
                 }
                 CardDivider()
-                FocusableFieldRow("Provider", $nonFillFocus, equals: .provider,
+                FocusableFieldRow("Provider", $focus, equals: .provider,
                                   rowIdentifier: "editEntryProviderRow") {
                     TextField(charge.provider ?? L10n.localize("Provider"), text: $form.provider)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.ink)
-                        .focused($nonFillFocus, equals: .provider)
+                        .focused($focus, equals: .provider)
                         .accessibilityIdentifier("editEntryProviderField")
                 }
             }
             .formCard()
         case let service as ServiceRecord:
             VStack(spacing: 9) {
-                FocusableFieldRow("Vendor", $nonFillFocus, equals: .vendor,
+                FocusableFieldRow("Vendor", $focus, equals: .vendor,
                                   rowIdentifier: "editEntryVendorRow") {
                     TextField(service.vendor ?? L10n.localize("Vendor"), text: $form.vendor)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.ink)
-                        .focused($nonFillFocus, equals: .vendor)
+                        .focused($focus, equals: .vendor)
                         .accessibilityIdentifier("editEntryVendorField")
                 }
                 .formCard()
@@ -168,13 +209,13 @@ struct EditEntryNonFillView: View {
             }
         case let expense as Expense:
             VStack(spacing: 0) {
-                FocusableFieldRow("Title", $nonFillFocus, equals: .title,
+                FocusableFieldRow("Title", $focus, equals: .title,
                                   rowIdentifier: "editEntryTitleRow") {
                     TextField(expense.title, text: $form.title)
                         .multilineTextAlignment(.trailing)
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.ink)
-                        .focused($nonFillFocus, equals: .title)
+                        .focused($focus, equals: .title)
                         .accessibilityIdentifier("editEntryTitleField")
                 }
                 CardDivider()
@@ -235,7 +276,7 @@ struct EditEntryNonFillView: View {
 
     private var moneyCard: some View {
         VStack(spacing: 0) {
-            FocusableFieldRow("Amount", $nonFillFocus, equals: .amount,
+            FocusableFieldRow("Amount", $focus, equals: .amount,
                               rowIdentifier: "editEntryAmountRow") {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     TextField("0.00", text: $form.amount)
@@ -243,7 +284,7 @@ struct EditEntryNonFillView: View {
                         .multilineTextAlignment(.trailing)
                         .font(.custom(AppFonts.dinAlternateBold, size: 24))
                         .foregroundStyle(Theme.Palette.ink)
-                        .focused($nonFillFocus, equals: .amount)
+                        .focused($focus, equals: .amount)
                         .accessibilityIdentifier("editEntryAmountField")
                         .numericInput($form.amount, kind: .decimal)
                     Text(AddVehicleSupport.moneySymbol(for: form.currency))
@@ -335,32 +376,6 @@ struct EditEntryNonFillView: View {
         }
     }
 
-    private var odometerRow: some View {
-        FocusableFieldRow("Odometer", $nonFillFocus, equals: .odometer,
-                          rowIdentifier: "editEntryOdometerRow") {
-            HStack(alignment: .firstTextBaseline, spacing: 5) {
-                TextField("", text: $form.odometer)
-                    .keyboardType(.numberPad)
-                    .multilineTextAlignment(.trailing)
-                    .font(.custom(AppFonts.dinAlternateBold, size: 24))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .focused($nonFillFocus, equals: .odometer)
-                    .accessibilityIdentifier("editEntryOdometerField")
-                    .numericInput($form.odometer, kind: .integer)
-                    .onChange(of: nonFillFocus) { oldValue, newValue in
-                        if newValue == .odometer {
-                            form.odometer = OdometerFormat.ungrouped(form.odometer)
-                        } else if oldValue == .odometer, let value = form.odometerValue {
-                            form.odometer = OdometerFormat.grouped(value)
-                        }
-                    }
-                Text(L10n.distanceUnit(distanceUnit))
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft)
-            }
-        }
-        .formCard()
-    }
 }
 
 /// One stored service line item made editable: its title, its category, its

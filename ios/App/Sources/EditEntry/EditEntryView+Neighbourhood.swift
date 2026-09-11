@@ -49,4 +49,26 @@ extension EditEntryView {
         }
     }
     #endif
+
+    // MARK: - RV.230 the non-fill edit's F9a conflict
+
+    /// The F9a warn the non-fill edit's odometer card renders, derived from the
+    /// form exactly as `writeNonFill` derives the stored flag. Nil unless the
+    /// edited entry currently flags. `fillUp == nil` keeps this the non-fill
+    /// path even though `currentEntry` is shared.
+    var nonFillConflict: OdometerConflict? {
+        guard fillUp == nil, let vehicle, let entry = currentEntry else { return nil }
+        return nonFillForm.odometerConflict(for: entry, vehicle: vehicle,
+                                            existingEntries: otherEntries,
+                                            distanceUnit: distanceUnit)
+    }
+
+    /// The neighbourhood behind `nonFillConflict` - the evidence for the quote
+    /// the warn row prints. Nil when there is no order or pace flag (or no
+    /// odometer), which renders no panel and no empty box.
+    var nonFillNeighbourhood: TimelineNeighbourhood? {
+        guard fillUp == nil, let vehicle, let entry = currentEntry else { return nil }
+        return nonFillForm.timelineNeighbourhood(for: entry, vehicle: vehicle,
+                                                 existingEntries: otherEntries)
+    }
 }

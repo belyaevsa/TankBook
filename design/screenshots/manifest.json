@@ -1975,6 +1975,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.230-service-conflict": {
+      "commit": "8f52c39c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.230-service-conflict-ru": {
+      "commit": "8f52c39c",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.24-language": {
       "commit": "e3ea16c",
       "device": "iPhone 17",

@@ -45,6 +45,9 @@ struct EditEntryView: View {
     // FillUp form (reuses the ConfirmManual components).
     @State var fillForm = ManualFillUpFormState()
     @FocusState private var fillFocus: ManualFillUpFocus?
+    // RV.230: the non-fill form's focus. Held here (like `fillFocus`) so the
+    // shared `F9aWarningRow`'s Fix can focus the odometer through a binding.
+    @FocusState private var nonFillFocus: EditEntryNonFillFocus?
     // The other three entry types. Internal (not private) so the RV.31 discard
     // extension in EditEntryView+Discard.swift can read it for the dirty check.
     @State var nonFillForm = EditEntryNonFillForm()
@@ -214,6 +217,13 @@ struct EditEntryView: View {
     private func nonFillContent(_ entry: any Entry, vehicle: Vehicle) -> some View {
         EditEntryNonFillView(form: $nonFillForm, entry: entry,
                              vehicle: vehicle,
+                             focus: $nonFillFocus,
+                             // RV.230: the F9a warn and its neighbourhood are
+                             // derived from the form the same way the save
+                             // stamps the flag, so a conflict is visible here
+                             // instead of silently carried (hard rules 7 and 8).
+                             odometerConflict: nonFillConflict,
+                             neighbourhood: nonFillNeighbourhood,
                              offer: currencyOffer(vehicle: vehicle),
                              attachments: attachments,
                              showDatePicker: $showDatePicker,

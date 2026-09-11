@@ -12,6 +12,10 @@ enum EditEntryServiceTestSeed {
     /// and seeded, so the caller stops.
     @MainActor
     static func seedIfRequested(arguments: [String]) -> Bool {
+        if arguments.contains("-seedEditEntryServiceConflict") {
+            seedServiceConflict()
+            return true
+        }
         if arguments.contains("-seedEditEntryServiceMismatch") {
             seedServiceMismatch()
             return true
@@ -25,6 +29,45 @@ enum EditEntryServiceTestSeed {
             return true
         }
         return false
+    }
+
+    /// RV.230 screenshot/test seam: a SERVICE whose odometer breaks the car's
+    /// timeline, opened in Edit entry. The prior fill at 118 500 km makes the
+    /// service's 117 900 km an F9a order conflict, so the edit screen's odometer
+    /// card must render the amber warn and its single Fix - the surface this
+    /// row adds. The service is the newest entry, so `-presentScreen editEntry`
+    /// opens it. Like the other resetting seeds, it wipes first under
+    /// `-homeResetDatabase` so an EN-then-RU capture pair both start from the
+    /// same state.
+    @MainActor
+    private static func seedServiceConflict() {
+        let arguments = ProcessInfo.processInfo.arguments
+        if arguments.contains("-homeResetDatabase") {
+            AppStore.resetForTestsOncePerLaunch()
+        }
+        guard let repository = try? AppStore.repository() else { return }
+        guard (try? repository.liveVehicles())?.isEmpty != false else { return }
+
+        let vehicle = HomeTestSeed.makeVehicle()
+        try? repository.upsertVehicle(vehicle)
+        try? repository.upsertFillUp(HomeTestSeed.makeFill(
+            vehicleID: vehicle.id,
+            HomeTestSeed.FillSpec(daysAgo: 15, odometer: 118_500, litres: 41.2,
+                                  amount: "66.90", price: "1.624", stationID: nil)))
+
+        let now = Date()
+        try? repository.upsertServiceRecord(ServiceRecord(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now, odometer: 117_900,
+            money: Money(amount: Decimal(string: "148.00")!, currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, vendor: "Bosch Service",
+            items: [ServiceItem(title: "Oil service incl. filter", category: .oil,
+                                cost: Money(amount: Decimal(string: "89.00")!,
+                                            currency: .eur, homeCurrency: .eur),
+                                partNumber: "MANN W 712/75",
+                                lifetime: ServiceItem.Lifetime(km: 15_000, months: 12))],
+            usedParts: [], tireSetId: nil))
     }
 
     /// PJ.23 screenshot/test seam: a SERVICE record with two line items, the

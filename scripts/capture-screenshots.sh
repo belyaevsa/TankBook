@@ -598,6 +598,17 @@ capture RV.199-service-sum-ru   ru -seedEditEntryServiceMismatch -presentScreen 
 capture RV.199-service-mixed      en -seedEditEntryServiceMixedCurrency -presentScreen editEntry
 capture RV.199-service-mixed-ru   ru -seedEditEntryServiceMixedCurrency -presentScreen editEntry
 
+# RV.230: the F9a warn on a non-fill EDIT - a service whose odometer breaks the
+# car's timeline, so the odometer card carries the amber row and its single Fix
+# (the shared component the fill-up edit uses, never a copy). Before this row
+# the edit screen rendered no warning at all, so the flag the save stamped could
+# not be seen or cleared. The odometer card sits below the fold on the long
+# service form, so `-scrollToNonFillOdometer` parks it at the top (simctl cannot
+# scroll). RU is where the composed quote and "Исправить" sit tightest beside
+# the chip.
+capture RV.230-service-conflict    en -seedEditEntryServiceConflict -presentScreen editEntry -scrollToNonFillOdometer
+capture RV.230-service-conflict-ru ru -seedEditEntryServiceConflict -presentScreen editEntry -scrollToNonFillOdometer
+
 # RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
 # Confirm, RV.149) - the message a fill-up save shows after its photo write
 # fails, rendered by the real toast host over Home. A pose: the exact line the

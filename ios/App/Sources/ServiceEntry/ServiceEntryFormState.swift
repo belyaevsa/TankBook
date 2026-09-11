@@ -258,33 +258,12 @@ extension ServiceEntryFormState {
     /// neighbour to quote; a pace-only flag has no quote.
     func odometerConflict(vehicle: Vehicle, existingEntries: [any Entry],
                           distanceUnit: DistanceUnit) -> OdometerConflict? {
-        guard let odo = odometerValue else { return nil }
-        let candidate = candidate(vehicle: vehicle)
-        let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
-                                                     vehicle: vehicle)
-        guard let validation = validations.first(where: { $0.entryID == candidate.id }),
-              let flag = validation.flags.first else { return nil }
-        // RV.211: a service presents the ONE odometer fix, not the fill-up's
-        // ranked list - the rule and its reason live in `F9aFixPresentation`.
-        let fixes = F9aFixPresentation.fixes(validation.suggestions, for: .service)
-        switch flag.detail {
-        case .order(_, let previousOdometer, let previousDate, _, _):
-            if let previousOdometer, let previousDate, odo <= previousOdometer {
-                let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
-                // RV.134: the quote is the vehicle's OWN distance unit, exactly
-                // as the Confirm sheet renders it - never a hardcoded km.
-                let quote = OdometerConflict.quote(day: day, odometer: previousOdometer,
-                                                   distanceUnit: distanceUnit)
-                return OdometerConflict(quote: quote, flagKind: flag.kind, suggestions: fixes)
-            }
-            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
-        case .pace:
-            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
-        case .consumption:
-            // A service record closes no fuel segment, so CHECK 5 never fires on
-            // the candidate this card renders.
-            return nil
-        }
+        // RV.211/RV.230: the one warn builder both the service create card and
+        // the non-fill edit card call. It collapses the validator's ranked list
+        // to the single odometer fix for a service (`F9aFixPresentation`).
+        OdometerConflict.from(candidate: candidate(vehicle: vehicle),
+                              existingEntries: existingEntries, vehicle: vehicle,
+                              kind: .service, distanceUnit: distanceUnit)
     }
 
     /// A best-effort candidate `ServiceRecord` used ONLY to run the timeline

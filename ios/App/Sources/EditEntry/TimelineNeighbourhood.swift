@@ -55,20 +55,21 @@ struct TimelineNeighbourhood: Equatable {
     }
 }
 
-extension ManualFillUpFormState {
-    /// Runs the form's candidate through the timeline validator and, when it
-    /// flags and carries a `validRange`, returns the derived neighbourhood the
-    /// F9a panel draws. Both doors - Edit entry opened on a stored flag and
-    /// the live conflict as the user types - land here, so the panel tracks the
-    /// candidate exactly as the odometer card's warning does.
+extension TimelineNeighbourhood {
+    /// Runs `candidate` through the timeline validator and, when it flags and
+    /// carries a `validRange`, returns the derived neighbourhood the F9a panel
+    /// draws. Both doors - Edit entry opened on a stored flag and the live
+    /// conflict as the user types - land here, so the panel tracks the candidate
+    /// exactly as the odometer card's warning does. The candidate's own kind
+    /// decides the order/pace rules (a charge measures travel, a service or an
+    /// expense is an annotation), so the caller builds it, never this function.
     ///
     /// `nil` means "no neighbourhood to show": the entry records no odometer,
     /// the candidate no longer flags, or the validator handed back no range. A
     /// `nil` return renders NO panel and no empty box.
-    func timelineNeighbourhood(vehicle: Vehicle,
-                               existingEntries: [any Entry]) -> TimelineNeighbourhood? {
-        guard let odo = odometerValue else { return nil }
-        let candidate = candidate(vehicle: vehicle)
+    static func derive(candidate: any Entry, vehicle: Vehicle,
+                       existingEntries: [any Entry]) -> TimelineNeighbourhood? {
+        guard let odo = candidate.odometer else { return nil }
         let timeline = existingEntries + [candidate]
 
         // The intervals are the validator's own output - the SAME pass, the SAME
@@ -126,6 +127,17 @@ extension ManualFillUpFormState {
             points: points,
             previous: behind.first,
             next: ahead.first)
+    }
+}
+
+extension ManualFillUpFormState {
+    /// The fill-up edit's neighbourhood: its candidate is a `FillUp`, built by
+    /// the form (`candidate(vehicle:)`), which is what makes the fill-up order
+    /// rules apply.
+    func timelineNeighbourhood(vehicle: Vehicle,
+                               existingEntries: [any Entry]) -> TimelineNeighbourhood? {
+        TimelineNeighbourhood.derive(candidate: candidate(vehicle: vehicle),
+                                     vehicle: vehicle, existingEntries: existingEntries)
     }
 }
 

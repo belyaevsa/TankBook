@@ -306,6 +306,40 @@ struct OdometerConflict: Equatable {
     }
 }
 
+extension OdometerConflict {
+    /// RV.230: the warn a NON-fill entry kind derives from its own candidate -
+    /// the SAME switch the service create card and the non-fill edit card both
+    /// call, so the surfaces cannot drift. The fix list comes from
+    /// `F9aFixPresentation` for the entry kind (the single odometer fix). A
+    /// `.consumption` flag never fires on a service, expense or charge candidate
+    /// (none closes a fuel segment), so it yields nil rather than a warn whose
+    /// next step would not fit.
+    static func from(candidate: any Entry, existingEntries: [any Entry],
+                     vehicle: Vehicle, kind: F9aFixPresentation.EntryKind,
+                     distanceUnit: DistanceUnit) -> OdometerConflict? {
+        guard let odo = candidate.odometer else { return nil }
+        let validations = TimelineValidator.validate(entries: existingEntries + [candidate],
+                                                     vehicle: vehicle)
+        guard let validation = validations.first(where: { $0.entryID == candidate.id }),
+              let flag = validation.flags.first else { return nil }
+        let fixes = F9aFixPresentation.fixes(validation.suggestions, for: kind)
+        switch flag.detail {
+        case .order(_, let previousOdometer, let previousDate, _, _):
+            if let previousOdometer, let previousDate, odo <= previousOdometer {
+                let day = previousDate.formatted(.dateTime.month(.abbreviated).day())
+                let quote = OdometerConflict.quote(day: day, odometer: previousOdometer,
+                                                    distanceUnit: distanceUnit)
+                return OdometerConflict(quote: quote, flagKind: flag.kind, suggestions: fixes)
+            }
+            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
+        case .pace:
+            return OdometerConflict(quote: nil, flagKind: flag.kind, suggestions: fixes)
+        case .consumption:
+            return nil
+        }
+    }
+}
+
 extension ManualFillUpFormState {
     /// Runs the candidate entry through `TimelineValidator` against the
     /// vehicle's existing timeline. Returns the warn the odometer card renders:
