@@ -86,89 +86,47 @@ the two-bundle rule in the standing checks - **`-only-testing` across two bundle
 the app-target suite and the UI suite are separate invocations, each with its count read (found
 2026-09-11 on `RV.201`, exit 0 with a suite that never ran).
 
-### 1. Scenario walks - DONE 2026-09-11, eight in parallel
+### The goal is a scenario, one at a time (product owner, 2026-09-11)
 
-Eight read-only reviews ran beside nothing (`agents/briefs/REVIEW-SCENARIO-<id>-2026-09-11.md`,
-reports in `diagnostics/`). **One IMPLEMENTED - `F3`, the first status line in `JOURNEYS.md`.**
-Seven NOT IMPLEMENTED, every citation spot-checked by the orchestrator in the tree:
+*"Set the queue with a goal to complete the defined scenarios / journeys, one after another."*
+The unit of work is now a **scenario**, not a row. Each scenario below is worked to its end: its
+v1 rows shipped as seam briefs, then `REVIEW-SCENARIO` re-run, then - on IMPLEMENTED - the status
+line under its heading. **Nothing from the next scenario is dispatched until the current one has
+its verdict.** `scripts/scenario-index.py` is the map; since 2026-09-11 a row deferred to
+`[v1.1]`/`[v1.x]`/`[v2]` is listed but does not hold a v1 story open (the review marks it N/A).
 
-| Scenario | Verdict | What the walk found | Filed as |
-|---|---|---|---|
-| **F3** | **IMPLEMENTED** | Location ranking is pure core, the reader touches no network; only the success metric is unmeasurable | `RV.225` (polish) |
-| **F2** | not | *"consumption outlier check on save"* is promised and has no code anywhere | `RV.218` |
-| **F5** + **J5** | not | Converged independently on one line: the QR date is parsed, tested, and never applied - `qrAnchor:` has no production caller | `RV.219` (one row, both scenarios) |
-| **F6b** | not | *Import as service* and *Leave out* call the same `toggleSkipped`; the station is rendered nowhere on the review row | `RV.220` (bug), `RV.221` |
-| **F8** | not | A grant in Settings returns to a blank preview (`camera.start()` has one call site); a camera fault is a silent no-op under a comment claiming a fallback | `RV.222`, `RV.223` |
-| **J7** | not, as expected | Every gap owned by an open row except one polish caption | `RV.224` |
-| **J7b** | not, as expected | No ticked row untrue; every gap already owned. **No new rows** - the right answer from a walk | - |
+**Already implemented:** `F3` (2026-09-11). **Ready for review with no v1 rows open:** `F4`, `F6a`,
+`F7`, `J1`* , `J6`, `J9` - walk them next, they cost nothing (*`J1` has `PJ.51`, see scenario 9).
 
-**Zero ticked rows found untrue across all eight.** Every finding was an unowned promise in the
-journey text or a comment naming behaviour with no call site - the two shapes the review exists for.
+The order is cheapest-to-close first while the seams are fresh, then the core journey, then the
+service loop, then the launch blockers that are single rows on otherwise-finished stories.
 
-### 2. Critical before launch - eight rows, briefed as they are
+| # | Scenario | v1 rows to close | Briefs (by seam) | Then |
+|---|---|---|---|---|
+| 1 | **J5 + F5** the fiscal QR | `RV.219` | one - the assembler passes the anchor | re-walk both; two status lines from one line of code |
+| 2 | **F8** permissions and hardware said no | `RV.222`, `RV.223` | one - the capture cover's recovery paths | re-walk |
+| 3 | **F6b + F6** the import review row | `RV.220` (bug, first), `RV.221`, `RV.191` | one - `ImportReviewView`'s row, EN+RU | re-walk both |
+| 4 | **F2** scan recognized wrong data | `RV.218` | one - the outlier flag from the one `ConsumptionEngine` | re-walk |
+| 5 | **F1, F9a, J3b** - one row each | `RV.164`, `RV.211`, `RV.134` | three small briefs, or one if the seams touch (`RV.164` and `RV.211` are both error-surface rows) | re-walk each |
+| 6 | **J3** the five-second fill-up - the core journey | `RV.197`! (guest never sees the fill), `RV.208`! (dangling ids on phones), `RV.204`, `RV.209`, `RV.215`, `RV.216`, `RV.217` | **`RV.197` and `RV.208` first, alone** - they are on users' phones. Then the Inbox card (`RV.216`+`RV.217`+`RV.204`), the attachment builders (`RV.209`), the deferred producer (`RV.215`) | re-walk `J3` and `J8b` (`RV.181` stays skipped by the owner - the review marks it as such) |
+| 7 | **J7 + J7b + J7c + J7d** the service loop | `RV.212`, `RV.213`, `RV.224`, `RV.214`, `PJ.60`, `PJ.61` (+ `RV.205` needs photographs) | the service create door (`RV.212`+`213`+`224`), the save gate (`RV.214`, closing `PJ.50` against `RV.206`), then **decide** `PJ.60`/`PJ.61` with the owner - `PJ.61` after `RV.207` | re-walk all four; `RV.205` is N/A until a non-fuel receipt exists |
+| 8 | **J11, J11a, J10, J2, F9, F10** - launch blockers on finished stories | `RV.155`, `RV.108`, `RV.143`, `PJ.58`!, `RV.158`+`RV.138`, `PJ.59` | one brief each except `F9`'s pair | re-walk each |
+| 9 | **J1** first launch | `PJ.51` - the listing promises what the build does not ship | the owner's copy decision, then one brief | re-walk; `PJ.42` is N/A |
+| 10 | **J4** pump display | `RV.115`, `RV.114`, `RV.179` | `RV.115` is a product call; the other two wait for photographs | walk when the corpus exists |
+| 11 | **J8, J13** | `RV.148` (owner-deferred), `RV.181` (owner-skipped) | none - both are the owner's calls | walk and mark N/A with the owner's reason |
 
-| # | Row | Scenario | Why it cannot wait |
-|---|---|---|---|
-| 1 | **RV.197** `[!]` | J8b | A guest logs a fill-up and never sees it. Hard rule 1 in its plainest form; 443 UI tests missed it because every one signs in first |
-| 2 | **RV.208** `[!]` | J3 / J8b | Entries already on users' phones may carry a dangling attachment id. A migration, not a fix, and it gets worse with every install |
-| 3 | **RV.155** | J11 | The pull cursor went backwards and re-fetched 274 records it already had |
-| 4 | **RV.143** | J10 | A home-currency change arriving by sync re-homes nothing on the receiving device. Decide the [RV.152] prompt first, then this is what is left |
-| 5 | **PJ.58** `[!]` | J2 | A second hardcoded `.eur`, on service line items - `RV.185`'s fix one entry kind short, invisible to `RV.167`'s guard |
-| 6 | **PJ.51** | J1 | The store listing promises EV logging and six importers. App Review reads the listing. Ship the paths or change the words |
-| 7 | **RV.174** | *no-scenario: the gate itself* | The per-task gate is green on code that does not compile into the app. Every dispatch after this one is safer for it |
-| 8 | **RV.207** `[!]` | *no-scenario: guard blind spot* | The field guard counts a pass-through as a write, so a dead field hides behind `??`. `PJ.61` cannot be briefed honestly until this lands |
+**Cross-cutting, before scenario 6**: `RV.174` (the gate can be green on code that does not
+compile into the app) and `RV.207` (the field guard's pass-through blind spot). Both are
+`no-scenario` and both make every later dispatch safer; `RV.207` gates `PJ.61`.
 
-`RV.197` and `RV.208` first: they are on users' phones today.
+**Cross-cutting, before the next dispatch at all**: the mechanisation - `agents/briefs/PREAMBLE.md`,
+`scripts/dispatch.sh` (launch, log, 60-second byte check, one retry), and the two-bundle rule.
 
-### 3. The J3 / J7 tail and the walks' findings - seam briefs
-
-The rows filed this week by agents reporting what they correctly refused to build, plus the
-orchestrator's screenshot findings. Grouped by seam, each brief's L1 asserted from every kind:
-
-| # | Seam | Rows | One brief because |
-|---|---|---|---|
-| 1 | **The Inbox card** - copy, label table, RU column | `RV.216`, `RV.217`, `RV.204` | Same card, same `FieldLabel`, same narrow column. `RV.217` is the hint-column mistake the owner already rejected once on another screen |
-| 2 | **The service create door** | `RV.212`, `RV.213`, `RV.224` | Same screen: lifetime on create, the km-needs-odometer rule on both doors, the invoice caption that outlives an edit |
-| 3 | **What names a row well enough to save on** | `RV.214`, `PJ.50` | The service gate is `RV.206`'s decision one entry kind over. `PJ.50`'s complaint is already answered by `RV.206`; close it against that row and keep only its merchant-line suggestion if wanted |
-
-Three more seams from the walks, each one brief:
-
-| # | Seam | Rows | One brief because |
-|---|---|---|---|
-| 4 | **The capture cover's recovery paths** | `RV.222`, `RV.223` | Same screen, same `capture()` nil path, same false comments |
-| 5 | **The import review row** | `RV.220`, `RV.221` | Same `ImportReviewView` row; `RV.220` is a hard rule 8 bug and goes first |
-| 6 | **The QR anchor** | `RV.219` | One line in the assembler, two scenarios (J5, F5) closed by it |
-
-`RV.218` (the outlier check) is standalone and touches `ConsumptionEngine`; it goes after `RV.219`.
-
-Standalone after those, in this order: **`RV.215`** (the producing side is synchronous - the deferral
-half `RV.201` filed with the seam named), **`RV.209`** (two `Attachment` builders disagree),
-**`RV.211`** (F9a ranking on service and expense), **`RV.134`** (units baked into five sentences),
-**`RV.191`** (RU import card below the fold).
-
-### 4. Decide or drop - with the product owner, not an agent
-
-| Row | The decision |
-|---|---|
-| **PJ.60** / **PJ.61** | `Expense.recurrence` and `ServiceItem.partNumber` are written `nil` and read nowhere. A writer, or delete the fields. `PJ.61` waits for `RV.207` |
-| **RV.115** | A station BRAND list, or every spelling of a chain stays a different station. Product call |
-| **RV.108** | `GET /v1/account` is normative in `API.md` and does not exist. Fix the doc or build it |
-| **RV.138**, **RV.158**, **RV.164** | Each small, each a judgement rather than a build |
-| **RV.181** `[!]` | **Skipped by the owner, 2026-09-10.** The hardening shipped (`ae775cf`); the cause needs one share attempt from the physical iPhone 13. The row should say *skipped* or close |
-| **RV.148** | **Deferred by the owner, 2026-09-09** (*"we will come to it later"*). Parked, not blocked |
-
-### 5. Needs photographs, not an agent
-
-`RV.114` (six Estonian pump photos, unscored), `RV.179` (the corpus cannot say whether station
-extraction is right), `RV.205` `[!]` (zero non-fuel receipt images). Nothing moves until the product
-owner's next receipts arrive.
-
-### 6. Hardening and tooling - post-launch by their own markers
+### Hardening and tooling - post-launch by their own markers
 
 `PR.19`, `PR.21`-`PR.26`, `PR.32`, `PR.33`, `PR.36` (all `[v1.0.x]`), `RV.109`, `RV.129`, `RV.130`,
-`RV.168`, `RV.169`, `RV.175`, `RV.194` (briefed - slow, and its final judgement is the
-orchestrator's), `RV.203`, `RV.210`, `T.3`. None blocks launch. `RV.194` goes when a simulator is
-idle for an hour.
+`RV.168`, `RV.169`, `RV.175`, `RV.194` (briefed - slow; when a simulator is idle for an hour),
+`RV.203`, `RV.210`, `RV.225`, `T.3`. None blocks a scenario.
 
 ### Not queued: deferred v1.1 / v1.x and the v2 agent
 

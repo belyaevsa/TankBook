@@ -27,7 +27,10 @@ OPEN_FILE = DOCS / "TASKS.md"
 DONE_FILE = DOCS / "TASKS-DONE.md"
 JOURNEYS = DOCS / "JOURNEYS.md"
 
-ROW = re.compile(r"^\|\s*\*\*\[(x|~|!|cut| )\]\*\*\s*([A-Z]+\.[0-9]+[a-z]?)\s*\|\s*(.*)$")
+# The id cell may carry a version marker after the id: `RV.118 **[v1.1]**`.
+ROW = re.compile(r"^\|\s*\*\*\[(x|~|!|cut| )\]\*\*\s*([A-Z]+\.[0-9]+[a-z]?)\b([^|]*)\|\s*(.*)$")
+# A row deferred past v1 does not hold a v1 story open; the review treats it as N/A.
+DEFERRED = re.compile(r"\[(v1\.[0-9x]+|v2)\]")
 SCENARIO = re.compile(r"\b(J[0-9]+[a-d]?|F[0-9]+[ab]?)\b")
 NO_SCENARIO = re.compile(r"no-scenario:\s*(\S.*?)(?:\||$)")
 HEADING = re.compile(r"^###\s+(J[0-9]+[a-d]?|F[0-9]+[ab]?)\s*[·.]?\s*(.*)$")
@@ -50,11 +53,16 @@ def rows():
             match = ROW.match(line)
             if not match:
                 continue
-            status, rid, body = match.groups()
+            status, rid, idtail, body = match.groups()
             cell = body.split(" | ")[0]
             reason = NO_SCENARIO.search(cell)
+            # Deferred only when the marker is on the id or leads the row's own
+            # text - a row that merely MENTIONS a v1.1 row is still v1 work.
+            lead = cell.lstrip()[:24]
+            deferred = (bool(DEFERRED.search(idtail)) or lead.startswith("**[v")
+                        or rid.startswith("AG."))
             yield (rid, status, sorted(set(SCENARIO.findall(cell))),
-                   reason.group(1).strip() if reason else None, path.name)
+                   reason.group(1).strip() if reason else None, path.name, deferred)
 
 
 def main() -> int:
@@ -66,7 +74,7 @@ def main() -> int:
 
     if check:
         problems = 0
-        for rid, _, _, _, where in unattached:
+        for rid, _, _, _, where, _ in unattached:
             print(f"{where}: {rid} names no scenario. Add the journey id it serves "
                   f"(see docs/JOURNEYS.md), or `no-scenario: <reason>`.")
             problems += 1
@@ -79,31 +87,36 @@ def main() -> int:
         print(f"PASS: {len(all_rows)} rows, every open one attached to a scenario.")
         return 0
 
-    by_scenario: dict[str, list[tuple[str, str]]] = {}
-    for rid, status, scenarios, _, _ in all_rows:
+    by_scenario: dict[str, list[tuple[str, str, bool]]] = {}
+    for rid, status, scenarios, _, _, deferred in all_rows:
         for scenario in scenarios:
-            by_scenario.setdefault(scenario, []).append((rid, status))
+            by_scenario.setdefault(scenario, []).append((rid, status, deferred))
 
+    # A scenario is READY for its v1 review when every v1 row naming it is
+    # closed; rows deferred to v1.1/v1.x/v2 are listed but do not hold it open.
     ready, active = [], []
     for scenario, items in sorted(by_scenario.items()):
-        open_rows = [r for r, s in items if s in " !"]
-        (active if open_rows else ready).append((scenario, items, open_rows))
+        open_rows = [r for r, s, d in items if s in " !" and not d]
+        deferred = [r for r, s, d in items if s in " !" and d]
+        (active if open_rows else ready).append((scenario, items, open_rows, deferred))
 
     print("READY FOR THE SCENARIO REVIEW - every row naming these is closed.")
     print("Dispatch agents/briefs/REVIEW-SCENARIO.md before marking the story implemented.\n")
-    for scenario, items, _ in ready:
+    for scenario, items, _, deferred in ready:
+        note = f"  (deferred, not blocking: {', '.join(deferred)})" if deferred else ""
         print(f"  {scenario:5s} {defined.get(scenario, '(not in JOURNEYS.md)')[:56]:58s} "
-              f"{len(items)} row(s)")
+              f"{len(items)} row(s){note}")
 
     print("\nSTILL OPEN\n")
-    for scenario, items, open_rows in active:
+    for scenario, items, open_rows, deferred in active:
+        note = f"  +{len(deferred)} deferred" if deferred else ""
         print(f"  {scenario:5s} {defined.get(scenario, '(not in JOURNEYS.md)')[:56]:58s} "
               f"{len(open_rows)} of {len(items)} open: {', '.join(open_rows[:6])}"
-              f"{' …' if len(open_rows) > 6 else ''}")
+              f"{' …' if len(open_rows) > 6 else ''}{note}")
 
     if unattached:
         print(f"\nUNATTACHED - {len(unattached)} open row(s) name no scenario:")
-        for rid, _, _, _, _ in unattached:
+        for rid, _, _, _, _, _ in unattached:
             print(f"  {rid}")
     return 0
 
