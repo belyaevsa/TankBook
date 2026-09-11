@@ -58,8 +58,10 @@ def rows():
             reason = NO_SCENARIO.search(cell)
             # Deferred only when the marker is on the id or leads the row's own
             # text - a row that merely MENTIONS a v1.1 row is still v1 work.
-            lead = cell.lstrip()[:24]
-            deferred = (bool(DEFERRED.search(idtail)) or lead.startswith("**[v")
+            # The marker may follow the scenario link: `(J3 ...) **[v1.x]** **gap** ...`
+            lead = cell.lstrip()[:120]
+            deferred = (bool(DEFERRED.search(idtail))
+                        or bool(re.match(r"^(\([^)]*\)\s*)?\*\*\[v", lead))
                         or rid.startswith("AG."))
             yield (rid, status, sorted(set(SCENARIO.findall(cell))),
                    reason.group(1).strip() if reason else None, path.name, deferred)
