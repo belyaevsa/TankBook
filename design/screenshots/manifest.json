@@ -1835,6 +1835,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.218-consumption-outlier": {
+      "commit": "0c307b7f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.218-consumption-outlier-ru": {
+      "commit": "0c307b7f",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.219-qr-date": {
       "commit": "f262cb09",
       "device": "iPhone 17",

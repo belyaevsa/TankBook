@@ -152,6 +152,7 @@ struct ExcludedEntriesView: View {
     private func reasonIcon(_ reason: EntryExclusionReason) -> String {
         switch reason {
         case .timelineConflict: "exclamationmark.triangle.fill"
+        case .consumptionOutlier: "fuelpump.fill"
         case .unresolvedDuplicate: "doc.on.doc"
         }
     }
@@ -250,6 +251,8 @@ extension L10n {
         switch reason {
         case .timelineConflict:
             String(localized: "Timeline conflict – check the odometer or date")
+        case .consumptionOutlier:
+            String(localized: "Unusual consumption – check the litres or odometer")
         case .unresolvedDuplicate:
             String(localized: "Possible duplicate – Merge or Keep both")
         }

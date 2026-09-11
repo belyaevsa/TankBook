@@ -76,7 +76,11 @@ extension ManualFillUpFormState {
         // sentence and the amber warning can never disagree.
         let validations = TimelineValidator.validate(entries: timeline, vehicle: vehicle)
         guard let validation = validations.first(where: { $0.entryID == candidate.id }),
-              !validation.flags.isEmpty,
+              // The panel is the order/pace timeline's picture and interval: a
+              // CHECK 5 consumption hint leaves the odometer and date internally
+              // consistent, so it has no off-trend point to chart and no range
+              // to state (its own warn renders on the odometer card).
+              validation.flags.contains(where: { $0.kind != .consumption }),
               let validRange = validation.validRange else {
             return nil
         }

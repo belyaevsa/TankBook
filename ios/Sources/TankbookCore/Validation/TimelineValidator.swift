@@ -22,6 +22,11 @@ public enum TimelineValidator {
                        nextOdometer: Int?, nextDate: Date?)
             /// CHECK 2: implied km/day against a neighbour exceeds the limit.
             case pace(side: NeighbourSide, kmPerDay: Double, limitKmPerDay: Double)
+            /// CHECK 5: the consumption this fill closes implies is outside the
+            /// vehicle's plausible band (F2 residue). `per100` is the closing
+            /// segment's own figure - the SAME value Trends plots - so the
+            /// warning can quote it without a second formula.
+            case consumption(per100: Double, range: ClosedRange<Double>)
         }
     }
 
@@ -41,6 +46,13 @@ public enum TimelineValidator {
     public enum ResolutionSuggestion: Equatable, Sendable {
         case fixOdometer(from: Int?, to: Int?)
         case fixDate(from: Date?, to: Date?, requiresExplicitConfirmation: Bool)
+        /// CHECK 5: the two fields a consumption outlier can come from. The
+        /// litres are ranked first - the F2 case is a misread litre digit - and
+        /// the odometer second, because a wrong distance shifts the same figure
+        /// the other way. Neither is a "fix": the app does not know which is
+        /// wrong, so both are checks (hard rule 13).
+        case checkVolume
+        case checkOdometer
     }
 
     /// The validation result for one entry.
@@ -109,6 +121,10 @@ public enum TimelineValidator {
     /// - CHECK 2 (pace): implied km/day against each neighbour must be ≤
     ///   `vehicle.paceLimitKmPerDay`.
     /// - CHECK 3 (cross-check): `volumeL x unitPrice ≈ amount` for FillUps.
+    /// - CHECK 5 (consumption outlier, F2 residue): the segment a FillUp closes
+    ///   must imply a consumption inside the vehicle powertrain's plausible band
+    ///   (`ConsumptionOutlier`). The figure is the engine's own `Segment.per100`
+    ///   - one derivation, never a second formula (hard rule 2).
     /// - PRIORITY: entries whose attachment has an `extractedTimestamp` treat
     ///   the date as ground truth when ranking resolution suggestions.
     ///
@@ -123,7 +139,8 @@ public enum TimelineValidator {
                                 calendar: Calendar = .current) -> [EntryValidation] {
         let attachmentsByID = Dictionary(uniqueKeysWithValues: attachments.map { ($0.id, $0) })
         let sorted = entries.sorted(by: entryOrder)
-        let constraints = Constraints(limit: vehicle.paceLimitKmPerDay, calendar: calendar)
+        let constraints = Constraints(limit: vehicle.paceLimitKmPerDay, calendar: calendar,
+                                      consumption: consumptionConstraints(for: sorted, vehicle: vehicle))
         return sorted.indices.map { index in
             validate(sorted[index], at: index, in: sorted,
                      constraints: constraints, attachmentsByID: attachmentsByID)
@@ -155,13 +172,42 @@ public enum TimelineValidator {
         let measuresTravel: Bool
     }
 
-    /// The two values every check in one pass shares: the car's pace limit and
-    /// the calendar that decides what "same day" means. Bundled so the
-    /// neighbour walk and the two range builders stay within the parameter
-    /// budget as the same-day rule threads through them.
+    /// The values every check in one pass shares: the car's pace limit, the
+    /// calendar that decides what "same day" means, and the derived consumption
+    /// lookup CHECK 5 reads. Bundled so the neighbour walk and the two range
+    /// builders stay within the parameter budget as the same-day rule threads
+    /// through them.
     private struct Constraints {
         let limit: Double
         let calendar: Calendar
+        let consumption: ConsumptionConstraints
+    }
+
+    /// CHECK 5's shared derivation: the engine's `per100` for every segment
+    /// closing at a fill in this pass, plus the band it is compared against.
+    /// `byClosingFillID` is keyed on the closing fill because a segment is the
+    /// consumption a fill IMPLIES - the one the flag is raised on.
+    private struct ConsumptionConstraints {
+        let byClosingFillID: [UUID: Double]
+        let range: ClosedRange<Double>
+    }
+
+    /// Runs the engine ONCE per validation pass over the fills with their own
+    /// soft `.consumption` flags cleared (`ConsumptionOutlier`), so the outlier
+    /// check reads the segment its own hint would otherwise exclude - and the
+    /// flag is stable across re-validations. The band is the vehicle's, from
+    /// its powertrain (`ConsumptionOutlier.plausibleRange`).
+    private static func consumptionConstraints(for sorted: [any Entry],
+                                               vehicle: Vehicle) -> ConsumptionConstraints {
+        let fills = sorted.compactMap { $0 as? FillUp }
+        let segments = ConsumptionEngine.segments(
+            for: fills.map(ConsumptionOutlier.clearingSoftConflict),
+            tankCapacityL: vehicle.tankCapacityL)
+        let byClosingFillID = Dictionary(
+            segments.map { ($0.closingFillID, $0.per100) },
+            uniquingKeysWith: { first, _ in first })
+        return ConsumptionConstraints(byClosingFillID: byClosingFillID,
+                                      range: ConsumptionOutlier.plausibleRange(for: vehicle.powertrain))
     }
 
     private static func validate(_ entry: any Entry, at index: Int, in sorted: [any Entry],
@@ -255,6 +301,18 @@ public enum TimelineValidator {
             }
         }
 
+        // CHECK 5 - consumption outlier (F2 residue). A FillUp closes a
+        // segment, and the engine's own per100 for that segment is the figure
+        // Trends would plot. Outside the vehicle's plausible band it is a soft
+        // hint, never a block (docs/SCHEMA.md, "Bands are wide and soft").
+        if let fill = entry as? FillUp,
+           let per100 = constraints.consumption.byClosingFillID[fill.id],
+           !constraints.consumption.range.contains(per100) {
+            flags.append(Flag(kind: .consumption,
+                              detail: .consumption(per100: per100,
+                                                   range: constraints.consumption.range)))
+        }
+
         let receiptDateIsGroundTruth = entry.attachments.contains {
             attachmentsByID[$0]?.extractedTimestamp != nil
         }
@@ -310,6 +368,13 @@ public enum TimelineValidator {
     private static func suggestions(flags: [Flag],
                                     receiptDateIsGroundTruth: Bool) -> [ResolutionSuggestion] {
         guard !flags.isEmpty else { return [] }
+        // A consumption outlier is a different question from an order/pace
+        // conflict: the odometer and date are internally consistent, so the
+        // fields to question are the litres and the odometer, and the date is
+        // never a candidate. Litres rank first - the F2 case is a misread digit.
+        if flags.allSatisfy({ $0.kind == .consumption }) {
+            return [.checkVolume, .checkOdometer]
+        }
         let hasOrder = flags.contains { $0.kind == .order }
 
         if receiptDateIsGroundTruth {

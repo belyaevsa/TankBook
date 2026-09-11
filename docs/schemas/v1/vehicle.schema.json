@@ -10,7 +10,8 @@
         "kind" : {
           "enum" : [
             "order",
-            "pace"
+            "pace",
+            "consumption"
           ],
           "type" : "string"
         },

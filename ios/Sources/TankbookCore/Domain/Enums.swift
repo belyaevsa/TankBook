@@ -151,10 +151,16 @@ public enum ConflictState: Codable, Sendable, Equatable, Hashable {
     case none
     case flagged(kind: ConflictKind, detectedAt: Date)
 
-    /// The kind of timeline violation that flagged an entry.
+    /// The kind of violation that flagged an entry.
     public enum ConflictKind: String, Codable, Sendable, CaseIterable {
+        /// The odometer does not fit between its date-neighbours (CHECK 1).
         case order
+        /// The implied km/day against a neighbour exceeds the limit (CHECK 2).
         case pace
+        /// The consumption this fill closes implies is outside the vehicle's
+        /// plausible band (CHECK 5, the F2 residue). A soft flag: the fill is
+        /// internally consistent, so the band only HINTS at a misread digit.
+        case consumption
     }
 }
 

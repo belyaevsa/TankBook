@@ -137,7 +137,9 @@ private func fill(date: Date, odometer: Int, volumeL: Double = 40,
 
     let validation = TimelineValidator.validate(entries: [first, candidate], vehicle: vehicle(paceLimit: 10))
         .first { $0.entryID == candidate.id }
-    #expect(validation?.flags.isEmpty == true)
+    // The order/pace timeline is clean; a CHECK 5 consumption hint is a
+    // different question (its own suite is `RV218ConsumptionOutlierTests`).
+    #expect(validation?.flags.contains { $0.kind != .consumption } == false)
 }
 
 @Test func paceJustOverLimitIsFlagged() {

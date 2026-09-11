@@ -1,6 +1,74 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Check litres": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check litres"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить литры"
+          }
+        }
+      }
+    },
+    "Check odometer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check odometer"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Проверить пробег"
+          }
+        }
+      }
+    },
+    "This fill implies %1$@ %2$@ – check the litres or the odometer.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This fill implies %1$@ %2$@ – check the litres or the odometer."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта заправка даёт %1$@ %2$@ – проверьте литры или пробег."
+          }
+        }
+      }
+    },
+    "Unusual consumption – check the litres or odometer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unusual consumption – check the litres or odometer"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Необычный расход – проверьте литры или пробег"
+          }
+        }
+      }
+    },
     " or ": {
       "extractionState": "manual",
       "localizations": {

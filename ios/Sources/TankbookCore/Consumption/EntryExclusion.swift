@@ -10,6 +10,11 @@ public enum EntryExclusionReason: Equatable, Sendable {
     /// The entry's odometer/date breaks the timeline, so its segment is out of
     /// the headline and it is excluded from the figures (docs/SYNC.md S3).
     case timelineConflict
+    /// The entry's segment implies a consumption outside the vehicle's plausible
+    /// band (CHECK 5, the F2 residue). The odometer and date are internally
+    /// consistent, so the field to question is the litres or the odometer, not
+    /// the date - a different next step from `.timelineConflict`.
+    case consumptionOutlier
     /// The entry is the non-counting member of an unresolved duplicate pair
     /// (docs/SYNC.md S2: until the user decides, only one member counts).
     case unresolvedDuplicate
@@ -49,8 +54,8 @@ public enum ExcludedEntries {
         let duplicateExcluded = Set(duplicatePairs.map(\.excludedID))
         return entries.compactMap { entry in
             let reason: EntryExclusionReason
-            if entry.conflict != .none {
-                reason = .timelineConflict
+            if case .flagged(let kind, _) = entry.conflict {
+                reason = kind == .consumption ? .consumptionOutlier : .timelineConflict
             } else if duplicateExcluded.contains(entry.id) {
                 reason = .unresolvedDuplicate
             } else {

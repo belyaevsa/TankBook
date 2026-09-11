@@ -275,6 +275,10 @@ extension ServiceEntryFormState {
             return OdometerConflict(quote: nil, flagKind: flag.kind)
         case .pace:
             return OdometerConflict(quote: nil, flagKind: flag.kind)
+        case .consumption:
+            // A service record closes no fuel segment, so CHECK 5 never fires on
+            // the candidate this card renders.
+            return nil
         }
     }
 

@@ -287,6 +287,14 @@ capture P2.3-confirm            en -seedVehicleForUITests -presentScreen confirm
 capture P2.3-confirm-ru         ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefill
 capture P2.3-confirm-empty-ru   ru -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillEmpty
 
+# RV.218: the F2 residue's consumption outlier warn (CHECK 5). The seed is the
+# F9a vehicle (a prior full fill at 119 486 km); the hook sets 8 L over the
+# 500 km since = 1.6 L/100km, below the ICE floor, so the warn renders with its
+# two next steps and Save stays enabled. RU is the wrap check on the composed
+# sentence and the two chips.
+capture RV.218-consumption-outlier    en -seedVehicleForUITests -presentScreen confirmManual -screenshotConsumptionOutlier
+capture RV.218-consumption-outlier-ru ru -seedVehicleForUITests -presentScreen confirmManual -screenshotConsumptionOutlier
+
 # P2.4: the mixed-receipt "Also on this receipt" section - the fuel line stands
 # as the fill-up, the car wash defaults to accepted, the coffee to skipped.
 capture P2.4-confirm-mixed      en -seedVehicleForUITests -presentScreen confirmManual -seedConfirmPrefillMixedReceipt

@@ -493,7 +493,7 @@ struct ManualFillUpOdometerCard: View {
                 conflictText(conflict)
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
-                    .accessibilityIdentifier("manualFillUpOdometerWarning")
+                    .accessibilityIdentifier(conflict.warningIdentifier)
                 F9aFixRow(conflict: conflict, focus: $focus, onFixDate: onFixDate)
             }
             Spacer(minLength: 0)

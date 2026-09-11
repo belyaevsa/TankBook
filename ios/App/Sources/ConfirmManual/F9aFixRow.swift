@@ -65,6 +65,17 @@ struct F9aFixRow: View {
             }
             .modifier(F9aFixChip(preselected: preselected))
             .accessibilityIdentifier("manualFillUpOdometerFixDateButton")
+        case .checkVolume:
+            // CHECK 5 (F2 residue): the litres are the likeliest wrong field, so
+            // they rank first. "Check", never "Fix" - the app does not know the
+            // value is wrong (hard rule 13).
+            Button("Check litres") { focus = .liters }
+                .modifier(F9aFixChip(preselected: preselected))
+                .accessibilityIdentifier("manualFillUpConsumptionCheckLitersButton")
+        case .checkOdometer:
+            Button("Check odometer") { focus = .odometer }
+                .modifier(F9aFixChip(preselected: preselected))
+                .accessibilityIdentifier("manualFillUpConsumptionCheckOdometerButton")
         }
     }
 }

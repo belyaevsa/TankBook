@@ -186,7 +186,10 @@ private struct RealGap {
 
     let result = TimelineValidator.validate(entries: timeline.entries, vehicle: vehicle())
         .first { $0.entryID == timeline.gapped.id }
-    #expect(result?.conflict == ConflictState.none)
+    // The healed timeline has no ORDER flag left, so the stale acceptance is
+    // dropped. (CHECK 5's consumption hint may still speak - it is a different
+    // question, and its own suite is `RV218ConsumptionOutlierTests`.)
+    #expect(result?.flags.contains { $0.kind == .order } == false)
     #expect(result?.acceptance == nil,
             "a healed timeline keeps no stale acceptance - nothing is silently 'accepted' anymore")
 }

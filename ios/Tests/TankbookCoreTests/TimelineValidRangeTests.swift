@@ -68,13 +68,17 @@ private func validation(_ entries: [any Entry], _ id: UUID, limit: Double = 1500
 }
 
 /// The flags the entry at `id` produces when it holds `odometer` at `date`.
+/// Filtered to the order/pace TIMELINE kinds: these tests are about the valid
+/// range's order/pace equivalence, and the CHECK 5 consumption hint is a
+/// different question (its own suite is `RV218ConsumptionOutlierTests`).
 private func flags(entries: [any Entry], id: UUID, odometer: Int?, date: Date,
                    limit: Double = 1500) -> [TimelineValidator.Flag] {
     var copy = entries
     guard let index = copy.firstIndex(where: { $0.id == id }) else { return [] }
     copy[index].odometer = odometer
     copy[index].date = date
-    return validation(copy, id, limit: limit)?.flags ?? []
+    return (validation(copy, id, limit: limit)?.flags ?? [])
+        .filter { $0.kind != .consumption }
 }
 
 // MARK: - The owner's own numbers: the upper end is the PACE bound, not next - 1

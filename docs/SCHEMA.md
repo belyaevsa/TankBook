@@ -570,6 +570,19 @@ CHECK 4    AdBlue (2026-08-30): `.adBlue` in Vehicle.fuelKinds requires `.diesel
             a receipt's own rounding (ОКРУГЛЕНИЕ) can make its fiscal total slightly lower than the
             line-extension total (receipt-009: fuel 6135.24 + water 129.00 = 6264.24, charged
             6264.00), and that discount belongs to no line.
+CHECK 5    Consumption outlier (RV.218, the F2 residue): the consumption the FillUp closes -
+           `ConsumptionEngine`'s own `Segment.per100` for the segment this fill closes, never a
+           second formula (hard rule 2) - must fall inside the vehicle's plausible band for its
+           powertrain (`ConsumptionOutlier.plausibleRange`, a tier-C compiled constant; CONFIG.md
+           forbids consumption math as remote config). The band is a HINT: a value outside it
+           raises a `warn` (docs/ERRORS.md -> Confirm), ranks "check litres" then "check odometer",
+           and NEVER blocks the save (the "Bands are wide and soft on purpose" rule in Reference
+           data -> Fuel price bands applies to any band in this schema). The check reads litres
+           over distance only, so a PRICE outlier (AI-100 at a shortage price) never trips it. A
+           fill with no predecessor closes no segment and is never flagged. The check clears a
+           fill's own `.consumption` conflict before deriving the segment, because the engine
+           excludes any segment touching a flag - without that the hint would suppress its own
+           evidence and clear on the next re-validation.
 PRIORITY   If an attachment has extractedTimestamp (receipt/QR), its date is ground truth:
            "fix odometer" is the preselected resolution; overriding the date needs explicit confirmation.
 FISCAL QR  The ФНС QR is an authoritative ANCHOR, not a capture path (docs/JOURNEYS.md J5/F5): it
@@ -588,10 +601,10 @@ FISCAL QR  The ФНС QR is an authoritative ANCHOR, not a capture path (docs/JO
 ```
 
 ```swift
-ConflictState = .none | .flagged(kind: .order | .pace, detectedAt: Date)
+ConflictState = .none | .flagged(kind: .order | .pace | .consumption, detectedAt: Date)
 ```
 
-A user may always save with `.flagged`: the entry shows the amber badge, and **any segment touching it is excluded from consumption math** (Trends footnotes the exclusion count). Resolution clears the flag via the edit screen.
+A user may always save with `.flagged`: the entry shows the amber badge, and **any segment touching it is excluded from consumption math** (Trends footnotes the exclusion count). Resolution clears the flag via the edit screen. The `.consumption` kind (CHECK 5) is a hint rather than an order/pace conflict - the fill is internally consistent - but it excludes its segment the same way, and its own derivation clears that soft flag before reading the engine so the hint cannot suppress its own evidence (see CHECK 5).
 
 #### The valid range (RV.117a, [v1.1])
 

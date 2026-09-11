@@ -66,10 +66,12 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 entries excluded" footnote is a next step on Home AND Trends (hard rule 7): with
 ONE entry out it opens that entry's editor; with MORE it opens the
 excluded-entries list (docs/SCREENMAP.md -> "Excluded entries"), which shows ALL
-N - the conflict-flagged entries (F9a/S3) plus the non-counting members of
+N - the conflict-flagged entries (F9a/S3), the entries whose segment implies an
+implausible consumption (CHECK 5, RV.218), plus the non-counting members of
 unresolved duplicate pairs (S2) - newest first, each row naming its reason
 because the fix differs: a row reads "Timeline conflict – check the odometer or
-date" or "Possible duplicate – Merge or Keep both", and a tap opens the entry.
+date", "Unusual consumption – check the litres or odometer" or "Possible
+duplicate – Merge or Keep both", and a tap opens the entry.
 The list is CAR-scoped because the count it answers is (the count comes from the
 selected car's `HomeStats`; the account-wide "Needs a look" list is a different
 population - conflicts only, every car - and is NOT the destination). The count
@@ -263,6 +265,7 @@ Recognition is honest about itself: the corpus measures **receipts 88/175** and 
 | Condition | Shows | Next step |
 |---|---|---|
 | Cross-check mismatch (F2) | Amber underline on the suspect field + "these don't multiply up – check the amber field"; check line refuses to lock | Tap field → source crop shown → correct · save anyway (entry flagged) |
+| Consumption outlier (F2 residue, RV.218) | `warn`: the amber F9a-style row on the odometer card, quoting the engine's OWN figure for the segment this fill closes - "This fill implies 1.6 L/100km – check the litres or the odometer." The band is the car's powertrain (`ConsumptionOutlier`: a combustion car below 2.5 L/100km or above 40 is implausible; a plug-in hybrid legitimately runs lower), so 2.0 L/100km is a hint on a petrol car and ordinary on a PHEV. It fires only when a full fill closes a segment outside the band, never on a first fill (no segment closes), and never on a PRICE outlier - consumption is litres over distance and the money is never read | **Check litres** (preselected - the F2 case is a misread litre digit) · **Check odometer** · save anyway - the warn never blocks the save (hard rule 13) |
 | Low-confidence fields (F1 partial) | Fields dimmed at 60% | Tap to confirm or edit each; save enabled once required fields exist |
 | OCR read nothing (F1) | The Manual variant IS the answer: photo kept, a quiet inkSoft caption "Couldn't read this one – type it, the photo stays attached." (never amber - this is not an error state, hard rule 5; the caption is a hint, never a banner), Total focused on appear | Type 3 fields · photo stays attached regardless |
 | Currency low-confidence (schema rule) | Currency chip amber: "Which currency is this?" – never silently converts | One tap on the chip row |

@@ -231,7 +231,8 @@ enum ManualFillUpFormat {
 
 // MARK: - F9a timeline support
 
-/// The odometer-conflict quote for the F9a warn (docs/ERRORS.md -> Confirm).
+/// The entry-consistency warn the odometer card renders (docs/ERRORS.md ->
+/// Confirm): the F9a order/pace conflict and the CHECK 5 consumption outlier.
 /// Produced from the validation engine's flag - the check lives in
 /// TankbookCore, never in UI-side logic.
 struct OdometerConflict: Equatable {
@@ -254,6 +255,14 @@ struct OdometerConflict: Equatable {
         self.flagKind = flagKind
         self.suggestions = suggestions
         self.receiptDate = receiptDate
+    }
+
+    /// The rendered warning's accessibility identifier. The F9a timeline
+    /// warning and the CHECK 5 consumption outlier share this row, but they are
+    /// different messages with different next steps, so a test must be able to
+    /// tell which one is on screen.
+    var warningIdentifier: String {
+        flagKind == .consumption ? "manualFillUpConsumptionWarning" : "manualFillUpOdometerWarning"
     }
 
     /// The order-conflict quote ("Aug 17 already recorded 119 486 km.") in the
@@ -285,13 +294,24 @@ struct OdometerConflict: Equatable {
         let day = receiptDate.formatted(.dateTime.month(.abbreviated).day())
         return String(format: L10n.localize("The receipt says %@ – change the date anyway?"), day)
     }
+
+    /// The consumption-outlier sentence (CHECK 5, the F2 residue): the figure the
+    /// engine derived for the segment this fill closes, and the two fields that
+    /// can be wrong. One full localised phrase per language - the number and its
+    /// unit are runtime data sharing the sentence, never concatenated copy
+    /// (hard rule 10).
+    static func consumptionQuote(per100: Double, unit: String) -> String {
+        String(format: L10n.localize("This fill implies %1$@ %2$@ – check the litres or the odometer."),
+               ManualFillUpFormat.decimal(per100, fractionDigits: 1), unit)
+    }
 }
 
 extension ManualFillUpFormState {
     /// Runs the candidate entry through `TimelineValidator` against the
-    /// vehicle's existing timeline. Returns the conflicting-entry quote when the
-    /// candidate breaks the order invariant (the documented F9a state), plus the
-    /// validator's ranked resolution list and the receipt date it trusts.
+    /// vehicle's existing timeline. Returns the warn the odometer card renders:
+    /// the conflicting-entry quote for an F9a order/pace flag, or the engine's
+    /// consumption figure for a CHECK 5 outlier - plus the validator's ranked
+    /// resolution list and the receipt date it trusts.
     ///
     /// `attachments` is the evidence the ranking reads: an attachment carrying
     /// an `extractedTimestamp` makes the printed date ground truth, so
@@ -327,6 +347,14 @@ extension ManualFillUpFormState {
                                     suggestions: suggestions, receiptDate: receiptDate)
         case .pace:
             return OdometerConflict(quote: nil, flagKind: flag.kind,
+                                    suggestions: suggestions, receiptDate: receiptDate)
+        case .consumption(let per100, _):
+            // The engine's own figure, quoted in the vehicle's headline unit -
+            // the same value and unit Home and Trends render (one derivation).
+            let quote = OdometerConflict.consumptionQuote(
+                per100: per100,
+                unit: L10n.headlineUnit(vehicle.headlineUnit))
+            return OdometerConflict(quote: quote, flagKind: flag.kind,
                                     suggestions: suggestions, receiptDate: receiptDate)
         }
     }

@@ -353,6 +353,7 @@ struct ManualFillUpView: View {
                ProcessInfo.processInfo.arguments.indices.contains(index + 1) {
                 form.odometer = ProcessInfo.processInfo.arguments[index + 1]
             }
+            applyConsumptionOutlierPoseIfRequested()
             #if DEBUG
             applyStationRowCreatedPoseIfRequested()
             #endif
