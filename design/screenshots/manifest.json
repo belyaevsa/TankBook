@@ -1215,6 +1215,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.61-part-number": {
+      "commit": "26b74db9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.61-part-number-create": {
+      "commit": "26b74db9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.61-part-number-create-ru": {
+      "commit": "26b74db9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.61-part-number-ru": {
+      "commit": "26b74db9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.7-delete-alert": {
       "commit": "c71c71d",
       "device": "iPhone 17",

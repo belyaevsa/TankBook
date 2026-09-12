@@ -27,11 +27,23 @@ extension EditEntryUITests {
         return app
     }
 
+    /// Scrolls until `element` is hittable AND clear of the pinned save bar -
+    /// `isHittable` alone turns true while the element's centre is still under
+    /// the bar and the tap lands on Save (the RV.80/PJ.7e lie; see
+    /// EditEntryRV198UITests.scrollTo).
     private func scrollToRV199(_ element: XCUIElement, app: XCUIApplication) {
         if app.keyboards.firstMatch.exists { app.swipeDown() }
+        let bar = app.buttons["editEntrySaveButton"]
+        func clearOfBar() -> Bool {
+            guard bar.exists else { return true }
+            return !element.frame.intersects(bar.frame)
+        }
         var attempts = 0
-        while !element.isHittable && attempts < 10 {
-            app.scrollViews.firstMatch.swipeUp()
+        while (!element.isHittable || !clearOfBar()) && attempts < 10 {
+            let scroll = app.scrollViews.firstMatch
+            let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+            let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            start.press(forDuration: 0.05, thenDragTo: end)
             attempts += 1
         }
     }

@@ -82,11 +82,14 @@ enum ServiceEntryPrefillSeed {
         if arguments.contains("-seedServiceEntryLifetime") {
             // RV.213: the create card WITH a stated lifetime - the state the
             // first-save offer responds to, and the screenshot of the new fields.
+            // PJ.61: the oil item also carries a part number, so the create
+            // card's part-number field renders populated.
             return ServiceEntryPrefill(
                 vendor: "Bosch Service",
                 items: [
                     ServiceEntryItemDraft(title: "Oil service incl. filter",
                                           category: .oil, cost: "89.00",
+                                          partNumber: "MANN W 712/75",
                                           lifetime: ServiceItem.Lifetime(km: 15_000,
                                                                          months: 12)),
                     ServiceEntryItemDraft(title: "Brake pads front",

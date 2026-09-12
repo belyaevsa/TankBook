@@ -27,11 +27,24 @@ extension EditEntryUITests {
     }
 
     /// Dismiss the keyboard, then scroll the element into the tappable area.
+    /// Scrolls until `element` is hittable AND clear of the pinned save bar.
+    /// `isHittable` alone is the RV.80/PJ.7e lie: it turns true while the
+    /// element's centre still sits under the bar, and the tap lands on Save -
+    /// which is exactly how four of these tests started saving instead of
+    /// adding once PJ.61 made the item rows taller.
     private func scrollTo(_ element: XCUIElement, app: XCUIApplication) {
         if app.keyboards.firstMatch.exists { app.swipeDown() }
+        let bar = app.buttons["editEntrySaveButton"]
+        func clearOfBar() -> Bool {
+            guard bar.exists else { return true }
+            return !element.frame.intersects(bar.frame)
+        }
         var attempts = 0
-        while !element.isHittable && attempts < 8 {
-            app.scrollViews.firstMatch.swipeUp()
+        while (!element.isHittable || !clearOfBar()) && attempts < 10 {
+            let scroll = app.scrollViews.firstMatch
+            let start = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+            let end = scroll.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.35))
+            start.press(forDuration: 0.05, thenDragTo: end)
             attempts += 1
         }
     }

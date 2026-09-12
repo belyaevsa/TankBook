@@ -481,6 +481,16 @@ capture PJ.22-service-lifetime-offer-ru ru -seedServiceLifetimeOffer -presentSer
 capture RV.213-service-lifetime-create    en -seedServiceEntryLifetime -presentScreen serviceEntry
 capture RV.213-service-lifetime-create-ru ru -seedServiceEntryLifetime -presentScreen serviceEntry
 
+# PJ.61: the optional PART NUMBER on the service item card, on both doors. The
+# edit seed's first item already carries "MANN W 712/75"; the create seed's oil
+# item does too. The field is free text, blank stores no part number, and it is
+# keyed to the row it was loaded from. RU is where "НОМЕР ДЕТАЛИ" on the narrow
+# card runs longest.
+capture PJ.61-part-number             en -seedEditEntryService -presentScreen editEntry
+capture PJ.61-part-number-ru          ru -seedEditEntryService -presentScreen editEntry
+capture PJ.61-part-number-create      en -seedServiceEntryLifetime -presentScreen serviceEntry
+capture PJ.61-part-number-create-ru   ru -seedServiceEntryLifetime -presentScreen serviceEntry
+
 # P4.4: the Sign in sheet (with the warn-amber "pick one and keep it" notice at
 # the decision moment) and the J11a wrong-provider question (empty account +
 # "Already use Tankbook?"). RU is where the amber notice - a paragraph - is the

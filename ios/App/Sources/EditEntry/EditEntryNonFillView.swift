@@ -393,11 +393,11 @@ struct EditEntryNonFillView: View {
 }
 
 /// One stored service line item made editable: its title, its category, its
-/// cost and its **lifetime** (docs/SCHEMA.md, ServiceItem), plus the trash
-/// affordance that removes it. It reuses `ServiceEntryItemDraft` with the create
-/// screen so the two paths cannot drift. `partNumber` is still not shown here
-/// (PJ.61 owns its editor) but rides through the draft untouched - dropping it
-/// on save would be data loss, and a delete must not shift it onto a neighbour.
+/// cost, its **lifetime** and its **part number** (docs/SCHEMA.md, ServiceItem),
+/// plus the trash affordance that removes it. It reuses `ServiceEntryItemDraft`
+/// with the create screen so the two paths cannot drift. Each value is keyed to
+/// the row it was loaded from, so a delete never shifts a neighbour's part
+/// number or lifetime onto a survivor.
 ///
 /// The lifetime is the one field that drives the post-save reminder offer: an
 /// item that states "15 000 km / 12 months" is what lets the record propose the
@@ -435,6 +435,7 @@ struct EditEntryServiceItemRow: View {
                     .accessibilityIdentifier("editEntryServiceItemOtherCategory")
             }
             ServiceItemLifetimeFields(lifetime: $item.lifetime)
+            ServiceItemPartNumberField(partNumber: $item.partNumber)
         }
         .padding(13)
         .formCard()

@@ -291,17 +291,18 @@ produces it, not only after a save-and-reopen, and the create and edit doors can
 what a service is.
 
 **[v1.x] Editing the work (PJ.23, 2026-09-10; add/delete RV.198, 2026-09-10; lifetime PJ.22,
-2026-09-11).** Opening a service in Edit entry shows its **line items** - title, category, cost and
-**lifetime** - and writes them back, so the `.other` promotion promised above happens where the user
-can see the text [RV.187] titles the row from. The user can also **add a line and delete one**, not
-only correct the rows that exist: a workshop invoice gains a line as often as it corrects one. An
-**empty item list is legal** - a vendor plus a lump-sum Amount with no itemised lines is the same
-lump-sum record the scan fallback produces, so deleting the last row leaves it rather than being
-forbidden. The item's **lifetime** (km and months) is the one field that drives the next reminder:
-setting or changing it and saving raises the same "Remind you next time?" offer J7d describes,
-anchored at the record. `partNumber` is still not shown here but rides through untouched, keyed to
-the row it was loaded from so a delete never shifts it onto a neighbour (PJ.61 owns its editor) -
-dropping it on save would be data loss.
+2026-09-11; part number PJ.61, 2026-09-12).** Opening a service in Edit entry shows its **line
+items** - title, category, cost, **lifetime** and **part number** - and writes them back, so the
+`.other` promotion promised above happens where the user can see the text [RV.187] titles the row
+from. The user can also **add a line and delete one**, not only correct the rows that exist: a
+workshop invoice gains a line as often as it corrects one. An **empty item list is legal** - a
+vendor plus a lump-sum Amount with no itemised lines is the same lump-sum record the scan fallback
+produces, so deleting the last row leaves it rather than being forbidden. The item's **lifetime**
+(km and months) is the one field that drives the next reminder: setting or changing it and saving
+raises the same "Remind you next time?" offer J7d describes, anchored at the record. The item's
+**part number** is optional free text on the same card (PJ.61, v1): a blank field stores no part
+number, it is keyed to the row it was loaded from so a delete never shifts it onto a neighbour, and
+it is editable at the moment it is offered and again afterwards (hard rule 13).
 
 **[v1.x] The total and the lines agree, or say why not (RV.199, 2026-09-11).** The record's
 **Amount stays independently editable**, because an invoice's grand total legitimately differs from

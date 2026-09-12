@@ -384,6 +384,8 @@ struct ServiceEntryItemCard: View {
             // One view, two doors - a stated interval reaches the saved item and
             // the post-save offer at the first save, not only after a reopen.
             ServiceItemLifetimeFields(lifetime: $item.lifetime)
+            // PJ.61: the SAME part-number editor the edit door's item row uses.
+            ServiceItemPartNumberField(partNumber: $item.partNumber)
         }
         .padding(13)
         .formCard()
@@ -391,6 +393,7 @@ struct ServiceEntryItemCard: View {
         .onChange(of: item.cost) { _, _ in confirm() }
         .onChange(of: item.category) { _, _ in confirm() }
         .onChange(of: item.lifetime) { _, _ in confirm() }
+        .onChange(of: item.partNumber) { _, _ in confirm() }
     }
 
     /// Editing a scanned row is its confirmation: the dim lifts and the value

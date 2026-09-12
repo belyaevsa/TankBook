@@ -8765,6 +8765,23 @@
         }
       }
     },
+    "Part number": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Part number"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Номер детали"
+          }
+        }
+      }
+    },
     "Parts": {
       "extractionState": "manual",
       "localizations": {

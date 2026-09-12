@@ -44,12 +44,6 @@ struct SchemaFieldWriterGuardTests {
               reason: "The About-screen diagnostics toggle the field documents was never built; the "
                   + "field is decoded (Records+Extras.swift:251) and synced but unwritable. "
                   + "Reported by RV.196."),
-        .init(field: "ServiceItem.partNumber",
-              reason: "PJ.61 (decided 2026-09-11: a partNumber field on the v1 item editor) owns "
-                  + "its writer. The draft only forwards it - `partNumber ?? original?.partNumber` "
-                  + "at ServiceEntryFormState.swift:98 - and nothing assigns the draft's own field, "
-                  + "so the expression always forwards the decoder-restored nil. Reported by RV.207; "
-                  + "delete this exception in PJ.61."),
         .init(field: "Station.brand",
               reason: "Only ever written as nil when a station is minted (ImportStation.swift:42); "
                   + "brand normalisation is RV.115/RV.180's reference-data work, which owns this "
@@ -215,7 +209,6 @@ struct SchemaFieldWriterGuardTests {
             "Preferences.notifications.anomalies",
             "Preferences.notifications.reminders",
             "Preferences.proFeedbackDiagnostics",
-            "ServiceItem.partNumber",
             "Station.brand"
         ], "the field scan's report moved - read it before updating this list. Got \(unwritten)")
     }
