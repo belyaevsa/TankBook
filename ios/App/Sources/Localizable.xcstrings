@@ -3283,6 +3283,23 @@
         }
       }
     },
+    "changed on %@": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "changed on %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "изменено на %@"
+          }
+        }
+      }
+    },
     "Changed tyres": {
       "extractionState": "manual",
       "localizations": {
@@ -14594,23 +14611,6 @@
         }
       }
     },
-    "odometer differed": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "odometer differed"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "пробег отличался"
-          }
-        }
-      }
-    },
     "per km": {
       "extractionState": "manual",
       "localizations": {
@@ -14760,23 +14760,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "вчера"
-          }
-        }
-      }
-    },
-    "your version from iPhone": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "your version from iPhone"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "ваша версия с iPhone"
           }
         }
       }

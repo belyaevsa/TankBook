@@ -1205,6 +1205,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.59-recently-deleted-sync-overwritten": {
+      "commit": "8891f74d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.59-recently-deleted-sync-overwritten-ru": {
+      "commit": "8891f74d",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.6-typeit-service": {
       "commit": "8d9ee38",
       "device": "iPhone 17",

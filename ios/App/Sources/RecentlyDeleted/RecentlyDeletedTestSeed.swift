@@ -15,15 +15,16 @@ import TankbookCore
 ///   expense and a reminder tombstoned individually BEFORE it (their own rows,
 ///   left alone by the car's Restore).
 ///
-/// Everything sync-dependent is a FIXTURE, no real data exists until P4:
-/// - `-forceSyncOverwritten` renders the "Overwritten by sync" section
-///   (docs/SYNC.md S1/S4: the losing version is kept as the undo log).
+/// - `-forceSyncOverwritten` writes a REAL `syncOverwrite` log row - the same
+///   record a merge writes (docs/SYNC.md S1/S4) - so the "Overwritten by sync"
+///   section is exercised from data, never from a render-time flag.
 /// - `-forceRemovedElsewhere` annotates the seeded charge as "removed on
-///   iPad" (docs/SCHEMA.md: device attribution arrives via sync's
-///   `origin_device`, not domain fields).
+///   iPad" - still a fixture: v1 carries no per-device tombstone attribution
+///   (docs/ERRORS.md -> Recently deleted).
 enum RecentlyDeletedTestSeed {
     /// Entry ids that sync says were deleted on another device. Populated by
-    /// the seed under `-forceRemovedElsewhere`; empty in production until P4.
+    /// the seed under `-forceRemovedElsewhere`; empty in production - v1 carries
+    /// no per-device tombstone attribution (docs/ERRORS.md -> Recently deleted).
     /// `nonisolated(unsafe)` because it is fixture bookkeeping written and read
     /// on the main actor only (the view reads it while the seed is MainActor).
     nonisolated(unsafe) static var removedElsewhereIDs: Set<UUID> = []
@@ -42,7 +43,7 @@ enum RecentlyDeletedTestSeed {
         guard let repository = try? AppStore.repository() else { return }
         // Idempotent (same contract as HomeTestSeed): a run that already
         // seeded - or another suite's seed - is left alone.
-        guard (vehicleSeed || entrySeed),
+        guard vehicleSeed || entrySeed,
               (try? repository.liveVehicles())?.isEmpty != false else { return }
 
         if entrySeed {
@@ -50,6 +51,9 @@ enum RecentlyDeletedTestSeed {
         }
         if vehicleSeed {
             seedVehicle(repository)
+        }
+        if arguments.contains("-forceSyncOverwritten") {
+            seedSyncOverwrite(repository)
         }
 
         if arguments.contains("-forceRemovedElsewhere") {
@@ -191,6 +195,50 @@ enum RecentlyDeletedTestSeed {
         try? repository.softDeleteVehicle(id: vehicle.id, at: now.addingTimeInterval(-3 * 86_400))
     }
 
+    // MARK: - The real "Overwritten by sync" log row
+
+    /// The real undo-log row the section reads: a live Neste fill whose user
+    /// version (a different odometer) lost to a sync merge, attributed to the
+    /// iPad. Written through `recordSyncOverwrite`, the call `SyncEngine` makes,
+    /// so the section is exercised from the log, not from a render-time flag.
+    private static func seedSyncOverwrite(_ repository: TankbookRepository) {
+        guard let vehicle = (try? repository.liveVehicles())?.first else { return }
+        let now = Date()
+        let station = (try? repository.liveStations())?.first { $0.name == "Neste" }
+        let target = FillUp(
+            id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
+            vehicleId: vehicle.id, date: now.addingTimeInterval(-2 * 86_400),
+            odometer: 121_500, money: Money(amount: Decimal(string: "86.10")!,
+                                            currency: .eur, homeCurrency: .eur),
+            note: nil, attachments: [], provenance: .manual, conflict: .none,
+            purchaseGroupId: nil, volumeL: 51.8, unitPrice: Decimal(string: "1.662")!,
+            fuelKind: .petrol95, fuelGrade: nil, isFull: true, tankLevelAfterPct: 100,
+            stationId: station?.id, crossCheck: .verified, extraction: nil)
+        try? repository.upsertFillUp(target, syncState: .synced(scn: 1))
+        guard (try? repository.syncOverwrite(for: target.id)) == nil else { return }
+
+        // The user's own version - the same fill with their odometer 121 400.
+        let userVersion = FillUp(
+            id: target.id, createdAt: target.createdAt, updatedAt: target.updatedAt,
+            deletedAt: nil, vehicleId: target.vehicleId, date: target.date,
+            odometer: 121_400, money: target.money, note: target.note,
+            attachments: target.attachments, provenance: target.provenance,
+            conflict: target.conflict, purchaseGroupId: target.purchaseGroupId,
+            volumeL: target.volumeL, unitPrice: target.unitPrice,
+            fuelKind: target.fuelKind, fuelGrade: target.fuelGrade,
+            isFull: target.isFull, tankLevelAfterPct: target.tankLevelAfterPct,
+            stationId: target.stationId, crossCheck: target.crossCheck,
+            extraction: target.extraction)
+        guard let payload = try? PayloadCodec.encode(userVersion).payload else { return }
+        let losingRecord = SyncRecord(
+            id: target.id, entityType: FillUp.entityType,
+            schemaVersion: PayloadCodec.currentSchemaVersion, payload: payload,
+            clientUpdatedAt: target.updatedAt, deleted: false)
+        try? repository.recordSyncOverwrite(
+            recordId: target.id, losingRecord: losingRecord,
+            deviceName: "iPad", at: now.addingTimeInterval(-2 * 86_400))
+    }
+
     private static func tombstonedChargeIDs(in repository: TankbookRepository) -> [UUID] {
         (try? repository.deletedEntries())?
             .filter { $0.entry is ChargeSession }
@@ -210,41 +258,16 @@ enum RecentlyDeletedTestSeed {
 }
 #endif
 
-/// A fixture row of the "Overwritten by sync" section (docs/SYNC.md S1/S4).
-/// Presentational until the real merge log lands (P4) - the Compare affordance
-/// is the only interaction, and the diff screen beyond it is out of scope for
-/// P1.7.
-struct SyncOverwrittenRow: Identifiable {
-    let id = UUID()
-    let title: String
-    let subtitle: String
-}
-
-/// Launch-argument fixtures for the sync-shaped surfaces of the screen.
+/// Launch-argument fixtures for the screen's remaining sync-shaped surface.
+/// The "Overwritten by sync" section is no longer here: it reads the real
+/// `syncOverwrite` log through `RecentlyDeletedSyncOverwrites`.
 struct RecentlyDeletedFixtures {
-    var syncOverwritten: [SyncOverwrittenRow]
     var deletedOnDeviceByEntryID: [UUID: String]
 
     static func fromLaunchArguments(
         _ arguments: [String] = ProcessInfo.processInfo.arguments
     ) -> RecentlyDeletedFixtures {
         #if DEBUG
-        let now = Date()
-        var syncRows: [SyncOverwrittenRow] = []
-        if arguments.contains("-forceSyncOverwritten") {
-            // The artboard's Shell row: replaced 2 days ago, 28 days left on
-            // any run date.
-            let replacedAt = now.addingTimeInterval(-2 * 86_400)
-            let replacedDay = HomeFormat.day(replacedAt)
-            let remaining = TombstoneCountdown.daysRemaining(deletedAt: replacedAt, now: now)
-            let daysLeft = String(localized: "\(remaining) days left")
-            syncRows = [SyncOverwrittenRow(
-                title: "\(L10n.localize("Shell")) · \(L10n.localize("your version from iPhone"))",
-                subtitle: [String(format: L10n.localize("Replaced %@"), replacedDay),
-                           L10n.localize("odometer differed"),
-                           daysLeft].joined(separator: " · "))]
-        }
-
         var deletedOnDevice: [UUID: String] = [:]
         if arguments.contains("-forceRemovedElsewhere") {
             for id in RecentlyDeletedTestSeed.removedElsewhereIDs {
@@ -253,10 +276,9 @@ struct RecentlyDeletedFixtures {
                 deletedOnDevice[id] = "iPad"
             }
         }
-        return RecentlyDeletedFixtures(syncOverwritten: syncRows,
-                                       deletedOnDeviceByEntryID: deletedOnDevice)
+        return RecentlyDeletedFixtures(deletedOnDeviceByEntryID: deletedOnDevice)
         #else
-        return RecentlyDeletedFixtures(syncOverwritten: [], deletedOnDeviceByEntryID: [:])
+        return RecentlyDeletedFixtures(deletedOnDeviceByEntryID: [:])
         #endif
     }
 }

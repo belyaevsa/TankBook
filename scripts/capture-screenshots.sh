@@ -238,6 +238,13 @@ capture P1.7-recently-deleted-ru   ru -seedRecentlyDeleted -presentScreen recent
 # PJ.7's deleted reminder is a row on this list - the same frame.
 alias_shot P1.7-recently-deleted    PJ.7-deleted-reminder
 alias_shot P1.7-recently-deleted-ru PJ.7-deleted-reminder-ru
+# PJ.59: the "Overwritten by sync" section is real data. `-forceSyncOverwritten`
+# seeds a `syncOverwrite` log row (the same record a merge writes, docs/SYNC.md
+# S1/S4); the section reads it, so nothing here is gated on the flag at render
+# time. The seeded tombstones sit at 27/19/4/24 days, so the overwrite's own
+# "28 days left" is the section.
+capture PJ.59-recently-deleted-sync-overwritten    en -seedRecentlyDeleted -forceSyncOverwritten -presentScreen recentlyDeleted
+capture PJ.59-recently-deleted-sync-overwritten-ru ru -seedRecentlyDeleted -forceSyncOverwritten -presentScreen recentlyDeleted
 capture P1.8-duplicate-card        en -seedHomeDuplicate
 capture P1.8-duplicate-card-ru     ru -seedHomeDuplicate
 capture P1.9-tank-level            en -seedTankLevel -presentScreen tankLevel

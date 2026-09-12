@@ -331,6 +331,22 @@ exists", not graph reachability** - a door on an unreachable screen, or one behi
 condition that can never be true, still passes; full-journey tapping is `RV.165`'s layer, at a phase
 gate.
 
+### The debug-fixture-section guard (PJ.59)
+
+`DebugFixtureSectionGuardTests` + the `DebugFixtureSectionScanner` pure function it is built on:
+no production view may render a **section whose only data is a DEBUG launch-argument fixture**. It
+is the guard for the `PJ.59` shape - `RecentlyDeletedView`'s "Overwritten by sync" section read
+`RecentlyDeletedFixtures.fromLaunchArguments()`, so it existed under `-forceSyncOverwritten` in
+every UI test and in no Release build - and it is the mechanised slice of `RV.162`'s stated blind
+spot: `ScreenRouteScanner` binds screens to routes and cannot see a section inside a live screen.
+The scanner finds variables assigned from a `…fromLaunchArguments()` call, then reports a fixture
+member rendered as a collection (`ForEach(<fixture>.<member>)` or an `if … <fixture>.<member>.isEmpty`
+gate). It is deliberately narrow: a fixture boolean hiding a card of static copy is NOT this shape
+(the S5 archived-returned banner is `PJ.40`'s separate decision), and comments and string literals
+are masked so prose is not a call site. The named mutation is reverting the section to
+`ForEach(fixtures.syncOverwritten)`: the guard names the file and line. Like RV.162/RV.165 this is a
+test-target source scan: no runtime path differs, no screenshot, no Release build.
+
 ### The cold-launch journey suite (RV.165)
 
 `ColdLaunchJourneyUITests` + the `JourneyLaunchArgumentGuardTests` source-scan guard over its own

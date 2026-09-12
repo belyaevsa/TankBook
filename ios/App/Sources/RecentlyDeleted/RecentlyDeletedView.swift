@@ -18,16 +18,18 @@ import TankbookCore
 /// and list as their own rows; entries swept up by the car's deletion never
 /// get a Restore of their own, which would strand them on a deleted vehicle.
 ///
-/// Two surfaces are sync-shaped and therefore fixture-driven until P4
-/// (docs/SYNC.md S1/S4: the losing version is kept as the undo log): the
-/// "Overwritten by sync" section (`-forceSyncOverwritten`) and the "removed on
-/// iPad" device attribution (`-forceRemovedElsewhere`). See
+/// The "Overwritten by sync" section is REAL data: it renders the device-local
+/// `syncOverwrite` undo log the merge writes when a local edit loses
+/// (docs/SYNC.md S1/S4, `RecentlyDeletedSyncOverwrites`). The "removed on iPad"
+/// device attribution is still a fixture (`-forceRemovedElsewhere`): v1 carries
+/// no per-device tombstone attribution (docs/ERRORS.md -> Recently deleted). See
 /// RecentlyDeletedTestSeed.
 struct RecentlyDeletedView: View {
     @Environment(AppToastCenter.self) private var toastCenter
     @State private var deletedVehicles: [DeletedVehicle] = []
     @State private var deleted: [DeletedEntry] = []
     @State private var deletedReminders: [DeletedReminder] = []
+    @State private var syncOverwritten: [SyncOverwrittenRow] = []
     @State private var vehicles: [UUID: Vehicle] = [:]
     @State private var stations: [Station] = []
     @State private var fixtures = RecentlyDeletedFixtures.fromLaunchArguments()
@@ -36,7 +38,7 @@ struct RecentlyDeletedView: View {
 
     private var hasAnythingToDelete: Bool {
         !deletedVehicles.isEmpty || !deleted.isEmpty || !deletedReminders.isEmpty
-            || !fixtures.syncOverwritten.isEmpty
+            || !syncOverwritten.isEmpty
     }
 
     var body: some View {
@@ -45,11 +47,11 @@ struct RecentlyDeletedView: View {
                 intro
 
                 if deletedVehicles.isEmpty && deleted.isEmpty && deletedReminders.isEmpty
-                    && fixtures.syncOverwritten.isEmpty {
+                    && syncOverwritten.isEmpty {
                     emptyState
                 } else {
                     deletedSection
-                    if !fixtures.syncOverwritten.isEmpty {
+                    if !syncOverwritten.isEmpty {
                         syncOverwrittenSection
                     }
                     deleteAllNow
@@ -156,7 +158,7 @@ struct RecentlyDeletedView: View {
         .accessibilityIdentifier("recentlyDeletedRow")
     }
 
-    // MARK: - Overwritten by sync (fixture until P4)
+    // MARK: - Overwritten by sync (real undo log)
 
     private var syncOverwrittenSection: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -166,45 +168,13 @@ struct RecentlyDeletedView: View {
                 .tracking(1.2)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .padding(.top, 6)
-            ForEach(fixtures.syncOverwritten) { row in
-                syncOverwrittenRow(row)
+            ForEach(syncOverwritten) { row in
+                SyncOverwrittenCard(
+                    title: titleLine(row.entry),
+                    subtitle: RecentlyDeletedSyncOverwrites.subtitle(row),
+                    onRestore: { restoreSyncOverwrite(row.recordId) })
             }
         }
-    }
-
-    private func syncOverwrittenRow(_ row: SyncOverwrittenRow) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: "arrow.triangle.2.circlepath")
-                .font(.system(size: 15, weight: .medium))
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .frame(width: 17, height: 17)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(row.title)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .lineLimit(2)
-                Text(row.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.inkSoft.opacity(0.72))
-                    .lineLimit(2)
-            }
-            Spacer(minLength: 8)
-            // Presentational until the real merge log feeds it (P4): the
-            // Compare screen's diff UI is out of scope for P1.7.
-            Button("Compare") {}
-                .buttonStyle(.plain)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Theme.Palette.action)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
-                .accessibilityIdentifier("recentlyDeletedCompareButton")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 13)
-        .formCard()
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("recentlyDeletedSyncRow")
     }
 
     // MARK: - Delete all now
@@ -315,6 +285,22 @@ struct RecentlyDeletedView: View {
         }
     }
 
+    /// The "Overwritten by sync" rows' Restore (docs/SYNC.md S1/S4, hard rule
+    /// 13): writes the losing version back as a fresh local edit, so the next
+    /// sync pushes it instead of overwriting it again. The restore consumes the
+    /// log row, so the section drops the row it came from.
+    private func restoreSyncOverwrite(_ recordId: UUID) {
+        do {
+            let repository = try AppStore.repository()
+            if try repository.restoreSyncOverwrite(recordId: recordId) {
+                toastCenter.noteEntryChanged()
+                reload()
+            }
+        } catch {
+            AppLog.error(operation: "recentlyDeleted.restoreSyncOverwrite", category: .ui, error: error)
+        }
+    }
+
     /// The reminder rows' Restore (PJ.7): routes through `restoreReminder`, not
     /// `restoreEntry` - the entry restore path iterates the entry tables and
     /// cannot see a reminder, and `restoreReminder` is what keeps the row's
@@ -381,6 +367,7 @@ struct RecentlyDeletedView: View {
             deletedVehicles = try repository.deletedVehicles()
             deleted = try repository.deletedEntries()
             deletedReminders = try repository.deletedReminders()
+            syncOverwritten = try RecentlyDeletedSyncOverwrites.rows(from: repository)
             let allVehicles = try repository.liveVehicles()
             var byID: [UUID: Vehicle] = [:]
             for vehicle in allVehicles { byID[vehicle.id] = vehicle }

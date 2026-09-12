@@ -3,9 +3,11 @@ import XCTest
 /// P1.7 Recently deleted UI tests. The seed (`-seedRecentlyDeleted`) writes a
 /// vehicle and three tombstoned entries - a Neste fill (27 days left), an
 /// Ionity charge (19 days left) and a Car wash expense (4 days left on the run
-/// date) - reproducing design/screens/RecentlyDeleted.dc.html. Everything
-/// sync-shaped (`-forceSyncOverwritten`, `-forceRemovedElsewhere`) is a
-/// fixture until P4.
+/// date) - reproducing design/screens/RecentlyDeleted.dc.html. The
+/// "Overwritten by sync" section is real data: `-forceSyncOverwritten` writes a
+/// `syncOverwrite` log row, the same record a merge writes (docs/SYNC.md
+/// S1/S4). `-forceRemovedElsewhere` remains a fixture (v1 has no per-device
+/// tombstone attribution, docs/ERRORS.md).
 @MainActor
 final class RecentlyDeletedUITests: XCTestCase {
 
@@ -144,23 +146,40 @@ final class RecentlyDeletedUITests: XCTestCase {
         XCTAssertTrue(anyElement(app, "recentlyDeletedEmptyState").waitForExistence(timeout: 10))
         XCTAssertEqual(restoreButtons(app).count, 0)
         XCTAssertFalse(app.buttons["recentlyDeletedDeleteAllButton"].exists)
-        XCTAssertFalse(app.buttons["recentlyDeletedCompareButton"].exists)
+        XCTAssertFalse(app.buttons["recentlyDeletedSyncRestoreButton"].exists)
         XCTAssertTrue(app.staticTexts[
             "Deleted cars and entries stay here for 30 days, then are removed permanently."].exists)
     }
 
-    // MARK: - Overwritten by sync (fixture)
+    // MARK: - Overwritten by sync (real undo log)
 
-    func testOverwrittenBySyncSectionRendersWithCompareAffordance() {
+    /// The S1/S4 undo-log row is REAL data: `-forceSyncOverwritten` writes a
+    /// `syncOverwrite` row through the same repository call the merge uses, and
+    /// the section renders it. Nothing here is gated on the launch argument at
+    /// render time - removing the record removes the section.
+    func testOverwrittenBySyncSectionRendersFromTheRealUndoLog() {
         let app = launch(args: ["-seedRecentlyDeleted", "-forceSyncOverwritten"])
 
-        // S1/S4's undo log row: the losing version, kept, with Compare.
         XCTAssertTrue(anyElement(app, "recentlyDeletedSyncRow").waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["recentlyDeletedCompareButton"].exists)
-        XCTAssertTrue(textContaining(app, "your version from iPhone").exists)
-        XCTAssertTrue(textContaining(app, "odometer differed").exists)
-        // Its own countdown is present too ("Replaced <day> · ... · 28 days left").
+        XCTAssertTrue(app.buttons["recentlyDeletedSyncRestoreButton"].exists)
+        // The losing version identifies the entry (the Neste fill)...
+        XCTAssertTrue(textContaining(app, "Neste").exists)
+        // ...and carries its own countdown ("Replaced <day>" / "28 days left").
+        // The seeded tombstones are at 27/19/4/24 days, so 28 is the overwrite.
         XCTAssertTrue(textContaining(app, "28 days left").exists)
+    }
+
+    /// "Restore my version" (docs/SYNC.md S1/S4, hard rule 13): the losing
+    /// version is written back as a fresh local edit and the log row is
+    /// consumed, so the section drops the row it came from.
+    func testRestoreMyVersionClearsTheOverwrittenRow() {
+        let app = launch(args: ["-seedRecentlyDeleted", "-forceSyncOverwritten"])
+
+        XCTAssertTrue(anyElement(app, "recentlyDeletedSyncRow").waitForExistence(timeout: 10))
+        app.buttons["recentlyDeletedSyncRestoreButton"].tap()
+
+        XCTAssertFalse(anyElement(app, "recentlyDeletedSyncRow").waitForExistence(timeout: 3),
+                       "restoring consumes the overwrite log row, so the section drops it")
     }
 
     // MARK: - RV.98: a deleted car is one row, restored as a group
