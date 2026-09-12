@@ -45,6 +45,41 @@ public struct UserDefaultsSyncCursorStore: SyncCursorStore {
     }
 }
 
+/// A cursor store that starts a session at a fixed `seed` but persists every
+/// advance through to a durable store the moment it is saved.
+///
+/// A restore must pull from 0 even when the durable cursor still holds a
+/// previous account's value, so `load` answers the seed and never the durable
+/// value. But the advance belongs to the pull that earned it, not to the end of
+/// the surrounding cycle: a process restart immediately after the pull must
+/// resume from it, and a second engine sharing `durable` (the app's regular
+/// sync, which runs on its own in-flight gate) must read it before the first
+/// cycle's push finishes. Buffering the advance until the cycle ends is what
+/// let a slow push hold the window open for the second pass to re-fetch the
+/// delta the restore had already pulled.
+public final class SeededSyncCursorStore: SyncCursorStore, @unchecked Sendable {
+    private let durable: any SyncCursorStore
+    private let lock = NSLock()
+    private var value: Int64
+
+    public init(seed: Int64 = 0, persistingTo durable: any SyncCursorStore) {
+        self.durable = durable
+        self.value = seed
+    }
+
+    public func load() throws -> Int64? {
+        lock.lock(); defer { lock.unlock() }
+        return value
+    }
+
+    public func save(_ cursor: Int64) throws {
+        lock.lock()
+        value = cursor
+        lock.unlock()
+        try durable.save(cursor)
+    }
+}
+
 /// An in-memory `SyncCursorStore` - the test double, and the session-scoped
 /// default until a device-level store is wired.
 public final class InMemorySyncCursorStore: SyncCursorStore, @unchecked Sendable {

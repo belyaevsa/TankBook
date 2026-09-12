@@ -397,8 +397,9 @@ extension SignInFlow {
 
     /// The real restore provider: `RestoreEngine` over a `SyncEngine` pulling
     /// from a fresh cursor (0 - restore and incremental catch-up are the same
-    /// call, docs/API.md). The final cursor is persisted so the app's regular
-    /// sync continues incrementally where the restore left off.
+    /// call, docs/API.md). Every advance is persisted through to the device
+    /// store as the pull earns it, so the app's regular sync continues
+    /// incrementally where the restore left off even mid-cycle.
     @MainActor
     private static func makeRestoreProvider(sessionStore: any SessionStore) -> any RestoreProviding {
         guard let repository = try? AppStore.repository() else {
@@ -432,9 +433,11 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
             tokenProvider: tokenProvider,
             refresher: AppSessionRefresher.shared
         )
-        // A fresh cursor: restore always pulls from 0, never from a stale
-        // account's cursor.
-        let cursor = InMemorySyncCursorStore()
+        // Restore always pulls from 0, never from a stale account's cursor - but
+        // the advance is written through to the durable store at the pull that
+        // earned it, so the app's regular sync (which runs on its own in-flight
+        // gate) reads the restore's progress instead of re-fetching the delta.
+        let cursor = SeededSyncCursorStore(seed: 0, persistingTo: UserDefaultsSyncCursorStore())
         let engine = SyncEngine(
             repository: repository,
             transport: transport,
@@ -442,10 +445,6 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
             payloadMemory: InMemorySyncPayloadMemory(),
             log: AppLog.shared
         )
-        let outcome = await RestoreEngine(engine: engine).restore()
-        if case .restored = outcome, let finalCursor = try? cursor.load() {
-            try? UserDefaultsSyncCursorStore().save(finalCursor)
-        }
-        return outcome
+        return await RestoreEngine(engine: engine).restore()
     }
 }
