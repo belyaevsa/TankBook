@@ -79,11 +79,8 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `PJ.59` | F10 | flash | 49632 | Recently deleted's "Overwritten by sync" section: real or removed |
-| `REVIEW-SCENARIO-F9` | F9 | pro | 53428 | first walk, read-only |
-| `REVIEW-SCENARIO-J10` | J10 | pro | 53424 | first walk, read-only |
-| `REVIEW-SCENARIO-J2` | J2 | pro | 53429 | first walk, read-only |
 
-**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` in flight - the last row of scenario 8. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
+**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` in flight. **Walked**: `J10` implemented (`1d6175a4`), `F9` implemented, `J2` NOT implemented - one gap, `RV.255` (the import selects nothing, so an existing-car user lands on the old car) - next build dispatch after PJ.59. `J11`/`J11a` cannot be walked yet: `RV.239`, `RV.249`, `RV.253`, `PJ.35` are open. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
