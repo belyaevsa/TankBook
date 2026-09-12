@@ -437,7 +437,10 @@ private struct SyncRestoreProvider: RestoreProviding, @unchecked Sendable {
         // the advance is written through to the durable store at the pull that
         // earned it, so the app's regular sync (which runs on its own in-flight
         // gate) reads the restore's progress instead of re-fetching the delta.
-        let cursor = SeededSyncCursorStore(seed: 0, persistingTo: UserDefaultsSyncCursorStore())
+        // RV.249: the durable store is keyed by the account being restored, so
+        // the write-through never lands on another account's cursor.
+        let cursor = SeededSyncCursorStore(seed: 0,
+                                           persistingTo: UserDefaultsSyncCursorStore(accountId: accountId))
         let engine = SyncEngine(
             repository: repository,
             transport: transport,

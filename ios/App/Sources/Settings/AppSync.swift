@@ -3,88 +3,6 @@ import Observation
 import TankbookCore
 import UIKit
 
-/// Builds the app's one `SyncCoordinator` over the real repository, transport
-/// and session store (docs/SYNC.md: one sync path - the trigger and the
-/// transport live here, nothing else constructs a second `SyncEngine`).
-@MainActor
-enum SyncService {
-    static func makeCoordinator(repository: TankbookRepository,
-                                sessionStore: any SessionStore,
-                                powerState: any PowerStateProvider) -> SyncCoordinator {
-        let director = AppConfigStore.shared.director
-        let tokenProvider = KeychainTokenProvider(sessionStore: sessionStore)
-        let refresher = AppSessionRefresher.shared
-        // OB.3: one diagnostics sink shared by the transport (which records the
-        // wire code + traceId on a server answer) and the coordinator (which
-        // clears it per cycle and persists it with a failure), and the device
-        // store the sync state survives a relaunch in.
-        let diagnostics = SyncFailureDiagnostics()
-        let syncStateStore = UserDefaultsSyncStateStore()
-        let transport = RemoteSyncTransport(
-            director: director,
-            transport: makeAppTransport(),
-            tokenProvider: tokenProvider,
-            refresher: refresher,
-            diagnostics: diagnostics
-        )
-        // P4.6: the blob gate hooks attachments into the push loop - a live
-        // attachment record uploads its rendition (begin -> PUT -> commit)
-        // before it pushes, and defers otherwise (docs/SYNC.md, upload step 5).
-        let blobGate = LocalFileBlobPushGate(
-            uploader: BlobUploader(transport: RemoteBlobTransport(
-                director: director, transport: makeAppTransport(), tokenProvider: tokenProvider,
-                refresher: refresher)),
-            source: FileBackedBlobSource(directory: (try? VehiclePhotoStore.attachmentsDirectory()) ?? FileManager.default.temporaryDirectory)
-        )
-        let engine = SyncEngine(
-            repository: repository,
-            transport: transport,
-            cursorStore: UserDefaultsSyncCursorStore(),
-            // PR.4: the payload memory is persisted, not in-memory: without it
-            // the first sync claims every field changed and a stale device
-            // reverts another device's edit (docs/SYNC.md S9, hard rule 13).
-            payloadMemory: DatabaseSyncPayloadMemory(repository: repository),
-            blobGate: blobGate,
-            homeCurrencyRehomer: MoneyBackfillService(store: AppRates.store),
-            powerState: powerState,
-            log: AppLog.shared
-        )
-        return SyncCoordinator(engine: engine,
-                               powerState: powerState,
-                               syncStateStore: syncStateStore,
-                               failureDiagnostics: diagnostics)
-    }
-
-    /// The lazy-download fetcher for opening an entry (docs/SYNC.md -> Delivery):
-    /// nil when signed out - a guest never downloads, and the inline thumbnail
-    /// still renders the chip. The fetch verifies the sha256 and caches forever
-    /// after; a failure leaves the "photo syncing" shimmer, never an error.
-    static func makeBlobFetcher(sessionStore: any SessionStore) -> LazyBlobFetcher? {
-        guard (try? sessionStore.load()) != nil else { return nil }
-        #if DEBUG
-        // RV.17: a seeded slow transport wins so the viewer's progress state is
-        // observable from a UI test; it never ships (the transport seam is
-        // DEBUG-only, exactly like the sync stubs in SeededLaunchTransport).
-        if let seeded = SeededBlobTransport.from() {
-            let store = FileBackedBlobStore(
-                directory: (try? VehiclePhotoStore.attachmentsDirectory())
-                    ?? FileManager.default.temporaryDirectory)
-            return LazyBlobFetcher(transport: seeded, store: store)
-        }
-        #endif
-        let transport = RemoteBlobTransport(
-            director: AppConfigStore.shared.director,
-            transport: makeAppTransport(),
-            tokenProvider: KeychainTokenProvider(sessionStore: sessionStore),
-            refresher: AppSessionRefresher.shared
-        )
-        let store = FileBackedBlobStore(
-            directory: (try? VehiclePhotoStore.attachmentsDirectory())
-                ?? FileManager.default.temporaryDirectory)
-        return LazyBlobFetcher(transport: transport, store: store)
-    }
-}
-
 /// Supplies the current access token to the sync transport, read from the
 /// Keychain exactly as the auth service does (docs/SECURITY.md -> the token is
 /// bound to the host, not the session). The host allowlist is enforced by
@@ -115,6 +33,10 @@ final class AppSync {
     /// local is untouched; a paused push leaves the queue exactly as S7 does.
     private let configService: AppConfigService
     private var core: SyncCoordinator?
+    /// RV.249: the account `core` was built for. The coordinator holds an
+    /// account-keyed cursor store, so an account change must discard it rather
+    /// than reuse a cursor that belongs to the previous account.
+    private var coreAccountId: String?
 
     /// The injected Low Power Mode state (P6.8, docs/SYNC.md -> Low Power
     /// Mode). Never `ProcessInfo` read at a call site - the app's one seam is
@@ -331,12 +253,22 @@ final class AppSync {
     }
 
     private func coordinator() -> SyncCoordinator? {
-        if let core { return core }
-        guard let repository = try? AppStore.repository() else { return nil }
+        // RV.249: the coordinator owns an account-keyed cursor store, so it is
+        // only valid for the account it was built for. Resolve the current
+        // account here and rebuild when it changed - sign-out clears the
+        // session but keeps the old coordinator, and the next sign-in may be a
+        // different account that must start from its own cursor (0 when new).
+        let accountId = (try? sessionStore.load())?.accountId
+        if let core, let accountId, coreAccountId == accountId { return core }
+        core = nil
+        coreAccountId = nil
+        guard let accountId, let repository = try? AppStore.repository() else { return nil }
         let coordinator = SyncService.makeCoordinator(repository: repository,
                                                       sessionStore: sessionStore,
+                                                      accountId: accountId,
                                                       powerState: powerState)
         core = coordinator
+        coreAccountId = accountId
         ensureWriteTriggerArmed(repository: repository)
         return coordinator
     }
@@ -409,6 +341,14 @@ final class AppSync {
             // The account is gone; the just-signed-in confirmation must not
             // outlive the session it confirmed.
             didJustSignIn = false
+        }
+        // RV.249: a different account signed in - the cached coordinator (and
+        // its account-keyed cursor) belongs to the old one. Drop it here so the
+        // card does not read the old account's outcome and the rebuild below
+        // keys the cursor to the new account.
+        if let session, let coreAccountId, coreAccountId != session.accountId {
+            core = nil
+            self.coreAccountId = nil
         }
         if session != nil, core == nil {
             // OB.3: a signed-in relaunch must see its persisted sync state (the

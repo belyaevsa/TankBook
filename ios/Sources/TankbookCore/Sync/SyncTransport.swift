@@ -25,23 +25,64 @@ public protocol SyncPayloadMemory: Sendable {
     func recordSynced(id: UUID, payload: JSONValue)
 }
 
-/// A `SyncCursorStore` backed by `UserDefaults`. The cursor is an opaque
-/// monotonic integer - not sensitive - so a plain preference slot is the right
-/// home (docs/SCHEMA.md: "sync cursor & auth tokens - infrastructure").
+/// A `SyncCursorStore` backed by `UserDefaults`, keyed by account id. The cursor
+/// is an opaque monotonic integer - not sensitive - so a plain preference slot is
+/// the right home (docs/SCHEMA.md: "sync cursor & auth tokens - infrastructure").
+///
+/// The key carries the account id because one device can hold cursors for more
+/// than one account: sign-out clears the session, never the cursor, so an
+/// unkeyed cursor would let a later sign-in to a different account resume from
+/// the previous account's SCN and skip its history (RV.249). The per-account key
+/// is also what makes the monotonic guard safe: `save` ignores a lower advance
+/// for the same account, while a different account reads its own slot (a restore
+/// still seeds 0 by design - `SeededSyncCursorStore`).
 public struct UserDefaultsSyncCursorStore: SyncCursorStore {
-    private let key: String
+    private let accountId: String
+    /// The pre-RV.249 unkeyed key, migrated into the account's slot on first
+    /// load and then deleted. The per-account key is derived from it.
+    private let legacyKey: String
+    /// An explicit suite name, when the caller must not touch `.standard` (a
+    /// test uses an ephemeral suite and tears it down). `UserDefaults` itself is
+    /// not `Sendable`, so the store resolves it from the suite name at each call
+    /// rather than holding one - the same shape as `UserDefaultsSyncStateStore`.
+    private let suiteName: String?
 
-    public init(key: String = "tankbook.sync.cursor") {
-        self.key = key
+    public init(accountId: String,
+                legacyKey: String = "tankbook.sync.cursor",
+                suiteName: String? = nil) {
+        self.accountId = accountId
+        self.legacyKey = legacyKey
+        self.suiteName = suiteName
     }
 
+    private var defaults: UserDefaults {
+        suiteName.flatMap { UserDefaults(suiteName: $0) } ?? .standard
+    }
+
+    private var key: String { "\(legacyKey).\(accountId)" }
+
     public func load() throws -> Int64? {
-        guard let value = UserDefaults.standard.object(forKey: key) as? Int64 else { return nil }
-        return value
+        if let value = defaults.object(forKey: key) as? Int64 { return value }
+        // RV.249 migration: before this key existed, one device held one cursor
+        // for whoever was signed in. Move it into the signed-in account's slot
+        // once, then delete the old key so a later account cannot inherit it.
+        guard let legacy = defaults.object(forKey: legacyKey) as? Int64 else { return nil }
+        defaults.set(legacy, forKey: key)
+        defaults.removeObject(forKey: legacyKey)
+        return legacy
     }
 
     public func save(_ cursor: Int64) throws {
-        UserDefaults.standard.set(cursor, forKey: key)
+        // Monotonic per account: an in-flight restore page can return a lower
+        // `nextSince` than the app engine already persisted, and that lower
+        // advance is a stale replay, never a real step back - SCN only moves
+        // forward for a given account.
+        if let current = defaults.object(forKey: key) as? Int64, cursor < current { return }
+        defaults.set(cursor, forKey: key)
+        // A write-through `save` can run before this account's first `load`
+        // (a restore). Delete the legacy key here too, so it cannot linger and
+        // later migrate into a different account.
+        defaults.removeObject(forKey: legacyKey)
     }
 }
 
