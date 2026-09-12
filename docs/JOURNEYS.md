@@ -498,6 +498,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 ## Edge & exit
 
 ### J11a · First sign-in (there is no "registration")
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J11a-2026-09-12)
 **Trigger:** the user wants a second device, or taps "Sign in to sync" in Settings – typically weeks after installing, with a local log already on the phone.
 
 | Stage | Doing | Notes |
