@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.108` | J11a | flash | (dispatching) | `GET /v1/account` - delete the doc row or build the figure, decided by what the client consumes |
+| `RV.143` | J10 | flash | (dispatching) | a home-currency change that arrives by sync re-homes on the receiving device |
 
-**IMPLEMENTED (14).** `RV.250` shipped `bcad7a4` - the gate now runs the app-target bundle. Scenario 8 continues: `RV.108` in flight; `RV.143`, `PJ.58`, `RV.158+RV.138`, `PJ.59` follow; then the walks of J11, J11a, J10, J2, F9, F10. Then the single-row follow-ups (`RV.226`, `RV.227`, `RV.228`, `RV.229`, `RV.234`, `RV.239`, `RV.241`, `RV.251`) and their re-walks.
+**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49` shipped; `RV.143` in flight; `PJ.58`, `RV.158+RV.138`, `PJ.59` follow. New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
