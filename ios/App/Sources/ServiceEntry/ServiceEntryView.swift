@@ -260,6 +260,23 @@ struct ServiceEntryView: View {
 
     // MARK: - Loading
 
+    /// RV.247: the car this entry writes to. A reminder completion hand-off
+    /// names its own car explicitly; the selected car is UI state and is the
+    /// fallback only when no hand-off matches this entry kind.
+    static func entryVehicle(vehicles: [Vehicle],
+                             completion: ReminderCompletionSession.Pending?,
+                             selected: Vehicle?) -> Vehicle? {
+        let matching = completion.flatMap { pending -> ReminderCompletionSession.Pending? in
+            guard case .service = ReminderCompletion.entryKind(for: pending.reminder.category) else {
+                return nil
+            }
+            return pending
+        }
+        return ReminderCompletionSession.entryVehicle(vehicles: vehicles,
+                                                      pending: matching,
+                                                      selected: selected)
+    }
+
     private func load() async {
         guard !didLoad else { return }
         didLoad = true
@@ -280,7 +297,10 @@ struct ServiceEntryView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            guard let vehicle = carSelection.selectedVehicle(vehicles) else { return }
+            guard let vehicle = Self.entryVehicle(
+                vehicles: vehicles,
+                completion: completionSession.pending,
+                selected: carSelection.selectedVehicle(vehicles)) else { return }
             self.vehicle = vehicle
             let existingEntries = try repository.liveEntries(forVehicle: vehicle.id)
             self.existingEntries = existingEntries

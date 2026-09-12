@@ -249,6 +249,7 @@ struct ReminderCompleteSheet: View {
     private func typeAmount() {
         completionSession.pending = ReminderCompletionSession.Pending(
             reminder: reminder,
+            vehicleId: reminder.vehicleId,
             completionDate: completionDate,
             completionOdometer: currentOdometer)
         switch entryKind {

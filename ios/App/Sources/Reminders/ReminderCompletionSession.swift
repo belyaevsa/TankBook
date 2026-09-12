@@ -16,6 +16,10 @@ import TankbookCore
 final class ReminderCompletionSession {
     struct Pending {
         var reminder: Reminder
+        /// The car the entry must be written to - the reminder's OWN car,
+        /// carried explicitly so the entry's `vehicleId` cannot be decided by
+        /// which car happens to be selected when the sheet opens (RV.247).
+        var vehicleId: UUID
         var completionDate: Date
         var completionOdometer: Int?
     }
@@ -24,6 +28,20 @@ final class ReminderCompletionSession {
 }
 
 extension ReminderCompletionSession {
+    /// The vehicle an entry opened from a completion hand-off writes to: the
+    /// reminder's OWN car, resolved by id. Selection is UI state and is only the
+    /// fallback for an entry opened without a hand-off; resolving from it while
+    /// a hand-off is pending is how the entry landed on the wrong car (RV.247).
+    /// The hand-off is a default, not a fact, but it is a default about WHICH
+    /// CAR, and the entry has no editable car field - so the reminder's car wins
+    /// unconditionally.
+    nonisolated static func entryVehicle(vehicles: [Vehicle],
+                                         pending: Pending?,
+                                         selected: Vehicle?) -> Vehicle? {
+        guard let pending else { return selected }
+        return vehicles.first { $0.id == pending.vehicleId } ?? selected
+    }
+
     /// Persists a completion - the completed reminder (now `.done(entryId)`
     /// history) plus, when recurrence produced one, the next occurrence - after
     /// the entry saved with `entryId`. The sheet's Skip path calls this with a

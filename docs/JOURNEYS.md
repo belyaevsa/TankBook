@@ -439,9 +439,11 @@ with a live car hold at least one active reminder within 30 days of first launch
 *(RV.74: a fired reminder's TAP lands on the merged all-cars list - every active car in one
 list, the tapped reminder's completion sheet surfaced over it - never on a car-scoped screen,
 which is how a reminder on the non-selected car used to vanish as a "stale tap". The tap selects
-the reminder's own live car first, never an archived one, so the app context - and "Type amount",
-which logs to the selected car - follows the reminder; a deleted reminder still lands on the plain
-list, hard rule 7. `docs/SCREENMAP.md` -> "Reminders across cars".)*
+the reminder's own live car first, never an archived one, so the app context follows the reminder;
+a deleted reminder still lands on the plain list, hard rule 7. *(RV.247: "Type amount" logs the new
+entry to the reminder's OWN car on both entry kinds - the completion hand-off carries its
+`vehicleId` explicitly, so the merged list, which never selects the car first, writes to the same
+car the deep link does.)* `docs/SCREENMAP.md` -> "Reminders across cars".)*
 
 *(RV.78: a fired reminder is actionable FROM THE BANNER, so snoozing beats ignoring at the red
 light. The banner's two actions are **Mark done** and **Push a week**

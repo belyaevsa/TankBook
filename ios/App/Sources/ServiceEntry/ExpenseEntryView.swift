@@ -317,6 +317,23 @@ struct ExpenseEntryView: View {
 
     // MARK: - Loading
 
+    /// RV.247: the car this entry writes to. A reminder completion hand-off
+    /// names its own car explicitly; the selected car is UI state and is the
+    /// fallback only when no hand-off matches this entry kind.
+    static func entryVehicle(vehicles: [Vehicle],
+                             completion: ReminderCompletionSession.Pending?,
+                             selected: Vehicle?) -> Vehicle? {
+        let matching = completion.flatMap { pending -> ReminderCompletionSession.Pending? in
+            guard case .expense = ReminderCompletion.entryKind(for: pending.reminder.category) else {
+                return nil
+            }
+            return pending
+        }
+        return ReminderCompletionSession.entryVehicle(vehicles: vehicles,
+                                                      pending: matching,
+                                                      selected: selected)
+    }
+
     /// RV.62: the scan's pre-fill becomes default input, field by field. A nil
     /// value stays blank and focusable - never `0` and never an error (hard
     /// rules 13, 7). The total is offered only when the receipt's own currency
@@ -348,7 +365,10 @@ struct ExpenseEntryView: View {
         do {
             let repository = try AppStore.repository()
             let vehicles = try repository.liveVehicles()
-            guard let vehicle = carSelection.selectedVehicle(vehicles) else { return }
+            guard let vehicle = Self.entryVehicle(
+                vehicles: vehicles,
+                completion: completionSession.pending,
+                selected: carSelection.selectedVehicle(vehicles)) else { return }
             self.vehicle = vehicle
             // The category pre-selection is a default input the user edits
             // (hard rule 13), never a lock. Two writers share it: the mode row

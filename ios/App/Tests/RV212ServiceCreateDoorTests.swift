@@ -111,6 +111,9 @@ final class RV212ServiceCreateDoorTests: XCTestCase {
     /// its mileage span anchors on the odometer, and it is a create-only state.
     func testAMountedTireSetWithNoOdometerStillRefuses() {
         var create = ServiceEntryFormState()
+        // A set is mounted only in tires mode (`tireSetId`'s own doc); the
+        // create rule branches on the mode first (RV.214).
+        create.mode = .tires
         create.tireSetId = UUID.v7()
         XCTAssertEqual(create.saveReadiness, .odometerRequired)
         XCTAssertEqual(ServiceEntryDraft.saveReadiness(odometer: nil, tireSetId: nil), .ready)
