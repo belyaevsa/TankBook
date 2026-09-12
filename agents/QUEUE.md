@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.155` | J11 | flash | (dispatching) | the pull cursor that went backwards - scenario 8 begins |
+| `RV.247` | J7c | flash | (dispatching) | the wrong-car write from the all-cars reminder list - a bug from J7c's walk, ahead of scenario 8's remainder |
 
-**IMPLEMENTED (11): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3.** J8b line held for the device. Scenario 7 built (`RV.212+213+224`, `RV.214`, `PJ.61`, `RV.244`; `PJ.50` closed), walking; `PJ.60` awaits the owner. Scenario 8 (J11, J11a, J10, J2, F9, F10) begins with `RV.155`.
+**IMPLEMENTED (14): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3, J7, J7b, J7d.** J8b line held for the device. J7c waits on `RV.247` (in flight) and `RV.248` (owner's call, with `RV.240`). Scenario 8: `RV.155` shipped `88bb4e2` (`RV.249` filed); `RV.108`, `RV.143`, `PJ.58`, `RV.158+RV.138`, `PJ.59` follow.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
