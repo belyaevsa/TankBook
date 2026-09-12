@@ -78,7 +78,8 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.239` | F7, J11 | flash | (dispatching) | the import rows on both restore-failure screens reach the wizard |
+| `RV.239` | F7, J11 | flash | 65398 | the import rows on both restore-failure screens reach the wizard |
+| `REVIEW-SCENARIO-J11a` | J11a | pro | 67297 | first walk, read-only |
 
 **IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` shipped (`4c774f42`) - scenario 8's build rows are closed. **Walked**: `J10` implemented (`1d6175a4`), `F9` implemented, `J2` implemented on the second walk after `RV.255`. `RV.253` shipped (`7b234946`). `F10` implemented (first walk; the S5 notice is PJ.40 [v1.1]). `RV.249` shipped; `RV.239` in flight - it closes J11 and F7 for their walks; J11a is ready now. `RV.256` filed (the persisted sync STATE is also account-unkeyed; display, not correctness). The `RV.203` flake fired in three of today's full package runs, always green alone - worth its own look once scenario 8 closes. `PJ.35` now reads as the `[v1.1]` row the tier table already files it as - the owner's 2026-08-31 PRIORITY note stays on the row; if it is meant for v1, say so and the marker moves back. `J11`/`J11a` cannot be walked yet: `RV.239`, `RV.249`, `RV.253`, `PJ.35` are open. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
