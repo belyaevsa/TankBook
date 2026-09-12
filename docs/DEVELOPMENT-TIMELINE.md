@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-12 · UI suites run signed; a host-dependent test skips itself
+
+| | |
+|---|---|
+| **Commits** | `RV.257`+`RV.258` (this entry's commit); `PREAMBLE.md` fence |
+| **Reason** | Three agents in one day reported 21 `SettingsUITests` failures and a SignIn cluster "on clean HEAD"; none reproduced in the orchestrator's hands. The RV.257+RV.258 agent found the cause: agents copied `gate.sh`'s `CODE_SIGNING_ALLOWED=NO` onto UI-suite runs, which strips the Keychain entitlement, so every signed-in test fails. Separately, four real-center reminder tests passed or failed with the simulator's notification daemon on the same tree, and one sign-in L4 cost an hour of false bisecting. A gate that is red for reasons the tree cannot change is a gate people learn to ignore. |
+| **Evidence** | `RV.260`, `RV.256`, `RV.261` reports (21 failures each, never reproduced); `RV.258`'s four flipping between 205/205 and 201/205 across the day; the RV.249 mis-attribution (memory `never-bisect-a-ui-test-on-one-sample`). |
+| **What changed** | `PREAMBLE.md`: UI suites run signed, the flag is for the unit bundle only. `ReminderNotificationActionTests` probes the daemon once per run and `XCTSkip`s the four real-center tests with the documented reason, so the bundle count says what was verified (205 with 4 skipped on a dropping host). `-signInStubAuth` stubs the sync transport too, so the first push is answered instantly; RV.257's stated real-network cause was wrong (the seeded transport was already offline), and the row's tick says so. |
+
 ## 2026-09-12 · The baseline gate tests the app target, not only the package
 
 | | |

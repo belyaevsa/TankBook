@@ -69,6 +69,12 @@ struct ServerDownTransport: TankbookHTTPTransport {
 /// offline, and a real server is out of the question). The pull is empty, the
 /// push accepts every change, and `GET /account/devices` serves exactly this
 /// device - the account the local log is being pushed into has one device.
+///
+/// `-signInStubAuth` selects this transport too: the stub-auth scenario stubs
+/// auth, so the first push its completion paths run (`AppSync.firstPushNow`)
+/// must not reach whatever `apiBaseUrl` resolves to. Offline would answer, but
+/// an offline outcome schedules the retry backoff, and the point of the
+/// scenario is a first push that answers once and is done.
 struct SignInSyncStubTransport: TankbookHTTPTransport {
     func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
         let path = request.url.path
@@ -242,11 +248,15 @@ enum SeededLaunch {
     /// The transport to use for this launch: offline under a seed, real otherwise.
     /// The auth-expired seed is the one exception to "offline": it answers 401 so
     /// the real refresh path runs and fails (PR.1). PJ.13's sign-in stub answers
-    /// success so the L4 sign-in flow can push for real. PR.13's server-down seed
-    /// answers 503 so the L4 server-down card renders through the real 5xx path.
+    /// success so the L4 sign-in flow can push for real; `-signInStubAuth` picks
+    /// it up as well, so the first push under the stub-auth scenario is answered
+    /// rather than run against the live host. PR.13's server-down seed answers 503
+    /// so the L4 server-down card renders through the real 5xx path.
     static func transport(_ arguments: [String] = ProcessInfo.processInfo.arguments)
         -> any TankbookHTTPTransport {
-        if arguments.contains("-signInSyncStub") { return SignInSyncStubTransport() }
+        if arguments.contains("-signInSyncStub") || arguments.contains("-signInStubAuth") {
+            return SignInSyncStubTransport()
+        }
         if arguments.contains("-syncFlaggedPullStub") { return FlaggedBatchSyncStubTransport() }
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
         if arguments.contains("-seedSettingsRevoked410") { return RevokedDeviceTransport() }

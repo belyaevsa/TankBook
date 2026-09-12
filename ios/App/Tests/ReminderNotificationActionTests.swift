@@ -28,6 +28,50 @@ final class ReminderNotificationActionTests: XCTestCase {
         UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
     }
 
+    // MARK: - The notification daemon probe
+
+    /// The real center is a platform fact on a cooperating host, but the
+    /// simulator's notification daemon has been observed dropping every `add`
+    /// from a test-hosted process. On such a host "the request is not pending"
+    /// is vacuous, and the four real-center tests below fail for a platform
+    /// reason that says nothing about the coordinator. Probe once per run - arm
+    /// one request, read it back - and skip them when the daemon drops it. The
+    /// real-center tests stay: they are the only proof the real center honours
+    /// the identifiers, and they run wherever the daemon cooperates. The
+    /// recording-scheduler siblings are not probed and always run.
+    private static let daemonDropsAddsReason =
+        "the simulator notification daemon dropped the probe request; "
+        + "the real center cannot be asserted on this host (RV.258)"
+    private static var centerAcceptsAdds: Bool?
+
+    /// Skips the caller when the probe shows the daemon drops every `add`. A
+    /// no-op on a cooperating host, so the real-center assertions run there.
+    private func requireRealNotificationCenter() async throws {
+        let accepts = await Self.probeNotificationCenterOnce()
+        try XCTSkipUnless(accepts, Self.daemonDropsAddsReason)
+    }
+
+    /// Arms one request on the real center and reads it back, caching the
+    /// result for the run so the four real-center tests probe once between
+    /// them. The probe request is removed afterwards, whether or not it landed.
+    private static func probeNotificationCenterOnce() async -> Bool {
+        if let cached = centerAcceptsAdds { return cached }
+        let center = UNUserNotificationCenter.current()
+        let identifier = "reminder.probe.\(UUID().uuidString)"
+        let content = UNMutableNotificationContent()
+        content.title = "probe"
+        // A time-interval trigger keeps the request pending; a nil trigger
+        // delivers immediately and would never appear in the pending list.
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 60, repeats: false)
+        let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+        let added = (try? await center.add(request)) != nil
+        let pending = await center.pendingNotificationRequests()
+        center.removePendingNotificationRequests(withIdentifiers: [identifier])
+        let accepts = added && pending.contains { $0.identifier == identifier }
+        centerAcceptsAdds = accepts
+        return accepts
+    }
+
     // MARK: - Registration at launch
 
     /// The category is registered at LAUNCH with both actions. The test host is
@@ -66,6 +110,7 @@ final class ReminderNotificationActionTests: XCTestCase {
     /// the category is registered but never attached to scheduled requests
     /// (mutation 3).
     func testSnoozeResponseReArmsAndTheArmedRequestCarriesTheCategory() async throws {
+        try await requireRealNotificationCenter()
         let reminderID = ReminderNotificationActionTestSupport.seedFiredDateReminder(dueInDays: 11)
         let coordinator = ReminderNotificationCoordinator()
 
@@ -102,6 +147,7 @@ final class ReminderNotificationActionTests: XCTestCase {
     /// request must be gone. This fails if completion marks `.done` but never
     /// cancels (the "armed after complete" trap).
     func testCompletingThroughTheSheetPathDisarmsThePendingNotification() async throws {
+        try await requireRealNotificationCenter()
         let reminderID = ReminderNotificationActionTestSupport.seedFiredDateReminder(dueInDays: 11)
         let coordinator = ReminderNotificationCoordinator()
         await coordinator.snooze(reminderID: reminderID)
@@ -131,6 +177,7 @@ final class ReminderNotificationActionTests: XCTestCase {
     /// Drives the real coordinator reconcile over the real center - the exact
     /// path `VehicleDetailView.toggleArchive` runs after the repository write.
     func testArchivingCancelsThatCarsRequestsAndLeavesAnotherCarsArmed() async throws {
+        try await requireRealNotificationCenter()
         let coordinator = ReminderNotificationCoordinator()
 
         // Car A: two reminders. Car B: one. Both far-future so each reconcile
@@ -170,6 +217,7 @@ final class ReminderNotificationActionTests: XCTestCase {
     /// not silently mute (mutation 2). Same real-center, real-coordinator path
     /// as the strip.
     func testUnarchivingReArmsThatCarsReminders() async throws {
+        try await requireRealNotificationCenter()
         let coordinator = ReminderNotificationCoordinator()
 
         let car = ReminderNotificationActionTestSupport.seedScheduledReminder(dueInDays: 120)

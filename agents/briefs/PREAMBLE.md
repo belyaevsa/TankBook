@@ -37,7 +37,12 @@ codebase produces its most common defect (`docs/DEFECT-PATTERNS.md`). If you fil
    scripts/gate.sh`** if you touched a `#if DEBUG` seam.
 2. **Each UI suite by name, in its own invocation**: `-only-testing` across the app-target bundle
    and the UI bundle in one command runs ONE of them and exits 0 (found 2026-09-11). Report a
-   non-zero count per suite - a filter matching nothing prints SUCCEEDED.
+   non-zero count per suite - a filter matching nothing prints SUCCEEDED. **UI suites run SIGNED**:
+   never pass `CODE_SIGNING_ALLOWED=NO` to `xcodebuild test` for `TankbookUITests` - it strips the
+   Keychain entitlement, `KeychainSessionStore.save` fails silently (`errSecMissingEntitlement`), and
+   every signed-in test fails (found 2026-09-12: three agents reported 21 `SettingsUITests`
+   failures "on clean HEAD" that never reproduced signed). `gate.sh` uses the flag only for the
+   app-target UNIT bundle, which needs no Keychain.
 3. Localization gate - 0; report keys and RU percentage. **EN + RU screenshots** for any UI change,
    dark theme, with capture lines added to `scripts/capture-screenshots.sh` (`RV.176` fails CI on a
    frame no line produces).
