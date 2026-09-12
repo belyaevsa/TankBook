@@ -82,13 +82,34 @@ private struct RecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
       {"date":"2026-08-21","quote":"USD","rate":1.08107664,"source":"ecb"}
     ]}
     """
-    let rates = try RemoteRateFetcher.decodePack(Data(body.utf8))
+    let rates = try RemoteRateFetcher.decodePack(Data(body.utf8)).rates
     #expect(rates.count == 3)
     // Exact equality against the string-built Decimal: the naive decode routes
     // the JSON number through Double, which fails on 1.08107664.
     #expect(rates[0].rate == decimal("4.2706"))
     #expect(rates[1].rate == decimal("0.0108384"))
     #expect(rates[2].rate == decimal("1.08107664"))
+}
+
+@Test func packDecodesTheStatedCoverageFloor() throws {
+    // RV.158: the additive field the span walk reads to stop asking below the
+    // oldest date the service can serve.
+    let body = #"{"base":"EUR","coverageFloor":"1999-01-04","rates":[]}"#
+    let pack = try RemoteRateFetcher.decodePack(Data(body.utf8))
+    #expect(pack.coverageFloor == day(1999, 1, 4))
+}
+
+@Test func packWithNoCoverageFloorReadsAsUnknownNotAnError() throws {
+    // Absent, null and malformed all mean "no floor stated": the rows are still
+    // usable and the walk keeps asking (never a failed pack).
+    for body in [
+        #"{"base":"EUR","rates":[]}"#,
+        #"{"base":"EUR","coverageFloor":null,"rates":[]}"#,
+        #"{"base":"EUR","coverageFloor":"not-a-date","rates":[]}"#,
+    ] {
+        let pack = try RemoteRateFetcher.decodePack(Data(body.utf8))
+        #expect(pack.coverageFloor == nil, "body \(body) must decode as no floor")
+    }
 }
 
 @Test func theNaiveDoubleDecodeIsNotTheExactValue() {
@@ -126,7 +147,7 @@ private struct RecordingTransport: TankbookHTTPTransport, @unchecked Sendable {
       {"date":"2026-08-21","quote":"PLN","rate":4.2,"source":"ecb:carried-forward"}
     ]}
     """
-    let rates = try RemoteRateFetcher.decodePack(Data(body.utf8))
+    let rates = try RemoteRateFetcher.decodePack(Data(body.utf8)).rates
     #expect(rates.first { $0.quote == .rub }?.source == .cis)
     #expect(rates.first { $0.quote == .pln }?.source == .ecb)
 }

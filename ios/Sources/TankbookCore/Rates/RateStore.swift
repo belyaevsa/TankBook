@@ -11,12 +11,28 @@ import os
 // error - the entry saves rate-pending (F9) and backfills later, fill-blanks-
 // only (docs/SCHEMA.md -> Money conversion semantics).
 
+/// One `/rates/pack` answer: the rows the server carried, plus the coverage
+/// floor it states - the oldest date the service can serve for the requested
+/// base (docs/API.md -> Exchange rates, additive field RV.158). The floor is
+/// `nil` when the server states none, which the client reads as "unknown, keep
+/// asking"; a date below a stated floor can never be served by any feed, so the
+/// span walk stops there.
+public struct RatePack: Sendable, Equatable {
+    public let rates: [ExchangeRate]
+    public let coverageFloor: Date?
+
+    public init(rates: [ExchangeRate], coverageFloor: Date? = nil) {
+        self.rates = rates
+        self.coverageFloor = coverageFloor
+    }
+}
+
 /// Fetches a bulk range of exchange-rate rows from the backend's public
 /// `/rates/pack` endpoint (docs/SCHEMA.md -> Exchange rates). Injected as a
 /// protocol with a test double, exactly as `ConfigStore` does its fetcher; the
 /// real HTTP client lands with the sync work, never here.
 public protocol RateFetcher: Sendable {
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate]
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack
 }
 
 /// The local rate cache. Keyed `(date, base, quote)` after `docs/SCHEMA.md`'s
@@ -27,6 +43,9 @@ public protocol RateFetcher: Sendable {
 /// yields the identical number.
 public final class RateStore: @unchecked Sendable {
     public typealias Clock = @Sendable () -> Date
+    /// Waits between span chunks, injected so pacing is a test decision and
+    /// never a timing accident (RV.158).
+    public typealias Sleeper = @Sendable (Duration) async -> Void
 
     private struct State {
         var rates: [ExchangeRate]
@@ -37,6 +56,11 @@ public final class RateStore: @unchecked Sendable {
         /// (see `refresh`), never by the caller, so it is nil whenever no fetch
         /// is running.
         var inFlightRefresh: Task<Void, Never>?
+        /// RV.158: the demand-span walk currently on the wire, one per base.
+        /// A second `fetchSpan` for the same base joins it rather than opening
+        /// a duplicate burst of `/rates/pack` requests. Claimed and cleared by
+        /// the walk task itself (see `fetchSpan`), never by the caller.
+        var inFlightSpans: [CurrencyCode: Task<Bool, Never>] = [:]
     }
 
     private let lock: OSAllocatedUnfairLock<State>
@@ -45,23 +69,28 @@ public final class RateStore: @unchecked Sendable {
     private let calendar: Calendar
     private let powerState: any PowerStateProvider
     private let log: TankbookLog?
+    private let sleep: Sleeper
 
     /// Builds a store over `seed` rows. `calendar` determines what "the entry's
     /// day" means when matching a `Date` to a rate row's day; injectable so
     /// tests are deterministic. `fetcher` is optional - absent until the sync
     /// work supplies a real one; `clock` supplies "today" for `refresh()` only.
     /// `powerState` is the injected Low Power Mode state (docs/SYNC.md) that
-    /// `refresh()` defers on - never `ProcessInfo` read inline.
+    /// `refresh()` defers on - never `ProcessInfo` read inline. `sleep` is the
+    /// between-chunk pause `fetchSpan` takes; the default really sleeps, and a
+    /// test injects a no-op so pacing never slows the suite.
     public init(seed: [ExchangeRate], fetcher: (any RateFetcher)? = nil,
                 clock: @escaping Clock = { Date() },
                 calendar: Calendar = .current,
                 powerState: any PowerStateProvider = ProcessInfoPowerState(),
-                log: TankbookLog? = nil) {
+                log: TankbookLog? = nil,
+                sleep: @escaping Sleeper = { try? await Task.sleep(for: $0) }) {
         self.fetcher = fetcher
         self.clock = clock
         self.calendar = calendar
         self.powerState = powerState
         self.log = log
+        self.sleep = sleep
         self.lock = OSAllocatedUnfairLock(initialState: State(rates: seed.map {
             $0.normalizedDay(in: calendar)
         }))
@@ -174,6 +203,14 @@ public final class RateStore: @unchecked Sendable {
     /// later, so a shorter window costs a backfill, never a wrong number.
     static let packWindowDays = 400
 
+    /// How long `fetchSpan` waits between chunks. The production log that
+    /// opened RV.158 shows eight `/rates/pack` requests inside seven
+    /// milliseconds - a burst indistinguishable from a retry storm at the
+    /// origin, and exactly what rate limiting would clamp once the server has
+    /// any. A quarter-second between chunks keeps a decade-long import to a
+    /// handful of requests spread over seconds, never one instant.
+    static let spanChunkPacing: Duration = .milliseconds(250)
+
     /// Fetches a rolling `packWindowDays` pack (base EUR) when a fetcher is present;
     /// otherwise a no-op. A fetch failure is silent - a miss is not an error
     /// (docs/SCHEMA.md -> Exchange rates, F9).
@@ -252,8 +289,8 @@ public final class RateStore: @unchecked Sendable {
     private func fetchAndMerge(fetcher: any RateFetcher) async {
         let now = clock()
         let from = calendar.date(byAdding: .day, value: -(Self.packWindowDays - 1), to: now) ?? now
-        guard let rates = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else { return }
-        merge(rates)
+        guard let pack = try? await fetcher.fetchPack(from: from, to: now, base: .eur) else { return }
+        merge(pack.rates)
     }
 
     /// Fetches the rate pack for an explicit date span and merges it - the
@@ -265,11 +302,23 @@ public final class RateStore: @unchecked Sendable {
     /// requested in consecutive `packWindowDays`-wide chunks because the server
     /// rejects a wider single request with a 400 (`Rates:MaxPackDays`, RV.1).
     ///
+    /// RV.158 adds three bounds to the walk:
+    /// - **A coverage floor.** The first pack answer states the oldest date the
+    ///   service can serve for the base (docs/API.md -> Exchange rates). Once
+    ///   it is known, a chunk that ends before the floor is skipped without a
+    ///   request - no feed can ever answer those dates. An empty answer inside
+    ///   coverage does NOT stop the walk: a gap in a covered range is
+    ///   legitimate and the next chunk still runs.
+    /// - **Pacing.** Chunks are separated by `spanChunkPacing`, so a multi-year
+    ///   span is not eight requests inside one millisecond at the origin.
+    /// - **Single flight per base.** A second `fetchSpan` for the same base
+    ///   while one is in flight joins it instead of opening a second burst.
+    ///
     /// Same silence as `refresh`: a transport failure breaks the loop and is a
     /// non-event (F9) - whatever the cache already holds still answers, and the
     /// call is safe offline (hard rule 1). An empty pack (the server has no row
     /// for a date) is not a failure either. Returns true when at least one chunk
-    /// was fetched and merged, false when there is no fetcher, the work was
+    /// reached the provider, false when there is no fetcher, the work was
     /// deferred under Low Power Mode (background trigger), or nothing could be
     /// fetched.
     @discardableResult
@@ -283,20 +332,72 @@ public final class RateStore: @unchecked Sendable {
         let first = calendar.startOfDay(for: from)
         let last = calendar.startOfDay(for: to)
         guard last >= first else { return false }
+
+        // RV.158: one in-flight span per base. The slot is claimed and cleared
+        // by the walk task itself, never by the caller, so a racing second
+        // caller either joins the running walk or becomes the sole creator.
+        enum Claim {
+            case joined(Task<Bool, Never>)
+            case started(Task<Bool, Never>)
+        }
+        let claim = lock.withLock { state -> Claim in
+            if let existing = state.inFlightSpans[base] {
+                return .joined(existing)
+            }
+            let task = Task {
+                defer { self.lock.withLock { state in state.inFlightSpans[base] = nil } }
+                return await self.walkSpan(fetcher: fetcher, from: first, to: last, base: base)
+            }
+            state.inFlightSpans[base] = task
+            return .started(task)
+        }
+        switch claim {
+        case .joined(let existing):
+            return await existing.value
+        case .started(let task):
+            return await task.value
+        }
+    }
+
+    /// The chunked span walk. `fetchSpan` owns the single-flight slot; this is
+    /// the body it runs, so the slot is released the moment the walk returns.
+    private func walkSpan(fetcher: any RateFetcher, from first: Date, to last: Date,
+                          base: CurrencyCode) async -> Bool {
         var cursor = first
         var mergedAny = false
         while cursor <= last {
             let chunkEnd = calendar.date(byAdding: .day, value: Self.packWindowDays - 1,
                                          to: cursor).map { min($0, last) } ?? last
-            guard let rates = try? await fetcher.fetchPack(from: cursor, to: chunkEnd, base: base) else {
+            guard let pack = try? await fetcher.fetchPack(from: cursor, to: chunkEnd, base: base) else {
                 // A transport failure is one silent miss, not a reason to keep
                 // hammering a dead host - stop, like `refresh` swallows once.
                 break
             }
-            merge(rates)
             mergedAny = true
+
+            // RV.158: the server's stated coverage floor. A chunk entirely below
+            // it is a date no feed can ever answer, so skip to the floor rather
+            // than spending a request per 400 days of dead span. The floor is
+            // re-read on every answer, so a server that widens its coverage
+            // moves the walk with it. The skip is taken only when the answer
+            // carried no rows - a row below a stated floor is still data, and
+            // dropping it would lose a rate the server actually served.
+            if let floor = pack.coverageFloor, pack.rates.isEmpty {
+                let floorDay = calendar.startOfDay(for: floor)
+                if floorDay > chunkEnd {
+                    guard floorDay <= last else { break }
+                    cursor = floorDay
+                    await sleep(Self.spanChunkPacing)
+                    continue
+                }
+            }
+
+            merge(pack.rates)
             guard let next = calendar.date(byAdding: .day, value: 1, to: chunkEnd),
                   next > cursor else { break }
+            if next <= last {
+                await sleep(Self.spanChunkPacing)
+            }
             cursor = next
         }
         return mergedAny

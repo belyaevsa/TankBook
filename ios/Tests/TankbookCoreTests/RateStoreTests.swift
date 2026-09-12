@@ -226,9 +226,9 @@ private final class StubRateFetcher: RateFetcher, @unchecked Sendable {
         lock.withLock { $0 = result }
     }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         let result = lock.withLock { $0 }
-        return try result.get()
+        return RatePack(rates: try result.get())
     }
 }
 
@@ -290,9 +290,9 @@ private final class StubRateFetcher: RateFetcher, @unchecked Sendable {
 private final class RangeRecordingFetcher: RateFetcher, @unchecked Sendable {
     let lock = OSAllocatedUnfairLock(initialState: (from: Date?.none, to: Date?.none))
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { $0 = (from, to) }
-        return []
+        return RatePack(rates: [])
     }
 }
 
@@ -340,11 +340,11 @@ private final class MultiRangeRecordingFetcher: RateFetcher, @unchecked Sendable
 
     var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { state in
             state.ranges.append((from, to))
         }
-        return rows
+        return RatePack(rates: rows)
     }
 }
 
@@ -362,7 +362,7 @@ private final class MultiRangeRecordingFetcher: RateFetcher, @unchecked Sendable
 
     // A ~1095-day span needs three consecutive chunks.
     let fetcher = MultiRangeRecordingFetcher()
-    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar)
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar, sleep: { _ in })
     _ = await store.fetchSpan(from: day(2015, 1, 1), to: day(2017, 12, 31))
 
     let ranges = fetcher.ranges
@@ -421,4 +421,139 @@ private final class MultiRangeRecordingFetcher: RateFetcher, @unchecked Sendable
     // The seed still answers; the failed fetch changed nothing.
     let money = Money(amount: decimal("110"), currency: .usd, homeCurrency: .eur)
     #expect(store.convert(money, on: day(2015, 3, 12)).homeAmount == decimal("100.00"))
+}
+
+// MARK: - RV.158: the span walk is floor-bounded, paced and single-flight
+
+/// Records every requested range and states a coverage floor on every answer -
+/// the server shape the walk must read to stop asking for dead span.
+private final class FloorStatingFetcher: RateFetcher, @unchecked Sendable {
+    private struct State { var ranges: [(from: Date, to: Date)] = [] }
+    private let lock = OSAllocatedUnfairLock(initialState: State())
+    private let floor: Date
+
+    init(floor: Date) { self.floor = floor }
+
+    var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
+
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
+        lock.withLock { $0.ranges.append((from, to)) }
+        return RatePack(rates: [], coverageFloor: floor)
+    }
+}
+
+/// A span fetch held open until `release()`, so "a walk is on the wire" is a
+/// deterministic state rather than a timing accident.
+private actor SpanGate {
+    private var started = false
+    private var released = false
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func signalStarted() { started = true }
+    var hasStarted: Bool { started }
+
+    func wait() async {
+        if released { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+
+    func release() {
+        released = true
+        waiters.forEach { $0.resume() }
+        waiters.removeAll()
+    }
+}
+
+private final class GatedSpanFetcher: RateFetcher, @unchecked Sendable {
+    private let lock = OSAllocatedUnfairLock(initialState: 0)
+    private let gate: SpanGate
+
+    init(gate: SpanGate) { self.gate = gate }
+
+    var fetchCount: Int { lock.withLock { $0 } }
+
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
+        lock.withLock { $0 += 1 }
+        await gate.signalStarted()
+        await gate.wait()
+        return RatePack(rates: [])
+    }
+}
+
+/// Counts the pacing pauses a walk takes, so "paced" is asserted without a
+/// wall-clock measurement.
+private actor SleepRecorder {
+    private(set) var count = 0
+    func record(_: Duration) { count += 1 }
+}
+
+/// The server states the oldest date it can serve; the walk must not spend a
+/// request on each 400-day slice below it. Removing the floor early-exit makes
+/// the second request 2011-02-05..2012-03-10 and turns this red.
+@Test func fetchSpanStopsAtTheServerCoverageFloor() async {
+    let floor = day(2020, 1, 1)
+    let fetcher = FloorStatingFetcher(floor: floor)
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar, sleep: { _ in })
+
+    _ = await store.fetchSpan(from: day(2010, 1, 1), to: day(2025, 12, 31), base: .eur)
+
+    let ranges = fetcher.ranges
+    #expect(!ranges.isEmpty)
+    // The first answer states the floor; every request after it must target the
+    // covered span, never another 400-day slice of dead history.
+    #expect(ranges.first!.to < floor, "the probe chunk predates the stated floor")
+    #expect(ranges.dropFirst().allSatisfy { $0.to >= floor },
+            "no post-probe request may target a date before the floor, got \(ranges)")
+    // The floor narrows the start; it never truncates the top of the span.
+    #expect(ranges.last?.to == day(2025, 12, 31))
+}
+
+/// An empty answer inside coverage is a legitimate gap: the next chunk still
+/// runs. Stopping on the first empty chunk would silently truncate a span whose
+/// only miss is a weekend or holiday.
+@Test func anEmptyChunkInsideCoverageDoesNotAbortTheWalk() async {
+    let fetcher = MultiRangeRecordingFetcher()
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar, sleep: { _ in })
+
+    _ = await store.fetchSpan(from: day(2015, 1, 1), to: day(2017, 12, 31))
+
+    #expect(fetcher.ranges.count == 3,
+            "an all-empty covered span is still three chunks, got \(fetcher.ranges.count)")
+    #expect(fetcher.ranges.last?.to == day(2017, 12, 31),
+            "the walk must reach the top of the span, not stop at the first empty chunk")
+}
+
+/// Chunks are separated by the injected pause: three chunks means two pauses.
+@Test func fetchSpanPacesItsChunks() async {
+    let fetcher = MultiRangeRecordingFetcher()
+    let sleeper = SleepRecorder()
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar,
+                          sleep: { await sleeper.record($0) })
+
+    _ = await store.fetchSpan(from: day(2015, 1, 1), to: day(2017, 12, 31))
+
+    #expect(fetcher.ranges.count == 3)
+    #expect(await sleeper.count == 2, "three chunks means two between-chunk pauses")
+}
+
+/// A second `fetchSpan` for the same base while one is on the wire joins it and
+/// issues no request of its own - the burst the device log shows is one walk,
+/// not two racing ones.
+@Test func aSecondFetchSpanForTheSameBaseJoinsTheInFlightOne() async throws {
+    let gate = SpanGate()
+    let fetcher = GatedSpanFetcher(gate: gate)
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar, sleep: { _ in })
+
+    let first = Task { await store.fetchSpan(from: day(2015, 1, 1), to: day(2015, 12, 31), base: .eur) }
+    while await !gate.hasStarted { try await Task.sleep(for: .milliseconds(1)) }
+    #expect(fetcher.fetchCount == 1)
+
+    let second = Task { await store.fetchSpan(from: day(2015, 1, 1), to: day(2015, 12, 31), base: .eur) }
+    try? await Task.sleep(for: .milliseconds(20))
+    #expect(fetcher.fetchCount == 1, "a second span for the same base must join the in-flight walk")
+
+    await gate.release()
+    _ = await first.value
+    _ = await second.value
+    #expect(fetcher.fetchCount == 1, "the joined walk issued no second request")
 }

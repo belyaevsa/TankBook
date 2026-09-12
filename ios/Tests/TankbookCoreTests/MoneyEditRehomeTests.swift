@@ -58,9 +58,9 @@ private final class RecordingRateFetcher: RateFetcher, @unchecked Sendable {
 
     var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { state in state.ranges.append((from, to)) }
-        return []
+        return RatePack(rates: [])
     }
 }
 

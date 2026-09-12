@@ -76,6 +76,15 @@ public sealed class EcbRateFeed : IRateFeed
 
     public string Source => RateSources.Ecb;
 
+    /// <summary>
+    /// ECB's full history file begins 1999-01-04 (the euro's first published
+    /// reference rates); no earlier date can ever be served, so this is the
+    /// floor the pack response reports for EUR (RV.158). ECB publishes no other
+    /// base, so a non-EUR base states no floor.
+    /// </summary>
+    public DateOnly? CoverageFloor(string baseCurrency)
+        => baseCurrency.Equals("EUR", StringComparison.Ordinal) ? new DateOnly(1999, 1, 4) : null;
+
     public async Task<IReadOnlyList<RateQuote>> FetchAsync(DateOnly date, string baseCurrency, CancellationToken cancellationToken)
     {
         if (!baseCurrency.Equals("EUR", StringComparison.Ordinal))

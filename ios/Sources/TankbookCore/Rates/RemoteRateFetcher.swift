@@ -7,7 +7,9 @@ import Foundation
 /// I/O. The body is decoded exactly: `rate` is a JSON NUMBER and is rebuilt
 /// from its raw token through `Decimal(string:locale:)` (never through
 /// `Double`), and `source` goes through `RateSource.wire(_:)` so a carried-
-/// forward row keeps its real source (docs/API.md -> Exchange rates).
+/// forward row keeps its real source (docs/API.md -> Exchange rates). The
+/// additive `coverageFloor` (RV.158) is decoded alongside; absent, null or
+/// malformed reads as "no floor stated" (nil), never a failed pack.
 public struct RemoteRateFetcher: RateFetcher, Sendable {
     private let client: TankbookHTTPClient
     private let director: ConfigTransportDirector
@@ -19,7 +21,7 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
         self.director = director
     }
 
-    public func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    public func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         var components = URLComponents(
             url: endpoint("rates/pack"),
             resolvingAgainstBaseURL: false
@@ -84,7 +86,10 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
     /// decoding it through Swift's default `Decimal` decoding would route it
     /// through `Double` and silently corrupt the value (docs/SCHEMA.md types
     /// money as Decimal). The `base` is top-level; each row is a quote for it.
-    static func decodePack(_ data: Data?) throws -> [ExchangeRate] {
+    /// `coverageFloor` is the additive RV.158 field; absent, null or malformed
+    /// reads as "no floor stated" (nil), never a failed pack - the rows are
+    /// still usable and the walk simply keeps asking.
+    static func decodePack(_ data: Data?) throws -> RatePack {
         guard let data else { throw RateFetchError.invalidResponse }
         let tree = try JSONValue.parse(data)
         guard let object = tree.objectValue,
@@ -108,7 +113,8 @@ public struct RemoteRateFetcher: RateFetcher, Sendable {
             rates.append(ExchangeRate(base: base, quote: quote, date: date,
                                       rate: rate, source: RateSource.wire(sourceString)))
         }
-        return rates
+        let coverageFloor = object["coverageFloor"]?.stringValue.flatMap(Self.day(from:))
+        return RatePack(rates: rates, coverageFloor: coverageFloor)
     }
 
     // MARK: - Dates (yyyy-MM-dd, the wire contract for `from`/`to`/`date`)

@@ -75,7 +75,7 @@ private final class EchoSpanRateFetcher: RateFetcher, @unchecked Sendable {
 
     var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { state in state.ranges.append((from, to)) }
         var rows: [ExchangeRate] = []
         var cursor = utcCalendar.startOfDay(for: from)
@@ -88,7 +88,7 @@ private final class EchoSpanRateFetcher: RateFetcher, @unchecked Sendable {
             guard let next = utcCalendar.date(byAdding: .day, value: 1, to: cursor) else { break }
             cursor = next
         }
-        return rows
+        return RatePack(rates: rows)
     }
 }
 
@@ -103,15 +103,15 @@ private final class EmptyPackRecordingFetcher: RateFetcher, @unchecked Sendable 
 
     var ranges: [(from: Date, to: Date)] { lock.withLock { $0.ranges } }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { state in state.ranges.append((from, to)) }
-        return []
+        return RatePack(rates: [])
     }
 }
 
 /// A `RateFetcher` whose fetch always fails - the offline transport shape.
 private final class FailingRateFetcher: RateFetcher, @unchecked Sendable {
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         throw URLError(.notConnectedToInternet)
     }
 }
@@ -197,7 +197,7 @@ private final class FailingRateFetcher: RateFetcher, @unchecked Sendable {
                                      currency: .usd, amount: "132"))
 
     let fetcher = EmptyPackRecordingFetcher()
-    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar)
+    let store = RateStore(seed: [], fetcher: fetcher, calendar: utcCalendar, sleep: { _ in })
     _ = await MoneyBackfillService(store: store).demandDrain(repo)
 
     // A specific number, not "more than one": the drain extends the span one

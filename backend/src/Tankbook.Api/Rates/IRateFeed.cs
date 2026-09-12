@@ -42,4 +42,13 @@ public interface IRateFeed
 
     /// <summary>The quotes published for this date and base currency, expressed as 1 base = rate quote units.</summary>
     Task<IReadOnlyList<RateQuote>> FetchAsync(DateOnly date, string baseCurrency, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The oldest date this feed can serve for the given base, or null when the
+    /// feed states no archive bound. The pack response reports the minimum
+    /// across feeds so the client can stop walking span no feed can ever answer
+    /// (RV.158); null means "unknown", which the client treats as "keep asking"
+    /// rather than as an empty range.
+    /// </summary>
+    DateOnly? CoverageFloor(string baseCurrency);
 }

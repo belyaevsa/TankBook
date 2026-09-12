@@ -193,9 +193,19 @@ as `1 base = rate quote units` (the `Money` original-per-home direction, `SCHEMA
   { "quote": "RUB", "rate": 90.1234, "source": "cis:carried-forward" } ] }
 
 // GET /rates/pack?from=2026-08-01&to=2026-08-31&base=EUR
-{ "from": "2026-08-01", "to": "2026-08-31", "base": "EUR", "rates": [
+{ "from": "2026-08-01", "to": "2026-08-31", "base": "EUR",
+  "coverageFloor": "1999-01-04",
+  "rates": [
   { "date": "2026-08-01", "quote": "USD", "rate": 1.0800, "source": "ecb" } ] }
 ```
+
+`coverageFloor` is an **additive** field (RV.158): the oldest date the feeds can
+serve for the requested base, or `null` when no feed states a bound. A device
+walking a multi-year span reads it to stop asking for dates below the floor,
+which no feed can ever answer; a range inside coverage that happens to be empty
+is a legitimate gap and is NOT a reason to stop. It does not change the
+`rates` array, the status, the cache headers or the backfill trigger, so an
+older client that ignores the field behaves exactly as before.
 
 `source` distinguishes a published quote (`ecb`, `cis`) from one carried forward across a
 non-publishing day (`ecb:carried-forward`). A **past** date's quotes never change, so they are

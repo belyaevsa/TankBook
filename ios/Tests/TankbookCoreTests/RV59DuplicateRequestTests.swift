@@ -182,11 +182,11 @@ private final class CountingRateFetcher: RateFetcher, @unchecked Sendable {
 
     init(gate: RateGate? = nil) { self.gate = gate }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { $0 += 1 }
         await gate?.signalStarted()
         await gate?.wait()
-        return []
+        return RatePack(rates: [])
     }
 
     func callCount() -> Int { lock.withLock { $0 } }

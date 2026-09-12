@@ -23,6 +23,19 @@ public sealed class RateOptions
     public int MaxPackDays { get; set; } = 400;
 
     /// <summary>
+    /// How far back the daily carry-forward walks from today (docs/SCHEMA.md
+    /// "Exchange rates"). It is tied to what a device can ask for: the rolling
+    /// pack covers <see cref="MaxPackDays"/> days, so carrying gap days older
+    /// than that serves no device - a device asking for an old date gets it
+    /// through the demand backfill, which fetches the real published value
+    /// (RV.138). Without a horizon the walk started at the OLDEST published row
+    /// (2015 after RV.135's history feed) and inserted a row per gap day for a
+    /// decade. The pass is idempotent, so a re-run resumes over the same bounded
+    /// range rather than accumulating years of work.
+    /// </summary>
+    public int CarryForwardHorizonDays { get; set; } = 400;
+
+    /// <summary>
     /// How far BACK the demand-driven backfill will carry a missing date from the
     /// most recent earlier published rate (docs/SCHEMA.md "Exchange rates"). 14 is
     /// measured, not assumed: CBR does not publish across the Russian New Year -

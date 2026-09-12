@@ -60,6 +60,7 @@ public static class RateEndpoints
         string? @base,
         RateRepository repository,
         RateBackfillService backfill,
+        IEnumerable<IRateFeed> feeds,
         TimeProvider time,
         IOptions<RateOptions> options,
         HttpContext httpContext,
@@ -91,6 +92,7 @@ public static class RateEndpoints
             fromDay,
             toDay,
             @base!,
+            CoverageFloor(feeds, @base!),
             rows.Select(r => new RatePackItem(r.Date, r.Quote, r.Rate, r.Source)).ToList()),
             WireJson);
 
@@ -130,6 +132,27 @@ public static class RateEndpoints
             detail);
 
     private static DateOnly Today(TimeProvider time) => DateOnly.FromDateTime(time.GetUtcNow().UtcDateTime);
+
+    /// <summary>
+    /// The oldest date any feed can serve for this base, or null when no feed
+    /// states a bound (RV.158). The minimum is the honest floor: a request
+    /// below it can never be answered by any feed, while a request above it
+    /// that happens to be empty is a legitimate gap.
+    /// </summary>
+    private static DateOnly? CoverageFloor(IEnumerable<IRateFeed> feeds, string baseCurrency)
+    {
+        DateOnly? floor = null;
+        foreach (var feed in feeds)
+        {
+            var candidate = feed.CoverageFloor(baseCurrency);
+            if (candidate is not null && (floor is null || candidate.Value < floor.Value))
+            {
+                floor = candidate;
+            }
+        }
+
+        return floor;
+    }
 
     private static bool IsValidCurrency(string? code)
         => code is { Length: 3 } && code.All(c => c is >= 'A' and <= 'Z');
@@ -180,7 +203,7 @@ public static class RateEndpoints
 
     private sealed record RatesDateResponse(DateOnly Date, string Base, IReadOnlyList<RateQuoteResponse> Quotes);
 
-    private sealed record RatesPackResponse(DateOnly From, DateOnly To, string Base, IReadOnlyList<RatePackItem> Rates);
+    private sealed record RatesPackResponse(DateOnly From, DateOnly To, string Base, DateOnly? CoverageFloor, IReadOnlyList<RatePackItem> Rates);
 
     private sealed record RatePackItem(DateOnly Date, string Quote, decimal Rate, string Source);
 }

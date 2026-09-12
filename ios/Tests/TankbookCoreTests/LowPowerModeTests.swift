@@ -46,9 +46,9 @@ private final class CountingRateFetcher: RateFetcher, @unchecked Sendable {
 
     var fetchCount: Int { lock.withLock { $0 } }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
         lock.withLock { $0 += 1 }
-        return []
+        return RatePack(rates: [])
     }
 }
 

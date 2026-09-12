@@ -98,11 +98,23 @@ public sealed class RatesJobService
     /// recent published value. A date that already carries any row (live or
     /// soft-deleted) is left alone - a soft-deleted day awaits its correction
     /// re-fetch rather than being silently refilled.
+    ///
+    /// The walk starts no earlier than <see cref="RateOptions.CarryForwardHorizonDays"/>
+    /// before today, never at the oldest published row: carrying years of gap
+    /// days serves no device (the demand backfill fetches a genuinely old date
+    /// on request), and RV.135's history feed made a decade-deep anchor
+    /// reachable (RV.138). The anchor for the first walked day is the most
+    /// recent published rate at or before the horizon, so the carried value is
+    /// the one actually in force - the same stepwise result the unbounded walk
+    /// produced, just not for a decade of days. The walk is idempotent and
+    /// bounded, so a re-run resumes over the same range without re-inserting.
     /// </summary>
     private async Task<int> CarryForwardAsync(string baseCurrency, DateOnly today, IReadOnlySet<string> publishedSources, CancellationToken cancellationToken)
     {
         var rows = await _repository.GetAllForBaseAsync(baseCurrency, cancellationToken);
         var inserted = 0;
+        var horizonDays = Math.Max(1, _options.CarryForwardHorizonDays);
+        var horizonStart = today.AddDays(-(horizonDays - 1));
 
         foreach (var group in rows.GroupBy(r => r.Quote, StringComparer.Ordinal))
         {
@@ -118,11 +130,24 @@ public sealed class RatesJobService
             }
 
             var existingDates = group.Select(r => r.Date).ToHashSet();
+
+            // Start at the horizon, or at the oldest published row when that is
+            // more recent (a young service keeps today's exact behaviour). The
+            // while loop seeds the carried value from the most recent published
+            // row at or before the start, so the first gap day holds the rate in
+            // force, never a decade-old one.
+            var walkStart = horizonStart > published[0].Date ? horizonStart : published[0].Date;
+            var index = 0;
             var lastRate = published[0].Rate;
             var lastSource = published[0].Source;
-            var index = 0;
+            while (index < published.Count && published[index].Date <= walkStart)
+            {
+                lastRate = published[index].Rate;
+                lastSource = published[index].Source;
+                index++;
+            }
 
-            for (var day = published[0].Date; day <= today; day = day.AddDays(1))
+            for (var day = walkStart; day <= today; day = day.AddDays(1))
             {
                 if (index < published.Count && published[index].Date == day)
                 {

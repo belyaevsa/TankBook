@@ -84,8 +84,8 @@ private final class PackRateFetcher: RateFetcher, @unchecked Sendable {
     private let rates: [ExchangeRate]
     init(rates: [ExchangeRate]) { self.rates = rates }
 
-    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> [ExchangeRate] {
-        rates
+    func fetchPack(from: Date, to: Date, base: CurrencyCode) async throws -> RatePack {
+        RatePack(rates: rates)
     }
 }
 

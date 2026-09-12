@@ -23,6 +23,9 @@ public sealed class RecordingRateFeed : IRateFeed
 
     public void SetHandler(Func<DateOnly, string, IReadOnlyList<RateQuote>> handler) => _handler = handler;
 
+    /// <summary>The double states no floor unless a test sets one.</summary>
+    public DateOnly? CoverageFloor(string baseCurrency) => null;
+
     public Task<IReadOnlyList<RateQuote>> FetchAsync(DateOnly date, string baseCurrency, CancellationToken cancellationToken)
         => Task.FromResult(_handler(date, baseCurrency));
 }

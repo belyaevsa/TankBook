@@ -162,6 +162,80 @@ public class RatesJobTests : IClassFixture<PostgresFixture>
         Assert.Contains(usd, r => !r.Deleted && r.Rate == 1.20m);
     }
 
+    /// <summary>
+    /// RV.138: a decade-old anchor must not make one pass insert a row per gap
+    /// day for ~4,000 days. The horizon bounds the walk to the window a device
+    /// can ask for, the anchor at the horizon start still holds the value in
+    /// force, and the old row itself is untouched. Removing the horizon makes
+    /// <c>CarriedForward</c> thousands, not at most <c>horizon x quotes</c>.
+    /// </summary>
+    [SkippableFact]
+    public async Task CarryForward_RespectsTheHorizon_SoADecadeOldAnchorInsertsABoundedNumber()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        var anchor = new DateOnly(2015, 1, 1);
+        var feed = new RecordingRateFeed(RateSources.Ecb);
+        feed.SetHandler((date, _) => date == anchor ? PublishedQuotes() : []);
+        var clock = new MutableTimeProvider(Utc(anchor));
+        var job = BuildJob(db, clock, horizonDays: 30, feed);
+
+        await job.RunAsync(CancellationToken.None); // publishes the 2015 anchor
+
+        // Today, nothing published: without a horizon the carry-forward walks
+        // from the 2015 anchor to today, a row per gap day for every quote.
+        clock.SetUtcNow(Utc(Friday));
+        feed.SetHandler((_, _) => []);
+        var result = await job.RunAsync(CancellationToken.None);
+
+        // Bounded: at most `horizon x quotes` carried rows, never thousands.
+        Assert.True(result.CarriedForward is > 0 and <= 30 * 2,
+                    $"expected a bounded 1..60 carried rows, got {result.CarriedForward}");
+
+        var rows = await ReadRatesAsync(db, "EUR");
+        // The decade-old anchor is neither deleted nor altered.
+        Assert.Contains(rows, r => r.Date == anchor && r.Quote == "USD" && r.Rate == 1.10m
+                                   && !r.Deleted && !RateSources.IsCarried(r.Source));
+        // No carried row was materialised between the anchor and the horizon.
+        var horizonStart = Friday.AddDays(-29);
+        Assert.DoesNotContain(rows, r => RateSources.IsCarried(r.Source) && r.Date > anchor && r.Date < horizonStart);
+        // A gap day inside the horizon still carries exactly as before.
+        Assert.Contains(rows, r => r.Date == Friday && r.Quote == "USD" && r.Rate == 1.10m
+                                   && !r.Deleted && RateSources.IsCarried(r.Source));
+    }
+
+    /// <summary>
+    /// The bounded walk is idempotent: a second pass over the same horizon
+    /// inserts nothing and leaves the row set byte-identical, so a pass that
+    /// was cut short simply resumes rather than duplicating work.
+    /// </summary>
+    [SkippableFact]
+    public async Task CarryForward_IsIdempotentAcrossBoundedPasses()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenDatabaseAsync();
+
+        var anchor = new DateOnly(2015, 1, 1);
+        var feed = new RecordingRateFeed(RateSources.Ecb);
+        feed.SetHandler((date, _) => date == anchor ? PublishedQuotes() : []);
+        var clock = new MutableTimeProvider(Utc(anchor));
+        var job = BuildJob(db, clock, horizonDays: 30, feed);
+        await job.RunAsync(CancellationToken.None);
+
+        clock.SetUtcNow(Utc(Friday));
+        feed.SetHandler((_, _) => []);
+        var first = await job.RunAsync(CancellationToken.None);
+        Assert.True(first.CarriedForward > 0);
+        var afterFirst = await ReadRatesAsync(db, "EUR");
+
+        var second = await job.RunAsync(CancellationToken.None);
+        var afterSecond = await ReadRatesAsync(db, "EUR");
+
+        Assert.Equal(0, second.CarriedForward);
+        Assert.Equal(afterFirst.Count, afterSecond.Count);
+    }
+
     private async Task<NpgsqlConnection> OpenDatabaseAsync()
     {
         var db = await _fixture.CreateDatabaseAsync();
@@ -171,10 +245,17 @@ public class RatesJobTests : IClassFixture<PostgresFixture>
     }
 
     private static RatesJobService BuildJob(NpgsqlConnection db, TimeProvider clock, params IRateFeed[] feeds)
+        => BuildJob(db, clock, new RateOptions { BaseCurrencies = ["EUR"] }, feeds);
+
+    /// <summary>A job whose carry-forward horizon is set explicitly, so a bounded pass is testable without a decade of real rows.</summary>
+    private static RatesJobService BuildJob(NpgsqlConnection db, TimeProvider clock, int horizonDays, params IRateFeed[] feeds)
+        => BuildJob(db, clock, new RateOptions { BaseCurrencies = ["EUR"], CarryForwardHorizonDays = horizonDays }, feeds);
+
+    private static RatesJobService BuildJob(NpgsqlConnection db, TimeProvider clock, RateOptions options, params IRateFeed[] feeds)
     {
         var repository = new RateRepository(db);
-        var options = Microsoft.Extensions.Options.Options.Create(new RateOptions { BaseCurrencies = ["EUR"] });
-        return new RatesJobService(repository, feeds, options, NullLogger<RatesJobService>.Instance, clock);
+        return new RatesJobService(repository, feeds, Microsoft.Extensions.Options.Options.Create(options),
+                                   NullLogger<RatesJobService>.Instance, clock);
     }
 
     private static IReadOnlyList<RateQuote> PublishedQuotes() => [new RateQuote("USD", 1.10m), new RateQuote("RUB", 90.0m)];

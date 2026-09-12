@@ -145,6 +145,46 @@ public class RateEndpointTests : IClassFixture<PostgresFixture>
         Assert.Equal(HttpStatusCode.OK, packResponse.StatusCode);
     }
 
+    /// <summary>
+    /// RV.158: the pack response states the oldest date the feeds can serve, so
+    /// a request below it is distinguishable from a request inside coverage that
+    /// happens to be empty. Both answer 200 with no rows; only the floor tells
+    /// the client "stop walking" from "this date is a legitimate gap".
+    /// </summary>
+    [SkippableFact]
+    public async Task GetRatesPack_ReportsTheCoverageFloor_SoOutsideCoverageDiffersFromAnEmptyInsideDate()
+    {
+        _fixture.RequireAvailable();
+        await using var db = await OpenAndMigrateAsync();
+
+        using var app = await StartAsync(db.ConnectionString);
+        using var client = app.Client;
+
+        // Entirely before any feed's archive: empty rows, floor AFTER the range.
+        var outside = await client.GetAsync("/v1/rates/pack?from=1990-01-01&to=1990-12-31&base=EUR");
+        Assert.Equal(HttpStatusCode.OK, outside.StatusCode);
+        using (var doc = JsonDocument.Parse(await outside.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(0, doc.RootElement.GetProperty("rates").GetArrayLength());
+            var floor = doc.RootElement.GetProperty("coverageFloor").GetString();
+            Assert.NotNull(floor);
+            Assert.True(DateOnly.Parse(floor!) > new DateOnly(1990, 12, 31),
+                        "a range below the floor must report a floor after it");
+        }
+
+        // Inside coverage with no data: empty rows, floor AT OR BEFORE the range.
+        var inside = await client.GetAsync("/v1/rates/pack?from=2026-08-01&to=2026-08-31&base=EUR");
+        Assert.Equal(HttpStatusCode.OK, inside.StatusCode);
+        using (var doc = JsonDocument.Parse(await inside.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(0, doc.RootElement.GetProperty("rates").GetArrayLength());
+            var floor = doc.RootElement.GetProperty("coverageFloor").GetString();
+            Assert.NotNull(floor);
+            Assert.True(DateOnly.Parse(floor!) <= new DateOnly(2026, 8, 31),
+                        "an inside-coverage empty range must not report a floor after it");
+        }
+    }
+
     private async Task<NpgsqlConnection> OpenAndMigrateAsync()
     {
         var db = await _fixture.CreateDatabaseAsync();

@@ -49,6 +49,13 @@ public sealed class NbkRateFeed : IRateFeed
 
     public string Source => RateSources.Nbk;
 
+    /// <summary>
+    /// NBK serves historical dates but states no archive start, so this feed
+    /// names no floor: an unknown bound must not truncate the client's walk
+    /// (RV.158).
+    /// </summary>
+    public DateOnly? CoverageFloor(string baseCurrency) => null;
+
     public async Task<IReadOnlyList<RateQuote>> FetchAsync(DateOnly date, string baseCurrency, CancellationToken cancellationToken)
     {
         var client = _httpClientFactory.CreateClient("rates");
