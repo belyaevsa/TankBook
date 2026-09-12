@@ -166,8 +166,8 @@ final class SignInUITests: XCTestCase {
         // sign-in leaves the app a guest, so the guest Home's own "Type it"
         // door is the peer entry path (hard rule 15).
         app.buttons["tabbar.log"].tap()
-        XCTAssertTrue(app.buttons["homeGuestCaptureButton"].waitForExistence(timeout: 10))
-        app.buttons["homeGuestCaptureButton"].tap()
+        XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
+        app.buttons["typeItButton"].tap()
 
         focusField(app, "manualFillUpTotalField").typeText("71.02")
         focusField(app, "manualFillUpLitersField").typeText("42.30")

@@ -211,6 +211,32 @@ capture P1.4-home-empty-ru         ru -seedHomeEmptyVehicle
 # entry, so the frame is the fixed state, not a synthetic one.
 capture RV.197-guest-home-one-entry    en -seedHomeSingleFill -clearSessionAtLaunch
 capture RV.197-guest-home-one-entry-ru ru -seedHomeSingleFill -clearSessionAtLaunch
+
+# RV.251: the guest Home with TWO cars - the same car switcher the signed-in
+# header renders, shown on the count alone (`HomeLayout.showsCarSwitcher`), never
+# the session. `-seedHomeRV66TwoCar` writes two live cars with a log on each, so
+# the frame shows the switcher and a real stream. `-clearSessionAtLaunch` makes
+# the launch guest.
+capture RV.251-guest-home-two-cars    en -seedHomeRV66TwoCar -clearSessionAtLaunch
+capture RV.251-guest-home-two-cars-ru ru -seedHomeRV66TwoCar -clearSessionAtLaunch
+
+# PJ.100 / PJ.200: the guest capture card carries the SAME split "Type it"
+# control the signed-in header renders, and the permanent Reminders row is
+# present above it - both account-free (hard rule 1). One car, so the frame is
+# about the two controls, not the switcher. `-presentTypeItMenu` renders the
+# menu's own `doorMenuForms` as a dialog for the pose (simctl cannot tap a
+# SwiftUI Menu); the two names are one picture and are aliased below.
+capture PJ.100-guest-typeit-menu    en -seedReminders -clearSessionAtLaunch -presentTypeItMenu
+capture PJ.100-guest-typeit-menu-ru ru -seedReminders -clearSessionAtLaunch -presentTypeItMenu
+# PJ.200 is the row itself, so its frame is the guest Home with no dialog over it.
+capture PJ.200-guest-reminders-row    en -seedReminders -clearSessionAtLaunch
+capture PJ.200-guest-reminders-row-ru ru -seedReminders -clearSessionAtLaunch
+
+# PJ.101: the guest no-car Home - the filled Add-car button the signed-in no-car
+# layout renders, so the two no-car states cannot drift. `-skipWelcome` is the
+# harness escape that reaches the tabbed app with no car and no session.
+capture PJ.101-guest-no-car-home    en -clearSessionAtLaunch -skipWelcome
+capture PJ.101-guest-no-car-home-ru ru -clearSessionAtLaunch -skipWelcome
 # P1.1's dark shell IS the Home frame - the same seed, the same appearance. It
 # is kept as a name because docs/SITE.md, site/hugo.toml and two briefs cite it,
 # and because P1.1-shell-light is only legible next to a dark counterpart.

@@ -815,6 +815,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "PJ.100-guest-typeit-menu": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.100-guest-typeit-menu-ru": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.101-guest-no-car-home": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.101-guest-no-car-home-ru": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "PJ.11-import-flagged-row": {
       "commit": "9fa5ea7",
       "device": "iPhone 17",
@@ -942,6 +962,16 @@
     },
     "PJ.20-import-sendfile-ru": {
       "commit": "cb57067",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.200-guest-reminders-row": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "PJ.200-guest-reminders-row-ru": {
+      "commit": "17b76604",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2122,6 +2152,16 @@
     },
     "RV.243-deferred-receipt-ru": {
       "commit": "36cda323",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.251-guest-home-two-cars": {
+      "commit": "17b76604",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.251-guest-home-two-cars-ru": {
+      "commit": "17b76604",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

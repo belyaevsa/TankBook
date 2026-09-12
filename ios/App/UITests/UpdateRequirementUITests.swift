@@ -172,11 +172,9 @@ final class UpdateRequirementUITests: XCTestCase {
     // MARK: - The load-bearing journey: a fill-up still saves under .required
 
     func testFillUpStillSavesUnderRequired() {
-        // `-seedSettingsSignedIn` pins the session the journey needs: Home's
-        // `typeItButton` (and the log stream the final assertion reads) live in
-        // the signed-in layout, never the guest chrome. Without it the launch
-        // renders the guest Home - a real state since PJ.3 - and the button the
-        // test taps is `homeGuestCaptureButton`, not `typeItButton`.
+        // `-seedSettingsSignedIn` pins the signed-in layout explicitly. The
+        // guest Home now carries the same `typeItButton` (PJ.100) and log stream
+        // (RV.197), so this seed is determinism, not a layout requirement.
         let app = launch(requiredArgs + ["-seedVehicleForUITests", "-seedSettingsSignedIn"])
         XCTAssertTrue(app.buttons["typeItButton"].waitForExistence(timeout: 10))
 

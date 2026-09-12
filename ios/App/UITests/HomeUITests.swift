@@ -49,7 +49,7 @@ final class HomeUITests: XCTestCase {
         let app = launch(args: ["-clearSessionAtLaunch", "-seedHomeEmptyVehicle"])
 
         XCTAssertTrue(app.staticTexts["Scan your first fill-up"].waitForExistence(timeout: 10))
-        XCTAssertTrue(app.buttons["homeGuestCaptureButton"].exists)
+        XCTAssertTrue(app.buttons["typeItButton"].exists)
         XCTAssertTrue(app.buttons["homeGuestImportButton"].exists)
         XCTAssertTrue(app.staticTexts[
             "Everything stays on this phone. Sign in later only if you want a second device."].exists)

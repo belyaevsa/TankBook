@@ -39,7 +39,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
 
     // MARK: - Launch
 
-    private func launch(_ arguments: [String]) -> XCUIApplication {
+    func launch(_ arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase"] + arguments
         app.launch()
@@ -61,8 +61,8 @@ final class ColdLaunchJourneyUITests: XCTestCase {
     /// tab bar, then tap it. The stop condition is geometric, never
     /// `isHittable` alone.
     @discardableResult
-    private func reveal(_ app: XCUIApplication, _ element: XCUIElement,
-                        maxSwipes: Int = 8) -> XCUIElement {
+    func reveal(_ app: XCUIApplication, _ element: XCUIElement,
+                maxSwipes: Int = 8) -> XCUIElement {
         XCTAssertTrue(element.waitForExistence(timeout: 10),
                       "\(element.identifier) never appeared")
         var swipes = 0
@@ -83,7 +83,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
     /// Bring a field clear of the pinned Save bar and tap it. Same geometric
     /// stop as `reveal`, anchored to the manual form's save bar.
     @discardableResult
-    private func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
+    func focusField(_ app: XCUIApplication, _ identifier: String) -> XCUIElement {
         let field = app.textFields[identifier]
         XCTAssertTrue(field.waitForExistence(timeout: 10), "\(identifier) never appeared")
         let bar = app.buttons["manualFillUpSaveButton"]
@@ -106,7 +106,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
     /// The Welcome "Add your car" door, the Add-car form, and its save. This is
     /// the real first-run path a typing user takes; the car is typed, never
     /// seeded.
-    private func addCarFromWelcome(_ app: XCUIApplication, named name: String) {
+    func addCarFromWelcome(_ app: XCUIApplication, named name: String) {
         let addCar = app.buttons["welcomeAddCarButton"]
         XCTAssertTrue(addCar.waitForExistence(timeout: 15),
                       "a clean launch must open on Welcome with the Add-car door")
@@ -136,7 +136,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
                       "adding a car must end onboarding and land on the guest Home")
 
         // J3b: the peer typed door, offered on the guest Home next to capture.
-        let typeIt = app.buttons["homeGuestCaptureButton"]
+        let typeIt = app.buttons["typeItButton"]
         XCTAssertTrue(typeIt.waitForExistence(timeout: 10))
         typeIt.tap()
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
@@ -204,7 +204,7 @@ final class ColdLaunchJourneyUITests: XCTestCase {
                       "adding a car must end onboarding and land on the guest Home")
 
         // The guest's one-tap typed door (hard rule 15).
-        let typeIt = app.buttons["homeGuestCaptureButton"]
+        let typeIt = app.buttons["typeItButton"]
         XCTAssertTrue(typeIt.waitForExistence(timeout: 10),
                       "the guest Home must offer the typed door")
         typeIt.tap()

@@ -15,29 +15,55 @@ import UIKit
 /// `logStream`. The decision is `HomeLayout.logArea(for:)` in core, so it is a
 /// function of the entry count and never of the session. The stream is the
 /// shared `HomeRecentEntries`; the guest gets no second list.
+///
+/// RV.251/PJ.100/PJ.101/PJ.200: the controls the two Home layouts share are
+/// single views rendered by both, never copies - `HomeCarSwitcherButton` when
+/// `HomeLayout.showsCarSwitcher` says so, `HomeTypeItControl` in the capture
+/// card, `HomeRemindersEntryRow` above the stream, and `HomeAddFirstCarButton`
+/// on the no-car card. Nothing about any of them is account-gated.
 struct HomeGuestLayout<LogContent: View>: View {
     let vehicle: Vehicle?
     let stats: HomeStats?
     let photoData: Data?
-    let onTypeIt: () -> Void
+    /// How many live cars exist. `HomeLayout.showsCarSwitcher` turns this into
+    /// the switcher's presence - the count alone, never the session (RV.251).
+    let liveCarCount: Int
+    /// The cross-car attention count for the reminders door (PJ.200), derived at
+    /// read time by Home from the same live rows the merged list groups.
+    let attentionCount: Int
+    let presentSheet: (SheetRoute) -> Void
     let logStream: LogContent
 
     init(vehicle: Vehicle?, stats: HomeStats?, photoData: Data?,
-         onTypeIt: @escaping () -> Void,
+         liveCarCount: Int, attentionCount: Int,
+         presentSheet: @escaping (SheetRoute) -> Void,
          @ViewBuilder logStream: () -> LogContent) {
         self.vehicle = vehicle
         self.stats = stats
         self.photoData = photoData
-        self.onTypeIt = onTypeIt
+        self.liveCarCount = liveCarCount
+        self.attentionCount = attentionCount
+        self.presentSheet = presentSheet
         self.logStream = logStream()
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // RV.251: the SAME switcher the signed-in header renders, shown on
+            // the count alone. Zero or one car keeps today's guest layout.
+            if HomeLayout.showsCarSwitcher(liveCarCount: liveCarCount), let vehicle {
+                HomeCarSwitcherButton(vehicleName: vehicle.name,
+                                      onTap: { presentSheet(.carSwitcher) })
+            }
             if let vehicle, let stats {
                 guestGarageCard(vehicle: vehicle, stats: stats)
             } else {
                 noCarCard
+            }
+            // PJ.200: the calm reminders door, the same row the signed-in
+            // layout renders, so J7d's discovery surface is not account-gated.
+            if vehicle != nil {
+                HomeRemindersEntryRow(attentionCount: attentionCount)
             }
             logStream
             captureCard
@@ -215,14 +241,10 @@ struct HomeGuestLayout<LogContent: View>: View {
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .multilineTextAlignment(.center)
-            Button("Type it", action: onTypeIt)
-                .font(.footnote.weight(.bold))
-                .foregroundStyle(Theme.Palette.midnight)
-                .padding(.horizontal, 26)
-                .padding(.vertical, 11)
-                .background(Theme.Palette.taillight)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .accessibilityIdentifier("homeGuestCaptureButton")
+            // PJ.100: the SAME `typeItControl` the signed-in header renders, so
+            // the guest's typed door offers Service and Expense too - nothing
+            // about being a guest gates them.
+            HomeTypeItControl(presentSheet: presentSheet)
         }
         .frame(maxWidth: .infinity)
         .padding(16)
@@ -270,13 +292,18 @@ struct HomeGuestLayout<LogContent: View>: View {
     }
 
     private var noCarCard: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("No car yet")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-            Text("Add your first car to start logging fill-ups.")
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("No car yet")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.ink)
+                Text("Add your first car to start logging fill-ups.")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.inkSoft)
+            }
+            // PJ.101: the SAME filled Add-car button the signed-in no-car
+            // layout renders, so the two no-car states cannot drift.
+            HomeAddFirstCarButton()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(16)

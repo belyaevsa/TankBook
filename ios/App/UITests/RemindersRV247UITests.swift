@@ -23,11 +23,11 @@ extension RemindersUITests {
     /// positive one.
     private func assertTypedAmountLandsOnTheRemindersCar(language: [String]) {
         let app = XCUIApplication()
-        // `-seedSettingsSignedIn`: the proof switches cars on Home through
-        // `carSwitcherButton`, which only the signed-in Home renders - the
-        // guest layout has no switcher (RV.251). Without the seed this test
-        // passes only on a Keychain session a previous run left behind.
-        app.launchArguments = ["-homeResetDatabase", "-seedRemindersAll", "-seedSettingsSignedIn",
+        // Guest on purpose: a car switcher is not a sync feature (RV.251), so
+        // the two-car guest Home renders the same `carSwitcherButton` the
+        // signed-in header does. The seed is what leaves this test honest - a
+        // leaked Keychain session used to be the only reason it passed.
+        app.launchArguments = ["-homeResetDatabase", "-seedRemindersAll",
                                "-presentScreen", "remindersAll"] + language
         app.launch()
 

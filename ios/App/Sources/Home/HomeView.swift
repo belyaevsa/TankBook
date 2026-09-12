@@ -194,7 +194,9 @@ struct HomeView: View {
             // for both layouts, so the guest branch cannot drift back to
             // omitting the stream.
             HomeGuestLayout(vehicle: vehicle, stats: stats, photoData: photoData,
-                            onTypeIt: { presentSheet(.confirmManual) },
+                            liveCarCount: vehicles.count,
+                            attentionCount: dueRemindersAcrossCars,
+                            presentSheet: presentSheet,
                             logStream: {
                                 if let stats, HomeLayout.logArea(for: stats) == .stream {
                                     logStream(stats)
@@ -386,77 +388,13 @@ struct HomeView: View {
 
     private func headerRow(_ vehicle: Vehicle) -> some View {
         HStack {
-            Button {
-                presentSheet(.carSwitcher)
-            } label: {
-                HStack(spacing: 4) {
-                    Text(vehicle.name)
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(Theme.Palette.ink)
-                    Image(systemName: "chevron.down")
-                        .font(.caption2)
-                        .foregroundStyle(Theme.Palette.inkSoft)
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Theme.Palette.dash))
-                .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("carSwitcherButton")
+            HomeCarSwitcherButton(vehicleName: vehicle.name,
+                                  onTap: { presentSheet(.carSwitcher) })
 
             Spacer(minLength: 0)
 
-            typeItControl
+            HomeTypeItControl(presentSheet: presentSheet)
         }
-    }
-
-    /// RV.61: Home's manual door. The primary action - "Type it" - opens the
-    /// fill-up form in ONE tap (the commonest entry must never get slower,
-    /// hard rule 15); the trailing chevron is a menu offering the other entry
-    /// types (Service, Expense) - the same choice the capture screen's mode row
-    /// presents. A plain `Button` + `Menu` pair, not `Menu(primaryAction:)`, so
-    /// the two affordances have separate, deterministic accessibility
-    /// identities: the existing `typeItButton` tap path (fill-up, one tap) and
-    /// the new `typeItMenu` path can each be driven and asserted independently.
-    private var typeItControl: some View {
-        HStack(spacing: 0) {
-            Button {
-                presentSheet(.confirmManual)
-            } label: {
-                Label("Type it", systemImage: "square.and.pencil")
-                    .font(.footnote.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.ink)
-                    .padding(.leading, 12)
-                    .padding(.trailing, 8)
-                    .padding(.vertical, 6)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("typeItButton")
-
-            Menu {
-                ForEach(CaptureEntryForm.doorMenuForms, id: \.self) { form in
-                    Button {
-                        presentSheet(form.sheetRoute)
-                    } label: {
-                        Text(form.doorMenuLabel)
-                    }
-                }
-            } label: {
-                Image(systemName: "chevron.down")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.inkSoft)
-                    .padding(.leading, 2)
-                    .padding(.trailing, 10)
-                    .padding(.vertical, 6)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("More entry types")
-            .accessibilityIdentifier("typeItMenu")
-        }
-        .background(Capsule().fill(Theme.Palette.dash))
-        .overlay(Capsule().stroke(Theme.Palette.hairline, lineWidth: 1))
     }
 
     // MARK: - Swipe-to-switch (the switcher footer's promise)

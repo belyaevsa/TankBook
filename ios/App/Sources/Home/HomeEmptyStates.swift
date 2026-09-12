@@ -69,17 +69,7 @@ struct HomeNoCarLayout: View {
             }
             .padding(.top, 8)
 
-            NavigationLink(value: Route.addVehicle) {
-                Text("Add your first car")
-                    .font(.body.weight(.bold))
-                    .foregroundStyle(Theme.Palette.midnight)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Theme.Palette.taillight)
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("homeAddFirstCarButton")
+            HomeAddFirstCarButton()
 
             quickActions
         }

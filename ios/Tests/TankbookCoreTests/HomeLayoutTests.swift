@@ -60,3 +60,25 @@ struct HomeLayoutTests {
         #expect(HomeLayout.logArea(for: nil) == .empty)
     }
 }
+
+/// RV.251: the car switcher is present on the live-car count alone. Two cars
+/// shows it, zero or one does not, and there is no session parameter for
+/// account state to gate it through - the guest Home and the signed-in header
+/// consult the same function, so a two-car guest cannot lose the switcher the
+/// signed-in user has.
+@Suite("HomeLayout: the car switcher is gated on car count, never account state (RV.251)")
+struct HomeLayoutSwitcherTests {
+
+    @Test func moreThanOneCarShowsTheSwitcher() {
+        #expect(HomeLayout.showsCarSwitcher(liveCarCount: 2),
+                "two cars must show the switcher for any user, signed in or not")
+        #expect(HomeLayout.showsCarSwitcher(liveCarCount: 5))
+    }
+
+    @Test func zeroOrOneCarHidesTheSwitcher() {
+        #expect(!HomeLayout.showsCarSwitcher(liveCarCount: 0),
+                "no cars means nothing to switch between")
+        #expect(!HomeLayout.showsCarSwitcher(liveCarCount: 1),
+                "one car keeps the guest Home's single-car layout unchanged")
+    }
+}
