@@ -24,7 +24,7 @@ The most important findings are:
 1. The pull-request workflow does not reject skipped database tests. A PR can be green after the PostgreSQL half of the suite silently disappears.
 2. The push/deploy workflow permits up to ten skipped tests. A release can therefore proceed with several unknown integration checks absent, and the gate considers only the number, not which tests skipped.
 3. `docs/TESTING.md` defines L2 as PostgreSQL plus MinIO, but all blob endpoint suites replace the real object store with `RecordingBlobStorage`. There is no automated begin -> real upload -> commit -> download check.
-4. `docs/API.md` documents `GET /v1/account`, but `Program.cs` maps no such route and the suite has no test for it.
+4. `docs/API.md` documents `GET /v1/account`, but `Program.cs` maps no such route and the suite has no test for it. (Resolved by RV.108, 2026-09-12: the row was removed from `docs/API.md` – no route, test or client consumed it.)
 5. The outbox contract promises that acknowledgement is idempotent and scoped to the caller's device. The tests cover drain and first acknowledgement, but not repeated acknowledgement, another device, or another account.
 6. Background service logic is called directly, while three endpoint suites explicitly assert that their timers are absent from the test host. This protects test isolation but does not prove that production registers or runs those jobs.
 7. Deployment uses the liveness-only `/health` response as its readiness check. That endpoint does not query PostgreSQL or object storage, although the deployment script says verification catches an image that cannot reach the database.
@@ -59,7 +59,7 @@ The task definitions are generally good. They name observable outcomes, negative
 | P4.2 sync | Strong endpoint semantics. Ordering, concurrent pagination, replay, per-item conflict, validation, clock clamp, device revocation, schema gates, and opaque unknown entities are meaningful. | There is no HTTP-level account-isolation scenario using the same record UUID in two accounts, and no compact multi-device journey across sign-in, push, pull, revoke, and restore. |
 | P4.3 blobs | Service rules are well covered: per-account dedupe, caps, quota, commit checks, retention, deletion, cross-account lookup, and log privacy. | The stated S3 integration is represented by a recording store. No real S3-compatible server proves signed PUT/GET behavior and byte round-trip. |
 | P4.8 notifications | The product rules are well covered: siblings only, throttling, invalid token removal, transient failure, silent payload, and sync success despite APNs failure. | `ApnsClient` itself is not contract-tested, so JWT/header construction and APNs response mapping can break while all notification tests pass. |
-| P4.9 account lifecycle | Tombstone, grace-period purge, per-device revocation, push-token clearing, isolation, and privacy tests are meaningful. | The whole purge is not tested across database records, blob objects, imports, outbox content, and ledger content in one scenario. The documented `GET /account` endpoint is absent. |
+| P4.9 account lifecycle | Tombstone, grace-period purge, per-device revocation, push-token clearing, isolation, and privacy tests are meaningful. | The whole purge is not tested across database records, blob objects, imports, outbox content, and ledger content in one scenario. (The documented `GET /account` endpoint this row also noted was removed from `docs/API.md` by RV.108 – no client consumed it.) |
 | P4.10 extraction | Quota, metering, provider failure, response shape, per-account isolation, privacy, retention, and storage-outage behavior are unusually thorough. | Tests replace the actual provider and storage adapter. The OpenAI-compatible JSON and error contract is untested. Duplicate mobile retries remain open as PR.25. |
 | RV.44 outbox | Enqueue on failed delivery, no enqueue on normal delivery, read-before-ack, payload round-trip, retention, and account purge are meaningful. | The actual endpoint sequence from an interrupted `/extract` request to drain and ack is split across direct service tests. Device/account isolation and idempotent repeated ack are promised but not asserted. |
 | Rates/catalog/import/feedback | These suites have strong examples based on real captured feed/export fixtures, boundary dates, partial parsing, immutable caching, public access, caps, and privacy. | Cross-service retry/idempotency and production adapter readiness are weak. Rate-limit coverage checks only a subset of the routes listed in `API.md`. |
@@ -181,7 +181,7 @@ For every migration, verify that the previous release can still start and serve 
 
 ### 10. Documented account summary endpoint
 
-Resolve the mismatch around `GET /v1/account`: implement and test the documented storage/quota/account summary, or remove it from `docs/API.md` if the product no longer consumes it. A contract that has neither a route nor a test should not remain silently normative.
+**Resolved (RV.108, 2026-09-12): removed from `docs/API.md`.** The row documented `GET /v1/account` with no route, no test and no client call. Checked the client before deciding: `AccountClient` serves only `/account/devices`, the device revoke and account delete, and no screen renders an account summary – `accountId`/`email` come from the session, and the Settings quota card is a blob-storage 429 error surface (its percent is a fixture value, not an account read), not a consumer of this endpoint. Implementing it would have been a contract with no reader; the row is gone so the document stops promising a 404.
 
 ## Reliability and CI findings
 
@@ -233,7 +233,7 @@ Most retention and throttle tests use `MutableTimeProvider`, and only the rate s
 1. Split fast/unit and PostgreSQL integration execution into named CI steps.
 2. Fail CI before tests if Docker/PostgreSQL is unavailable; reject every unexpected skip on PR and push.
 3. Record and upload TRX from both jobs, assert a minimum discovered count, and remove stale hard-coded counts from comments/docs.
-4. Resolve the missing `GET /v1/account` contract.
+4. ~~Resolve the missing `GET /v1/account` contract.~~ **Done (RV.108, 2026-09-12): removed from `docs/API.md`.**
 5. Add outbox device/account isolation and repeated-ack tests.
 6. Add sync HTTP account-isolation using the same record UUID.
 

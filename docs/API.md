@@ -633,7 +633,6 @@ rows again on its next launch (at-least-once), dedupes by row id, and then acks 
 
 | Endpoint | Auth | Contract |
 |---|---|---|
-| `GET /account` | bearer | `{ accountId, email, createdAt, storage: { usedBytes, quota }, llm: { used, quota, period } }` |
 | `GET /account/devices` | bearer | Registered devices with `lastSeenAt` – the "manage devices" screen. |
 | `PUT /account/devices/{id}/push-token` | bearer | `{ apnsToken }` (or `{ fcmToken }` for Android later) → `204`. Enables silent sync nudges (`NOTIFICATIONS.md`); APNs invalidation clears the row and the device falls back to polling. |
 | `DELETE /account/devices/{id}` | bearer | Revoke a device: its next pull gets `410`. |

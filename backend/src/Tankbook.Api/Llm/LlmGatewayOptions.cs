@@ -28,7 +28,7 @@ public sealed class LlmGatewayOptions
     /// </summary>
     public const int AdvertisedCloudFallbackPerDay = 50;
 
-    /// <summary>Per-tier, per-period request allowance (the "quota" in GET /account).</summary>
+    /// <summary>Per-tier, per-period request allowance that `POST /extract` enforces (402 absent, 429 spent).</summary>
     /// <remarks>
     /// **The free tier gets cloud extract in v1 (decided 2026-09-03, product
     /// owner).** It was 0, which made `POST /extract` answer 402 to every user -
