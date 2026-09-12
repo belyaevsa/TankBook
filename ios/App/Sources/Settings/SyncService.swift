@@ -18,7 +18,10 @@ enum SyncService {
         // clears it per cycle and persists it with a failure), and the device
         // store the sync state survives a relaunch in.
         let diagnostics = SyncFailureDiagnostics()
-        let syncStateStore = UserDefaultsSyncStateStore()
+        // RV.256: the persisted sync state is keyed by account id, exactly like
+        // the cursor below: a stale `lastFailure`/`lastSuccessAt` would
+        // otherwise render on a different account's card until its first cycle.
+        let syncStateStore = UserDefaultsSyncStateStore(accountId: accountId)
         let transport = RemoteSyncTransport(
             director: director,
             transport: makeAppTransport(),

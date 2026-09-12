@@ -101,7 +101,7 @@ struct OB3SyncStateTests {
     func userDefaultsStoreRoundTripsOverAnEphemeralSuite() throws {
         let suite = "OB3-\(UUID().uuidString)"
         defer { UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite) }
-        let store = UserDefaultsSyncStateStore(suiteName: suite)
+        let store = UserDefaultsSyncStateStore(accountId: "ob3-account", suiteName: suite)
 
         let successAt = Date(timeIntervalSinceReferenceDate: 1234)
         let failure = SyncFailureRecord(at: successAt.addingTimeInterval(60),

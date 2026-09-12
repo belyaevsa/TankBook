@@ -189,7 +189,10 @@ enum SettingsTestSeed {
     /// previous test's stored failure must never leak into a later one, so
     /// every signed-in seed writes what IT needs, and every other state clears.
     static func seedStoredSyncState(for state: State) {
-        let store = UserDefaultsSyncStateStore()
+        // RV.256: the store is keyed by account id; seed the same account the
+        // session write above put on the device, so the coordinator AppSync
+        // builds for it reads exactly what this seed planted.
+        let store = UserDefaultsSyncStateStore(accountId: stubSession().accountId)
         switch state {
         case .synced, .signedIn:
             store.save(PersistedSyncState(lastSuccessAt: Date(), lastFailure: nil))

@@ -593,11 +593,17 @@ Three things live there, and the split between them is what keeps hard rule 8 in
 last non-inert cycle succeeded and, separately, how the last cycle failed - a
 `PersistedSyncState` (`lastSuccessAt` + a `SyncFailureRecord` holding the
 failure's class and, when the server answered, the raw problem+json `code` and
-`traceId`) under one UserDefaults key (`ios/Sources/TankbookCore/Sync/
-SyncStateStore.swift`). A success writes the date and clears the failure; a
-failing cycle writes the record and leaves the date alone; a deferred or inert
-cycle writes nothing. The record is **infrastructure** - a timestamp, a class, a
-code, a trace id - and holds no domain value (hard rule 12); OB.4 exports it.
+`traceId`) in UserDefaults (`ios/Sources/TankbookCore/Sync/
+SyncStateStore.swift`). **The store is keyed by account id (RV.256)** - the same
+shape as the pull cursor - because sign-out clears the session but never the
+state: an unkeyed store would render account A's last success and last failure
+on account B's card until B's first cycle overwrote them. A pre-RV.256 unkeyed
+value is migrated into the signed-in account's slot on first load and the old
+key deleted, so an existing device keeps its place. A success writes the date
+and clears the failure; a failing cycle writes the record and leaves the date
+alone; a deferred or inert cycle writes nothing. The record is
+**infrastructure** - a timestamp, a class, a code, a trace id - and holds no
+domain value (hard rule 12); OB.4 exports it.
 The coordinator restores it at init, so Settings reads the true age ("Synced 3
 hours ago") and the last failure from the first frame of a relaunch, before any
 cycle has re-derived them. A signed-in device that has never synced on this

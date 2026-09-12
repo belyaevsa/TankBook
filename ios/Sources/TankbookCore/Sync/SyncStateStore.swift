@@ -84,14 +84,24 @@ public protocol SyncStateStore: Sendable {
     func save(_ state: PersistedSyncState)
 }
 
-/// A `SyncStateStore` backed by `UserDefaults`, JSON under one key. The state
+/// A `SyncStateStore` backed by `UserDefaults`, JSON under a key. The state
 /// is a timestamp, a class, a code and a trace id - infrastructure, not
 /// sensitive - so a plain preference slot is the right home (docs/SCHEMA.md:
 /// "sync cursor & auth tokens - infrastructure"; the same reasoning as
 /// `UserDefaultsSyncCursorStore`, and hard rule 12: no domain value ever rides
 /// here). The `UserDefaults` is injectable so a test never touches `.standard`.
+///
+/// The key carries the account id because one device can hold sync state for
+/// more than one account: sign-out clears the session, never the state, so an
+/// unkeyed store would render account A's last success and last failure on
+/// account B's card until B's first cycle overwrote them (RV.256). The keyed
+/// slot is the same shape that keeps `UserDefaultsSyncCursorStore` from
+/// resuming a different account's pull.
 public struct UserDefaultsSyncStateStore: SyncStateStore {
-    private let key: String
+    private let accountId: String
+    /// The pre-RV.256 unkeyed key, migrated into the account's slot on first
+    /// load and then deleted. The per-account key is derived from it.
+    private let legacyKey: String
     /// An explicit suite name, when the caller must not touch `.standard` (a
     /// test uses an ephemeral suite and tears it down). `UserDefaults` itself
     /// is not `Sendable`, so the store resolves it from the suite name at each
@@ -99,8 +109,11 @@ public struct UserDefaultsSyncStateStore: SyncStateStore {
     /// `UserDefaultsSyncCursorStore` Sendable.
     private let suiteName: String?
 
-    public init(key: String = "tankbook.sync.state", suiteName: String? = nil) {
-        self.key = key
+    public init(accountId: String,
+                legacyKey: String = "tankbook.sync.state",
+                suiteName: String? = nil) {
+        self.accountId = accountId
+        self.legacyKey = legacyKey
         self.suiteName = suiteName
     }
 
@@ -108,17 +121,32 @@ public struct UserDefaultsSyncStateStore: SyncStateStore {
         suiteName.flatMap { UserDefaults(suiteName: $0) } ?? .standard
     }
 
+    private var key: String { "\(legacyKey).\(accountId)" }
+
     public func load() -> PersistedSyncState {
-        guard let data = defaults.data(forKey: key),
-              let state = try? JSONDecoder.syncState.decode(PersistedSyncState.self, from: data) else {
+        if let data = defaults.data(forKey: key),
+           let state = try? JSONDecoder.syncState.decode(PersistedSyncState.self, from: data) {
+            return state
+        }
+        // RV.256 migration: before this key existed, one device held one state
+        // for whoever was signed in. Move it into the signed-in account's slot
+        // once, then delete the old key so a later account cannot inherit it.
+        guard let legacy = defaults.data(forKey: legacyKey),
+              let state = try? JSONDecoder.syncState.decode(PersistedSyncState.self, from: legacy) else {
             return PersistedSyncState(lastSuccessAt: nil, lastFailure: nil)
         }
+        defaults.set(legacy, forKey: key)
+        defaults.removeObject(forKey: legacyKey)
         return state
     }
 
     public func save(_ state: PersistedSyncState) {
         guard let data = try? JSONEncoder.syncState.encode(state) else { return }
         defaults.set(data, forKey: key)
+        // A write-through `save` can run before this account's first `load`.
+        // Delete the legacy key here too, so it cannot linger and later migrate
+        // into a different account.
+        defaults.removeObject(forKey: legacyKey)
     }
 }
 

@@ -80,7 +80,14 @@ enum DiagnosticsService {
     /// never a live coordinator, so a relaunch and a fresh read agree and the
     /// export never depends on which cycles happened to have run.
     private static func syncSummary() -> DiagnosticsSyncSummary {
-        let state = UserDefaultsSyncStateStore().load()
+        // RV.256: the store is keyed by account id. A guest has no sync state,
+        // so the sync section reports none rather than a previous account's.
+        let state: PersistedSyncState
+        if let accountId = (try? KeychainSessionStore().load())?.accountId {
+            state = UserDefaultsSyncStateStore(accountId: accountId).load()
+        } else {
+            state = PersistedSyncState(lastSuccessAt: nil, lastFailure: nil)
+        }
         var dirty = 0
         var flagged = 0
         if let repository = try? AppStore.repository() {

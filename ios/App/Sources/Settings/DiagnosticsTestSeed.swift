@@ -66,9 +66,16 @@ enum DiagnosticsTestSeed {
     /// Plants the persisted sync state the preview reads (OB.3): a success three
     /// hours back and a failure holding kind + code + traceId, so the bundle's
     /// sync section renders real content and the screenshot shows what support
-    /// would actually see.
+    /// would actually see. The store is keyed by account id (RV.256), so this
+    /// also plants the stub session the bundle's read needs - the sync section
+    /// is empty for a guest, who has no state to export.
     private static func seedSyncState() {
-        UserDefaultsSyncStateStore().save(PersistedSyncState(
+        let sessionStore = KeychainSessionStore()
+        if (try? sessionStore.load()) == nil {
+            try? sessionStore.save(SettingsTestSeed.stubSession())
+        }
+        guard let accountId = (try? sessionStore.load())?.accountId else { return }
+        UserDefaultsSyncStateStore(accountId: accountId).save(PersistedSyncState(
             lastSuccessAt: Date().addingTimeInterval(-3 * 3600),
             lastFailure: SyncFailureRecord(at: Date().addingTimeInterval(-3600),
                                            kind: .upgradeRequired,
