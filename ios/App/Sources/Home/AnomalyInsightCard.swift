@@ -20,11 +20,12 @@ import TankbookCore
 ///
 /// Tap expands the evidence: the drift as a chart (rolling vs baseline, the
 /// engine's two values), the money line when a price is known, and the two next
-/// steps (hard rule 7): **Create reminder** (act) and **Dismiss with reason**
-/// (teaches the model). A card with only dismiss teaches nothing; a card with
-/// only act is a nag - both are always present. Dismissal records an
-/// `AnomalyDismissal` (persisted by `AnomalyInsightStore`); act additionally
-/// creates a service reminder. Never an alert (hard rule 8).
+/// steps (hard rule 7): **Create reminder** (act) and **Dismiss** (suppresses
+/// the cause). A card with only dismiss teaches nothing; a card with only act
+/// is a nag - both are always present. Dismiss is one tap: it records an
+/// `AnomalyDismissal` (persisted by `AnomalyInsightStore`) and the cause is not
+/// raised again; act additionally creates a service reminder. Never an alert
+/// (hard rule 8).
 struct AnomalyInsightCard: View {
     let anomaly: ConsumptionAnomaly
     /// The vehicle's consumption unit ("L/100km", "kWh/100") - the same label
@@ -38,12 +39,10 @@ struct AnomalyInsightCard: View {
     var monthlyCostCurrency: CurrencyCode?
     /// "Act": create the service reminder. The parent owns the repository.
     var onAct: () -> Void = {}
-    /// "Dismiss with reason": remember what the user said. The parent owns the
-    /// persistence.
-    var onDismiss: (AnomalyDismissal) -> Void = { _ in }
+    /// "Dismiss": suppress this cause. The parent owns the persistence.
+    var onDismiss: () -> Void = {}
 
     @State private var isExpanded = false
-    @State private var showingDismissSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -63,26 +62,16 @@ struct AnomalyInsightCard: View {
         .accessibilityIdentifier("homeAnomalyCard")
         .task {
             #if DEBUG
-            // Screenshot hooks (the same precedent as `-presentReminderComplete`,
+            // Screenshot hook (the same precedent as `-presentReminderComplete`,
             // docs/SCREENMAP.md): simctl cannot tap, so a launch argument drives
-            // the state a capture needs.
-            // `-presentAnomalyEvidence`: the card expanded (chart + money line +
-            // actions). `-presentAnomalyDismissal`: additionally the dismiss
-            // sheet on top. Both require a live anomaly - the seed that renders
-            // the card also drives the screenshot.
+            // the state a capture needs. `-presentAnomalyEvidence`: the card
+            // expanded (chart + money line + actions). It requires a live
+            // anomaly - the seed that renders the card also drives the
+            // screenshot.
             if ProcessInfo.processInfo.arguments.contains("-presentAnomalyEvidence") {
                 isExpanded = true
             }
-            if ProcessInfo.processInfo.arguments.contains("-presentAnomalyDismissal") {
-                isExpanded = true
-                showingDismissSheet = true
-            }
             #endif
-        }
-        .sheet(isPresented: $showingDismissSheet) {
-            AnomalyDismissalSheet(cause: anomaly.cause) { dismissal in
-                onDismiss(dismissal)
-            }
         }
     }
 
@@ -206,10 +195,8 @@ struct AnomalyInsightCard: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("homeAnomalyActButton")
 
-            Button {
-                showingDismissSheet = true
-            } label: {
-                Text("Dismiss with reason")
+            Button(action: onDismiss) {
+                Text("Dismiss")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Theme.Palette.action)
                     .frame(maxWidth: .infinity)
@@ -226,153 +213,5 @@ struct AnomalyInsightCard: View {
     /// is the engine's; the unit is the same label the headline renders).
     private func valueLabel(_ value: Double) -> String {
         "\(ManualFillUpFormat.decimal(value, fractionDigits: 1))\u{00A0}\(unitLabel)"
-    }
-}
-
-// MARK: - The dismissal sheet
-
-/// "Dismiss with reason" (J9: dismiss teaches the model): the sheet asks why
-/// the consumption is up, offers the reasons a user would actually pick plus a
-/// free-text path, and records an `AnomalyDismissal` carrying that reason. The
-/// recorded reason is the localized label the user chose (the same shape as
-/// `ReminderLifecycle.dismiss(reason:)` - the reason is data, never a
-/// pre-computed verdict, hard rule 2).
-struct AnomalyDismissalSheet: View {
-    let cause: AnomalyCause
-    var onDismiss: (AnomalyDismissal) -> Void
-
-    @Environment(\.dismiss) private var dismiss
-    @State private var showingCustom = false
-    @State private var customReason = ""
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            dragHandle
-            header
-            reasons
-        }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 32)
-        .background(Theme.Palette.dash)
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.hidden)
-        .presentationBackground(Theme.Palette.dash)
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("anomalyDismissalSheet")
-    }
-
-    private var dragHandle: some View {
-        Capsule()
-            .fill(Theme.Palette.inkSoft.opacity(0.45))
-            .frame(width: 36, height: 4)
-            .frame(maxWidth: .infinity)
-            .padding(.top, 10)
-            .padding(.bottom, 16)
-    }
-
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(L10n.anomalyDismissTitle)
-                .font(.system(size: 19, weight: .bold))
-                .foregroundStyle(Theme.Palette.ink)
-                .accessibilityIdentifier("anomalyDismissTitle")
-            Text(L10n.anomalyDismissSubtitle)
-                .font(.caption)
-                .foregroundStyle(Theme.Palette.inkSoft)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityIdentifier("anomalyDismissHeader")
-    }
-
-    private var reasons: some View {
-        VStack(spacing: 10) {
-            reasonButton(title: L10n.localize("It's winter"),
-                         identifier: "anomalyDismissReasonWinter") {
-                record(L10n.localize("It's winter"))
-            }
-            reasonButton(title: L10n.localize("Changed tyres"),
-                         identifier: "anomalyDismissReasonTyres") {
-                record(L10n.localize("Changed tyres"))
-            }
-            reasonButton(title: L10n.localize("Towing"),
-                         identifier: "anomalyDismissReasonTowing") {
-                record(L10n.localize("Towing"))
-            }
-            if showingCustom {
-                customEntry
-            } else {
-                reasonButton(title: L10n.localize("Other"),
-                             identifier: "anomalyDismissReasonOther") {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showingCustom = true
-                    }
-                }
-            }
-        }
-        .padding(.top, 18)
-    }
-
-    private func reasonButton(title: String, identifier: String,
-                              action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Theme.Palette.ink)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 13)
-                .background(Theme.Palette.midnight)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Theme.Palette.hairline, lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .accessibilityIdentifier(identifier)
-    }
-
-    /// The free-text path: a reason of the user's own, saved explicitly.
-    private var customEntry: some View {
-        VStack(spacing: 10) {
-            TextField(L10n.localize("Other"), text: $customReason)
-                .font(.subheadline)
-                .foregroundStyle(Theme.Palette.ink)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-                .background(Theme.Palette.midnight)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Theme.Palette.hairline, lineWidth: 1)
-                )
-                .accessibilityIdentifier("anomalyDismissCustomField")
-            Button {
-                let trimmed = customReason.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !trimmed.isEmpty else { return }
-                record(trimmed)
-            } label: {
-                Text("Save")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(customSaveEnabled ? Theme.Palette.midnight : Theme.Palette.inkSoft.opacity(0.5))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 12)
-                    .background(customSaveEnabled ? Theme.Palette.warn : Theme.Palette.dash)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
-            .disabled(!customSaveEnabled)
-            .accessibilityIdentifier("anomalyDismissSaveButton")
-        }
-    }
-
-    private var customSaveEnabled: Bool {
-        !customReason.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    private func record(_ reason: String) {
-        onDismiss(AnomalyDismissal(cause: cause, reason: reason, dismissedAt: Date()))
-        dismiss()
     }
 }

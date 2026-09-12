@@ -15,10 +15,9 @@ public enum AnomalyMetric: String, Codable, Sendable, Hashable {
 /// month the evaluated window closes in. A dismissal is keyed by this and only
 /// this - dismissing one month's anomaly suppresses that month and nothing
 /// else, so "dismiss" can never silently become "mute everything"
-/// (docs/JOURNEYS.md J9, "always dismissible with a reason"; muting everything
-/// is the opposite of teaching the model). A recompute inside the same month
-/// stays suppressed; a later month, or a different metric, is a new cause and
-/// may fire on its own.
+/// (docs/JOURNEYS.md J9, "always dismissible"). A recompute inside the same
+/// month stays suppressed; a later month, or a different metric, is a new
+/// cause and may fire on its own.
 public struct AnomalyCause: Hashable, Sendable, Codable {
     public let metric: AnomalyMetric
     /// The calendar year of the month the evaluated window closes in.
@@ -42,21 +41,18 @@ public struct AnomalyCause: Hashable, Sendable, Codable {
     }
 }
 
-/// A recorded dismissal of an anomaly, with the reason the user gave. This is
-/// the data that MAY be persisted - the verdict never is (hard rule 2): the
-/// anomaly re-derives on every recompute, and the dismissal is the only thing
-/// remembered. It mirrors the reminder precedent exactly
-/// (`ReminderStatus.dismissed(reason:)`, `ReminderLifecycle.dismiss`): the
-/// reason is carried as data and feeds the insight logic later ("dismissed:
-/// sold the tires", docs/JOURNEYS.md J9).
+/// A recorded dismissal of an anomaly. This is the data that MAY be persisted -
+/// the verdict never is (hard rule 2): the anomaly re-derives on every
+/// recompute, and the dismissal is the only thing remembered. A dismissal is
+/// keyed by `AnomalyCause` and carries no reason: nothing reads one back, and
+/// asking for it was dead data (docs/JOURNEYS.md J9 - the dismissed cause is
+/// simply not raised again).
 public struct AnomalyDismissal: Hashable, Sendable, Codable {
     public let cause: AnomalyCause
-    public let reason: String?
     public let dismissedAt: Date
 
-    public init(cause: AnomalyCause, reason: String?, dismissedAt: Date) {
+    public init(cause: AnomalyCause, dismissedAt: Date) {
         self.cause = cause
-        self.reason = reason
         self.dismissedAt = dismissedAt
     }
 }

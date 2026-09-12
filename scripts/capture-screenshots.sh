@@ -617,16 +617,22 @@ capture P6.11b-settings-ratelimited-ru ru -presentScreen settings -seedSettingsR
 
 # P6.1b: the J9 anomaly insight card in the Log (docs/JOURNEYS.md J9). The
 # collapsed card states the drift and the compared window; `-presentAnomalyEvidence`
-# expands it (the chart + causes + the two actions); `-presentAnomalyDismissal`
-# puts the dismiss-reason sheet on top - simctl cannot tap, so the hooks drive
-# the state a screenshot needs. RU is where the composed phrases run longest
-# ("Расход вырос на 21% по сравнению с прошлым годом" and the two-value caption).
+# expands it (the chart + cost + the two actions) - simctl cannot tap, so the
+# hooks drive the state a screenshot needs. RU is where the composed phrases run
+# longest ("Расход вырос на 21% по сравнению с прошлым годом" and the two-value
+# caption).
 capture P6.1b-insight-card              en -seedHomeAnomaly
 capture P6.1b-insight-card-ru           ru -seedHomeAnomaly
 capture P6.1b-insight-evidence          en -seedHomeAnomaly -presentAnomalyEvidence
 capture P6.1b-insight-evidence-ru       ru -seedHomeAnomaly -presentAnomalyEvidence
-capture P6.1b-insight-dismiss           en -seedHomeAnomaly -presentAnomalyDismissal
-capture P6.1b-insight-dismiss-ru        ru -seedHomeAnomaly -presentAnomalyDismissal
+
+# RV.240: Dismiss is one tap - the expanded card's two actions, no reason sheet.
+# RV.268: act creates the reminder due at the shared default (one year out) and
+# opens it for edit, so the frame shows the future date the user can change.
+capture RV.240-anomaly-card             en -seedHomeAnomaly -presentAnomalyEvidence
+capture RV.240-anomaly-card-ru          ru -seedHomeAnomaly -presentAnomalyEvidence
+capture RV.268-anomaly-reminder         en -seedHomeAnomaly -presentAnomalyActReminder
+capture RV.268-anomaly-reminder-ru      ru -seedHomeAnomaly -presentAnomalyActReminder
 
 # P6.3: the gateway on the Confirm sheet (docs/API.md -> "The device's side of
 # /extract"). The timeout shot is the 3 s budget-expired state - the message
@@ -1292,8 +1298,6 @@ alias_shot P4.4-wrong-provider-ru P5.3-signin-wrong-provider-ru
 capture P5.5b-import-review-ru-xl                        ru -presentScreen importWizard -importStubParse review -seedImportReview -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
 capture P6.13-home-xl                                    en -seedHomeFullHistory -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
 capture P6.13-home-xl-ru                                 ru -seedHomeFullHistory -UIPreferredContentSizeCategoryName UICTContentSizeCategoryXL
-alias_shot P6.1b-insight-dismiss P6.17-anomaly-dismiss
-alias_shot P6.1b-insight-dismiss-ru P6.17-anomaly-dismiss-ru
 alias_shot P1.4-home P6.5-home-log
 alias_shot P1.4-home-ru P6.5-home-log-ru
 alias_shot P1.7-recently-deleted P6.5-recently-deleted

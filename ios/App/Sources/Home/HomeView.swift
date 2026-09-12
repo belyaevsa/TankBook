@@ -15,6 +15,9 @@ import UIKit
 /// since PJ.3 - it renders whenever there is no session (docs/SYNC.md).
 struct HomeView: View {
     let presentSheet: (SheetRoute) -> Void
+    /// Pushes a route onto the Log tab's own `NavigationStack` path. J9's act
+    /// uses it to open the reminder it just created for edit.
+    var onNavigate: (Route) -> Void = { _ in }
 
     @Environment(AppToastCenter.self) private var toastCenter
     @Environment(AppCarSelection.self) private var carSelection
@@ -120,7 +123,12 @@ struct HomeView: View {
             }
             .scrollDismissesKeyboard(.immediately)
             .background(Theme.Palette.midnight)
-            .task { await load() }
+            .task {
+                await load()
+                #if DEBUG
+                presentAnomalyActReminderIfRequested()
+                #endif
+            }
             .onChange(of: carSelection.selectedID) { _, _ in
                 // A car switch from the switcher sheet or the garage-card swipe:
                 // reload so Home, the log stream and Trends all show the SAME car
@@ -167,6 +175,16 @@ struct HomeView: View {
                 proxy.scrollTo(HomeLogRevealAnchor.excludedFootnoteID, anchor: .center)
             }
         }
+    }
+
+    /// Screenshot hook (RV.268): `-presentAnomalyActReminder` performs J9's act
+    /// on the seeded anomaly and opens the created reminder for edit, so simctl
+    /// can photograph the future due date without a tap. Requires the anomaly
+    /// seed; the act writes the reminder exactly as the button does.
+    private func presentAnomalyActReminderIfRequested() {
+        guard ProcessInfo.processInfo.arguments.contains("-presentAnomalyActReminder"),
+              let anomaly else { return }
+        actOnAnomaly(anomaly)
     }
     #endif
 
@@ -270,7 +288,7 @@ struct HomeView: View {
                                monthlyCostAmount: cost?.amount,
                                monthlyCostCurrency: cost?.currency,
                                onAct: { actOnAnomaly(anomaly) },
-                               onDismiss: { dismissal in recordAnomalyDismissal(dismissal) })
+                               onDismiss: { dismissAnomaly(anomaly) })
         }
         switch HomeLayout.logArea(for: stats) {
         case .stream:
@@ -312,34 +330,50 @@ struct HomeView: View {
 
     // MARK: - J9 anomaly actions (docs/JOURNEYS.md J9, hard rule 7)
 
+    /// The reminder J9's act creates: category `.custom`, titled "Check fuel
+    /// consumption" (the title is localized copy, so the caller passes it), due
+    /// at the shared default - one year out, never today (hard rule 13). A
+    /// pure seam so the due-date decision is L1-testable without a simulator.
+    static func actReminder(vehicleId: UUID, title: String,
+                            now: Date = Date(),
+                            calendar: Calendar = .current) -> Reminder {
+        ReminderLifecycle.makeReminder(
+            vehicleId: vehicleId, title: title, category: .custom,
+            dueDate: ReminderLifecycle.defaultDueDate(from: now, calendar: calendar),
+            dueOdometer: nil)
+    }
+
     /// "Act": creates a service reminder to check the car. One tap - the
-    /// reminder exists immediately and is editable from the Reminders list
-    /// (hard rule 13). Acting also records a dismissal for this cause so the
-    /// card is not a nag (a card with only "act" is the failure mode J9 names);
-    /// the reminder itself is the record of the action. No notification is
-    /// scheduled - J9's "never a push alarm" (docs/NOTIFICATIONS.md).
+    /// reminder exists immediately, then opens for edit so the user sees and can
+    /// change its due date (hard rule 13). Acting also records a dismissal for
+    /// this cause so the card is not a nag (a card with only "act" is the
+    /// failure mode J9 names); the reminder itself is the record of the action.
+    /// No notification is scheduled - J9's "never a push alarm"
+    /// (docs/NOTIFICATIONS.md).
     private func actOnAnomaly(_ anomaly: ConsumptionAnomaly) {
         guard let vehicle else { return }
         do {
             let repository = try AppStore.repository()
-            let reminder = ReminderLifecycle.makeReminder(
+            let reminder = Self.actReminder(
                 vehicleId: vehicle.id,
-                title: L10n.localize("Check fuel consumption"),
-                category: .custom,
-                dueDate: Date(),
-                dueOdometer: nil)
+                title: L10n.localize("Check fuel consumption"))
             try repository.upsertReminder(reminder)
             recordAnomalyDismissal(
-                AnomalyDismissal(cause: anomaly.cause, reason: nil, dismissedAt: Date()))
+                AnomalyDismissal(cause: anomaly.cause, dismissedAt: Date()))
+            onNavigate(.reminderForm(reminderID: reminder.id, vehicleID: vehicle.id))
         } catch {
             AppLog.error(operation: "home.anomaly.act", category: .ui, error: error)
         }
     }
 
-    /// "Dismiss with reason": remembers what the user said (the dismissal, never
-    /// the verdict - hard rule 2). The engine re-derives; the store only
-    /// records. `noteEntryChanged` reloads so the card disappears for this
-    /// cause without a toast (the data itself did not change).
+    /// "Dismiss": remembers the dismissal, never the verdict (hard rule 2). The
+    /// engine re-derives; the store only records. `noteEntryChanged` reloads so
+    /// the card disappears for this cause without a toast (the data itself did
+    /// not change).
+    private func dismissAnomaly(_ anomaly: ConsumptionAnomaly) {
+        recordAnomalyDismissal(AnomalyDismissal(cause: anomaly.cause, dismissedAt: Date()))
+    }
+
     private func recordAnomalyDismissal(_ dismissal: AnomalyDismissal) {
         guard let vehicle else { return }
         AnomalyInsightStore.record(dismissal, for: vehicle.id)

@@ -11,7 +11,7 @@ struct ReminderFormState: Equatable {
     var title = ""
     var category: ReminderCategory = .oil
     var hasDueDate = false
-    var dueDate = Date()
+    var dueDate = ReminderLifecycle.defaultDueDate()
     var dueOdometer = ""
     var recurrenceEveryMonths = ""
     var recurrenceEveryKm = ""
@@ -22,7 +22,7 @@ struct ReminderFormState: Equatable {
     var initialTitle = ""
     var initialCategory: ReminderCategory = .oil
     var initialHasDueDate = false
-    var initialDueDate = Date()
+    var initialDueDate = ReminderLifecycle.defaultDueDate()
     var initialDueOdometer = ""
     var initialRecurrenceEveryMonths = ""
     var initialRecurrenceEveryKm = ""
@@ -70,7 +70,7 @@ struct ReminderFormState: Equatable {
         state.title = reminder.title
         state.category = reminder.category
         state.hasDueDate = reminder.dueDate != nil
-        state.dueDate = reminder.dueDate ?? Date()
+        state.dueDate = reminder.dueDate ?? ReminderLifecycle.defaultDueDate()
         state.dueOdometer = reminder.dueOdometer.map(OdometerFormat.grouped) ?? ""
         state.recurrenceEveryMonths = reminder.recurrence?.everyMonths.map(String.init) ?? ""
         state.recurrenceEveryKm = reminder.recurrence?.everyKm.map { OdometerFormat.grouped($0) } ?? ""

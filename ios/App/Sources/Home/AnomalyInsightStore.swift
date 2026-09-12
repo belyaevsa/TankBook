@@ -4,9 +4,9 @@ import TankbookCore
 /// Persistence for anomaly dismissals (P6.1b, docs/JOURNEYS.md J9). Stores the
 /// DISMISSAL, never the verdict (hard rule 2): the anomaly re-derives from the
 /// entries on every render, and the only thing remembered is what the user said
-/// - `AnomalyDismissal { cause, reason, dismissedAt }`, the exact shape the
-/// engine's own docs bless. A stored verdict would go stale the moment an entry
-/// is edited; a stored dismissal does not.
+/// - `AnomalyDismissal { cause, dismissedAt }`, the exact shape the engine's own
+/// docs bless. A stored verdict would go stale the moment an entry is edited; a
+/// stored dismissal does not.
 ///
 /// Keyed per vehicle, because a dismissal belongs to the car it was seen on -
 /// dismissing on one car must not quiet the same month's anomaly on another.

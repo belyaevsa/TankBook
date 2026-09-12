@@ -485,7 +485,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 
 ### J9 · Anomaly nudge
 **Trigger:** app-detected consumption drift ("+12% over 3 months").
-**Journey:** gentle `warn`-amber card in the Log (never a push alarm) → tap explains the evidence (chart of the drift and what it costs per month at the driver's own recent prices – never a guessed cause, RV.121; the app cannot see a motorway week, an idling hour, a tow or a different driver, docs/VISION.md → "What we will not tell a driver") → dismiss ("it's winter") teaches the model, or act → creates a service reminder. ⚠ False alarms erode trust fastest → thresholds conservative, seasonality-aware, always dismissible with a reason.
+**Journey:** gentle `warn`-amber card in the Log (never a push alarm) → tap explains the evidence (chart of the drift and what it costs per month at the driver's own recent prices – never a guessed cause, RV.121; the app cannot see a motorway week, an idling hour, a tow or a different driver, docs/VISION.md → "What we will not tell a driver") → dismiss (the dismissed cause is not raised again) or act → creates a service reminder due next year and opens it for edit. ⚠ False alarms erode trust fastest → thresholds conservative, seasonality-aware, always dismissible.
 
 **Success metric:** anomaly cards acted on or explicitly dismissed ≥70% (ignored cards = noise signal).
 

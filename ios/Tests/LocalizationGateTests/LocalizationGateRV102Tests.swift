@@ -201,7 +201,7 @@ struct LocalizationGateRV102Tests {
         struct LocaliseFirst: View {
             var body: some View {
                 VStack {
-                    reasonButton(title: L10n.localize("It's winter"), identifier: "a") { }
+                    reasonButton(title: L10n.localize("Other"), identifier: "a") { }
                     reasonButton(title: Self.label(for: selected), identifier: "b") { }
                 }
             }

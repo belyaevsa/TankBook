@@ -49,6 +49,16 @@ public enum ReminderLifecycle {
                  status: status)
     }
 
+    /// The due date a NEW reminder's date field starts at: one year from `now`.
+    /// The Reminder form's "Add date" and J9's act both use it, so the two doors
+    /// offer the same default (hard rule 13 - a default the user edits, never a
+    /// fact). One year is the owner's "a reminder's due date is usually next
+    /// year"; today would land the reminder already due.
+    public static func defaultDueDate(from now: Date = Date(),
+                                      calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .year, value: 1, to: now) ?? now
+    }
+
     /// Date-based attention window: a reminder due within this many days (or
     /// already overdue) demands attention. The artboard's "Needs attention"
     /// row is "in 12 days" and NOTIFICATIONS.md arms at "renews in 12 days".

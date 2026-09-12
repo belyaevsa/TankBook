@@ -597,19 +597,6 @@ enum L10n {
     static func anomalyPercent(_ magnitude: Double) -> String {
         "\(Int((magnitude * 100).rounded()))%"
     }
-
-    /// "Why is consumption higher?" - the dismissal sheet's header, asking for
-    /// the reason that teaches the model (J9).
-    static var anomalyDismissTitle: String {
-        localize("Why is consumption higher?")
-    }
-
-    /// The dismissal sheet's subtitle: the reason is what keeps the card quiet
-    /// for this cause (the engine suppresses only its own cause, never "mute
-    /// everything", docs/SCHEMA.md -> ANOMALY).
-    static var anomalyDismissSubtitle: String {
-        localize("Dismissing with a reason keeps it quiet for this period.")
-    }
 }
 
 extension L10n {

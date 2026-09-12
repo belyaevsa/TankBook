@@ -3727,23 +3727,6 @@
         }
       }
     },
-    "Changed tyres": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Changed tyres"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Замена шин"
-          }
-        }
-      }
-    },
     "Car name": {
       "extractionState": "manual",
       "localizations": {
@@ -5153,40 +5136,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Отклонить напоминание?"
-          }
-        }
-      }
-    },
-    "Dismiss with reason": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismiss with reason"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Отклонить с причиной"
-          }
-        }
-      }
-    },
-    "Dismissing with a reason keeps it quiet for this period.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dismissing with a reason keeps it quiet for this period."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Если укажете причину, подсказка скроется на этот период."
           }
         }
       }
@@ -7199,23 +7148,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Верно"
-          }
-        }
-      }
-    },
-    "It's winter": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "It's winter"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Зима"
           }
         }
       }
@@ -13188,23 +13120,6 @@
         }
       }
     },
-    "Towing": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Towing"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Буксировка"
-          }
-        }
-      }
-    },
     "Track dates and odometer limits": {
       "extractionState": "manual",
       "localizations": {
@@ -13970,23 +13885,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Какая это валюта?"
-          }
-        }
-      }
-    },
-    "Why is consumption higher?": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Why is consumption higher?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Почему расход выше?"
           }
         }
       }

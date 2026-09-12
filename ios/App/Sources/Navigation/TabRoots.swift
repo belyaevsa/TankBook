@@ -591,7 +591,8 @@ struct HomeTabView: View {
     var body: some View {
         TabRootSheetHost(sheet: $sheet, modal: $modal) {
             RootedNavigationStack(path: $path) {
-                HomeRootView(presentSheet: { sheet = $0 })
+                HomeRootView(presentSheet: { sheet = $0 },
+                             onNavigate: { path = [$0] })
             }
             .onAppear(perform: presentDebugLaunch)
         } sheetContent: { route in

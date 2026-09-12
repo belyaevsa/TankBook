@@ -704,9 +704,9 @@ ANOMALY    rolling (trailing 90 days) vs the SEASONALLY-ALIGNED baseline: the sa
            window (the anomaly does NOT extend its window to reach the floor – that would mix
            seasons); a missing seasonally-aligned baseline yields NOTHING, never a guess. The
            verdict is derived, never stored (hard rule 2): recompute is deterministic per
-           (segments, asOf). Dismissible per cause = (metric, evaluation month), the reason kept as
-           data (AnomalyDismissal: cause, reason, dismissedAt – the ReminderLifecycle precedent);
-           a dismissed cause stays quiet across recomputes and a different cause still fires.
+           (segments, asOf). Dismissible per cause = (metric, evaluation month) (AnomalyDismissal:
+           cause, dismissedAt); a dismissed cause stays quiet across recomputes and a different
+           cause still fires.
            Thresholds tunable, seasonality-aware – J9.
 ANOMALY    COST (RV.121) the drift's money reading, derived on the card:
 COST        extra litres per month = (rolling − baseline) / 100 × (km in the rolling

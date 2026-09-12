@@ -715,32 +715,12 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
-    "P6.17-anomaly-dismiss": {
-      "commit": "8d93c87",
-      "device": "iPhone 17",
-      "runtime": "iOS.26.5"
-    },
-    "P6.17-anomaly-dismiss-ru": {
-      "commit": "8d93c87",
-      "device": "iPhone 17",
-      "runtime": "iOS.26.5"
-    },
     "P6.1b-insight-card": {
       "commit": "3a2dcdc",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P6.1b-insight-card-ru": {
-      "commit": "3a2dcdc",
-      "device": "iPhone 17",
-      "runtime": "iOS.26.5"
-    },
-    "P6.1b-insight-dismiss": {
-      "commit": "3a2dcdc",
-      "device": "iPhone 17",
-      "runtime": "iOS.26.5"
-    },
-    "P6.1b-insight-dismiss-ru": {
       "commit": "3a2dcdc",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
@@ -2175,6 +2155,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.240-anomaly-card": {
+      "commit": "70db1601",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.240-anomaly-card-ru": {
+      "commit": "70db1601",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.243-deferred-receipt": {
       "commit": "36cda323",
       "device": "iPhone 17",
@@ -2272,6 +2262,16 @@
     },
     "RV.265-flagged-consumption-ru": {
       "commit": "b1f18609",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.268-anomaly-reminder": {
+      "commit": "70db1601",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.268-anomaly-reminder-ru": {
+      "commit": "70db1601",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2829,6 +2829,18 @@
   "legacy": {
     "P1.1-shell-dark-rejected-accent-tabbar": {
       "reason": "The record of P1.1's hard-rule-5 accent-tinted tab bar. The code no longer produces this appearance, and SITE.md keeps it deliberately as the violation's evidence; the site excludes it from the published mount."
+    },
+    "P6.17-anomaly-dismiss": {
+      "reason": "RV.240 dropped the anomaly dismissal reason sheet, so Dismiss is one tap and no capture line produces this frame any more; kept as the record of the removed sheet."
+    },
+    "P6.17-anomaly-dismiss-ru": {
+      "reason": "RV.240 dropped the anomaly dismissal reason sheet, so Dismiss is one tap and no capture line produces this frame any more; kept as the record of the removed sheet."
+    },
+    "P6.1b-insight-dismiss": {
+      "reason": "RV.240 dropped the anomaly dismissal reason sheet, so Dismiss is one tap and no capture line produces this frame any more; kept as the record of the removed sheet."
+    },
+    "P6.1b-insight-dismiss-ru": {
+      "reason": "RV.240 dropped the anomaly dismissal reason sheet, so Dismiss is one tap and no capture line produces this frame any more; kept as the record of the removed sheet."
     },
     "P6.6-appicon-home-dark": {
       "reason": "A home-screen capture of the app icon (P6.6), not an app screen; the capture script screenshots Tankbook, never the springboard."

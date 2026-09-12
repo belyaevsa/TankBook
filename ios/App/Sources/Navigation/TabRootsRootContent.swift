@@ -7,13 +7,16 @@ import TankbookCore
 
 struct HomeRootView: View {
     let presentSheet: (SheetRoute) -> Void
+    /// Pushes a route onto the Log tab's own NavigationStack path (J9's act
+    /// opens the reminder it created for edit).
+    let onNavigate: (Route) -> Void
 
     var body: some View {
         // The three tab roots share ONE header treatment (RV.21): each draws
         // its own one-row header - title + gear on the same line, docs/DESIGN.md
         // - via the shared `TabRootHeader`, so the navigation bar is hidden
         // rather than stacked above it.
-        HomeView(presentSheet: presentSheet)
+        HomeView(presentSheet: presentSheet, onNavigate: onNavigate)
             .navigationTitle("Log")
             .toolbar(.hidden, for: .navigationBar)
     }

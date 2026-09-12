@@ -135,7 +135,7 @@ private func rollingValue(_ segments: [Segment], asOf: Date, days: Int = 90) -> 
     // Without a dismissal the drift fires.
     #expect(AnomalyEngine.detect(segments: segments, asOf: asOf, calendar: UTC.calendar) != nil)
 
-    let dismissal = AnomalyDismissal(cause: cause, reason: "winter tires", dismissedAt: asOf)
+    let dismissal = AnomalyDismissal(cause: cause, dismissedAt: asOf)
     // A recompute with the dismissal present stays silent...
     #expect(AnomalyEngine.detect(segments: segments, asOf: asOf, dismissals: [dismissal],
                                  calendar: UTC.calendar) == nil)
@@ -153,7 +153,7 @@ private func rollingValue(_ segments: [Segment], asOf: Date, days: Int = 90) -> 
     let segments = driftSegments()
     let juneCause = AnomalyCause(metric: .consumption, evaluatedOn: UTC.day(2026, 6, 15),
                                  calendar: UTC.calendar)
-    let dismissal = AnomalyDismissal(cause: juneCause, reason: "winter tires",
+    let dismissal = AnomalyDismissal(cause: juneCause,
                                      dismissedAt: UTC.day(2026, 6, 15))
 
     // The drift persists into July; July is a different evaluation month, so a

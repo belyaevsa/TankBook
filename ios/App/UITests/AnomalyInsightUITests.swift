@@ -3,9 +3,10 @@ import XCTest
 /// P6.1b: J9's anomaly insight card in the Log (docs/JOURNEYS.md J9,
 /// docs/ERRORS.md -> Home). The engine (P6.1a) merged and nothing rendered it;
 /// this suite pins the surface: the card renders ONLY on a real engine verdict,
-/// states the magnitude and the compared window in the text, dismisses with a
-/// reason (which persists across relaunch), acts by creating a real reminder,
-/// and is never an alert or a modal (hard rule 8).
+/// states the magnitude and the compared window in the text, dismisses in one
+/// tap (which persists across relaunch), acts by creating a real reminder due
+/// next year and opening it for edit, and is never an alert or a modal
+/// (hard rule 8).
 ///
 /// The vacuous traps this suite refuses:
 /// - The absent case is asserted FIRST - the engine abstains by design, so a
@@ -94,35 +95,34 @@ final class AnomalyInsightUITests: XCTestCase {
                       "the drift must be stated in the vehicle's own unit: \(caption.label)")
     }
 
-    // MARK: - Test 3: dismiss-with-reason persists across a relaunch
+    // MARK: - Test 3: dismiss is one tap and persists across a relaunch
 
-    /// "It's winter" records an `AnomalyDismissal`; the card leaves. A relaunch
-    /// without a database wipe keeps the same vehicle and the same cause, so
-    /// the card stays away - the engine suppresses a dismissed cause, and the
-    /// store remembers only the dismissal, never the verdict (hard rule 2).
-    func testDismissWithReasonPersistsAcrossRelaunch() {
+    /// "Dismiss" is one tap: no sheet, no reason. The card leaves and a
+    /// relaunch without a database wipe keeps the same vehicle and the same
+    /// cause, so the card stays away - the engine suppresses a dismissed cause,
+    /// and the store remembers only the dismissal, never the verdict (hard rule
+    /// 2, RV.240).
+    func testDismissPersistsAcrossRelaunch() {
         let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
 
-        // Expand, then dismiss with a reason from the sheet.
+        // Expand, then dismiss in one tap.
         let toggle = app.buttons["homeAnomalyToggle"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
         toggle.tap()
         let dismiss = app.buttons["homeAnomalyDismissButton"]
         XCTAssertTrue(dismiss.waitForExistence(timeout: 5))
+        XCTAssertEqual(dismiss.label, "Dismiss",
+                       "the one-tap dismiss must not promise a reason: \(dismiss.label)")
         dismiss.tap()
 
-        let sheetTitle = app.staticTexts["anomalyDismissTitle"]
-        XCTAssertTrue(sheetTitle.waitForExistence(timeout: 5))
-        XCTAssertEqual(sheetTitle.label, "Why is consumption higher?")
-        let reason = app.buttons["anomalyDismissReasonWinter"]
-        XCTAssertTrue(reason.waitForExistence(timeout: 5), "anomalyDismissReasonWinter never appeared")
-        reason.tap()
-
+        // One tap, no sheet: the card leaves immediately.
         let gone = NSPredicate(format: "exists == false")
         expectation(for: gone, evaluatedWith: cardElement(app))
         waitForExpectations(timeout: 5)
         XCTAssertFalse(cardElement(app).exists, "a dismissed cause must leave the Log")
+        XCTAssertTrue(app.sheets.allElementsBoundByIndex.isEmpty,
+                      "dismiss must be one tap, never a sheet")
 
         // Relaunch WITHOUT `-homeResetDatabase`: the database (same vehicle,
         // same fills) and the UserDefaults dismissal both survive, so the card
@@ -137,15 +137,14 @@ final class AnomalyInsightUITests: XCTestCase {
                        "a dismissed cause must stay dismissed across a relaunch")
     }
 
-    // MARK: - Test 4: act creates a real reminder
+    // MARK: - Test 4: act creates a reminder due next year, opened for edit
 
-    /// "Act" creates a service reminder - asserted by the reminder EXISTING in
-    /// the Reminders list afterwards, never by a button's visual state. The
+    /// "Act" creates a service reminder due at the shared default - one year
+    /// out, never today (RV.268) - and opens it for edit so the date is seen
+    /// and changeable (hard rule 13). Asserted by the reminder's OWN form
+    /// showing a future date, then by the reminder landing in the list. The
     /// card also leaves: a card with only "act" is the nag J9 forbids.
-    /// PJ.4: the reminder is due TODAY (the act anchors it at `Date()`), so the
-    /// REAL banner derives it and its View affordance is the door to the list -
-    /// no `-forceReminderDue` fixture remains.
-    func testActCreatesAReminder() {
+    func testActCreatesAReminderDueNextYearAndOpensItForEdit() {
         let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
 
@@ -156,28 +155,41 @@ final class AnomalyInsightUITests: XCTestCase {
         XCTAssertTrue(act.waitForExistence(timeout: 5))
         act.tap()
 
-        let gone = NSPredicate(format: "exists == false")
-        expectation(for: gone, evaluatedWith: cardElement(app))
-        waitForExpectations(timeout: 5)
+        // The created reminder opens for edit.
+        XCTAssertTrue(app.navigationBars["Edit reminder"].waitForExistence(timeout: 10),
+                      "act must open the created reminder for edit")
+        let title = app.textFields["reminderFormTitleField"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertEqual(title.value as? String, "Check fuel consumption")
 
-        // The reminder exists on the Reminders list (reached via the real
-        // banner's View affordance, derived from the just-created reminder).
-        let view = app.buttons["homeReminderViewButton"]
-        XCTAssertTrue(view.waitForExistence(timeout: 5),
-                      "acting must derive the banner from the new reminder")
-        view.tap()
+        // Its date is next year, never today.
+        let dateButton = app.buttons["reminderFormDateButton"]
+        XCTAssertTrue(dateButton.waitForExistence(timeout: 5))
+        let nextYear = Calendar.current.component(.year, from: Date()) + 1
+        XCTAssertTrue(dateButton.label.contains(String(nextYear)),
+                      "the act reminder must be due next year (\(nextYear)): \(dateButton.label)")
+
+        // Save returns to Home; the reminder is in the list under its future
+        // date.
+        app.buttons["reminderFormSaveButton"].tap()
+        XCTAssertTrue(app.staticTexts["homeHeaderTitle"].waitForExistence(timeout: 10))
+
+        let remindersRow = app.buttons["homeRemindersRow"]
+        XCTAssertTrue(remindersRow.waitForExistence(timeout: 5))
+        remindersRow.tap()
         XCTAssertTrue(app.navigationBars["Reminders"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Check fuel consumption"].waitForExistence(timeout: 5),
-                      "act must create a real reminder row, not just leave the card")
+                      "act must create a real reminder row")
+        XCTAssertTrue(textContaining(app, String(nextYear)).exists,
+                      "the reminder must be listed under its future date (\(nextYear))")
     }
 
     // MARK: - Test 5: never an alert, never a modal
 
     /// J9: "never a push alarm" and hard rule 8 (conflicts surface as badges
     /// where the data lives, never modals at sync time). The card is inline in
-    /// the Log - no alert, no sheet, no cover - both collapsed and expanded.
-    /// The dismissal sheet is user-initiated from the card's own button; it is
-    /// never presented automatically.
+    /// the Log - no alert, no sheet, no cover - both collapsed and expanded,
+    /// and dismiss is one tap with no sheet at all (RV.240).
     func testCardIsInlineAndPresentsNoAlert() {
         let app = launch(["-seedHomeAnomaly", "-anomalyDismissalReset"])
         XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
@@ -202,10 +214,10 @@ final class AnomalyInsightUITests: XCTestCase {
 
     /// The card renders translated copy in Russian - the magnitude phrase
     /// ("Расход вырос на 21% по сравнению с прошлым годом", where "расход"
-    /// governs "вырос") and the window caption are full localised phrases, and
-    /// the dismiss sheet's reasons are localised too. This is the check that
-    /// catches a `Text(_: String)` blind spot - the gate cannot see a key that
-    /// IS present but renders English.
+    /// governs "вырос"), the window caption and the one-tap Dismiss button are
+    /// full localised phrases. This is the check that catches a
+    /// `Text(_: String)` blind spot - the gate cannot see a key that IS present
+    /// but renders English.
     func testCardRendersInRussian() {
         let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
                           "-seedHomeAnomaly", "-anomalyDismissalReset"])
@@ -225,70 +237,16 @@ final class AnomalyInsightUITests: XCTestCase {
         XCTAssertTrue(caption.label.contains("год назад"),
                       "caption was \(caption.label)")
 
-        // The dismissal sheet's reasons are localised too ("Зима").
+        // The one-tap dismiss is localised too.
         let toggle = app.buttons["homeAnomalyToggle"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
         toggle.tap()
-        XCTAssertTrue(app.buttons["homeAnomalyDismissButton"].waitForExistence(timeout: 5))
-        app.buttons["homeAnomalyDismissButton"].tap()
-        XCTAssertTrue(app.buttons["anomalyDismissReasonWinter"].waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["anomalyDismissReasonWinter"].label, "Зима")
+        let dismiss = app.buttons["homeAnomalyDismissButton"]
+        XCTAssertTrue(dismiss.waitForExistence(timeout: 5))
+        XCTAssertEqual(dismiss.label, "Отклонить")
     }
 
-    // MARK: - Test 7: the dismiss sheet's Russian shapes (P6.17)
-
-    /// The class P6.17 guards: a user-selectable option whose Russian is a
-    /// gendered past-tense verb, and an explanatory line that collides with
-    /// the anomaly card's own vocabulary. «Поменял шины» misgenders a woman
-    /// who reads it - Russian has no genderless past tense, so the sentence
-    /// SHAPE is the bug, not the word; «Отклонение с причиной…» reads as "a
-    /// deviation with a cause" because «отклонение» is the domain's word for
-    /// deviation and the line sits under a deviation card. Both are legal
-    /// grammar and wrong meaning; only reading the rendered screen finds them.
-    ///
-    /// The guard asserts shape, not taste: no dismiss option's RU value
-    /// contains a whole word ending in a past-tense verb suffix
-    /// (`-л`/`-ла`/`-ло`/`-ли`), and the subtitle carries no form of
-    /// «отклонени». A future fix must change the shape again, never pick a
-    /// "better" gendered verb or a synonym that still collides.
-    func testDismissSheetRussianShapesAreGenderlessAndDomainSafe() {
-        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
-                          "-seedHomeAnomaly", "-anomalyDismissalReset"])
-        XCTAssertTrue(cardElement(app).waitForExistence(timeout: 10))
-
-        let toggle = app.buttons["homeAnomalyToggle"]
-        XCTAssertTrue(toggle.waitForExistence(timeout: 5), "homeAnomalyToggle never appeared")
-        toggle.tap()
-        XCTAssertTrue(app.buttons["homeAnomalyDismissButton"].waitForExistence(timeout: 5))
-        app.buttons["homeAnomalyDismissButton"].tap()
-
-        // The four options as the sheet renders them: the identifiers pin the
-        // rows, the labels are the RU values under test.
-        let reasonIDs = ["anomalyDismissReasonWinter", "anomalyDismissReasonTyres",
-                         "anomalyDismissReasonTowing", "anomalyDismissReasonOther"]
-        let pastTenseEndings = ["л", "ла", "ло", "ли"]
-        for id in reasonIDs {
-            let button = app.buttons[id]
-            XCTAssertTrue(button.waitForExistence(timeout: 5), "\(id) never appeared")
-            let words = button.label.split(separator: " ").map { $0.lowercased() }
-            for word in words {
-                for ending in pastTenseEndings where word.hasSuffix(ending) {
-                    XCTFail("\(id) = «\(button.label)» contains «\(word)», a gendered past-tense verb form")
-                }
-            }
-        }
-
-        // The subtitle rides in the combined header (title + explanation).
-        let header = app.descendants(matching: .any)
-            .matching(identifier: "anomalyDismissHeader").firstMatch
-        XCTAssertTrue(header.waitForExistence(timeout: 5), "anomalyDismissHeader never appeared")
-        XCTAssertFalse(header.label.isEmpty,
-                       "the dismiss subtitle must render, or the negative check is vacuous")
-        XCTAssertFalse(header.label.lowercased().contains("отклонени"),
-                       "«отклонение» collides with the anomaly card's deviation vocabulary: \(header.label)")
-    }
-
-    // MARK: - Test 8: the evidence is money, never a guessed cause
+    // MARK: - Test 7: the evidence is money, never a guessed cause
 
     /// The expanded card's evidence line is what the drift costs per month at
     /// the driver's own most recent price (docs/VISION.md -> "What we will not
