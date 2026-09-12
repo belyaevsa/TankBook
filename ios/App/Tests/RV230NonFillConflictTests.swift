@@ -76,7 +76,7 @@ final class RV230NonFillConflictTests: XCTestCase {
                 money: Money(amount: 12, currency: .eur, homeCurrency: .eur),
                 note: nil, attachments: [], provenance: .manual, conflict: .none,
                 purchaseGroupId: nil, category: .other("car wash"),
-                title: "Car wash", recurrence: nil, installedInServiceId: nil)
+                title: "Car wash", installedInServiceId: nil)
         case .charge:
             return ChargeSession(
                 id: UUID.v7(), createdAt: date, updatedAt: date, deletedAt: nil,

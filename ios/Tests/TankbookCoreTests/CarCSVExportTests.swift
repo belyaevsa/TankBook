@@ -128,7 +128,7 @@ enum CSVFixtureSeed {
             money: Money(amount: Decimal(string: "540.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, category: .insurance, title: "Annual insurance",
-            recurrence: nil, installedInServiceId: nil))
+            installedInServiceId: nil))
     }
 }
 

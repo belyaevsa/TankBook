@@ -135,7 +135,7 @@ private func headline(_ repository: TankbookRepository, vehicle: Vehicle,
         deletedAt: nil, vehicleId: vehicleID, date: UTC.day(2026, 8, 20), odometer: nil,
         money: nil, note: nil, attachments: [], provenance: .manual,
         conflict: .none, purchaseGroupId: nil, category: .other("car wash"),
-        title: "Car wash", recurrence: nil, installedInServiceId: nil)
+        title: "Car wash", installedInServiceId: nil)
     try repository.upsertFillUp(fill)
     try repository.upsertExpense(expense)
 

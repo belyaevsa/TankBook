@@ -157,7 +157,7 @@ public enum ReminderOffer {
     }
 
     /// The reminder-category twin of an Expense category. `.insurance` is the
-    /// only recurring expense (docs/SCHEMA.md -> Expense.recurrence); `.parts`
+    /// expense with a cadence, carried by its Reminder (docs/SCHEMA.md -> Expense); `.parts`
     /// bought on the shelf is inventory, never a schedule, and the rest are
     /// one-off costs with no cadence at all.
     public static func reminderCategory(for expenseCategory: ExpenseCategory) -> ReminderCategory? {

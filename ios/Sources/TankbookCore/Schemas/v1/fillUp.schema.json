@@ -339,22 +339,6 @@
       ],
       "type" : "object"
     },
-    "recurrenceRule" : {
-      "additionalProperties" : true,
-      "properties" : {
-        "anchorDate" : {
-          "format" : "date-time",
-          "type" : "string"
-        },
-        "everyMonths" : {
-          "type" : "integer"
-        }
-      },
-      "required" : [
-        "everyMonths"
-      ],
-      "type" : "object"
-    },
     "reminderCategory" : {
       "additionalProperties" : true,
       "properties" : {

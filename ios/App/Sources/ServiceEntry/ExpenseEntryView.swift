@@ -244,7 +244,7 @@ struct ExpenseEntryView: View {
                          homeCurrency: vehicle.homeCurrency),
             note: nil, attachments: attachments, provenance: provenance,
             conflict: .none, purchaseGroupId: nil, category: form.category,
-            title: form.title, recurrence: nil, installedInServiceId: nil)
+            title: form.title, installedInServiceId: nil)
     }
 
     private func save() {

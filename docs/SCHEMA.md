@@ -251,11 +251,21 @@ Expense: EntryCommon {          // money NOT tied to work: insurance, tax, parki
                                 // and PARTS bought standalone (online order, shelf stock)
   category: .insurance | .tax | .parking | .toll | .fine | .accessory | .parts | .other(String)
   title: String
-  recurrence: RecurrenceRule?   // yearly insurance auto-suggests next entry + reminder
   installedInServiceId: UUID?   // .parts only: set when a later ServiceRecord installs it.
                                 // Cost counts ONCE (here, at purchase); the service links it via usedParts
                                 // instead of re-pricing it – no double counting in cost/km.
 }
+
+// No `Expense.recurrence` (PJ.60, 2026-09-12). The field, its `RecurrenceRule` type
+// and its column were written nil and read nowhere: the recurring-expense promise
+// ("yearly insurance") is met by the post-save `ReminderOffer` and by
+// `Reminder.recurrence`, which self-schedules the NEXT occurrence. The next-entry
+// half of the promise was never built, so a silent dead column was the only thing
+// left; it was dropped. The change edits the unshipped v1 schema in place (no
+// `schemaVersion` bump, no declarative transform): no build has ever shipped, the
+// field was never writable, and the property was optional with
+// `additionalProperties: true`, so an old payload carrying `recurrence` and a new
+// one without it both validate against the registered schema.
 
 ### TireSet
 

@@ -160,7 +160,7 @@ enum EditEntryTestSeed {
             money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [id], provenance: .receiptScan, conflict: .none,
             purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
-            recurrence: nil, installedInServiceId: nil))
+            installedInServiceId: nil))
     }
 
     /// RV.208: an entry whose receipt photo was never saved - it references an
@@ -198,7 +198,7 @@ enum EditEntryTestSeed {
             money: Money(amount: Decimal(string: "12.40")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [UUID.v7()], provenance: .receiptScan, conflict: .none,
             purchaseGroupId: nil, category: .parts, title: "Winter wiper blades",
-            recurrence: nil, installedInServiceId: nil))
+            installedInServiceId: nil))
     }
 
     /// The artboard edit-entry history (design/screens/EditEntry.dc.html): a
@@ -326,7 +326,7 @@ enum EditEntryTestSeed {
             money: Money(amount: Decimal(string: "12.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, category: .other("car wash"), title: "Car wash",
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
         try? repository.upsertExpense(expense)
 
         guard (try? repository.syncOverwrite(for: expense.id)) == nil else { return }
@@ -336,7 +336,7 @@ enum EditEntryTestSeed {
             money: expense.money, note: expense.note, attachments: expense.attachments,
             provenance: expense.provenance, conflict: expense.conflict,
             purchaseGroupId: expense.purchaseGroupId, category: expense.category,
-            title: "Full car wash", recurrence: expense.recurrence,
+            title: "Full car wash",
             installedInServiceId: expense.installedInServiceId)
         guard let payload = try? PayloadCodec.encode(userVersion).payload else { return }
         let losingRecord = SyncRecord(

@@ -302,7 +302,7 @@ private func fill(date: Date, odometer: Int, volumeL: Double = 40,
         deletedAt: nil, vehicleId: UUID.v7(), date: epoch + 6 * day,
         odometer: 10_700, money: nil, note: nil, attachments: [],
         provenance: .manual, conflict: .none, purchaseGroupId: nil,
-        category: .toll, title: "Toll", recurrence: nil, installedInServiceId: nil
+        category: .toll, title: "Toll", installedInServiceId: nil
     )
 
     let validations = TimelineValidator.validate(entries: [fuel, service, expense], vehicle: vehicle())

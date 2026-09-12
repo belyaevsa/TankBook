@@ -83,7 +83,7 @@ struct RV145MixedCurrencyMonthTests {
             vehicleId: UUID.v7(), date: date, odometer: nil,
             money: money ?? Self.convertedMoney(amount: amount, currency: currency, home: home),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
-            purchaseGroupId: nil, category: .parking, title: "Parking", recurrence: nil,
+            purchaseGroupId: nil, category: .parking, title: "Parking",
             installedInServiceId: nil)
     }
 
@@ -242,7 +242,7 @@ struct RV145MixedCurrencyMonthTests {
             vehicleId: UUID.v7(), date: month, odometer: nil,
             money: nil, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil, category: .parking,
-            title: "Free parking", recurrence: nil, installedInServiceId: nil)
+            title: "Free parking", installedInServiceId: nil)
         let stream = LogStream(vehicle: Self.vehicle(home: .usd), entries: [free],
                                calendar: Self.calendar())
         #expect(stream.sections[0].total == LogStream.MonthTotal.complete(amount: .zero,

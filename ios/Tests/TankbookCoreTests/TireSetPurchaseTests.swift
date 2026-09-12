@@ -30,7 +30,7 @@ import Testing
             money: Money(amount: Decimal(520), currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, category: category, title: title,
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
     }
 
     // MARK: - The link is written

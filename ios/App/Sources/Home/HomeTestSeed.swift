@@ -534,7 +534,7 @@ enum HomeTestSeed {
                          currency: .eur, homeCurrency: .eur),
             note: nil, attachments: attachments, provenance: .manual,
             conflict: .none, purchaseGroupId: purchaseGroupID,
-            category: .other(title), title: title, recurrence: nil,
+            category: .other(title), title: title,
             installedInServiceId: nil)
     }
 }

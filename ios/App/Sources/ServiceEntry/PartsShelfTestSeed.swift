@@ -51,7 +51,7 @@ enum PartsShelfTestSeed {
                              currency: .eur, homeCurrency: .eur),
                 note: nil, attachments: [], provenance: .manual, conflict: .none,
                 purchaseGroupId: nil, category: .parts, title: part.title,
-                recurrence: nil, installedInServiceId: nil)
+                installedInServiceId: nil)
             try? repository.upsertExpense(expense)
         }
     }

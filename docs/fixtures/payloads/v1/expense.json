@@ -18,9 +18,5 @@
   "provenance": { "tag": "manual" },
   "conflict": { "tag": "none" },
   "category": { "tag": "insurance" },
-  "title": "Annual insurance",
-  "recurrence": {
-    "everyMonths": 12,
-    "anchorDate": "2026-03-01T00:00:00.000Z"
-  }
+  "title": "Annual insurance"
 }

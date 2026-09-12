@@ -45,7 +45,7 @@ final class PJ56GroupHeaderTextTests: XCTestCase {
                        vehicleId: vehicleID, date: date, odometer: nil,
                        money: money, note: nil, attachments: [], provenance: .manual,
                        conflict: .none, purchaseGroupId: group,
-                       category: .parking, title: "Wash", recurrence: nil,
+                       category: .parking, title: "Wash",
                        installedInServiceId: nil)
     }
 

@@ -74,7 +74,6 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
         money: Money(amount: decimal("540.00"), currency: .eur, homeCurrency: .eur),
         note: nil, attachments: [], provenance: .manual, conflict: .none, purchaseGroupId: nil,
         category: .insurance, title: "Annual insurance",
-        recurrence: RecurrenceRule(everyMonths: 12, anchorDate: timestamp),
         installedInServiceId: nil)
 }
 
@@ -198,6 +197,34 @@ private func makeExpense(id: UUID = UUID.v7(), vehicleId: UUID, date: Date = tim
     #expect(try repo.liveFillUps(forVehicle: vehicle.id).count == 1)
     #expect(try repo.localSyncRecord(id: vehicle.id, entityType: Vehicle.entityType) != nil)
     #expect(try repo.fetchDirtyRows().count == 1, "the seeded dirty fillUp still queues after the migration")
+}
+
+/// The v10 migration drops the dead `expense.recurrence` column (PJ.60). The
+/// column was declared by the pre-PJ.60 v1 and never written, so a database
+/// that already ran that v1 still carries it; this migration removes it without
+/// touching the row. The pre-PJ.60 state is simulated by adding the column back
+/// in raw SQL, because the current v1 no longer creates it - and on a fresh
+/// database the migration is a no-op because the column never exists.
+@Test func recurrenceDropMigrationRemovesTheColumnAndKeepsRows() throws {
+    let database = try TankbookDatabase.inMemory(upTo: "v9")
+    let repo = TankbookRepository(database: database)
+    let vehicle = makeVehicle()
+    try repo.upsertVehicle(vehicle)
+    let expense = makeExpense(vehicleId: vehicle.id)
+    try repo.upsertExpense(expense)
+
+    try database.write { db in
+        try db.execute(sql: "ALTER TABLE \(TankbookSchema.expense) ADD COLUMN recurrence TEXT")
+    }
+
+    try database.migrator.migrate(database.writer)
+
+    let columns = try database.read { db in
+        try db.columns(in: TankbookSchema.expense).map(\.name)
+    }
+    #expect(!columns.contains("recurrence"), "v10 must drop the dead column")
+    #expect(try repo.liveExpenses(forVehicle: vehicle.id) == [expense],
+            "dropping the column must not lose the row")
 }
 
 // MARK: - CRUD round-trips (catch Decimal / date / enum mapping bugs)

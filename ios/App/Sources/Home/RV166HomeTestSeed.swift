@@ -57,7 +57,7 @@ enum RV166HomeTestSeed {
             vehicleId: vehicleID, date: date, odometer: nil,
             money: money, note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: group,
-            category: .other(title), title: title, recurrence: nil,
+            category: .other(title), title: title,
             installedInServiceId: nil)
     }
 

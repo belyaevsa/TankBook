@@ -86,7 +86,7 @@ struct LogStreamTests {
             vehicleId: UUID.v7(), date: date, odometer: odometer,
             money: Self.money(amount), note: nil, attachments: attachments,
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: title, recurrence: nil,
+            category: .parking, title: title,
             installedInServiceId: nil)
     }
 

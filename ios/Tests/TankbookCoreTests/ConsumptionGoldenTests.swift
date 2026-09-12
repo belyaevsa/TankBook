@@ -443,7 +443,7 @@ private func round2(_ value: Double) -> Double {
         vehicleId: UUID.v7(), date: asOf - 1 * day, odometer: 100_600,
         money: Money(amount: 200, currency: .eur, homeCurrency: .eur), note: nil,
         attachments: [], provenance: .manual, conflict: .none, purchaseGroupId: nil,
-        category: .insurance, title: "Insurance", recurrence: nil, installedInServiceId: nil
+        category: .insurance, title: "Insurance", installedInServiceId: nil
     )
     // Window km span: 100600 - 100000 = 600 km. Home total: 50 + 200 = 250.
     let perKm = ConsumptionEngine.costPerKm(entries: [fuel, service, expense],

@@ -66,7 +66,7 @@ private func makeExpense(vehicleId: UUID, date: Date, money: Money) -> Expense {
             vehicleId: vehicleId, date: date, odometer: nil, money: money,
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, category: .insurance, title: "Insurance",
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
 }
 
 private func pendingMoney(currency: CurrencyCode, amount: String) -> Money {

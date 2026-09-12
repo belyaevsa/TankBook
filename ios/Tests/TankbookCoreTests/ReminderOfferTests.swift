@@ -45,7 +45,7 @@ import Testing
             money: Money(amount: Decimal(120), currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none,
             purchaseGroupId: nil, category: category, title: title,
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
     }
 
     private func liveReminder(vehicleId: UUID, category: ReminderCategory,

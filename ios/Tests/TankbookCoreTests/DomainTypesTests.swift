@@ -159,7 +159,6 @@ private func roundTrips<T: Codable & Equatable>(_ value: T) -> Bool {
         purchaseGroupId: nil,
         category: .insurance,
         title: "Annual insurance",
-        recurrence: RecurrenceRule(everyMonths: 12, anchorDate: timestamp),
         installedInServiceId: nil
     )
     #expect(roundTrips(expense))
@@ -180,7 +179,6 @@ private func roundTrips<T: Codable & Equatable>(_ value: T) -> Bool {
         purchaseGroupId: nil,
         category: .other("coffee"),
         title: "Brake pads",
-        recurrence: nil,
         installedInServiceId: UUID.v7()
     )
     #expect(roundTrips(part))

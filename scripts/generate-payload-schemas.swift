@@ -142,11 +142,6 @@ let lifetimeDef = schemaObject([
     "months": schemaInteger,
 ], [])
 
-let recurrenceRuleDef = schemaObject([
-    "everyMonths": schemaInteger,
-    "anchorDate": schemaDate,
-], ["everyMonths"])
-
 let reminderRecurrenceDef = schemaObject([
     "everyKm": schemaInteger,
     "everyMonths": schemaInteger,
@@ -232,7 +227,6 @@ let allDefs: [String: Any] = [
     "notifications": notificationsDef,
     "localFileRef": localFileRefDef,
     "lifetime": lifetimeDef,
-    "recurrenceRule": recurrenceRuleDef,
     "reminderRecurrence": reminderRecurrenceDef,
     "provenance": provenanceDef,
     "conflictState": conflictStateDef,
@@ -367,7 +361,6 @@ let expenseProperties: [String: Any] = [
     "purchaseGroupId": schemaUUID,
     "category": schemaRef("expenseCategory"),
     "title": schemaString,
-    "recurrence": schemaRef("recurrenceRule"),
     "installedInServiceId": schemaUUID,
 ]
 

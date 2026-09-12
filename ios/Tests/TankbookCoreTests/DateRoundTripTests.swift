@@ -110,7 +110,7 @@ import Testing
             vehicleId: vehicleId, date: base.addingTimeInterval(2.25), odometer: nil,
             money: Money(amount: decimal("540.00"), currency: .eur, homeCurrency: .eur),
             note: nil, attachments: [], provenance: .manual, conflict: .none, purchaseGroupId: nil,
-            category: .insurance, title: "Annual insurance", recurrence: nil,
+            category: .insurance, title: "Annual insurance",
             installedInServiceId: nil)
         try repo.upsertExpense(expense)
         #expect(try repo.liveExpenses(forVehicle: vehicleId) == [expense])

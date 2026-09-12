@@ -331,7 +331,6 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
     public var purchaseGroupId: UUID?
     public var category: ExpenseCategory
     public var title: String
-    public var recurrence: RecurrenceRule?
     public var installedInServiceId: UUID?
 
     /// Memberwise initializer, public so the app target can seed an `Expense`
@@ -342,7 +341,7 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
                 note: String? = nil, attachments: [AttachmentID] = [],
                 provenance: Provenance, conflict: ConflictState = .none,
                 purchaseGroupId: UUID? = nil, category: ExpenseCategory,
-                title: String, recurrence: RecurrenceRule? = nil,
+                title: String,
                 installedInServiceId: UUID? = nil,
                 flagAcceptance: FlagAcceptance? = nil) {
         self.id = id
@@ -361,22 +360,7 @@ public struct Expense: Entry, Codable, Sendable, Equatable {
         self.purchaseGroupId = purchaseGroupId
         self.category = category
         self.title = title
-        self.recurrence = recurrence
         self.installedInServiceId = installedInServiceId
-    }
-}
-
-/// Recurrence for recurring expenses (e.g. yearly insurance). Judgement call:
-/// SCHEMA.md names the type (`recurrence: RecurrenceRule?`) but leaves its
-/// fields open - `everyMonths` plus the anchor date is the minimal shape that
-/// covers the documented yearly-insurance example.
-public struct RecurrenceRule: Codable, Sendable, Equatable {
-    public var everyMonths: Int
-    public var anchorDate: Date?
-
-    public init(everyMonths: Int, anchorDate: Date?) {
-        self.everyMonths = everyMonths
-        self.anchorDate = anchorDate
     }
 }
 

@@ -86,7 +86,7 @@ struct LogStreamDividerRatePendingTests {
             vehicleId: UUID.v7(), date: date, odometer: nil,
             money: Self.homeMoney(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: "Parking", recurrence: nil,
+            category: .parking, title: "Parking",
             installedInServiceId: nil)
     }
 
@@ -97,7 +97,7 @@ struct LogStreamDividerRatePendingTests {
             vehicleId: UUID.v7(), date: date, odometer: nil,
             money: Self.pendingMoney(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: "Parking", recurrence: nil,
+            category: .parking, title: "Parking",
             installedInServiceId: nil)
     }
 

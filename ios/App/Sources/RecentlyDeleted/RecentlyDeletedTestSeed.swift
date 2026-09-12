@@ -118,7 +118,7 @@ enum RecentlyDeletedTestSeed {
             note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil,
             category: .other("car wash"), title: "Car wash",
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
         try? repository.upsertExpense(expense)
         try? repository.softDeleteExpense(id: expense.id, at: now.addingTimeInterval(-26 * 86_400))
 
@@ -179,7 +179,7 @@ enum RecentlyDeletedTestSeed {
             note: nil, attachments: [], provenance: .manual,
             conflict: .none, purchaseGroupId: nil,
             category: .other("car wash"), title: "Car wash",
-            recurrence: nil, installedInServiceId: nil)
+            installedInServiceId: nil)
         try? repository.upsertExpense(wash)
         try? repository.softDeleteExpense(id: wash.id, at: now.addingTimeInterval(-5 * 86_400))
 

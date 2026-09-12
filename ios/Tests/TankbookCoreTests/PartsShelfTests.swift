@@ -49,7 +49,7 @@ import Testing
                 vehicleId: vehicleId, date: date, odometer: nil,
                 money: money(amount), note: nil, attachments: [], provenance: .manual,
                 conflict: .none, purchaseGroupId: nil,
-                category: .parts, title: title, recurrence: nil,
+                category: .parts, title: title,
                 installedInServiceId: installedInServiceId)
     }
 
@@ -266,7 +266,7 @@ import Testing
             vehicleId: vehicle.id, date: asOf - 2 * day, odometer: nil,
             money: money(decimal("300.00")), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: nil,
-            category: .insurance, title: "Insurance", recurrence: nil,
+            category: .insurance, title: "Insurance",
             installedInServiceId: nil)
         try repo.upsertExpense(onShelfPart)
         try repo.upsertExpense(insurance)

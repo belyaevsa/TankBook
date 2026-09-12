@@ -56,7 +56,7 @@ final class PJ28ExpenseReceiptTests: XCTestCase {
                          homeCurrency: .eur),
             note: nil, attachments: attachments, provenance: provenance,
             conflict: .none, purchaseGroupId: nil, category: .parts,
-            title: "Wiper blades", recurrence: nil, installedInServiceId: nil)
+            title: "Wiper blades", installedInServiceId: nil)
     }
 
     /// A tiny renderable frame - a scanned photo's stand-in. Has a `CGImage`,

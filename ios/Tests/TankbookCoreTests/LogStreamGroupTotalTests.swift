@@ -71,7 +71,7 @@ struct LogStreamGroupTotalTests {
             vehicleId: UUID.v7(), date: date, odometer: nil,
             money: Self.homeMoney(amount, home: home), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: "Wash", recurrence: nil,
+            category: .parking, title: "Wash",
             installedInServiceId: nil)
     }
 
@@ -81,7 +81,7 @@ struct LogStreamGroupTotalTests {
             vehicleId: UUID.v7(), date: date, odometer: nil,
             money: Self.pendingMoney(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: "Wash", recurrence: nil,
+            category: .parking, title: "Wash",
             installedInServiceId: nil)
     }
 

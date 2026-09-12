@@ -138,6 +138,19 @@ public enum TankbookMigrations {
                 }
             }
         }
+        migrator.registerMigration("v10") { db in
+            // An expense has no recurrence: the recurring half of "yearly
+            // insurance" lives on its Reminder (docs/SCHEMA.md -> Expense). v1 no
+            // longer creates the column; this drops it from a database that
+            // already ran v1, and is a no-op on a fresh one.
+            let hasRecurrence = try db.columns(in: TankbookSchema.expense)
+                .contains { $0.name == "recurrence" }
+            if hasRecurrence {
+                try db.alter(table: TankbookSchema.expense) { table in
+                    table.drop(column: "recurrence")
+                }
+            }
+        }
         return migrator
     }
 
@@ -279,7 +292,6 @@ public enum TankbookMigrations {
     private static func expenseColumns(on table: TableDefinition) {
         table.column("category", .text).notNull()       // JSON ExpenseCategory
         table.column("title", .text).notNull()
-        table.column("recurrence", .text)               // JSON RecurrenceRule?
         table.column("installedInServiceId", .text)
     }
 

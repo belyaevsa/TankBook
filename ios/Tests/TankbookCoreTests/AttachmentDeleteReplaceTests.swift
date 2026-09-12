@@ -53,7 +53,7 @@ import Testing
             money: Money(amount: Decimal(string: "8.00")!, currency: .eur, homeCurrency: .eur),
             note: nil, attachments: attachments, provenance: .manual,
             conflict: .none, purchaseGroupId: nil, category: .other("wash"),
-            title: "Car wash", recurrence: nil, installedInServiceId: nil)
+            title: "Car wash", installedInServiceId: nil)
     }
 
     // MARK: - Delete

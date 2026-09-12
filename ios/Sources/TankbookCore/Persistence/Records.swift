@@ -531,7 +531,6 @@ public struct ExpenseRow: FetchableRecord, PersistableRecord {
             purchaseGroupId: common.purchaseGroupId,
             category: try decodeJSON(ExpenseCategory.self, from: row, column: "category"),
             title: row["title"],
-            recurrence: try decodeOptionalJSON(RecurrenceRule.self, from: row, column: "recurrence"),
             installedInServiceId: decodeOptionalUUID(row, column: "installedInServiceId"),
             flagAcceptance: common.flagAcceptance)
         (syncState, syncScn) = decodeSync(row)
@@ -542,7 +541,6 @@ public struct ExpenseRow: FetchableRecord, PersistableRecord {
         setSync(syncState, scn: syncScn, into: &container)
         container["category"] = try encodeJSON(expense.category)
         container["title"] = expense.title
-        container["recurrence"] = try encodeOptionalJSON(expense.recurrence)
         container["installedInServiceId"] = expense.installedInServiceId?.uuidString
     }
 }

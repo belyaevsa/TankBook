@@ -178,7 +178,6 @@ private func fullyPopulatedExpense() -> Expense {
         provenance: .manual, conflict: .none,
         purchaseGroupId: nil,
         category: .other("tuning"), title: "Suspension kit",
-        recurrence: RecurrenceRule(everyMonths: 12, anchorDate: testTimestamp),
         installedInServiceId: UUID(uuidString: "44444444-4444-7444-8444-444444444444")!
     )
 }

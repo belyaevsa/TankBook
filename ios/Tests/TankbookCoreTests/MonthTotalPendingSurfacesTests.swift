@@ -76,7 +76,7 @@ struct MonthTotalPendingSurfacesTests {
             vehicleId: UUID.v7(), date: d, odometer: nil,
             money: money ?? Self.homeMoney(amount), note: nil, attachments: [],
             provenance: .manual, conflict: .none, purchaseGroupId: group,
-            category: .parking, title: "Parking", recurrence: nil,
+            category: .parking, title: "Parking",
             installedInServiceId: nil)
     }
 
