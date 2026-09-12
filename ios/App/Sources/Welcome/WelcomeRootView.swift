@@ -49,7 +49,7 @@ struct WelcomeRootView: View {
             // Tankbook", so only it can reach the J11a wrong-provider question
             // (docs/JOURNEYS.md J11a). The peer sign-in door is an ordinary
             // first sign-in and an empty account under it is simply empty.
-            SignInFlowHost(arrivedViaRestore: request.arrivedViaRestore)
+            SignInSheet(arrivedViaRestore: request.arrivedViaRestore)
         }
         .fullScreenCover(item: $modal) {
             ModalDestinationView(route: $0)

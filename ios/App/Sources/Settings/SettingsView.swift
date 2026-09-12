@@ -75,7 +75,7 @@ struct SettingsView: View {
                    // refresh is what the card reads them from.
                    Task { await sync.refresh() }
                },
-               content: { SignInFlowHost() })
+               content: { SignInSheet() })
         .sheet(isPresented: $showsLanguagePicker,
                content: {
                    LanguagePickerView(store: languageStore,

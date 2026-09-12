@@ -52,6 +52,13 @@ struct SignInFlowHost: View {
         // `SheetDestinationView`/`DiscardAwareSheet` add) is hidden. "Not now"
         // and swipe-down are the dismiss paths, exactly as the artboard shows.
         .toolbar(.hidden, for: .navigationBar)
+        // The recovery screens push the import wizard. The destination lives
+        // with the flow so every presentation context gets it; the stack comes
+        // from the presenter (`SignInSheet` or `DiscardAwareSheet`), because a
+        // `NavigationLink(value:)` reaches only a destination registered on its
+        // own stack - without this the rows on the empty-restore and
+        // backend-down screens are dead links (RV.239).
+        .navigationDestination(for: Route.self) { DestinationView(route: $0) }
         .onAppear {
             if flow == nil {
                 flow = SignInFlow.makeDefault(sync: sync, arrivedViaRestore: arrivedViaRestore)
@@ -70,6 +77,20 @@ struct SignInFlowHost: View {
                 flow?.startSignIn(provider: .apple)
             }
             #endif
+        }
+    }
+}
+
+/// The sign-in flow in the navigation stack it needs to push its recovery
+/// screens. Used by the two bare-sheet presenters (Settings, Welcome); the tab
+/// roots' `.signIn` sheet gets its stack from `DiscardAwareSheet`. The flow
+/// registers the `Route` destinations itself.
+struct SignInSheet: View {
+    var arrivedViaRestore = false
+
+    var body: some View {
+        NavigationStack {
+            SignInFlowHost(arrivedViaRestore: arrivedViaRestore)
         }
     }
 }

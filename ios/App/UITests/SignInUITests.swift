@@ -265,4 +265,45 @@ final class SignInUITests: XCTestCase {
         // No add-a-car path is offered while the backend is down either.
         XCTAssertFalse(app.buttons["homeAddFirstCarButton"].isHittable)
     }
+
+    // MARK: - The failure screens' import rows open the wizard (RV.239)
+
+    /// The recovery rows live in the sign-in sheet, so the wizard is pushed on
+    /// the flow's own stack - the tab stack's `navigationDestination` is not in
+    /// scope from a sheet. The assertion is the wizard's own title, never
+    /// `isHittable`: the rows were hittable before the fix and did nothing
+    /// (RV.239).
+    private func assertImportRowOpensTheWizard(_ app: XCUIApplication, row: String) {
+        let importRow = app.buttons[row]
+        XCTAssertTrue(importRow.waitForExistence(timeout: 10), "\(row) never appeared")
+        importRow.tap()
+        XCTAssertTrue(app.staticTexts["importSourceTitle"].waitForExistence(timeout: 15),
+                      "tapping \(row) must open the import wizard, not leave the failure screen")
+    }
+
+    func testEmptyRestoreImportRowOpensTheWizard() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestoreEmpty",
+                          "-importStubFormats", "one"])
+        assertImportRowOpensTheWizard(app, row: "emptyRestoreImportRow")
+    }
+
+    func testEmptyRestoreImportRowOpensTheWizardInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "signIn", "-signInRestoreEmpty",
+                          "-importStubFormats", "one"])
+        assertImportRowOpensTheWizard(app, row: "emptyRestoreImportRow")
+    }
+
+    func testUnreachableImportRowOpensTheWizard() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestoreUnreachable",
+                          "-importStubFormats", "one"])
+        assertImportRowOpensTheWizard(app, row: "restoreUnreachableImportRow")
+    }
+
+    func testUnreachableImportRowOpensTheWizardInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "signIn", "-signInRestoreUnreachable",
+                          "-importStubFormats", "one"])
+        assertImportRowOpensTheWizard(app, row: "restoreUnreachableImportRow")
+    }
 }

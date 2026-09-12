@@ -20,6 +20,21 @@ import Foundation
 /// can see that. That class is the journey walk's manual check (`REVIEW-SCENARIO`
 /// question 5). The RV.98 test below pins the limit rather than pretending the
 /// guard catches it.
+///
+/// A SECOND RESIDUE, added after RV.239: the scan proves a route EXISTS in
+/// SCREENMAP, never that a `NavigationLink` reaches a destination from where it
+/// is rendered. RV.239's import rows were `NavigationLink(value:)` inside the
+/// sign-in sheet, and the only `navigationDestination(for: Route.self)` was on
+/// the tab stack - the route existed, the link was hittable, and the tap
+/// navigated nowhere. A cheap source scan cannot catch this class: whether a
+/// link resolves depends on its presentation context (which `NavigationStack`,
+/// if any, encloses it at render time), and the presenting sheet and the link
+/// routinely live in different files (`SettingsView` presents the sheet; the
+/// row is in `RestoreFailureViews`). A file-local "has `.sheet` but no
+/// `navigationDestination`" heuristic would false-positive on `SettingsView`
+/// and `WelcomeRootView`, whose `NavigationLink(value:)` rows sit on pushed
+/// screens with a real destination. The reachable check is the L4 tap, and the
+/// journey walk.
 enum ErrorRouteScanner {
 
     /// One route named by copy that SCREENMAP does not carry.
