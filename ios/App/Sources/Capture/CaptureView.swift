@@ -14,9 +14,11 @@ import UIKit
 ///
 /// F8 (docs/ERRORS.md -> Capture): camera permission denied opens the manual
 /// form with the top card "Scanning needs the camera – enable in Settings."
-/// and its three next steps (Settings deep link, Type it, Photos). The denied
-/// state is never a dead end: the embedded manual form saves normally and
-/// dismisses straight back to the opener.
+/// and its three next steps (Settings deep link, Type it, Photos). A permission
+/// blocked by device policy is its own state with its own card: it names the
+/// manual door only, because Settings has no camera toggle to offer. Neither
+/// state is a dead end: the embedded manual form saves normally and dismisses
+/// straight back to the opener.
 struct CaptureView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(AppCarSelection.self) private var carSelection
@@ -85,9 +87,10 @@ struct CaptureView: View {
     var body: some View {
         ZStack {
             cameraBackground
-            if surface == .denied {
-                deniedLayout
-            } else {
+            switch surface {
+            case .denied, .restricted:
+                permissionLayout
+            case .live, .fault:
                 liveLayout
             }
         }
@@ -171,10 +174,12 @@ struct CaptureView: View {
         }
     }
 
-    /// What the capture surface presents right now: the denied fallback, the
-    /// transient fault card, or the live camera. The mapping (denied wins over
-    /// a fault) is pure and pinned at L1 (`CaptureSurfaceState`).
-    private var surface: CaptureSurfaceState {
+    /// What the capture surface presents right now: the permission fallback
+    /// (denied or restricted), the transient fault card, or the live camera. The
+    /// mapping (a permission state wins over a fault) is pure and pinned at L1
+    /// (`CaptureSurfaceState`). Internal, not private, so the card extension in
+    /// `CapturePermissionCards.swift` can read which permission state it draws.
+    var surface: CaptureSurfaceState {
         CaptureSurfaceState.resolve(status: cameraStatus, cameraFault: cameraFault)
     }
 
@@ -430,9 +435,12 @@ struct CaptureView: View {
         }
     }
 
-    // MARK: - Denied (F8): permission card over the manual form
+    // MARK: - Permission fallback (F8): permission card over the manual form
 
-    private var deniedLayout: some View {
+    /// The denied and restricted states share this layout: the manual form stays
+    /// usable beneath a top card. The card's copy and next steps differ by state
+    /// (`CapturePermissionCards`): denied names Settings, restricted does not.
+    private var permissionLayout: some View {
         VStack(spacing: 0) {
             permissionCard
                 .padding(.horizontal, Theme.Spacing.screenMargin)

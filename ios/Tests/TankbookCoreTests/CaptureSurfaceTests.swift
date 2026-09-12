@@ -1,11 +1,12 @@
 import Testing
 @testable import TankbookCore
 
-/// RV.222 + RV.223 L1 - the pure decisions behind the capture surface's two
-/// recovery paths. The denied fallback and the transient camera fault are
-/// separate states: permission can be `.authorized` while the hardware refuses,
-/// so a fault must not become a fourth `CaptureCameraStatus` case. The mapping
-/// is pinned here so a view-only change cannot silently flip the precedence.
+/// RV.222 + RV.223 + RV.226 L1 - the pure decisions behind the capture
+/// surface's recovery paths. The denied fallback, the device-policy restricted
+/// state and the transient camera fault are separate states: permission can be
+/// `.authorized` while the hardware refuses, so a fault must not become a
+/// `CaptureCameraStatus` case. The mapping is pinned here so a view-only change
+/// cannot silently flip the precedence.
 struct CaptureSurfaceTests {
 
     // MARK: - RV.222: the surface state
@@ -13,6 +14,20 @@ struct CaptureSurfaceTests {
     @Test("a denied permission presents the denied fallback")
     func deniedPresentsTheFallback() {
         #expect(CaptureSurfaceState.resolve(status: .denied, cameraFault: false) == .denied)
+    }
+
+    /// RV.226: a device policy forbids the camera. It must never fall into the
+    /// denied card, whose Settings next step does not exist for this user.
+    @Test("a restricted permission presents the restricted state, never denied")
+    func restrictedPresentsRestricted() {
+        #expect(CaptureSurfaceState.resolve(status: .restricted, cameraFault: false) == .restricted)
+    }
+
+    /// A permission the device policy revoked is not something the fault card
+    /// can fix either: restricted wins over a transient fault, as denied does.
+    @Test("restricted outranks a transient fault")
+    func restrictedOutranksFault() {
+        #expect(CaptureSurfaceState.resolve(status: .restricted, cameraFault: true) == .restricted)
     }
 
     /// Denied wins over a fault: a permission the user revoked is not something

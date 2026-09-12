@@ -2065,6 +2065,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.226-capture-restricted": {
+      "commit": "01705470",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.226-capture-restricted-ru": {
+      "commit": "01705470",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.23-welcome": {
       "commit": "d86fde9",
       "device": "iPhone 17",

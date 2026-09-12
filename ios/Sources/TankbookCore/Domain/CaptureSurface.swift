@@ -7,24 +7,33 @@ import Foundation
 public enum CaptureCameraStatus: Sendable, Equatable {
     case authorized
     case denied
+    /// Device policy forbids the camera - parental controls, MDM. Distinct from
+    /// `.denied` because there is no Settings toggle for the user to turn back
+    /// on (docs/ERRORS.md -> Capture).
+    case restricted
     case notDetermined
 }
 
-/// What the capture surface presents. `denied` is a permission state and wins
-/// over a transient fault; `fault` is the hardware refusing while permission
-/// stands, and it never names Settings (Settings cannot fix a busy camera).
+/// What the capture surface presents. `denied` and `restricted` are permission
+/// states and win over a transient fault; `fault` is the hardware refusing while
+/// permission stands, and it never names Settings (Settings cannot fix a busy
+/// camera).
 ///
 /// Pure so the precedence is pinned at L1: a fault is a presented state, not a
-/// fourth `CaptureCameraStatus` case, because a status of `.authorized` and a
-/// hardware fault can be true at the same time and conflating them would flip
-/// the whole layout to the permission fallback.
+/// `CaptureCameraStatus` case, because a status of `.authorized` and a hardware
+/// fault can be true at the same time and conflating them would flip the whole
+/// layout to the permission fallback.
 public enum CaptureSurfaceState: Sendable, Equatable {
     case live
     case denied
+    /// The camera is blocked by device policy; the card names the manual door
+    /// only, because Settings has no camera toggle to offer.
+    case restricted
     case fault
 
     public static func resolve(status: CaptureCameraStatus,
                                cameraFault: Bool) -> CaptureSurfaceState {
+        if status == .restricted { return .restricted }
         if status == .denied { return .denied }
         if cameraFault { return .fault }
         return .live

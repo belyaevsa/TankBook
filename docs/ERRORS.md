@@ -239,6 +239,7 @@ user-initiated vs automatic, never "rates are noisy now". The surface split:
 | Condition | Shows | Next step |
 |---|---|---|
 | Camera permission denied (F8) | Capture opens the manual form with a top card: "Scanning needs the camera – enable in Settings." | Deep link to Settings · Type it (full manual path) · Photos (library) |
+| Camera permission restricted by device policy (F8) | Capture opens the manual form with a top card: "The camera is blocked by a device policy – type the entry instead." There is no Settings toggle for the user to flip, so the card never names Settings | Type it (the manual form) |
 | Camera fault / camera in use (F8) | The live surface stays, with a card: "The camera didn't respond – type the entry instead." The card never names Settings, because a grant cannot fix a busy camera | Type it (the manual form) · the shutter stays for a retry · Photos remains on the surface |
 | Too dark / glare detected | Live hint: "Dark – tap for torch" | Torch toggle · shoot anyway |
 | Nothing detected for ~4s | Hint: "Fill the frame with the receipt – or type it instead." | Keep trying · Type it |

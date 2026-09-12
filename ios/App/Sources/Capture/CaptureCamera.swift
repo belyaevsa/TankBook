@@ -12,7 +12,7 @@ protocol CameraAuthorizing: Sendable {
 }
 
 /// Production authorizer backed by `AVCaptureDevice`. The DEBUG/test-only
-/// override `-cameraStatus denied|authorized|notDetermined` forces the result
+/// override `-cameraStatus authorized|denied|restricted|notDetermined` forces the result
 /// so the F8 fallback and the camera layout are reachable deterministically on
 /// a simulator that has no camera at all. `-cameraStatusSequence a,b` is the
 /// mid-run variant: each `status()` read advances through the list and repeats
@@ -55,7 +55,10 @@ struct SystemCameraAuthorizer: CameraAuthorizing {
         }
         switch AVCaptureDevice.authorizationStatus(for: .video) {
         case .authorized: return .authorized
-        case .denied, .restricted: return .denied
+        case .denied: return .denied
+        // Device policy, not a user denial: there is no Settings toggle for the
+        // restricted card to name (docs/ERRORS.md -> Capture).
+        case .restricted: return .restricted
         case .notDetermined: return .notDetermined
         @unknown default: return .denied
         }
@@ -117,6 +120,7 @@ extension CaptureCameraStatus {
         switch argumentValue {
         case "authorized": self = .authorized
         case "denied": self = .denied
+        case "restricted": self = .restricted
         case "notDetermined": self = .notDetermined
         default: return nil
         }

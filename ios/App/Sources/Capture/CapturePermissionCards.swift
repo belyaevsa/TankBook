@@ -2,34 +2,40 @@ import SwiftUI
 import TankbookCore
 import UIKit
 
-/// The capture surface's two recovery cards, split out of `CaptureView.swift`
-/// because that file is at its length limit. The F8 permission card and the
-/// RV.223 camera-fault card look alike but name different next steps: Settings
-/// can fix a permission denial and cannot fix a busy camera, so the fault card
-/// offers the manual door instead.
+/// The capture surface's recovery cards, split out of `CaptureView.swift`
+/// because that file is at its length limit. The F8 permission card has two
+/// states and the RV.223 camera-fault card is separate: Settings can fix a user
+/// denial and cannot fix a busy camera, and a device policy has no Settings
+/// toggle at all.
 extension CaptureView {
-    /// F8: permission denied. Rendered over the embedded manual form, so the
-    /// core promise degrades but the screen never becomes a dead end.
+    /// F8: the camera is unavailable by permission. `.denied` and `.restricted`
+    /// render the same card with different copy and next steps; both sit over
+    /// the embedded manual form, so the core promise degrades but the screen
+    /// never becomes a dead end.
     var permissionCard: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top, spacing: 10) {
-                Image(systemName: "camera.fill")
+                Image(systemName: permissionCardIcon)
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.taillight)
-                Text("Scanning needs the camera – enable in Settings.")
+                Text(permissionCardMessage)
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.ink)
             }
             HStack(spacing: 8) {
-                permissionAction("Settings",
-                                 identifier: "capturePermissionSettingsButton",
-                                 action: openSettings)
+                if surface == .denied {
+                    permissionAction("Settings",
+                                     identifier: "capturePermissionSettingsButton",
+                                     action: openSettings)
+                }
                 permissionAction("Type it",
                                  identifier: "capturePermissionTypeItButton",
                                  action: openManualEntry)
-                permissionAction("Photos",
-                                 identifier: "capturePermissionPhotosButton",
-                                 action: openPhotos)
+                if surface == .denied {
+                    permissionAction("Photos",
+                                     identifier: "capturePermissionPhotosButton",
+                                     action: openPhotos)
+                }
             }
         }
         .padding(Theme.Spacing.cardPadding)
@@ -41,6 +47,18 @@ extension CaptureView {
         )
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("capturePermissionCard")
+    }
+
+    /// A device policy has no Settings camera toggle, so the restricted state
+    /// differs by glyph as well as copy (colour is never the only channel).
+    private var permissionCardIcon: String {
+        surface == .restricted ? "lock.fill" : "camera.fill"
+    }
+
+    private var permissionCardMessage: LocalizedStringKey {
+        surface == .restricted
+            ? "The camera is blocked by a device policy – type the entry instead."
+            : "Scanning needs the camera – enable in Settings."
     }
 
     /// RV.223: the camera is authorised but handed back no frame - in use by

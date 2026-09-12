@@ -1,9 +1,11 @@
 import XCTest
 
-/// RV.222 + RV.223 - the capture surface's two recovery paths. Both are
-/// behaviours a comment promised and the code beneath it did not keep: a grant
-/// in Settings did not restart the session, and a camera fault was a silent
-/// no-op. Split out of `CaptureUITests`, which is at its file-length limit.
+/// RV.222 + RV.223 + RV.226 - the capture surface's recovery paths. Each is a
+/// behaviour a comment promised and the code beneath it did not keep: a grant
+/// in Settings did not restart the session, a camera fault was a silent no-op,
+/// and a device-policy restriction was told to enable a camera in Settings,
+/// where no toggle exists. Split out of `CaptureUITests`, which is at its
+/// file-length limit.
 @MainActor
 final class CaptureRecoveryUITests: XCTestCase {
 
@@ -93,5 +95,33 @@ final class CaptureRecoveryUITests: XCTestCase {
         typeIt.tap()
         XCTAssertTrue(app.textFields["manualFillUpTotalField"].waitForExistence(timeout: 10),
                       "the fault card's next step must reach the manual form")
+    }
+
+    // MARK: - RV.226: a device policy names the manual door, never Settings
+
+    /// A camera blocked by device policy (parental controls, MDM) must show the
+    /// restricted card: it says why, and its only next step is the manual door.
+    /// The Settings button is absent because no camera toggle exists there for
+    /// the user to flip (docs/ERRORS.md -> Capture; hard rule 7). The mode is
+    /// forced to Service so the form the card opens is distinguishable from the
+    /// fill-up form already embedded under the card.
+    func testRestrictedShowsManualDoorWithoutSettings() {
+        let app = launch(args: ["-homeResetDatabase", "-seedVehicleForUITests",
+                                "-presentScreen", "capture", "-cameraStatus", "restricted",
+                                "-captureMode", "service"])
+
+        XCTAssertTrue(app.staticTexts["The camera is blocked by a device policy – type the entry instead."]
+            .waitForExistence(timeout: 10),
+                      "a restricted camera must say why, never show the denied card")
+        XCTAssertFalse(app.buttons["capturePermissionSettingsButton"].exists,
+                       "a device policy has no Settings camera toggle to name")
+        XCTAssertFalse(app.buttons["capturePermissionPhotosButton"].exists,
+                       "the restricted card's only next step is the manual door")
+
+        let typeIt = app.buttons["capturePermissionTypeItButton"]
+        XCTAssertTrue(typeIt.exists, "the restricted card must carry its next-step control")
+        typeIt.tap()
+        XCTAssertTrue(app.textFields["serviceEntryVendorField"].waitForExistence(timeout: 10),
+                      "the restricted card's next step must reach the manual form")
     }
 }

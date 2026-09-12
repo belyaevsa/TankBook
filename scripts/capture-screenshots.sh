@@ -276,6 +276,13 @@ capture P2.1-capture-phev-ru       ru -presentScreen capture -cameraStatus autho
 capture RV.223-capture-fault       en -presentScreen capture -cameraStatus authorized -captureAutoFault
 capture RV.223-capture-fault-ru    ru -presentScreen capture -cameraStatus authorized -captureAutoFault
 
+# RV.226: a camera blocked by device policy (parental controls, MDM) gets its own
+# card state: it says why and names the manual door only, because Settings has no
+# camera toggle to offer. Seeded with `-cameraStatus restricted`; RU is the wrap
+# check for the longer copy.
+capture RV.226-capture-restricted       en -seedVehicleForUITests -presentScreen capture -cameraStatus restricted
+capture RV.226-capture-restricted-ru    ru -seedVehicleForUITests -presentScreen capture -cameraStatus restricted
+
 # P6.10: the alpha-testing disclosure on the capture surface (docs/ERRORS.md ->
 # Capture). A fresh database is the point: with zero captures the notice is
 # active, sitting directly above the shutter. `-alphaNoticeReset` clears the

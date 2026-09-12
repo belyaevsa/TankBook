@@ -12500,6 +12500,23 @@
         }
       }
     },
+    "The camera is blocked by a device policy – type the entry instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera is blocked by a device policy – type the entry instead."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Камера заблокирована политикой устройства – введите запись вручную."
+          }
+        }
+      }
+    },
     "The entry this reading was about no longer exists.": {
       "extractionState": "manual",
       "localizations": {
