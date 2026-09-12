@@ -359,11 +359,13 @@ func makeSyncEngine(repository: TankbookRepository, transport: any SyncTransport
                     maxConflictRetries: Int = 3,
                     pullPageLimit: Int = 500,
                     blobGate: (any BlobPushGate)? = nil,
+                    homeCurrencyRehomer: (any HomeCurrencyRehomer)? = nil,
                     powerState: any PowerStateProvider = ProcessInfoPowerState()) -> SyncEngine {
     SyncEngine(repository: repository, transport: transport, cursorStore: cursor,
                payloadMemory: memory, maxConflictRetries: maxConflictRetries,
                pullPageLimit: pullPageLimit,
                blobGate: blobGate,
+               homeCurrencyRehomer: homeCurrencyRehomer,
                powerState: powerState)
 }
 

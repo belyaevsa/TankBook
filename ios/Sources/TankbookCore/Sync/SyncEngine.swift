@@ -90,6 +90,12 @@ public struct SyncEngine {
     /// behaviour: attachment records push without a committed blob - wired only
     /// by the production app and the attachment tests.
     public let blobGate: (any BlobPushGate)?
+    /// RV.143: the re-home pass a home-currency change runs (RV.140), invoked
+    /// when a pulled `Vehicle`'s `homeCurrency` differs from the stored one.
+    /// Nil (the default) leaves the engine silent about currency changes, which
+    /// is how tests that do not exercise this behave; the app wires the one
+    /// `MoneyBackfillService` so both triggers run the same pass.
+    public let homeCurrencyRehomer: (any HomeCurrencyRehomer)?
     /// The injected power state (docs/SYNC.md -> Low Power Mode). Consulted for
     /// the blob-upload deferral; never `ProcessInfo` read inline.
     public let powerState: any PowerStateProvider
@@ -111,6 +117,7 @@ public struct SyncEngine {
         maxBatchBytes: Int = SyncEngine.defaultMaxBatchBytes,
         pullPageLimit: Int = 500,
         blobGate: (any BlobPushGate)? = nil,
+        homeCurrencyRehomer: (any HomeCurrencyRehomer)? = nil,
         powerState: any PowerStateProvider = ProcessInfoPowerState(),
         log: TankbookLog? = nil
     ) {
@@ -123,6 +130,7 @@ public struct SyncEngine {
         self.maxBatchBytes = maxBatchBytes
         self.pullPageLimit = pullPageLimit
         self.blobGate = blobGate
+        self.homeCurrencyRehomer = homeCurrencyRehomer
         self.powerState = powerState
         self.log = log
     }
@@ -291,6 +299,7 @@ public struct SyncEngine {
 
         switch result.winner {
         case .remote:
+            let arrivingHome = arrivingHomeCurrency(local: local.record, incoming: result.keep)
             let touched = try repository.applyRemoteRecord(result.keep, scn: remote.scn)
             payloadMemory.recordSynced(id: remote.id, payload: result.keep.payload)
             // S1/S4: a local edit overwritten by sync lands in the undo log.
@@ -299,6 +308,7 @@ public struct SyncEngine {
                 try repository.recordSyncOverwrite(recordId: remote.id, losingRecord: loser,
                                                    deviceName: remote.originDeviceName)
             }
+            rehomeAfterCurrencyChange(arrivingHome, vehicleID: result.keep.id)
             try resurrectReferencedVehicles(for: remote.entityType, remoteDeleted: remote.deleted, touched: touched)
             return touched
         case .local:
@@ -330,11 +340,43 @@ public struct SyncEngine {
             // from both sides - RecordMerge reports nothing else as `.fieldMerge`)
             // - store it dirty so it pushes. RV.136: a content-equal merge never
             // reaches here, so a dirty store is never a phantom echo push.
+            let arrivingHome = arrivingHomeCurrency(local: local.record, incoming: result.keep)
             let touched = try repository.applyRecord(result.keep, syncState: .dirty)
             tally.dirtiedByPull += 1
             payloadMemory.recordSynced(id: remote.id, payload: result.keep.payload)
+            rehomeAfterCurrencyChange(arrivingHome, vehicleID: result.keep.id)
             return touched
         }
+    }
+
+    /// RV.143: the home currency a pulled `Vehicle` brings when it differs from
+    /// the stored one, else nil. Compared on decoded content (RV.35/RV.136:
+    /// never payload bytes) and only for a live `Vehicle`. A payload this build
+    /// cannot decode is left to the apply path's own handling, never treated as
+    /// a change.
+    private func arrivingHomeCurrency(local: SyncRecord, incoming: SyncRecord) -> CurrencyCode? {
+        guard incoming.entityType == Vehicle.entityType, !incoming.deleted,
+              let before = decodedVehicleHome(local),
+              let after = decodedVehicleHome(incoming),
+              before != after else { return nil }
+        return after
+    }
+
+    private func decodedVehicleHome(_ record: SyncRecord) -> CurrencyCode? {
+        try? PayloadCodec.decode(
+            PayloadEnvelope(entityType: record.entityType,
+                            schemaVersion: record.schemaVersion,
+                            payload: record.payload),
+            as: Vehicle.self
+        ).entity.homeCurrency
+    }
+
+    /// Runs RV.140's re-home over the car whose currency just arrived. The same
+    /// pass the Vehicle-detail save calls; a failure is a non-event that never
+    /// fails the sync cycle (hard rule 1 - sync is never a gate).
+    private func rehomeAfterCurrencyChange(_ newHome: CurrencyCode?, vehicleID: UUID) {
+        guard let newHome, let homeCurrencyRehomer else { return }
+        _ = try? homeCurrencyRehomer.rehome(repository, vehicleID: vehicleID, to: newHome)
     }
 
     /// S5: an entry pulled from another device references a vehicle this device
@@ -544,6 +586,7 @@ public struct SyncEngine {
 
             // Nothing left to change - the server already holds our content.
             if keep.payload == currentRecord.payload && keep.deleted == currentRecord.deleted {
+                let arrivingHome = arrivingHomeCurrency(local: localRecord, incoming: keep)
                 let touched = try repository.applyRecord(keep, syncState: .synced(scn: currentScn))
                 payloadMemory.recordSynced(id: id, payload: currentRecord.payload)
                 // The local version lost (S1/S4): it lands in the undo log.
@@ -552,6 +595,9 @@ public struct SyncEngine {
                     try repository.recordSyncOverwrite(recordId: id, losingRecord: localRecord,
                                                        deviceName: remoteDeviceName)
                 }
+                // RV.143: the server's newer `homeCurrency` arrived here too -
+                // the same re-home the pull path runs, never a second pass.
+                rehomeAfterCurrencyChange(arrivingHome, vehicleID: keep.id)
                 return (1, touched)
             }
 

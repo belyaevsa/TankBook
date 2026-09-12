@@ -25,7 +25,7 @@ import Foundation
 /// entry's own date, restating the derived home figure the user asked to
 /// convert. `conversionPlan` reports what it would do so the prompt can state
 /// the pending count before the write.
-public struct MoneyBackfillService {
+public struct MoneyBackfillService: Sendable {
     /// The outcome of one pass: counts only, no domain values (hard rule 12).
     public struct Result: Equatable, Sendable {
         public let filledCount: Int
@@ -378,3 +378,7 @@ public struct MoneyBackfillService {
         }
     }
 }
+
+/// RV.143: the sync apply and RV.140's Vehicle-detail save share the one
+/// `rehome` implementation above.
+extension MoneyBackfillService: HomeCurrencyRehomer {}

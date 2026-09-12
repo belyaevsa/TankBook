@@ -124,6 +124,11 @@ Money {
 //   `MoneyBackfillService.conversionPlan` from the same lookup `convertLog` will use, so the promise and the
 //   outcome can never disagree. There is no undo. Either answer still runs the pending-row re-home (a
 //   rate-pending entry has no snapshot to protect). An empty log and re-picking the same currency ask nothing.
+//   The pending-row re-home has TWO triggers and one implementation: the Vehicle-detail save (the change is
+//   typed) and the sync apply (the change ARRIVES through S9's field-level merge, RV.143). A receiving device
+//   whose stored `homeCurrency` differs from the merged one runs the same pass over that car's pending entries,
+//   so the account converges without the user typing anything on that device; an unchanged currency runs
+//   nothing, and the pass is idempotent - a re-homed row no longer differs from the new home.
 //   Editing `amount` or `currency` RE-HOMES the pair to the vehicle's CURRENT home currency, not the one the
 //   row was stamped with (`Money.edited`, the one shared rule both the fill-up and the non-fill edit paths call):
 //   an entry written while the car's home was EUR, edited after the Garage home moved to USD, must end asking

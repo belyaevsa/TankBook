@@ -490,6 +490,18 @@ The user corrects the Volvo's tank capacity 71 → 60 L on the iPhone on Monday.
 
 The same reasoning covers `initialOdometer`, `homeCurrency`, `units` and `paceLimitKmPerDay`: all user decisions, all feeding calculations, all edited independently.
 
+**The mirror (RV.143): a setting's consequences must travel with the setting.** Field-level merge
+delivers `homeCurrency` and nothing else. Each entry's `Money` carries its OWN home currency, stamped
+when the entry was written (docs/SCHEMA.md → Money), so the device where the currency was typed
+re-homes its pending entries at save and every other device does not - the same account then shows
+resolved rows on one device and still-pending rows on the rest. The receiving device must run the
+SAME pending-row re-home pass when it ACCEPTS the newer `homeCurrency`, through the one
+implementation both triggers call. The trigger is the change arriving, never the sync itself: a pull
+whose currency is unchanged runs nothing, and the pass is idempotent (a re-homed row no longer
+differs from the new home). Snapshotted entries stay byte-identical on the receiving device exactly
+as on the editing one (hard rule 3). This is [RV.136]'s shape - two devices disagreeing because a
+rule ran on only one of them.
+
 **What S9 does NOT do - and why that is safe for the Station stamp (RV.150).** Field-level merge
 is `Vehicle`'s alone. `Station` merges record-level LWW like every other record, and a fill-up
 save now stamps the chosen station (`lastUsedAt`, the bought `defaults`, and a missing
