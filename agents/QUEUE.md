@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.247` | J7c | flash | (dispatching) | the wrong-car write from the all-cars reminder list - a bug from J7c's walk, ahead of scenario 8's remainder |
+| `RV.250` | *no-scenario: the gate itself* | flash | (dispatching) | the gate runs the app-target unit bundle - a red RV.212 test sat unseen for two rows |
 
-**IMPLEMENTED (14): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3, J7, J7b, J7d.** J8b line held for the device. J7c waits on `RV.247` (in flight) and `RV.248` (owner's call, with `RV.240`). Scenario 8: `RV.155` shipped `88bb4e2` (`RV.249` filed); `RV.108`, `RV.143`, `PJ.58`, `RV.158+RV.138`, `PJ.59` follow.
+**IMPLEMENTED (14).** J7c waits on `RV.248` (owner's call). `RV.247` shipped `$(git rev-parse --short HEAD)`. Scenario 8 continues after `RV.250`: `RV.108`, `RV.143`, `PJ.58`, `RV.158+RV.138`, `PJ.59`. New from verification: `RV.251` (guest two-car switcher).
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
