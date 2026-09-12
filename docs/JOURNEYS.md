@@ -486,6 +486,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Success metric:** anomaly cards acted on or explicitly dismissed ≥70% (ignored cards = noise signal).
 
 ### J10 · Cross-border trip (P1)
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J10-2026-09-12)
 **Trigger:** filling up in Poland with a Euro-currency car.
 **Journey:** scan as always → currency auto-detected as PLN from the receipt → card shows both: "289.50 zł · ≈ €67.79" (converted at the entry-date rate – `rateDate` is the entry's date, never "today", hard rule 3) → saved with the historical rate snapshot; trends stay in the car's home currency, original always preserved on the entry. No settings visited at any point.
 
