@@ -673,7 +673,7 @@ traced to a figure the preview showed correctly.
 
 ### F6b · A flagged import row is fields, not a line of CSV
 
-**Status: implemented 2026-09-11** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F6b-2026-09-11b)
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F6b-2026-09-12)
 
 **Trigger:** a row reached the review list, so something about it needs a person.
 
