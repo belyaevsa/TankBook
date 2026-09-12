@@ -127,6 +127,14 @@ final class SignInFlow {
     private var signedInEmail: String?
     private var signedInProvider: AuthProvider?
 
+    /// Whether the wrong-provider question has already sent the user to the
+    /// other provider in this sheet. Once true, a second empty account means
+    /// *both* providers are empty, so F7's recovery screen is the truthful
+    /// destination - asking the reverse question would loop Apple <-> Google
+    /// with no way out (RV.259). Cleared by a sign-out: the next attempt is a
+    /// fresh one.
+    private var didSwitchProvider = false
+
     /// Called when the sheet should close (dismissed by the user, or the flow
     /// finished without a screen to show - a plain sign-in or an upload).
     var onFinished: () -> Void = {}
@@ -182,6 +190,10 @@ final class SignInFlow {
     /// From the wrong-provider question: one tap switches to the other provider.
     func switchProvider(from current: AuthProvider) {
         signOutLocally()
+        // Set AFTER the sign-out above, which resets it: this switch is exactly
+        // the fact the flag records, so the second `.empty` outcome can resolve
+        // to F7's recovery screen instead of the reverse question (RV.259).
+        didSwitchProvider = true
         startSignIn(provider: current == .apple ? .google : .apple)
     }
 
@@ -192,6 +204,7 @@ final class SignInFlow {
     /// (`DELETE /auth/session`) rides in the background with the captured
     /// bearer, so an offline sign-out still signs out locally (hard rule 1).
     func signOutLocally() {
+        didSwitchProvider = false
         let session = try? sessionStore.load()
         if let session {
             Task { try? await authService.signOut(session) }
@@ -306,10 +319,13 @@ final class SignInFlow {
         case .empty:
             // The wrong-provider question asks "did you sign in with Google?" -
             // which is only an honest question when this build offers Google
-            // (SH.4). With one provider there is no other account to have used,
-            // so the empty account is simply empty, and F7's recovery screen is
-            // the truthful destination.
-            if arrivedViaRestore && SignInView.offersGoogle {
+            // (SH.4) and only once. With one provider there is no other account
+            // to have used; after a switch, an empty account means BOTH
+            // providers are empty. In either case the empty account is simply
+            // empty, and F7's recovery screen (with its import and Start fresh
+            // doors) is the truthful destination - never the reverse question,
+            // which would loop (RV.259).
+            if arrivedViaRestore && SignInView.offersGoogle && !didSwitchProvider {
                 // The account is empty and the user expected their data: the
                 // honest question - never the first push, because this account
                 // has not been accepted. `complete(.wrongProvider)` pins that
@@ -323,6 +339,10 @@ final class SignInFlow {
                 phase = .emptyRestore
             }
         case .unreachable:
+            // Reachability says nothing about which account holds the data, so
+            // the wrong-provider question does not apply here (RV.259 sibling):
+            // this arm always routes to the backend-down screen, which already
+            // carries the import door, a retry and a sign-out.
             phase = .restoreUnreachable
         case .deviceRevoked:
             signOutLocally()

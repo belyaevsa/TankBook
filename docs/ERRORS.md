@@ -37,7 +37,7 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 ### Restoring (welcome back)
 | Condition | Shows | Next step |
 |---|---|---|
-| Empty account + user came via "Already use Tankbook?" | "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" (J11a) | Try Google (one tap) · start fresh · sign out |
+| Empty account + user came via "Already use Tankbook?" | "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" (J11a) | Try Google (one tap) · sign out. **RV.259:** if the switched-to provider is *also* empty, the F7 recovery screen follows (import a file · Start fresh) - the reverse question is never asked |
 | Pull interrupted (network drop mid-restore) | Progress pauses: "Connection dropped – restore continues when you're back online." Entries already pulled remain usable | Open my garage (partial, keeps filling) · retry now |
 | Server 5xx / down | "Sync service unreachable – your data is safe on the server. You can import an export file, or it will all arrive when the service is back." (F7) | Import a file · wait (auto-retry) · sign out |
 | Wrong account realized mid-restore | Always-visible "Not my account · sign out" | Sign out → Welcome |

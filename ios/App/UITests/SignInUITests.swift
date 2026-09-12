@@ -77,13 +77,44 @@ final class SignInUITests: XCTestCase {
         XCTAssertTrue(switchButton.exists && switchButton.isHittable)
         XCTAssertTrue(app.buttons["wrongProviderSignOutButton"].exists)
 
-        // One tap switches provider: the flow re-runs with Google and the
-        // question re-renders with the provider names flipped.
+        // One tap switches provider: the flow re-runs with Google. RV.259 -
+        // that account is also empty, so the flow must reach F7's recovery
+        // screen (import a file / Start fresh) and must NOT re-ask the reverse
+        // question, which would loop Apple <-> Google with no way out.
         switchButton.tap()
-        let flipped = app.staticTexts[
-            "Nothing is stored under this Google. Last time, did you sign in with Apple?"]
-        XCTAssertTrue(flipped.waitForExistence(timeout: 10),
-                      "the provider switch must be a single tap, not a re-entry")
+        XCTAssertTrue(app.staticTexts["emptyRestoreRecoveryPrompt"].waitForExistence(timeout: 10),
+                      "a switched-to empty account must reach the empty-restore screen, not a second question")
+        XCTAssertTrue(app.buttons["emptyRestoreImportRow"].exists)
+        XCTAssertTrue(app.buttons["emptyRestoreStartFreshButton"].exists)
+        XCTAssertFalse(app.staticTexts["wrongProviderQuestion"].exists,
+                       "the reverse wrong-provider question must never reappear")
+    }
+
+    /// RV.259 in Russian: the same switch-to-empty walk, asserted by identifier
+    /// (the copy is localised, the state is not). RU is the overflow check for
+    /// the F7 recovery screen's two doors after the switch.
+    func testWrongProviderSwitchToEmptyAccountLandsOnEmptyRestoreInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentWelcome", "-signInStubAuth"])
+
+        XCTAssertTrue(app.staticTexts["Tankbook"].waitForExistence(timeout: 10))
+        let signIn = app.buttons["welcomeRestoreButton"]
+        XCTAssertTrue(signIn.isHittable)
+        signIn.tap()
+
+        let apple = app.buttons["signInAppleButton"]
+        XCTAssertTrue(apple.waitForExistence(timeout: 10))
+        apple.tap()
+
+        XCTAssertTrue(app.staticTexts["wrongProviderQuestion"].waitForExistence(timeout: 10))
+        app.buttons["wrongProviderSwitchButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["emptyRestoreRecoveryPrompt"].waitForExistence(timeout: 10),
+                      "a switched-to empty account must reach the empty-restore screen, not a second question")
+        XCTAssertTrue(app.buttons["emptyRestoreImportRow"].exists)
+        XCTAssertTrue(app.buttons["emptyRestoreStartFreshButton"].exists)
+        XCTAssertFalse(app.staticTexts["wrongProviderQuestion"].exists,
+                       "the reverse wrong-provider question must never reappear")
     }
 
     // MARK: - The sign-out escape

@@ -699,7 +699,7 @@ is a review list that failed to explain itself.
 
 - Restore sources, tried in order and shown honestly: sync pull from zero (the normal path – `SYNC.md`) → a server backup snapshot → "import a file you exported yourself."
 - If the backend is down: say exactly that ("sync service unreachable – you can import an export file, or your data will arrive as soon as it's back"), never a generic "something went wrong."
-- If truly nothing is found: the app says so *before* the user logs anything new (an empty garage with "expecting your data? →" recovery entry point), because the worst sequence is: user re-adds car manually, backup later reappears, and now there's a merge problem.
+- If truly nothing is found: the app says so *before* the user logs anything new (an empty garage with "expecting your data? →" recovery entry point), because the worst sequence is: user re-adds car manually, backup later reappears, and now there's a merge problem. **This includes after a provider switch (RV.259):** when the wrong-provider question sends the user to the other provider and that account is *also* empty, "truly nothing found" is now the truth and the flow lands on this recovery screen (import a file / Start fresh) - it never re-asks the reverse question, which would loop Apple ↔ Google with no in-flow exit.
 - Post-restore: show the same verification stats as J2 (entries, date range, last odometer) so trust is re-established with numbers, not a checkmark.
 
 **Metric:** restores resolving to full data ≥99.5%; empty-restore sessions that reach the recovery entry point: 100%.

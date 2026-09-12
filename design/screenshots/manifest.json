@@ -441,12 +441,12 @@
       "runtime": "iOS.26.5"
     },
     "P4.7-restore-empty": {
-      "commit": "3a2dcdc",
+      "commit": "52e3bab9",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P4.7-restore-empty-ru": {
-      "commit": "3a2dcdc",
+      "commit": "52e3bab9",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2122,6 +2122,16 @@
     },
     "RV.255-home-ru": {
       "commit": "43ce4008",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.259-empty-restore-after-switch": {
+      "commit": "52e3bab9",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.259-empty-restore-after-switch-ru": {
+      "commit": "52e3bab9",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

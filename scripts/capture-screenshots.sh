@@ -521,6 +521,16 @@ capture P4.7-restore-empty-ru     ru -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-unreachable  en -presentScreen signIn -signInRestoreUnreachable
 capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnreachable
 
+# RV.259: the screen a restore-door user reaches when BOTH providers are empty -
+# the wrong-provider switch ran and the second account was also empty. It is the
+# SAME frame as P4.7-restore-empty (`EmptyRestoreView` renders identically
+# whichever path arrived), so it is aliased rather than shot twice and left to
+# drift; the path itself is pinned by `SignInFlowTests` (L1) and the EN+RU
+# `SignInUITests` walk. The frame is the record of the two recovery doors -
+# import a file / Start fresh - in both languages.
+alias_shot P4.7-restore-empty    RV.259-empty-restore-after-switch
+alias_shot P4.7-restore-empty-ru RV.259-empty-restore-after-switch-ru
+
 # P4.9b: the Settings sync surface, six states (guest, synced, pending, flagged,
 # revoked, quota). The status row is reassurance and never turns amber with age;
 # the flagged row is a derived count and a link only (hard rule 8). RU is where
