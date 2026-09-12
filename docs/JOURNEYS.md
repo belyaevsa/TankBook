@@ -265,6 +265,7 @@ captures" metric assumed QR was a capture path; it is not.)
 **Success metric:** % of EV owners logging ≥4 sessions/month; the comparison screen's weekly views.
 
 ### J7 · Service visit
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7-2026-09-12)
 **Trigger:** leaving the workshop with a multi-page invoice, or DIY oil change in the garage.
 
 **The manual door (RV.61, hard rule 15):** typing is a peer path, never a camera fallback. The same form is reached with no camera from Home's header - "Type it" → its menu → "Service" opens the empty `ServiceEntryView` (odometer pre-filled from the last known value, editable). A capture is a head start, never a gate.
@@ -347,6 +348,7 @@ the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7b-2026-09-12)
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
@@ -402,6 +404,7 @@ never a trade the deferral makes (hard rule 8).
 ## Periodic
 
 ### J7d · A reminder is born **[v1.1]**
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7d-2026-09-12)
 
 **Trigger:** insurance lands in March, the oil was just changed, or the driver has never made a
 reminder and has to find the feature at all. J7c covers what a reminder does once it exists; this is
