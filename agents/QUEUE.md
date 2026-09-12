@@ -78,7 +78,7 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `PJ.59` | F10 | flash | (dispatching) | Recently deleted's "Overwritten by sync" section: real or removed |
+| `PJ.59` | F10 | flash | 49632 | Recently deleted's "Overwritten by sync" section: real or removed |
 
 **IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` in flight - the last row of scenario 8. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
