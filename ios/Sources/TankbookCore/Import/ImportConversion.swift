@@ -99,7 +99,7 @@ public enum ImportConverter {
                                    now: Date = Date()) -> ServiceRecord? {
         guard candidate.entityType == "serviceRecord" else { return nil }
         guard let money = money(from: candidate, homeCurrency: vehicle.homeCurrency) else { return nil }
-        let items = (candidate.items ?? []).compactMap(makeItem)
+        let items = (candidate.items ?? []).compactMap { makeItem($0, homeCurrency: vehicle.homeCurrency) }
         guard !items.isEmpty else { return nil }
         let note = candidate.note ?? items.first?.title
         return ServiceRecord(
@@ -137,12 +137,13 @@ public enum ImportConverter {
         return Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
     }
 
-    private static func makeItem(_ item: ImportServiceItem) -> ServiceItem? {
+    private static func makeItem(_ item: ImportServiceItem,
+                                 homeCurrency: CurrencyCode) -> ServiceItem? {
         guard let title = item.title, !title.isEmpty else { return nil }
         let category = item.category.flatMap { ServiceCategory(tag: $0.tag) } ?? .other("")
         let cost = item.cost.flatMap { wire -> Money? in
             guard let amount = wire.amountDecimal, let currency = wire.currencyCode else { return nil }
-            return Money(amount: amount, currency: currency, homeCurrency: .eur)
+            return Money(amount: amount, currency: currency, homeCurrency: homeCurrency)
         }
         return ServiceItem(title: title, category: category, cost: cost, partNumber: nil,
                            lifetime: nil)

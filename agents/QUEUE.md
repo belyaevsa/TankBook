@@ -78,9 +78,9 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `PJ.58` | J2 | flash | 94967 | the second hardcoded `.eur` on imported service line items |
+| `RV.158`+`RV.138` | F9 | flash | (dispatching) | the rate drain stops at the server's coverage floor; the carry-forward gets a horizon |
 
-**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143` shipped; `PJ.58` in flight; `RV.158+RV.138`, `PJ.59` follow. New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
+**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58` shipped; `RV.158+RV.138` in flight; `PJ.59` follows. New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
