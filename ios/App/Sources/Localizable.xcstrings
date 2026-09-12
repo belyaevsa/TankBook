@@ -16263,6 +16263,23 @@
         }
       }
     },
+    "The file says %@. Change it if that's wrong.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The file says %@. Change it if that's wrong."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В файле указано: %@. Измените, если это не так."
+          }
+        }
+      }
+    },
 "Around this entry":     {
       "extractionState": "manual",
       "localizations": {

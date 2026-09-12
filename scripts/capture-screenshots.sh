@@ -790,6 +790,12 @@ capture P5.5b-import-preview-ru ru -presentScreen importWizard -importStubParse 
 # PJ.10's once-per-file date question is the gate ON this preview - same frame.
 alias_shot P5.5b-import-preview    PJ.10-import-date-question
 alias_shot P5.5b-import-preview-ru PJ.10-import-date-question-ru
+# RV.263: the currency card now renders for a DECLARED currency too, pre-filled
+# with the code the file carries (the MFM fixture declares USD) and editable
+# like the no-column case (hard rule 13). The card sits on this same preview,
+# so this is the frame under its own name - not a second shot of it.
+alias_shot P5.5b-import-preview    RV.263-import-preview-declared-currency
+alias_shot P5.5b-import-preview-ru RV.263-import-preview-declared-currency-ru
 capture P5.5b-import-review     en -presentScreen importWizard -importStubParse review -seedImportReview
 capture P5.5b-import-review-ru  ru -presentScreen importWizard -importStubParse review -seedImportReview
 

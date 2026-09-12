@@ -67,7 +67,7 @@ struct RV228ReservedUnitsTests {
         let parse = Self.parse(ambiguities: [
             ImportAmbiguity(kind: "units", options: ["MPG", "L/100km"], rowCount: 3)
         ])
-        #expect(parse.canCommit(dateFormatAnswer: nil) == true,
+        #expect(parse.canCommit(dateFormatAnswer: nil, currencyAnswer: nil) == true,
                 "`units` is reserved; canCommit must keep passing so a stray kind cannot gate v1")
     }
 

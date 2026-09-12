@@ -167,6 +167,12 @@ enum ImportTestSeed {
         } else {
             seedImportRequestFlow(arguments: arguments, model: model)
         }
+        // RV.263: the auto-confirm screenshot seam commits without a tap, so a
+        // file with no currency column must answer the currency gate first,
+        // exactly as a user would.
+        if arguments.contains("-seedImportAutoConfirm"), model.needsCurrencyAnswer {
+            model.answerCurrency(model.defaultCurrency)
+        }
     }
 
     /// The seeds that drive the REAL parse/read path against the stub transport

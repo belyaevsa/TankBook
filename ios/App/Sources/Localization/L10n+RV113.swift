@@ -9,4 +9,12 @@ extension L10n {
     static var currencyQuestionSubtitle: String {
         localize("This file has no currency column, so we'll use your pick for every row.")
     }
+
+    /// "The file says USD. Change it if that's wrong." (RV.263 - a currency the
+    /// file declares is a correctable default, never a fact; hard rule 13). A
+    /// whole localised phrase per language, never a concatenation, so the RU
+    /// sentence can order the code its own way (docs/LOCALIZATION.md).
+    static func currencyDeclaredSubtitle(_ code: String) -> String {
+        String(localized: "The file says \(code). Change it if that's wrong.")
+    }
 }

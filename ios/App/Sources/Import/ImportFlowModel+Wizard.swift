@@ -27,10 +27,15 @@ extension ImportFlowModel {
 
     /// Whether the commit may proceed: every F6 question is answered. A
     /// `dateFormat` question unanswered would commit the file under the
-    /// parser's guess (docs/JOURNEYS.md J2's stats-poisoning misread), so the
-    /// preview disables confirm and the model refuses the write until it is
-    /// answered (PJ.10).
-    var canConfirm: Bool { parse?.canCommit(dateFormatAnswer: dateFormatAnswer) ?? false }
+    /// parser's guess (docs/JOURNEYS.md J2's stats-poisoning misread), and a
+    /// file with no currency column would commit a guessed currency (F6), so the
+    /// preview disables confirm and the model refuses the write until each is
+    /// answered (PJ.10, RV.113). A currency the file DECLARES is pre-filled and
+    /// already answered, so it does not block (RV.263).
+    var canConfirm: Bool {
+        parse?.canCommit(dateFormatAnswer: dateFormatAnswer,
+                         currencyAnswer: currencyAnswer) ?? false
+    }
 
     /// Answers the `dateFormat` question, once per export (RV.93: the whole
     /// batch shares one exporter, so one answer governs it; a file that PROVED
@@ -45,70 +50,6 @@ extension ImportFlowModel {
         dateFormatAnswer = option
         syncMergedParse()
         rebuildClassification()
-    }
-
-    /// Answers the currency question (RV.113), once per file. The pick applies
-    /// to every money-carrying candidate, and the classification rebuilds so the
-    /// preview, the review list and the commit all read the answered currency -
-    /// the number the user approves is the number that lands (F6a).
-    func answerCurrency(_ code: CurrencyCode) {
-        guard hasCurrencyQuestion else { return }
-        currencyAnswer = code
-        // RV.185: the answer is the new car's home currency too, not just the
-        // rows'. A new car is synthesized before the currency question is
-        // answered, so it is re-homed in place here - same id, so the classified
-        // fills keep their destination and the conversion now runs against the
-        // currency the user actually chose. An EXISTING destination car is never
-        // touched (RV.152 owns that decision).
-        applyHomeCurrencyToNewCars(code)
-        rebuildClassification()
-    }
-
-    /// RV.185: stamps the answered currency onto every synthesized NEW car (the
-    /// single target and each decided lane). Existing cars are left alone - the
-    /// import must not re-home a car the user already owns.
-    private func applyHomeCurrencyToNewCars(_ code: CurrencyCode) {
-        if case .new(var vehicle) = targetCar {
-            vehicle.homeCurrency = code
-            targetCar = .new(vehicle)
-        }
-        for index in carPlan.indices {
-            guard case .new(var vehicle) = carPlan[index].destination else { continue }
-            vehicle.homeCurrency = code
-            carPlan[index].destination = .new(vehicle)
-        }
-    }
-
-    /// The candidates with the chosen date reading applied. The merged parse is
-    /// ALREADY the answer applied - `ImportBatchMerge` re-dates per file that
-    /// needs it, and re-dating the merged list again would double-flip an
-    /// ambiguous file and corrupt a file that proved its dates (RV.85). So this
-    /// is simply the merged candidates; the pristine per-file parses are never
-    /// mutated, so re-answering stays correct. A file with no currency column
-    /// (RV.113) has the user's currency answer (or the car's home currency)
-    /// applied here, so the conversion and the commit read the answered money.
-    var effectiveCandidates: [ImportCandidate] {
-        guard let parse else { return [] }
-        guard hasCurrencyQuestion, let currency = effectiveCurrency else {
-            return parse.candidates
-        }
-        return parse.candidates.map { $0.applyingCurrency(currency) }
-    }
-
-    /// The currency question's answer: the user's pick, or the destination car's
-    /// home currency when they have not overridden it (the default the wizard
-    /// offers - hard rule 13, never a fact).
-    var effectiveCurrency: CurrencyCode? {
-        guard hasCurrencyQuestion else { return parse?.declaredCurrency }
-        return currencyAnswer ?? defaultCurrency
-    }
-
-    var hasCurrencyQuestion: Bool { parse?.hasCurrencyQuestion ?? false }
-
-    /// The destination car's home currency - the default the currency question
-    /// offers. A brand-new car is EUR; an existing car is its own home currency.
-    var defaultCurrency: CurrencyCode {
-        targetCar?.vehicleValue.homeCurrency ?? liveVehicles.first?.homeCurrency ?? .eur
     }
 
     /// The `outOfScope` message the preview surfaces, if the server reported

@@ -27,6 +27,18 @@ final class ImportRV255UITests: XCTestCase {
     private func finishImport(_ app: XCUIApplication) {
         XCTAssertTrue(app.otherElements["importPreviewScreen"].waitForExistence(timeout: 10),
                       "the seeded flow must reach the preview gate")
+        // RV.263: both seeds are files with no currency column, so the currency
+        // card gates the commit until answered (F6: never import a guess). The
+        // answer is irrelevant to this row's selection assertions.
+        let picker = app.buttons["importCurrencyPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5),
+                      "the currency card must render for a file with no currency column")
+        picker.tap()
+        let rub = app.buttons["importCurrencyOption-RUB"]
+        XCTAssertTrue(rub.waitForExistence(timeout: 5), "the RUB option never appeared")
+        rub.tap()
+        XCTAssertTrue(app.buttons["importConfirmButton"].isEnabled,
+                      "answering the currency question must enable confirm")
         app.buttons["importConfirmButton"].tap()
     }
 

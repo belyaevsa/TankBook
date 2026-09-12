@@ -26,6 +26,20 @@ final class ImportRV185UITests: XCTestCase {
         field.typeText(text)
     }
 
+    /// RV.263: `-seedImportNewCar` is a file with no currency column, so the
+    /// currency card gates the commit until it is answered (a guess is what F6
+    /// forbids). The name this row asserts is independent of the currency, so
+    /// any offered option answers it.
+    private func answerCurrency(_ app: XCUIApplication) {
+        let picker = app.buttons["importCurrencyPicker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 5),
+                      "the currency card must render for a file with no currency column")
+        picker.tap()
+        let rub = app.buttons["importCurrencyOption-RUB"]
+        XCTAssertTrue(rub.waitForExistence(timeout: 5), "the RUB option never appeared")
+        rub.tap()
+    }
+
     private func assertGarageHasCar(_ app: XCUIApplication, named name: String) {
         XCTAssertTrue(app.buttons["tabbar.garage"].waitForExistence(timeout: 10),
                       "the wizard closes after the import")
@@ -53,6 +67,7 @@ final class ImportRV185UITests: XCTestCase {
                        "the suggestion is the neutral default, never the exporter's name")
 
         replaceText(field, with: "My KZT car")
+        answerCurrency(app)
         app.buttons["importConfirmButton"].tap()
         assertGarageHasCar(app, named: "My KZT car")
     }
@@ -68,6 +83,7 @@ final class ImportRV185UITests: XCTestCase {
         let field = app.textFields["importNewCarNameField"]
         XCTAssertTrue(field.waitForExistence(timeout: 5))
         replaceText(field, with: "Моя машина")
+        answerCurrency(app)
         app.buttons["importConfirmButton"].tap()
         assertGarageHasCar(app, named: "Моя машина")
     }

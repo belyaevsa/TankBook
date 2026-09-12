@@ -363,11 +363,21 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
         return candidates.first(where: { $0.money != nil })?.money?.currencyCode
     }
 
-    /// True when the file carries money but no currency column (a `currency`
-    /// ambiguity with EMPTY options - the wire's signal that there is no answer
-    /// on disk to declare). The wizard must ask the currency question, defaulting
-    /// to the destination car's home currency (RV.113, docs/SCHEMA.md).
+    /// True when the parse carries a `currency` ambiguity - empty or non-empty
+    /// options. It is the card's gate: the wizard always offers the currency for
+    /// correction, whether the file declared one (a default to confirm, hard rule
+    /// 13) or has no currency column (the amount needs an answer, RV.113).
     public var hasCurrencyQuestion: Bool {
+        ambiguities.contains { $0.kind == "currency" }
+    }
+
+    /// True when the currency question still needs the user's pick: a `currency`
+    /// ambiguity with EMPTY options - the wire's signal that there is no answer
+    /// on disk, so committing would be a GUESS (docs/JOURNEYS.md F6). A declared
+    /// currency (non-empty options) is pre-filled by the app and already
+    /// answered, so it never blocks; `hasCurrencyQuestion` is true for both, and
+    /// this property is what tells them apart.
+    public var needsCurrencyAnswer: Bool {
         ambiguities.contains { $0.kind == "currency" && $0.options.isEmpty }
     }
 
@@ -375,12 +385,20 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
     /// server raised is answered. A `dateFormat` ambiguity unanswered would
     /// commit the file under the parser's guessed M/D reading (docs/JOURNEYS.md
     /// F6, docs/API.md) - so it blocks the commit until `dateFormatAnswer` is
-    /// set. A `units` ambiguity is deliberately NOT a block: the kind is
-    /// reserved and no v1 parser emits it (see `ImportAmbiguity`). No ambiguity
-    /// is an unconditional pass.
-    public func canCommit(dateFormatAnswer: String?) -> Bool {
-        guard ambiguities.contains(where: { $0.kind == "dateFormat" }) else { return true }
-        return dateFormatAnswer != nil
+    /// set. A `currency` ambiguity with EMPTY options blocks until
+    /// `currencyAnswer` is set (a guessed currency is exactly what F6 forbids);
+    /// a declared currency is already answered by the pre-fill, so it does not.
+    /// A `units` ambiguity is deliberately NOT a block: the kind is reserved and
+    /// no v1 parser emits it (see `ImportAmbiguity`). No ambiguity is an
+    /// unconditional pass.
+    public func canCommit(dateFormatAnswer: String?, currencyAnswer: CurrencyCode?) -> Bool {
+        if ambiguities.contains(where: { $0.kind == "dateFormat" }), dateFormatAnswer == nil {
+            return false
+        }
+        if needsCurrencyAnswer, currencyAnswer == nil {
+            return false
+        }
+        return true
     }
 
     /// A copy whose ambiguous candidates are re-dated to the D/M reading

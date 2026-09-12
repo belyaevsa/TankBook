@@ -74,7 +74,8 @@ private func candidate(_ row: Int, entityType: String = "fillUp",
 
 /// A two-full segment-producing history (100000 -> 100500 km, 45 L after the
 /// opening full fill) so the consumption figure is a known value: 9.0 L/100km.
-private enum ImportFixture {
+/// Internal, not private: the currency suite lives in its own file now.
+enum ImportFixture {
     static let vehicle = Vehicle(
         id: UUID.v7(), createdAt: Date(), updatedAt: Date(), deletedAt: nil,
         name: "Volvo V60", make: "Volvo", model: "V60", year: 2015, plate: nil,
@@ -448,10 +449,10 @@ struct ImportDateFormatQuestionTests {
         // `dateFormat` question blocks the commit (PJ.10) - the exact
         // stats-poisoning misread docs/JOURNEYS.md J2 warns about.
         let parse = Self.parse(dates: ["2026-08-09T00:00:00Z"])
-        #expect(parse.canCommit(dateFormatAnswer: nil) == false,
+        #expect(parse.canCommit(dateFormatAnswer: nil, currencyAnswer: nil) == false,
                 "an unanswered dateFormat question must block the commit")
-        #expect(parse.canCommit(dateFormatAnswer: "M/D/YYYY") == true)
-        #expect(parse.canCommit(dateFormatAnswer: "D/M/YYYY") == true,
+        #expect(parse.canCommit(dateFormatAnswer: "M/D/YYYY", currencyAnswer: nil) == true)
+        #expect(parse.canCommit(dateFormatAnswer: "D/M/YYYY", currencyAnswer: nil) == true,
                 "either answer unblocks the commit once chosen")
     }
 
@@ -459,7 +460,7 @@ struct ImportDateFormatQuestionTests {
         let parse = ImportParseResponse(importId: "id", format: "mfm", scope: "vehicle",
                                         candidates: [], unparsed: [],
                                         ambiguities: [])
-        #expect(parse.canCommit(dateFormatAnswer: nil) == true)
+        #expect(parse.canCommit(dateFormatAnswer: nil, currencyAnswer: nil) == true)
     }
 
     @Test func answeringDMYFlipsTheAmbiguousDatesAndLeavesUnambiguousOnes() {
@@ -579,77 +580,6 @@ struct ImportNonFuelCommitTests {
         let expenses = try repo.liveExpenses(forVehicle: ImportFixture.vehicle.id)
         #expect(expenses.count == 1)
         #expect(expenses[0].provenance == .import(source: "mfm"))
-    }
-}
-
-// MARK: - RV.113 the currency answer reaches every committed row
-
-@Suite("Import currency answer (RV.113)")
-struct ImportCurrencyAnswerTests {
-
-    private static func emptyCurrencyCandidate(_ row: Int, amount: String) -> ImportCandidate {
-        ImportCandidate(
-            entityType: "fillUp", date: Date(timeIntervalSinceReferenceDate: 0),
-            odometer: 491_206, volumeL: 40, unitPrice: "220",
-            money: ImportMoney(amount: amount, currency: ""),
-            fuelKind: "petrol92", isFull: true, tankLevelAfterPct: nil, note: nil,
-            vehicleName: nil, provenance: ImportProvenance(tag: "import", source: "drivvo"),
-            sourceRow: row)
-    }
-
-    @Test func aCurrencyQuestionWithEmptyOptionsIsDetected() {
-        let parse = ImportParseResponse(
-            importId: "id", format: "drivvo", scope: "vehicle",
-            candidates: [], unparsed: [],
-            ambiguities: [ImportAmbiguity(kind: "currency", options: [], rowCount: 2)])
-        #expect(parse.hasCurrencyQuestion == true)
-    }
-
-    @Test func aFileThatDeclaresACurrencyHasNoCurrencyQuestion() {
-        let parse = ImportParseResponse(
-            importId: "id", format: "mfm", scope: "vehicle",
-            candidates: [], unparsed: [],
-            ambiguities: [ImportAmbiguity(kind: "currency", options: ["USD"], rowCount: 2)])
-        #expect(parse.hasCurrencyQuestion == false)
-    }
-
-    @Test func applyingCurrencyFillsTheEmptyCurrencyOnMoneyAndItems() {
-        let money = ImportMoney(amount: "8442", currency: "")
-        let item = ImportServiceItem(title: "Oil change",
-                                     category: ImportCategoryTag(tag: "oil"), cost: money)
-        let service = ImportCandidate(
-            entityType: "serviceRecord", date: Date(timeIntervalSinceReferenceDate: 0),
-            odometer: 491_206, volumeL: nil, unitPrice: nil, money: money,
-            fuelKind: nil, isFull: nil, tankLevelAfterPct: nil, note: nil,
-            vehicleName: nil, provenance: ImportProvenance(tag: "import", source: "drivvo"),
-            sourceRow: 1, items: [item])
-
-        let answered = service.applyingCurrency(.rub)
-        #expect(answered.money?.currency == "RUB")
-        #expect(answered.items?[0].cost?.currency == "RUB")
-        #expect(answered.money?.amount == "8442",
-                "the answer changes only the currency, never the amount")
-    }
-
-    @Test func makeFillWithAnAnsweredCurrencyProducesTheAnsweredMoney_NeverAHardcodedDefault() {
-        // The empty-currency candidate, once answered, becomes money in the
-        // ANSWERED currency - never nil (a dropped amount) and never a
-        // hardcoded default. This is the trap the row exists to close: a parser
-        // that guessed a default would pass every count assertion.
-        let answered = Self.emptyCurrencyCandidate(1, amount: "8442").applyingCurrency(.kzt)
-        let fill = ImportConverter.makeFill(from: answered, vehicle: ImportFixture.vehicle,
-                                            source: "drivvo")
-        #expect(fill?.money?.currency == .kzt)
-        #expect(fill?.money?.amount == Decimal(string: "8442"))
-    }
-
-    @Test func anUnansweredEmptyCurrencyCandidateYieldsNoMoney_RatherThanAGuessedOne() {
-        // Before the answer, the empty currency resolves to nil - the amount is
-        // not silently retyped into a guessed currency (hard rule 3, hard rule
-        // 13). The wizard's default is applied on top, never inside the converter.
-        let fill = ImportConverter.makeFill(from: Self.emptyCurrencyCandidate(1, amount: "8442"),
-                                            vehicle: ImportFixture.vehicle, source: "drivvo")
-        #expect(fill?.money == nil)
     }
 }
 

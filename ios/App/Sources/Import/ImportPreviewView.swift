@@ -296,10 +296,11 @@ struct ImportPreviewView: View {
         .accessibilityIdentifier("importDateFormatOption-\(option)")
     }
 
-    /// The currency question (RV.113, docs/SCHEMA.md): a file with no currency
-    /// column cannot say what its amounts are in, so the wizard asks - offering
-    /// the destination car's home currency as the default the user can change
-    /// (hard rule 13, hard rule 3). Asked once per file, never per row.
+    /// The currency question (RV.113, RV.263, docs/SCHEMA.md): a file that
+    /// declares a currency is pre-filled with it (a default the user can change,
+    /// hard rule 13), and a file with no currency column cannot say what its
+    /// amounts are in, so the wizard offers the destination car's home currency.
+    /// Either way it is asked once per file, never per row.
     private var currencyCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top, spacing: 8) {
@@ -309,7 +310,7 @@ struct ImportPreviewView: View {
                     .padding(.top, 1)
                 VStack(alignment: .leading, spacing: 4) {
                     SectionEyebrow("Currency for these amounts")
-                    Text(L10n.currencyQuestionSubtitle)
+                    Text(model.currencyQuestionSubtitle)
                         .font(.caption)
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .lineSpacing(1.4)
@@ -320,7 +321,7 @@ struct ImportPreviewView: View {
                     Button { model.answerCurrency(code) } label: {
                         HStack {
                             Text(AddVehicleSupport.currencyLabel(for: code))
-                            if code == (model.currencyAnswer ?? model.defaultCurrency) {
+                            if code == model.effectiveCurrency {
                                 Spacer()
                                 Image(systemName: "checkmark")
                             }
@@ -330,7 +331,7 @@ struct ImportPreviewView: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    Text(AddVehicleSupport.currencyLabel(for: model.currencyAnswer ?? model.defaultCurrency))
+                    Text(AddVehicleSupport.currencyLabel(for: model.effectiveCurrency ?? model.defaultCurrency))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Theme.Palette.ink)
                     Image(systemName: "chevron.up.chevron.down")
