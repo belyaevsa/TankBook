@@ -62,6 +62,7 @@ The empty state is unchanged (the garage card, capture card, import card and pri
 once an entry exists the capture card drops its "first" wording.
 
 ### J2 · Switching from another app
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J2-2026-09-12b)
 **Trigger:** frustration with incumbent (ads, paywalled export, dead sync) + years of history they refuse to lose.
 **Goal:** full history alive in Tankbook in one sitting.
 
