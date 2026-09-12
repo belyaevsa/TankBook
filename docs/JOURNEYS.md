@@ -86,7 +86,7 @@ once an entry exists the capture card drops its "first" wording.
 ## Core loop
 
 ### J3 · The 5-second fill-up (receipt)
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J3-2026-09-12b)
+*(Status cleared 2026-09-12: `RV.270` - a confident-wrong fuel kind pre-filled from till boilerplate - is an open v1 row naming this story; it had been filed under a shipped row's id, so the walk read the tick instead of the row. Re-walk after it ships.)*
 **Trigger:** standing at the pump or walking back to the car, receipt in hand. Cold, dark, engine of the queue behind.
 **Goal:** logged before the seatbelt clicks.
 
@@ -555,7 +555,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** save-completion rate after failed scans ≥85% (users finish manually instead of quitting).
 
 ### F2 · Scan recognized *wrong* data – the most dangerous failure
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F2-2026-09-12)
+*(Status cleared 2026-09-12: `RV.270` - a confident-wrong fuel kind pre-filled from till boilerplate - is an open v1 row naming this story; it had been filed under a shipped row's id, so the walk read the tick instead of the row. Re-walk after it ships.)*
 **Trigger:** OCR misreads 42.30 as 12.30; a VAT line mistaken for the total. Unlike F1, the user may not notice.
 
 | Stage | Experience | Design rule |
