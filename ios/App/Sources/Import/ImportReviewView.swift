@@ -20,8 +20,7 @@ struct ImportReviewView: View {
                          trailingLabel: "Skip all",
                          onBack: onBack,
                          onTrailing: skipAll)
-            Text(L10n.rowsReadyIntro(ready: model.summary?.readyCount ?? 0,
-                                     review: model.reviewRows.count))
+            Text(model.reviewIntro)
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.4)

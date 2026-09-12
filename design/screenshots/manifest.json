@@ -646,17 +646,17 @@
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review": {
-      "commit": "b1f18609",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review-ru": {
-      "commit": "b1f18609",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review-ru-xl": {
-      "commit": "b1f18609",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -836,12 +836,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.11-import-flagged-row": {
-      "commit": "9fa5ea7",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.11-import-flagged-row-ru": {
-      "commit": "9fa5ea7",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2076,12 +2076,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.221-import-station-review": {
-      "commit": "65a96044",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.221-import-station-review-ru": {
-      "commit": "65a96044",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2116,12 +2116,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.229-import-review-consumption": {
-      "commit": "b1f18609",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.229-import-review-consumption-ru": {
-      "commit": "b1f18609",
+      "commit": "7b5af1ee",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

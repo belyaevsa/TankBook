@@ -20,8 +20,8 @@ extension ImportUITests {
         XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
 
         XCTAssertTrue(app.staticTexts[
-            "1 row is ready. This 1 is missing something – fix one, or leave it out."
-        ].exists, "the one-row review intro must use the singular for the missing count")
+            "0 rows are ready. This 1 is missing something – fix one, or leave it out."
+        ].exists, "the only row needs a look, so none are ready; the missing count is singular")
 
         let done = app.buttons["importReviewDoneButton"]
         XCTAssertTrue(done.waitForExistence(timeout: 5))
@@ -36,7 +36,7 @@ extension ImportUITests {
         XCTAssertTrue(app.otherElements["importReviewScreen"].waitForExistence(timeout: 10))
 
         XCTAssertTrue(app.staticTexts[
-            "1 строка готова. Эта 1 строка неполная – исправьте или пропустите."
+            "0 строк готовы. Эта 1 строка неполная – исправьте или пропустите."
         ].exists, "the RU one-row review intro must decline the singular correctly")
 
         XCTAssertEqual(app.buttons["importReviewDoneButton"].label, "Готово · к просмотру",

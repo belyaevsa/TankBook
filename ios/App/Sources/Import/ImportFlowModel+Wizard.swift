@@ -156,6 +156,15 @@ extension ImportFlowModel {
         return readyFills + keptReview
     }
 
+    /// The review screen's intro (F6b): the rows NOT in review are ready, the
+    /// review rows need a look. "Ready" is `readyFills` - the rows the first
+    /// sentence means - because `importFills` also carries the kept review
+    /// rows, so counting it would call the same rows both ready and missing
+    /// (RV.269). The two counts partition the file.
+    var reviewIntro: String {
+        L10n.rowsReadyIntro(ready: readyFills.count, review: reviewRows.count)
+    }
+
     /// Every record the commit will write: the ready fills plus the review rows
     /// the user kept - a kept fill writes a `FillUp`, a kept `.noFuel` row
     /// writes its `ServiceRecord` or `Expense` (PJ.9: a non-fuel row commits as

@@ -476,8 +476,6 @@ public enum ImportReviewClassifier {
 /// same engine that computes it after commit.
 public struct ImportSummary: Equatable, Sendable {
     public let fillUpCount: Int
-    public let reviewCount: Int
-    public let readyCount: Int
     public let firstDate: Date?
     public let lastDate: Date?
     public let odometerMin: Int?
@@ -491,14 +489,12 @@ public struct ImportSummary: Equatable, Sendable {
     /// Unresolved S2 duplicate pairs among the merged fills (existing + import).
     public let duplicateCount: Int
 
-    public init(fillUpCount: Int, reviewCount: Int, readyCount: Int,
+    public init(fillUpCount: Int,
                 firstDate: Date?, lastDate: Date?, odometerMin: Int?, odometerMax: Int?,
                 totalSpend: Decimal?, currency: CurrencyCode?,
                 consumptionLPer100: Double?, consumptionKm: Double?,
                 consumptionLitres: Double?, duplicateCount: Int) {
         self.fillUpCount = fillUpCount
-        self.reviewCount = reviewCount
-        self.readyCount = readyCount
         self.firstDate = firstDate
         self.lastDate = lastDate
         self.odometerMin = odometerMin
@@ -536,8 +532,6 @@ public struct ImportSummary: Equatable, Sendable {
 
         return ImportSummary(
             fillUpCount: fillCount,
-            reviewCount: 0,
-            readyCount: fillCount,
             firstDate: dates.min(),
             lastDate: dates.max(),
             odometerMin: odometers.min(),
