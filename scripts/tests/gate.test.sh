@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Tests for scripts/gate.sh (RV.174).
+# Tests for scripts/gate.sh (RV.174, RV.250).
 #
 # The gate's whole claim is that package-green is not app-green: the app-target
-# `xcodebuild` step must run, and its exit code must stop the gate. The real
-# toolchain is replaced with logging stubs so both directions are proven
-# without a simulator:
-#   * every step passes -> exit 0, in package -> lint -> app -> tests order
+# `xcodebuild` step must run, and its exit code must stop the gate. It now also
+# runs the app-target unit bundle (`-only-testing:TankbookTests`), which
+# `swift test` never touches. The real toolchain is replaced with logging stubs
+# so every direction is proven without a simulator:
+#   * every step passes -> exit 0, in package -> lint -> app -> package-tests ->
+#     app-tests order
 #   * each step's failure exits with that step's code and stops the ones after
-#   * a non-zero xcodebuild is not ignored (the named vacuous trap)
+#   * a non-zero xcodebuild is not ignored (the named vacuous trap), for both the
+#     app build and the app-target unit tests
 #   * RELEASE=1 adds the Release app build; without it there is none
 #
 # Usage: scripts/tests/gate.test.sh
@@ -52,6 +55,7 @@ cat > "$bindir/xcodebuild" <<'SH'
 #!/usr/bin/env bash
 echo "xcodebuild $*" >> "$GATE_TEST_LOG"
 case "$*" in
+  *"-only-testing:TankbookTests"*) exit "${GATE_TEST_APPTESTS_EXIT:-0}" ;;
   *"-configuration Release"*) exit "${GATE_TEST_XCODEBUILD_RELEASE_EXIT:-0}" ;;
   *) exit "${GATE_TEST_XCODEBUILD_EXIT:-0}" ;;
 esac
@@ -122,19 +126,28 @@ present() { # <description> <needle>
 # 1. all steps pass
 run_gate
 check "all steps pass exits 0" 0 "$code" "$out" "all steps passed"
-if in_order "swift build" "swiftlint lint" "xcodegen generate" "xcodebuild" "swift test"; then
-    echo "ok:   step order is package -> lint -> app -> tests"
+if in_order "swift build" "swiftlint lint" "xcodegen generate" "xcodebuild" "swift test" "-only-testing:TankbookTests"; then
+    echo "ok:   step order is package -> lint -> app -> package-tests -> app-tests"
     pass=$((pass + 1))
 else
-    echo "FAIL: step order is not package -> lint -> app -> tests"
+    echo "FAIL: step order is not package -> lint -> app -> package-tests -> app-tests"
     sed 's/^/    /' "$log"
     fail=$((fail + 1))
 fi
-if [ "$(grep -c '^xcodebuild ' "$log")" = "1" ] && grep -q -- "-configuration Debug" "$log"; then
+if [ "$(grep -c '^xcodebuild .* build$' "$log")" = "1" ] && grep -q -- "-configuration Debug" "$log"; then
     echo "ok:   Debug app build runs exactly once"
     pass=$((pass + 1))
 else
     echo "FAIL: Debug app build did not run exactly once"
+    sed 's/^/    /' "$log"
+    fail=$((fail + 1))
+fi
+if [ "$(grep -c 'only-testing:TankbookTests' "$log")" = "1" ] && \
+   grep -q -- "-only-testing:TankbookTests test$" "$log"; then
+    echo "ok:   app-target unit bundle runs exactly once, in its own invocation"
+    pass=$((pass + 1))
+else
+    echo "FAIL: app-target unit bundle did not run exactly once"
     sed 's/^/    /' "$log"
     fail=$((fail + 1))
 fi
@@ -158,17 +171,24 @@ absent "xcodegen failure stops before xcodebuild" "xcodebuild"
 run_gate GATE_TEST_XCODEBUILD_EXIT=13
 check "app-build failure exits with its code" 13 "$code" "$out" "exit 13"
 absent "app-build failure stops before the tests" "swift test"
+absent "app-build failure stops before the app-target tests" "only-testing:TankbookTests"
 
-# 6. swift test fails: all earlier steps ran
+# 6. swift test fails: all earlier steps ran, the app-target bundle does not
 run_gate GATE_TEST_SWIFT_TEST_EXIT=17
-check "test failure exits with its code" 17 "$code" "$out" "exit 17"
-present "test failure means the app build had already run" "xcodebuild"
+check "package-test failure exits with its code" 17 "$code" "$out" "exit 17"
+present "package-test failure means the app build had already run" "xcodebuild"
+absent "package-test failure stops before the app-target tests" "only-testing:TankbookTests"
 
-# 7. RELEASE=1 adds the Release build, between the Debug build and the tests
+# 7. app-target unit test fails: its exit code is not ignored (the RV.250 trap)
+run_gate GATE_TEST_APPTESTS_EXIT=23
+check "app-target test failure exits with its code" 23 "$code" "$out" "exit 23"
+present "app-target test failure means the package tests had run" "swift test"
+
+# 8. RELEASE=1 adds the Release build, between the Debug build and the tests
 run_gate RELEASE=1
 check "RELEASE=1 exits 0 when all steps pass" 0 "$code" "$out" "all steps passed"
-if [ "$(grep -c '^xcodebuild ' "$log")" = "2" ] && \
-   in_order "swift build" "xcodebuild" "-configuration Release" "swift test"; then
+if [ "$(grep -c '^xcodebuild ' "$log")" = "3" ] && \
+   in_order "swift build" "xcodebuild" "-configuration Release" "swift test" "-only-testing:TankbookTests"; then
     echo "ok:   RELEASE=1 adds the Release app build after the Debug one"
     pass=$((pass + 1))
 else
@@ -177,7 +197,7 @@ else
     fail=$((fail + 1))
 fi
 
-# 8. a failing Release build fails the gate
+# 9. a failing Release build fails the gate
 run_gate RELEASE=1 GATE_TEST_XCODEBUILD_RELEASE_EXIT=19
 check "Release failure exits with its code" 19 "$code" "$out" "exit 19"
 

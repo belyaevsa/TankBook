@@ -86,9 +86,10 @@ has actually caught - a gate that has never caught anything at its cost is not k
 
 | Gate | Cost | Run it when | What it has caught |
 |---|---|---|---|
-| **Baseline**: `scripts/gate.sh` – `swift build` + `swiftlint lint` + the app-target `xcodebuild` Debug build + `swift test` – plus the localization gate, all **from the repo ROOT** | seconds (package) to a minute (app build, warm DerivedData) | **Always. Every task, no exceptions, including doc-only changes** | Doc changes alter generated output more often than anyone expects; this is the floor that makes every other gate trustworthy. The localization gate itself has caught, since P0.3, a hardcoded string, a missing-RU key, an `L10n.localize` call with no catalogue entry, a literal in a `String`-typed expression (P5.3), and - since RV.102 - a literal routed through a `String` parameter or local into `Label`/`Text`/`Button`, the shape that shipped two English rows on a Russian device with 0 violations because both keys existed. Its current catch-set and its written-down blind spots: `docs/LOCALIZATION.md` |
+| **Baseline**: `scripts/gate.sh` – `swift build` + `swiftlint lint` + the app-target `xcodebuild` Debug build + `swift test` + the app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`) – plus the localization gate, all **from the repo ROOT** | seconds (package) to ~2 min (app build + app-target tests, warm DerivedData) | **Always. Every task, no exceptions, including doc-only changes** | Doc changes alter generated output more often than anyone expects; this is the floor that makes every other gate trustworthy. The localization gate itself has caught, since P0.3, a hardcoded string, a missing-RU key, an `L10n.localize` call with no catalogue entry, a literal in a `String`-typed expression (P5.3), and - since RV.102 - a literal routed through a `String` parameter or local into `Label`/`Text`/`Button`, the shape that shipped two English rows on a Russian device with 0 violations because both keys existed. Its current catch-set and its written-down blind spots: `docs/LOCALIZATION.md` |
 | **App-target Debug build** (`xcodebuild ... build`, run by `scripts/gate.sh`) | seconds once DerivedData is warm | **Always. Every task, no exceptions** | `RV.174` (2026-09-10): `swift build` 0, `swiftlint` 0 and all 1826 package tests green while `xcodebuild` failed at `FeedbackComposerView.swift:50`. `swift build`/`swift test` compile the SwiftPM package only (`ios/Sources/TankbookCore`); every screen lives in the app target (`ios/App/Sources`), which only `xcodebuild` compiles - package-green is not app-green |
-| **Full unit suite** (`swift test`, ~52 s at 1522 tests) | ~1 min | **Always. Never subsetted** | It is a minute. Subsetting has never once been worth the reasoning about whether it was safe |
+| **Full package unit suite** (`swift test`, ~52 s at 1522 tests) | ~1 min | **Always. Never subsetted** | It is a minute. Subsetting has never once been worth the reasoning about whether it was safe |
+| **App-target unit bundle** (`xcodebuild test -only-testing:TankbookTests`, run by `scripts/gate.sh`) | ~15 s of test time on top of the gate (warm DerivedData) | **Always. Every task, no exceptions** | `RV.250` (2026-09-12): `RV212ServiceCreateDoorTests.testAMountedTireSetWithNoOdometerStillRefuses` was orphaned by `RV.214` two rows earlier - `saveReadiness` began branching on `mode == .tires`, the test set only `tireSetId`, and no gate saw it because `swift test` never runs the app-target bundle. The fix, `RV.247`, was a test correction; this step is the gate that would have caught it |
 | **Named UI suites** via `-only-testing:` | 5-30 min | The change touches `ios/App/Sources/**` - any view, navigation, or state a screen reads | Regressions in the flow that was touched. **Name them in the brief**; "run the UI tests" is not a check |
 | **Screenshots, EN *and* RU, opened by the orchestrator** | ~10 min | The change alters **anything on screen**: copy, layout, a new state, a new row | **The highest-yield gate in the project.** On 2026-09-06 alone it caught four defects no test could see: crushed titles in both languages (`RV.75`), a stale capture showing an affordance the code no longer rendered (`RV.76`), a doubled Russian period (`RV.77`), and an action line resting below the fold while staying tappable (`RV.80`) |
 | **Screenshot manifest** (`scripts/check-screenshot-manifest.sh`) | seconds | Any change to `design/screenshots/` or `scripts/capture-screenshots.sh` - and in CI on every push | An orphan committed PNG that no capture line produces (`RV.176`'s class: `RV.150-station`), and a deleted capture line whose PNG stays committed (the named RV.150 mutation) |
@@ -404,9 +405,10 @@ reds, both from machine contention, each costing another run to disprove.
 | Level | When | Cost |
 |---|---|---|
 | `swift build` + `swiftlint lint` | **continuously, during implementation** | seconds |
-| `swift test` (all 873) | **every task** - it is 30 seconds, there is no reason to subset it | ~30 s |
-| `xcodebuild test -only-testing:<the suites the task touched>` | **every task** | seconds to ~2 min |
-| `xcodebuild test` (the whole suite) | **phase completion, and before any release** | ~28 min |
+| `swift test` (all 873, the package) | **every task** - it is 30 seconds, there is no reason to subset it | ~30 s |
+| `xcodebuild test -only-testing:TankbookTests` (the app-target unit bundle, run by `scripts/gate.sh`) | **every task** - it is the whole bundle, and `swift test` never runs it | ~15 s of test time on top of the gate |
+| `xcodebuild test -only-testing:<the UI suites the task touched>` | **every task** | seconds to ~2 min |
+| `xcodebuild test` (the whole UI suite) | **phase completion, and before any release** | ~28 min |
 
 The reasoning, so nobody "restores rigour" by reverting this:
 
@@ -524,7 +526,7 @@ A task is not done until, for each tier it touched:
 
 | Tier | Build | Lint |
 |---|---|---|
-| iOS | `scripts/gate.sh` – `swift build`, then the app-target `xcodebuild` Debug build, then `swift test`; all exit 0 | `swiftlint lint` **from the repo root** – exit code 0 (also run inside the script) |
+| iOS | `scripts/gate.sh` – `swift build`, then the app-target `xcodebuild` Debug build, then `swift test`, then the app-target unit bundle (`xcodebuild test -only-testing:TankbookTests`); all exit 0 | `swiftlint lint` **from the repo root** – exit code 0 (also run inside the script) |
 | Backend | `cd backend && dotnet build` – no errors | `dotnet format --verify-no-changes` |
 | Spike | `cd Spike/ReceiptSpike && swift build` | covered by the root `swiftlint lint` |
 
@@ -559,7 +561,18 @@ Rules that make this stick:
    `scripts/gate.sh` that omits the `xcodebuild` step, or ignores its exit code, is the defect this
    rule exists for. The gate's own teeth are pinned by `scripts/tests/gate.test.sh` (synthetic
    tools, no simulator): each step's failure exits with its code and stops the ones after it, the
-   step order is package -> lint -> app -> tests, and `RELEASE=1` adds the Release build.
+   step order is package -> lint -> app -> package-tests -> app-tests, and `RELEASE=1` adds the
+   Release build.
+9. **`swift test` is not the app-target test suite** (added 2026-09-12, `RV.250`). The package tests
+   and the app-target unit bundle (`TankbookTests`, hosted in the app) are two different bundles, and
+   `swift test` runs only the first. A test can therefore be orphaned by a change to the app's own
+   types and every package gate stays green: `RV212ServiceCreateDoorTests.testAMountedTireSetWithNoOdometerStillRefuses`
+   went red when `RV.214` made `saveReadiness` branch on `mode == .tires`, and stayed red for two rows
+   because the bundle was run only when a brief happened to name one of its suites. `scripts/gate.sh`
+   therefore runs `xcodebuild test -only-testing:TankbookTests` as its own step after `swift test`,
+   **in its own invocation** - `-only-testing` naming both `TankbookTests` and `TankbookUITests` in one
+   command runs one of them and exits 0 (the two-bundle rule). The UI bundle stays per-suite and
+   per-brief; it is the slow one.
 
 ## Snapshot baselines are runtime-specific (temporary, until iOS 18 is installed)
 

@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-12 · The baseline gate tests the app target, not only the package
+
+| | |
+|---|---|
+| **Commits** | `RV.250` (this entry's commit) |
+| **Reason** | `RV.174` made the gate compile the app; it still ran only the package tests. The app-target unit bundle (`TankbookTests`, hosted in the app) is a separate bundle `swift test` never runs, so a row can orphan another row's app-target test and every gate stays green. |
+| **Evidence** | `RV212ServiceCreateDoorTests.testAMountedTireSetWithNoOdometerStillRefuses` was red from `RV.214` (`daa6959`) until `RV.247`'s agent found it two rows later: `RV.214` made `saveReadiness` branch on `mode == .tires`, the test set only `tireSetId`, and nothing ran the bundle. |
+| **What changed** | `scripts/gate.sh` runs `xcodebuild test -only-testing:TankbookTests` as its own step after `swift test`, stopping on non-zero, in its own invocation per the two-bundle rule. `TESTING.md` (baseline gate, rule 9), hard rule 14 and `PREAMBLE.md` name it. Teeth proven: the reconstructed `daa6959` test makes the gate exit 65 at the new step with every package step green; removing the step lets the same test pass. Measured ~15 s of test time (195 tests) on top of the gate. |
+
 ## 2026-09-11 · The baseline gate is one script, and it compiles the app
 
 | | |

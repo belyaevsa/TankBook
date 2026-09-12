@@ -27,12 +27,14 @@ A fix that stops one entry kind, one door or one screen short of the code it sha
 codebase produces its most common defect (`docs/DEFECT-PATTERNS.md`). If you file, name the seam.
 
 **Standing checks - verify by exit code (`echo $?`), report every count.**
-1. `scripts/gate.sh` - the baseline gate (`RV.174`): `swift build`, `swiftlint lint` from the repo
-   ROOT (from `ios/` it exits 2 with thousands of phantom errors), `xcodegen generate`, the
-   app-target `xcodebuild` Debug build, then `swift test`. It stops at the first non-zero and prints
-   one line per step; report the exit code and the test count. **`swift build`/`swift test` compile
-   the package only, so package-green is not app-green** - that is why the app-target build is in
-   there. **`RELEASE=1 scripts/gate.sh`** if you touched a `#if DEBUG` seam.
+1. `scripts/gate.sh` - the baseline gate (`RV.174`, `RV.250`): `swift build`, `swiftlint lint` from
+   the repo ROOT (from `ios/` it exits 2 with thousands of phantom errors), `xcodegen generate`, the
+   app-target `xcodebuild` Debug build, then `swift test`, then the app-target unit bundle
+   (`xcodebuild test -only-testing:TankbookTests`, its own invocation). It stops at the first
+   non-zero and prints one line per step; report the exit code and both test counts. **`swift
+   build`/`swift test` compile and test the package only, so package-green is not app-green** - that
+   is why the app-target build and the app-target unit bundle are in there. **`RELEASE=1
+   scripts/gate.sh`** if you touched a `#if DEBUG` seam.
 2. **Each UI suite by name, in its own invocation**: `-only-testing` across the app-target bundle
    and the UI bundle in one command runs ONE of them and exits 0 (found 2026-09-11). Report a
    non-zero count per suite - a filter matching nothing prints SUCCEEDED.
