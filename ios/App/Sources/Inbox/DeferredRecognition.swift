@@ -73,4 +73,14 @@ final class DeferredRecognition {
         savedEntryID = entryID
         phase = .saved
     }
+
+    /// RV.245: abandons the read because the sheet it was feeding closed
+    /// without a save. Bumping the generation makes the read's completion
+    /// closure drop itself, so a cancelled scan cannot deliver an answer to a
+    /// form that is gone - or re-offer pages a later open would apply.
+    func cancel() {
+        generation += 1
+        phase = .idle
+        savedEntryID = nil
+    }
 }

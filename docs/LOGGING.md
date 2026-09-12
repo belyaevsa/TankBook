@@ -271,6 +271,8 @@ The events that can only be written at the moment they happen, because after the
 
 `inbox.answer` (RV.201) – a late recognition whose entry no longer exists, emitted when the user resolves such an item or when a drained delivery-outbox row cannot be matched. `operation` is the stable code (`inbox.resolve` / `inbox.drain`), `outcome` is `entryGone`, and `kind` is the recognition kind (`fuel` / `service` / `expense`). Shape only: no vendor, no category, no amount, no entry id (hard rule 12). It exists to make the "answer arrived for an entry that is gone" case countable – the item clears either way (hard rule 8), so without this line the case is invisible in production.
 
+`service.pages.discarded` (RV.245) – a ServiceEntry sheet closed without a save and the invoice pages staged at scan start were deleted with it. Carries `pageCount` – a count, the whole shape of the event – and is emitted once per dismissal, never once per page. The server-side orphan sweep (P4.3) never reaches the device, so this line is the only record that the cleanup ran and how much it took. Never a page's text, its image or the invoice's values (hard rule 12).
+
 ### Feedback (PJ.20)
 `feedback.queue` / `feedback.send` / `feedback.fail` carry **shape only**: `category` (the
 stable code), `textLength` (a count), `hasReplyTo` / `hasDeviceModel` (field *presence*, never the

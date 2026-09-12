@@ -34,6 +34,9 @@ struct ServiceEntryView: View {
     @State private var vehicle: Vehicle?
     @State private var showDatePicker = false
     @State private var didLoad = false
+    /// RV.245: set the moment a save lands, so the one dismissal path can tell
+    /// a save (keep the pages) from a cancel (take them).
+    @State private var didSave = false
     @State private var lastKnownOdometer: Int?
     /// The scanned invoice's pages (P3.1b). Empty on the typed path.
     @State private var pages: [InvoicePage] = []
@@ -127,6 +130,17 @@ struct ServiceEntryView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        // RV.245: the sheet's one dismissal path. The X, a swipe-down and the
+        // discard prompt's Discard all end here; a save sets `didSave` first and
+        // keeps its pages. A scan staged pages with no owning record, so a close
+        // without a save must take their rows and files with it (hard rule 8).
+        .onDisappear {
+            guard !didSave, let repository = try? AppStore.repository() else { return }
+            Self.discardStagedPages(pages,
+                                    pendingPrefill: invoiceSession.pendingPrefill,
+                                    session: invoiceSession,
+                                    repository: repository)
+        }
         .sheet(isPresented: $showDocumentCamera) {
             DocumentCamera(
                 onCancel: { showDocumentCamera = false },
@@ -461,6 +475,9 @@ struct ServiceEntryView: View {
                 offerSession.stage(afterService: service, repository: repository)
             }
             hasUnsavedChanges = false
+            // RV.245: the pages this scan staged now belong to the record, so
+            // the dismissal that follows must not clean them up.
+            didSave = true
             // A new record was written with no delta toast - tell Home to
             // reload anyway (docs/ERRORS.md -> Edit entry, row 4; hard rule 2),
             // exactly as Manual fill-up, Edit entry, Vehicle detail and

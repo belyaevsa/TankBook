@@ -80,4 +80,13 @@ final class ServiceInvoiceSession {
         guard !pages.isEmpty else { return }
         pendingPrefill = ServiceEntryPrefill(pages: pages, provenance: .receiptScan)
     }
+
+    /// RV.245: the sheet closed without a save. The in-flight read is cancelled
+    /// (its answer would only re-offer pages the cleanup is about to delete)
+    /// and the staged pre-fill cleared, so a later open starts clean. The
+    /// caller removes the page rows and files; this only owns the hand-off.
+    func discard() {
+        deferred.cancel()
+        pendingPrefill = nil
+    }
 }
