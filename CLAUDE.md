@@ -236,7 +236,8 @@ No open architecture questions remain – the decided list above plus GRDB (pers
 - No git worktrees; work in the checkout.
 - **Commit after each agent task completes and is independently verified** (standing instruction, 2026-08-23). One task = one commit, message naming the task id. **Verify first, commit second**: the baseline gate (build + `swiftlint lint` exit 0) and the task's own checks must pass in *your* hands, not the agent's report – a commit is the record that verification happened. Never commit while an agent is mid-run: the tree contains half-written files, and the point of the commit is a known-good state. Agents themselves still never commit.
 - **The journeys walk is RECURRING, not a one-off** (standing instruction, 2026-09-09). Dispatch
-  `agents/briefs/REVIEW-JOURNEYS.md` - four read-only agents auditing `docs/JOURNEYS.md` against the
+  `agents/briefs/REVIEW-JOURNEYS.md` - **the orchestrator walks it, not a pro agent** (product owner,
+  2026-09-12; the brief stays the method) - auditing `docs/JOURNEYS.md` against the
   tree - **every 10 shipped rows or at a phase gate, whichever comes first**, and on the four events
   that brief names (a screen ships, a reader of an entity ships, copy naming a destination ships, a
   row ships partially). It ran **once**, on 2026-08-29, produced **66 `PJ` rows**, and was never
@@ -273,7 +274,8 @@ No open architecture questions remain – the decided list above plus GRDB (pers
     `scripts/scenario-index.py --check` fails an OPEN row with no scenario; closed rows are not
     policed retroactively.
   - **When every row naming a scenario is closed, dispatch the completion review** -
-    `agents/briefs/REVIEW-SCENARIO.md`, on `pro`, read-only, so it runs beside a build agent.
+    `agents/briefs/REVIEW-SCENARIO.md` - **walked by the orchestrator itself, never dispatched to a
+    pro agent** (product owner, 2026-09-12); read-only, so it runs beside a build agent.
     `scripts/scenario-index.py` lists which scenarios are ready. **A scenario is NOT implemented
     because its tasks are ticked**: tasks are what somebody thought of, the journey is what the user
     is promised, and the review is the only step that compares the two. It ends in a verdict, and

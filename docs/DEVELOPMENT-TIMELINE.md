@@ -11,6 +11,15 @@ decisions.
 
 ---
 
+## 2026-09-12 · Scenario and journey walks are the orchestrator's own work
+
+| | |
+|---|---|
+| **Commits** | this entry's commit (`CLAUDE.md`, `REVIEW-SCENARIO.md`) |
+| **Reason** | Product owner, 2026-09-12: *"journey-walks you can do by yourself, don't dispatch to pro agent."* The walks are reading and judgement over the tree and the journey text, which the orchestrator already does when it verifies each agent's report; a pro dispatch added cost, a dead-launch retry one time in three today, and a second-hand report the orchestrator had to re-read anyway. |
+| **Evidence** | 2026-09-12: 14 pro walks, 3 of them launched dead first; every verdict was re-read against the tree before its status line was accepted, and two were held on owner evidence the agent could not weigh (J8b, J13 on `RV.181`). |
+| **What changed** | `REVIEW-SCENARIO.md` and `REVIEW-JOURNEYS.md` stay as the METHOD; the orchestrator executes them and writes the report to `diagnostics/` under the same names. Build dispatches are unchanged (flash). |
+
 ## 2026-09-12 · UI suites run signed; a host-dependent test skips itself
 
 | | |

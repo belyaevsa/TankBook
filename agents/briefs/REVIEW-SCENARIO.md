@@ -9,7 +9,7 @@ every task row naming that journey is closed. **A scenario is not implemented be
 ticked.** Tasks are what somebody thought of; the journey is what the user is promised. This review
 is the only step that compares the two, and it is what earns the story its `implemented` mark.
 
-**Run it on `pro`.** It is read-only, so it runs in parallel with a build agent.
+**The orchestrator runs it itself - it is not dispatched to a pro agent** (product owner, 2026-09-12). Read-only, so it runs beside a build agent; the report and the status-line rule below are unchanged.
 
 ---
 
