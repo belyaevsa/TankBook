@@ -405,7 +405,7 @@ never a trade the deferral makes (hard rule 8).
 ## Periodic
 
 ### J7d · A reminder is born **[v1.1]**
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7d-2026-09-12)
+*(Status cleared 2026-09-12: the journeys walk found the permanent Home row absent for a guest - `PJ.200`; re-walk after it ships.)*
 
 **Trigger:** insurance lands in March, the oil was just changed, or the driver has never made a
 reminder and has to find the feature at all. J7c covers what a reminder does once it exists; this is

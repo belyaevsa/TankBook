@@ -28,3 +28,30 @@ Gate the switcher on the session again; the cold-launch L4 goes red. Byte-identi
 ## Vacuous trap
 
 A second switcher view for guests.
+
+## Widened 2026-09-12 - the whole guest-parity seam in this dispatch
+
+The 2026-09-12 journeys walk found three more places where `HomeGuestLayout` diverges from the
+signed-in Home for no account-related reason. **Fix all four in this one change - same seam, same
+rule (the SAME control, never a copy), one commit:**
+
+- **`PJ.100`** - the guest "Type it" (`HomeGuestLayout.swift:218`) is a plain button to
+  `.confirmManual`; the signed-in `typeItControl` (`HomeView.swift:422-444`) is the
+  `CaptureEntryForm.doorMenuForms` menu. Render that control. L4: guest "Type it" exposes Service
+  and Expense with the signed-in identifiers; picking Service opens `ServiceEntryView`.
+- **`PJ.101`** - the guest `noCarCard` (`:272-284`) has no button; the signed-in no-car layout has
+  the filled `Route.addVehicle` button (`HomeEmptyStates.swift:72-82`). Render it. L4: guest, no
+  car, tabbed Home - the button opens Add car.
+- **`PJ.200`** - no `HomeRemindersEntryRow` in the guest branch (`HomeView.swift:256` is
+  signed-in only). Render the same row with `Route.remindersAll`. L4: guest with one car - the row
+  is present, opens the merged list, "New reminder" reachable. **This one is a finding against
+  reviewed J7d**; its status line is already cleared.
+
+Prefer making `HomeLayout` (RV.197's core decision) the single place that says what the guest
+branch shows, so the next parity gap cannot be introduced by editing one layout and not the other -
+if that is more than this change should carry, say so and do the four renders directly.
+
+Screenshots: guest Home with two cars (RV.251), guest Home with the reminders row and the Type-it
+menu open (PJ.100/PJ.200), guest no-car Home (PJ.101) - EN + RU, dark. Mutations: one per row,
+named above; report each verbatim. Suites: `ColdLaunchJourneyUITests`, `RemindersRV247UITests`,
+each in its own invocation with counts.
