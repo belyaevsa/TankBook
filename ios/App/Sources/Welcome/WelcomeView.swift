@@ -86,7 +86,7 @@ struct WelcomeView: View {
                         .font(.system(size: 40, weight: .heavy))
                         .tracking(-0.4)
                         .foregroundStyle(Theme.Palette.ink)
-                    Text("Fuel, charging and service – one log")
+                    Text("Fuel and service – one log")
                         .font(.system(size: 16))
                         .tracking(0.3)
                         .foregroundStyle(Theme.Palette.inkSoft)
@@ -100,7 +100,7 @@ struct WelcomeView: View {
 
     private var featuresSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            featureRow("camera", "Scan receipts and pump displays")
+            featureRow("camera", "Scan receipts")
             featureRow("keyboard", "Type it or scan it – seconds either way")
             featureRow("checkmark.shield", "Your data stays on your phone – an account adds cloud features")
         }

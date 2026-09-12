@@ -3980,19 +3980,19 @@
         }
       }
     },
-    "Coming from Fuelio, Drivvo or My Fuel Manager? Bring your history along.": {
+    "Coming from Drivvo or My Fuel Manager? Bring your history along.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Coming from Fuelio, Drivvo or My Fuel Manager? Bring your history along."
+            "value": "Coming from Drivvo or My Fuel Manager? Bring your history along."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Переезжаете из Fuelio, Drivvo или My Fuel Manager? Заберите свою историю с собой."
+            "value": "Переезжаете из Drivvo или My Fuel Manager? Заберите свою историю с собой."
           }
         }
       }
@@ -6090,19 +6090,19 @@
         }
       }
     },
-    "Fuel, charging and service – one log": {
+    "Fuel and service – one log": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fuel, charging and service – one log"
+            "value": "Fuel and service – one log"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Заправки, зарядки и сервис – один журнал"
+            "value": "Топливо и сервис – один журнал"
           }
         }
       }
@@ -10947,19 +10947,19 @@
         }
       }
     },
-    "Scan receipts and pump displays": {
+    "Scan receipts": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Scan receipts and pump displays"
+            "value": "Scan receipts"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Сканируйте чеки и экраны заправок"
+            "value": "Сканируйте чеки"
           }
         }
       }

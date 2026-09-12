@@ -261,7 +261,7 @@ struct HomeGuestLayout<LogContent: View>: View {
             Image(systemName: "square.and.arrow.down")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
-            Text("Coming from Fuelio, Drivvo or My Fuel Manager? Bring your history along.")
+            Text("Coming from Drivvo or My Fuel Manager? Bring your history along.")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .frame(maxWidth: .infinity, alignment: .leading)

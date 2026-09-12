@@ -826,12 +826,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.101-guest-no-car-home": {
-      "commit": "17b76604",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.101-guest-no-car-home-ru": {
-      "commit": "17b76604",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1106,22 +1106,22 @@
       "runtime": "iOS.26.5"
     },
     "PJ.3b-welcome": {
-      "commit": "de0be4a",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.3b-welcome-light": {
-      "commit": "de0be4a",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.3b-welcome-light-ru": {
-      "commit": "de0be4a",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.3b-welcome-ru": {
-      "commit": "de0be4a",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1816,12 +1816,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.197-guest-home-one-entry": {
-      "commit": "80184c84",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.197-guest-home-one-entry-ru": {
-      "commit": "80184c84",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2106,12 +2106,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.23-welcome": {
-      "commit": "d86fde9",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.23-welcome-ru": {
-      "commit": "d86fde9",
+      "commit": "5aa51854",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

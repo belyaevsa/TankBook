@@ -43,7 +43,7 @@ final class WelcomeUITests: XCTestCase {
         // The hero tagline is user-facing copy a future change could silently
         // drift. Assert the exact sentence, verbatim, so a later rewrite cannot
         // re-promise the hero without this test (and its screenshot) failing.
-        XCTAssertTrue(app.staticTexts["Fuel, charging and service – one log"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Fuel and service – one log"].waitForExistence(timeout: 5))
 
         // All three paths are real doors, not decoration (hard rule 15).
         XCTAssertTrue(app.buttons["welcomeAddCarButton"].isHittable)
