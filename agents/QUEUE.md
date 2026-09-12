@@ -78,9 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.244` | J7 | flash | (dispatching) | the invoice date reaches the late service recognition |
+| `RV.155` | J11 | flash | (dispatching) | the pull cursor that went backwards - scenario 8 begins |
+| `REVIEW-J7`, `REVIEW-J7b`, `REVIEW-J7c`, `REVIEW-J7d` | the service loop | pro, read-only | 52809, 52812, 52815, 52818 | second walks of J7/J7b, first of J7c/J7d |
 
-**IMPLEMENTED (11): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3.** J8b line held for the device. Scenario 7: create door, `RV.214`, `PJ.61` shipped; `RV.244` in flight; then the four service walks (J7, J7b, J7c, J7d) - `PJ.60` awaits the owner and will be N/A-or-open on that call; `RV.205` needs photographs.
+**IMPLEMENTED (11): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3.** J8b line held for the device. Scenario 7 built (`RV.212+213+224`, `RV.214`, `PJ.61`, `RV.244`; `PJ.50` closed), walking; `PJ.60` awaits the owner. Scenario 8 (J11, J11a, J10, J2, F9, F10) begins with `RV.155`.
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
@@ -109,7 +110,7 @@ service loop, then the launch blockers that are single rows on otherwise-finishe
 | 4 | ~~**F2** scan recognized wrong data~~ | `RV.218` shipped `c503d60`; `RV.229` filed under F6b (the walk ruled it does not block F2 - an import label, not the scan path) | - | **DONE 2026-09-11** - re-walked IMPLEMENTED |
 | 5 | **F1, F9a, J3b** | `RV.164`+`RV.211` shipped `9cac6db`; `RV.134` shipped `e3f8079` (`RV.234` filed); `RV.230` shipped `70e7309` (`RV.235` filed). `RV.232` deferred to v2 and `RV.231` decided (keep as is) by the owner | - | F9a re-walking; **F1 and J3b owed a re-walk** (F1 after the v2 marker, J3b after `RV.234` or as-is) |
 | 6 | **J3** the five-second fill-up - the core journey | `RV.197`! (guest never sees the fill), `RV.208`! (dangling ids on phones), `RV.204`, `RV.209`, `RV.215`, `RV.216`, `RV.217` | **`RV.197` and `RV.208` first, alone** - they are on users' phones. Then the Inbox card (`RV.216`+`RV.217`), the receipt-persistence decisions (`RV.204`+`RV.209`), the deferred producer (`RV.215`). All five briefed | re-walk `J3` and `J8b` (`RV.181` stays skipped by the owner - the review marks it as such) |
-| 7 | **J7 + J7b + J7c + J7d** the service loop | `RV.212`+`RV.213`+`RV.224` shipped `403306d`; `RV.214`, `PJ.61` (decided, briefed), `RV.244` next; `PJ.60` awaits the owner; `RV.205` needs photographs | `RV.214` -> `PJ.61` -> `RV.244` | walk all four after |
+| 7 | **J7 + J7b + J7c + J7d** the service loop | `RV.212`+`RV.213`+`RV.224` `403306d`, `RV.214` `daa6959`, `PJ.61` `2d916df`, `RV.244` `0c815ef` shipped; `PJ.50` closed; `RV.245`, `RV.246` filed; `PJ.60` awaits the owner; `RV.205` needs photographs | - | **walking** |
 | 8 | **J11, J11a, J10, J2, F9, F10** - launch blockers on finished stories | `RV.155`, `RV.108`, `RV.143`, `PJ.58`!, `RV.158`+`RV.138`, `PJ.59` | one brief each except `F9`'s pair | re-walk each |
 | 9 | **J1** first launch | `PJ.51` - the listing promises what the build does not ship | the owner's copy decision, then one brief | re-walk; `PJ.42` is N/A |
 | 10 | **J4** pump display | `RV.115`, `RV.114`, `RV.179` | `RV.115` is a product call; the other two wait for photographs | walk when the corpus exists |
