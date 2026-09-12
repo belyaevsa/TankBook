@@ -79,6 +79,10 @@ struct ExpenseEntryView: View {
     @State private var vehicle: Vehicle?
     @State private var showDatePicker = false
     @State private var didLoad = false
+    /// RV.267: set the moment a save lands, so the one dismissal path can tell
+    /// a save (the capture is consumed by its record) from a cancel (take the
+    /// staged scan with it).
+    @State private var didSave = false
     /// PJ.28: the receipt photo an Expense-mode scan produced, consumed from the
     /// session on load and held here until Save persists it. `nil` is the typed
     /// path (hard rule 15): no photo, and nothing about this save changes.
@@ -112,6 +116,15 @@ struct ExpenseEntryView: View {
         .background(Theme.Palette.midnight)
         .safeAreaInset(edge: .bottom) { saveBar }
         .task { await load() }
+        // RV.267: the sheet's one dismissal path. The X, a swipe-down and any
+        // discard prompt end here; a save sets `didSave` first and keeps the
+        // capture its record consumed. A scan staged a photo and a pre-fill with
+        // no owning record, so a close without a save must clear them before the
+        // next open reads them (hard rule 8).
+        .onDisappear {
+            guard !didSave else { return }
+            Self.discardStagedScan(expenseSession)
+        }
         .onChange(of: form, initial: true) { _, _ in
             hasUnsavedChanges = form.hasEdits()
         }
@@ -271,6 +284,10 @@ struct ExpenseEntryView: View {
                 offerSession.stage(afterExpense: expense, repository: repository)
             }
             hasUnsavedChanges = false
+            // RV.267: the capture this save consumed now belongs to the record,
+            // so the dismissal that follows must not discard it - nor cancel a
+            // read still bound for the inbox.
+            didSave = true
             // Tell Home to reload (a `.sheet` never re-triggers the presenter's
             // `.task` on iOS 26) - the new expense must render, not wait for a
             // manual refresh (the Manual fill-up / Edit entry convention).

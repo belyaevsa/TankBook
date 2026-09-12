@@ -113,6 +113,18 @@ final class ExpenseEntrySession {
         deferred.markSaved(entryID: entryID)
     }
 
+    /// RV.267: the sheet closed without a save. The in-flight read is cancelled
+    /// (its answer would only repopulate a form that is gone) and the three
+    /// staged values cleared, so a later open starts clean - the memory-only
+    /// mirror of `ServiceInvoiceSession.discard`. Nothing on disk to remove:
+    /// expenses stage no page files.
+    func discard() {
+        deferred.cancel()
+        pendingPrefill = nil
+        pendingPreset = nil
+        pendingCapture = nil
+    }
+
     /// PJ.28: consumes (clears) the staged capture. `nil` when no scan is open
     /// or the capture was already consumed - the one-shot discipline the value
     /// pre-fill already follows, applied to the photograph.
