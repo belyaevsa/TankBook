@@ -30,6 +30,7 @@ enum ImportTestSeed {
             || arguments.contains("-seedImportBatch")
             || arguments.contains("-seedImportBatchAnomaly")
             || arguments.contains("-seedImportCurrency")
+            || arguments.contains("-seedImportNewCarExisting")
             || arguments.contains("-seedImportStation")
             || arguments.contains("-seedImportStationReview")
             || arguments.contains("-seedImportUnsupported") else { return }
@@ -89,6 +90,16 @@ enum ImportTestSeed {
                                               fileKinds: ["csv"], helpUrl: nil,
                                               addedInPackVersion: 1)
             model.installSeededCurrencyParse()
+            model.showPreview()
+        } else if arguments.contains("-seedImportNewCarExisting") {
+            // RV.255: an existing car is in the garage and the user takes the
+            // `ImportTargetCarSheet` "New car" door, so the commit must select
+            // the car it created rather than leave Home on the pre-existing car.
+            model.pickedFormat = ImportFormat(id: "drivvo", displayName: "Drivvo",
+                                              fileKinds: ["csv"], helpUrl: nil,
+                                              addedInPackVersion: 1)
+            model.installSeededCurrencyParse()
+            model.selectNewCar()
             model.showPreview()
         } else if arguments.contains("-seedImportUnsupported") {
             // RV.116: the review gate carrying the "not imported" notice with
@@ -153,7 +164,19 @@ enum ImportTestSeed {
         } else if arguments.contains("-seedImportService") {
             model.installSeededServiceParse()
             model.showReview()
-        } else if arguments.contains("-seedImportParse422") {
+        } else {
+            seedImportRequestFlow(arguments: arguments, model: model)
+        }
+    }
+
+    /// The seeds that drive the REAL parse/read path against the stub transport
+    /// (RV.68's 422 card, PR.6's in-flight Cancel, RV.73's unreadable pick), so
+    /// each failure state renders from an actual request rather than a fixture.
+    /// Split out of `seedFlowIfRequested` to keep its complexity under the
+    /// linter's ceiling; it no-ops when none of its flags is present.
+    @MainActor
+    private static func seedImportRequestFlow(arguments: [String], model: ImportFlowModel) {
+        if arguments.contains("-seedImportParse422") {
             // Drive the real parse path against the stub transport's 422, so
             // the specific "doesn't look like X export" message renders from a
             // wire failure, not a model fixture.

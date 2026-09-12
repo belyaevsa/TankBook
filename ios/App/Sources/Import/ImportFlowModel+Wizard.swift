@@ -347,6 +347,9 @@ extension ImportFlowModel {
         guard parse != nil else { return false }
         guard canConfirm else { return false }
         let records = importRecords
+        // RV.255: which car this commit created, so the caller can land Home on
+        // it. Reset per commit; a merge into existing cars creates nothing.
+        createdVehicle = nil
         guard !records.isEmpty else {
             await deleteStoredParses()
             didConfirm = true
@@ -361,17 +364,21 @@ extension ImportFlowModel {
                 if let targetCar {
                     if case .new(let newCar) = targetCar {
                         try repository.upsertVehicle(newCar)
+                        createdVehicle = newCar
                     }
                 }
             } else {
                 // RV.86: create each NEW destination the mapping chose - but
                 // only when that lane actually contributes a record, so a lane
                 // whose rows the user left out never mints an empty car.
+                // RV.255: the FIRST created lane in displayed order is the car
+                // Home lands on.
                 let destinationIDs = Set(records.compactMap(\.importVehicleID))
                 for row in carPlan {
                     if case .new(let newCar) = row.destination,
                        destinationIDs.contains(newCar.id) {
                         try repository.upsertVehicle(newCar)
+                        if createdVehicle == nil { createdVehicle = newCar }
                     }
                 }
             }

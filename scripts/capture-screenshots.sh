@@ -745,6 +745,14 @@ capture RV.185-import-new-car-name-ru ru -presentScreen importWizard -importStub
 capture RV.185-import-cars-name       en -presentScreen importWizard -importStubFormats one -seedImportCarsNewCar
 capture RV.185-import-cars-name-ru    ru -presentScreen importWizard -importStubFormats one -seedImportCarsNewCar
 
+# RV.255: the Home the wizard returns to after an import that CREATED a car
+# while an existing car is in the garage. The switcher must name the imported
+# car, not the old one. `-seedImportAutoConfirm` commits through the REAL confirm
+# path (simctl cannot tap), so this is the returned Home, not a painted state.
+# RU is the wrap check on the switcher label and the imported row titles.
+capture RV.255-home    en -seedSettingsSignedIn -presentScreen importWizard -importStubFormats one -seedImportNewCarExisting -seedImportAutoConfirm
+capture RV.255-home-ru ru -seedSettingsSignedIn -presentScreen importWizard -importStubFormats one -seedImportNewCarExisting -seedImportAutoConfirm
+
 # PJ.36/PJ.38: the export lanes. `-presentExportShare` / `-presentCarExportShare`
 # are DEBUG hooks that drive the SAME build the row's tap runs, because simctl
 # cannot tap the share sheet open. The PJ.36 shot is Settings with the

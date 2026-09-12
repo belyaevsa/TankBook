@@ -193,7 +193,10 @@ extension ImportUITests {
     /// questions) - and the single commit lands BOTH kinds: the fuel fills on
     /// the mapped cars AND the costs service as a ServiceRecord.
     func testWholeExportPickMapsCarsOnceAndLandsBothKinds() {
-        let app = launch(["-presentScreen", "importWizard",
+        // Signed in so the switcher is reachable: RV.255 lands the returned
+        // Home on the car the commit CREATED (the AUDI lane), so the service
+        // that landed on the existing Volvo must be reached by switching.
+        let app = launch(["-seedSettingsSignedIn", "-presentScreen", "importWizard",
                           "-importStubFormats", "one", "-seedImportBatch"])
         XCTAssertTrue(app.otherElements["importCarsScreen"].waitForExistence(timeout: 10),
                       "a two-file pick reaches the mapping gate")
@@ -238,6 +241,18 @@ extension ImportUITests {
         XCTAssertTrue(continueButton.isEnabled,
                       "mapping both cars and keeping the service enables the one write")
         continueButton.tap()
+
+        // RV.255: the commit selects the car it created (the AUDI lane), so the
+        // service that landed on the existing Volvo is off-screen until the
+        // switcher moves Home to the Volvo.
+        let switcher = app.buttons["carSwitcherButton"]
+        XCTAssertTrue(switcher.waitForExistence(timeout: 10),
+                      "the wizard closes and Home returns on the created car")
+        switcher.tap()
+        let volvoRow = app.buttons.matching(identifier: "carSwitcherRow")
+            .matching(NSPredicate(format: "label CONTAINS %@", "Volvo")).firstMatch
+        XCTAssertTrue(volvoRow.waitForExistence(timeout: 5))
+        volvoRow.tap()
 
         // Both kinds land. The seeded existing car's log must show the imported
         // Service row (the exact surface PJ.9's single-file test asserts); its

@@ -168,6 +168,11 @@ final class ImportFlowModel {
 
     var didConfirm = false
     var confirmFailed = false
+    /// RV.255: the car the last successful commit CREATED - the single new
+    /// target, or the first new lane of the multi-car gate in displayed order.
+    /// nil when every destination was an existing car (or nothing was written):
+    /// the user chose that car, so the caller must not move the selection.
+    var createdVehicle: Vehicle?
 
     /// The parse's source id (`mfm`, ...) - the provenance every committed row
     /// carries (P5.4: `provenance = { tag: "import", source: <format> }`). All

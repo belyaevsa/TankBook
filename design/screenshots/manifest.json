@@ -2115,6 +2115,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.255-home": {
+      "commit": "43ce4008",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.255-home-ru": {
+      "commit": "43ce4008",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.28-fuel-chips": {
       "commit": "0ba7e94",
       "device": "iPhone 17",

@@ -47,6 +47,12 @@ struct ImportWizardView: View {
                 await model.loadFormats()
                 #if DEBUG
                 ImportTestSeed.seedFlowIfRequested(model: model)
+                // RV.255 screenshot seam: `simctl` cannot tap, so a seeded flow
+                // is committed through the REAL confirm path (selection and all)
+                // to reach the returned Home.
+                if ProcessInfo.processInfo.arguments.contains("-seedImportAutoConfirm") {
+                    confirm(model)
+                }
                 #endif
             }
             // PJ.20: the send-file consent flow's seed - opens the not-supported
@@ -172,14 +178,30 @@ struct ImportWizardView: View {
     }
 
     /// The one write, shared by the preview and the multi-car gate: confirm and,
-    /// on success, toast the count and leave the wizard.
+    /// on success, select the car it created, toast the count and leave the
+    /// wizard.
     private func confirm(_ model: ImportFlowModel) {
         Task {
             let ok = await model.confirmImport()
             if ok {
+                selectCreatedCar(model)
                 toastCenter.show(L10n.importedFillUps(model.commitCount))
                 dismiss()
             }
+        }
+    }
+
+    /// RV.255: the returned Home must show the car the import created, not the
+    /// one the user had selected before. The model reports the created car; the
+    /// selection write lives here, beside the switcher's own, so there is one
+    /// selection path. An import into an existing car reports nothing created,
+    /// so the user's chosen car stays selected.
+    private func selectCreatedCar(_ model: ImportFlowModel) {
+        guard let created = model.createdVehicle else { return }
+        do {
+            try carSelection.select(created)
+        } catch {
+            AppLog.error(operation: "import.selectCreatedCar", category: .ui, error: error)
         }
     }
 }
