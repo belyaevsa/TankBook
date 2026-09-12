@@ -120,25 +120,33 @@ final class ImportFlowModel {
     /// unparsed row can have no destination while a multi-car mapping is still
     /// unset; that state deliberately uses the global fallback above.
     func distanceUnit(for row: ImportReviewRow) -> DistanceUnit {
-        let vehicleID = row.fill?.vehicleId ?? row.nonFuelVehicleID
-        if let vehicleID, let unit = vehicleDistanceUnit(for: vehicleID) {
-            return unit
-        }
+        if let vehicle = vehicle(for: row) { return vehicle.units.distance }
         return distanceUnit
     }
 
-    /// The distance unit of the car a review row belongs to, when that car is
-    /// known through the current mapping or the single target car.
-    private func vehicleDistanceUnit(for vehicleID: UUID) -> DistanceUnit? {
+    /// The headline consumption unit of the car a review row belongs to, for
+    /// the CHECK 5 quote (RV.229). The same resolution as `distanceUnit(for:)`,
+    /// so a multi-car file's outlier quotes its own car's unit.
+    func headlineUnit(for row: ImportReviewRow) -> HeadlineUnit {
+        vehicle(for: row)?.headlineUnit
+            ?? liveVehicles.first?.headlineUnit
+            ?? .consumption(.lPer100)
+    }
+
+    /// The car a review row belongs to, when that car is known through the
+    /// current mapping or the single target car. A multi-car file's rows can
+    /// land in cars with different units, so every per-row figure resolves
+    /// through this rather than the global fallback.
+    private func vehicle(for row: ImportReviewRow) -> Vehicle? {
+        let vehicleID = row.fill?.vehicleId ?? row.nonFuelVehicleID
+        guard let vehicleID else { return nil }
         if case .existing(let vehicle) = targetCar, vehicle.id == vehicleID {
-            return vehicle.units.distance
+            return vehicle
         }
-        for row in carPlan {
-            if row.destinationVehicleID == vehicleID {
-                return row.destinationVehicle?.units.distance
-            }
+        for row in carPlan where row.destinationVehicleID == vehicleID {
+            return row.destinationVehicle
         }
-        return liveVehicles.first(where: { $0.id == vehicleID })?.units.distance
+        return liveVehicles.first { $0.id == vehicleID }
     }
 
     var readyFills: [FillUp] = []

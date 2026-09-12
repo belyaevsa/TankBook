@@ -58,6 +58,44 @@ struct ImportTimelineDetail: View {
     }
 }
 
+/// The CHECK 5 consumption-outlier detail cell (RV.229): the amber row the
+/// edit screen renders for the same flag, quoting the engine's own figure and
+/// offering the same two checks through `F9aFixRow`. A consumption outlier and
+/// a timeline break are different errors with different next steps, so the row
+/// must not wear the timeline words (hard rule 7).
+struct ImportConsumptionDetail: View {
+    let per100: Double
+    let unit: HeadlineUnit
+    let onCheckLiters: () -> Void
+    let onCheckOdometer: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                Text(OdometerConflict.consumptionQuote(per100: per100,
+                                                       unit: L10n.headlineUnit(unit)))
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .lineSpacing(1.4)
+            }
+            F9aFixRow(conflict: OdometerConflict(
+                quote: nil,
+                flagKind: .consumption,
+                suggestions: [.checkVolume, .checkOdometer]),
+                onFixOdometer: onCheckOdometer,
+                onFixLiters: onCheckLiters,
+                onFixDate: {})
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 8)
+        .padding(.bottom, 2)
+        .accessibilityIdentifier("importReviewConsumptionDetail")
+    }
+}
+
 /// A generic labelled field cell ("Litres", "Price/L", "Total", "Note").
 /// `valueLineLimit` lets a free-text value - a station name - wrap to a second
 /// line instead of shrinking into illegibility, where a numeric cell stays one

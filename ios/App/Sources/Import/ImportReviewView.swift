@@ -83,6 +83,19 @@ private struct ImportReviewRowView: View {
             if case .timelineConflict = row.kind {
                 ImportTimelineDetail(row: row, distanceUnit: model.distanceUnit(for: row))
             }
+            if case .consumptionOutlier(let per100, _) = row.kind {
+                // The CHECK 5 outlier is a different error from a timeline
+                // break: the fields to question are the litres and the
+                // odometer, so the next step is the F9a check vocabulary the
+                // edit screen uses (RV.229, hard rule 7). "Check litres"
+                // reveals the source line the litres came from; "Check
+                // odometer" opens the row's odometer editor.
+                ImportConsumptionDetail(
+                    per100: per100,
+                    unit: model.headlineUnit(for: row),
+                    onCheckLiters: { showingRawLine = true },
+                    onCheckOdometer: { showingOdometerEditor = true })
+            }
             actions
             if showingRawLine, row.rawLine != nil {
                 rawLineView
@@ -126,6 +139,7 @@ private struct ImportReviewRowView: View {
             let value = ImportFormatting.decimal(abs(offBy), fractionDigits: 2)
             return L10n.offBy(amount: "\(value) \(symbol)")
         case .timelineConflict: return L10n.localize("Breaks the timeline")
+        case .consumptionOutlier: return L10n.localize("Unusual consumption")
         case .noFuel: return nonFuelBadgeText
         case .unmappable, .unparsed: return L10n.localize("Couldn't read this row")
         }
@@ -143,7 +157,8 @@ private struct ImportReviewRowView: View {
 
     private var badgeColor: Color {
         switch row.kind {
-        case .missingOdometer, .crossCheckMismatch, .timelineConflict, .unmappable, .unparsed:
+        case .missingOdometer, .crossCheckMismatch, .timelineConflict,
+             .consumptionOutlier, .unmappable, .unparsed:
             return Theme.Palette.warn
         case .noFuel:
             return Theme.Palette.inkSoft
@@ -365,6 +380,7 @@ private struct ImportReviewRowView: View {
     private var showsImportAsIs: Bool {
         if case .crossCheckMismatch = row.kind { return true }
         if case .timelineConflict = row.kind { return true }
+        if case .consumptionOutlier = row.kind { return true }
         return false
     }
 
@@ -423,6 +439,10 @@ private struct ImportReviewRowView: View {
                     .onTapGesture { model.keep(sourceRow: row.sourceRow) }
             }
         case .unmappable, .unparsed:
+            EmptyView()
+        case .consumptionOutlier:
+            // The next steps are the F9a check chips in the consumption detail
+            // above; a second primary action here would duplicate them.
             EmptyView()
         }
     }

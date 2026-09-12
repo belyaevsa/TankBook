@@ -144,6 +144,44 @@ extension ImportFlowModel {
         rebuildClassification()
     }
 
+    /// RV.229: installs a stub parse whose second fill implies an absurd
+    /// consumption - 8 L over the 500 km since the first full fill = 1.6
+    /// L/100km, below the ICE band - so the review list must label it "Unusual
+    /// consumption" with the litres/odometer checks, never "Breaks the
+    /// timeline". The odometer order and pace are clean, so the row's only flag
+    /// is the CHECK 5 outlier.
+    func installSeededConsumptionParse() {
+        func fill(_ row: Int, _ date: Date, _ odo: Int, _ litres: Double,
+                  _ amount: String, _ note: String) -> ImportCandidate {
+            ImportCandidate(
+                entityType: "fillUp", date: date, odometer: odo, volumeL: litres,
+                unitPrice: "1.85", money: ImportMoney(amount: amount, currency: "USD"),
+                fuelKind: "diesel", isFull: true, tankLevelAfterPct: 100, note: note,
+                vehicleName: "Volvo",
+                provenance: ImportProvenance(tag: "import", source: "mfm"),
+                sourceRow: row)
+        }
+        let candidates = [
+            fill(1, Date(timeIntervalSince1970: 1_786_320_000), 121_000, 42.3, "78.26", "Neste"),
+            fill(2, Date(timeIntervalSince1970: 1_787_529_600), 121_500, 8, "14.80", "Shell"),
+        ]
+        let response = ImportParseResponse(
+            importId: "00000000-0000-4000-8000-000000000329", format: "mfm",
+            scope: "vehicle", candidates: candidates,
+            unparsed: [], ambiguities: [])
+        dateFormatAnswer = nil
+        adoptSingleFile(fileName: "MyFuelManager_2026-08.csv",
+                        rawData: Data("""
+                        My Fuel Manager - Fuel
+                        Date;Odometer;Fillup volume;Total price;Currency;Note;Vehicle name
+                        8/10/2026;121000;42.3;78.26;USD;Neste;"Volvo"
+                        8/24/2026;121500;8;14.80;USD;Shell;"Volvo"
+                        """.utf8),
+                        parse: response)
+        ensureTargetCar(preferredVehicleID: nil)
+        rebuildClassification()
+    }
+
     /// RV.85: installs a stub parse for a DETECTABLE file - one whose own rows
     /// prove D/M (12/01 and 13/05 only read day-first), so the post-fix server
     /// resolves every date and returns NO `dateFormat` ambiguity. The preview

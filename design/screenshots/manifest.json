@@ -2115,6 +2115,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.229-import-review-consumption": {
+      "commit": "c0021261",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.229-import-review-consumption-ru": {
+      "commit": "c0021261",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.23-welcome": {
       "commit": "5aa51854",
       "device": "iPhone 17",

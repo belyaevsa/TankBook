@@ -248,6 +248,14 @@ public struct ImportReviewRow: Equatable, Sendable, Identifiable {
         /// The row's odometer breaks the car's timeline (F9a, PJ.11): order or
         /// pace. Shown before anything is written; the row stays committable.
         case timelineConflict(kind: ConflictState.ConflictKind)
+        /// The row's implied consumption is outside the car's plausible band
+        /// (CHECK 5, RV.218's F2 residue). The odometer and date are internally
+        /// consistent, so the fields to question are the litres and the
+        /// odometer - a different label and next step from `.timelineConflict`
+        /// (RV.229). Carries the engine's own `per100` and the band it was
+        /// compared against, so the review row quotes the same figure Trends
+        /// plots (hard rule 2).
+        case consumptionOutlier(per100: Double, range: ClosedRange<Double>)
     }
 
     /// What a `.noFuel` row is (PJ.9): the concrete record the "Import as
@@ -405,22 +413,40 @@ public enum ImportReviewClassifier {
                     sourceRow: sourceRow, kind: valueKind, fill: stamped,
                     rawLine: rawLinesByRow[sourceRow], stationName: stationName))
             } else if case .flagged(let kind, _) = stamped.conflict {
-                // The order flag's previous neighbour feeds the quote the
-                // review list renders ("Aug 17 already recorded ... km.").
-                var previousOdometer: Int?
-                var previousDate: Date?
-                if let flag = validation?.flags.first,
-                   case .order(_, let previousOdometerValue, let previousDateValue, _, _) = flag.detail {
-                    previousOdometer = previousOdometerValue
-                    previousDate = previousDateValue
+                let flags = validation?.flags ?? []
+                // A row whose only flag is a consumption outlier gets its own
+                // kind (RV.229): the odometer and date are internally
+                // consistent, so the fields to question are the litres and the
+                // odometer - a different label and next step from the timeline.
+                // A row carrying a timeline flag too keeps `.timelineConflict`:
+                // the timeline is the harder error, and the odometer is the
+                // field it names.
+                if flags.allSatisfy({ $0.kind == .consumption }),
+                   let first = flags.first,
+                   case .consumption(let per100, let range) = first.detail {
+                    review.append(ImportReviewRow(
+                        sourceRow: sourceRow,
+                        kind: .consumptionOutlier(per100: per100, range: range),
+                        fill: stamped, rawLine: rawLinesByRow[sourceRow],
+                        stationName: stationName))
+                } else {
+                    // The order flag's previous neighbour feeds the quote the
+                    // review list renders ("Aug 17 already recorded ... km.").
+                    var previousOdometer: Int?
+                    var previousDate: Date?
+                    if let flag = flags.first,
+                       case .order(_, let previousOdometerValue, let previousDateValue, _, _) = flag.detail {
+                        previousOdometer = previousOdometerValue
+                        previousDate = previousDateValue
+                    }
+                    review.append(ImportReviewRow(
+                        sourceRow: sourceRow, kind: .timelineConflict(kind: kind),
+                        fill: stamped, rawLine: rawLinesByRow[sourceRow],
+                        timeline: ImportReviewRow.TimelineFlag(kind: kind,
+                                                               previousOdometer: previousOdometer,
+                                                               previousDate: previousDate),
+                        stationName: stationName))
                 }
-                review.append(ImportReviewRow(
-                    sourceRow: sourceRow, kind: .timelineConflict(kind: kind),
-                    fill: stamped, rawLine: rawLinesByRow[sourceRow],
-                    timeline: ImportReviewRow.TimelineFlag(kind: kind,
-                                                           previousOdometer: previousOdometer,
-                                                           previousDate: previousDate),
-                    stationName: stationName))
             } else {
                 ready.append(stamped)
             }

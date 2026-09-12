@@ -22,6 +22,7 @@ enum ImportTestSeed {
         guard arguments.contains("-seedImportPreview")
             || arguments.contains("-seedImportReview")
             || arguments.contains("-seedImportTimeline")
+            || arguments.contains("-seedImportConsumption")
             || arguments.contains("-seedImportResolvedDates")
             || arguments.contains("-seedImportService")
             || arguments.contains("-seedImportCars")
@@ -155,6 +156,11 @@ enum ImportTestSeed {
             model.installSeededBatchAnomalyParse()
         } else if arguments.contains("-seedImportTimeline") {
             model.installSeededTimelineParse()
+            model.showReview()
+        } else if arguments.contains("-seedImportConsumption") {
+            // RV.229: a row whose only flag is the CHECK 5 consumption outlier
+            // must wear its own label and next step, never the timeline's.
+            model.installSeededConsumptionParse()
             model.showReview()
         } else if arguments.contains("-seedImportReview") {
             model.installSeededParse(resourceName: "import-parse-review",

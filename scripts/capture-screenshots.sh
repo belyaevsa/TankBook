@@ -859,6 +859,14 @@ capture RV.221-import-station-review-ru ru -presentScreen importWizard -importSt
 capture PJ.11-import-flagged-row    en -presentScreen importWizard -seedImportTimeline
 capture PJ.11-import-flagged-row-ru ru -presentScreen importWizard -seedImportTimeline
 
+# RV.229: the import review's consumption outlier - a row whose only flag is
+# CHECK 5 (8 L over 500 km = 1.6 L/100km, below the ICE band) must wear "Unusual
+# consumption" with the litres/odometer checks, never "Breaks the timeline"
+# with its odometer Fix (hard rule 7). The order and pace are clean, so the row
+# has no timeline flag. RU is the wrap check on the label and the two chips.
+capture RV.229-import-review-consumption    en -presentScreen importWizard -seedImportConsumption
+capture RV.229-import-review-consumption-ru ru -presentScreen importWizard -seedImportConsumption
+
 # PR.6: the transport-timeout cancels (docs/PRACTICES.md U6). The import parse's
 # Cancel - the source screen mid-upload, driven by the slow stub so `isParsing`
 # is still true at the 6 s capture - and the restore progress's Cancel - the

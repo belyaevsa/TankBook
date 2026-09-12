@@ -409,6 +409,23 @@
         }
       }
     },
+    "Unusual consumption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unusual consumption"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Необычный расход"
+          }
+        }
+      }
+    },
     "Unusual consumption – check the litres or odometer": {
       "extractionState": "manual",
       "localizations": {
