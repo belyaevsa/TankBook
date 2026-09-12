@@ -19,6 +19,9 @@ struct SignInFlowHost: View {
     /// `@State` initial-value time). PJ.13: the seam runs the user-initiated
     /// cycle that uploads a local log before the sheet closes.
     @State private var flow: SignInFlow?
+    /// RV.260: the completion the pushed restore-from-backup screen calls on a
+    /// successful import, so the whole sheet closes rather than only popping.
+    @State private var backupFlow = RestoreBackupFlowContext()
 
     var body: some View {
         Group {
@@ -59,7 +62,13 @@ struct SignInFlowHost: View {
         // own stack - without this the rows on the empty-restore and
         // backend-down screens are dead links (RV.239).
         .navigationDestination(for: Route.self) { DestinationView(route: $0) }
+        // RV.260: a successful local restore from one of the failure screens
+        // must close the WHOLE sign-in sheet (its `dismiss` here), not just pop
+        // the pushed backup screen - otherwise the imported car appears behind
+        // a sheet still claiming the account is empty.
+        .environment(\.restoreBackupFlow, backupFlow)
         .onAppear {
+            backupFlow.onImported = { dismiss() }
             if flow == nil {
                 flow = SignInFlow.makeDefault(sync: sync, arrivedViaRestore: arrivedViaRestore)
             }

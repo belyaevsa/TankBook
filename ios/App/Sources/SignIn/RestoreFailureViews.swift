@@ -69,8 +69,19 @@ struct EmptyRestoreView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .accessibilityIdentifier("emptyRestoreRecoveryPrompt")
+            // RV.260: the primary fallback is a Tankbook backup read back
+            // locally (no network, no account). The third-party wizard keeps a
+            // door BESIDE it: it reads foreign files (MFM/Drivvo) and cannot
+            // read a Tankbook archive, so the two must not be one row.
+            NavigationLink(value: Route.restoreFromBackup) {
+                recoveryRow(icon: "externaldrive.badge.timemachine",
+                            title: "Import a file you exported yourself")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("emptyRestoreBackupRow")
+            CardDivider()
             NavigationLink(value: Route.importWizard) {
-                recoveryRow(icon: "square.and.arrow.down", title: "Import a file you exported yourself")
+                recoveryRow(icon: "square.and.arrow.down", title: "Import from another app")
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("emptyRestoreImportRow")
@@ -191,8 +202,17 @@ struct RestoreUnreachableView: View {
 
     private var actionsCard: some View {
         VStack(alignment: .leading, spacing: 10) {
+            // RV.260: the local Tankbook-backup door is the primary fallback
+            // here too; the third-party wizard sits beside it.
+            NavigationLink(value: Route.restoreFromBackup) {
+                actionRow(icon: "externaldrive.badge.timemachine",
+                          title: "Import a file you exported yourself")
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("restoreUnreachableBackupRow")
+            CardDivider()
             NavigationLink(value: Route.importWizard) {
-                actionRow(icon: "square.and.arrow.down", title: "Import a file")
+                actionRow(icon: "square.and.arrow.down", title: "Import from another app")
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("restoreUnreachableImportRow")

@@ -74,6 +74,11 @@ enum Route: Hashable {
     case addVehicle
     case accountDevices
     case paywall
+    /// RV.260: the local restore-from-backup door (docs/SCREENMAP.md). Opens a
+    /// Tankbook backup archive the user exported and imports it through
+    /// `VehicleArchiveReader` - no network, no account. Reachable from both
+    /// restore-failure screens and Settings, beside Export.
+    case restoreFromBackup
     case importWizard
     /// The Log filtered to flagged entries (docs/SYNC.md -> Settings shows a
     /// count and a link only; resolution lives where the data lives). Reached
@@ -111,6 +116,7 @@ enum Route: Hashable {
         case .addVehicle: "Add car"
         case .accountDevices: "Account & devices"
         case .paywall: "Tankbook Pro"
+        case .restoreFromBackup: "Restore from backup"
         case .importWizard: "Import"
         case .flaggedEntries: "Needs a look"
         case .inbox: "Inbox"

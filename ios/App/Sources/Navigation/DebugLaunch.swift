@@ -60,6 +60,7 @@ enum DebugLaunch {
         "stationSettings": .stationSettings(nil),
         "addVehicle": .addVehicle,
         "accountDevices": .accountDevices,
+        "restoreFromBackup": .restoreFromBackup,
         "importWizard": .importWizard,
         "flaggedEntries": .flaggedEntries,
         "excludedEntries": .excludedEntries,

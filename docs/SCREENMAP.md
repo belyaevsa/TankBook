@@ -29,9 +29,13 @@ flowchart TD
         SignIn -.->|Not now| Welcome
         Restoring -->|Open my garage| Home
         Restoring -.->|Cancel = sign out| Welcome
+        Restoring -->|import a Tankbook backup| RestoreFromBackup
+        Restoring -->|import from another app| ImportWizard
         AddVehicle -->|Save first car| GuestHome
         AddVehicle -.->|X| Welcome
         ImportWizard -->|done| Home
+        RestoreFromBackup -->|import done| Home
+        RestoreFromBackup -.->|back| Back0[return to opener]
         GuestHome -->|first capture| Capture
     end
 
@@ -150,6 +154,7 @@ flowchart TD
     Settings -->|account card, signed in| AccountDevices
     Settings -->|Language| LanguagePicker[Language picker (sheet)]
     Settings -->|Import| ImportWizard
+    Settings -->|Restore from backup| RestoreFromBackup
     Settings -->|"2 entries need a look"| Log
     Settings -->|Recently deleted| RecentlyDeleted
     Settings -->|About| About
@@ -233,7 +238,8 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 |---|---|---|---|
 | Welcome | first launch only – shown while there is **no vehicle AND no session**; never again once a car exists | Add car → AddVehicle · Import from another app → ImportWizard · "Sign in to Tankbook" → SignIn with **no** restore intent (`arrivedViaRestore: false`) · "Already use Tankbook? Restore your garage." → SignIn with the restore intent (`arrivedViaRestore: true`) | none – it IS the root before data exists |
 | Sign in | Welcome (the restore line carries the restore intent; the peer "Sign in to Tankbook" button does not), Settings (a running app – no restore intent) | provider → Restoring (existing) or Home (new, uploads local log) | "Not now" / swipe → opener |
-| Restoring | successful sign-in with data | Open my garage → Home | Cancel = sign out → Welcome (never traps) |
+| Restoring | successful sign-in with data | Open my garage → Home · **the failure states (empty account, backend down) carry two doors**: "Import a file you exported yourself" → RestoreFromBackup (the LOCAL Tankbook-backup door, no network, no account - RV.260) and "Import from another app" → ImportWizard (the third-party MFM/Drivvo parser, which cannot read a Tankbook archive) | Cancel = sign out → Welcome (never traps) |
+| **Restore from backup** (RV.260, local) | both restore-failure screens ("Import a file you exported yourself") and Settings, beside Export | picks a Tankbook backup **folder** - what `ExportBuilder` hands the share sheet: `manifest.json` + `data.json` + `attachments/`, per-car (`buildCarExport`) or whole-account (`buildAccountArchive`) - and reads it through `VehicleArchiveReader` with `.singleCar`. A per-car archive lands as a car and its entries; a whole-account archive is REFUSED with its named next step (`guardScope`, never inferred from a count). No network, no account: a guest can restore (hard rule 1). Every refusal names its next step (docs/ERRORS.md) | import done → Home · back → the opener (the sign-in sheet's failure screen, or Settings) |
 | Add car | Welcome, Garage, Car switcher | Save → Home (guest: GuestHome) | X → opener |
 | Home (incl. guest/empty state) | tab root | gear → Settings (the shared tab-root header), car card, banner, entries (the log stream, present for a guest too once an entry exists, RV.197), capture · **the header "Type it" split (RV.61)**: the primary action is the fill-up door in one tap, its trailing chevron is a menu offering Service and Expense entry - the same peer manual doors the capture screen's mode row offers, with no camera required · the J9 anomaly insight card (amber, in the Log) expands in place to the evidence (chart + causes) and offers **Create reminder** (act) or **Dismiss with reason** → the dismissal sheet | tab root – no back |
 | **Inbox** (RV.38, RV.45) | the bell on the shared tab-root header (Log, Trends and Garage alike) | an item → Edit entry (the entry the reading is about) · an item resolves in place with a **per-field comparison** – each field the receipt read that differs or fills a blank shows "yours vs the receipt" with a tick, then **update from the receipt** (takes the ticked fields only, disabled until one is ticked, hard rule 13), **leave it as it is**, **replace the receipt** (routes to Edit entry). **RV.64: the emphasis follows the tick count, the ORDER never moves** - with nothing ticked "leave it as it is" is the filled button, and from the first tick "update from the receipt" becomes it, so the loud default never contradicts what the user just did and nothing shifts under a finger already reaching for a button · a reading that would change nothing says so and offers no update · Reminders (planned, links, never replaces that screen) | back chevron + edge-swipe → the tab root that pushed it |
@@ -263,7 +269,7 @@ Beneath the three doors sits a fourth affordance that is **not** a peer door but
 | Reminder complete (sheet) | Reminders, push action | Scan invoice / Type → ServiceEntry · Skip | dismiss → Reminders |
 | Anomaly dismiss (sheet, P6.1b) | the Log's anomaly card → **Dismiss with reason** (J9) | preset reasons / free text → records an `AnomalyDismissal` (the card leaves for that cause) | swipe-down / after recording → Log |
 | Recently deleted | Settings (and Log overflow menu) | Restore (in place: tombstone cleared, entry back in Log). A tombstoned **car** (RV.98) is one row - "Volvo V60 and 512 entries" - covering every entry that went down with it at the same tombstone stamp; its Restore returns the car AND that group to the Garage and the Log, never a single entry that would be stranded on a deleted vehicle. Entries and reminders the user deleted individually list as their own rows exactly as before. · The "Overwritten by sync" section is REAL data since PJ.59: it reads the `syncOverwrite` undo log and offers Restore my version (the losing version back; S1/S4) | back → Settings |
-| Settings | any tab root's gear (Log, Trends, Garage) | account card (signed in → Account & devices) · **Sign out** (signed in, the mild account exit - revokes the refresh chain server-side and clears the local session, never touches the log) · language, import, export (system), recently deleted, About | back → the tab root that pushed it |
+| Settings | any tab root's gear (Log, Trends, Garage) | account card (signed in → Account & devices) · **Sign out** (signed in, the mild account exit - revokes the refresh chain server-side and clears the local session, never touches the log) · language, import, export (system), **Restore from backup** (RV.260, beside Export - write it out, read it back), recently deleted, About | back → the tab root that pushed it |
 | Account & devices (P6.4) | Settings account card (signed in) | device list (revoke; **revoked rows stay listed, marked "Signed out"** – the Settings card's count counts the live ones only, RV.54) · Delete account (tombstone; the log on this phone is never touched) | back → Settings |
 | About & feedback | Settings | identity header (icon, name, version) · the update row (`.recommended`, dismissible; App Store link only when a compiled-in app id exists) · feedback/rate/privacy (later tasks) · **Attach diagnostics** (OB.4): a once-asked consent, default OFF and persisted, whose "Preview what will be shared" opens the Diagnostics preview | back → Settings |
 | **Diagnostics preview** (sheet, docs/LOGGING.md §5) | About -> Attach diagnostics (only reachable once the opt-in is on) | Share (system share sheet - the exact text shown) · read the full redacted bundle: 24 h log window, sync state (last success, dirty/flagged counts, last failure kind + code + traceId), per-table row counts | Close / swipe-down → About - nothing was sent |

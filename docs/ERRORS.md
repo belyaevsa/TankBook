@@ -39,9 +39,25 @@ Global rules: being offline is **never** an error (F3/S7 – features work; pend
 |---|---|---|
 | Empty account + user came via "Already use Tankbook?" | "Nothing is stored under this Apple ID. Last time, did you sign in with Google?" (J11a) | Try Google (one tap) · sign out. **RV.259:** if the switched-to provider is *also* empty, the F7 recovery screen follows (import a file · Start fresh) - the reverse question is never asked |
 | Pull interrupted (network drop mid-restore) | Progress pauses: "Connection dropped – restore continues when you're back online." Entries already pulled remain usable | Open my garage (partial, keeps filling) · retry now |
-| Server 5xx / down | "Sync service unreachable – your data is safe on the server. You can import an export file, or it will all arrive when the service is back." (F7) | Import a file · wait (auto-retry) · sign out |
+| Server 5xx / down | "Sync service unreachable – your data is safe on the server. You can import an export file, or it will all arrive when the service is back." (F7) | Import a file you exported yourself (the LOCAL Tankbook-backup door, RV.260) · import from another app · wait (auto-retry) · sign out |
 | Wrong account realized mid-restore | Always-visible "Not my account · sign out" | Sign out → Welcome |
 | Photo download stalls / user wants out (PR.6) | The "Receipt photos" progress carries a **Cancel** while downloading | Cancel (stops the download and signs out; the app's local data and the already-pulled entries stay) · Open my garage (photos keep filling in the background) |
+
+### Restore from backup (RV.260, local)
+The local door that reads a Tankbook backup back (no account, no network). The
+archive is a FOLDER - `manifest.json` + `data.json` + `attachments/` - exactly
+what Export hands the share sheet. `VehicleArchiveReader.guardScope` is the
+guard, and every refusal names its next step (hard rule 7).
+
+| Condition | Shows | Next step |
+|---|---|---|
+| Whole-account archive chosen (scope `account`) | "This is a full-account backup, not a single car." | Sign in with the same account to restore everything, or export a single car and restore that here |
+| Not a Tankbook archive (missing/malformed manifest or data) | "That folder isn't a Tankbook backup." | Choose the folder Tankbook created when you exported - it holds manifest.json and data.json |
+| Archive from a newer app (`unsupportedSchemaVersion`) | "This backup was made by a newer version of Tankbook." | Update Tankbook, then try again |
+| Archive is password-protected (not reachable from the app's own export, which never sets one) | "This backup is protected by a password." | Export a backup without a password, or restore from your account instead |
+| Damaged archive (`invalidPayload` / `blobHashMismatch`) | "This backup is damaged and can't be restored." | Try another backup, or sign in to restore from your account |
+| Folder could not be read (permission, iCloud not downloaded) | "We couldn't read that folder." | Make sure the folder is downloaded, then choose it again |
+| Anything else (`missingData` / `underlying`) | "We couldn't restore this backup." | Try again, or sign in to restore from your account |
 
 ### Add car
 | Condition | Shows | Next step |

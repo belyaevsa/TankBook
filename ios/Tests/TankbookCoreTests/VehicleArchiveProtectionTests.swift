@@ -59,6 +59,34 @@ import Testing
     #expect(stored == Data("JPEG-CONTENT-LIVE".utf8))
 }
 
+// MARK: - RV.260: the local restore door's scope guard
+
+/// The restore-from-backup door imports with `.singleCar`. A per-car archive is
+/// never treated as a whole-account restore: `guardScope` refuses it BEFORE the
+/// passphrase check, so even a protected per-car archive offered as an account
+/// restore is a scope refusal, not a passphrase prompt - the manifest's declared
+/// scope is the load-bearing decision, never the caller's assumption.
+@Test func protectedVehicleArchiveOfferedAsAccountRestoreIsRefusedByScope() throws {
+    let origin = try ArchiveTest.makeRepo()
+    let seed = try ArchiveTest.seedGarage(into: origin)
+    let archiveDir = try ArchiveTest.makeTempDir("archive-protected-scope")
+    try ArchiveTest.exportVolvo(from: origin, vehicleID: seed.volvo, to: archiveDir,
+                                blobSourceDir: seed.blobRoot, passphrase: "correct horse battery staple")
+
+    let target = try ArchiveTest.makeRepo()
+    let blobStoreDir = try ArchiveTest.makeTempDir("blobstore-protected-scope")
+    let reader = VehicleArchiveReader(repository: target,
+                                      blobStore: FileBackedBlobStore(directory: blobStoreDir))
+    do {
+        _ = try reader.importArchive(at: archiveDir, mode: .accountRestore,
+                                     passphrase: "correct horse battery staple")
+        Issue.record("a vehicle archive offered as an account restore must be refused")
+    } catch let error as VehicleArchiveError {
+        #expect(error == .scopeMismatch(expected: .accountRestore, declared: .vehicle))
+    }
+    try ArchiveTest.assertRepositoryEmpty(target, blobStoreDir: blobStoreDir)
+}
+
 @Test func unprotectedExportStillOpens() throws {
     let origin = try ArchiveTest.makeRepo()
     let seed = try ArchiveTest.seedGarage(into: origin)

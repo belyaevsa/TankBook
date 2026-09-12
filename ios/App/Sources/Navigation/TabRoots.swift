@@ -176,6 +176,8 @@ struct AppRootView: View {
         // signed-in screenshot/test launch never shows onboarding. Read here,
         // in init, so the first frame is already correct.
         _showWelcome = State(initialValue: WelcomeGate.shouldShowWelcome())
+        // RV.260: after the launch wipe, so the archive is the only copy.
+        RestoreBackupLaunchHook.runIfRequested()
         // RV.74: seed the reminder states at LAUNCH - the reminder-tap deep
         // link resolves the tapped id in the router BEFORE any screen loads, so
         // a seed deferred to a screen would resolve nothing. Idempotent; the

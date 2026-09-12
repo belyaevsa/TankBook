@@ -441,12 +441,12 @@
       "runtime": "iOS.26.5"
     },
     "P4.7-restore-empty": {
-      "commit": "52e3bab9",
+      "commit": "ab85e38b",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P4.7-restore-empty-ru": {
-      "commit": "52e3bab9",
+      "commit": "ab85e38b",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2126,12 +2126,32 @@
       "runtime": "iOS.26.5"
     },
     "RV.259-empty-restore-after-switch": {
-      "commit": "52e3bab9",
+      "commit": "ab85e38b",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.259-empty-restore-after-switch-ru": {
-      "commit": "52e3bab9",
+      "commit": "ab85e38b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.260-empty-restore-doors": {
+      "commit": "ab85e38b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.260-empty-restore-doors-ru": {
+      "commit": "ab85e38b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.260-restore-from-backup": {
+      "commit": "ab85e38b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.260-restore-from-backup-ru": {
+      "commit": "ab85e38b",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

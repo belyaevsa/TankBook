@@ -531,6 +531,16 @@ capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnrea
 alias_shot P4.7-restore-empty    RV.259-empty-restore-after-switch
 alias_shot P4.7-restore-empty-ru RV.259-empty-restore-after-switch-ru
 
+# RV.260: the LOCAL restore-from-backup door (new screen) and the empty-restore
+# recovery card with its two doors - the Tankbook backup, and the third-party
+# wizard beside it. The doors frame is the SAME frame as P4.7-restore-empty
+# (`EmptyRestoreView` renders the same card), so it is aliased rather than shot
+# twice; the new screen is its own capture. Dark, EN + RU.
+capture RV.260-restore-from-backup    en -presentScreen restoreFromBackup
+capture RV.260-restore-from-backup-ru ru -presentScreen restoreFromBackup
+alias_shot P4.7-restore-empty    RV.260-empty-restore-doors
+alias_shot P4.7-restore-empty-ru RV.260-empty-restore-doors-ru
+
 # P4.9b: the Settings sync surface, six states (guest, synced, pending, flagged,
 # revoked, quota). The status row is reassurance and never turns amber with age;
 # the flagged row is a derived count and a link only (hard rule 8). RU is where

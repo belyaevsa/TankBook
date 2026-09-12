@@ -1,6 +1,363 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Pick the backup folder you saved with Export – no account or connection needed.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick the backup folder you saved with Export – no account or connection needed."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите папку резервной копии, сохранённую через «Экспорт» – без аккаунта и подключения."
+          }
+        }
+      }
+    },
+    "Choose a backup exported from a single car's screen.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a backup exported from a single car's screen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите копию, экспортированную с экрана одного автомобиля."
+          }
+        }
+      }
+    },
+    "Choose backup folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose backup folder"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выбрать папку копии"
+          }
+        }
+      }
+    },
+    "Choose the folder Tankbook created when you exported – it holds manifest.json and data.json.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose the folder Tankbook created when you exported – it holds manifest.json and data.json."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите папку, созданную Tankbook при экспорте – в ней есть manifest.json и data.json."
+          }
+        }
+      }
+    },
+    "Export a backup without a password, or restore from your account instead.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export a backup without a password, or restore from your account instead."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Экспортируйте копию без пароля или восстановите из аккаунта."
+          }
+        }
+      }
+    },
+    "Make sure the folder is downloaded, then choose it again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make sure the folder is downloaded, then choose it again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Убедитесь, что папка загружена, и выберите её снова."
+          }
+        }
+      }
+    },
+    "Restore a Tankbook backup": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore a Tankbook backup"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить резервную копию Tankbook"
+          }
+        }
+      }
+    },
+    "Restore from backup": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restore from backup"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановить из резервной копии"
+          }
+        }
+      }
+    },
+    "Restoring…": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Restoring…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Восстановление…"
+          }
+        }
+      }
+    },
+    "Sign in with the same account to restore everything, or export a single car and restore that here.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sign in with the same account to restore everything, or export a single car and restore that here."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Войдите в тот же аккаунт, чтобы восстановить всё, или экспортируйте один автомобиль и восстановите его здесь."
+          }
+        }
+      }
+    },
+    "That folder isn't a Tankbook backup.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "That folder isn't a Tankbook backup."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта папка не является резервной копией Tankbook."
+          }
+        }
+      }
+    },
+    "This backup doesn't match what this screen restores.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup doesn't match what this screen restores."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта копия не подходит для восстановления на этом экране."
+          }
+        }
+      }
+    },
+    "This backup is damaged and can't be restored.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup is damaged and can't be restored."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта копия повреждена и не может быть восстановлена."
+          }
+        }
+      }
+    },
+    "This backup is protected by a password.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup is protected by a password."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта копия защищена паролем."
+          }
+        }
+      }
+    },
+    "This backup was made by a newer version of Tankbook.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This backup was made by a newer version of Tankbook."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Эта копия создана более новой версией Tankbook."
+          }
+        }
+      }
+    },
+    "This is a full-account backup, not a single car.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This is a full-account backup, not a single car."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Это копия всего аккаунта, а не одного автомобиля."
+          }
+        }
+      }
+    },
+    "Try again, or sign in to restore from your account.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try again, or sign in to restore from your account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте снова или войдите, чтобы восстановить из аккаунта."
+          }
+        }
+      }
+    },
+    "Try another backup, or sign in to restore from your account.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Try another backup, or sign in to restore from your account."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробуйте другую копию или войдите, чтобы восстановить из аккаунта."
+          }
+        }
+      }
+    },
+    "Update Tankbook, then try again.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update Tankbook, then try again."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Обновите Tankbook и попробуйте снова."
+          }
+        }
+      }
+    },
+    "We couldn't read that folder.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't read that folder."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось прочитать эту папку."
+          }
+        }
+      }
+    },
+    "We couldn't restore this backup.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We couldn't restore this backup."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не удалось восстановить эту копию."
+          }
+        }
+      }
+    },
     "Check litres": {
       "extractionState": "manual",
       "localizations": {

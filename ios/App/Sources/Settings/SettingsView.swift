@@ -328,6 +328,12 @@ struct SettingsView: View {
                 CardDivider()
                 exportRow
                 CardDivider()
+                NavigationLink(value: Route.restoreFromBackup) {
+                    navRow("Restore from backup")
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settingsRestoreBackupRow")
+                CardDivider()
                 NavigationLink(value: Route.recentlyDeleted) {
                     navRow("Recently deleted")
                 }

@@ -43,6 +43,7 @@ struct DestinationView: View {
         case .addVehicle: AddVehicleView()
         case .accountDevices: AccountDevicesView()
         case .paywall: LeafContent()
+        case .restoreFromBackup: RestoreFromBackupView()
         case .importWizard: ImportWizardView()
         case .flaggedEntries: FlaggedEntriesView()
         case .inbox: InboxView()
