@@ -78,7 +78,7 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.158`+`RV.138` | F9 | flash | (dispatching) | the rate drain stops at the server's coverage floor; the carry-forward gets a horizon |
+| `RV.158`+`RV.138` | F9 | flash | 10780 | the rate drain stops at the server's coverage floor; the carry-forward gets a horizon |
 
 **IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58` shipped; `RV.158+RV.138` in flight; `PJ.59` follows. New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
