@@ -79,7 +79,6 @@ rules changed the order and the shape of what is queued:
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
 | `RV.155` | J11 | flash | (dispatching) | the pull cursor that went backwards - scenario 8 begins |
-| `REVIEW-J7`, `REVIEW-J7b`, `REVIEW-J7c`, `REVIEW-J7d` | the service loop | pro, read-only | 52809, 52812, 52815, 52818 | second walks of J7/J7b, first of J7c/J7d |
 
 **IMPLEMENTED (11): F3, J5, F5, F8, F6b, F2, F1, J8, F9a, F4, J3.** J8b line held for the device. Scenario 7 built (`RV.212+213+224`, `RV.214`, `PJ.61`, `RV.244`; `PJ.50` closed), walking; `PJ.60` awaits the owner. Scenario 8 (J11, J11a, J10, J2, F9, F10) begins with `RV.155`.
 
