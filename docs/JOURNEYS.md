@@ -484,6 +484,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Success metric:** the receipt can be read without leaving the app or hunting for the paper; opening a photo never ends in a blank screen.
 
 ### J9 · Anomaly nudge
+**Status: implemented 2026-09-12** (reviewed by the orchestrator, REVIEW-SCENARIO-J9-2026-09-12)
 **Trigger:** app-detected consumption drift ("+12% over 3 months").
 **Journey:** gentle `warn`-amber card in the Log (never a push alarm) → tap explains the evidence (chart of the drift and what it costs per month at the driver's own recent prices – never a guessed cause, RV.121; the app cannot see a motorway week, an idling hour, a tow or a different driver, docs/VISION.md → "What we will not tell a driver") → dismiss (the dismissed cause is not raised again) or act → creates a service reminder due next year and opens it for edit. ⚠ False alarms erode trust fastest → thresholds conservative, seasonality-aware, always dismissible.
 
