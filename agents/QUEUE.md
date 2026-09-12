@@ -78,9 +78,10 @@ rules changed the order and the shape of what is queued:
 
 | Task | Scenario | Model | PID | Brief |
 |---|---|---|---|---|
-| `RV.253` | F10 | flash | 78654 | the quota card fed by the real 429 |
+| `RV.249` | J11, J11a | flash | 38333 | the sync cursor keyed by account, then monotonic |
+| `REVIEW-SCENARIO-F10` | F10 | pro | 41506 | first walk, read-only |
 
-**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` shipped (`4c774f42`) - scenario 8's build rows are closed. **Walked**: `J10` implemented (`1d6175a4`), `F9` implemented, `J2` implemented on the second walk after `RV.255`. `RV.253` in flight, then the F10 walk (brief written). Then `RV.249` and `RV.239` (briefs written), which close J11, J11a and F7 for their walks. `PJ.35` now reads as the `[v1.1]` row the tier table already files it as - the owner's 2026-08-31 PRIORITY note stays on the row; if it is meant for v1, say so and the marker moves back. `J11`/`J11a` cannot be walked yet: `RV.239`, `RV.249`, `RV.253`, `PJ.35` are open. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
+**IMPLEMENTED (14).** Scenario 8: `RV.155` `88bb4e2`, `RV.108` `d979e49`, `RV.143`, `PJ.58`, `RV.158+RV.138` shipped; `PJ.59` shipped (`4c774f42`) - scenario 8's build rows are closed. **Walked**: `J10` implemented (`1d6175a4`), `F9` implemented, `J2` implemented on the second walk after `RV.255`. `RV.253` shipped (`7b234946`). F10 walk and `RV.249` in flight; `RV.239` next, which closes J11, J11a and F7 for their walks. `PJ.35` now reads as the `[v1.1]` row the tier table already files it as - the owner's 2026-08-31 PRIORITY note stays on the row; if it is meant for v1, say so and the marker moves back. `J11`/`J11a` cannot be walked yet: `RV.239`, `RV.249`, `RV.253`, `PJ.35` are open. Filed `RV.254` [v1.0.x] (the span-days log field RV.158 left). New from verification: `RV.253` (the quota card is fed only by a DEBUG fixture).
 
 **The mechanisation landed 2026-09-11** (`2ca6754`): `agents/briefs/PREAMBLE.md` carries the fences once and
 `scripts/dispatch.sh <id> [model]` appends it, launches, checks bytes at 60 s and retries once. The two-bundle
