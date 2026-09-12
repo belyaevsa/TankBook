@@ -9,6 +9,7 @@ parallel. Output feeds a dated "Journeys review" section in `docs/TASKS.md`.*
 |---|---|---|
 | 2026-08-29 | `93d2619` | 66 `PJ` rows (36 since shipped, 30 open) |
 | 2026-09-09 | `4cc801a` | 1 row (`PJ.55`), 0 ticked-but-not-true. One read-only agent, deep on J4 / J7b / money+rates / feedback rather than shallow across all - see `diagnostics/REVIEW-JOURNEYS-2026-09-09.md` |
+| 2026-09-12 (C+D) | `369dff3f` | 0 rows, 0 ticked-but-untrue; 60 rows had shipped since 2026-09-10 - the cadence slipped unmeasured, `RV.262` filed to count it. Every PARTIAL stage maps to an existing row; two J9 questions for the owner (`diagnostics/REVIEW-JOURNEYS-2026-09-12-CD.md` §7) |
 
 **The 2026-08-29 run was never repeated, and 643 commits landed after it.** Every product
 reachability gap catalogued in `docs/DEFECT-PATTERNS.md` Part 2 was found either by that review or
