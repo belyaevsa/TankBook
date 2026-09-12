@@ -9,7 +9,7 @@ in `HANDOVER.md` and the agent-routing memory.*
 records its own model. This is the ground truth behind the flash-vs-pro evaluation, and it is here so
 a row's outcome can always be read against the worker that produced it.
 
-**Totals: 24 pro, 20 flash** across 44 build dispatches. Read it with the selection bias in mind -
+**Totals: 24 pro, 20 flash** across the 44 build dispatches of 2026-09-03/05; **every build dispatch since 2026-09-10 ran on flash** (the 2026-09-12 block below: 34 dispatches, 58 rows, pro used only for the read-only scenario and journeys walks - 14 of them that day, not in this ledger). Read it with the selection bias in mind -
 pro was chosen for tasks *believed* harder, so a raw success comparison carries no information; what
 the evaluation compared was failure KINDS and above-brief judgement. `flash*` marks the dispatch that
 died instantly with `database is locked` and never reached the model (re-dispatched on flash).
@@ -65,6 +65,40 @@ died instantly with `database is locked` and never reached the model (re-dispatc
 | `RV.186+RV.188` | **flash** | 2026-09-10 | 740 KB |
 | `RV.183+RV.184` | **flash** | 2026-09-10 | 392 KB |
 | `RV.176+PR.28` | **flash** | 2026-09-10 | 700 KB |
+| `RV.212+RV.213+RV.224` | **flash** | 2026-09-12 | 416 KB |
+| `RV.214` | **flash** | 2026-09-12 | 420 KB |
+| `RV.215` | **flash** | 2026-09-12 | 620 KB |
+| `RV.243` | **flash** | 2026-09-12 | 548 KB |
+| `RV.244` | **flash** | 2026-09-12 | 76 KB |
+| `PJ.61` | **flash** | 2026-09-12 | 300 KB |
+| `RV.247` | **flash** | 2026-09-12 | 276 KB |
+| `RV.250` | **flash** | 2026-09-12 | 196 KB |
+| `RV.155` | **flash** | 2026-09-12 | 316 KB |
+| `RV.108` | **flash** | 2026-09-12 | 284 KB |
+| `RV.143` | **flash** | 2026-09-12 | 276 KB |
+| `PJ.58` | **flash** | 2026-09-12 | 204 KB |
+| `RV.158+RV.138` | **flash** | 2026-09-12 | 352 KB |
+| `PJ.59` | **flash** | 2026-09-12 | 452 KB |
+| `RV.255` | **flash** | 2026-09-12 | 364 KB |
+| `RV.253` | **flash** | 2026-09-12 | 520 KB |
+| `RV.249` | **flash** | 2026-09-12 | 276 KB |
+| `RV.239` | **flash** | 2026-09-12 | 604 KB |
+| `RV.259` | **flash** | 2026-09-12 | 400 KB |
+| `RV.260` | **flash** | 2026-09-12 | 764 KB |
+| `RV.261` | **flash** | 2026-09-12 | 412 KB |
+| `RV.226` | **flash** | 2026-09-12 | 276 KB |
+| `RV.251+PJ.100+PJ.101+PJ.200` | **flash** | 2026-09-12 | 512 KB |
+| `RV.228` | **flash** | 2026-09-12 | 244 KB |
+| `RV.241` | **flash** | 2026-09-12 | 204 KB |
+| `RV.263` | **flash** | 2026-09-12 | 492 KB |
+| `RV.227+RV.235` | **flash** | 2026-09-12 | 736 KB |
+| `RV.229` | **flash** | 2026-09-12 | 320 KB |
+| `RV.256` | **flash** | 2026-09-12 | 304 KB |
+| `RV.257+RV.258` | **flash** | 2026-09-12 | 340 KB |
+| `RV.245` | **flash** | 2026-09-12 | 272 KB |
+| `RV.264+RV.265` | **flash** | 2026-09-12 | 312 KB |
+| `RV.267` | **flash** | 2026-09-12 | 236 KB |
+| `RV.269` | **flash** | 2026-09-12 | 308 KB |
 
 ## What the four grouped dispatches of 2026-09-10 cost to verify
 
