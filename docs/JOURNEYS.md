@@ -513,6 +513,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Success metric:** first-sign-in completion ≥90% from the Sign in screen; wrong-provider recoveries resolved in-flow ≥95%; zero "my data disappeared" reviews traced to provider mix-ups.
 
 ### J11 · New phone / platform switch
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J11-2026-09-12b)
 **Trigger:** bought a new iPhone – or, later, moved to Android.
 **Entry points:** on a fresh install, the Welcome screen's restore line – "Already use Tankbook? Restore your garage." – exists precisely for this (an Android→iOS migrant or a reinstall must never be funneled into "Add your car" as if they were new); on a running app, Settings' account card.
 **Journey:** Welcome → Sign in (Apple ID / Google – the same account works across platforms, that's the whole point of the neutral identity) → the "Welcome back" restore screen shows the F7 verification stats *before* finishing (cars, entry count, date range, last odometer and how recent it is – "yesterday"; the source device – "from your Android phone" – is **[v2]**, `docs/SCHEMA.md` → author attribution) → text records land in seconds, the garage is immediately usable, photos download in the background by recency → "Open my garage." ⚠ The category's graveyard moment (Fuelly, Мой Авто) → restore must be boringly reliable, tested in CI, and the local file export always available as the user-held fallback. **RV.260 (2026-09-12): the fallback is a Tankbook backup restored LOCALLY** – the per-car export (`buildCarExport`) read back by "Restore from backup", with no account and no network. The third-party import wizard (My Fuel Manager / Drivvo) is a separate door and cannot read a Tankbook archive; a full-account export is refused locally with its named next step, because a whole-account restore is the sync path's job.
@@ -695,6 +696,7 @@ fact where a blank is an honest absence.
 is a review list that failed to explain itself.
 
 ### F7 · Restore fails or comes back empty (J11's nightmare)
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F7-2026-09-12c)
 **Trigger:** new phone, sign-in works, but the backup is missing, corrupt, or the backend is down. The category's fatal moment – this journey gets engineered redundancy, not just good copy.
 
 - Restore sources, tried in order and shown honestly: sync pull from zero (the normal path – `SYNC.md`) → a server backup snapshot → "import a file you exported yourself." **RV.260 (2026-09-12): the third source is a Tankbook backup restored locally** – the per-car archive `ExportBuilder` writes, read back by "Restore from backup" through `VehicleArchiveReader`, with no account and no network (hard rule 1). A full-account export is refused locally with its named next step; it is the sync path's input. The third-party import wizard (My Fuel Manager / Drivvo) is a door BESIDE the backup one, not the fallback itself – it cannot read a Tankbook archive.
