@@ -609,6 +609,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** recovery rate of failed imports after guidance ≥50%; importer coverage grows from submitted samples.
 
 ### F6a · The import preview: nothing is written until the user says so
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F6a-2026-09-12b)
 
 **Trigger:** a file parsed (fully or partially) and is about to become someone's history.
 
