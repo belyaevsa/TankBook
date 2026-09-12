@@ -433,7 +433,7 @@ never feeds them back into an entry.
 
 **On `ocrText` retention (RV.48 decision, recorded):** the raw dump is kept, not trimmed.
 The recognised page demotes it behind a disclosure, but it stays on the record so a bad
-parse can still be re-examined (`docs/EXTRACTION.md`'s four failure modes are pinned to it).
+parse can still be re-examined (`docs/EXTRACTION.md`'s five failure modes are pinned to it).
 The privacy cost is real and accepted with reasoning in `docs/SECURITY.md` -> "Attachment raw
 text": the merchant's `Reg.kood`/`KMKR`/`ИНН` and terminal ids ride into on-device storage and
 sync, and the app has no use for them – the alternative (deleting evidence of a misread to

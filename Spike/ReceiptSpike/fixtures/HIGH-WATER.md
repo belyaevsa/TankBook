@@ -83,6 +83,17 @@ that lists what the till can sell is not the kind of this fill. The fix belongs 
 vocabulary (where a marker is allowed to come from), not in the ratchet; do not raise the number
 by teaching the parser `МИ95`.
 
+**Fixed 2026-09-12 (`RV.270`).** A kind may now come only from the product / line-item block:
+`FuelKindNormalizer.isBoilerplate` rejects a unit-convention legend (`для нефтепродуктов` /
+`для КПГ` in either script, the `1 ед.=` shape) and a fuel token in a slash-list (`.../СУГ`)
+*before* a marker is read, so the legend's `/СУГ` can no longer set `fuelKind`. On `receipt-062`
+the parser now **abstains** (`nil`) instead of committing `lpg`; `receipt-063` still resolves
+`petrol95`. The ratchet is **unchanged at 255/300**: a confident-wrong kind and an abstention both
+miss the same expected cell, which is exactly why the score alone could not catch this. The
+whole-class check `AccuracyRatchetTests.noReceiptCommitsAFuelKindItsExpectedContradicts` now fails
+on any committed kind its `expected.csv` contradicts, so the next boilerplate read fails the suite
+rather than merely lowering a count.
+
 The same batch's eleven pump displays sharpen the other standing asymmetry: both Circle K Gilbarco
 reads (`pump-094`/`095`, `€` / `L` / `€/L` beside the digits) sweep 3/3 and the nine Cyrillic-
 labelled displays behind glass (two Tokheim, seven Scheidt & Bachmann) commit nothing - so the

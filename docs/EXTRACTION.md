@@ -221,7 +221,7 @@ identifiers, Estonian registration, card-terminal furniture, unit-convention foo
 details - or leaves it alone. Two properties are load-bearing and neither is optional:
 
 **It tags, it never deletes.** The raw OCR text is kept in full. It is the evidence that lets a bad
-parse be re-examined, and the four named failure modes below are pinned to it.
+parse be re-examined, and the five named failure modes below are pinned to it.
 
 **The evidence gates keep reading the RAW lines.** `CurrencyDetection` resolves a Russian receipt's
 currency precisely *from* its `ИНН`, `ККТ` and `ОФД` lines - the very lines this filter calls
@@ -252,10 +252,13 @@ consumption wrong by 2.3x with every check green.
 **Total** is modal over labelled candidates, preferring the primary labels (`ИТОГ`, `TOTAL`,
 `KOKKU`, `SUMMA`), with VAT, rounding, change and "received" lines excluded by name.
 
-**Currency, date, fuel kind** are marker lookups. Two traps already paid for:
+**Currency, date, fuel kind** are marker lookups. Three traps already paid for:
 
 - A fuel abbreviation must be followed by a non-letter. `ДТ` inside `ПОДТВЕРЖДЕНА` is not diesel.
 - A bare `L` inside a word (`Tallinn`, `ЛУКОЙЛ`) is not a volume marker.
+- A kind may come only from the **product / line-item block**. A unit legend - `1 ед.=1 литр для
+  нефтепродуктов/СУГ` - or a fuel token in a slash-list names what the till can *sell*, never what
+  this fill used (failure mode 5).
 
 **A printed zero is not a value.** B2B contract fuel cards print `30.61 X 0.00` and `ИТОГ 0.00`
 under "Цена определена договором". Storing 0.00 is a confident wrong value and it biases stats
@@ -517,7 +520,7 @@ The same reasoning does **not** transfer to receipts. Thermal print has no segme
 its confusions are different (and `0`/`О`, `3`/`З`, `6`/`б` are language confusions, not optical
 ones).
 
-## The four named failure modes
+## The five named failure modes
 
 Each is a real, reproduced miss with a fixture behind it. New failure modes get added here with
 their evidence, not described in the abstract.
@@ -540,6 +543,17 @@ their evidence, not described in the abstract.
    pumps than its receipt numbers suggest.
 4. **The confident misread.** Vision returns a **wrong digit at confidence 1.00** on `pump-004`.
    Confidence from the recognizer is not evidence about the value; only the cross-check is.
+5. **The boilerplate kind.** A fuel kind read from a till's unit legend rather than from the
+   product line. `receipt-062` (RN-Tver Chkalovskaya, 2026-09-11) OCRs its product line as
+   `МИ95ФИРМ` at confidence 1.00 (`АИ` -> `МИ`), so the `95` marker is gone, and the parser then
+   took `/СУГ` from the footnote `1 ед.=1 литр для нефтепродуктов/СУГ` - a line every slip from
+   that till prints, `receipt-063` included - and committed `fuelKind = lpg` on a petrol fill.
+   A stored wrong kind is a confident wrong value (hard rule 13), and this is the receipt-side
+   twin of the pump rule above: a grade in a legend is evidence the station **sells** it, never
+   that this fill used it. Fixed by restricting the marker to the product/line-item block
+   (`FuelKindNormalizer.isBoilerplate`); a marker the product line loses now abstains. The paired
+   `pump-085` and the slip both say АИ95, and `receipt-063` (same till, two minutes later) still
+   resolves `petrol95`.
 
 ## Where a trained model fits
 

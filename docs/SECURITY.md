@@ -241,7 +241,7 @@ it. When RV.48 added the per-field assignment (`Attachment.extractionMeta`), it 
 decision to record, not an optimisation to slip in. The three options:
 
 1. **Trim it** - data minimisation, but deleting the evidence of a misread means a bad parse can
-   never be re-examined; `docs/EXTRACTION.md`'s four named failure modes are pinned to the raw
+   never be re-examined; `docs/EXTRACTION.md`'s five named failure modes are pinned to the raw
    lines.
 2. **Keep everything** - the raw dump stays intact; a stranger's VAT number rides into sync for
    nothing.

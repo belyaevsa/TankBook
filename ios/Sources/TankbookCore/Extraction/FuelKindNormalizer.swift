@@ -49,14 +49,27 @@ public enum FuelKindNormalizer {
         /(?:БЕHЗИH|PETROL|BENZIN|GASOLINE|G-DRIVE|GDRIVE|ЭKТO)[^\d]*(\d{2,3})/
     }
 
+    /// The fuel words and marketing tiers that can name a grade on a product
+    /// line. Raw (mixed-case) - `matchingKey` canonicalises both sides.
+    private static let fuelWords = ["БЕНЗИН", "БЕНЗ", "ДИЗ", "ДТ", "СУГ", "КПГ", "ПРОПАН", "МЕТАН",
+                                    "АВТОГАЗ", "DIESEL", "PETROL", "BENZIN", "GASOLINE", "G-DRIVE",
+                                    "GDRIVE", "ЭКТО", "V-POWER", "ULTIMATE", "EXCELLIUM", "MILES"]
+
     /// A line that can name a fuel grade: it carries a fuel word (БЕНЗИН, ДТ,
     /// СУГ, ...) or the АИ-NN-K5 octane pattern. A bare "98" from "АЗС-98" or
     /// "ТРК №3" fails this test and is ignored.
+    ///
+    /// Boilerplate is rejected before any fuel token is read. A till
+    /// prints unit legends that enumerate what it can sell - `1 ед.=1 литр для
+    /// нефтепродуктов/СУГ`, `1 ед.=1 м3 для КПГ` - and a kind read from one is
+    /// the kind of the LEGEND, never of this fill. That is the receipt-side twin
+    /// of the pump rule (docs/EXTRACTION.md): a visible grade is evidence the
+    /// station sells it, never that this fill used it. A nil kind is an empty
+    /// field the user fills; a wrong one is a fact they must notice (hard rule
+    /// 13).
     public static func isProductLine(_ text: String) -> Bool {
         let upper = matchingKey(text)
-        let fuelWords = ["БЕНЗИН", "БЕНЗ", "ДИЗ", "ДТ", "СУГ", "КПГ", "ПРОПАН", "МЕТАН",
-                         "АВТОГАЗ", "DIESEL", "PETROL", "BENZIN", "GASOLINE", "G-DRIVE",
-                         "GDRIVE", "ЭКТО", "V-POWER", "ULTIMATE", "EXCELLIUM", "MILES"]
+        if isBoilerplate(text) { return false }
         // A grade code must not run into more letters: "ДТ" occurs inside
         // "ПОДТВЕРЖДЕНА" ("Операция подтверждена вводом ПИН" - the card terminal
         // line on every Russian card receipt), which made a payment
@@ -69,9 +82,50 @@ public enum FuelKindNormalizer {
         return corroboratedSmearedOctane(in: upper) != nil
     }
 
+    /// Whether a line is till boilerplate rather than a product name: a
+    /// unit-convention legend or a slash-list of fuel tokens. Both enumerate
+    /// what the till can sell, so neither may set `fuelKind`.
+    ///
+    /// The three shapes are witnessed on the corpus. The `для нефтепродуктов` /
+    /// `для кпг` phrase is the durable signal, because Vision corrupts the `ед`
+    /// glyphs the receipt noise filter keys on: receipt-062 reads the legend as
+    /// `1 Е0.=] ЛИТР ДЛЯ НЕФТЕПРОДУКТОВ/СУГ` and `1 ЕМ.*1 МЗ ДЛЯ КПГ`, so the
+    /// filter's `ед.=` pattern misses both and only this guard stops the `/СУГ`
+    /// becoming a confident-wrong `lpg`. The bare `1 ед.=` shape is kept for the
+    /// clean spelling, and a fuel token beside a `/` is a list item, not a
+    /// product name.
+    static func isBoilerplate(_ text: String) -> Bool {
+        let upper = matchingKey(text)
+        if upper.contains(matchingKey("для нефтепродуктов"))
+            || upper.contains(matchingKey("для кпг")) { return true }
+        if upper.firstMatch(of: /\d\s*[ЕE][ДD0OО]?\s*\.?\s*[=]/) != nil { return true }
+        return slashListedFuelToken(in: upper)
+    }
+
+    /// Whether a fuel token sits beside a `/` (`.../СУГ`, `СУГ/КПГ`). The slash
+    /// marks an enumeration of products, not one fill's grade.
+    private static func slashListedFuelToken(in upper: String) -> Bool {
+        for word in fuelWords {
+            let token = matchingKey(word)
+            var search = upper.startIndex..<upper.endIndex
+            while let found = upper.range(of: token, range: search) {
+                let before = found.lowerBound > upper.startIndex
+                    ? upper[upper.index(before: found.lowerBound)] : nil
+                let after = found.upperBound < upper.endIndex ? upper[found.upperBound] : nil
+                if before == "/" || after == "/" { return true }
+                guard found.upperBound < upper.endIndex else { break }
+                search = found.upperBound..<upper.endIndex
+            }
+        }
+        return false
+    }
+
     /// Normalises a product line to a FuelKind, or nil when the line names no
-    /// recognised fuel.
+    /// recognised fuel. Boilerplate abstains: a unit legend such as
+    /// `1 ед.=1 литр для нефтепродуктов/СУГ` names a kind the till can sell,
+    /// not the kind this fill used.
     public static func normalize(_ productText: String) -> FuelKind? {
+        if isBoilerplate(productText) { return nil }
         let upper = matchingKey(productText)
 
         // Fuel families first: their names can contain digits that look like an

@@ -160,6 +160,34 @@ struct CorpusAccuracyGateTests {
         }
     }
 
+    /// RV.270: the whole-class guard the boilerplate failure needs. A wrong
+    /// non-nil `fuelKind` is a confident wrong value (hard rule 13), which the
+    /// ratchet cannot see because it counts a miss and a contradiction the
+    /// same. Here every receipt's committed kind is compared against its
+    /// `expected.csv` cell: an abstention (`nil`) is allowed - an empty field
+    /// the user fills - but a committed kind that contradicts the paper fails.
+    /// The next legend read therefore fails the suite, not just lowers a score.
+    @Test func noReceiptCommitsAFuelKindItsExpectedContradicts() throws {
+        let folder = Self.fixturesRoot.appendingPathComponent("receipts")
+        let expected = try CorpusScorer.loadExpected(folder.appendingPathComponent("expected.csv"))
+        let images = try FileManager.default.contentsOfDirectory(at: folder, includingPropertiesForKeys: nil)
+            .filter { CorpusScorer.imageExtensions.contains($0.pathExtension.lowercased()) }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let records = try extractRecords(folder: folder, images: images, expected: expected, source: .receipt)
+        var contradictions: [String] = []
+        for image in images {
+            guard let wantKind = expected[image.lastPathComponent]?.fuelKind else { continue }
+            // An abstention is the correct answer when the product line is
+            // unreadable; only a committed, contradicting kind is a defect.
+            guard let gotKind = records[image.lastPathComponent]?.fuelKind else { continue }
+            if gotKind != wantKind {
+                contradictions.append("\(image.lastPathComponent): committed \(gotKind.rawValue), "
+                    + "expected \(wantKind.rawValue)")
+            }
+        }
+        #expect(contradictions.isEmpty, Comment(stringLiteral: contradictions.joined(separator: "\n")))
+    }
+
     /// P2.7 "the gate IS the check", made executable: the real, live-scored pump
     /// corpus must match the compile-time gate constants (so the constants cannot
     /// drift from reality), and the shipped flag must be off while the measured
