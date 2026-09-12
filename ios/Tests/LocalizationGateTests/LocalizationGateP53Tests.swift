@@ -290,12 +290,18 @@ struct LocalizationGateP53Tests {
              [1: "Импортирована 1 заправка", 2: "Импортированы 2 заправки",
               5: "Импортировано 5 заправок", 11: "Импортировано 11 заправок",
               21: "Импортирована 21 заправка"]),
-            ("%lld rows are ready. These %lld are missing something – fix one, or leave it out.",
-             [1: "1 строка готова. Эта 1 неполная – исправьте или пропустите.",
-              2: "2 строки готовы. Эти 2 неполные – исправьте или пропустите.",
-              5: "5 строк готовы. Эти 5 неполные – исправьте или пропустите.",
-              11: "11 строк готовы. Эти 11 неполные – исправьте или пропустите.",
-              21: "21 строка готова. Эта 21 неполная – исправьте или пропустите."]),
+            // RV.264: the review intro's two counts are two keys, each with its
+            // own plural axis - a single key pluralises only one argument, which
+            // is how "These 1 are missing" shipped.
+            ("%lld rows are ready.",
+             [1: "1 строка готова.", 2: "2 строки готовы.", 5: "5 строк готовы.",
+              11: "11 строк готовы.", 21: "21 строка готова."]),
+            ("These %lld are missing something – fix one, or leave it out.",
+             [1: "Эта 1 строка неполная – исправьте или пропустите.",
+              2: "Эти 2 строки неполные – исправьте или пропустите.",
+              5: "Эти 5 строк неполные – исправьте или пропустите.",
+              11: "Эти 11 строк неполные – исправьте или пропустите.",
+              21: "Эта 21 строка неполная – исправьте или пропустите."]),
             // PJ.13: "Synced just now · 1 device" - the account card's
             // device-count suffix (docs/JOURNEYS.md J11a -> First push). The
             // `%@` slot is the app-composed ago text and never governs a case.

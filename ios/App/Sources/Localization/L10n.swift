@@ -466,10 +466,13 @@ enum L10n {
     }
 
     /// "214 rows are ready. These six are missing something – fix one, or leave
-    /// it out." - the review screen's intro, two runtime counts sharing one
-    /// sentence (never concatenated).
+    /// it out." - the review screen's intro. Each count is its own plural key:
+    /// one catalogue key can pluralise only one argument, so a single sentence
+    /// carrying both rendered "These 1 are missing" (RV.264).
     static func rowsReadyIntro(ready: Int, review: Int) -> String {
-        String(localized: "\(ready) rows are ready. These \(review) are missing something – fix one, or leave it out.")
+        let readyPhrase = String(localized: "\(ready) rows are ready.")
+        let reviewPhrase = String(localized: "These \(review) are missing something – fix one, or leave it out.")
+        return "\(readyPhrase) \(reviewPhrase)"
     }
 
     /// "38.00 × 1.812 is 68.86, but the file says 64.66. A discount, or a

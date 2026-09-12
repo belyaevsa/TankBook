@@ -1422,6 +1422,12 @@ capture RV.66-chip-home                                  en -seedHomeRV66TwoCar 
 capture RV.66-chip-home-ru                               ru -seedHomeRV66TwoCar -seedSyncFlaggedBatch
 capture RV.66-flagged-list                               en -seedSettingsSignedIn -seedSettingsFlaggedNeighbourhood -presentScreen inbox
 capture RV.66-flagged-list-ru                            ru -seedSettingsSignedIn -seedSettingsFlaggedNeighbourhood -presentScreen inbox
+# RV.265: the account-wide "Needs a look" list captions a CHECK 5 consumption
+# outlier with the excluded list's own reason ("Unusual consumption – check the
+# litres or odometer"), distinct from a timeline break's caption, instead of the
+# generic triangle + "car · date" both wore before.
+capture RV.265-flagged-consumption                       en -presentScreen flaggedEntries -seedSettingsFlaggedConsumption
+capture RV.265-flagged-consumption-ru                    ru -presentScreen flaggedEntries -seedSettingsFlaggedConsumption
 capture RV.67-addcar-suggestions                         en -presentScreen addVehicle -addVehicleModelSuggestions
 capture RV.67-addcar-suggestions-ru                      ru -presentScreen addVehicle -addVehicleModelSuggestions
 capture RV.69-addcar-units                               en -presentScreen addVehicle -addVehicleModelSuggestions -seedVehicleMiles

@@ -25,6 +25,11 @@ enum SettingsTestSeed {
         /// "needs a look" list overflows one screen, so the L4 suite can assert
         /// the list still scrolls next to the new per-row swipe gesture.
         case flaggedMany
+        /// RV.265: two flagged entries of DIFFERENT kinds - one timeline break
+        /// (`.order`) and one CHECK 5 consumption outlier (`.consumption`) - so
+        /// the account-wide list must caption each with its own reason and
+        /// identifier, not the generic triangle both wore before.
+        case flaggedConsumption
         /// RV.117b: ONE genuinely conflicting fill (its odometer really breaks
         /// the timeline) so the flagged list's tap opens Edit entry with the
         /// neighbourhood panel - the order conflict whose date interval is
@@ -88,6 +93,7 @@ enum SettingsTestSeed {
             "-seedSettingsFlagged": .flagged,
             "-seedSettingsFlaggedMultiyear": .flaggedMultiyear,
             "-seedSettingsFlaggedMany": .flaggedMany,
+            "-seedSettingsFlaggedConsumption": .flaggedConsumption,
             "-seedSettingsFlaggedNeighbourhood": .flaggedNeighbourhood,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
@@ -294,7 +300,8 @@ enum SettingsTestSeed {
         sync.forcedRetryAfterSeconds = (state == .rateLimited) ? 120 : nil
 
         if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
-            || state == .flaggedMany || state == .flaggedNeighbourhood
+            || state == .flaggedMany || state == .flaggedConsumption
+            || state == .flaggedNeighbourhood
             || state == .localLog || state == .quota429 {
             seed(repository: try? AppStore.repository(), state: state)
         }
@@ -348,7 +355,17 @@ enum SettingsTestSeed {
             try? repository.upsertFillUp(fill, syncState: .dirty)
         } else if state == .quota429 {
             seedQuotaAttachment(repository)
-        } else if state == .flagged {
+        } else if state == .flagged || state == .flaggedMultiyear || state == .flaggedMany
+            || state == .flaggedConsumption || state == .flaggedNeighbourhood {
+            seedFlagged(repository: repository, vehicle: vehicle, state: state)
+        }
+    }
+
+    /// The flagged-list states share one seeded vehicle; each writes the rows its
+    /// screen is about. Split from `seed` for the linter's body-length budget.
+    private static func seedFlagged(repository: TankbookRepository, vehicle: Vehicle,
+                                    state: State) {
+        if state == .flagged {
             let flagged1 = HomeTestSeed.makeFill(
                 vehicleID: vehicle.id,
                 HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
@@ -394,6 +411,21 @@ enum SettingsTestSeed {
                                        detectedAt: Date()))
                 try? repository.upsertFillUp(fill, syncState: .synced(scn: Int64(2 + index)))
             }
+        } else if state == .flaggedConsumption {
+            // RV.265: one timeline break and one CHECK 5 consumption outlier, so
+            // the list must caption each with its own reason and identifier.
+            let timeline = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
+                                      amount: "71.02", price: "1.679", stationID: nil),
+                conflict: .flagged(kind: .order, detectedAt: Date()))
+            let consumption = HomeTestSeed.makeFill(
+                vehicleID: vehicle.id,
+                HomeTestSeed.FillSpec(daysAgo: 2, odometer: 118_000, litres: 41.0,
+                                      amount: "68.50", price: "1.671", stationID: nil),
+                conflict: .flagged(kind: .consumption, detectedAt: Date()))
+            try? repository.upsertFillUp(timeline, syncState: .synced(scn: 2))
+            try? repository.upsertFillUp(consumption, syncState: .synced(scn: 3))
         } else if state == .flaggedNeighbourhood {
             // RV.117b: ONE real conflict - the fill's odometer genuinely breaks
             // the timeline, so opening it from the flagged list re-flags in Edit
@@ -434,7 +466,7 @@ enum SettingsTestSeed {
         let arguments = ProcessInfo.processInfo.arguments
         let state = Self.state(arguments)
         guard state == .flagged || state == .flaggedMultiyear || state == .flaggedMany
-            || state == .flaggedNeighbourhood else {
+            || state == .flaggedConsumption || state == .flaggedNeighbourhood else {
             return
         }
         if arguments.contains("-homeResetDatabase") {

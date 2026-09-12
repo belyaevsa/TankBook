@@ -58,6 +58,11 @@ struct FlaggedEntriesView: View {
         /// The entry's date, kept for ordering (the subtitle is a string that
         /// leads with the car name and cannot be sorted by).
         let date: Date
+        /// Why the entry is flagged, so the row can name the flag instead of
+        /// wearing the same generic triangle for a timeline break and a CHECK 5
+        /// consumption outlier (RV.265). Derived from the entry's `conflict`
+        /// through the same mapping `EntryExclusion.derive` uses.
+        let reason: EntryExclusionReason
     }
 
     var body: some View {
@@ -296,7 +301,8 @@ struct FlaggedEntriesView: View {
                                        kind: LogStream.Kind(entry),
                                        title: EntryTitle.text(entry, stations: stations),
                                        subtitle: Self.subtitle(entry, vehicleName: vehicle.name),
-                                       date: entry.date))
+                                       date: entry.date,
+                                       reason: Self.reason(entry.conflict)))
                 }
             }
             rows = flagged.sorted { $0.date > $1.date }
@@ -311,6 +317,18 @@ struct FlaggedEntriesView: View {
     /// the order.
     private static func subtitle(_ entry: any Entry, vehicleName: String) -> String {
         "\(vehicleName) · \(HomeFormat.day(entry.date))"
+    }
+
+    /// The flag's reason, mapped from the entry's derived `conflict`. A CHECK 5
+    /// consumption outlier and a timeline break carry different next steps, so
+    /// the row must caption them differently (RV.265, hard rule 7) - the same
+    /// mapping `EntryExclusion.derive` applies, so the flagged list and the
+    /// excluded list name the same flag the same way.
+    private static func reason(_ conflict: ConflictState) -> EntryExclusionReason {
+        if case .flagged(let kind, _) = conflict, kind == .consumption {
+            return .consumptionOutlier
+        }
+        return .timelineConflict
     }
 }
 
@@ -372,6 +390,17 @@ private struct FlaggedSwipeRow: View {
 
     // MARK: The card (the row as it stood before RV.133)
 
+    /// The caption's identifier, distinct per reason so a UI test (and assistive
+    /// tech) can tell a consumption flag from a timeline break (RV.265). The
+    /// flagged list is conflicts-only, so `.unresolvedDuplicate` is unreachable
+    /// here; it shares the timeline identifier rather than inventing a third.
+    private static func reasonIdentifier(_ reason: EntryExclusionReason) -> String {
+        switch reason {
+        case .consumptionOutlier: "flaggedEntryConsumptionReason"
+        case .timelineConflict, .unresolvedDuplicate: "flaggedEntryTimelineReason"
+        }
+    }
+
     private var content: some View {
         HStack(spacing: 0) {
             editDoor
@@ -411,6 +440,17 @@ private struct FlaggedSwipeRow: View {
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("flaggedEntrySubtitle")
+                // The flag's own reason (RV.265): the excluded list and the
+                // import review already caption a CHECK 5 outlier "Unusual
+                // consumption – check the litres or odometer"; this list
+                // rendered it as the generic triangle + "car · date" a timeline
+                // break wears. One label table (`L10n.excludedReason`), a
+                // distinct identifier per reason so the two are told apart.
+                Text(L10n.excludedReason(row.reason))
+                    .font(.caption)
+                    .foregroundStyle(Theme.Palette.warn)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier(Self.reasonIdentifier(row.reason))
             }
             Spacer(minLength: 4)
             Image(systemName: "chevron.right")

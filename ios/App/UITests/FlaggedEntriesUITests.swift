@@ -18,7 +18,7 @@ final class FlaggedEntriesUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    private func launch(_ arguments: [String]) -> XCUIApplication {
+    func launch(_ arguments: [String]) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-homeResetDatabase"] + arguments
         app.launch()
@@ -41,7 +41,7 @@ final class FlaggedEntriesUITests: XCTestCase {
     /// Waits until the list shows exactly `count` flagged rows. The reload is a
     /// `.task` that lands a beat after the pop-back animation, so an immediate
     /// `.count` assertion would sample mid-reload and flake.
-    private func waitForFlaggedRowCount(_ count: Int, in app: XCUIApplication) {
+    func waitForFlaggedRowCount(_ count: Int, in app: XCUIApplication) {
         let rows = app.buttons.matching(identifier: "flaggedEntryRow")
         let predicate = NSPredicate { _, _ in rows.count == count }
         let expectation = expectation(for: predicate, evaluatedWith: rows)

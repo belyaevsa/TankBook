@@ -1862,7 +1862,7 @@
         }
       }
     },
-    "%lld rows are ready. These %lld are missing something – fix one, or leave it out.": {
+    "%lld rows are ready.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
@@ -1871,13 +1871,13 @@
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld row is ready. This %lld is missing something – fix one, or leave it out."
+                  "value": "%lld row is ready."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld rows are ready. These %lld are missing something – fix one, or leave it out."
+                  "value": "%lld rows are ready."
                 }
               }
             }
@@ -1889,25 +1889,78 @@
               "few": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld строки готовы. Эти %lld неполные – исправьте или пропустите."
+                  "value": "%lld строки готовы."
                 }
               },
               "many": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld строк готовы. Эти %lld неполные – исправьте или пропустите."
+                  "value": "%lld строк готовы."
                 }
               },
               "one": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld строка готова. Эта %lld неполная – исправьте или пропустите."
+                  "value": "%lld строка готова."
                 }
               },
               "other": {
                 "stringUnit": {
                   "state": "translated",
-                  "value": "%lld строк готовы. Эти %lld неполные – исправьте или пропустите."
+                  "value": "%lld строк готовы."
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "These %lld are missing something – fix one, or leave it out.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "variations": {
+            "plural": {
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "This %lld is missing something – fix one, or leave it out."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "These %lld are missing something – fix one, or leave it out."
+                }
+              }
+            }
+          }
+        },
+        "ru": {
+          "variations": {
+            "plural": {
+              "few": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Эти %lld строки неполные – исправьте или пропустите."
+                }
+              },
+              "many": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Эти %lld строк неполные – исправьте или пропустите."
+                }
+              },
+              "one": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Эта %lld строка неполная – исправьте или пропустите."
+                }
+              },
+              "other": {
+                "stringUnit": {
+                  "state": "translated",
+                  "value": "Эти %lld строк неполные – исправьте или пропустите."
                 }
               }
             }
@@ -5189,13 +5242,13 @@
         }
       }
     },
-    "Done · back to review": {
+    "Done · back to preview": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Done · back to review"
+            "value": "Done · back to preview"
           }
         },
         "ru": {

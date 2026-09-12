@@ -53,7 +53,7 @@ struct ImportReviewView: View {
 
     private var bottomBar: some View {
         ImportPrimaryBar(action: onDone) {
-            Text("Done · back to review")
+            Text("Done · back to preview")
         }
         .accessibilityIdentifier("importReviewDoneButton")
         .padding(.vertical, 12)
