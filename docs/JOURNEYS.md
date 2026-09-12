@@ -39,6 +39,7 @@ Journeys are grouped by lifecycle: **acquisition → core loop → periodic → 
 ## Acquisition
 
 ### J1 · First launch, empty garage
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J1-2026-09-12)
 **Trigger:** installed from the App Store after seeing "scan, don't type".
 **Goal:** from tap to first logged entry in under 3 minutes, no account asked.
 
