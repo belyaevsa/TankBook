@@ -603,7 +603,7 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 
 - Partial parse is the goal: import what parses, then show "214 of 220 entries imported – 6 rows need a look," with the 6 raw rows listed for inline fix or skip. All-or-nothing imports are how switchers bounce. **RV.93 (2026-09-07): this now also applies across files of one export** - a whole-export pick where one file fails to parse names the file and its next step, and the rest of the export continues (the run survives; hard rule 7).
 - Nothing parses at all → name the reason plainly ("this looks like a PDF report, not a data export – here's where the CSV export lives in Drivvo") and offer to send us the file (explicit consent) so the importer learns. **The "here's where the CSV export lives" step is the site's per-source guide (PJ.33)**: the import wizard's format row and its 422 / not-listed messages link to `tankbook.live/import-guide/` via the format's `helpUrl`, so a stuck switcher lands on a page that exists (hard rule 7). The guide covers each shipping source (My Fuel Manager and Drivvo carry the same `helpUrl`) and says so - never implying the deferred importers (P5.4b).
-- ⚠ Never import with guessed units/currency: ambiguity pauses those rows for one question ("MPG or L/100km?"), asked once for the whole file.
+- ⚠ Never import with guessed units/currency: ambiguity pauses those rows for one question, asked once for the whole file. **Currency is the live half** - the wizard asks it when the file cannot declare one (F6a). **The units half is N/A for v1**: both shipped importers are metric, so `units` is reserved and not emitted by any v1 parser; the "MPG or L/100km?" question ships with the first imperial importer (P5.4b).
 
 **Metric:** recovery rate of failed imports after guidance ≥50%; importer coverage grows from submitted samples.
 
@@ -616,7 +616,8 @@ The server parses and returns **candidates**; the garage is untouched until the 
 rather than a progress bar: trust is re-established with numbers, not a checkmark.**
 
 - **Show what was understood, as figures the user can check against their own memory:** fill-up
-  count, date range, odometer span, detected currency and units, total spend, and - the one that
+  count, date range, odometer span, detected currency (units is N/A for v1 - both importers are
+  metric; F6), total spend, and - the one that
   matters most - **the consumption it derives**. A driver knows their own average. `8.2 L/100km`
   reads as right or wrong instantly, where "220 rows parsed" does not, and that is the same
   number the importer's acceptance test asserts.
@@ -639,7 +640,8 @@ rather than a progress bar: trust is re-established with numbers, not a checkmar
   between fuel fills and must not flag). The write stays ONE `commitImport` - a half-imported
   export can never become a state nothing can undo. A single-file pick keeps the pre-RV.93 flow
   exactly as it was.
-- **Everything shown is adjustable here** - currency, units, the target car, and the individual
+- **Everything shown is adjustable here** - currency, the target car (units is N/A for v1 - both
+  importers are metric; F6), and the individual
   rows that need a look (hard rule 13: editable at the moment it is offered). **RV.185:** when the
   import will create a new car, its name is an editable field pre-filled with the derived
   suggestion, and the currency the user chooses becomes that new car's home currency - so the

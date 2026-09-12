@@ -5138,19 +5138,19 @@
         }
       }
     },
-    "Does that look like your car? If not, something was read wrong – check the units below.": {
+    "Does that look like your car? If not, something was read wrong – check the date format or currency.": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Does that look like your car? If not, something was read wrong – check the units below."
+            "value": "Does that look like your car? If not, something was read wrong – check the date format or currency."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Похоже на вашу машину? Если нет – что-то прочитано неверно, проверьте единицы измерения ниже."
+            "value": "Похоже на вашу машину? Если нет – что-то прочитано неверно, проверьте формат даты или валюту."
           }
         }
       }

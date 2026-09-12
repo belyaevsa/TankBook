@@ -1057,7 +1057,7 @@ The entry rows (Confirm sheet, Edit entry – fill-up and the other three types)
 | Spritmonitor | CSV | bi-fuel rows → separate FillUps by fuelKind |
 | CarScope | CSV | closest schema to ours |
 
-Import rules (F6): ambiguity (units/currency) asks once per file; unparseable rows import partially with a review list; `provenance = .import(source)` on every row; conflicts flagged, not dropped.
+Import rules (F6): ambiguity (currency in v1; `units` is reserved and not emitted by any v1 parser - both importers are metric) asks once per file; unparseable rows import partially with a review list; `provenance = .import(source)` on every row; conflicts flagged, not dropped.
 
 **The complement is declared, not silently dropped (RV.116).** A format's unmapped columns are the
 complement of the mappings above - Drivvo's `Водитель` (driver), `Метод оплаты`, `Тип расхода`,

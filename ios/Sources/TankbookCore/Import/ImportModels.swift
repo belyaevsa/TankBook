@@ -252,6 +252,9 @@ public struct ImportUnparsedRow: Codable, Sendable, Equatable {
 
 /// An F6 once-per-file question, returned instead of guessed
 /// (docs/API.md): `kind` is `dateFormat` | `currency` | `units` | `outOfScope`.
+/// `units` is reserved and not emitted by any v1 parser - both shipped
+/// importers are metric; the question ships with the first imperial importer
+/// (P5.4b, docs/JOURNEYS.md F6).
 public struct ImportAmbiguity: Codable, Sendable, Equatable {
     public let kind: String
     public let options: [String]
@@ -372,7 +375,9 @@ public struct ImportParseResponse: Codable, Sendable, Equatable {
     /// server raised is answered. A `dateFormat` ambiguity unanswered would
     /// commit the file under the parser's guessed M/D reading (docs/JOURNEYS.md
     /// F6, docs/API.md) - so it blocks the commit until `dateFormatAnswer` is
-    /// set. No ambiguity is an unconditional pass.
+    /// set. A `units` ambiguity is deliberately NOT a block: the kind is
+    /// reserved and no v1 parser emits it (see `ImportAmbiguity`). No ambiguity
+    /// is an unconditional pass.
     public func canCommit(dateFormatAnswer: String?) -> Bool {
         guard ambiguities.contains(where: { $0.kind == "dateFormat" }) else { return true }
         return dateFormatAnswer != nil

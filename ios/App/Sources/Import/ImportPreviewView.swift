@@ -96,7 +96,7 @@ struct ImportPreviewView: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.inkSoft)
             }
-            Text("Does that look like your car? If not, something was read wrong – check the units below.")
+            Text("Does that look like your car? If not, something was read wrong – check the date format or currency.")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.inkSoft)
                 .lineSpacing(1.4)

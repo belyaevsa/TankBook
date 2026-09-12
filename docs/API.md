@@ -452,7 +452,7 @@ reasoning as the currency chip on Confirm.
 
 `multipart` upload of a third-party export (`format: "mfm" | ...` **as declared by the user**, file <= 8 MB) ->
 `{ importId, format, scope: "vehicle", candidates: [ <entity payload> ], unparsed: [ { row, reason } ],
-   ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ],
+   ambiguities: [ { kind: "dateFormat" | "currency" | "units" | "outOfScope", options, rowCount } ],  // `units` reserved, no v1 parser emits it
    vehicleGroups: [ { name, sourceRows } ]?, unsupported: { <column name>: <row count> }? }`
 
 - **The response gained `unsupported` on 2026-09-10 (RV.116) - a contract change, additive only.**
@@ -510,7 +510,9 @@ reasoning as the currency chip on Confirm.
     on disk to declare, so the client asks the currency question once, defaulting to the
     **destination car's home currency** (hard rule 3 - money is a pair, so nothing is guessed).
     Candidates' `money.currency` is the empty string in this case, never a hardcoded default.
-  - `units`: emitted by formats that carry an ambiguous unit; MFM is metric, so it emits none.
+  - `units`: **reserved and not emitted by any v1 parser** - both shipped importers (MFM, Drivvo)
+    are metric. The kind stays on the wire so the first imperial importer (P5.4b) needs no contract
+    change; until then no `units` ambiguity can arrive, and none is expected client-side.
   - `outOfScope`: a recognised file whose rows are deliberately unmapped (`income`, `reminder`) -
     `rowCount` is the number of rows skipped, so the client can say "this file has N income rows;
     income isn't imported in v1" instead of silently showing nothing.
