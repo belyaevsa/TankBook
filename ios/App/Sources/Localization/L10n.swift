@@ -256,17 +256,9 @@ enum L10n {
         String(localized: "\(count) entries")
     }
 
-    /// "from your Android phone, yesterday" - the last-odometer provenance. One
-    /// full localised phrase: the device name and the relative day are runtime
-    /// data sharing the sentence, never concatenated. RU reads "%1$@, %2$@" -
-    /// the device name in the nominative head, then the day - because a
-    /// server-supplied device name cannot be declined (the P4.7 lesson: no
-    /// translation of "с вашего %1$@" is correct, only a different shape).
-    static func lastOdometerSource(deviceName: String, daysAgo: Int) -> String {
-        String(format: localize("from your %1$@, %2$@"), deviceName, relativeDay(daysAgo))
-    }
-
-    /// "today" / "yesterday" / "3 days ago" (plural).
+    /// "today" / "yesterday" / "3 days ago" (plural). The Restoring screen's
+    /// last-odometer recency is the v1 half of J11's provenance clause; the
+    /// source device ("from your Android phone") is [v2].
     static func relativeDay(_ daysAgo: Int) -> String {
         switch daysAgo {
         case 0: localize("today")

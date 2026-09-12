@@ -119,15 +119,15 @@ struct RestoringView: View {
                 .font(.custom(AppFonts.dinAlternateBold, size: 13))
                 .bold()
             + Text(verbatim: " \(L10n.distanceUnit(.km))")
-            + Text(verbatim: sourceSuffix)
+            + Text(verbatim: recencySuffix)
     }
 
-    private var sourceSuffix: String {
-        guard let device = snapshot.lastOdometerDeviceName,
-              let daysAgo = snapshot.lastOdometerDaysAgo else {
-            return ""
-        }
-        return " · \(L10n.lastOdometerSource(deviceName: L10n.localize(device), daysAgo: daysAgo))"
+    /// " · yesterday" - how recent the last odometer is. The v1 half of J11's
+    /// provenance clause; the source device ("from your Android phone") is [v2]
+    /// (docs/SCHEMA.md -> author attribution) and is never rendered here.
+    private var recencySuffix: String {
+        guard let daysAgo = snapshot.lastOdometerDaysAgo else { return "" }
+        return " · \(L10n.relativeDay(daysAgo))"
     }
 
     private func foundRow(_ text: Text) -> some View {

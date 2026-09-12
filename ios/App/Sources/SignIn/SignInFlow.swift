@@ -14,7 +14,6 @@ struct RestoreSnapshot: Equatable, Sendable {
     var earliestEntry: Date?
     var latestEntry: Date?
     var lastOdometerKm: Int?
-    var lastOdometerDeviceName: String?
     var lastOdometerDaysAgo: Int?
     var email: String?
     var provider: AuthProvider
@@ -22,10 +21,9 @@ struct RestoreSnapshot: Equatable, Sendable {
 
 extension RestoreSnapshot {
     /// Builds the view snapshot from the restore's verification stats. Device
-    /// attribution ("from your Android phone") is a v2 field (docs/SCHEMA.md:
-    /// author attribution is not a domain field) - nil here, the seed supplies
-    /// it for the artboard state.
-    init(stats: RestoreStats, email: String?, provider: AuthProvider, lastOdometerDeviceName: String? = nil) {
+    /// attribution ("from your Android phone") is a [v2] field (docs/SCHEMA.md:
+    /// author attribution is not a domain field), so it is not carried here.
+    init(stats: RestoreStats, email: String?, provider: AuthProvider) {
         self.carCount = stats.carCount
         self.carNames = stats.carNames
         self.entryCount = stats.entryCount
@@ -33,7 +31,6 @@ extension RestoreSnapshot {
         self.latestEntry = stats.latestEntry
         self.lastOdometerKm = stats.lastOdometerKm
         self.lastOdometerDaysAgo = stats.lastOdometerDaysAgo
-        self.lastOdometerDeviceName = lastOdometerDeviceName
         self.email = email
         self.provider = provider
     }

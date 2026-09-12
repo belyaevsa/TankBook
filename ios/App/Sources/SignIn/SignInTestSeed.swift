@@ -39,8 +39,10 @@ enum SignInTestSeed {
     // MARK: - The artboard's restore state
 
     /// The Restoring artboard's "Found in your account" data (2 cars, 428
-    /// entries, last odometer 119 486 km from an Android phone yesterday).
-    static func restoreSnapshot() -> RestoreSnapshot {
+    /// entries, last odometer 119 486 km yesterday). `-signInRestoreDaysAgo N`
+    /// overrides the artboard's "yesterday" (1) so a UI test can pin the plural
+    /// recency suffix ("N days ago") the J11 promise renders.
+    static func restoreSnapshot(_ arguments: [String] = ProcessInfo.processInfo.arguments) -> RestoreSnapshot {
         var start = DateComponents()
         start.year = 2019
         start.month = 9
@@ -56,11 +58,19 @@ enum SignInTestSeed {
             earliestEntry: Calendar.current.date(from: start),
             latestEntry: Calendar.current.date(from: end),
             lastOdometerKm: 119_486,
-            lastOdometerDeviceName: "Android phone",
-            lastOdometerDaysAgo: 1,
+            lastOdometerDaysAgo: restoreDaysAgo(arguments),
             email: "driver@icloud.com",
             provider: .apple
         )
+    }
+
+    /// The last odometer's recency for the artboard snapshot: 1 ("yesterday")
+    /// unless `-signInRestoreDaysAgo N` supplies another whole-day count.
+    private static func restoreDaysAgo(_ arguments: [String]) -> Int {
+        guard let flag = arguments.firstIndex(of: "-signInRestoreDaysAgo"),
+              flag + 1 < arguments.count,
+              let days = Int(arguments[flag + 1]) else { return 1 }
+        return days
     }
 
     // MARK: - Doubles

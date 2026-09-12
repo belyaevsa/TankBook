@@ -521,6 +521,13 @@ capture P4.7-restore-empty-ru     ru -presentScreen signIn -signInRestoreEmpty
 capture P4.7-restore-unreachable  en -presentScreen signIn -signInRestoreUnreachable
 capture P4.7-restore-unreachable-ru ru -presentScreen signIn -signInRestoreUnreachable
 
+# RV.261: the last-odometer recency is the v1 half of J11's provenance clause;
+# the source device ("from your Android phone") is [v2] and does not render.
+# `-signInRestoreDaysAgo 3` seeds the plural "3 days ago" - a longer suffix than
+# the artboard's "yesterday", so RU is the overflow check.
+capture RV.261-restore-stats    en -presentScreen signIn -signInRestore -signInRestoreDaysAgo 3
+capture RV.261-restore-stats-ru ru -presentScreen signIn -signInRestore -signInRestoreDaysAgo 3
+
 # RV.259: the screen a restore-door user reaches when BOTH providers are empty -
 # the wrong-provider switch ran and the second account was also empty. It is the
 # SAME frame as P4.7-restore-empty (`EmptyRestoreView` renders identically

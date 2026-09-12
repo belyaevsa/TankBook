@@ -234,6 +234,43 @@ final class SignInUITests: XCTestCase {
         XCTAssertTrue(app.buttons["restoringSignOutButton"].exists)
     }
 
+    /// RV.261: the last-odometer recency is the v1 half of J11's provenance
+    /// clause. `-signInRestoreDaysAgo 3` seeds the plural form so the suffix is
+    /// asserted as "N days ago"; the source device ("from your Android phone")
+    /// is [v2] and must never render.
+    func testRestoringScreenShowsTheLastOdometerRecency() {
+        let app = launch(["-presentScreen", "signIn", "-signInRestore",
+                          "-signInRestoreDaysAgo", "3"])
+
+        XCTAssertTrue(app.buttons["restoringOpenGarageButton"].waitForExistence(timeout: 10))
+
+        let odometer = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                        "Last odometer", "3 days ago"))
+        XCTAssertTrue(odometer.firstMatch.exists,
+                      "the last odometer must carry its recency suffix, never a bare number")
+
+        XCTAssertFalse(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "from your")).firstMatch.exists,
+            "the source device is [v2] and must not render in v1")
+    }
+
+    /// RV.261 in Russian: the recency suffix is a full localised phrase, not
+    /// English-in-RU - "3 дня назад" (the `%lld days ago` plural, few form).
+    func testRestoringScreenShowsTheLastOdometerRecencyInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "signIn", "-signInRestore",
+                          "-signInRestoreDaysAgo", "3"])
+
+        XCTAssertTrue(app.buttons["restoringOpenGarageButton"].waitForExistence(timeout: 10))
+
+        let odometer = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@",
+                        "Последний пробег", "3 дня назад"))
+        XCTAssertTrue(odometer.firstMatch.exists,
+                      "the recency suffix must render in Russian, never English-in-RU")
+    }
+
     // MARK: - The empty-restore recovery entry point (docs/JOURNEYS.md F7)
     /// An empty restore must reach the recovery entry point BEFORE any "add a
     /// car" affordance is usable - the whole point is preventing the user from

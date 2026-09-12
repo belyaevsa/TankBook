@@ -461,12 +461,12 @@
       "runtime": "iOS.26.5"
     },
     "P4.7-restoring": {
-      "commit": "3a2dcdc",
+      "commit": "d4cdb4e4",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P4.7-restoring-ru": {
-      "commit": "3a2dcdc",
+      "commit": "d4cdb4e4",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2152,6 +2152,16 @@
     },
     "RV.260-restore-from-backup-ru": {
       "commit": "ab85e38b",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.261-restore-stats": {
+      "commit": "d4cdb4e4",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.261-restore-stats-ru": {
+      "commit": "d4cdb4e4",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
