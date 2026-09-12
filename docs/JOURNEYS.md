@@ -600,6 +600,8 @@ in `docs/NOTIFICATIONS.md` -> the actions.)*
 **Metric:** RU/KZ receipts with a decodable QR save with the anchored total in ≥95% of cases.
 
 ### F6 · Import file won't parse (J2's failure)
+**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-F6-2026-09-12)
+
 **Trigger:** truncated export, exotic CSV dialect, an app version we haven't seen, wrong file shared entirely.
 
 - Partial parse is the goal: import what parses, then show "214 of 220 entries imported – 6 rows need a look," with the 6 raw rows listed for inline fix or skip. All-or-nothing imports are how switchers bounce. **RV.93 (2026-09-07): this now also applies across files of one export** - a whole-export pick where one file fails to parse names the file and its next step, and the rest of the export continues (the run survives; hard rule 7).
