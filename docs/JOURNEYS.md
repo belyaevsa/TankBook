@@ -350,8 +350,7 @@ the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-*(Status cleared 2026-09-12: the late shop-receipt offer now carries the receipt's printed date
-(RV.246), so the story the review was held against no longer exists; re-walk after it ships.)*
+**Status: implemented 2026-09-12** (reviewed by the orchestrator, REVIEW-SCENARIO-J7b-2026-09-12b)
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
