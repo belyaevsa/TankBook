@@ -350,7 +350,8 @@ the pages the shutter already captured (hard rule 8).
 **Success metric:** ≥50% of service records carry an attachment; reminder acceptance rate ≥60%.
 
 ### J7b · Parts, tires, consumables
-**Status: implemented 2026-09-12** (reviewed by REVIEW-SCENARIO, REVIEW-SCENARIO-J7b-2026-09-12)
+*(Status cleared 2026-09-12: the late shop-receipt offer now carries the receipt's printed date
+(RV.246), so the story the review was held against no longer exists; re-walk after it ships.)*
 **Trigger:** a filter ordered online, brake pads bought on sale, a winter tire set – purchased *now*, installed *later* (or never; the car is sold with the shelf).
 
 | Stage | Doing | Notes |
@@ -387,10 +388,12 @@ value, and the Log row is named from it when the title is empty (RV.187), so a s
 kind and the total is a complete entry. A title stays available and is still a peer way to name
 the row - it is simply never demanded (hard rule 15).
 
-**A late shop-receipt reading reaches the inbox (RV.201, 2026-09-11).** When an expense
-recognition finishes after the expense is saved, the inbox offers what RV.200's recognition
-produces – the **amount** and the **category** – as per-field ticks against what the user saved,
-"leave it as it is" the default (hard rule 13). A differing amount or category is offered, never
+**A late shop-receipt reading reaches the inbox (RV.201, 2026-09-11; RV.246, 2026-09-12).** When an
+expense recognition finishes after the expense is saved, the inbox offers what the recognition
+produces – the **amount**, the **category** and the receipt's printed **date** – as per-field ticks
+against what the user saved, "leave it as it is" the default (hard rule 13). The date is the same
+parse the form's pre-fill reads (`ExpensePrefill.date`), so the form and the inbox can never
+disagree about what the receipt said. A differing amount, category or date is offered, never
 applied on its own; the same merge function serves the service and fill-up kinds, so the three
 cannot drift. **The producing side is deferrable (RV.215, 2026-09-11):** an Expense-mode scan runs
 its read in the background, so the form opens before the recognition lands - a read that finishes

@@ -468,6 +468,13 @@ The contract that bounds the expense hand-off is the fill-up path's own:
   NOT offered as if it were home money - the amount stays blank for the user to type. A nil
   currency is treated as "no evidence to the contrary", exactly as the fill-up form does.
 
+The same parse feeds the **late** read. When the recognition finishes after the expense is saved,
+the inbox offers the amount, the inferred category and the printed date - `ExpenseRecognition`
+carries the date as the parsed `Date` the pre-fill already resolved, one shape with the service
+recognition. The date is a suggestion the user ticks, never an applied value (hard rule 13), so a
+parking ticket dated last week and saved as today can be corrected from the receipt rather than
+staying wrong.
+
 ## Cross-multiplication as digit repair
 
 New, 2026-08-26, and specific to seven-segment displays.

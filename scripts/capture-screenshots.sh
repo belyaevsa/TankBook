@@ -1083,6 +1083,13 @@ capture RV.201-inbox-service-ru ru -seedSettingsSignedIn -seedInboxService -inbo
 capture RV.215-inbox-expense    en -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
 capture RV.215-inbox-expense-ru ru -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
 
+# RV.246: the same expense offer now carries the receipt's printed DATE, so the
+# card offers `inboxTick_date` beside the amount and the category. The date row
+# keeps the same-line layout - label on the values' line, never stacked. RU
+# asserts "Дата" in that row.
+capture RV.246-inbox-expense-date    en -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
+capture RV.246-inbox-expense-date-ru ru -seedSettingsSignedIn -seedInboxExpense -inboxReset -presentScreen inbox
+
 # RV.48: the attachment viewer's recognised page showing the parse's ASSIGNED
 # fields (total/litres/price/fuel/currency) as the headline, the raw OCR lines
 # demoted behind a disclosure. `-openAttachmentViewerRecognised` opens the pager

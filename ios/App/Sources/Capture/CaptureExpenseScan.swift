@@ -93,9 +93,7 @@ extension CaptureView {
             prefill: ExpensePrefillBuilder.prefill(from: capture.extraction),
             preset: preset,
             capture: capture,
-            recognition: ExpenseRecognition(
-                total: capture.extraction.total.map { GatewayFieldValue(value: $0, confidence: 0.9) },
-                category: preset.map { GatewayFieldValue(value: $0, confidence: 0.8) }))
+            recognition: ExpenseScanOutcome.recognition(from: capture.extraction, preset: preset))
     }
 
     /// Runs the recognition an Expense-mode scan shares with the fill-up path.

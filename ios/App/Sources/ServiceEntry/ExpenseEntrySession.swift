@@ -31,6 +31,24 @@ struct ExpenseScanOutcome {
     let recognition: ExpenseRecognition
 }
 
+extension ExpenseScanOutcome {
+    /// The recognition a scan offers the Inbox when its read lands after the
+    /// save. It is built from the same parse the pre-fill reads
+    /// (`ExpensePrefillBuilder`), so the date the form would pre-fill and the
+    /// date the inbox offers are one value, never two readings of the receipt.
+    /// `preset` is the category the scan inferred; a nil preset leaves the
+    /// category unread. Every value is a suggestion the policy compares against
+    /// the saved entry, never an applied fact (hard rule 13).
+    static func recognition(from extraction: FuelExtraction,
+                            preset: ExpenseCategory?) -> ExpenseRecognition {
+        let prefill = ExpensePrefillBuilder.prefill(from: extraction)
+        return ExpenseRecognition(
+            total: extraction.total.map { GatewayFieldValue(value: $0, confidence: 0.9) },
+            category: preset.map { GatewayFieldValue(value: $0, confidence: 0.8) },
+            date: prefill.date.map { GatewayFieldValue(value: $0, confidence: 0.9) })
+    }
+}
+
 /// Carries the just-scanned expense pre-fill from the Capture flow into the
 /// ExpenseEntry sheet (RV.62). Capture processes the frame and writes the
 /// recognised total/currency/date here; ExpenseEntry reads it on load - the

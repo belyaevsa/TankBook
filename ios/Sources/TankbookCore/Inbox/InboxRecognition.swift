@@ -74,16 +74,24 @@ public struct ServiceRecognition: Sendable, Equatable, Codable {
 }
 
 /// A shop receipt read on the device. Per RV.200 the recognition produces the
-/// amount and the category it was read as; RV.201 offers exactly those two -
+/// amount and the category it was read as; RV.201 offered exactly those two -
 /// a shop receipt has no vendor the schema records and no fuel fields at all.
+///
+/// `date` is the receipt's printed date, the parsed `Date` the pre-fill already
+/// resolves (`ExpensePrefill.date`), so a late read can offer a differing date
+/// against the entry the user saved - one shape with the service recognition.
+/// It is optional: an unread date is absent, never guessed (hard rule 13).
 public struct ExpenseRecognition: Sendable, Equatable, Codable {
     public var total: GatewayFieldValue<Decimal>?
     public var category: GatewayFieldValue<ExpenseCategory>?
+    public var date: GatewayFieldValue<Date>?
 
     public init(total: GatewayFieldValue<Decimal>? = nil,
-                category: GatewayFieldValue<ExpenseCategory>? = nil) {
+                category: GatewayFieldValue<ExpenseCategory>? = nil,
+                date: GatewayFieldValue<Date>? = nil) {
         self.total = total
         self.category = category
+        self.date = date
     }
 }
 

@@ -314,6 +314,51 @@ final class InboxUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["inboxEmptyState"].waitForExistence(timeout: 5))
     }
 
+    // MARK: - RV.246 the late expense read offers the receipt's date
+
+    /// The expense recognition now carries the receipt's printed date, so a
+    /// parking ticket dated last week and saved as today offers its date per
+    /// tick beside the amount and the category. The row keeps the same-line
+    /// layout the owner set for the comparison card: the label sits on the
+    /// values' line, never stacked above them.
+    func testAnExpenseRecognitionOffersTheReceiptDate() {
+        let app = launch(["-seedInboxExpense"])
+        app.buttons["inboxBellButton"].tap()
+
+        let dateTick = app.buttons["inboxTick_date"]
+        XCTAssertTrue(dateTick.waitForExistence(timeout: 5),
+                      "a late expense read must offer the receipt's date")
+        XCTAssertTrue(app.buttons["inboxTick_total"].exists,
+                      "the amount is still offered")
+        XCTAssertTrue(app.buttons["inboxTick_category"].exists,
+                      "the category is still offered")
+
+        let label = app.staticTexts["Date"]
+        XCTAssertTrue(label.waitForExistence(timeout: 5),
+                      "the date row must name its field")
+        XCTAssertEqual(label.frame.midY, dateTick.frame.midY, accuracy: 4,
+                       "the label must sit on the same line as its row, never stacked above it")
+    }
+
+    /// The same offer in Russian: "Дата" is short, but it is the row whose
+    /// same-line placement the owner fixed, so it is asserted in both locales.
+    func testAnExpenseRecognitionOffersTheReceiptDateInRussian() {
+        let app = launch(["-seedInboxExpense"], language: "ru")
+        app.buttons["inboxBellButton"].tap()
+
+        let dateTick = app.buttons["inboxTick_date"]
+        XCTAssertTrue(dateTick.waitForExistence(timeout: 5),
+                      "a late expense read must offer the receipt's date in RU too")
+        XCTAssertTrue(app.buttons["inboxTick_total"].exists)
+        XCTAssertTrue(app.buttons["inboxTick_category"].exists)
+
+        let label = app.staticTexts["Дата"]
+        XCTAssertTrue(label.waitForExistence(timeout: 5),
+                      "the date row must name its field in RU")
+        XCTAssertEqual(label.frame.midY, dateTick.frame.midY, accuracy: 4,
+                       "the RU label must sit on the same line as its row, never stacked above it")
+    }
+
     // MARK: - The REAL flow: an answer that lands after save reaches the inbox
 
     /// The end-to-end proof of the durability shape: the sheet is saved and

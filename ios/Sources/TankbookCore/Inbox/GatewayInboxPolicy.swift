@@ -259,11 +259,13 @@ public enum GatewayInboxPolicy {
         return out
     }
 
-    /// Expense: the amount and the category it was read as (RV.200's field set).
-    /// `Expense.category` is non-optional, so a differing category is always a
-    /// replacement, never a fill.
+    /// Expense: the amount, the category it was read as (RV.200's field set) and
+    /// the receipt's printed date. `Expense.category` is non-optional, so a
+    /// differing category is always a replacement, never a fill; `Expense.date`
+    /// is non-optional too, so a differing date is offered the same way.
     private static func expenseOffers(_ recognition: ExpenseRecognition, _ entry: Expense) -> [FieldOffer] {
         var out: [FieldOffer] = []
+        if let offer = dateOffer(current: entry.date, read: recognition.date?.value) { out.append(offer) }
         if let money = entry.money,
            let offer = offer(.total, current: money.amount, read: recognition.total?.value) {
             out.append(offer)
@@ -363,13 +365,17 @@ public enum GatewayInboxPolicy {
         return result
     }
 
-    /// The expense merge: the amount and the category.
+    /// The expense merge: the amount, the category and the receipt's date.
     private static func mergedExpense(_ entry: Expense,
                                       _ recognition: ExpenseRecognition,
                                       taking fields: Set<FieldRef>) -> Expense {
         var result = entry
         var changed = false
 
+        if fields.contains(.date), let parsed = recognition.date?.value {
+            result.date = parsed
+            changed = true
+        }
         if fields.contains(.total), let total = recognition.total?.value, let money = result.money {
             result.money = money.replacingAmount(total)
             changed = true

@@ -2185,6 +2185,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.246-inbox-expense-date": {
+      "commit": "ac1691c2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.246-inbox-expense-date-ru": {
+      "commit": "ac1691c2",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.251-guest-home-two-cars": {
       "commit": "17b76604",
       "device": "iPhone 17",

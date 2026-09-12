@@ -155,6 +155,10 @@ enum InboxValueFormat {
                                        entry: InboxEntry,
                                        recognition: ExpenseRecognition) -> String {
         switch field {
+        case .date:
+            return recognition.date.map {
+                $0.value.formatted(.dateTime.month(.abbreviated).day().year())
+            } ?? blank
         case .total:
             // The recognition carries no currency of its own; RV.200 only offers
             // an amount when it is the car's home currency, so the entry's

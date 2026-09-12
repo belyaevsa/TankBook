@@ -4,7 +4,7 @@ import TankbookCore
 
 /// UI-test and screenshot seeding for the inbox (RV.38, RV.45, RV.201).
 ///
-/// Four seeds, each idempotent (once a vehicle exists it no-ops) under the same
+/// Five seeds, each idempotent (once a vehicle exists it no-ops) under the same
 /// `-homeResetDatabase` gate:
 ///
 /// - `-seedInboxItem` (RV.38): one fill-up with a BLANK price plus a pending item
@@ -21,6 +21,9 @@ import TankbookCore
 /// - `-seedInboxService` (RV.201): a saved service invoice plus a late service
 ///   recognition that differs on vendor, line item and total - the shape that
 ///   proves the per-field ask reaches an entry kind that is not a fill-up.
+/// - `-seedInboxExpense` (RV.215): a saved expense plus a late expense
+///   recognition that differs on amount, category and date - the shape that
+///   proves the ask reaches an expense, and the pose the expense screenshots use.
 enum InboxTestSeed {
     @MainActor
     static func seedIfRequested() {
@@ -254,13 +257,13 @@ enum InboxTestSeed {
         }
     }
 
-    // MARK: - RV.215 the expense offer (a differing amount and category)
+    // MARK: - RV.215 the expense offer (a differing amount, category and date)
 
-    /// A saved expense plus a late expense recognition that DIFFERS on amount
-    /// and category. The card must offer `inboxTick_total` and
-    /// `inboxTick_category` and the user must be able to decline it. This is the
-    /// seed the RV.215 EN/RU screenshots use; the L4 test drives the REAL
-    /// deferred producer instead.
+    /// A saved expense plus a late expense recognition that DIFFERS on amount,
+    /// category and date. The card must offer `inboxTick_total`,
+    /// `inboxTick_category` and `inboxTick_date` and the user must be able to
+    /// decline it. This is the seed the expense EN/RU screenshots use; the L4
+    /// test drives the REAL deferred producer instead.
     @MainActor
     private static func seedExpenseItem() {
         let arguments = ProcessInfo.processInfo.arguments
@@ -293,7 +296,8 @@ enum InboxTestSeed {
 
         let recognition = InboxRecognition.expense(ExpenseRecognition(
             total: .init(value: Decimal(string: "20.00")!, confidence: 0.9),
-            category: .init(value: .parking, confidence: 0.8)))
+            category: .init(value: .parking, confidence: 0.8),
+            date: .init(value: now.addingTimeInterval(-7 * 86_400), confidence: 0.9)))
         let item = GatewayInboxItem(id: UUID.v7(), entryId: entryID,
                                     createdAt: now, recognition: recognition)
         if let data = try? JSONEncoder().encode([item]) {
