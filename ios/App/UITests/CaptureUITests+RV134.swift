@@ -49,4 +49,36 @@ extension CaptureUITests {
         XCTAssertTrue(app.staticTexts["fills in from total ÷ gallons"].waitForExistence(timeout: 5),
                       "the derive caption must name gallons, not litres")
     }
+
+    /// RV.234 (RU): the volume row label and the disabled-save hint name the
+    /// car's own unit too - the two sites RV.134's own imperial screenshot still
+    /// showed as "Liters"/"Литры" and "liters"/"литры". The volume field's unit
+    /// token is "гал"; the row label is "Галлоны".
+    func testImperialManualFormNamesGallonsInTheVolumeRowAndHintInRussian() {
+        let app = launchImperialManualForm(russian: true)
+        XCTAssertTrue(app.staticTexts["Галлоны"].waitForExistence(timeout: 10),
+                      "the volume row label must read gallons")
+        XCTAssertTrue(app.staticTexts["гал"].waitForExistence(timeout: 5),
+                      "the volume field's unit must read гал")
+        XCTAssertTrue(app.staticTexts["Введите сумму и галлоны, чтобы сохранить"]
+                        .waitForExistence(timeout: 5),
+                      "the disabled-save hint must read галлоны")
+        XCTAssertFalse(app.staticTexts["Литры"].exists,
+                       "an imperial car must never be shown the litre row label")
+        XCTAssertFalse(app.staticTexts["Введите сумму и литры, чтобы сохранить"].exists,
+                       "an imperial car must never be shown the litre hint")
+    }
+
+    /// RV.234 (EN): the same two sites in English.
+    func testImperialManualFormNamesGallonsInTheVolumeRowAndHintInEnglish() {
+        let app = launchImperialManualForm(russian: false)
+        XCTAssertTrue(app.staticTexts["Gallons"].waitForExistence(timeout: 10),
+                      "the volume row label must read gallons")
+        XCTAssertTrue(app.staticTexts["gal"].waitForExistence(timeout: 5),
+                      "the volume field's unit must read gal")
+        XCTAssertTrue(app.staticTexts["Enter total and gallons to save"].waitForExistence(timeout: 5),
+                      "the disabled-save hint must read gallons")
+        XCTAssertFalse(app.staticTexts["Liters"].exists,
+                       "an imperial car must never be shown the litre row label")
+    }
 }

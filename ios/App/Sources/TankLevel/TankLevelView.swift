@@ -56,11 +56,12 @@ enum TankLevelFormat {
     }
 
     /// The litres equivalence ("≈ 53 of 71 L"), the artboard's fine-tune
-    /// caption; only meaningful when a capacity is known.
-    static func litresEquivalence(pct: Double, capacityL: Double) -> String {
-        let litres = Int((pct / 100 * capacityL).rounded())
-        let capacity = Int(capacityL.rounded())
-        return String(format: L10n.localize("≈ %d of %d L"), litres, capacity)
+    /// caption; only meaningful when a capacity is known. The figure is
+    /// converted to the vehicle's own volume unit (RV.234).
+    static func tankEquivalence(pct: Double, capacityL: Double, unit: VolumeUnit) -> String {
+        let volume = Int(ManualFillUpMath.displayVolume(from: pct / 100 * capacityL, unit: unit).rounded())
+        let capacity = Int(ManualFillUpMath.displayVolume(from: capacityL, unit: unit).rounded())
+        return ManualFillUpUnitCopy.tankEquivalence(volume: volume, capacity: capacity, unit: unit)
     }
 }
 
@@ -125,6 +126,9 @@ struct TankLevelSheet: View {
     /// The vehicle's tank capacity in litres; nil hides the litres line and
     /// shows the ERRORS.md hint instead.
     let capacityL: Double?
+    /// The vehicle's volume unit, so the equivalence and the missing-capacity
+    /// hint name the car's own unit (RV.234).
+    let volumeUnit: VolumeUnit
 
     @Environment(\.dismiss) private var dismiss
     @State private var draft: Double
@@ -133,10 +137,12 @@ struct TankLevelSheet: View {
         (100, "Full"), (75, "¾"), (50, "½"), (25, "¼")
     ]
 
-    init(tankLevelAfterPct: Binding<Double?>, isFull: Binding<Bool>, capacityL: Double?) {
+    init(tankLevelAfterPct: Binding<Double?>, isFull: Binding<Bool>, capacityL: Double?,
+         volumeUnit: VolumeUnit = .l) {
         self._tankLevelAfterPct = tankLevelAfterPct
         self._isFull = isFull
         self.capacityL = capacityL
+        self.volumeUnit = volumeUnit
         let current = tankLevelAfterPct.wrappedValue ?? (isFull.wrappedValue ? 100 : 75)
         _draft = State(initialValue: current)
     }
@@ -230,7 +236,8 @@ struct TankLevelSheet: View {
                     .foregroundStyle(Theme.Palette.inkSoft)
                 Spacer(minLength: 8)
                 if let capacityL {
-                    Text(TankLevelFormat.litresEquivalence(pct: draft, capacityL: capacityL))
+                    Text(TankLevelFormat.tankEquivalence(pct: draft, capacityL: capacityL,
+                                                         unit: volumeUnit))
                         .font(.footnote)
                         .foregroundStyle(Theme.Palette.inkSoft)
                         .monospacedDigit()
@@ -240,7 +247,7 @@ struct TankLevelSheet: View {
             .padding(.top, 10)
 
             if capacityL == nil {
-                Text("Set tank size in Garage to see liters.")
+                Text(ManualFillUpUnitCopy.setTankSizeHint(for: volumeUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .frame(maxWidth: .infinity, alignment: .leading)

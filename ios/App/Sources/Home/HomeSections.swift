@@ -25,9 +25,17 @@ enum HomeFormat {
         "\(ManualFillUpFormat.decimal(amount, fractionDigits: 0))\u{00A0}\(symbol)"
     }
 
-    /// "1.679 €" - the last price per litre tile (3 fraction digits).
-    static func unitPrice(_ amount: Decimal, symbol: String) -> String {
-        "\(ManualFillUpFormat.decimal(amount, fractionDigits: 3))\u{00A0}\(symbol)"
+    /// "1.679 €" - the last price per the vehicle's display volume unit (3
+    /// fraction digits). The stored figure is per litre; a gallons car reads the
+    /// price it actually pays at the pump (RV.234).
+    static func unitPrice(_ amount: Decimal, symbol: String, volumeUnit: VolumeUnit) -> String {
+        "\(unitPriceValue(amount, volumeUnit: volumeUnit))\u{00A0}\(symbol)"
+    }
+
+    /// The bare figure for a `StatTile` that renders its own unit.
+    static func unitPriceValue(_ amount: Decimal, volumeUnit: VolumeUnit) -> String {
+        ManualFillUpFormat.decimal(amount * Decimal(ManualFillUpMath.litresPerUnit(volumeUnit)),
+                                   fractionDigits: 3)
     }
 
     /// "71.02 €" - a recent-entry amount (2 fraction digits).
@@ -35,11 +43,18 @@ enum HomeFormat {
         "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2))\u{00A0}\(symbol)"
     }
 
-    /// "0.15 €" - the per-km cost (2 fraction digits; per-km costs live below
-    /// one unit and must not round to "€0").
-    static func costPerKm(_ value: Double, symbol: String) -> String {
-        let amount = NSDecimalNumber(value: value).decimalValue
-        return "\(ManualFillUpFormat.decimal(amount, fractionDigits: 2))\u{00A0}\(symbol)"
+    /// "0.15 €" - the all-in cost per the vehicle's display distance unit (2
+    /// fraction digits; per-unit costs live below one unit and must not round to
+    /// "€0"). The stored figure is per kilometre; a miles car reads cost per mile
+    /// (RV.234).
+    static func costPerKm(_ value: Double, symbol: String, distanceUnit: DistanceUnit) -> String {
+        "\(costPerDistanceValue(value, distanceUnit: distanceUnit))\u{00A0}\(symbol)"
+    }
+
+    /// The bare figure for a `StatTile` that renders its own currency unit.
+    static func costPerDistanceValue(_ value: Double, distanceUnit: DistanceUnit) -> String {
+        let factor = distanceUnit == .mi ? 1.609344 : 1.0
+        return ManualFillUpFormat.decimal(value * factor, fractionDigits: 2)
     }
 
     /// "Aug 17" in the current year, "Aug 17, 15" otherwise - the one
@@ -262,9 +277,10 @@ struct HomeVitalsRow: View {
             // symbol printed here is the figure's own - never the vehicle's by
             // default.
             if let lastPrice = stats.lastUnitPrice {
-                StatTile(title: L10n.localize("Last price/L"),
+                StatTile(title: ManualFillUpUnitCopy.lastPriceLabel(for: vehicle.units.volume),
                          value: HomeFormat.unitPrice(lastPrice.amount,
-                                                     symbol: AddVehicleSupport.moneySymbol(for: lastPrice.currency)),
+                                                     symbol: AddVehicleSupport.moneySymbol(for: lastPrice.currency),
+                                                     volumeUnit: vehicle.units.volume),
                          identifier: "homeLastPriceTile")
             }
         }

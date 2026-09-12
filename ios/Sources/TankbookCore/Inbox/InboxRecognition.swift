@@ -114,6 +114,16 @@ public enum InboxEntry: Sendable, Equatable {
         }
     }
 
+    /// The owning vehicle's id, so a comparison cell can resolve the car's
+    /// volume unit for its label (RV.234).
+    public var vehicleId: UUID {
+        switch self {
+        case .fillUp(let entry): return entry.vehicleId
+        case .service(let entry): return entry.vehicleId
+        case .expense(let entry): return entry.vehicleId
+        }
+    }
+
     /// The entry date, the field every kind shares.
     public var date: Date {
         switch self {

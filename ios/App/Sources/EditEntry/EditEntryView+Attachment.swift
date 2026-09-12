@@ -74,6 +74,7 @@ extension EditEntryView {
     func fillUpReceiptCard(_ fill: FillUp) -> some View {
         if !attachments.isEmpty {
             EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                      volumeUnit: vehicle?.units.volume ?? .l,
                                       pendingBlobIDs: pendingBlobIDs,
                                       onAttachmentChanged: handleAttachmentChanged)
         } else if attachImage != nil {
@@ -86,6 +87,7 @@ extension EditEntryView {
                 }
         } else {
             EditEntryRows.receiptCard(attachments: attachments, entry: fill,
+                                      volumeUnit: vehicle?.units.volume ?? .l,
                                       pendingBlobIDs: pendingBlobIDs,
                                       onAddReceipt: { showAttachSource = true })
                 .receiptAttachSource(isPresented: $showAttachSource,

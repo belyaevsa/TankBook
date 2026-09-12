@@ -154,7 +154,8 @@ private func seedRichDataset(into repo: TankbookRepository) throws -> (vehicleId
 
     let stats = RestoreStats(
         carCount: 2, carNames: ["Volvo V60", "ID.4"], entryCount: 6,
-        earliestEntry: d1, latestEntry: d3, lastOdometerKm: 120_486, lastOdometerDaysAgo: nil)
+        earliestEntry: d1, latestEntry: d3, lastOdometerKm: 120_486,
+        lastOdometerDistanceUnit: .km, lastOdometerDaysAgo: nil)
     return ([v1, v2], stats)
 }
 

@@ -13,6 +13,10 @@ import TankbookCore
 /// focus and the non-fill focus without a second copy.
 struct F9aFixRow: View {
     let conflict: OdometerConflict
+    /// The vehicle's volume unit, so the CHECK 5 chip names litres or gallons
+    /// (RV.234). Defaults to litres for the surfaces whose entry never closes a
+    /// fuel segment (a non-fill edit), where the chip is never rendered.
+    var volumeUnit: VolumeUnit = .l
     let onFixOdometer: () -> Void
     let onFixLiters: () -> Void
     let onFixDate: () -> Void
@@ -77,7 +81,7 @@ struct F9aFixRow: View {
             // CHECK 5 (F2 residue): the litres are the likeliest wrong field, so
             // they rank first. "Check", never "Fix" - the app does not know the
             // value is wrong (hard rule 13).
-            Button("Check litres") { onFixLiters() }
+            Button(ManualFillUpUnitCopy.checkVolumeChip(for: volumeUnit)) { onFixLiters() }
                 .modifier(F9aFixChip(preselected: preselected))
                 .accessibilityIdentifier("manualFillUpConsumptionCheckLitersButton")
         case .checkOdometer:
@@ -96,6 +100,8 @@ struct F9aFixRow: View {
 struct F9aWarningRow: View {
     let conflict: OdometerConflict
     let warningIdentifier: String
+    /// The vehicle's volume unit for the CHECK 5 chip (RV.234).
+    var volumeUnit: VolumeUnit = .l
     let onFixOdometer: () -> Void
     let onFixLiters: () -> Void
     let onFixDate: () -> Void
@@ -112,6 +118,7 @@ struct F9aWarningRow: View {
                     .foregroundStyle(Theme.Palette.warn)
                     .accessibilityIdentifier(warningIdentifier)
                 F9aFixRow(conflict: conflict,
+                          volumeUnit: volumeUnit,
                           onFixOdometer: onFixOdometer,
                           onFixLiters: onFixLiters,
                           onFixDate: onFixDate,

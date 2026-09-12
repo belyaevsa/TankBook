@@ -66,6 +66,9 @@ struct ImportTimelineDetail: View {
 struct ImportConsumptionDetail: View {
     let per100: Double
     let unit: HeadlineUnit
+    /// The destination car's volume unit, so the sentence and the CHECK 5 chip
+    /// name the car's own unit (RV.234).
+    let volumeUnit: VolumeUnit
     let onCheckLiters: () -> Void
     let onCheckOdometer: () -> Void
 
@@ -76,7 +79,8 @@ struct ImportConsumptionDetail: View {
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
                 Text(OdometerConflict.consumptionQuote(per100: per100,
-                                                       unit: L10n.headlineUnit(unit)))
+                                                       unit: L10n.headlineUnit(unit),
+                                                       volumeUnit: volumeUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
                     .lineSpacing(1.4)
@@ -85,6 +89,7 @@ struct ImportConsumptionDetail: View {
                 quote: nil,
                 flagKind: .consumption,
                 suggestions: [.checkVolume, .checkOdometer]),
+                volumeUnit: volumeUnit,
                 onFixOdometer: onCheckOdometer,
                 onFixLiters: onCheckLiters,
                 onFixDate: {})

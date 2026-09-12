@@ -11,14 +11,16 @@ import TankbookCore
 // new `FieldRef` case has exactly one label to add and the two surfaces cannot
 // drift into two tables (RV.169's complaint, arriving as copy).
 
-/// The display label for a field ref, in the current locale.
+/// The display label for a field ref, in the current locale. Volume and
+/// unit-price labels follow the vehicle's own volume unit (RV.234); callers
+/// without a vehicle fall back to litres.
 enum FieldLabel {
-    static func text(_ field: FieldRef) -> String {
+    static func text(_ field: FieldRef, volumeUnit: VolumeUnit = .l) -> String {
         switch field {
         case .date: return L10n.localize("Date")
         case .fuelKind: return L10n.localize("Fuel")
-        case .volume: return L10n.localize("Litres")
-        case .unitPrice: return L10n.localize("Price/L")
+        case .volume: return ManualFillUpUnitCopy.fieldVolumeLabel(for: volumeUnit)
+        case .unitPrice: return ManualFillUpUnitCopy.fieldPriceLabel(for: volumeUnit)
         case .total: return L10n.localize("Total")
         case .currency: return L10n.localize("Currency")
         case .station: return L10n.localize("Station")

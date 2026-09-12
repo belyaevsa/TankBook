@@ -63,6 +63,9 @@ struct FlaggedEntriesView: View {
         /// consumption outlier (RV.265). Derived from the entry's `conflict`
         /// through the same mapping `EntryExclusion.derive` uses.
         let reason: EntryExclusionReason
+        /// The owning car's volume unit, so a consumption reason names the car's
+        /// own unit (RV.234). An account-wide list mixes cars.
+        let volumeUnit: VolumeUnit
     }
 
     var body: some View {
@@ -302,7 +305,8 @@ struct FlaggedEntriesView: View {
                                        title: EntryTitle.text(entry, stations: stations),
                                        subtitle: Self.subtitle(entry, vehicleName: vehicle.name),
                                        date: entry.date,
-                                       reason: Self.reason(entry.conflict)))
+                                       reason: Self.reason(entry.conflict),
+                                       volumeUnit: vehicle.units.volume))
                 }
             }
             rows = flagged.sorted { $0.date > $1.date }
@@ -446,7 +450,7 @@ private struct FlaggedSwipeRow: View {
                 // rendered it as the generic triangle + "car · date" a timeline
                 // break wears. One label table (`L10n.excludedReason`), a
                 // distinct identifier per reason so the two are told apart.
-                Text(L10n.excludedReason(row.reason))
+                Text(L10n.excludedReason(row.reason, volumeUnit: row.volumeUnit))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.warn)
                     .fixedSize(horizontal: false, vertical: true)

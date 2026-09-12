@@ -14,6 +14,9 @@ struct RestoreSnapshot: Equatable, Sendable {
     var earliestEntry: Date?
     var latestEntry: Date?
     var lastOdometerKm: Int?
+    /// The owning car's distance unit, so the restore line names the car's own
+    /// unit (RV.234).
+    var lastOdometerDistanceUnit: DistanceUnit?
     var lastOdometerDaysAgo: Int?
     var email: String?
     var provider: AuthProvider
@@ -30,6 +33,7 @@ extension RestoreSnapshot {
         self.earliestEntry = stats.earliestEntry
         self.latestEntry = stats.latestEntry
         self.lastOdometerKm = stats.lastOdometerKm
+        self.lastOdometerDistanceUnit = stats.lastOdometerDistanceUnit
         self.lastOdometerDaysAgo = stats.lastOdometerDaysAgo
         self.email = email
         self.provider = provider

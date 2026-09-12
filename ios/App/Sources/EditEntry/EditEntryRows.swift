@@ -12,12 +12,13 @@ enum EditEntryRows {
     /// presents; both `EditEntryView` and `EditEntryNonFillView` keep calling
     /// this one builder, so neither form forks a second copy of the card.
     static func receiptCard(attachments: [Attachment], entry: any Entry,
+                            volumeUnit: VolumeUnit = .l,
                             pendingBlobIDs: Set<UUID> = [],
                             onAddReceipt: (() -> Void)? = nil,
                             onAttachmentChanged: @escaping (FuelExtraction?) -> Void = { _ in }) -> some View {
         ReceiptCardView(attachments: attachments, entry: entry,
                         pendingBlobIDs: pendingBlobIDs, onAddReceipt: onAddReceipt,
-                        onAttachmentChanged: onAttachmentChanged)
+                        onAttachmentChanged: onAttachmentChanged, volumeUnit: volumeUnit)
     }
 
     /// The post-pick, pre-save receipt card shared by the fill-up and non-fill

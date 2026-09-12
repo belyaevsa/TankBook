@@ -373,13 +373,19 @@ enum HomeTestSeed {
     static func makeVehicle(fuelKinds: [FuelKind] = [.petrol95],
                             paceLimitKmPerDay: Double = 1500) -> Vehicle {
         let now = Date()
+        // RV.234: `-seedHomeMiles` switches the seeded car to an imperial
+        // (miles/gallons/MPG) unit set so Home's unit-labelled vitals can be
+        // exercised and screenshotted - the same modifier shape
+        // `ManualFillUpTestSeed` uses.
+        let units: Vehicle.Units = ProcessInfo.processInfo.arguments.contains("-seedHomeMiles")
+            ? Vehicle.Units(distance: .mi, volume: .galUS, consumption: .mpgUS, energy: .miPerKWh)
+            : Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100, energy: .kWhPer100)
         return Vehicle(
             id: UUID.v7(), createdAt: now, updatedAt: now, deletedAt: nil,
             name: "Volvo V60", make: "Volvo", model: "V60", year: 2015,
             plate: nil, powertrain: .ice, fuelKinds: fuelKinds,
             tankCapacityL: 71, batteryCapacityKWh: nil, homeCurrency: .eur,
-            units: Vehicle.Units(distance: .km, volume: .l, consumption: .lPer100,
-                                  energy: .kWhPer100),
+            units: units,
             photo: nil, archived: false, paceLimitKmPerDay: paceLimitKmPerDay,
             initialOdometer: 118_000)
     }

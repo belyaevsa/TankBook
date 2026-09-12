@@ -126,7 +126,7 @@ struct HomeGuestLayout<LogContent: View>: View {
     private func vitalsStrip(_ stats: HomeStats) -> some View {
         HStack(spacing: 0) {
             if stats.headline != nil {
-                vitalColumn(label: L10n.localize("L/100km"),
+                vitalColumn(label: L10n.headlineUnit(stats.vehicle.headlineUnit),
                             value: headlineValue(stats), identifier: "homeHeadlineValue")
             } else {
                 if stats.needsAnotherFullTank {
@@ -146,9 +146,10 @@ struct HomeGuestLayout<LogContent: View>: View {
             // currency, never the car's by default.
             if let cost = stats.costPerKm {
                 Divider().overlay(Theme.Palette.hairline).frame(height: 40)
-                vitalColumn(label: L10n.localize("per km"),
+                vitalColumn(label: ManualFillUpUnitCopy.perDistanceLabel(for: stats.vehicle.units.distance),
                             value: HomeFormat.costPerKm(cost.perKm,
-                                                        symbol: AddVehicleSupport.moneySymbol(for: cost.currency)),
+                                                        symbol: AddVehicleSupport.moneySymbol(for: cost.currency),
+                                                        distanceUnit: stats.vehicle.units.distance),
                             identifier: "homeCostPerKmTile")
             }
             // The month-spend column states exactly what the month divider may

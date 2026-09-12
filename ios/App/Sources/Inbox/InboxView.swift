@@ -134,7 +134,8 @@ private struct InboxItemCard: View {
     // MARK: The comparison table (yours vs the receipt)
 
     private func comparisonTable(entry: InboxEntry, offers: [GatewayInboxPolicy.FieldOffer]) -> some View {
-        Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
+        let volumeUnit = Self.volumeUnit(for: entry)
+        return Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
             GridRow {
                 Color.clear.frame(width: 20, height: 1)
                 Text(L10n.inboxYouEntered)
@@ -153,7 +154,7 @@ private struct InboxItemCard: View {
                 // RU label is never compressed into a hyphen; the value columns
                 // take what remains and wrap by word.
                 GridRow {
-                    fieldCell(offer)
+                    fieldCell(offer, volumeUnit: volumeUnit)
                     Text(InboxValueFormat.yours(offer.field, entry: entry))
                         .valueStyle(emphasis: .muted)
                         .gridColumnAlignment(.trailing)
@@ -166,11 +167,21 @@ private struct InboxItemCard: View {
         }
     }
 
-    private func fieldCell(_ offer: GatewayInboxPolicy.FieldOffer) -> some View {
+    /// The owning car's volume unit, so the comparison labels name the car's
+    /// own unit (RV.234). The inbox is account-wide, so the entry's own vehicle
+    /// is resolved by id; a missing vehicle falls back to litres.
+    private static func volumeUnit(for entry: InboxEntry) -> VolumeUnit {
+        guard let repository = try? AppStore.repository(),
+              let vehicle = (try? repository.liveVehicles())?
+                  .first(where: { $0.id == entry.vehicleId }) else { return .l }
+        return vehicle.units.volume
+    }
+
+    private func fieldCell(_ offer: GatewayInboxPolicy.FieldOffer, volumeUnit: VolumeUnit) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             // Ideal width, never compressed: the grid may not squeeze a
             // single word until it breaks mid-word ("Мастер-ская").
-            Text(InboxValueFormat.label(offer.field))
+            Text(InboxValueFormat.label(offer.field, volumeUnit: volumeUnit))
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Theme.Palette.ink)
                 .fixedSize(horizontal: true, vertical: false)

@@ -128,6 +128,7 @@ struct EditEntryNonFillView: View {
     private var receiptCard: some View {
         if !attachments.isEmpty {
             EditEntryRows.receiptCard(attachments: attachments, entry: entry,
+                                      volumeUnit: vehicle.units.volume,
                                       pendingBlobIDs: pendingBlobIDs,
                                       onAttachmentChanged: onAttachmentChanged)
         } else if attachImage != nil {
@@ -143,6 +144,7 @@ struct EditEntryNonFillView: View {
                 }
         } else {
             EditEntryRows.receiptCard(attachments: attachments, entry: entry,
+                                      volumeUnit: vehicle.units.volume,
                                       pendingBlobIDs: pendingBlobIDs,
                                       onAddReceipt: onAddReceipt)
                 .receiptAttachSource(isPresented: $showAttachSource,

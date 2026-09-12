@@ -124,6 +124,20 @@ final class ImportFlowModel {
         return distanceUnit
     }
 
+    /// The global fallback volume unit for a row whose destination is not yet
+    /// known - the same resolution `distanceUnit` uses (RV.234).
+    var volumeUnit: VolumeUnit {
+        if case .existing(let vehicle) = targetCar { return vehicle.units.volume }
+        return liveVehicles.first?.units.volume ?? .l
+    }
+
+    /// A review row's volume unit, so the volume/price cell labels name the
+    /// car's own unit (RV.234). The same per-row resolution as `distanceUnit`.
+    func volumeUnit(for row: ImportReviewRow) -> VolumeUnit {
+        if let vehicle = vehicle(for: row) { return vehicle.units.volume }
+        return volumeUnit
+    }
+
     /// The headline consumption unit of the car a review row belongs to, for
     /// the CHECK 5 quote (RV.229). The same resolution as `distanceUnit(for:)`,
     /// so a multi-car file's outlier quotes its own car's unit.

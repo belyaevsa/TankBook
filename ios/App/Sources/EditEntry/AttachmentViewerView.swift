@@ -48,6 +48,9 @@ import UIKit
 struct AttachmentViewerView: View {
     let attachment: Attachment
     let entry: any Entry
+    /// The owning car's volume unit, so the recognised page's volume/price
+    /// labels follow the car (RV.234).
+    var volumeUnit: VolumeUnit = .l
     var onAttachmentChanged: (FuelExtraction?) -> Void = { _ in }
 
     @Environment(\.dismiss) var dismiss
@@ -181,7 +184,8 @@ struct AttachmentViewerView: View {
                     .tag(0)
                 AttachmentRecognisedView(extractionMeta: attachment.extractionMeta,
                                          ocrText: attachment.ocrText,
-                                         createdAt: attachment.createdAt)
+                                         createdAt: attachment.createdAt,
+                                         volumeUnit: volumeUnit)
                     .tag(1)
             }
             .tabViewStyle(.page(indexDisplayMode: .automatic))

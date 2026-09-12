@@ -144,8 +144,9 @@ struct TrendsView: View {
                          trend: stats.consumptionTrend)
             }
             if let costPerKm = stats.home.costPerKm, let spanMonths = stats.costPerKmSpanMonths {
-                StatTile(title: L10n.localize("Cost / km"),
-                         value: ManualFillUpFormat.decimal(costPerKm.perKm, fractionDigits: 2),
+                StatTile(title: ManualFillUpUnitCopy.costPerDistanceLabel(for: stats.vehicle.units.distance),
+                         value: HomeFormat.costPerDistanceValue(costPerKm.perKm,
+                                                                distanceUnit: stats.vehicle.units.distance),
                          identifier: "trendsCostPerKmTile",
                          unit: AddVehicleSupport.moneySymbol(for: costPerKm.currency),
                          caption: L10n.honestSpanLabel(.window(months: spanMonths)),
@@ -162,8 +163,9 @@ struct TrendsView: View {
             // unit printed is the figure's own currency, and its sparkline is
             // comparable across foreign and home fills.
             if let lastPrice = stats.home.lastUnitPrice {
-                StatTile(title: L10n.localize("Price / L"),
-                         value: ManualFillUpFormat.decimal(lastPrice.amount, fractionDigits: 3),
+                StatTile(title: ManualFillUpUnitCopy.priceLabel(for: stats.vehicle.units.volume),
+                         value: HomeFormat.unitPriceValue(lastPrice.amount,
+                                                          volumeUnit: stats.vehicle.units.volume),
                          identifier: "trendsPriceTile",
                          unit: AddVehicleSupport.moneySymbol(for: lastPrice.currency),
                          caption: TrendsFormat.priceCaption(series: stats.priceSeries),

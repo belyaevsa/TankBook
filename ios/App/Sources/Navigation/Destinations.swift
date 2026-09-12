@@ -102,12 +102,14 @@ struct TankLevelStandaloneHost: View {
     @State private var tankLevelAfterPct: Double?
     @State private var isFull = false
     @State private var capacityL: Double?
+    @State private var volumeUnit: VolumeUnit = .l
     @State private var didLoad = false
 
     var body: some View {
         TankLevelSheet(tankLevelAfterPct: $tankLevelAfterPct,
                        isFull: $isFull,
-                       capacityL: capacityL)
+                       capacityL: capacityL,
+                       volumeUnit: volumeUnit)
             .task { await load() }
     }
 
@@ -120,6 +122,7 @@ struct TankLevelStandaloneHost: View {
         guard let repository = try? AppStore.repository(),
               let vehicle = (try? repository.liveVehicles())?.first else { return }
         capacityL = vehicle.tankCapacityL
+        volumeUnit = vehicle.units.volume
     }
 }
 

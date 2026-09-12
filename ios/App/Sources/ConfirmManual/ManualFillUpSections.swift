@@ -178,7 +178,8 @@ struct ManualFillUpNumbersCard: View {
     }
 
     private var litersRow: some View {
-        figureRow(label: L10n.localize("Liters"), field: .volume, unit: L10n.volumeUnit(volumeUnit),
+        figureRow(label: ManualFillUpUnitCopy.volumeLabel(for: volumeUnit), field: .volume,
+                  unit: L10n.volumeUnit(volumeUnit),
                   isSuspect: isSuspect(.volume))
     }
 
@@ -270,7 +271,7 @@ struct ManualFillUpNumbersCard: View {
     private func verifyLabel(_ field: ManualFillUpMath.Field) -> LocalizedStringKey {
         switch field {
         case .total: return "Check the total on the receipt"
-        case .volume: return "Check the liters on the receipt"
+        case .volume: return ManualFillUpUnitCopy.checkVolumeOnReceipt(for: volumeUnit)
         case .unitPrice: return "Check the price on the receipt"
         }
     }
@@ -380,6 +381,9 @@ struct ManualFillUpOdometerCard: View {
     @Binding var form: ManualFillUpFormState
     @FocusState.Binding var focus: ManualFillUpFocus?
     let distanceUnit: DistanceUnit
+    /// The vehicle's volume unit, so the CHECK 5 "Check litres/gallons" chip
+    /// names the car's own unit (RV.234).
+    let volumeUnit: VolumeUnit
     let conflict: OdometerConflict?
     let onFixDate: () -> Void
     /// PJ.14: the last-known odometer reference for the live "+N km since last"
@@ -397,6 +401,7 @@ struct ManualFillUpOdometerCard: View {
             if let conflict {
                 F9aWarningRow(conflict: conflict,
                               warningIdentifier: conflict.warningIdentifier,
+                              volumeUnit: volumeUnit,
                               onFixOdometer: { focus = .odometer },
                               onFixLiters: { focus = .liters },
                               onFixDate: onFixDate)

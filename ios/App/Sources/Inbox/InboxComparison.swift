@@ -19,9 +19,11 @@ enum InboxValueFormat {
     /// a blank that reads as a value is a lie, and an empty cell reads as broken.
     static let blank = "–"
 
-    /// The row's field label, from the one shared table (RV.201).
-    static func label(_ field: FieldRef) -> String {
-        FieldLabel.text(field)
+    /// The row's field label, from the one shared table (RV.201). The vehicle's
+    /// volume unit is threaded so a gallons car reads "Gallons"/"Price/gal"
+    /// (RV.234).
+    static func label(_ field: FieldRef, volumeUnit: VolumeUnit = .l) -> String {
+        FieldLabel.text(field, volumeUnit: volumeUnit)
     }
 
     /// One stable, DISTINCT accessibility id per field ref (RV.201). The old

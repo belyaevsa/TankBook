@@ -155,7 +155,7 @@ struct ManualFillUpView: View {
                         GatewayAuthExpiredNoticeView(dismiss: { authExpiredNoticeDismissed = true })
                     }
                     ManualFillUpOdometerCard(form: $form, focus: $focus, distanceUnit: distanceUnit,
-                                             conflict: odometerConflict,
+                                             volumeUnit: vehicle!.units.volume, conflict: odometerConflict,
                                              onFixDate: { showDatePicker = true },
                                              lastKnown: lastKnown,
                                              paceLimitKmPerDay: vehicle!.paceLimitKmPerDay)
@@ -221,8 +221,8 @@ struct ManualFillUpView: View {
         .sheet(isPresented: $showTankLevel) {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
                 TankLevelSheet(tankLevelAfterPct: $form.tankLevelAfterPct,
-                               isFull: $form.isFull,
-                               capacityL: vehicle?.tankCapacityL)
+                               isFull: $form.isFull, capacityL: vehicle?.tankCapacityL,
+                               volumeUnit: vehicle?.units.volume ?? .l)
                     .navigationTitle("Tank level")
                     .navigationBarTitleDisplayMode(.inline)
             }
@@ -686,7 +686,7 @@ private extension ManualFillUpView {
             .accessibilityIdentifier("manualFillUpSaveButton")
 
             if !saveEnabled {
-                Text("Enter total and liters to save")
+                Text(ManualFillUpUnitCopy.enterTotalAndVolume(for: vehicle?.units.volume ?? .l))
                     .font(.caption)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("manualFillUpSaveHint")

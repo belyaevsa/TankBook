@@ -18,6 +18,9 @@ struct ExcludedEntriesView: View {
     @Environment(AppCarSelection.self) private var carSelection
     @State private var rows: [Row] = []
     @State private var didLoad = false
+    /// The selected car's volume unit, so a consumption reason names the car's
+    /// own unit (RV.234).
+    @State private var volumeUnit: VolumeUnit = .l
 
     struct Row: Identifiable, Equatable {
         let id: UUID
@@ -101,7 +104,7 @@ struct ExcludedEntriesView: View {
                                     .accessibilityIdentifier("excludedEntryAmount")
                             }
                         }
-                        Text(L10n.excludedReason(row.reason))
+                        Text(L10n.excludedReason(row.reason, volumeUnit: volumeUnit))
                             .font(.caption)
                             .foregroundStyle(Theme.Palette.warn)
                             .fixedSize(horizontal: false, vertical: true)
@@ -183,6 +186,7 @@ struct ExcludedEntriesView: View {
                 return
             }
             let units = selected.units
+            volumeUnit = units.volume
             let entries = try repository.liveEntries(forVehicle: selected.id)
             let stations = try repository.liveStations()
             let resolutions = (try? repository.resolvedDuplicateKeys()) ?? []
@@ -247,12 +251,13 @@ extension L10n {
     /// fixed by editing the odometer or the date; an unresolved duplicate by
     /// Merge or Keep both. Full localised phrases per language - never a shared
     /// stem with a reason noun spliced in.
-    static func excludedReason(_ reason: EntryExclusionReason) -> String {
+    static func excludedReason(_ reason: EntryExclusionReason,
+                               volumeUnit: VolumeUnit = .l) -> String {
         switch reason {
         case .timelineConflict:
             String(localized: "Timeline conflict – check the odometer or date")
         case .consumptionOutlier:
-            String(localized: "Unusual consumption – check the litres or odometer")
+            ManualFillUpUnitCopy.consumptionReason(for: volumeUnit)
         case .unresolvedDuplicate:
             String(localized: "Possible duplicate – Merge or Keep both")
         }

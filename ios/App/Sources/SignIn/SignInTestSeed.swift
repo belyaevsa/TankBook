@@ -58,6 +58,7 @@ enum SignInTestSeed {
             earliestEntry: Calendar.current.date(from: start),
             latestEntry: Calendar.current.date(from: end),
             lastOdometerKm: 119_486,
+            lastOdometerDistanceUnit: .km,
             lastOdometerDaysAgo: restoreDaysAgo(arguments),
             email: "driver@icloud.com",
             provider: .apple
@@ -122,6 +123,7 @@ enum SignInTestSeed {
                 earliestEntry: snapshot.earliestEntry,
                 latestEntry: snapshot.latestEntry,
                 lastOdometerKm: snapshot.lastOdometerKm,
+                lastOdometerDistanceUnit: snapshot.lastOdometerDistanceUnit,
                 lastOdometerDaysAgo: snapshot.lastOdometerDaysAgo))
         case .restoreEmpty:
             outcome = .empty

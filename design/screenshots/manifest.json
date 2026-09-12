@@ -2125,6 +2125,26 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.234-confirm-imperial": {
+      "commit": "99c78541",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.234-confirm-imperial-ru": {
+      "commit": "99c78541",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.234-home-imperial": {
+      "commit": "99c78541",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.234-home-imperial-ru": {
+      "commit": "99c78541",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.235-service-fix-clear": {
       "commit": "e8cf18f1",
       "device": "iPhone 17",

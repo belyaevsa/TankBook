@@ -92,6 +92,7 @@ private struct ImportReviewRowView: View {
                 ImportConsumptionDetail(
                     per100: per100,
                     unit: model.headlineUnit(for: row),
+                    volumeUnit: model.volumeUnit(for: row),
                     onCheckLiters: { showingRawLine = true },
                     onCheckOdometer: { showingOdometerEditor = true })
             }
@@ -264,14 +265,18 @@ private struct ImportReviewRowView: View {
             }
             HStack(spacing: 8) {
                 if let volume = fill.volumeL as Double? {
-                    ImportFieldCell(label: "Litres",
-                                    value: ImportFormatting.decimal(Decimal(volume), fractionDigits: 2),
-                                    marked: volumeMarked)
+                    ImportFieldCell(
+                        label: LocalizedStringKey(
+                            ManualFillUpUnitCopy.fieldVolumeLabel(for: model.volumeUnit(for: row))),
+                        value: ImportFormatting.decimal(Decimal(volume), fractionDigits: 2),
+                        marked: volumeMarked)
                 }
                 if let price = fill.unitPrice {
-                    ImportFieldCell(label: "Price/L",
-                                    value: ImportFormatting.decimal(price, fractionDigits: 3),
-                                    marked: priceMarked)
+                    ImportFieldCell(
+                        label: LocalizedStringKey(
+                            ManualFillUpUnitCopy.fieldPriceLabel(for: model.volumeUnit(for: row))),
+                        value: ImportFormatting.decimal(price, fractionDigits: 3),
+                        marked: priceMarked)
                 }
                 if let amount = fill.money?.amount {
                     ImportFieldCell(label: "Total",

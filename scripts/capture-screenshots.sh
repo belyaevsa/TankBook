@@ -205,6 +205,16 @@ capture P1.4-home                  en -seedHomeFullHistory
 capture P1.4-home-ru               ru -seedHomeFullHistory
 capture P1.4-home-empty            en -seedHomeEmptyVehicle
 capture P1.4-home-empty-ru         ru -seedHomeEmptyVehicle
+
+# RV.234: the rest of the unit-in-the-sentence seam, on an imperial car. The
+# Confirm frame carries the two sites RV.134's own imperial shot still showed as
+# litres (the volume row label and the disabled-save hint); the Home frame is
+# the last-price and per-distance vitals naming the car's own units. Dark,
+# EN + RU.
+capture RV.234-confirm-imperial    en -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual
+capture RV.234-confirm-imperial-ru ru -seedVehicleForUITests -seedVehicleMiles -presentScreen confirmManual
+capture RV.234-home-imperial       en -seedHomeFullHistory -seedHomeMiles
+capture RV.234-home-imperial-ru    ru -seedHomeFullHistory -seedHomeMiles
 # RV.197: the guest Home with one entry - the log stream a no-account user must
 # see after saving. `-clearSessionAtLaunch` makes the launch guest (the Keychain
 # outlives `-homeResetDatabase`); `-seedHomeSingleFill` is the car plus the one

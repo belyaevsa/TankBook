@@ -138,7 +138,8 @@ struct EditEntryView: View {
             DiscardAwareSheet(policy: .discardSilently, hasUnsavedChanges: .constant(false)) {
                 TankLevelSheet(tankLevelAfterPct: $fillForm.tankLevelAfterPct,
                                isFull: $fillForm.isFull,
-                               capacityL: vehicle?.tankCapacityL)
+                               capacityL: vehicle?.tankCapacityL,
+                               volumeUnit: vehicle?.units.volume ?? .l)
                     .navigationTitle("Tank level")
                     .navigationBarTitleDisplayMode(.inline)
             }
@@ -267,6 +268,7 @@ struct EditEntryView: View {
                 F9aWarningRow(
                     conflict: conflict,
                     warningIdentifier: "editEntryNonFillOdometerWarning",
+                    volumeUnit: vehicle?.units.volume ?? .l,
                     onFixOdometer: { nonFillFocus = .odometer },
                     // A non-fill conflict is never a CHECK 5 consumption
                     // outlier (no non-fill entry closes a fuel segment).
@@ -344,7 +346,9 @@ struct EditEntryView: View {
     /// refuses names what is missing. Expense and charge edits are never
     /// refused, so they show no hint.
     private var saveHint: String? {
-        if fillUp != nil { return L10n.localize("Enter total and liters to save") }
+        if fillUp != nil {
+            return ManualFillUpUnitCopy.enterTotalAndVolume(for: vehicle?.units.volume ?? .l)
+        }
         if service != nil, nonFillForm.serviceSaveReadiness == .empty {
             return L10n.localize("Add a vendor or a line item to save")
         }
@@ -576,6 +580,7 @@ private extension EditEntryView {
                     ManualFillUpDateRow(date: $fillForm.date, showDatePicker: $showDatePicker)
                     ManualFillUpOdometerCard(form: $fillForm, focus: $fillFocus,
                                              distanceUnit: distanceUnit,
+                                             volumeUnit: vehicle.units.volume,
                                              conflict: odometerConflict,
                                              onFixDate: { showDatePicker = true })
                     neighbourhoodCard

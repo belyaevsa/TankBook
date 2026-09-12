@@ -118,7 +118,7 @@ struct RestoringView: View {
             + Text(OdometerFormat.grouped(snapshot.lastOdometerKm ?? 0))
                 .font(.custom(AppFonts.dinAlternateBold, size: 13))
                 .bold()
-            + Text(verbatim: " \(L10n.distanceUnit(.km))")
+            + Text(verbatim: " \(L10n.distanceUnit(snapshot.lastOdometerDistanceUnit ?? .km))")
             + Text(verbatim: recencySuffix)
     }
 

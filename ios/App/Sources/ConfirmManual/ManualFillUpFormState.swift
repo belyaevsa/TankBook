@@ -299,10 +299,12 @@ struct OdometerConflict: Equatable {
     /// engine derived for the segment this fill closes, and the two fields that
     /// can be wrong. One full localised phrase per language - the number and its
     /// unit are runtime data sharing the sentence, never concatenated copy
-    /// (hard rule 10).
-    static func consumptionQuote(per100: Double, unit: String) -> String {
-        String(format: L10n.localize("This fill implies %1$@ %2$@ – check the litres or the odometer."),
-               ManualFillUpFormat.decimal(per100, fractionDigits: 1), unit)
+    /// (hard rule 10). The volume unit comes from the car, so a gallons car is
+    /// told to check gallons (RV.234).
+    static func consumptionQuote(per100: Double, unit: String, volumeUnit: VolumeUnit) -> String {
+        ManualFillUpUnitCopy.consumptionQuote(
+            per100: ManualFillUpFormat.decimal(per100, fractionDigits: 1),
+            unit: unit, volumeUnit: volumeUnit)
     }
 }
 
@@ -387,7 +389,8 @@ extension ManualFillUpFormState {
             // the same value and unit Home and Trends render (one derivation).
             let quote = OdometerConflict.consumptionQuote(
                 per100: per100,
-                unit: L10n.headlineUnit(vehicle.headlineUnit))
+                unit: L10n.headlineUnit(vehicle.headlineUnit),
+                volumeUnit: vehicle.units.volume)
             return OdometerConflict(quote: quote, flagKind: flag.kind,
                                     suggestions: suggestions, receiptDate: receiptDate)
         }

@@ -26,6 +26,10 @@ struct AttachmentRecognisedView: View {
     let extractionMeta: ExtractionMeta?
     let ocrText: String?
     let createdAt: Date
+    /// The owning car's volume unit, so the volume and price labels name the
+    /// unit the receipt was read in (RV.234). Defaults to litres where no car
+    /// is in hand.
+    var volumeUnit: VolumeUnit = .l
 
     var body: some View {
         ScrollView {
@@ -38,7 +42,7 @@ struct AttachmentRecognisedView: View {
                     .font(.footnote)
                     .foregroundStyle(Theme.Palette.inkSoft)
                     .accessibilityIdentifier("attachmentViewerCapturedAt")
-                let rows = AttachmentValueFormat.rows(from: extractionMeta)
+                let rows = AttachmentValueFormat.rows(from: extractionMeta, volumeUnit: volumeUnit)
                 if rows.isEmpty {
                     nothingRecognisedCard
                 } else {
@@ -191,19 +195,20 @@ enum AttachmentValueFormat {
         .date, .fuelKind, .volume, .unitPrice, .total, .currency, .station, .vendor, .energy,
     ]
 
-    static func rows(from meta: ExtractionMeta?) -> [Row] {
+    static func rows(from meta: ExtractionMeta?, volumeUnit: VolumeUnit = .l) -> [Row] {
         guard let meta, meta.hasAssignedValue else { return [] }
         let currency = currency(in: meta.fields)
         let rank = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($0.element, $0.offset) })
         return meta.assignedFields
             .sorted { (rank[$0.key] ?? Int.max) < (rank[$1.key] ?? Int.max) }
             .map { ref, extraction in
-                Row(ref: ref, label: label(ref), value: value(ref, extraction.value, currency: currency))
+                Row(ref: ref, label: label(ref, volumeUnit: volumeUnit),
+                    value: value(ref, extraction.value, currency: currency))
             }
     }
 
-    private static func label(_ ref: FieldRef) -> String {
-        FieldLabel.text(ref)
+    private static func label(_ ref: FieldRef, volumeUnit: VolumeUnit) -> String {
+        FieldLabel.text(ref, volumeUnit: volumeUnit)
     }
 
     private static func value(_ ref: FieldRef, _ value: FieldValue?, currency: CurrencyCode?) -> Value {

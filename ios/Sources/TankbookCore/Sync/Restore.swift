@@ -14,6 +14,9 @@ public struct RestoreStats: Equatable, Sendable {
     /// The most recent odometer reading across all entries, in the entry's
     /// distance unit.
     public var lastOdometerKm: Int?
+    /// The distance unit of the car that owns `lastOdometerKm`, so the restore
+    /// line names that car's own unit (RV.234). `nil` when no odometer exists.
+    public var lastOdometerDistanceUnit: DistanceUnit?
     /// Whole days between the last odometer's entry date and `now` (0 = today).
     public var lastOdometerDaysAgo: Int?
 
@@ -24,6 +27,7 @@ public struct RestoreStats: Equatable, Sendable {
         earliestEntry: Date?,
         latestEntry: Date?,
         lastOdometerKm: Int?,
+        lastOdometerDistanceUnit: DistanceUnit?,
         lastOdometerDaysAgo: Int?
     ) {
         self.carCount = carCount
@@ -32,6 +36,7 @@ public struct RestoreStats: Equatable, Sendable {
         self.earliestEntry = earliestEntry
         self.latestEntry = latestEntry
         self.lastOdometerKm = lastOdometerKm
+        self.lastOdometerDistanceUnit = lastOdometerDistanceUnit
         self.lastOdometerDaysAgo = lastOdometerDaysAgo
     }
 
@@ -43,6 +48,7 @@ public struct RestoreStats: Equatable, Sendable {
         var earliest: Date?
         var latest: Date?
         var lastOdometerKm: Int?
+        var lastOdometerDistanceUnit: DistanceUnit?
         var lastOdometerDate: Date?
 
         for vehicle in vehicles {
@@ -54,10 +60,12 @@ public struct RestoreStats: Equatable, Sendable {
                 if let lastDate = lastOdometerDate {
                     if entry.date > lastDate || (entry.date == lastDate && odometer > (lastOdometerKm ?? 0)) {
                         lastOdometerKm = odometer
+                        lastOdometerDistanceUnit = vehicle.units.distance
                         lastOdometerDate = entry.date
                     }
                 } else {
                     lastOdometerKm = odometer
+                    lastOdometerDistanceUnit = vehicle.units.distance
                     lastOdometerDate = entry.date
                 }
             }
@@ -71,6 +79,7 @@ public struct RestoreStats: Equatable, Sendable {
             earliestEntry: earliest,
             latestEntry: latest,
             lastOdometerKm: lastOdometerKm,
+            lastOdometerDistanceUnit: lastOdometerDistanceUnit,
             lastOdometerDaysAgo: daysAgo
         )
     }
