@@ -128,10 +128,9 @@ enum InboxValueFormat {
                                        recognition: ServiceRecognition) -> String {
         switch field {
         case .date:
-            if let raw = recognition.date?.value, let parsed = ConfirmDate.parse(raw) {
-                return parsed.formatted(.dateTime.month(.abbreviated).day().year())
-            }
-            return blank
+            return recognition.date.map {
+                $0.value.formatted(.dateTime.month(.abbreviated).day().year())
+            } ?? blank
         case .vendor:
             return recognition.vendor?.value ?? blank
         case .lineItem(let index):

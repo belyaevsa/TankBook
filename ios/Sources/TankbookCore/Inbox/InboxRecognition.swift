@@ -32,17 +32,21 @@ public enum InboxRecognition: Sendable, Equatable, Codable {
 /// carries: `vendor`, the invoice's line items, `money` (total + currency) and
 /// `date`. Every value is optional - the parser is a suggestion engine and an
 /// unread field is absent, never guessed (hard rule 13).
+///
+/// `date` is the parsed `Date` the splitter already produced, unlike the fuel
+/// recognition's raw `String` (`InvoiceSplitter` parses it once; re-encoding it
+/// to a string the scanner never had would only decode it again in the merge).
 public struct ServiceRecognition: Sendable, Equatable, Codable {
     public var vendor: GatewayFieldValue<String>?
     public var total: GatewayFieldValue<Decimal>?
     public var currency: GatewayFieldValue<CurrencyCode>?
-    public var date: GatewayFieldValue<String>?
+    public var date: GatewayFieldValue<Date>?
     public var lineItems: [LineItem]
 
     public init(vendor: GatewayFieldValue<String>? = nil,
                 total: GatewayFieldValue<Decimal>? = nil,
                 currency: GatewayFieldValue<CurrencyCode>? = nil,
-                date: GatewayFieldValue<String>? = nil,
+                date: GatewayFieldValue<Date>? = nil,
                 lineItems: [LineItem] = []) {
         self.vendor = vendor
         self.total = total

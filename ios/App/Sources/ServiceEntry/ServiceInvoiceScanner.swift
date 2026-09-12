@@ -82,6 +82,7 @@ enum ServiceInvoiceScanner {
             vendor: split.vendor.map { GatewayFieldValue(value: $0, confidence: 0.9) },
             total: split.total.map { GatewayFieldValue(value: $0, confidence: 0.9) },
             currency: GatewayFieldValue(value: homeCurrency, confidence: 0.9),
+            date: split.date.map { GatewayFieldValue(value: $0, confidence: 0.9) },
             lineItems: lineItems)
     }
 

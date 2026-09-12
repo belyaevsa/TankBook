@@ -329,7 +329,7 @@ public enum GatewayInboxPolicy {
         var result = entry
         var changed = false
 
-        if fields.contains(.date), let rawDate = recognition.date?.value, let parsed = ConfirmDate.parse(rawDate) {
+        if fields.contains(.date), let parsed = recognition.date?.value {
             result.date = parsed
             changed = true
         }
@@ -401,10 +401,17 @@ public enum GatewayInboxPolicy {
         return current == read ? nil : FieldOffer(field: field, disposition: .differs)
     }
 
-    /// A date read: parsed and compared by calendar day, so a timestamp that
-    /// lands on the same day is not a decision.
+    /// A date read from the gateway as a raw string: parsed and compared by
+    /// calendar day, so a timestamp that lands on the same day is not a decision.
     private static func dateOffer(current: Date, read: String?) -> FieldOffer? {
         guard let raw = read, let parsed = ConfirmDate.parse(raw) else { return nil }
+        return dateOffer(current: current, read: parsed)
+    }
+
+    /// A date read already parsed by the device pipeline: compared by calendar
+    /// day, so a timestamp that lands on the same day is not a decision.
+    private static func dateOffer(current: Date, read: Date?) -> FieldOffer? {
+        guard let parsed = read else { return nil }
         return Calendar.current.isDate(parsed, inSameDayAs: current) ? nil : FieldOffer(field: .date, disposition: .differs)
     }
 
