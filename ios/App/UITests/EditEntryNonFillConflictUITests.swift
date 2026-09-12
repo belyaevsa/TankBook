@@ -105,6 +105,32 @@ final class EditEntryNonFillConflictUITests: XCTestCase {
                        "the corrected entry must not re-flag on reopen")
     }
 
+    /// RV.235: at the default scroll position the F9a Fix must sit entirely
+    /// above the pinned save bar. Before the fix the odometer card was the fifth
+    /// row, so the warn (and its only next step) was off screen at rest and
+    /// under the bar when it first appeared - `isHittable` still reported `true`
+    /// (PJ.7e), and the RV.230 L4 had to scroll it clear. The warn is now pinned
+    /// above the save bar. The assertion is frames, never `isHittable`.
+    func testNonFillEditFixIsClearOfTheSaveBarAtRest() {
+        let app = launch()
+
+        let warn = app.staticTexts["editEntryNonFillOdometerWarning"]
+        XCTAssertTrue(warn.waitForExistence(timeout: 10),
+                      "a conflicting service edit must render the amber F9a warn")
+        let fix = app.buttons["editEntryNonFillOdometerFixButton"]
+        XCTAssertTrue(fix.exists, "the F9a Fix must render")
+        let save = app.buttons["editEntrySaveButton"]
+        XCTAssertTrue(save.exists, "the pinned save bar must render")
+
+        XCTAssertLessThanOrEqual(
+            fix.frame.maxY, save.frame.minY + 1,
+            "the F9a Fix must sit above the pinned save bar at rest - a next step "
+            + "under the bar is half-hidden (hard rule 7, the RV.235 defect)")
+        XCTAssertLessThanOrEqual(
+            fix.frame.maxY, app.windows.firstMatch.frame.maxY,
+            "the F9a Fix must render inside the window")
+    }
+
     /// The same warn in Russian: the quote is a full localised sentence naming
     /// the neighbour, and the one Fix is the localised "Исправить" - RU is where
     /// the longer sentence sits beside the chip.

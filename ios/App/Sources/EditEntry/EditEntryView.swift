@@ -228,7 +228,14 @@ struct EditEntryView: View {
                              // derived from the form the same way the save
                              // stamps the flag, so a conflict is visible here
                              // instead of silently carried (hard rules 7 and 8).
-                             odometerConflict: nonFillConflict,
+                             // RV.235: the warn itself is PINNED above the save
+                             // bar (`nonFillBottomBar`), not rendered in the
+                             // odometer card - on this long form the card sits
+                             // below the fold at rest, so the warn's only next
+                             // step rendered under the bar when it first
+                             // appeared. Pinned, the next step is on screen the
+                             // moment the conflict exists (hard rule 7), and the
+                             // form's field order is unchanged.
                              neighbourhood: nonFillNeighbourhood,
                              offer: currencyOffer(vehicle: vehicle),
                              attachments: attachments,
@@ -245,7 +252,32 @@ struct EditEntryView: View {
                              onAttachImage: { image in attachReceipt(image) },
                              linkedTireSet: linkedTireSet,
                              onMakeTireSet: makeTireSet)
-            .safeAreaInset(edge: .bottom) { saveBar }
+            .safeAreaInset(edge: .bottom) { nonFillBottomBar }
+    }
+
+    /// The non-fill edit's bottom chrome: the pinned F9a warn (when the form
+    /// flags) directly above the save bar. It is the SAME `F9aWarningRow` the
+    /// fill-up edit renders in its odometer card, so the two surfaces cannot
+    /// drift; only the placement differs, because this form's odometer card is
+    /// far enough down that an in-card warn is off screen at rest (RV.235).
+    @ViewBuilder
+    private var nonFillBottomBar: some View {
+        VStack(spacing: 0) {
+            if let conflict = nonFillConflict {
+                F9aWarningRow(
+                    conflict: conflict,
+                    warningIdentifier: "editEntryNonFillOdometerWarning",
+                    onFixOdometer: { nonFillFocus = .odometer },
+                    // A non-fill conflict is never a CHECK 5 consumption
+                    // outlier (no non-fill entry closes a fuel segment).
+                    onFixLiters: {},
+                    onFixDate: { showDatePicker = true },
+                    odometerFixIdentifier: "editEntryNonFillOdometerFixButton")
+                    .padding(.top, 10)
+            }
+            saveBar
+        }
+        .background(Theme.Palette.midnight)
     }
 
     /// "Make this a tire set" from a `.parts` expense (docs/JOURNEYS.md J7b).

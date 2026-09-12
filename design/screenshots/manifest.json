@@ -636,37 +636,37 @@
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-preview": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-preview-ru": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review": {
-      "commit": "3a2dcdc",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review-ru": {
-      "commit": "3a2dcdc",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-review-ru-xl": {
-      "commit": "1179004",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-source": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "P5.5b-import-source-ru": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -806,12 +806,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.10-import-date-question": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.10-import-date-question-ru": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1056,12 +1056,12 @@
       "runtime": "iOS.26.5"
     },
     "PJ.33-import-guide": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "PJ.33-import-guide-ru": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -1806,12 +1806,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.191-import-source": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.191-import-source-ru": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2105,6 +2105,16 @@
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
+    "RV.227-import-source-notyet": {
+      "commit": "e8cf18f1",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.227-import-source-notyet-ru": {
+      "commit": "e8cf18f1",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
     "RV.23-welcome": {
       "commit": "5aa51854",
       "device": "iPhone 17",
@@ -2116,12 +2126,22 @@
       "runtime": "iOS.26.5"
     },
     "RV.230-service-conflict": {
-      "commit": "8f52c39c",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.230-service-conflict-ru": {
-      "commit": "8f52c39c",
+      "commit": "e8cf18f1",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.235-service-fix-clear": {
+      "commit": "e8cf18f1",
+      "device": "iPhone 17",
+      "runtime": "iOS.26.5"
+    },
+    "RV.235-service-fix-clear-ru": {
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2216,12 +2236,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.263-import-preview-declared-currency": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.263-import-preview-declared-currency-ru": {
-      "commit": "0431aa09",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2616,12 +2636,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.80-import-not-supported": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.80-import-not-supported-ru": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
@@ -2656,12 +2676,12 @@
       "runtime": "iOS.26.5"
     },
     "RV.84-import-not-supported": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },
     "RV.84-import-not-supported-ru": {
-      "commit": "65a96044",
+      "commit": "e8cf18f1",
       "device": "iPhone 17",
       "runtime": "iOS.26.5"
     },

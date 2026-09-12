@@ -20,11 +20,6 @@ struct EditEntryNonFillView: View {
     /// The form's focus, held by the parent (`EditEntryView`) so the shared
     /// `F9aWarningRow`'s Fix can focus the odometer through a binding.
     @FocusState.Binding var focus: EditEntryNonFillFocus?
-    /// RV.230: the F9a conflict this edit currently carries, derived from the
-    /// form exactly as the save stamps it. Nil when nothing flags. Rendered as
-    /// the shared `F9aWarningRow`, so the non-fill edit and the fill-up edit
-    /// cannot drift.
-    let odometerConflict: OdometerConflict?
     /// RV.230: the timeline neighbourhood behind the same conflict - the
     /// evidence for the quote the warn row prints. Nil when there is no order or
     /// pace flag (or no odometer), which renders no panel and no empty box.

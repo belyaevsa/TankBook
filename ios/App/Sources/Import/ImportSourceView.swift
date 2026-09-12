@@ -50,6 +50,14 @@ struct ImportSourceView: View {
                         }
                         formatList
                         batchFailureCards
+                        // RV.227: the teaser is the last scroll child, so the
+                        // content must fit the viewport at rest or its chips
+                        // clip at the fold - in RU the top of each capsule showed
+                        // and the label did not, which reads as four empty
+                        // outlines rather than a row of names. The vertical
+                        // padding above is tightened so the whole block fits at
+                        // the two-format count in both locales; the order stays
+                        // the artboard's (list, then teaser).
                         notYetBlock
                     }
                     .padding(.horizontal, Theme.Spacing.screenMargin)
@@ -120,8 +128,8 @@ struct ImportSourceView: View {
                 .lineSpacing(1.4)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 20)
-        .padding(.bottom, 18)
+        .padding(.top, 12)
+        .padding(.bottom, 10)
     }
 
     // MARK: - The server-driven list
@@ -156,7 +164,7 @@ struct ImportSourceView: View {
                 message: Text("Something went wrong – try again in a moment."),
                 identifier: "importLoadFailedCard")
         case .loaded:
-            VStack(spacing: 9) {
+            VStack(spacing: 8) {
                 ForEach(model.formats, id: \.id) { format in
                     formatRow(format)
                 }
@@ -198,7 +206,7 @@ struct ImportSourceView: View {
                         .foregroundStyle(selected ? Theme.Palette.action : Theme.Palette.inkSoft)
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 13)
+                .padding(.vertical, 12)
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("importFormatRow-\(format.id)")
@@ -247,8 +255,8 @@ struct ImportSourceView: View {
                         ForEach(notYetNames, id: \.self) { chip(LocalizedStringKey($0)) }
                     }
                 }
-                .padding(.top, 18)
-                .padding(.bottom, 10)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
             }
         }
     }
@@ -382,7 +390,7 @@ extension ImportSourceView {
             .foregroundStyle(Theme.Palette.action)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, 16)
-            .padding(.vertical, 11)
+            .padding(.vertical, 10)
         }
         .accessibilityIdentifier(identifier)
     }

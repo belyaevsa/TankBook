@@ -7,27 +7,13 @@ import TankbookCore
 // subject in one named file.
 
 extension EditEntryNonFillView {
-    /// The odometer card: the field plus, when the form flags, the shared F9a
-    /// warn row. The warning sits INSIDE the card, exactly as it does on the
-    /// fill-up odometer card, so the amber row and its next step read as one
-    /// object with the field they are about.
+    /// The odometer card: the field alone. The F9a warn that belongs with it is
+    /// PINNED above the save bar by `EditEntryView` (RV.235), because on this
+    /// form the card sits below the fold at rest and an in-card warn would put
+    /// its only next step under the bar when it first appeared. It is still the
+    /// shared `F9aWarningRow`, so the two edit surfaces cannot drift.
     var odometerCard: some View {
-        VStack(spacing: 0) {
-            odometerRow
-            if let odometerConflict {
-                F9aWarningRow(
-                    conflict: odometerConflict,
-                    warningIdentifier: "editEntryNonFillOdometerWarning",
-                    onFixOdometer: { focus = .odometer },
-                    // A non-fill conflict is never a CHECK 5 consumption
-                    // outlier (no non-fill entry closes a fuel segment), so
-                    // `F9aFixPresentation` never yields `checkVolume` here.
-                    onFixLiters: {},
-                    onFixDate: { showDatePicker = true },
-                    odometerFixIdentifier: "editEntryNonFillOdometerFixButton")
-            }
-        }
-        .formCard()
+        odometerRow.formCard()
     }
 
     private var odometerRow: some View {

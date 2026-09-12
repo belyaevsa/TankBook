@@ -713,15 +713,20 @@ capture RV.199-service-mixed      en -seedEditEntryServiceMixedCurrency -present
 capture RV.199-service-mixed-ru   ru -seedEditEntryServiceMixedCurrency -presentScreen editEntry
 
 # RV.230: the F9a warn on a non-fill EDIT - a service whose odometer breaks the
-# car's timeline, so the odometer card carries the amber row and its single Fix
-# (the shared component the fill-up edit uses, never a copy). Before this row
-# the edit screen rendered no warning at all, so the flag the save stamped could
-# not be seen or cleared. The odometer card sits below the fold on the long
-# service form, so `-scrollToNonFillOdometer` parks it at the top (simctl cannot
-# scroll). RU is where the composed quote and "Исправить" sit tightest beside
-# the chip.
+# car's timeline. The amber row and its single Fix are the shared component the
+# fill-up edit uses, never a copy; before this row the edit screen rendered no
+# warning at all, so the flag the save stamped could not be seen or cleared.
+# RV.235 pins the warn above the save bar, so the scroll pose here parks the
+# odometer card (the warn's old home) at the top while the warn rides the bar.
+# RU is where the composed quote and "Исправить" sit tightest beside the chip.
 capture RV.230-service-conflict    en -seedEditEntryServiceConflict -presentScreen editEntry -scrollToNonFillOdometer
 capture RV.230-service-conflict-ru ru -seedEditEntryServiceConflict -presentScreen editEntry -scrollToNonFillOdometer
+# RV.235: the same service, at rest (no scroll pose) - the F9a warn is PINNED
+# above the save bar, so its only next step is on screen the moment the conflict
+# appears instead of under the bar on this long form (hard rule 7). Same seed
+# and surface as RV.230, the warn's pinned placement.
+capture RV.235-service-fix-clear    en -seedEditEntryServiceConflict -presentScreen editEntry
+capture RV.235-service-fix-clear-ru ru -seedEditEntryServiceConflict -presentScreen editEntry
 
 # RV.149: the shared "receipt photo could not be kept" toast (docs/ERRORS.md ->
 # Confirm, RV.149) - the message a fill-up save shows after its photo write
@@ -785,6 +790,11 @@ alias_shot P5.5b-import-source-ru PJ.33-import-guide-ru
 # file" is on screen at rest at the two-format count in RU. Same frame.
 alias_shot P5.5b-import-source    RV.191-import-source
 alias_shot P5.5b-import-source-ru RV.191-import-source-ru
+# RV.227: the source picker's vertical padding is tightened so the "Not yet"
+# teaser fits the viewport at rest - in RU its chips were clipped at the fold as
+# four empty capsules. Same screen and state as P5.5b, so the frame is aliased.
+alias_shot P5.5b-import-source    RV.227-import-source-notyet
+alias_shot P5.5b-import-source-ru RV.227-import-source-notyet-ru
 capture P5.5b-import-preview    en -presentScreen importWizard -importStubParse mfm -seedImportPreview
 capture P5.5b-import-preview-ru ru -presentScreen importWizard -importStubParse mfm -seedImportPreview
 # PJ.10's once-per-file date question is the gate ON this preview - same frame.

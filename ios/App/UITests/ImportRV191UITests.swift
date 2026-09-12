@@ -59,4 +59,53 @@ final class ImportRV191UITests: XCTestCase {
         let app = launch(["-presentScreen", "importWizard", "-importStubFormats", "shipped"])
         assertDeadEndActionReachable(app, actionLabel: "Send us the file")
     }
+
+    // MARK: - RV.227: the "Not yet" chips are clear of the pinned chrome at rest
+
+    /// The "Not yet" chip row is the LAST scroll child: at the real two-format
+    /// count the content overflowed by ~30pt, so at the default position only
+    /// the top of each capsule showed and the labels sat under the scroll
+    /// viewport's clipped edge (the orchestrator's RU screenshot: "four empty
+    /// rounded rects with no text"). The vertical padding is now tightened so
+    /// the whole block fits at rest in both locales.
+    ///
+    /// Every assertion is a FRAME comparison, never `isHittable`: RV.80 and
+    /// PJ.7e both measured `isHittable` reporting a clipped element as hittable.
+    /// The discriminating half is the scroll viewport - a chip below its bottom
+    /// edge is clipped even though its window frame looks fine, so the card
+    /// comparison alone would pass on the defect (it did, before this test).
+    private func assertNotYetChipsClear(_ app: XCUIApplication) {
+        XCTAssertTrue(app.buttons["importFormatRow-mfm"].waitForExistence(timeout: 10),
+                      "the shipped format list must render")
+        let scroll = app.scrollViews.containing(.staticText, identifier: "Fuelio").element
+        XCTAssertTrue(scroll.waitForExistence(timeout: 5),
+                      "the import picker's scroll view must contain the Not yet row")
+        let card = app.buttons["importNotSupportedCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 5),
+                      "the pinned dead-end card must render")
+
+        for name in ["Fuelio", "Fuelly", "Spritmonitor", "CarScope"] {
+            let chip = app.staticTexts[name]
+            XCTAssertTrue(chip.waitForExistence(timeout: 5),
+                          "the Not yet chip '\(name)' must render")
+            XCTAssertLessThanOrEqual(
+                chip.frame.maxY, scroll.frame.maxY + 1,
+                "the '\(name)' chip must sit inside the scroll viewport at rest, "
+                + "never clipped under its bottom edge (the RV.227 defect)")
+            XCTAssertLessThanOrEqual(
+                chip.frame.maxY, card.frame.minY + 1,
+                "the '\(name)' chip must sit above the pinned dead-end card")
+        }
+    }
+
+    func testNotYetChipsAreClearOfThePinnedCardInRussian() {
+        let app = launch(["-AppleLanguages", "(ru)", "-AppleLocale", "ru_RU",
+                          "-presentScreen", "importWizard", "-importStubFormats", "shipped"])
+        assertNotYetChipsClear(app)
+    }
+
+    func testNotYetChipsAreClearOfThePinnedCard() {
+        let app = launch(["-presentScreen", "importWizard", "-importStubFormats", "shipped"])
+        assertNotYetChipsClear(app)
+    }
 }
