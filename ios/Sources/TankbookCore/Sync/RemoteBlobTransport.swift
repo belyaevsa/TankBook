@@ -78,11 +78,12 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw BlobSyncError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _, let quotaUsedPercent) {
             // The host answered with a non-2xx blob status - a response, never
             // a transport failure; the per-code/per-status error is docs/API.md's.
             await director.report(.response(status: status))
-            throw Self.error(for: status, code: ServerErrorCode(raw: code))
+            throw Self.error(for: status, code: ServerErrorCode(raw: code),
+                             quotaUsedPercent: quotaUsedPercent)
         } catch {
             await director.report(.transportFailure)
             throw BlobSyncError.transportUnavailable
@@ -91,20 +92,23 @@ public struct RemoteBlobTransport: BlobTransport, Sendable {
 
     /// Maps a non-2xx to its `BlobSyncError`: the server's `code` names the
     /// condition when it is one of this surface's own codes; an unknown or
-    /// absent code falls back to the status-based classification (PR.9).
-    private static func error(for status: Int, code: ServerErrorCode? = nil) -> BlobSyncError {
+    /// absent code falls back to the status-based classification (PR.9). The
+    /// quota case carries the body's `quotaUsedPercent` through so the Settings
+    /// card renders the server's number (RV.253).
+    private static func error(for status: Int, code: ServerErrorCode? = nil,
+                              quotaUsedPercent: Int? = nil) -> BlobSyncError {
         switch code {
         case .tokenInvalid: return .authExpired
         case .blobNotFound: return .notFound
         case .payloadTooLarge: return .sizeExceeded
-        case .blobQuotaExceeded: return .quotaExceeded
+        case .blobQuotaExceeded: return .quotaExceeded(usedPercent: quotaUsedPercent)
         default: break
         }
         switch status {
         case 401: return .authExpired
         case 404: return .notFound
         case 413: return .sizeExceeded
-        case 429: return .quotaExceeded
+        case 429: return .quotaExceeded(usedPercent: quotaUsedPercent)
         default: return .invalidResponse
         }
     }

@@ -93,7 +93,7 @@ public struct GatewayOutboxClient: Sendable {
         } catch SessionRefresherError.authExpired {
             await director.report(.response(status: 401))
             throw GatewayOutboxError.unauthorized
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _, _) {
             await director.report(.response(status: status))
             throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch is TankbookHTTPClientError {

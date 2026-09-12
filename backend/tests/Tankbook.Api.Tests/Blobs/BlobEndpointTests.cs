@@ -273,6 +273,13 @@ public class BlobEndpointTests : IClassFixture<PostgresFixture>
         var over = await BeginAsync(app.Client, token, s3, 1, "image/jpeg");
         Assert.Equal(HttpStatusCode.TooManyRequests, over.StatusCode);
 
+        // RV.253: the 429 body carries the account's real usage percent as an
+        // additive problem+json extension member, so the client's Settings card
+        // renders the number instead of a fixed placeholder. 2000/2000 = 100.
+        var problem = await over.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal("blob_quota_exceeded", problem.GetProperty("code").GetString());
+        Assert.Equal(100, problem.GetProperty("quotaUsedPercent").GetInt32());
+
         Assert.Equal(2, await app.CountAsync("blobs", "account_id = @p", new { p = accountId }));
         Assert.Equal(0, await app.CountAsync("blobs", "account_id = @p AND sha256 = @s", new { p = accountId, s = s3 }));
     }

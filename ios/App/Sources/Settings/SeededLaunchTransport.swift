@@ -165,6 +165,56 @@ struct FlaggedBatchSyncStubTransport: TankbookHTTPTransport, @unchecked Sendable
     }
 }
 
+/// RV.253's UI-test seam (`-seedSettingsQuota429`): a transport that ANSWERS the
+/// sync endpoints but refuses `POST /blobs/begin` with the real
+/// `blob_quota_exceeded` 429 body, `quotaUsedPercent` included. Under a seeded
+/// launch with a real dirty attachment, the sync cycle runs the real blob gate
+/// and surfaces the Settings quota card from the transport's own 429 - never
+/// from the `forcedQuotaPercent` fixture.
+struct QuotaExceededTransport: TankbookHTTPTransport {
+    func execute(_ request: TankbookHTTPRequest) async throws -> TankbookHTTPResponse {
+        let path = request.url.path
+        if path.hasPrefix("/v1/sync/pull") {
+            return Self.json([
+                "records": [],
+                "nextSince": 0,
+                "more": false,
+                "schemaPolicy": ["minSupported": 1, "current": 1]
+            ])
+        }
+        if path.hasPrefix("/v1/sync/push"), let body = request.body {
+            let object = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any]
+            let changes = object?["changes"] as? [[String: Any]] ?? []
+            var scn = 0
+            let results: [[String: Any]] = changes.compactMap { change in
+                guard let id = change["id"] else { return nil }
+                scn += 1
+                return ["id": id, "status": "accepted", "newScn": scn, "clamped": false]
+            }
+            return Self.json(["results": results])
+        }
+        if path.hasPrefix("/v1/blobs/begin") {
+            return Self.json(["code": "blob_quota_exceeded", "quotaUsedPercent": 97], status: 429)
+        }
+        if path.hasPrefix("/v1/account/devices") {
+            let deviceID = (try? KeychainSessionStore().load())?.deviceId ?? UUID().uuidString
+            return Self.json(["devices": [[
+                "id": deviceID,
+                "name": "This iPhone",
+                "platform": "iOS",
+                "lastSeenAt": "2026-08-29T10:00:00Z",
+                "revoked": false
+            ]]])
+        }
+        return TankbookHTTPResponse(status: 404)
+    }
+
+    private static func json(_ object: [String: Any], status: Int = 200) -> TankbookHTTPResponse {
+        let data = try? JSONSerialization.data(withJSONObject: object)
+        return TankbookHTTPResponse(status: status, body: data)
+    }
+}
+
 enum SeededLaunch {
     /// True when the process was launched by a UI test or the screenshot script.
     ///
@@ -201,6 +251,7 @@ enum SeededLaunch {
         if arguments.contains("-seedSettingsAuthExpired") { return AuthExpiredTransport() }
         if arguments.contains("-seedSettingsRevoked410") { return RevokedDeviceTransport() }
         if arguments.contains("-seedSettingsServerDown") { return ServerDownTransport() }
+        if arguments.contains("-seedSettingsQuota429") { return QuotaExceededTransport() }
         if isSeeded(arguments) { return SeededLaunchTransport() }
         return URLSessionTransport()
     }

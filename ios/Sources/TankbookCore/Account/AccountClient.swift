@@ -142,7 +142,7 @@ public struct AccountClient: Sendable {
             // base URL fine - a response, never evidence the URL is wrong.
             await director.report(.response(status: 401))
             throw AccountClientError.unauthorized
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _, _) {
             // The host answered with a non-2xx account status - a response,
             // never a transport failure - mapped by its code when the server
             // named one, else per status below.

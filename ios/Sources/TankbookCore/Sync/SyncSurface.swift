@@ -211,4 +211,14 @@ extension SyncSurface {
     public static func showsChipWarnDot(_ state: SyncSurfaceState) -> Bool {
         state.flaggedCount > 0
     }
+
+    /// RV.253: the quota percent the Settings card renders. The screenshot/UI
+    /// fixture wins when one is set; otherwise it is the last cycle's own
+    /// outcome, exactly as `offline` / `serverUnavailable` are read. A nil
+    /// outcome (no cycle yet) and a cycle that hit no quota both yield nil - the
+    /// later successful upload clears the card. The percent itself is the
+    /// server's; the engine already folds a percentless 429 to 100.
+    public static func quotaUsedPercent(forced: Int?, outcome: SyncOutcome?) -> Int? {
+        forced ?? outcome?.quotaUsedPercent
+    }
 }

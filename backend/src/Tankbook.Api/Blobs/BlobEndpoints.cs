@@ -73,7 +73,11 @@ public static class BlobEndpoints
                 StatusCodes.Status429TooManyRequests,
                 TankbookErrorCodes.BlobQuotaExceeded,
                 "Storage quota exceeded.",
-                "This account's attachment storage is full; delete attachments or export to free space."),
+                "This account's attachment storage is full; delete attachments or export to free space.",
+                new Dictionary<string, object?>
+                {
+                    [QuotaUsedPercentKey] = outcome.QuotaUsedPercent,
+                }),
             BeginStatus.DeviceRevoked => Revoked(),
             _ => throw new InvalidOperationException($"Unknown begin status {outcome.Status}."),
         };
@@ -174,6 +178,14 @@ public static class BlobEndpoints
             "Device revoked or account deleted.",
             "This device has been revoked or the account was deleted. Re-onboard or detach; local data stays local.");
 
-    private static IResult Problem(int status, string code, string title, string detail)
-        => ProblemResponses.Problem(status, code, title, detail);
+    private static IResult Problem(int status, string code, string title, string detail,
+        IReadOnlyDictionary<string, object?>? extensions = null)
+        => ProblemResponses.Problem(status, code, title, detail, extensions);
+
+    /// <summary>
+    /// The additive 429 extension member carrying the account's storage usage
+    /// percentage (docs/API.md -> "Error envelope"). The client surfaces the
+    /// real number on the Settings quota card instead of a fixed placeholder.
+    /// </summary>
+    private const string QuotaUsedPercentKey = "quotaUsedPercent";
 }

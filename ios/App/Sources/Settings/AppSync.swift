@@ -267,12 +267,12 @@ final class AppSync {
             lastSyncDate: lastSyncDate,
             dirtyCount: dirtyCount,
             offline: forcedOffline || (lastOutcome?.offline ?? false),
-            serverUnavailable: forcedServerUnavailable
-                || (lastOutcome?.serverUnavailable ?? false),
+            serverUnavailable: forcedServerUnavailable || (lastOutcome?.serverUnavailable ?? false),
             deviceRevoked: forcedRevoked || storedDeviceRevoked
                 || (lastOutcome?.deviceRevoked ?? false),
             authExpired: storedAuthExpired || (lastOutcome?.authExpired ?? false),
-            quotaUsedPercent: forcedQuotaPercent,
+            // RV.253: last cycle's blob-429 percent, or the screenshot fixture.
+            quotaUsedPercent: SyncSurface.quotaUsedPercent(forced: forcedQuotaPercent, outcome: lastOutcome),
             flaggedCount: flaggedCount,
             isSyncing: isSyncing,
             // P6.8: the reason is on whenever the mode is; the S7 row names it

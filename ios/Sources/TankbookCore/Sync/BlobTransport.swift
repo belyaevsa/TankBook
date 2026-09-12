@@ -8,7 +8,7 @@ import Foundation
 public protocol BlobTransport: Sendable {
     /// `POST /blobs/begin { sha256, size, contentType }` -> `.exists` (dedupe)
     /// or `.upload(url:presigned)`. Throws `BlobSyncError.sizeExceeded` (413) or
-    /// `BlobSyncError.quotaExceeded` (429).
+    /// `BlobSyncError.quotaExceeded(usedPercent:)` (429).
     func begin(sha256: String, size: Int, contentType: String) async throws -> BlobBeginResult
     /// PUTs the bytes directly to the presigned URL (docs/SYNC.md: bytes never
     /// proxied through the API server).
@@ -33,8 +33,11 @@ public enum BlobBeginResult: Sendable, Equatable {
 public enum BlobSyncError: Error, Equatable, Sendable {
     /// `413`: the rendition exceeds the server's per-type cap.
     case sizeExceeded
-    /// `429`: the account's storage quota is exhausted.
-    case quotaExceeded
+    /// `429`: the account's storage quota is exhausted. `usedPercent` is the
+    /// server's own usage percentage when the problem+json body carried it
+    /// (docs/API.md -> "Error envelope"), nil for a 429 with no body - the
+    /// caller treats exceeded as full.
+    case quotaExceeded(usedPercent: Int?)
     /// `404`: the blob is not owned by this account.
     case notFound
     /// Download verification: the fetched bytes did not hash to the requested

@@ -556,8 +556,9 @@ private struct SettingsSyncSurface: View {
             transportCard(
                 icon: "photo.badge.exclamationmark",
                 iconColor: Theme.Palette.warn,
-                message: L10n.quotaFull(percent: sync.forcedQuotaPercent ?? 95),
-                identifier: "settingsQuotaCard"
+                message: L10n.quotaFull(percent: sync.surfaceState.quotaUsedPercent ?? 100),
+                identifier: "settingsQuotaCard",
+                messageIdentifier: "settingsQuotaCardMessage"
             ) {
                 Text(L10n.quotaNextStep)
                     .font(.caption)

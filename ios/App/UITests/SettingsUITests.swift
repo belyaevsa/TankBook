@@ -292,6 +292,28 @@ final class SettingsUITests: XCTestCase {
                        "the dead 'Tankbook Pro' control is gone in RU too")
     }
 
+    /// RV.253: the quota card is fed by a REAL 429, not the `forcedQuotaPercent`
+    /// fixture. `-seedSettingsQuota429` writes a real dirty attachment and the
+    /// seeded transport answers `POST /blobs/begin` with `blob_quota_exceeded`
+    /// and `quotaUsedPercent: 97`, so "Sync now" runs the real blob gate ->
+    /// outcome -> surface path. The card must name the server's own 97; the old
+    /// hardcoded 95 would fail this test.
+    func testQuotaCardIsFedByTheReal429Percent() {
+        let app = launchSettings(seed: "-seedSettingsQuota429")
+        let syncNow = app.buttons["settingsSyncNowButton"]
+        if syncNow.waitForExistence(timeout: 10) {
+            syncNow.tap()
+        }
+        let card = app.otherElements["settingsQuotaCard"]
+        XCTAssertTrue(card.waitForExistence(timeout: 10),
+                      "a real blob-quota 429 must surface the quota card")
+        let message = app.staticTexts["settingsQuotaCardMessage"]
+        XCTAssertTrue(message.exists, "the quota card names the surfaced percent")
+        XCTAssertEqual(message.label,
+                       "Photo storage 97% full – older photos stay on this phone only.",
+                       "the percent is the server's 97, never the fixed 95 fixture")
+    }
+
     /// PR.1: an expired session shows the re-sign-in card, never "update the
     /// app". The seed answers 401 for the sync AND the refresh, so the real
     /// 401 -> refresh -> refresh-fails path runs and the surface derives the

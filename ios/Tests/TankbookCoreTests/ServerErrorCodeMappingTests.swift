@@ -39,10 +39,11 @@ private final class ScriptTransport: TankbookHTTPTransport, @unchecked Sendable 
     }
 }
 
-private func problemBody(code: String?) -> Data {
+private func problemBody(code: String?, quotaUsedPercent: Int? = nil) -> Data {
     var object: [String: Any] = ["title": "x", "status": 400, "detail": "x"]
     object["traceId"] = "trace-abc"
     if let code { object["code"] = code }
+    if let quotaUsedPercent { object["quotaUsedPercent"] = quotaUsedPercent }
     return (try? JSONSerialization.data(withJSONObject: object)) ?? Data()
 }
 
@@ -63,7 +64,7 @@ struct ServerErrorCodeParsingTests {
         do {
             _ = try await client.send(TankbookHTTPRequest(url: apiURL))
             Issue.record("expected an httpError")
-        } catch let TankbookHTTPClientError.httpError(status, code, traceId, retryAfter) {
+        } catch let TankbookHTTPClientError.httpError(status, code, traceId, retryAfter, _) {
             #expect(status == 422)
             #expect(code == "payload_invalid")
             #expect(traceId == "trace-abc")
@@ -81,7 +82,7 @@ struct ServerErrorCodeParsingTests {
         do {
             _ = try await client.send(TankbookHTTPRequest(url: apiURL))
             Issue.record("expected an httpError")
-        } catch let TankbookHTTPClientError.httpError(_, code, _, _) {
+        } catch let TankbookHTTPClientError.httpError(_, code, _, _, _) {
             #expect(code == "brand_new_future_code",
                     "the raw code must survive for logging even when unknown")
         } catch {
@@ -97,7 +98,7 @@ struct ServerErrorCodeParsingTests {
         do {
             _ = try await client.send(TankbookHTTPRequest(url: apiURL))
             Issue.record("expected an httpError")
-        } catch let TankbookHTTPClientError.httpError(status, code, _, _) {
+        } catch let TankbookHTTPClientError.httpError(status, code, _, _, _) {
             #expect(status == 500)
             #expect(code == nil)
         } catch {
@@ -336,6 +337,28 @@ struct BlobCodeMappingTests {
     func unknownCodeFallsBackToStatus() async {
         #expect(await downloadError(404, code: "future_code") == .notFound)
         #expect(await downloadError(413, code: "future_code") == .sizeExceeded)
-        #expect(await downloadError(429, code: "future_code") == .quotaExceeded)
+        #expect(await downloadError(429, code: "future_code") == .quotaExceeded(usedPercent: nil))
+    }
+
+    @Test("the blob quota 429 carries the body's quotaUsedPercent (RV.253)")
+    func quotaPercentRidesTheBlobError() async {
+        let transport = ScriptTransport()
+        transport.script([TankbookHTTPResponse(
+            status: 429,
+            body: problemBody(code: "blob_quota_exceeded", quotaUsedPercent: 97))])
+        let blob = RemoteBlobTransport(
+            director: ConfigTransportDirector(baseURL: { apiURL }, report: { _ in }),
+            transport: transport,
+            tokenProvider: NoTokenProvider())
+        do {
+            _ = try await blob.begin(sha256: String(repeating: "a", count: 64),
+                                     size: 1, contentType: "image/jpeg")
+            Issue.record("expected a quota error")
+        } catch let error as BlobSyncError {
+            #expect(error == .quotaExceeded(usedPercent: 97),
+                    "the additive member must survive onto the typed error")
+        } catch {
+            Issue.record("unexpected error \(error)")
+        }
     }
 }

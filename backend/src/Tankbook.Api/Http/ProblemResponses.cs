@@ -11,15 +11,26 @@ namespace Tankbook.Api.Http;
 /// </summary>
 public static class ProblemResponses
 {
-    public static IResult Problem(int status, string code, string title, string detail)
-        => Results.Problem(
+    public static IResult Problem(int status, string code, string title, string detail,
+        IReadOnlyDictionary<string, object?>? extensions = null)
+    {
+        var members = new Dictionary<string, object?>
+        {
+            [ErrorEnvelopeCodeKey] = code,
+        };
+        if (extensions is not null)
+        {
+            foreach (var (key, value) in extensions)
+            {
+                members[key] = value;
+            }
+        }
+        return Results.Problem(
             statusCode: status,
             title: title,
             detail: detail,
-            extensions: new Dictionary<string, object?>
-            {
-                [ErrorEnvelopeCodeKey] = code,
-            });
+            extensions: members);
+    }
 
     /// <summary>The problem+json member name (docs/API.md -> "Error envelope").</summary>
     public const string ErrorEnvelopeCodeKey = "code";

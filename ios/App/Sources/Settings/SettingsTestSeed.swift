@@ -32,6 +32,11 @@ enum SettingsTestSeed {
         case flaggedNeighbourhood
         case revoked
         case quota
+        /// RV.253: the real blob-quota path, not the `forcedQuotaPercent`
+        /// fixture - a dirty attachment over a seeded transport that answers
+        /// `POST /blobs/begin` with the `blob_quota_exceeded` 429 carrying
+        /// `quotaUsedPercent`. The card is produced by the transport's 429.
+        case quota429
         case upgradeRequired
         case tierRefused
         case refused
@@ -86,6 +91,7 @@ enum SettingsTestSeed {
             "-seedSettingsFlaggedNeighbourhood": .flaggedNeighbourhood,
             "-seedSettingsRevoked": .revoked,
             "-seedSettingsQuota": .quota,
+            "-seedSettingsQuota429": .quota429,
             "-seedSettingsUpgradeRequired": .upgradeRequired,
             "-seedSettingsTierRefused": .tierRefused,
             "-seedSettingsRefused": .refused,
@@ -286,7 +292,7 @@ enum SettingsTestSeed {
 
         if seedsQueue(state) || state == .flagged || state == .flaggedMultiyear
             || state == .flaggedMany || state == .flaggedNeighbourhood
-            || state == .localLog {
+            || state == .localLog || state == .quota429 {
             seed(repository: try? AppStore.repository(), state: state)
         }
         // OB.3: write the persisted sync state THIS seed must show. Runs after
@@ -337,6 +343,8 @@ enum SettingsTestSeed {
                 HomeTestSeed.FillSpec(daysAgo: 1, odometer: 118_500, litres: 42.3,
                                       amount: "71.02", price: "1.679", stationID: nil))
             try? repository.upsertFillUp(fill, syncState: .dirty)
+        } else if state == .quota429 {
+            seedQuotaAttachment(repository)
         } else if state == .flagged {
             let flagged1 = HomeTestSeed.makeFill(
                 vehicleID: vehicle.id,
@@ -391,6 +399,25 @@ enum SettingsTestSeed {
             // on identical data, reusing THIS state's vehicle.
             TimelineNeighbourhoodTestSeed.seedOrderConflict(repository, vehicle: vehicle)
         }
+    }
+
+    /// RV.253: one dirty attachment whose rendition file exists on disk, so the
+    /// real `LocalFileBlobPushGate` reads it and calls `/blobs/begin`. The
+    /// seeded `QuotaExceededTransport` answers that call with the quota 429, and
+    /// the card is fed by the real outcome - never `forcedQuotaPercent`.
+    private static func seedQuotaAttachment(_ repository: TankbookRepository) {
+        let rendition = Data("rv253-quota-seed-rendition".utf8)
+        let id = UUID.v7()
+        let name = "\(id.uuidString).jpg"
+        if let directory = try? VehiclePhotoStore.attachmentsDirectory() {
+            try? rendition.write(to: directory.appendingPathComponent(name))
+        }
+        let attachment = Attachment(
+            id: id, createdAt: Date(), updatedAt: Date(), deletedAt: nil,
+            kind: .photo,
+            file: LocalFileRef(sha256: BlobHash.sha256(rendition), relativePath: name),
+            extractedTimestamp: nil, ocrText: nil)
+        try? repository.upsertAttachment(attachment, syncState: .dirty)
     }
 
     /// DEBUG pose seam (RV.133): `-presentScreen flaggedEntries` reaches the

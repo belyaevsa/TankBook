@@ -33,6 +33,12 @@ public struct SyncOutcome: Equatable, Sendable {
     /// when it sent one. Nothing is lost either way - the rows stay dirty (S7).
     public var refusedByServer: SyncServerError?
     public var retryAfterSeconds: Int?
+    /// RV.253: the blob pipeline's quota state - the percent the server's 429
+    /// carried, or 100 when it carried none (exceeded IS full). Nil when no
+    /// attachment hit the quota this cycle, which is also what clears the
+    /// Settings card on a later successful cycle. Counts only - no domain value
+    /// (hard rule 12).
+    public var quotaUsedPercent: Int?
     /// P6.8: the cycle was postponed because Low Power Mode is on and this was
     /// opportunistic work (docs/SYNC.md -> Low Power Mode). Nothing ran, the
     /// dirty queue is exactly as it was, and the work drains when the mode
@@ -225,6 +231,12 @@ public struct SyncEngine {
             outcome.applyTransportFailure(error)
             try? repository.recoverStuckPushes()
         }
+
+        // RV.253: the blob quota the gate hit this cycle (nil when none did),
+        // recorded on the outcome exactly like offline/serverUnavailable so the
+        // Settings card reads it from `lastOutcome`. The next cycle starts nil,
+        // which is what clears the card once an upload succeeds.
+        outcome.quotaUsedPercent = tally.quotaUsedPercent
 
         // The one aggregate merge line for the cycle (OB.2, docs/LOGGING.md
         // §7): records that arrived plus the conflicts the merge actually
@@ -422,6 +434,10 @@ public struct SyncEngine {
         /// Vehicle, or an RV.35 divergence the `.local` arm re-dirtied) - the
         /// echo-loop signal on an otherwise idle account.
         var dirtiedByPull = 0
+        /// RV.253: the blob quota percent an attachment hit this cycle, or nil.
+        /// A later `.committed` upload clears it; the engine copies it onto the
+        /// outcome so the Settings card reads the server's own number.
+        var quotaUsedPercent: Int?
     }
 
     private func pushAll(trigger: PowerWorkTrigger, tally: SyncCycleTally) async throws -> PushSummary {
@@ -456,7 +472,8 @@ public struct SyncEngine {
         var batch: [PushCandidate] = []
         var batchWireBytes = SyncPushWire.wrapperBytes
         for pending in dirty {
-            guard let candidate = try await pushCandidate(for: pending, trigger: trigger) else { continue }
+            guard let candidate = try await pushCandidate(
+                for: pending, trigger: trigger, tally: tally) else { continue }
             let elementBytes = SyncPushWire.elementBytes(for: candidate.change)
             let wouldOverflowBytes = batchWireBytes + elementBytes + 1 > maxBatchBytes
             if !batch.isEmpty, batch.count >= batchLimit || wouldOverflowBytes {
@@ -477,7 +494,8 @@ public struct SyncEngine {
     /// the row is not pushable this cycle (its local record vanished, or a live
     /// attachment's blob is not committed yet).
     private func pushCandidate(for pending: PendingChange,
-                               trigger: PowerWorkTrigger) async throws -> PushCandidate? {
+                               trigger: PowerWorkTrigger,
+                               tally: SyncCycleTally) async throws -> PushCandidate? {
         guard let local = try repository.localSyncRecord(id: pending.id, entityType: pending.entityType) else { return nil }
         // Upload ordering (docs/SYNC.md, step 5): a live attachment record must
         // have its blob committed before it pushes. The gate runs the
@@ -495,8 +513,8 @@ public struct SyncEngine {
                                      lowPowerMode: powerState.isLowPowerModeEnabled) {
                 return nil
             }
-            guard let attachment = try? attachment(from: local.record),
-                  await gate.ensureBlobCommitted(for: attachment) else {
+            guard let attachment = try? decodeAttachment(from: local.record),
+                  applyBlobGate(await gate.ensureBlobCommitted(for: attachment), to: tally) else {
                 return nil
             }
         }
@@ -643,15 +661,35 @@ public struct SyncEngine {
         case .synced: return false
         }
     }
+}
 
-    /// Decodes an `Attachment` entity from a record payload so the blob gate can
-    /// read its content address and kind.
-    private func attachment(from record: SyncRecord) throws -> Attachment {
-        try PayloadCodec.decode(
-            PayloadEnvelope(entityType: record.entityType,
-                            schemaVersion: record.schemaVersion,
-                            payload: record.payload),
-            as: Attachment.self
-        ).entity
+/// Decodes an `Attachment` entity from a record payload so the blob gate can
+/// read its content address and kind. File-scope so the engine's type body stays
+/// inside its lint budget.
+private func decodeAttachment(from record: SyncRecord) throws -> Attachment {
+    try PayloadCodec.decode(
+        PayloadEnvelope(entityType: record.entityType,
+                        schemaVersion: record.schemaVersion,
+                        payload: record.payload),
+        as: Attachment.self
+    ).entity
+}
+
+/// RV.253: applies one blob gate outcome to the cycle tally and answers whether
+/// the record may push. A committed upload (dedupe included) clears a quota an
+/// earlier attachment recorded this cycle; a quota 429 records the server's own
+/// percent, or 100 when it carried none (exceeded IS full). File-scope so the
+/// engine's type body stays inside its lint budget.
+private func applyBlobGate(_ outcome: BlobCommitOutcome,
+                           to tally: SyncEngine.SyncCycleTally) -> Bool {
+    switch outcome {
+    case .committed:
+        tally.quotaUsedPercent = nil
+        return true
+    case .deferred:
+        return false
+    case .quotaExceeded(let usedPercent):
+        tally.quotaUsedPercent = usedPercent ?? 100
+        return false
     }
 }

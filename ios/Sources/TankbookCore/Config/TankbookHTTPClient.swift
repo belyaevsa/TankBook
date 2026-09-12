@@ -120,9 +120,12 @@ public enum TankbookHTTPClientError: Error, Sendable, Equatable {
     /// status-based classification. `traceId` is read from the same body so a
     /// support report maps to the exact server line (docs/LOGGING.md §2);
     /// `retryAfterSeconds` comes from the Retry-After header so a 429 keeps the
-    /// server's own wait. Owners translate this into their own errors - a real
-    /// response, never a transport failure.
-    case httpError(status: Int, code: String?, traceId: String?, retryAfterSeconds: Int?)
+    /// server's own wait; `quotaUsedPercent` is the additive member the blob
+    /// quota 429 carries (docs/API.md -> "Error envelope") so a storage surface
+    /// renders the real percentage. Owners translate this into their own errors -
+    /// a real response, never a transport failure.
+    case httpError(status: Int, code: String?, traceId: String?, retryAfterSeconds: Int?,
+                   quotaUsedPercent: Int?)
 }
 
 /// The host-bound HTTP client: the **second**, independent checkpoint
@@ -251,7 +254,8 @@ public struct TankbookHTTPClient: Sendable {
             status: response.status,
             code: problem.code,
             traceId: problem.traceId,
-            retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init)
+            retryAfterSeconds: response.value(forHeader: "Retry-After").flatMap(Int.init),
+            quotaUsedPercent: problem.quotaUsedPercent
         )
     }
 
@@ -327,23 +331,25 @@ public struct TankbookHTTPClient: Sendable {
     /// tunable worth exposing remotely.
     private static let preemptiveRefreshLeeway: TimeInterval = 60
 
-    /// Reads `traceId` and `code` from a problem+json body (docs/API.md ->
-    /// "Error envelope"); both nil when the body is absent, not JSON, or
-    /// carries no such member. One JSONSerialization for both - never two
-    /// passes over the body.
+    /// Reads `traceId`, `code` and the additive `quotaUsedPercent` from a
+    /// problem+json body (docs/API.md -> "Error envelope"); each nil when the
+    /// body is absent, not JSON, or carries no such member. One
+    /// JSONSerialization for all three - never a second pass over the body.
     ///
     /// Shared (not private) because the observable-transport decorator reads
     /// the same `code` member for `net.response`'s `errorCode` (OB.3,
     /// docs/LOGGING.md §4) - one parse helper, never a second copy that could
     /// drift.
-    static func problemBodyMembers(fromBody body: Data?) -> (traceId: String?, code: String?) {
+    static func problemBodyMembers(fromBody body: Data?)
+        -> (traceId: String?, code: String?, quotaUsedPercent: Int?) {
         guard let body,
               let object = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
-            return (nil, nil)
+            return (nil, nil, nil)
         }
         let traceId = (object["traceId"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let code = (object["code"] as? String).flatMap { $0.isEmpty ? nil : $0 }
-        return (traceId, code)
+        let quotaUsedPercent = (object["quotaUsedPercent"] as? NSNumber)?.intValue
+        return (traceId, code, quotaUsedPercent)
     }
 
     private func isRedirect(_ status: Int) -> Bool {

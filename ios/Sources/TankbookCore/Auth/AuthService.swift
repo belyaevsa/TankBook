@@ -135,7 +135,7 @@ public struct RemoteAuthService: AuthService {
             let response = try await client.send(request)
             await director.report(.response(status: response.status))
             return response
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _, _) {
             await director.report(.response(status: status))
             throw Self.error(for: status, code: ServerErrorCode(raw: code))
         } catch {

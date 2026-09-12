@@ -144,7 +144,7 @@ public struct ImportClient: Sendable {
             let response = try await httpClient.send(request)
             await director.report(.response(status: response.status))
             return response
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, _) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, _, _) {
             // The host answered with a non-2xx import status - a response, never
             // a transport failure - mapped by its code when the server named one,
             // else per status below (a 422 carries the declared format's display

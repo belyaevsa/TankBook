@@ -75,7 +75,7 @@ public struct RemoteSyncTransport: SyncTransport {
             await director.report(.response(status: 401))
             diagnostics.recordTransportFailure()
             throw SyncServerError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, let code, let traceId, let retryAfterSeconds) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, let traceId, let retryAfterSeconds, _) {
             // The host answered with a non-2xx sync status - a response, never
             // a transport failure - mapped by its code when the server named
             // one, else per status below. OB.3: the code and traceId the engine

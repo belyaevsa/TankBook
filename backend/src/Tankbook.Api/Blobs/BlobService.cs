@@ -13,8 +13,13 @@ public enum BeginStatus
     DeviceRevoked,
 }
 
-/// <summary>POST /blobs/begin outcome with the upload payload when the blob is new.</summary>
-public sealed record BeginOutcome(BeginStatus Status, BlobBeginResponse? Response);
+/// <summary>
+/// POST /blobs/begin outcome with the upload payload when the blob is new. When
+/// the status is <see cref="BeginStatus.QuotaExceeded"/>, <paramref name="QuotaUsedPercent"/>
+/// carries the account's storage usage as a percentage (docs/API.md -> "Error
+/// envelope": the additive 429 extension member).
+/// </summary>
+public sealed record BeginOutcome(BeginStatus Status, BlobBeginResponse? Response, int? QuotaUsedPercent = null);
 
 /// <summary>POST /blobs/commit outcome.</summary>
 public enum CommitStatus
@@ -99,8 +104,9 @@ public sealed class BlobService
         var used = await _repository.GetUsedBytesAsync(accountId, cancellationToken);
         if (used + size > _options.QuotaBytes)
         {
-            TankbookLog.BlobBegin(_logger, sha256, size, contentType, "miss", QuotaPercent(used));
-            return new BeginOutcome(BeginStatus.QuotaExceeded, null);
+            var percent = QuotaPercent(used);
+            TankbookLog.BlobBegin(_logger, sha256, size, contentType, "miss", percent);
+            return new BeginOutcome(BeginStatus.QuotaExceeded, null, percent);
         }
 
         var key = BlobKeys.Key(accountId, sha256);

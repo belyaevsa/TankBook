@@ -85,7 +85,7 @@ public struct RemoteGatewayExtractTransport: GatewayExtractTransport {
             // and it would hide the "sign in again" next step from the surface.
             await director.report(.response(status: 401))
             throw SyncServerError.authExpired
-        } catch TankbookHTTPClientError.httpError(let status, let code, _, let retryAfterSeconds) {
+        } catch TankbookHTTPClientError.httpError(let status, let code, _, let retryAfterSeconds, _) {
             // The host answered with a non-2xx extract status - a response,
             // never a transport failure - classified as SyncServerError below
             // (the classification this client CONSUMES, P6.11).

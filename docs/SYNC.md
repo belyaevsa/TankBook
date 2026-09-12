@@ -231,7 +231,8 @@ Photos (receipts, invoices, car photos) and PDFs don't ride the record stream �
 2. POST /blobs/begin { sha256, size, contentType }   (authenticated)
    → { status: exists }                              // dedupe: another device already uploaded it
    → { status: upload, url: presigned PUT, expires: 15 min }
-   → 413 / 429                                       // size cap (25 MB) or storage quota exceeded
+   → 413 / 429                                       // size cap (25 MB) or storage quota exceeded;
+                                                     // the 429 body carries quotaUsedPercent
 3. Client PUTs the bytes directly to the presigned URL (resumable retry: just re-begin).
 4. POST /blobs/commit { sha256 } → server verifies object existence + size, inserts the blobs row.
 5. Only THEN does the entry referencing it push – records never point at blobs the server can't serve.
@@ -265,7 +266,9 @@ can still be restored is never swept out from under it. The reference check is a
 containment check - a sha256 is an identifier (Safe class, `LOGGING.md`), not a domain value - so
 the server still never reads what a field means (hard rule 9). The per-account storage quota
 defaults to 5 GB, is configurable, is enforced at `begin`, and is metered from the blob index
-(`SUM(size_bytes)`), never from a stored counter that could drift.
+(`SUM(size_bytes)`), never from a stored counter that could drift. The `429` it answers carries the
+same meter as `quotaUsedPercent` (docs/API.md -> "Error envelope"), so the Settings quota card names
+the account's real usage; the card clears on the next cycle whose blob upload succeeds (RV.253).
 
 **A dangling `attachmentID` on an entry is left in place, never swept (RV.208).** An entry's
 `attachments` is a list of ids, not a foreign key, so a phone can carry a reference whose

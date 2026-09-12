@@ -6,10 +6,11 @@ Conventions: JSON bodies, ISO-8601 UTC dates, UUIDs as strings. Errors use RFC 7
 
 ## Error envelope
 
-Every error response is RFC 7807 problem+json carrying **two extension members**:
+Every error response is RFC 7807 problem+json carrying **two extension members on every error**, plus one additive member on the blob-quota 429:
 
 - `traceId` – the request's correlation id (docs/LOGGING.md §2), so a support report maps to exact server lines.
 - `code` – a **stable, snake_case error code**, the same value the server logs as `errorCode` (docs/LOGGING.md §3 Errors). It is the client's key: what the user sees and what they can do next is decided from it (docs/ERRORS.md), never from the status alone. **Every problem+json carries a non-empty `code`** – the code is a required parameter of the server's problem factory, so an endpoint added without one does not compile (PR.9). A `detail` that names a next step or a user value is a bug: `detail` carries only shape (which field, which limit), never domain content (hard rule 12).
+- `quotaUsedPercent` – **additive, only on the `blob_quota_exceeded` 429** (RV.253). The account's attachment-storage usage as an integer 0–100, from the same metered `SUM(size_bytes)` the quota check uses. The client renders it on the Settings quota card instead of a fixed placeholder; a client that does not know the member ignores it (the additive-member compatibility rule below). It is a count, never a domain value (hard rule 12).
 
 Codes are grouped by **what the client must do differently**, not by call site – a code per endpoint is noise, a code per distinct next step is a contract. A client that meets a code it has never seen **falls back to its status-based handling** – never a blank, never a raw identifier – so a newer server can add a code without breaking an older client, and an older server (no `code`) is read exactly as today.
 
@@ -158,7 +159,7 @@ is what ends the ~3-minute post-410 traffic tail seen in production (14:53:10 ->
 
 | Endpoint | Auth | Contract |
 |---|---|---|
-| `POST /blobs/begin` | bearer | `{ sha256, size, contentType }` → `{ status: "exists" }` \| `{ status: "upload", url: <presigned PUT>, expiresAt }` \| `413` size cap (images 25 MB, PDFs 10 MB per `SYNC.md`) \| `429` quota. |
+| `POST /blobs/begin` | bearer | `{ sha256, size, contentType }` → `{ status: "exists" }` \| `{ status: "upload", url: <presigned PUT>, expiresAt }` \| `413` size cap (images 25 MB, PDFs 10 MB per `SYNC.md`) \| `429` quota, carrying `quotaUsedPercent` (see "Error envelope"). |
 | `POST /blobs/commit` | bearer | `{ sha256 }` → `204` after server verifies object + size. Referencing records must push only after commit. |
 | `GET /blobs/{sha256}` | bearer | `302` → short-lived presigned GET (~10 min, single object). `404` if not owned by this account. |
 
