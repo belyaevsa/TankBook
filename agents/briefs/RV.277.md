@@ -46,3 +46,30 @@ from the extractor (`fixtures/README.md`'s oracle rule).
 Drop `TASU` from the vocabulary; the new fixture's total L1 goes red (and, if `MAKSTUD` alone
 still resolves it, say so - that is the agreement rule at work). Verbatim, with the expense
 folder's before/after numbers.
+
+## Widened 2026-09-13 (product owner) - the expense corpus joins the pipeline and the gate
+
+A first run of this brief was stopped after it produced `parking-tallinn-airport-et-2.txt` (the
+Vision dump), an `expected.csv` edit and `RV277ExpenseTotalTests.swift` - they are in the tree;
+verify them, keep what holds, redo what does not. The scope now is:
+
+1. **The expense folder is a scored corpus class, like `receipts/`.** `high-water.json` gains an
+   `expenses` entry (`hits` / `total` over the asserted cells: total, currency, date, kind), the
+   corpus scorer gains an expenses scorer (read `CorpusPumpScorer.swift` / `CorpusABScorer.swift`
+   for the shape), and `AccuracyRatchetTests` ratchets it - so `swift test`, which
+   `scripts/gate.sh` runs, fails when an expense cell regresses. That is what "part of the gate"
+   means; do not add a separate script step.
+2. **A separate `recognised.csv` beside `expected.csv`**, written by the harness on every run:
+   one row per fixture with what the extractor PRODUCED (total, currency, date, kind) - committed,
+   so a recognition change shows as a diff in review, and NEVER read as the oracle
+   (`fixtures/README.md`'s rule; say it in the file's header comment). Do the same for the fuel
+   `receipts/` folder only if it is one function - otherwise say so and file it.
+3. **`swift run ReceiptSpike fixtures/expenses` works**: the harness reads the folder's `.jpg`s
+   through Vision to dumps and scores `.txt` fixtures directly, printing the same per-class line
+   it prints for receipts, and `--dump-text` writes the `.txt` beside a new photograph. The
+   README documents the loop: drop the photo in → run the spike → hand-write the `expected.csv`
+   row → the gate holds it.
+
+Tests for the widening: the ratchet's own tests (`AccuracyRatchetTests`) gain the class; a
+recorded-vs-current fixture proves a regression fails. Report the expense class's first number
+(`hits/total`) and commit nothing.
